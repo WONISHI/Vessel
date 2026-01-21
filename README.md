@@ -41,13 +41,13 @@ npx tailwindcss init -p
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [
-    "./src/renderer/index.html",
-    "./src/renderer/src/**/*.{js,ts,jsx,tsx}" // 注意路径匹配你的 renderer 目录
+    './src/renderer/index.html',
+    './src/renderer/src/**/*.{js,ts,jsx,tsx}' // 注意路径匹配你的 renderer 目录
   ],
   theme: {
-    extend: {},
+    extend: {}
   },
-  plugins: [],
+  plugins: []
 }
 ```
 
@@ -67,10 +67,7 @@ module.exports = {
 > @tailwind components;
 > @tailwind utilities;
 >
->
->
 > 会报'@tailwind components' is no longer available in v4. Use '@tailwind utilities' instead.和'@tailwind base' is no longer available in v4. Use '@import "tailwindcss/>preflight"' instead.
->
 
 1. **卸载当前版本并安装 v3**
 
@@ -152,9 +149,7 @@ module.exports = {
     /* --- 添加下面这几行 --- */
     "baseUrl": ".",
     "paths": {
-      "@/*": [
-        "src/renderer/src/*"
-      ]
+      "@/*": ["src/renderer/src/*"]
     }
     /* -------------------- */
   }
@@ -265,7 +260,7 @@ npm install clsx tailwind-merge class-variance-authority lucide-react
   "tsx": true,
   "tailwind": {
     "config": "tailwind.config.js",
-    "css": "src/renderer/src/assets/index.css",
+    "css": "src/renderer/src/assets/tailwind.css",
     "baseColor": "slate",
     "cssVariables": true,
     "prefix": ""
@@ -421,10 +416,7 @@ export function cn(...inputs: ClassValue[]): string {
     }
   },
   "files": [],
-  "references": [
-    { "path": "./tsconfig.node.json" },
-    { "path": "./tsconfig.web.json" }
-  ]
+  "references": [{ "path": "./tsconfig.node.json" }, { "path": "./tsconfig.web.json" }]
 }
 ```
 
@@ -583,4 +575,22 @@ export default {
   },
   plugins: [animate],
 }
+```
+
+## 6.下载ui组件
+
+```JS
+PS E:\vessel\vessel> npx shadcn@latest add card collapsible
+Need to install the following packages:
+shadcn@3.7.0
+Ok to proceed? (y) y
+
+npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
+✔ Checking registry.
+✔ Installing dependencies.
+✔ Created 2 files:
+  - src\renderer\src\components\ui\card.tsx
+  - src\renderer\src\components\ui\collapsible.tsx
+
+PS E:\vessel\vessel> npm run fix
 ```
