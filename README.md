@@ -10,7 +10,7 @@
 
 # 工程创建
 
-##  1. 项目初始化 (脚手架选择)
+## 1. 项目初始化 (脚手架选择)
 
 ```JS
 # 创建项目 (选择 React + TypeScript)
@@ -114,9 +114,9 @@ module.exports = {
 }
 ```
 
-​	4. 再次保存 CSS
+​4. 再次保存 CSS
 
-​	现在，回到 `src/renderer/src/assets/index.css` (或你放 CSS 的地方)，输入原来的代码，这次就不会报错了：
+​现在，回到 `src/renderer/src/assets/index.css` (或你放 CSS 的地方)，输入原来的代码，这次就不会报错了：
 
 ```CSS
 @tailwind base;
