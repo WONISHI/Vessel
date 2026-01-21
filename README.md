@@ -315,63 +315,63 @@ export function cn(...inputs: ClassValue[]): string {
 
     --card: 0 0% 100%;
     --card-foreground: 222.2 84% 4.9%;
- 
+
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
- 
+
     --primary: 222.2 47.4% 11.2%;
     --primary-foreground: 210 40% 98%;
- 
+
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 222.2 47.4% 11.2%;
- 
+
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
- 
+
     --accent: 210 40% 96.1%;
     --accent-foreground: 222.2 47.4% 11.2%;
- 
+
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
     --ring: 222.2 84% 4.9%;
- 
+
     --radius: 0.5rem;
   }
- 
+
   .dark {
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
- 
+
     --card: 222.2 84% 4.9%;
     --card-foreground: 210 40% 98%;
- 
+
     --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
- 
+
     --primary: 210 40% 98%;
     --primary-foreground: 222.2 47.4% 11.2%;
- 
+
     --secondary: 217.2 32.6% 17.5%;
     --secondary-foreground: 210 40% 98%;
- 
+
     --muted: 217.2 32.6% 17.5%;
     --muted-foreground: 215 20.2% 65.1%;
- 
+
     --accent: 217.2 32.6% 17.5%;
     --accent-foreground: 210 40% 98%;
- 
+
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
- 
+
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 212.7 26.8% 83.9%;
   }
 }
- 
+
 @layer base {
   * {
     @apply border-border;
@@ -392,7 +392,7 @@ export function cn(...inputs: ClassValue[]): string {
 
 #### 第二步：修改根目录的 `tsconfig.json`
 
-如果有`tsconfig.web.json`也是改`tsconfig.json`
+`tsconfig.web.json`和`tsconfig.json`都要加`"@/*": ["src/renderer/src/*"]`
 
 打开项目根目录下的 **`tsconfig.json`**（注意是根目录那个，不是 `src` 里的），把 `compilerOptions` 补全。
 
@@ -455,3 +455,132 @@ export default defineConfig({
 })
 ```
 
+## 5.运行
+
+执行`npm run dev`会报错
+
+### WARN
+
+```JS
+17:23:37 [vite] Internal server error: [postcss] E:\vessel\vessel\src\renderer\src\assets\tailwind.css:1:1: The `border-border` class does not exist. If `border-border` is a custom class, make sure it is defined within a `@layer` directive.
+  Plugin: vite:css
+  File: E:/vessel/vessel/src/renderer/src/assets/tailwind.css:1:0
+  1  |  @tailwind base;
+     |  ^
+  2  |  @tailwind components;
+  3  |  @tailwind utilities;
+      at Input.error (E:\vessel\vessel\node_modules\postcss\lib\input.js:135:16)
+      at AtRule.error (E:\vessel\vessel\node_modules\postcss\lib\node.js:146:32)
+      at processApply (E:\vessel\vessel\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:380:29)
+      at E:\vessel\vessel\node_modules\tailwindcss\lib\lib\expandApplyAtRules.js:551:9
+      at E:\vessel\vessel\node_modules\tailwindcss\lib\processTailwindFeatures.js:55:50
+      at async plugins (E:\vessel\vessel\node_modules\tailwindcss\lib\plugin.js:38:17)
+      at async LazyResult.runAsync (E:\vessel\vessel\node_modules\postcss\lib\lazy-result.js:293:11)
+      at async runPostCSS (file:///E:/vessel/vessel/node_modules/vite/dist/node/chunks/config.js:30145:19)
+      at async compilePostCSS (file:///E:/vessel/vessel/node_modules/vite/dist/node/chunks/config.js:30129:6)
+      at async compileCSS (file:///E:/vessel/vessel/node_modules/vite/dist/node/chunks/config.js:30059:26)
+      at async TransformPluginContext.handler (file:///E:/vessel/vessel/node_modules/vite/dist/node/chunks/config.js:29592:54)
+      at async EnvironmentPluginContainer.transform (file:///E:/vessel/vessel/node_modules/vite/dist/node/chunks/config.js:28797:14)
+      at async loadAndTransform (file:///E:/vessel/vessel/node_modules/vite/dist/node/chunks/config.js:22670:26)
+17:23:37 [vite] (client) Pre-transform error: [postcss] E:\vessel\vessel\src\renderer\src\assets\tailwind.css:1:1: The `border-border` class does not exist. If `border-border` is a custom class, make sure it is defined within a `@layer` directive.
+```
+
+这个报错是因为 Tailwind 配置文件 (tailwind.config.js) 还没配置好。
+
+在之前的步骤中，你手动把 CSS 变量（如 --border, --primary）贴到了 CSS 文件里，但是 Tailwind 编译器还不知道如何把这些变量映射成类名（比如 border-border）。我们需要把这份“映射表”填到配置文件里。
+
+请按以下两步修复：
+
+**第一步：安装动画插件**
+shadcn/ui 依赖一个动画插件，先安装它：
+
+```JS
+npm install -D tailwindcss-animate
+```
+
+**第二步：替换 tailwind.config.js**
+请打开根目录下的 tailwind.config.js，完全替换 为以下内容。
+
+这份配置做的事情就是告诉 Tailwind：“当你看到 bg-background 时，请使用 CSS 里的 --background 变量”。
+
+```JS
+import animate from "tailwindcss-animate"
+
+/** @type {import('tailwindcss').Config} */
+export default {
+  darkMode: ["class"],
+  content: [
+    './pages/**/*.{ts,tsx}',
+    './components/**/*.{ts,tsx}',
+    './app/**/*.{ts,tsx}',
+    './src/**/*.{ts,tsx}',
+  ],
+  prefix: "",
+  theme: {
+    container: {
+      center: true,
+      padding: "2rem",
+      screens: {
+        "2xl": "1400px",
+      },
+    },
+    extend: {
+      colors: {
+        border: "hsl(var(--border))",
+        input: "hsl(var(--input))",
+        ring: "hsl(var(--ring))",
+        background: "hsl(var(--background))",
+        foreground: "hsl(var(--foreground))",
+        primary: {
+          DEFAULT: "hsl(var(--primary))",
+          foreground: "hsl(var(--primary-foreground))",
+        },
+        secondary: {
+          DEFAULT: "hsl(var(--secondary))",
+          foreground: "hsl(var(--secondary-foreground))",
+        },
+        destructive: {
+          DEFAULT: "hsl(var(--destructive))",
+          foreground: "hsl(var(--destructive-foreground))",
+        },
+        muted: {
+          DEFAULT: "hsl(var(--muted))",
+          foreground: "hsl(var(--muted-foreground))",
+        },
+        accent: {
+          DEFAULT: "hsl(var(--accent))",
+          foreground: "hsl(var(--accent-foreground))",
+        },
+        popover: {
+          DEFAULT: "hsl(var(--popover))",
+          foreground: "hsl(var(--popover-foreground))",
+        },
+        card: {
+          DEFAULT: "hsl(var(--card))",
+          foreground: "hsl(var(--card-foreground))",
+        },
+      },
+      borderRadius: {
+        lg: "var(--radius)",
+        md: "calc(var(--radius) - 2px)",
+        sm: "calc(var(--radius) - 4px)",
+      },
+      keyframes: {
+        "accordion-down": {
+          from: { height: "0" },
+          to: { height: "var(--radix-accordion-content-height)" },
+        },
+        "accordion-up": {
+          from: { height: "var(--radix-accordion-content-height)" },
+          to: { height: "0" },
+        },
+      },
+      animation: {
+        "accordion-down": "accordion-down 0.2s ease-out",
+        "accordion-up": "accordion-up 0.2s ease-out",
+      },
+    },
+  },
+  plugins: [animate],
+}
+```
