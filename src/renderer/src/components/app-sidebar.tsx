@@ -1,63 +1,117 @@
-import { Calendar, Home, Inbox, Search, Settings } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import { ChevronRightIcon, FileIcon, FolderIcon } from 'lucide-react'
 
 import {
   Sidebar,
   SidebarContent,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem
+  SidebarMenu
 } from '@/components/ui/sidebar'
 
-// Menu items.
-const items = [
-  {
-    title: 'Home',
-    url: '#',
-    icon: Home
-  },
-  {
-    title: 'Inbox',
-    url: '#',
-    icon: Inbox
-  },
-  {
-    title: 'Calendar',
-    url: '#',
-    icon: Calendar
-  },
-  {
-    title: 'Search',
-    url: '#',
-    icon: Search
-  },
-  {
-    title: 'Settings',
-    url: '#',
-    icon: Settings
-  }
-]
-
 export function AppSidebar(): React.JSX.Element {
+  type FileTreeItem = { name: string } | { name: string; items: FileTreeItem[] }
+
+  const fileTree: FileTreeItem[] = [
+    {
+      name: 'components',
+      items: [
+        {
+          name: 'ui',
+          items: [
+            { name: 'button.tsx' },
+            { name: 'card.tsx' },
+            { name: 'dialog.tsx' },
+            { name: 'input.tsx' },
+            { name: 'select.tsx' },
+            { name: 'table.tsx' }
+          ]
+        },
+        { name: 'login-form.tsx' },
+        { name: 'register-form.tsx' }
+      ]
+    },
+    {
+      name: 'lib',
+      items: [{ name: 'utils.ts' }, { name: 'cn.ts' }, { name: 'api.ts' }]
+    },
+    {
+      name: 'hooks',
+      items: [
+        { name: 'use-media-query.ts' },
+        { name: 'use-debounce.ts' },
+        { name: 'use-local-storage.ts' }
+      ]
+    },
+    {
+      name: 'types',
+      items: [{ name: 'index.d.ts' }, { name: 'api.d.ts' }]
+    },
+    {
+      name: 'public',
+      items: [{ name: 'favicon.ico' }, { name: 'logo.svg' }, { name: 'images' }]
+    },
+    { name: 'app.tsx' },
+    { name: 'layout.tsx' },
+    { name: 'globals.css' },
+    { name: 'package.json' },
+    { name: 'tsconfig.json' },
+    { name: 'README.md' },
+    { name: '.gitignore' }
+  ]
+
+  const renderItem = (fileItem: FileTreeItem): React.JSX.Element => {
+    if ('items' in fileItem) {
+      return (
+        <Collapsible key={fileItem.name}>
+          <CollapsibleTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="group hover:bg-accent hover:text-accent-foreground w-full justify-start transition-none"
+            >
+              <ChevronRightIcon className="transition-transform group-data-[state=open]:rotate-90" />
+              <FolderIcon />
+              {fileItem.name}
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="style-lyra:ml-4 mt-1 ml-5">
+            <div className="flex flex-col gap-1">
+              {fileItem.items.map((child) => renderItem(child))}
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+      )
+    }
+    return (
+      <Button
+        key={fileItem.name}
+        variant="link"
+        size="sm"
+        className="text-foreground w-full justify-start gap-2"
+      >
+        <FileIcon />
+        <span>{fileItem.name}</span>
+      </Button>
+    )
+  }
+
   return (
     <Sidebar>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Application</SidebarGroupLabel>
+          {/* <SidebarGroupLabel>Application</SidebarGroupLabel> */}
           <SidebarGroupContent>
             <SidebarMenu>
-              {items.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <a href={item.url}>
-                      <item.icon />
-                      <span>{item.title}</span>
-                    </a>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              <Card className="mx-auto w-full max-w-[16rem] gap-2">
+                <CardContent>
+                  <div className="flex flex-col gap-1">
+                    {fileTree.map((item) => renderItem(item))}
+                  </div>
+                </CardContent>
+              </Card>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
