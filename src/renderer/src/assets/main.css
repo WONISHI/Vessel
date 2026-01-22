@@ -14,9 +14,6 @@ body {
 }
 
 @media (max-width: 620px) {
-  .versions {
-    display: none;
-  }
 }
 
 @media (max-width: 350px) {

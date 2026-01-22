@@ -7,6 +7,8 @@
 - tailwindcss
 - typescript
 - shadcn/ui
+- react-router-dom
+- zustand
 - TipTap
   - @tiptap/extension-table
   - @tiptap/extension-table-cell

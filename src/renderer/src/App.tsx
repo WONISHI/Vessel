@@ -1,9 +1,17 @@
 import Layout from './layout'
+import { HashRouter, Routes, Route } from 'react-router-dom'
+import HomePage from './pages/home'
 
 function App(): React.JSX.Element {
   return (
     <>
-      <Layout></Layout>
+      <HashRouter>
+        <Routes>
+          <Route path="/" element={<HomePage />}>
+            <Route path="/home" element={<Layout />} />
+          </Route>
+        </Routes>
+      </HashRouter>
     </>
   )
 }

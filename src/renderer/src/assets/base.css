@@ -42,6 +42,7 @@ ul {
   list-style: none;
 }
 
-body {
-
+html,body,#root {
+  height:100%;
+  width:100%;
 }

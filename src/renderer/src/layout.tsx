@@ -7,7 +7,7 @@ import TableRow from '@tiptap/extension-table-row'
 import TableCell from '@tiptap/extension-table-cell'
 import TableHeader from '@tiptap/extension-table-header'
 import { Button } from '@/components/ui/button'
-import { Bold } from 'lucide-react'
+import { Bold, Plus, Table as TableIcon, TableCellsMerge, TableCellsSplit } from 'lucide-react'
 
 export default function Layout(): React.JSX.Element {
   const editor = useEditor({
@@ -19,7 +19,7 @@ export default function Layout(): React.JSX.Element {
       TableRow,
       TableHeader,
       TableCell
-    ], // 加载基础包（段落、加粗、撤销等）
+    ],
     content: '<p>你好，这是 TipTap！</p>',
     onUpdate: ({ editor }) => {
       // 每次修改，获取最新的 JSON
@@ -34,7 +34,12 @@ export default function Layout(): React.JSX.Element {
     <SidebarProvider>
       <AppSidebar />
       <main className="px-[10px] flex-1 flex flex-col">
-        <SidebarTrigger />
+        {/* 导航栏 */}
+        <div className="flex items-center">
+          <SidebarTrigger />
+          <Plus />
+        </div>
+        {/* 工具栏 */}
         <div className="mb-4 flex gap-2 pb-2">
           <Button
             variant={editor.isActive('bold') ? 'default' : 'ghost'}
@@ -44,14 +49,28 @@ export default function Layout(): React.JSX.Element {
             <Bold className="h-4 w-4" />
           </Button>
           <Button
+            variant="ghost"
+            size="icon"
             onClick={() =>
               editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()
             }
           >
-            插入表格
+            <TableIcon />
           </Button>
-          <Button onClick={() => editor.chain().focus().mergeCells().run()}>合并单元格</Button>
-          <Button onClick={() => editor.chain().focus().splitCell().run()}>拆分单元格</Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => editor.chain().focus().mergeCells().run()}
+          >
+            <TableCellsMerge />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => editor.chain().focus().splitCell().run()}
+          >
+            <TableCellsSplit />
+          </Button>
         </div>
 
         {/* 2. 编辑器内容区 */}
