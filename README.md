@@ -7,6 +7,13 @@
 - tailwindcss
 - typescript
 - shadcn/ui
+- TipTap
+  - @tiptap/extension-table
+  - @tiptap/extension-table-cell
+  - @tiptap/extension-table-header
+  - @tiptap/extension-table-row
+  - @tiptap/react
+  - @tiptap/starter-kit": "^3.16.0",
 
 # 工程创建
 
