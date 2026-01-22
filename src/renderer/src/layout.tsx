@@ -24,8 +24,8 @@ export default function Layout(): React.JSX.Element {
     onUpdate: ({ editor }) => {
       // 每次修改，获取最新的 JSON
       const json = editor.getJSON()
-      console.log(json);
-    },
+      console.log(json)
+    }
   })
 
   if (!editor) return <></>
@@ -33,25 +33,25 @@ export default function Layout(): React.JSX.Element {
   return (
     <SidebarProvider>
       <AppSidebar />
-      <main className="flex-1 flex flex-col">
+      <main className="px-[10px] flex-1 flex flex-col">
         <SidebarTrigger />
         <div className="mb-4 flex gap-2 pb-2">
           <Button
-            variant={editor.isActive('bold') ? 'default' : 'ghost'} // 动态高亮状态
+            variant={editor.isActive('bold') ? 'default' : 'ghost'}
             size="icon"
-            onClick={() => editor.chain().focus().toggleBold().run()} // 绑定命令
+            onClick={() => editor.chain().focus().toggleBold().run()}
           >
             <Bold className="h-4 w-4" />
           </Button>
-          <Button onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}>
+          <Button
+            onClick={() =>
+              editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()
+            }
+          >
             插入表格
           </Button>
-          <Button onClick={() => editor.chain().focus().mergeCells().run()}>
-            合并单元格
-          </Button>
-          <Button onClick={() => editor.chain().focus().splitCell().run()}>
-            拆分单元格
-          </Button>
+          <Button onClick={() => editor.chain().focus().mergeCells().run()}>合并单元格</Button>
+          <Button onClick={() => editor.chain().focus().splitCell().run()}>拆分单元格</Button>
         </div>
 
         {/* 2. 编辑器内容区 */}
