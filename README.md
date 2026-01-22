@@ -13,7 +13,8 @@
   - @tiptap/extension-table-header
   - @tiptap/extension-table-row
   - @tiptap/react
-  - @tiptap/starter-kit": "^3.16.0",
+  - @tiptap/starter-kit
+  - @tiptap/html
 
 # 工程创建
 

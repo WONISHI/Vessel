@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "An Electron application with React and TypeScript",
   "main": "./out/main/index.js",
-  "author": "example.com",
+  "author": "WONISHI",
   "homepage": "https://electron-vite.org",
   "scripts": {
     "format": "prettier --write .",
@@ -33,6 +33,7 @@
     "@tiptap/extension-table-cell": "^3.16.0",
     "@tiptap/extension-table-header": "^3.16.0",
     "@tiptap/extension-table-row": "^3.16.0",
+    "@tiptap/html": "^3.16.0",
     "@tiptap/react": "^3.16.0",
     "@tiptap/starter-kit": "^3.16.0",
     "class-variance-authority": "^0.7.1",
