@@ -2,8 +2,27 @@ import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
+import type { IFeature } from './type/interfaces/index'
+
+import { OpenDirectoryFeature } from './features/OpenDirectoryFeature'
 
 function createWindow(): void {
+  const features: IFeature[] = [
+    new OpenDirectoryFeature()
+  ];
+
+  const start = () => {
+    for (const feature of features) {
+      try {
+        feature.activate()
+      } catch (err) {
+        console.log(err)
+      }
+    }
+  }
+
+  start()
+
   const mainWindow = new BrowserWindow({
     width: 1174,
     height: 682,
@@ -12,7 +31,9 @@ function createWindow(): void {
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
-      sandbox: false
+      sandbox: false,
+      contextIsolation: true,
+      nodeIntegration: true,
     }
   })
 
