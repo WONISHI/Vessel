@@ -31,8 +31,8 @@ export default function HomePage({ onEnter }: HomePageProps) {
 
   const handleStart = () => {
     if (workspace && onEnter) {
-      onEnter(workspace); // 同步状态到根组件
-      navigate(`/editor?name=${workspace}`); // 执行路由跳转
+      onEnter(workspace); 
+      navigate(`/editor`); // 执行路由跳转
     }
   };
 

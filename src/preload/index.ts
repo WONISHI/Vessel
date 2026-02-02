@@ -12,7 +12,8 @@ if (process.contextIsolated) {
     contextBridge.exposeInMainWorld('electron', electronAPI)
     contextBridge.exposeInMainWorld('api', api)
     contextBridge.exposeInMainWorld('electronAPI', {
-      openDirectory: () => ipcRenderer.invoke('dialog:openDirectory')
+      openDirectory: () => ipcRenderer.invoke('dialog:openDirectory'),
+      readContent: (path: string) => ipcRenderer.invoke('file:readContent', path)
     });
   } catch (error) {
     console.error(error)

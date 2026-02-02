@@ -1,49 +1,57 @@
-// src/main/features/OpenDirectoryFeature.ts
 import { ipcMain, dialog } from 'electron';
 import { basename, join, extname } from "path";
-import { readdir } from "fs/promises";
+import { readdir, readFile } from "fs/promises";
+
+interface FileNode {
+  name: string;
+  path: string;
+  type: 'file' | 'directory';
+  children?: FileNode[];
+}
 
 export class OpenDirectoryFeature {
-    activate() {
-        ipcMain.removeHandler('dialog:openDirectory');
-        ipcMain.handle('dialog:openDirectory', async () => {
-            const { canceled, filePaths } = await dialog.showOpenDialog({
-                properties: ['openDirectory']
-            });
+  activate() {
+    // 1. 选择并扫描目录
+    ipcMain.handle('dialog:openDirectory', async () => {
+      const { canceled, filePaths } = await dialog.showOpenDialog({
+        properties: ['openDirectory']
+      });
+      if (canceled || filePaths.length === 0) return null;
 
-            if (canceled || filePaths.length === 0) return null;
+      const rootPath = filePaths[0];
+      const tree = await this.scanDirectory(rootPath);
+      return { name: basename(rootPath), path: rootPath, files: tree };
+    });
 
-            const rootPath = filePaths[0];
-            const name = basename(rootPath);
-            
-            // 异步递归获取 .md 文件
-            const files = await this.readMarkdownFiles(rootPath);
-            
-            // 返回完整对象，与渲染进程的 WorkspaceData 结构对齐
-            return {
-                name: name,
-                path: rootPath,
-                files: files
-            };
-        });
-    }
+    // 2. 读取文件内容 (注意参数顺序：_, path)
+    ipcMain.handle('file:readContent', async (_, filePath: string) => {
+      try {
+        if (!filePath) return "";
+        return await readFile(filePath, 'utf-8');
+      } catch (e) {
+        return "";
+      }
+    });
+  }
 
-    private async readMarkdownFiles(dir: string): Promise<any[]> {
-        try {
-            const entries = await readdir(dir, { withFileTypes: true });
-            const files = await Promise.all(entries.map(async (entry) => {
-                const res = join(dir, entry.name);
-                if (entry.isDirectory()) {
-                    if (entry.name.startsWith('.')) return []; // 过滤隐藏目录
-                    return this.readMarkdownFiles(res);
-                } else if (extname(entry.name).toLowerCase() === '.md') {
-                    return [{ name: entry.name, path: res }];
-                }
-                return [];
-            }));
-            return files.flat();
-        } catch (e) {
-            return [];
+  private async scanDirectory(dir: string): Promise<FileNode[]> {
+    try {
+      const entries = await readdir(dir, { withFileTypes: true });
+      const nodes = await Promise.all(entries.map(async (entry) => {
+        const fullPath = join(dir, entry.name);
+        if (entry.name.startsWith('.')) return null;
+
+        if (entry.isDirectory()) {
+          const children = await this.scanDirectory(fullPath);
+          return { name: entry.name, path: fullPath, type: 'directory', children };
+        } else if (extname(entry.name).toLowerCase() === '.md') {
+          return { name: entry.name, path: fullPath, type: 'file' };
         }
-    }
+        return null;
+      }));
+      return (nodes.filter(Boolean) as FileNode[]).sort((a, b) => 
+        a.type === b.type ? a.name.localeCompare(b.name) : (a.type === 'directory' ? -1 : 1)
+      );
+    } catch (e) { return []; }
+  }
 }
