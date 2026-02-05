@@ -1,7 +1,7 @@
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useState } from 'react'
 import HomePage from './pages/home'
-import Layout from './layout'
+import Layout from './layout/index'
 import { Toaster } from 'sonner'
 
 // 统一工作区接口定义
