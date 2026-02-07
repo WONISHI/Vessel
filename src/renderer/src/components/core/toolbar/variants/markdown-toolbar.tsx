@@ -31,19 +31,15 @@ interface MarkdownToolbarItem {
     type?: 'separator'; // 增加类型标识，用于分割线
 }
 
-export default function MarkdownToolbar({ editor }: ToolbarProps) {
-    if (!editor) return null;
+export default function MarkdownToolbar({ editor }: ToolbarProps): React.JSX.Element {
+    if (!editor) return (<></>);
 
     const items: MarkdownToolbarItem[] = [
         { label: "Undo", icon: Undo2, action: () => editor.chain().focus().undo().run() },
         { label: "Redo", icon: Redo2, action: () => editor.chain().focus().redo().run() },
-        
-        { type: "separator" }, // 分割线
-        
+        { type: "separator" },
         { label: "Clear Format", icon: Eraser, action: () => editor.chain().focus().unsetAllMarks().run() },
-        
-        { type: "separator" }, // 分割线
-
+        { type: "separator" }, 
         {
             label: "Heading",
             icon: Heading,
@@ -94,7 +90,7 @@ export default function MarkdownToolbar({ editor }: ToolbarProps) {
 }
 
 // --- 子组件 1: 普通按钮 ---
-function SingleToolbarButton({ item }: { item: MarkdownToolbarItem }) {
+function SingleToolbarButton({ item }: { item: MarkdownToolbarItem }): React.JSX.Element {
     const Icon = item.icon!; // 断言 icon 一定存在
     return (
         <Tooltip>
@@ -116,7 +112,7 @@ function SingleToolbarButton({ item }: { item: MarkdownToolbarItem }) {
 }
 
 // --- 子组件 2: 下拉菜单 ---
-function GroupDropdown({ item }: { item: MarkdownToolbarItem }) {
+function GroupDropdown({ item }: { item: MarkdownToolbarItem }): React.JSX.Element {
     const MainIcon = item.icon!; // 断言 icon 一定存在
 
     return (
