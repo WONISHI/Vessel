@@ -15,17 +15,20 @@ import TaskList from '@tiptap/extension-task-list'
 import TaskItem from '@tiptap/extension-task-item'
 import { Color } from '@tiptap/extension-color'
 import { TextStyle } from '@tiptap/extension-text-style'
-import Placeholder from '@tiptap/extension-placeholder' // 建议安装: npm install @tiptap/extension-placeholder
+import Placeholder from '@tiptap/extension-placeholder'
 import { useEffect, useState } from "react"
 import { WorkspaceContext } from '@/layout/context/WorkspaceContext';
 import { cn } from "@/lib/utils"
 import TurndownService from 'turndown'
+import { gfm } from 'turndown-plugin-gfm'
 import { toast } from "sonner"
 
 const turndownService = new TurndownService({
     headingStyle: 'atx',
     codeBlockStyle: 'fenced'
 })
+
+turndownService.use(gfm)
 
 function NavItem({ node, activeFilePath, onFileClick }: any) {
     const active = node.path === activeFilePath
@@ -114,6 +117,7 @@ export default function LayoutSide({ workspace, children }: any) {
         toast.promise(async () => {
             const html = editor.getHTML()
             const markdown = turndownService.turndown(html)
+            console.log(markdown)
             const success = await window.electronAPI.saveContent(activeFilePath, markdown)
             if (!success) throw new Error("Save failed")
         }, {
