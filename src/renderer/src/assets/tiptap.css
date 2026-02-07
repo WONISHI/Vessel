@@ -26,7 +26,10 @@
   z-index: 2;
   position: absolute;
   content: "";
-  left: 0; right: 0; top: 0; bottom: 0;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
   background: rgba(200, 200, 255, 0.4);
   pointer-events: none;
 }
@@ -51,8 +54,10 @@
 }
 
 /* 强制定义标题大小和粗细 */
-.tiptap h1, .prose h1 {
-  font-size: 2.25rem; /* 36px */
+.tiptap h1,
+.prose h1 {
+  font-size: 2.25rem;
+  /* 36px */
   font-weight: 800;
   line-height: 1.2;
   margin-top: 1.5rem;
@@ -61,24 +66,40 @@
   padding-bottom: 0.3rem;
 }
 
-.tiptap h2, .prose h2 {
-  font-size: 1.875rem; /* 30px */
+.tiptap h2,
+.prose h2 {
+  font-size: 1.875rem;
+  /* 30px */
   font-weight: 700;
   margin-top: 1.2rem;
   margin-bottom: 0.8rem;
 }
 
-.tiptap h3, .prose h3 {
-  font-size: 1.5rem; /* 24px */
+.tiptap h3,
+.prose h3 {
+  font-size: 1.5rem;
+  /* 24px */
   font-weight: 600;
 }
 
-.tiptap ul, .prose ul {
+.tiptap ul,
+.prose ul {
   list-style-type: disc;
   padding-left: 1.5rem;
 }
 
-.tiptap ol, .prose ol {
+.tiptap li {
+  line-height: 1.6;
+  margin-top: 0.2em;
+  margin-bottom: 0.2em;
+}
+
+.tiptap li p {
+  margin: 0;
+}
+
+.tiptap ol,
+.prose ol {
   list-style-type: decimal;
   padding-left: 1.5rem;
 }
@@ -86,18 +107,29 @@
 /* 表格基础样式 */
 .tiptap table {
   border-collapse: collapse;
-  table-layout: auto; 
-  width: auto;       
+  table-layout: auto;
+  width: auto;
   margin: 0;
   overflow: hidden;
   max-width: 100%;
 }
 
-.tiptap td, .tiptap th {
+.tiptap td,
+.tiptap th {
   min-width: 1em;
   border: 1px solid #ced4da;
   padding: 6px 10px;
   vertical-align: top;
   box-sizing: border-box;
   position: relative;
+}
+
+.tiptap p {
+  line-height: 1.6;
+  margin-top: 0.2em;
+  margin-bottom: 0.2em;
+}
+
+.tiptap p+p {
+  margin-top: 0em;
 }

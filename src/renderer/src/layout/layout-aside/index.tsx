@@ -20,6 +20,7 @@ import { useEffect, useState } from "react"
 import { WorkspaceContext } from '@/layout/context/WorkspaceContext';
 import { cn } from "@/lib/utils"
 import TurndownService from 'turndown'
+import { Markdown } from 'tiptap-markdown'
 import { gfm } from 'turndown-plugin-gfm'
 import { toast } from "sonner"
 
@@ -53,7 +54,7 @@ function NavItem({ node, activeFilePath, onFileClick }: any) {
         )
     }
     return (
-        <SidebarMenuItem>
+        <SidebarMenuItem className="w-[calc(100%_-_0.5em)]">
             <Collapsible className="group/collapsible">
                 <CollapsibleTrigger asChild>
                     <SidebarMenuButton className="h-9 hover:bg-white text-slate-600">
@@ -63,7 +64,7 @@ function NavItem({ node, activeFilePath, onFileClick }: any) {
                     </SidebarMenuButton>
                 </CollapsibleTrigger>
                 <CollapsibleContent>
-                    <SidebarMenu className="ml-3 border-l border-slate-200/60 pl-1">
+                    <SidebarMenu className="w-[calc(100%_-_0.25em)] ml-3 border-l border-slate-200/60 pl-1">
                         {node.children?.map((child: any) => (
                             <NavItem
                                 key={child.path}
@@ -97,7 +98,32 @@ export default function LayoutSide({ workspace, children }: any) {
             TextStyle,
             Color,
             Highlight.configure({ multicolor: true }),
-            Placeholder.configure({ placeholder: '开始输入...' })
+            Placeholder.configure({ placeholder: '开始输入...' }),
+            Markdown.configure({
+                html: true, // 必须开启，允许 Markdown 混合 HTML
+                transformPastedText: true,
+                transformCopiedText: true,
+                extensions: [
+                    {
+                        // 🟢 背景色 (Highlight) -> 转为 <mark>
+                        name: 'highlight',
+                        on: { mark: 'highlight' },
+                        serialize: {
+                            open: (mark: any) => mark.attrs.color ? `<mark style="background-color: ${mark.attrs.color}">` : '<mark>',
+                            close: '</mark>',
+                        },
+                    },
+                    {
+                        // 🟢 文字颜色 (TextStyle) -> 转为 <span>
+                        name: 'textStyle',
+                        on: { mark: 'textStyle' },
+                        serialize: {
+                            open: (mark: any) => mark.attrs.color ? `<span style="color: ${mark.attrs.color}">` : '<span>',
+                            close: '</span>',
+                        },
+                    },
+                ],
+            } as any)
         ],
         editorProps: {
             attributes: {
@@ -146,6 +172,7 @@ export default function LayoutSide({ workspace, children }: any) {
                 return null;
             }
             const _activeFilePath = findFile(workspace.files);
+            console.log('_activeFilePath',_activeFilePath)
             if (_activeFilePath) {
                 const ext = _activeFilePath.path.split('.').pop()
                 setFileType(ext)

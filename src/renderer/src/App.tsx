@@ -3,6 +3,7 @@ import { useState } from 'react'
 import HomePage from './pages/home'
 import Layout from './layout/index'
 import { Toaster } from 'sonner'
+import DevTool from '@/components/core/devtool' // 假设你放在这里
 
 // 统一工作区接口定义
 export interface WorkspaceData {
@@ -17,7 +18,12 @@ function App() {
   return (
     <>
       <Toaster position="top-center" richColors closeButton />
+      
+      {/* ✅ DevTool 必须放在 HashRouter 里面 */}
       <HashRouter>
+        {/* 调试工具：放在 Router 内部才能使用 useNavigate */}
+        <DevTool />
+
         <Routes>
           {/* 首页 */}
           <Route
@@ -39,7 +45,6 @@ function App() {
         </Routes>
       </HashRouter>
     </>
-
   )
 }
 

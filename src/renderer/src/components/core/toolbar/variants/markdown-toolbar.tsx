@@ -128,8 +128,6 @@ export default function MarkdownToolbar({ editor, onSave }: ToolbarProps): React
         },
 
         { type: "separator" },
-
-        // 3. 标题 (✅ 4. 增加 H4, H5, H6)
         {
             label: "Heading",
             icon: Heading,
@@ -174,8 +172,6 @@ export default function MarkdownToolbar({ editor, onSave }: ToolbarProps): React
             ]
         },
         { label: "Checklist", icon: CheckSquare, action: () => editor.chain().focus().toggleTaskList().run(), isActive: () => editor.isActive('taskList') },
-
-        // 7. 对齐
         {
             label: "Alignment",
             icon: AlignLeft,
@@ -187,28 +183,18 @@ export default function MarkdownToolbar({ editor, onSave }: ToolbarProps): React
                 { label: "Justify", icon: AlignJustify, action: () => editor.chain().focus().setTextAlign('justify').run(), isActive: () => editor.isActive({ textAlign: 'justify' }) }
             ]
         },
-
         { type: "separator" },
-
-        // 8. 插入与其他
         { label: "Block Quote", icon: TextQuote, action: () => editor.chain().focus().toggleBlockquote().run(), isActive: () => editor.isActive('blockquote') },
         { label: "Insert Table", icon: TableIcon, action: () => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(), isActive: () => editor.isActive('table') },
-        // ✅ 5. 增加文件上传按钮
         { label: "Insert Media (Image/Video)", icon: ImageIcon, action: triggerFileUpload, isActive: () => false },
-
         { type: "separator" },
-
         { label: "Clear Format", icon: Eraser, action: () => editor.chain().focus().unsetAllMarks().clearNodes().run(), isActive: () => false },
-
         { type: "separator" },
-
-        // ✅ 6. 增加保存按钮
         { label: "Save File", icon: Save, action: onSave || (() => { }), isActive: () => false },
     ];
 
     return (
         <div className="py-2 bg-white flex justify-center w-full sticky top-0 z-20">
-            {/* ✅ 隐藏的文件输入框 */}
             <input
                 type="file"
                 ref={fileInputRef}
