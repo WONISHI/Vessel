@@ -15,17 +15,19 @@ import TaskList from '@tiptap/extension-task-list'
 import TaskItem from '@tiptap/extension-task-item'
 import { Color } from '@tiptap/extension-color'
 import { TextStyle } from '@tiptap/extension-text-style'
-import Placeholder from '@tiptap/extension-placeholder' // 建议安装: npm install @tiptap/extension-placeholder
+import Placeholder from '@tiptap/extension-placeholder'
+import { Markdown } from 'tiptap-markdown'
 import { useEffect, useState } from "react"
 import { WorkspaceContext } from '@/layout/context/WorkspaceContext';
 import { cn } from "@/lib/utils"
-import TurndownService from 'turndown'
+import { marked } from 'marked'
+// import TurndownService from 'turndown'
 import { toast } from "sonner"
 
-const turndownService = new TurndownService({
-    headingStyle: 'atx',
-    codeBlockStyle: 'fenced'
-})
+// const turndownService = new TurndownService({
+//     headingStyle: 'atx',
+//     codeBlockStyle: 'fenced'
+// })
 
 function NavItem({ node, activeFilePath, onFileClick }: any) {
     const active = node.path === activeFilePath
@@ -94,7 +96,12 @@ export default function LayoutSide({ workspace, children }: any) {
             TextStyle,
             Color,
             Highlight.configure({ multicolor: true }),
-            Placeholder.configure({ placeholder: '开始输入...' })
+            Placeholder.configure({ placeholder: '开始输入...' }),
+            Markdown.configure({
+                html: false,
+                transformPastedText: true,
+                transformCopiedText: true
+            })
         ],
         editorProps: {
             attributes: {
@@ -112,8 +119,8 @@ export default function LayoutSide({ workspace, children }: any) {
         const fileName = activeFilePath.split(/[/\\]/).pop()
 
         toast.promise(async () => {
-            const html = editor.getHTML()
-            const markdown = turndownService.turndown(html)
+            const markdown = (editor.storage as any).markdown.getMarkdown()
+
             const success = await window.electronAPI.saveContent(activeFilePath, markdown)
             if (!success) throw new Error("Save failed")
         }, {
@@ -128,6 +135,36 @@ export default function LayoutSide({ workspace, children }: any) {
             }
         })
     }
+
+    useEffect(() => {
+        const loadFileContent = async () => {
+            if (!activeFilePath || !editor) return
+
+            try {
+                // 假设你有这个 API 读取文件内容
+                const content = await window.electronAPI.readContent(activeFilePath)
+
+                const ext = activeFilePath.split('.').pop()?.toLowerCase()
+
+                if (ext === 'md' || ext === 'markdown') {
+                    // 关键步骤：如果是 MD 文件，先用 marked 转成 HTML
+                    const html = await marked.parse(content)
+                    editor.commands.setContent(html)
+                } else if (ext === 'json') {
+                    // 如果是 JSON 文件
+                    editor.commands.setContent(JSON.parse(content))
+                } else {
+                    // 其他情况当纯文本处理
+                    editor.commands.setContent(content)
+                }
+            } catch (error) {
+                console.error("Failed to load file:", error)
+                toast.error("读取文件失败")
+            }
+        }
+
+        loadFileContent()
+    }, [activeFilePath, editor])
 
     useEffect(() => {
         if (workspace?.files?.length > 0 && !activeFilePath) {
