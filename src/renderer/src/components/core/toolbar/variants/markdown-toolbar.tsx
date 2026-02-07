@@ -21,7 +21,6 @@ import {
     type LucideIcon
 } from "lucide-react";
 
-// 定义工具栏项目的接口
 interface MarkdownToolbarItem {
     label?: string;
     icon?: LucideIcon;
