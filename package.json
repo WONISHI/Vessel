@@ -82,5 +82,8 @@
   },
   "volta": {
     "node": "20.20.0"
+  },
+  "prettier": {
+    "semi": false
   }
 }
