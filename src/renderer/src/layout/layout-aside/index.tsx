@@ -49,6 +49,7 @@ function NavItem({ node, activeFilePath, onFileClick }: any) {
 
 export default function LayoutSide({ workspace, children }: any) {
     const [activeFilePath, setActiveFilePath] = useState<string | null>('')
+    const [fileType, setFileType] = useState<string>('')
 
     const editor = useEditor({
         extensions: [
@@ -70,15 +71,16 @@ export default function LayoutSide({ workspace, children }: any) {
 
     useEffect(() => {
         if (workspace.files.length > 0 && !activeFilePath) {
-            console.log('editor', editor)
             const _activeFilePath = workspace.files.find(node => node.type === 'file')
+            const ext = _activeFilePath.path.split('.').pop()
+            setFileType(ext)
             setActiveFilePath(_activeFilePath.path)
         }
     }, [workspace])
 
     return (
         //@ts-ignore
-        <WorkspaceContext.Provider value={{ workspace, activeFilePath, editor }}>
+        <WorkspaceContext.Provider value={{ workspace, activeFilePath, editor, fileType }}>
             <Sidebar variant="floating" className="border-r-0 shadow-xl shadow-slate-200/50">
                 <SidebarHeader className="p-4 flex flex-row items-center gap-3">
                     <div className="h-9 w-9 rounded-xl bg-white shadow-sm ring-1 ring-slate-200 flex items-center justify-center p-1.5">

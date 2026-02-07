@@ -1,8 +1,8 @@
-import MarkdownToolbar from "@/components/core/toolbar/variants/markdown-toolbar"
+import Toolbar from "@/components/core/toolbar/variants/markdown-toolbar"
 import { useWorkspace } from '@/layout/context/WorkspaceContext';
 export default function ToolBar() {
-    const { editor } = useWorkspace();
+    const { editor, fileType } = useWorkspace();
     return (
-        <MarkdownToolbar editor={{editor}}></MarkdownToolbar>
+        <Toolbar editor={{ editor, fileType }}></Toolbar>
     )
 }

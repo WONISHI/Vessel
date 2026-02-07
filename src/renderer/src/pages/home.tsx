@@ -2,7 +2,7 @@ import Logo from '@/assets/vessel.png'
 import { Card, CardContent } from '@/components/ui/card'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { FolderOpen, NotebookPen, Loader2, Sparkles, Plus } from 'lucide-react'
+import { FolderOpen, NotebookPen, Sparkles, Plus } from 'lucide-react'
 
 interface WorkspaceData {
   name: string

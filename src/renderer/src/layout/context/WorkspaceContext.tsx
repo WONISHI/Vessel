@@ -3,7 +3,8 @@ import { createContext, useContext } from 'react';
 interface WorkspaceContextType {
     workspace: any;
     activeFilePath: string;
-    editor:any
+    editor: any,
+    fileType:string;
 }
 
 const WorkspaceContext = createContext<WorkspaceContextType | undefined>(undefined);

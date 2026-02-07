@@ -1,7 +1,6 @@
 import { type Editor } from '@tiptap/react'
 export interface ToolbarProps {
     editor?: any;
-    // fileType: string;
 }
 
 export type MarkdownToolbarItem = {
