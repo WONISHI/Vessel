@@ -1,8 +1,12 @@
-import Toolbar from "@/components/core/toolbar/index"
-import { useWorkspace } from '@/layout/context/WorkspaceContext';
+import { useContext } from "react";
+import { WorkspaceContext } from "@/layout/context/WorkspaceContext";
+import MarkdownToolbar from "@/components/core/toolbar/variants/markdown-toolbar";
+
 export default function ToolBar() {
-    const { editor, fileType } = useWorkspace();
-    return (
-        <Toolbar editor={editor} fileType={fileType}></Toolbar>
-    )
+    const { editor, fileType, onSave } = useContext(WorkspaceContext) as any;
+    if (fileType === 'md' || fileType === 'markdown') {
+        return <MarkdownToolbar editor={editor} onSave={onSave} />;
+    }
+
+    return null;
 }

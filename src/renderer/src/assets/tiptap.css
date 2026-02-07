@@ -86,16 +86,17 @@
 /* 表格基础样式 */
 .tiptap table {
   border-collapse: collapse;
-  table-layout: fixed;
-  width: 100%;
+  table-layout: auto; 
+  width: auto;       
   margin: 0;
   overflow: hidden;
+  max-width: 100%;
 }
 
 .tiptap td, .tiptap th {
   min-width: 1em;
-  border: 2px solid #ced4da;
-  padding: 3px 5px;
+  border: 1px solid #ced4da;
+  padding: 6px 10px;
   vertical-align: top;
   box-sizing: border-box;
   position: relative;

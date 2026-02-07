@@ -4,7 +4,7 @@ import Canvas from "@/layout/layout-main/canvas"
 
 export default function LayoutMain() {
     return (
-        <main className="relative flex flex-1 flex-col bg-[#fafafa]">
+        <main className="w-full relative flex flex-1 flex-col bg-[#fafafa]">
             {/* 面包屑导航 */}
             <BreadCrumb></BreadCrumb>
             {/* 工具栏 */}
