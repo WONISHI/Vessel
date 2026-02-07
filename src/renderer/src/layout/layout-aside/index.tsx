@@ -2,6 +2,12 @@ import { Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, S
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { FileText, Folder, ChevronRight } from "lucide-react"
 import Logo from '@/assets/logo.png'
+import { useEditor } from '@tiptap/react'
+import StarterKit from '@tiptap/starter-kit'
+import { Table } from '@tiptap/extension-table'
+import TableRow from '@tiptap/extension-table-row'
+import TableCell from '@tiptap/extension-table-cell'
+import TableHeader from '@tiptap/extension-table-header'
 import { useEffect, useState } from "react"
 import { WorkspaceContext } from '@/layout/context/WorkspaceContext';
 import { cn } from "@/lib/utils"
@@ -44,12 +50,27 @@ function NavItem({ node, activeFilePath, onFileClick }: any) {
 export default function LayoutSide({ workspace, children }: any) {
     const [activeFilePath, setActiveFilePath] = useState<string | null>('')
 
-    const onFileClick = (path:string) => {
+    const editor = useEditor({
+        extensions: [
+            StarterKit,
+            Table.configure({ resizable: true }),
+            TableRow, TableHeader, TableCell
+        ],
+        editorProps: {
+            attributes: {
+                // 使用 Tailwind Typography (prose) 渲染基础样式
+                class: 'prose prose-slate max-w-none focus:outline-none px-8 py-12 min-h-[500px]',
+            },
+        },
+    })
+
+    const onFileClick = (path: string) => {
         setActiveFilePath(path)
     }
 
     useEffect(() => {
         if (workspace.files.length > 0 && !activeFilePath) {
+            console.log('editor', editor)
             const _activeFilePath = workspace.files.find(node => node.type === 'file')
             setActiveFilePath(_activeFilePath.path)
         }
@@ -57,7 +78,7 @@ export default function LayoutSide({ workspace, children }: any) {
 
     return (
         //@ts-ignore
-        <WorkspaceContext.Provider value={{ workspace, activeFilePath }}>
+        <WorkspaceContext.Provider value={{ workspace, activeFilePath, editor }}>
             <Sidebar variant="floating" className="border-r-0 shadow-xl shadow-slate-200/50">
                 <SidebarHeader className="p-4 flex flex-row items-center gap-3">
                     <div className="h-9 w-9 rounded-xl bg-white shadow-sm ring-1 ring-slate-200 flex items-center justify-center p-1.5">
