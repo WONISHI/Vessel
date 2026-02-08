@@ -7,7 +7,7 @@ declare global {
     electronAPI: {
       openDirectory: () => Promise<WorkspaceData | null>,
       readContent: (path: string) => Promise<string>,
-      readFile: (path: string) => Promise<string>,
+      openDevTool: () => void;
       saveContent: (path: string, content: string) => Promise<boolean>
     }
   }

@@ -3,7 +3,6 @@ import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import type { IFeature } from './type/interfaces/index'
-import fs from 'fs'
 
 import { OpenDirectoryFeature } from './features/OpenDirectoryFeature'
 
@@ -11,15 +10,6 @@ function createWindow(): void {
   const features: IFeature[] = [
     new OpenDirectoryFeature()
   ];
-
-  ipcMain.handle('read-file', async (_event, filePath: string) => {
-    try {
-      return fs.readFileSync(filePath, 'utf-8')
-    } catch (e) {
-      console.error(e)
-      return ''
-    }
-  })
 
   const start = () => {
     for (const feature of features) {
@@ -48,8 +38,18 @@ function createWindow(): void {
     }
   })
 
+
   mainWindow.on('ready-to-show', () => {
     mainWindow.show()
+  })
+
+  ipcMain.handle('open-devtools', (event) => {
+    const contents = event.sender
+    if (contents.isDevToolsOpened()) {
+      contents.closeDevTools()
+    } else {
+      contents.openDevTools()
+    }
   })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {

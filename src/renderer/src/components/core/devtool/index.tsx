@@ -327,23 +327,18 @@ export default function DevTool() {
             }
         },
         {
+            label: '打开控制台',
+            icon: Bug,
+            action: () => {
+                window.electronAPI.openDevTool()
+            }
+        },
+        {
             label: '打开历史记录面板',
             icon: Terminal,
             action: () => setIsConsoleOpen(true)
-        },
-        { type: 'separator' } as any,
-        {
-            label: '测试 Log 生成',
-            icon: Bug,
-            action: () => {
-                const types: LogType[] = ['log', 'info', 'warn', 'error'];
-                const randomType = types[Math.floor(Math.random() * types.length)];
-                const msgs = ['测试消息', { id: 1 }, ['数组'], '点击'];
-                const randomMsg = msgs[Math.floor(Math.random() * msgs.length)];
-                // @ts-ignore
-                console[randomType](`[${randomType.toUpperCase()}]`, randomMsg);
-            }
         }, 
+        { type: 'separator' } as any,
         {
             label: '刷新页面',
             icon: RefreshCcw,

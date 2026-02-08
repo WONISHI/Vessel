@@ -14,8 +14,8 @@ if (process.contextIsolated) {
     contextBridge.exposeInMainWorld('electronAPI', {
       openDirectory: () => ipcRenderer.invoke('dialog:openDirectory'),
       readContent: (path: string) => ipcRenderer.invoke('file:readContent', path),
+      openDevTool: () => ipcRenderer.invoke('open-devtools'),
       saveContent: (path: string, content: string) => ipcRenderer.invoke('file:saveContent', path, content),
-      readFile: (path: string) => ipcRenderer.invoke('read-file', path)
     });
   } catch (error) {
     console.error(error)

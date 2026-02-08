@@ -20,8 +20,8 @@ import {
     Braces, Baseline, PaintBucket, PaintRoller, Check,
     List, ListOrdered, Indent, Outdent, CheckSquare,
     AlignLeft, AlignCenter, AlignRight, AlignJustify,
-    TextQuote, Table as TableIcon, Paperclip,
-    Save, Image as ImageIcon, FileVideo,
+    TextQuote, Table as TableIcon,
+    Save, Image as ImageIcon, 
     type LucideIcon
 } from "lucide-react";
 import { cn } from "@/lib/utils";
