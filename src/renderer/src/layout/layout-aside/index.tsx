@@ -30,6 +30,7 @@ const turndownService = new TurndownService({
 })
 
 turndownService.use(gfm)
+turndownService.keep(['mark', 'font'])
 
 function NavItem({ node, activeFilePath, collapsibleFold, setCollapsibleFold, onFileClick }: any) {
     const onOpenChange = (_: boolean, path: string) => {
@@ -125,12 +126,11 @@ export default function LayoutSide({ workspace, children }: any) {
                         },
                     },
                     {
-                        // 🟢 文字颜色 (TextStyle) -> 转为 <span>
                         name: 'textStyle',
                         on: { mark: 'textStyle' },
                         serialize: {
-                            open: (mark: any) => mark.attrs.color ? `<span style="color: ${mark.attrs.color}">` : '<span>',
-                            close: '</span>',
+                            open: (mark: any) => mark.attrs.color ? `<font color="${mark.attrs.color}">` : '<font>',
+                            close: '</font>',
                         },
                     },
                 ],
@@ -156,9 +156,7 @@ export default function LayoutSide({ workspace, children }: any) {
         const fileName = activeFilePath.split(/[/\\]/).pop()
 
         toast.promise(async () => {
-            const html = editor.getHTML()
-            const markdown = turndownService.turndown(html)
-            console.log(markdown)
+            const markdown = (editor.storage as any).markdown.getMarkdown();
             const success = await window.electronAPI.saveContent(activeFilePath, markdown)
             if (!success) throw new Error("Save failed")
         }, {
