@@ -31,7 +31,17 @@ const turndownService = new TurndownService({
 
 turndownService.use(gfm)
 
-function NavItem({ node, activeFilePath, onFileClick }: any) {
+function NavItem({ node, activeFilePath, collapsibleFold, setCollapsibleFold, onFileClick }: any) {
+    const onOpenChange = (_: boolean, path: string) => {
+        setCollapsibleFold((collapsible: string[]) => {
+            if (!collapsible.includes(path)) {
+                return [...collapsible, path]
+            } else {
+                return [...collapsible.filter(i => i !== path)]
+            }
+        })
+    }
+
     const active = node.path === activeFilePath
 
     // 1. 递归渲染需要 key，但在组件内部我们只关注当前节点的渲染
@@ -55,7 +65,7 @@ function NavItem({ node, activeFilePath, onFileClick }: any) {
     }
     return (
         <SidebarMenuItem className="w-[calc(100%_-_0.5em)]">
-            <Collapsible className="group/collapsible">
+            <Collapsible className="group/collapsible" open={collapsibleFold.includes(node.path)} onOpenChange={(open: boolean) => onOpenChange(open, node.path)}>
                 <CollapsibleTrigger asChild>
                     <SidebarMenuButton className="h-9 hover:bg-white text-slate-600">
                         <Folder className="h-3.5 w-3.5 text-blue-400/70" />
@@ -84,6 +94,7 @@ export default function LayoutSide({ workspace, children }: any) {
     const [activeFilePath, setActiveFilePath] = useState<string | null>('')
     const [fileType, setFileType] = useState<string>('')
     const [isSaving, setIsSaving] = useState(false)
+    const [collapsibleFold, setCollapsibleFold] = useState<string[]>([''])
 
     const editor = useEditor({
         extensions: [
@@ -132,6 +143,10 @@ export default function LayoutSide({ workspace, children }: any) {
         },
     })
 
+    const changeCollapsible = (path: string) => {
+        setCollapsibleFold([...collapsibleFold, path])
+    }
+
     const onFileClick = (path: string) => {
         setActiveFilePath(path)
     }
@@ -161,29 +176,18 @@ export default function LayoutSide({ workspace, children }: any) {
 
     useEffect(() => {
         if (workspace?.files?.length > 0 && !activeFilePath) {
-            const findFile = (nodes: any[]) => {
-                for (const node of nodes) {
-                    if (node.type === 'file') return node;
-                    if (node.children) {
-                        const found = findFile(node.children);
-                        if (found) return found;
-                    }
-                }
-                return null;
-            }
-            const _activeFilePath = findFile(workspace.files);
-            console.log('_activeFilePath',_activeFilePath)
-            if (_activeFilePath) {
-                const ext = _activeFilePath.path.split('.').pop()
+            const firstRootFile = workspace.files.find((node: any) => node.type === 'file');
+            if (firstRootFile) {
+                const ext = firstRootFile.path.split('.').pop()
                 setFileType(ext)
-                setActiveFilePath(_activeFilePath.path)
+                setActiveFilePath(firstRootFile.path)
             }
         }
     }, [workspace])
 
     return (
         //@ts-ignore
-        <WorkspaceContext.Provider value={{ workspace, activeFilePath, editor, fileType, onSave }}>
+        <WorkspaceContext.Provider value={{ workspace, activeFilePath, editor, fileType, onSave, changeCollapsible }}>
             <Sidebar variant="floating" className="border-r-0 bg-slate-50/50">
                 <SidebarHeader className="p-4 flex flex-row items-center gap-3">
                     <div className="h-9 w-9 rounded-xl bg-white shadow-sm ring-1 ring-slate-200 flex items-center justify-center p-1.5">
@@ -201,6 +205,8 @@ export default function LayoutSide({ workspace, children }: any) {
                                 key={node.path}
                                 activeFilePath={activeFilePath}
                                 node={node}
+                                collapsibleFold={collapsibleFold}
+                                setCollapsibleFold={setCollapsibleFold}
                                 onFileClick={onFileClick}
                             />
                         ))}

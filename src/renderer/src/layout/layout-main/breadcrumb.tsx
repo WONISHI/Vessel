@@ -1,19 +1,27 @@
 import { useWorkspace } from '@/layout/context/WorkspaceContext';
 import { SidebarTrigger } from '@/components/ui/sidebar'
-import { 
-    Breadcrumb, 
-    BreadcrumbList, 
-    BreadcrumbItem, 
-    BreadcrumbLink, 
-    BreadcrumbSeparator, 
-    BreadcrumbPage 
+import {
+    Breadcrumb,
+    BreadcrumbList,
+    BreadcrumbItem,
+    BreadcrumbLink,
+    BreadcrumbSeparator,
+    BreadcrumbPage
 } from "@/components/ui/breadcrumb"
 import { Separator } from "@/components/ui/separator"
 import { useEffect, useState, Fragment } from 'react';
 
 export default function BreadCrumb() {
-    const { workspace, activeFilePath } = useWorkspace();
+    // 假设 context 中有一个 setExpandedFolders 或 similar 方法用来控制侧边栏展开
+    // 如果没有，你需要自己在 Context 中添加一个用来控制展开状态的方法
+    const { workspace, activeFilePath, changeCollapsible } = useWorkspace();
     const [segments, setSegments] = useState<string[]>([]);
+
+    // 修改 jumpRoute 接收完整路径
+    const jumpRoute = (fullPath?: string) => {
+        if (!fullPath) return;
+        changeCollapsible(fullPath)
+    }
 
     useEffect(() => {
         if (!workspace || !Object.keys(workspace).length || !activeFilePath) {
@@ -22,20 +30,17 @@ export default function BreadCrumb() {
         }
 
         try {
-            // 简单的路径切割逻辑
-            // 1. 以 workspace.name 为界切割，取后半部分
-            // 注意：这只是一个简单的假设，实际建议后端返回相对路径，或者用 path.relative 计算
+            // 这里逻辑保持不变，依然是切割出相对路径片段
             const parts = activeFilePath.split(workspace.name);
-            
             if (parts.length > 1) {
-                // 取最后一个部分（防止路径前面也有和 workspace.name 重名的文件夹）
-                const relativePath = parts.pop(); 
-                // 2. 分割并过滤掉空字符串 (比如开头是 / 产生的空串)
-                const _segments = relativePath?.split('/').filter(Boolean) || [];
+                // 注意：这里假设 activeFilePath 是 /root/project/src/index.tsx
+                // split 可能会导致首位出现空字符串，建议处理一下路径归一化
+                // 这里的处理比较依赖你的 activeFilePath 格式，假设它是标准的
+                const relativePath = activeFilePath.replace(workspace.path, '');
+                const _segments = relativePath.split('/').filter(Boolean);
                 setSegments(_segments);
             } else {
-                // 降级处理：直接显示文件名
-                setSegments([activeFilePath]);
+                setSegments([activeFilePath]); // Fallback
             }
         } catch (e) {
             console.error("Breadcrumb parsing error", e);
@@ -45,21 +50,17 @@ export default function BreadCrumb() {
     return (
         <header className="sticky top-0 z-10 flex h-14 items-center border-b border-slate-200/60 bg-white/70 px-4 backdrop-blur-xl justify-between">
             <div className="flex items-center gap-2">
-                {/* 侧边栏开关 */}
-                <SidebarTrigger className="h-8 w-8 text-slate-500 hover:bg-slate-100 hover:text-slate-900" />
-                
-                {/* 竖线分隔 */}
+                <SidebarTrigger className="h-8 w-8 text-slate-500 hover:bg-slate-100 hover:text-slate-900 cursor-pointer" />
                 <Separator orientation="vertical" className="mr-2 h-4 bg-slate-300" />
 
-                {/* 面包屑主体 */}
                 <Breadcrumb>
                     <BreadcrumbList className="text-[12px] sm:text-[13px]">
-                        
-                        {/* 根节点：工作区名称 */}
+
+                        {/* 根节点：点击打开根目录 */}
                         <BreadcrumbItem>
-                            <BreadcrumbLink 
-                                href="#" 
-                                className="font-semibold text-slate-700 hover:text-slate-900"
+                            <BreadcrumbLink
+                                className="font-semibold text-slate-700 hover:text-slate-900 cursor-pointer"
+                                onClick={() => jumpRoute(workspace?.path)}
                             >
                                 {workspace?.name || 'Workspace'}
                             </BreadcrumbLink>
@@ -67,29 +68,33 @@ export default function BreadCrumb() {
 
                         {segments.length > 0 && <BreadcrumbSeparator />}
 
-                        {/* 动态路径片段 */}
                         {segments.map((segment, index) => {
                             const isLast = index === segments.length - 1;
+
+                            // 【核心修改】：动态计算当前 segment 的完整路径
+                            // 逻辑：工作区根路径 + 前面所有的片段 + 当前片段
+                            // 举例：['src', 'components', 'Button.tsx']
+                            // index 0 ('src') -> workspace.path + '/src'
+                            // index 1 ('components') -> workspace.path + '/src/components'
+                            const currentPath = `${workspace?.path}/${segments.slice(0, index + 1).join('/')}`;
 
                             return (
                                 <Fragment key={`${segment}-${index}`}>
                                     <BreadcrumbItem>
                                         {isLast ? (
-                                            // 最后一项：当前页面（不可点击，颜色较深）
                                             <BreadcrumbPage className="font-medium text-slate-900">
                                                 {segment}
                                             </BreadcrumbPage>
                                         ) : (
-                                            // 中间项：链接（可点击，颜色较浅）
-                                            <BreadcrumbLink 
-                                                href="#" 
-                                                className="text-slate-500 hover:text-slate-700 transition-colors"
+                                            <BreadcrumbLink
+                                                className="text-slate-500 hover:text-slate-700 transition-colors cursor-pointer"
+                                                // 传入计算好的完整路径
+                                                onClick={() => jumpRoute(currentPath)}
                                             >
                                                 {segment}
                                             </BreadcrumbLink>
                                         )}
                                     </BreadcrumbItem>
-                                    {/* 只有不是最后一项时才显示分隔符 */}
                                     {!isLast && <BreadcrumbSeparator />}
                                 </Fragment>
                             );
@@ -97,11 +102,7 @@ export default function BreadCrumb() {
                     </BreadcrumbList>
                 </Breadcrumb>
             </div>
-            
-            {/* 右侧区域（预留给 Save 按钮或其他工具） */}
-            <div className="flex items-center gap-2">
-                {/* <span className="text-xs text-slate-400">Read Only</span> */}
-            </div>
+            <div className="flex items-center gap-2"></div>
         </header>
     )
 }

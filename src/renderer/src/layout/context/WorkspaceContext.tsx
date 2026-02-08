@@ -4,7 +4,8 @@ interface WorkspaceContextType {
     workspace: any;
     activeFilePath: string;
     editor: any,
-    fileType:string;
+    fileType: string;
+    changeCollapsible: (path: string) => void;
 }
 
 const WorkspaceContext = createContext<WorkspaceContextType | undefined>(undefined);
