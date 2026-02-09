@@ -117,7 +117,6 @@ export default function LayoutSide({ workspace, children }: any) {
                 transformCopiedText: true,
                 extensions: [
                     {
-                        // 🟢 背景色 (Highlight) -> 转为 <mark>
                         name: 'highlight',
                         on: { mark: 'highlight' },
                         serialize: {
@@ -131,6 +130,26 @@ export default function LayoutSide({ workspace, children }: any) {
                         serialize: {
                             open: (mark: any) => mark.attrs.color ? `<font color="${mark.attrs.color}">` : '<font>',
                             close: '</font>',
+                        },
+                    },
+                    {
+                        name: 'code',
+                        on: { mark: 'code' },
+                        serialize: {
+                            open: '`',
+                            close: '`',
+                        },
+                    },
+                    {
+                        name: 'codeBlock',
+                        on: { node: 'codeBlock' },
+                        serialize: (state, node) => {
+                            const language = node.attrs.language || '';
+                            state.write('```' + language + '\n');
+                            state.text(node.textContent, false);
+                            state.ensureNewLine();
+                            state.write('```');
+                            state.closeBlock(node);
                         },
                     },
                 ],
