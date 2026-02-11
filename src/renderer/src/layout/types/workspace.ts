@@ -8,6 +8,7 @@ export interface WorkspaceContextType {
 
 // 在此处创建并导出Context对象
 import { createContext } from "react"
+// prettier-ignore
 export const WorkspaceContext = createContext<WorkspaceContextType | undefined>(
   undefined,
 )
