@@ -1,18 +1,8 @@
 import React, { useRef, useState } from "react"
 import { ToolbarProps } from "@/components/core/toolbar/types"
 import { Button } from "@/components/ui/button"
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import {
   Bold,
   Italic,
@@ -76,10 +66,7 @@ const PRESET_COLORS = [
   { label: "Pink", color: "#ec4899" },
 ]
 
-export default function MarkdownToolbar({
-  editor,
-  onSave,
-}: ToolbarProps): React.JSX.Element {
+export default function MarkdownToolbar({ editor, onSave }: ToolbarProps): React.JSX.Element {
   if (!editor) return <></>
 
   const [copiedStyle, setCopiedStyle] = useState<any>(null)
@@ -97,16 +84,10 @@ export default function MarkdownToolbar({
       if (copiedStyle.underline) editor.chain().focus().setUnderline().run()
       else editor.chain().focus().unsetUnderline().run()
 
-      if (copiedStyle.color)
-        editor.chain().focus().setColor(copiedStyle.color).run()
+      if (copiedStyle.color) editor.chain().focus().setColor(copiedStyle.color).run()
       else editor.chain().focus().unsetColor().run()
 
-      if (copiedStyle.highlight)
-        editor
-          .chain()
-          .focus()
-          .toggleHighlight({ color: copiedStyle.highlight })
-          .run()
+      if (copiedStyle.highlight) editor.chain().focus().toggleHighlight({ color: copiedStyle.highlight }).run()
       else editor.chain().focus().unsetHighlight().run()
 
       setCopiedStyle(null)
@@ -136,13 +117,7 @@ export default function MarkdownToolbar({
       editor.chain().focus().setImage({ src: url }).run()
     } else if (file.type.startsWith("video/")) {
       // 注意：TipTap 默认没有 video 扩展，这里使用 insertContent 插入 HTML
-      editor
-        .chain()
-        .focus()
-        .insertContent(
-          `<video src="${url}" controls class="max-w-full h-auto rounded-md" />`,
-        )
-        .run()
+      editor.chain().focus().insertContent(`<video src="${url}" controls class="max-w-full h-auto rounded-md" />`).run()
     }
 
     // 重置 input 防止重复选择同一文件不触发 onChange
@@ -189,43 +164,37 @@ export default function MarkdownToolbar({
         {
           label: "Heading 1",
           icon: Heading1,
-          action: () =>
-            editor.chain().focus().toggleHeading({ level: 1 }).run(),
+          action: () => editor.chain().focus().toggleHeading({ level: 1 }).run(),
           isActive: () => editor.isActive("heading", { level: 1 }),
         },
         {
           label: "Heading 2",
           icon: Heading2,
-          action: () =>
-            editor.chain().focus().toggleHeading({ level: 2 }).run(),
+          action: () => editor.chain().focus().toggleHeading({ level: 2 }).run(),
           isActive: () => editor.isActive("heading", { level: 2 }),
         },
         {
           label: "Heading 3",
           icon: Heading3,
-          action: () =>
-            editor.chain().focus().toggleHeading({ level: 3 }).run(),
+          action: () => editor.chain().focus().toggleHeading({ level: 3 }).run(),
           isActive: () => editor.isActive("heading", { level: 3 }),
         },
         {
           label: "Heading 4",
           icon: Heading4,
-          action: () =>
-            editor.chain().focus().toggleHeading({ level: 4 }).run(),
+          action: () => editor.chain().focus().toggleHeading({ level: 4 }).run(),
           isActive: () => editor.isActive("heading", { level: 4 }),
         },
         {
           label: "Heading 5",
           icon: Heading5,
-          action: () =>
-            editor.chain().focus().toggleHeading({ level: 5 }).run(),
+          action: () => editor.chain().focus().toggleHeading({ level: 5 }).run(),
           isActive: () => editor.isActive("heading", { level: 5 }),
         },
         {
           label: "Heading 6",
           icon: Heading6,
-          action: () =>
-            editor.chain().focus().toggleHeading({ level: 6 }).run(),
+          action: () => editor.chain().focus().toggleHeading({ level: 6 }).run(),
           isActive: () => editor.isActive("heading", { level: 6 }),
         },
       ],
@@ -287,8 +256,7 @@ export default function MarkdownToolbar({
     {
       label: "Lists",
       icon: List,
-      isActive: () =>
-        editor.isActive("bulletList") || editor.isActive("orderedList"),
+      isActive: () => editor.isActive("bulletList") || editor.isActive("orderedList"),
       groups: [
         {
           label: "Bullet List",
@@ -325,10 +293,7 @@ export default function MarkdownToolbar({
     {
       label: "Alignment",
       icon: AlignLeft,
-      isActive: () =>
-        editor.isActive({ textAlign: "left" }) ||
-        editor.isActive({ textAlign: "center" }) ||
-        editor.isActive({ textAlign: "right" }),
+      isActive: () => editor.isActive({ textAlign: "left" }) || editor.isActive({ textAlign: "center" }) || editor.isActive({ textAlign: "right" }),
       groups: [
         {
           label: "Align Left",
@@ -366,12 +331,7 @@ export default function MarkdownToolbar({
     {
       label: "Insert Table",
       icon: TableIcon,
-      action: () =>
-        editor
-          .chain()
-          .focus()
-          .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
-          .run(),
+      action: () => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(),
       isActive: () => editor.isActive("table"),
     },
     {
@@ -391,31 +351,20 @@ export default function MarkdownToolbar({
     {
       label: "Save File",
       icon: Save,
-      action: onSave || (() => {}),
+      action: onSave || (() => { }),
       isActive: () => false,
     },
   ]
 
   return (
     <div className="py-2 bg-white flex justify-center w-full sticky top-0 z-20">
-      <input
-        type="file"
-        ref={fileInputRef}
-        className="hidden"
-        accept="image/*,video/*"
-        onChange={handleFileSelect}
-      />
+      <input type="file" ref={fileInputRef} className="hidden" accept="image/*,video/*" onChange={handleFileSelect} />
 
       <div className="rounded-full border shadow-sm bg-white px-4 py-1.5 flex items-center gap-1 overflow-x-auto max-w-full no-scrollbar">
         <TooltipProvider delayDuration={0}>
           {items.map((item, index) => {
             if (item.type === "separator") {
-              return (
-                <div
-                  key={index}
-                  className="w-px h-5 bg-slate-200 mx-1 shrink-0"
-                />
-              )
+              return <div key={index} className="w-px h-5 bg-slate-200 mx-1 shrink-0" />
             }
 
             if (item.type === "color-picker") {
@@ -439,13 +388,7 @@ export default function MarkdownToolbar({
 }
 
 // --- 子组件：颜色选择器 ---
-function ColorPicker({
-  item,
-  editor,
-}: {
-  item: MarkdownToolbarItem
-  editor: any
-}) {
+function ColorPicker({ item, editor }: { item: MarkdownToolbarItem; editor: any }) {
   const Icon = item.icon!
   const isText = item.colorType === "text"
 
@@ -469,17 +412,12 @@ function ColorPicker({
       <Tooltip>
         <TooltipTrigger asChild>
           <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 shrink-0 text-slate-600 hover:bg-slate-100 relative"
-            >
+            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-slate-600 hover:bg-slate-100 relative">
               <Icon className="h-4 w-4" />
               <div
                 className="absolute bottom-1.5 left-2 right-2 h-[3px] rounded-full"
                 style={{
-                  backgroundColor:
-                    currentColor || (isText ? "#000" : "transparent"),
+                  backgroundColor: currentColor || (isText ? "#000" : "transparent"),
                 }}
               />
             </Button>
@@ -498,20 +436,15 @@ function ColorPicker({
               onClick={() => handleColorChange(c.color)}
               className={cn(
                 "w-6 h-6 rounded-full border flex items-center justify-center transition-transform hover:scale-110 focus:outline-none",
-                c.border ? "border-slate-200" : "border-transparent",
+                c.border ? "border-slate-200" : "border-transparent"
               )}
               style={{
-                backgroundColor:
-                  c.color === "inherit" ? "transparent" : c.color,
+                backgroundColor: c.color === "inherit" ? "transparent" : c.color,
               }}
               title={c.label}
             >
-              {c.color === "inherit" && (
-                <div className="w-full h-px bg-red-500 rotate-45" />
-              )}
-              {currentColor === c.color && c.color !== "inherit" && (
-                <Check className="w-3 h-3 text-white drop-shadow-md" />
-              )}
+              {c.color === "inherit" && <div className="w-full h-px bg-red-500 rotate-45" />}
+              {currentColor === c.color && c.color !== "inherit" && <Check className="w-3 h-3 text-white drop-shadow-md" />}
             </button>
           ))}
         </div>
@@ -531,12 +464,7 @@ function SingleToolbarButton({ item }: { item: MarkdownToolbarItem }) {
           variant="ghost"
           size="icon"
           onClick={item.action}
-          className={cn(
-            "h-8 w-8 shrink-0",
-            active
-              ? "bg-slate-900 text-white hover:bg-slate-700 hover:text-white"
-              : "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
-          )}
+          className={cn("h-8 w-8 shrink-0", active ? "bg-slate-900 text-white hover:bg-slate-700 hover:text-white" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900")}
         >
           <Icon className="h-4 w-4" />
         </Button>
@@ -556,16 +484,7 @@ function GroupDropdown({ item }: { item: MarkdownToolbarItem }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          size="sm"
-          className={cn(
-            "h-8 px-2 gap-1 shrink-0 data-[state=open]:bg-slate-100",
-            isGroupActive
-              ? "bg-slate-100 text-slate-900"
-              : "text-slate-600 hover:bg-slate-100",
-          )}
-        >
+        <Button variant="ghost" size="sm" className={cn("h-8 px-2 gap-1 shrink-0 data-[state=open]:bg-slate-100", isGroupActive ? "bg-slate-100 text-slate-900" : "text-slate-600 hover:bg-slate-100")}>
           <MainIcon className="h-4 w-4" />
           <ChevronDown className="h-3 w-3 opacity-50" />
         </Button>
@@ -577,14 +496,7 @@ function GroupDropdown({ item }: { item: MarkdownToolbarItem }) {
           const isSubActive = subItem.isActive ? subItem.isActive() : false
 
           return (
-            <DropdownMenuItem
-              key={subIndex}
-              onClick={subItem.action}
-              className={cn(
-                "gap-2 cursor-pointer",
-                isSubActive && "bg-slate-50 font-medium",
-              )}
-            >
+            <DropdownMenuItem key={subIndex} onClick={subItem.action} className={cn("gap-2 cursor-pointer", isSubActive && "bg-slate-50 font-medium")}>
               <SubIcon className="h-4 w-4 text-slate-500" />
               <span className="flex-1">{subItem.label}</span>
               {isSubActive && <Check className="h-3 w-3 text-slate-900" />}

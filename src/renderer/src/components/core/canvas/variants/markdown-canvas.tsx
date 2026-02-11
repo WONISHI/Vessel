@@ -1,5 +1,6 @@
 import Vditor from "vditor"
 import "vditor/dist/index.css"
+import "@/components/core/canvas/variants/markdown-canvas.css"
 import { ToolbarProps } from "@/components/core/toolbar/types"
 import { useEffect, useRef, useState, useCallback } from "react"
 import { toast } from "sonner"
@@ -98,15 +99,12 @@ export default function MarkdownCanvas({ activeFilePath }: ToolbarProps) {
     }
   }, [safeDestroyEditor])
 
-  // ---------- 加载文件内容（带防并发和防重复）----------
   const loadPathFile = useCallback(
     async (path: string) => {
-      // 防重复：已经加载过该文件，且没有强制刷新需求，直接跳过
       if (currentFilePathRef.current === path) {
         return
       }
 
-      // 防并发：已有加载任务正在进行，跳过本次触发
       if (isLoadingRef.current) {
         console.warn("已有加载任务正在进行，跳过本次加载")
         return
@@ -122,7 +120,8 @@ export default function MarkdownCanvas({ activeFilePath }: ToolbarProps) {
 
         const mdContent = await (window as any).electronAPI.readContent(path)
 
-        // 加载完成后，如果路径未变，才更新状态
+        console.log(mdContent)
+
         if (path === activeFilePath) {
           setContent(mdContent || "")
           currentFilePathRef.current = path // 记录已加载路径
