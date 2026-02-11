@@ -51,13 +51,13 @@ npx tailwindcss init -p
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [
-    './src/renderer/index.html',
-    './src/renderer/src/**/*.{js,ts,jsx,tsx}' // 注意路径匹配你的 renderer 目录
+    "./src/renderer/index.html",
+    "./src/renderer/src/**/*.{js,ts,jsx,tsx}", // 注意路径匹配你的 renderer 目录
   ],
   theme: {
-    extend: {}
+    extend: {},
   },
-  plugins: []
+  plugins: [],
 }
 ```
 
@@ -177,9 +177,9 @@ module.exports = {
 **方案一：修改后的 `vite.config.ts` 参考如下：**
 
 ```ts
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import { resolve } from 'path' // 1. 确保引入了 resolve
+import { defineConfig } from "vite"
+import react from "@vitejs/plugin-react"
+import { resolve } from "path" // 1. 确保引入了 resolve
 
 export default defineConfig({
   // ... 其他配置保持不变
@@ -188,9 +188,9 @@ export default defineConfig({
   resolve: {
     alias: {
       // 2. 添加这一行配置
-      '@': resolve(__dirname, 'src/renderer/src')
-    }
-  }
+      "@": resolve(__dirname, "src/renderer/src"),
+    },
+  },
 })
 ```
 
@@ -426,34 +426,37 @@ export function cn(...inputs: ClassValue[]): string {
     }
   },
   "files": [],
-  "references": [{ "path": "./tsconfig.node.json" }, { "path": "./tsconfig.web.json" }]
+  "references": [
+    { "path": "./tsconfig.node.json" },
+    { "path": "./tsconfig.web.json" }
+  ]
 }
 ```
 
 electron.vite.config.ts
 
 ```ts
-import { resolve } from 'path'
-import { defineConfig, externalizeDepsPlugin } from 'electron-vite'
-import react from '@vitejs/plugin-react'
+import { resolve } from "path"
+import { defineConfig, externalizeDepsPlugin } from "electron-vite"
+import react from "@vitejs/plugin-react"
 
 export default defineConfig({
   main: {
-    plugins: [externalizeDepsPlugin()]
+    plugins: [externalizeDepsPlugin()],
   },
   preload: {
-    plugins: [externalizeDepsPlugin()]
+    plugins: [externalizeDepsPlugin()],
   },
   renderer: {
     resolve: {
       alias: {
-        '@renderer': resolve('src/renderer/src'),
+        "@renderer": resolve("src/renderer/src"),
         /* 👇 加上这一行，让 Vite 也能识别 shadcn 的路径 */
-        '@': resolve('src/renderer/src')
-      }
+        "@": resolve("src/renderer/src"),
+      },
     },
-    plugins: [react()]
-  }
+    plugins: [react()],
+  },
 })
 ```
 

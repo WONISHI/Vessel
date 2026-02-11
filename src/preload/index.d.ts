@@ -1,13 +1,13 @@
-import { ElectronAPI } from '@electron-toolkit/preload'
+import { ElectronAPI } from "@electron-toolkit/preload"
 
 declare global {
   interface Window {
     electron: ElectronAPI
-    api: unknown,
+    api: unknown
     electronAPI: {
-      openDirectory: () => Promise<WorkspaceData | null>,
-      readContent: (path: string) => Promise<string>,
-      openDevTool: () => void;
+      openDirectory: () => Promise<WorkspaceData | null>
+      readContent: (path: string) => Promise<string>
+      openDevTool: () => void
       saveContent: (path: string, content: string) => Promise<boolean>
     }
   }

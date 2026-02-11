@@ -1,10 +1,10 @@
 // src/preload/index.d.ts
-import { ElectronAPI } from '@electron-toolkit/preload'
+import { ElectronAPI } from "@electron-toolkit/preload"
 
 interface WorkspaceData {
-  name: string;
-  path: string;
-  files: Array<{ name: string; path: string }>;
+  name: string
+  path: string
+  files: Array<{ name: string; path: string }>
 }
 
 declare global {

@@ -1,3 +1,3 @@
 export interface IFeature {
-    activate(): void;
+  activate(): void
 }

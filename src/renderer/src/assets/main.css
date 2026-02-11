@@ -1,11 +1,9 @@
-@import './base.css';
-@import './tailwind.css';
-@import './tiptap.css';
+@import "./base.css";
+@import "./tailwind.css";
+@import "./tiptap.css";
 
 body {
-
 }
-
 
 @media (max-width: 720px) {
   .text {

@@ -42,11 +42,13 @@ ul {
   list-style: none;
 }
 
-html,body,#root {
-  height:100%;
-  width:100%;
+html,
+body,
+#root {
+  height: 100%;
+  width: 100%;
 }
 
-#root{
+#root {
   display: flex;
 }

@@ -1,7 +1,16 @@
 {
-  "semi": false,
   "singleQuote": false,
   "jsxSingleQuote": false,
-  "printWidth": 100,
-  "trailingComma": "none"
+  "printWidth": 200,
+  "useTabs": false,
+  "bracketSpacing": true,
+  "arrowParens": "always",
+  "endOfLine": "lf",
+  "tabWidth": 2,
+  "trailingComma": "none",
+  "singleAttributePerLine": false,
+  "typeAngleBracketSpacing": true,
+  "semi": false,
+  "commaPosition": "first",
+  "multilineCollections": "always"
 }

@@ -1,8 +1,8 @@
-import Logo from '@/assets/vessel.png'
-import { Card, CardContent } from '@/components/ui/card'
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { FolderOpen, NotebookPen, Sparkles, Plus } from 'lucide-react'
+import Logo from "@/assets/vessel.png"
+import { Card, CardContent } from "@/components/ui/card"
+import { useState } from "react"
+import { useNavigate } from "react-router-dom"
+import { FolderOpen, NotebookPen, Sparkles, Plus } from "lucide-react"
 
 interface WorkspaceData {
   name: string
@@ -52,7 +52,9 @@ export default function HomePage({ onEnter }: HomePageProps) {
             />
           </div>
 
-          <h1 className="mb-2 text-3xl font-light tracking-[0.4em] text-slate-800">VESSEL</h1>
+          <h1 className="mb-2 text-3xl font-light tracking-[0.4em] text-slate-800">
+            VESSEL
+          </h1>
 
           <div className="mb-12 text-center h-6">
             {workspace ? (
@@ -73,7 +75,7 @@ export default function HomePage({ onEnter }: HomePageProps) {
             >
               <FolderOpen className="h-4 w-4 text-blue-500" />
               <span className="flex-1 text-left uppercase tracking-widest">
-                {workspace ? '更换目录' : '导入工作区'}
+                {workspace ? "更换目录" : "导入工作区"}
               </span>
               <Plus className="h-4 w-4 opacity-30 group-hover:rotate-90 group-hover:opacity-100 transition-all" />
             </button>
@@ -81,10 +83,11 @@ export default function HomePage({ onEnter }: HomePageProps) {
             <button
               disabled={!workspace || loading}
               onClick={handleStart}
-              className={`flex h-16 w-full items-center justify-center gap-3 rounded-2xl px-6 text-xs font-black transition-all duration-500 ${workspace
-                  ? 'bg-slate-900 text-white shadow-2xl hover:bg-black hover:-translate-y-1'
-                  : 'bg-slate-100 text-slate-300 cursor-not-allowed border border-slate-200/50'
-                }`}
+              className={`flex h-16 w-full items-center justify-center gap-3 rounded-2xl px-6 text-xs font-black transition-all duration-500 ${
+                workspace
+                  ? "bg-slate-900 text-white shadow-2xl hover:bg-black hover:-translate-y-1"
+                  : "bg-slate-100 text-slate-300 cursor-not-allowed border border-slate-200/50"
+              }`}
             >
               <NotebookPen className="h-4 w-4" />
               <span className="uppercase tracking-[0.2em]">开启笔记</span>

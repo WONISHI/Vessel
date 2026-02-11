@@ -1,3 +1,1 @@
-export default function RoutesTree(){
-    
-}
+export default function RoutesTree() {}

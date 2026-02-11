@@ -1,5 +1,10 @@
 import React from "react"
-import { ChevronRight, File as FileIcon, Folder as FolderIcon, type LucideIcon } from "lucide-react"
+import {
+  ChevronRight,
+  File as FileIcon,
+  Folder as FolderIcon,
+  type LucideIcon,
+} from "lucide-react"
 import {
   Collapsible,
   CollapsibleContent,
@@ -26,15 +31,23 @@ interface TreeProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 const Tree = React.forwardRef<HTMLDivElement, TreeProps>(
-  ({ className, data, initialSelectedId, onSelect, children, ...props }, ref) => {
-    const [selectedId, setSelectedId] = React.useState<string | undefined>(initialSelectedId)
+  (
+    { className, data, initialSelectedId, onSelect, children, ...props },
+    ref,
+  ) => {
+    const [selectedId, setSelectedId] = React.useState<string | undefined>(
+      initialSelectedId,
+    )
 
-    const handleSelect = React.useCallback((id: string) => {
-      setSelectedId(id)
-      if (onSelect) {
-        onSelect(id)
-      }
-    }, [onSelect])
+    const handleSelect = React.useCallback(
+      (id: string) => {
+        setSelectedId(id)
+        if (onSelect) {
+          onSelect(id)
+        }
+      },
+      [onSelect],
+    )
 
     return (
       <TreeContext.Provider value={{ selectedId, handleSelect }}>
@@ -43,13 +56,15 @@ const Tree = React.forwardRef<HTMLDivElement, TreeProps>(
         </div>
       </TreeContext.Provider>
     )
-  }
+  },
 )
 Tree.displayName = "Tree"
 
 // --- 文件夹组件 ---
 
-interface FolderProps extends React.ComponentPropsWithoutRef<typeof Collapsible> {
+interface FolderProps extends React.ComponentPropsWithoutRef<
+  typeof Collapsible
+> {
   name: string
   icon?: LucideIcon
 }
@@ -62,7 +77,7 @@ const Folder = React.forwardRef<HTMLDivElement, FolderProps>(
           <button
             className={cn(
               "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium hover:bg-slate-100",
-              "text-slate-600 transition-colors"
+              "text-slate-600 transition-colors",
             )}
           >
             <Icon className="h-4 w-4 text-blue-400/70" />
@@ -77,7 +92,7 @@ const Folder = React.forwardRef<HTMLDivElement, FolderProps>(
         </CollapsibleContent>
       </Collapsible>
     )
-  }
+  },
 )
 Folder.displayName = "Folder"
 
@@ -101,18 +116,23 @@ const File = React.forwardRef<HTMLButtonElement, FileProps>(
         onClick={() => context?.handleSelect(id)}
         className={cn(
           "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium transition-colors",
-          isSelected 
-            ? "bg-white text-blue-600 shadow-sm ring-1 ring-slate-200" 
+          isSelected
+            ? "bg-white text-blue-600 shadow-sm ring-1 ring-slate-200"
             : "text-slate-500 hover:bg-slate-100 hover:text-slate-900",
-          className
+          className,
         )}
         {...props}
       >
-        <Icon className={cn("h-4 w-4", isSelected ? "text-blue-500" : "text-slate-400")} />
+        <Icon
+          className={cn(
+            "h-4 w-4",
+            isSelected ? "text-blue-500" : "text-slate-400",
+          )}
+        />
         <span className="flex-1 text-left truncate">{name}</span>
       </button>
     )
-  }
+  },
 )
 File.displayName = "File"
 
@@ -133,20 +153,16 @@ function TreeView({ data, itemClassName, ...props }: TreeViewProps) {
       )
     }
     return (
-      <File 
-        key={node.path} 
-        id={node.path} 
-        name={node.name} 
+      <File
+        key={node.path}
+        id={node.path}
+        name={node.name}
         className={itemClassName}
       />
     )
   }
 
-  return (
-    <Tree {...props}>
-      {data.map(renderNode)}
-    </Tree>
-  )
+  return <Tree {...props}>{data.map(renderNode)}</Tree>
 }
 
 export { Tree, Folder, File, TreeView }
