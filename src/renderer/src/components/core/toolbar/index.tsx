@@ -1,14 +1,13 @@
 import { memo } from "react"
 import MarkdownToolbar from "@/components/core/toolbar/variants/markdown-toolbar"
 interface EditorTabsProps {
-  fileType: string
-  editor: any
+  fileType: string;
+  activeFilePath: string;
 }
 
-const EditorTabs = ({ fileType, editor }: EditorTabsProps) => {
-  if (!editor) return null
-  if (fileType === "md" || fileType === "markdown") {
-    return <MarkdownToolbar editor={editor} />
+const EditorTabs = ({ fileType, activeFilePath }: EditorTabsProps) => {
+  if (fileType === 'md' || fileType === 'markdown') {
+    return <MarkdownToolbar activeFilePath={activeFilePath} />
   }
   return null
 }

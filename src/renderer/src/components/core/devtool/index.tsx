@@ -336,96 +336,94 @@ export default function DevTool() {
     window.addEventListener("mouseup", handleMouseUp)
   }
 
-  // --- 菜单配置 ---
-  const devTools: DevToolsItem[] = [
-    {
-      label: isSpyEnabled
-        ? "关闭 Console 监听 (总开关)"
-        : "开启 Console 监听 (总开关)",
-      icon: isSpyEnabled ? Square : Play,
-      active: isSpyEnabled,
-      action: toggleSpy,
-    },
-    {
-      label: "监听类型设置",
-      icon: CheckCircle2,
-      children: (
-        <div className="w-40">
-          <DropdownMenuCheckboxItem
-            checked={enabledTypes.log}
-            onCheckedChange={() => toggleType("log")}
-            className="cursor-pointer"
-          >
-            <FileText className="mr-2 h-4 w-4 text-blue-500" /> Log
-          </DropdownMenuCheckboxItem>
-          <DropdownMenuCheckboxItem
-            checked={enabledTypes.info}
-            onCheckedChange={() => toggleType("info")}
-            className="cursor-pointer"
-          >
-            <Info className="mr-2 h-4 w-4 text-cyan-500" /> Info
-          </DropdownMenuCheckboxItem>
-          <DropdownMenuCheckboxItem
-            checked={enabledTypes.warn}
-            onCheckedChange={() => toggleType("warn")}
-            className="cursor-pointer"
-          >
-            <AlertTriangle className="mr-2 h-4 w-4 text-amber-500" /> Warn
-          </DropdownMenuCheckboxItem>
-          <DropdownMenuCheckboxItem
-            checked={enabledTypes.error}
-            onCheckedChange={() => toggleType("error")}
-            className="cursor-pointer"
-          >
-            <AlertCircle className="mr-2 h-4 w-4 text-red-500" /> Error
-          </DropdownMenuCheckboxItem>
-        </div>
-      ),
-    },
-    { type: "separator" } as any,
-    {
-      label: "清除所有弹窗与记录",
-      icon: Trash2,
-      action: () => {
-        toast.dismiss()
-        activeToastsRef.current = {}
-        setLogs([])
-      },
-    },
-    {
-      label: "打开控制台",
-      icon: Bug,
-      action: () => {
-        window.electronAPI.openDevTool()
-      },
-    },
-    {
-      label: "打开历史记录面板",
-      icon: Terminal,
-      action: () => setIsConsoleOpen(true),
-    },
-    { type: "separator" } as any,
-    {
-      label: "刷新页面",
-      icon: RefreshCcw,
-      action: () => window.location.reload(),
-    },
-    {
-      label: "页面跳转",
-      icon: FolderSymlink,
-      children: (
-        <div className="p-1 min-w-[120px]">
-          <TreeView
-            data={[
-              { name: "首页", path: "/" },
-              { name: "编辑器", path: "/editor" },
-            ]}
-            onSelect={(path) => navigate(path)}
-          />
-        </div>
-      ),
-    },
-  ]
+    // --- 菜单配置 ---
+    const devTools: DevToolsItem[] = [
+        {
+            label: isSpyEnabled ? '关闭 Console 监听 (总开关)' : '开启 Console 监听 (总开关)',
+            icon: isSpyEnabled ? Square : Play,
+            active: isSpyEnabled,
+            action: toggleSpy
+        },
+        {
+            label: '监听类型设置',
+            icon: CheckCircle2,
+            children: (
+                <div className="w-40">
+                    <DropdownMenuCheckboxItem 
+                        checked={enabledTypes.log} 
+                        onCheckedChange={() => toggleType('log')}
+                        className="cursor-pointer"
+                    >
+                        <FileText className="mr-2 h-4 w-4 text-blue-500" /> Log
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem 
+                        checked={enabledTypes.info} 
+                        onCheckedChange={() => toggleType('info')}
+                        className="cursor-pointer"
+                    >
+                        <Info className="mr-2 h-4 w-4 text-cyan-500" /> Info
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem 
+                        checked={enabledTypes.warn} 
+                        onCheckedChange={() => toggleType('warn')}
+                        className="cursor-pointer"
+                    >
+                        <AlertTriangle className="mr-2 h-4 w-4 text-amber-500" /> Warn
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem 
+                        checked={enabledTypes.error} 
+                        onCheckedChange={() => toggleType('error')}
+                        className="cursor-pointer"
+                    >
+                        <AlertCircle className="mr-2 h-4 w-4 text-red-500" /> Error
+                    </DropdownMenuCheckboxItem>
+                </div>
+            )
+        },
+        { type: 'separator' } as any,
+        {
+            label: '清除所有弹窗与记录',
+            icon: Trash2,
+            action: () => {
+                toast.dismiss();
+                activeToastsRef.current = {};
+                setLogs([]); 
+            }
+        },
+        {
+            label: '打开控制台',
+            icon: Bug,
+            action: () => {
+                (window.electronAPI as any).openDevTool()
+            }
+        },
+        {
+            label: '打开历史记录面板',
+            icon: Terminal,
+            action: () => setIsConsoleOpen(true)
+        }, 
+        { type: 'separator' } as any,
+        {
+            label: '刷新页面',
+            icon: RefreshCcw,
+            action: () => window.location.reload()
+        },
+        {
+            label: '页面跳转',
+            icon: FolderSymlink,
+            children: (
+                <div className="p-1 min-w-[120px]">
+                    <TreeView
+                        data={[
+                            { name: '首页', path: '/' },
+                            { name: '编辑器', path: '/editor' }
+                        ]}
+                        onSelect={(path) => navigate(path)}
+                    />
+                </div>
+            )
+        }
+    ];
 
   return (
     <>
