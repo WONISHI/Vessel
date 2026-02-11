@@ -7,20 +7,6 @@ import type { IFeature } from "./type/interfaces/index"
 import { OpenDirectoryFeature } from "./features/OpenDirectoryFeature"
 
 function createWindow(): void {
-  const features: IFeature[] = [new OpenDirectoryFeature()]
-
-  const start = () => {
-    for (const feature of features) {
-      try {
-        feature.activate()
-      } catch (err) {
-        console.log(err)
-      }
-    }
-  }
-
-  start()
-
   const mainWindow = new BrowserWindow({
     width: 1174,
     height: 682,
@@ -38,6 +24,20 @@ function createWindow(): void {
   mainWindow.on("ready-to-show", () => {
     mainWindow.show()
   })
+
+  const features: IFeature[] = [new OpenDirectoryFeature(mainWindow)]
+
+  const start = () => {
+    for (const feature of features) {
+      try {
+        feature.activate()
+      } catch (err) {
+        console.log(err)
+      }
+    }
+  }
+
+  start()
 
   ipcMain.handle("open-devtools", (event) => {
     const contents = event.sender

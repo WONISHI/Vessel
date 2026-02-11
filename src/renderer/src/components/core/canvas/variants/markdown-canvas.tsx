@@ -1,11 +1,10 @@
 import Vditor from "vditor"
 import "vditor/dist/index.css"
 import "@/components/core/canvas/variants/markdown-canvas.css"
-import { ToolbarProps } from "@/components/core/toolbar/types"
 import { useEffect, useRef, useState, useCallback } from "react"
 import { toast } from "sonner"
 
-export default function MarkdownCanvas({ activeFilePath }: ToolbarProps) {
+export default function MarkdownCanvas({ activeFilePath }: any) {
   const [isLoading, setIsLoading] = useState(false)
   const editorRef = useRef<HTMLDivElement>(null)
   const vditorInstanceRef = useRef<Vditor | null>(null)
