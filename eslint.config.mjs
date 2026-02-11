@@ -37,6 +37,7 @@ export default defineConfig(
       "@typescript-eslint/explicit-function-return-type": "off",
       "@typescript-eslint/explicit-module-boundary-types": "off",
       "@typescript-eslint/no-explicit-any": "off",
+      "react-hooks/exhaustive-deps": "off",
       "prettier/prettier": [
         "error",
         {
