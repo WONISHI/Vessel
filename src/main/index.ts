@@ -25,7 +25,7 @@ function createWindow(): void {
     mainWindow.show()
   })
 
-  const features: IFeature[] = [new OpenDirectoryFeature(mainWindow)]
+  const features: IFeature[] = [new OpenDirectoryFeature(mainWindow,{extensions:['md','json']})]
 
   const start = () => {
     for (const feature of features) {

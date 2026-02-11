@@ -1,7 +1,7 @@
 import { ipcMain, dialog, BrowserWindow } from 'electron';
 import { basename, join, extname } from 'path';
 import { readdir, readFile, writeFile } from 'fs/promises';
-import * as chokidar from 'chokidar'; // 引入 chokidar
+import * as chokidar from 'chokidar';
 
 interface FileNode {
   name: string;
@@ -10,18 +10,31 @@ interface FileNode {
   children?: FileNode[];
 }
 
-export class OpenDirectoryFeature {
-  // 保存当前的 watcher 实例
-  private watcher: chokidar.FSWatcher | null = null;
-  // 保存当前主窗口引用，用于发送通知
-  private mainWindow: BrowserWindow | null = null;
+// ✅ 定义配置接口
+interface FeatureOptions {
+  extensions: string[]; // 例如: ['.md', '.txt', '.json']
+}
 
-  constructor(mainWindow: BrowserWindow) {
+export class OpenDirectoryFeature {
+  private watcher: chokidar.FSWatcher | null = null;
+  private mainWindow: BrowserWindow | null = null;
+  
+  // ✅ 保存允许的文件后缀 (使用 Set 提高查询性能)
+  private allowedExtensions: Set<string>;
+
+  /**
+   * @param mainWindow 主窗口实例
+   * @param options 配置项，默认只监听 .md
+   */
+  constructor(mainWindow: BrowserWindow, options: FeatureOptions = { extensions: ['.md'] }) {
     this.mainWindow = mainWindow;
+    // ✅ 统一转为小写并确保带点，存入 Set
+    this.allowedExtensions = new Set(
+      options.extensions.map(ext => ext.startsWith('.') ? ext.toLowerCase() : `.${ext.toLowerCase()}`)
+    );
   }
 
   activate() {
-    // 1. 选择并扫描目录 (同时开启监听)
     ipcMain.handle('dialog:openDirectory', async () => {
       const { canceled, filePaths } = await dialog.showOpenDialog({
         properties: ['openDirectory']
@@ -37,7 +50,6 @@ export class OpenDirectoryFeature {
       return { name: basename(rootPath), path: rootPath, files: tree };
     });
 
-    // 2. 读取文件内容
     ipcMain.handle('file:readContent', async (_, filePath) => {
       try {
         if (!filePath) return '';
@@ -47,7 +59,6 @@ export class OpenDirectoryFeature {
       }
     });
 
-    // 3. 保存文件内容
     ipcMain.handle('file:saveContent', async (_, filePath, content) => {
       try {
         await writeFile(filePath, content, 'utf-8');
@@ -58,41 +69,66 @@ export class OpenDirectoryFeature {
       }
     });
 
-    // 4. (可选) 提供一个手动停止监听的方法
     ipcMain.handle('watcher:stop', () => {
       this.stopWatching();
+    });
+    
+    // ✅ (可选) 新增：允许运行时动态更新文件过滤规则
+    ipcMain.handle('config:updateExtensions', (_, extensions: string[]) => {
+      this.allowedExtensions = new Set(
+        extensions.map(ext => ext.startsWith('.') ? ext.toLowerCase() : `.${ext.toLowerCase()}`)
+      );
+      // 如果正在监听，可能需要通知前端重新刷新
+      console.log('更新文件过滤器:', extensions);
+      return true;
     });
   }
 
   /**
-   * 开启文件监听
-   * @param rootPath 要监听的根目录路径
+   * ✅ 核心辅助方法：检查文件是否符合配置
    */
-  private startWatching(rootPath: string) {
-    // 1. 如果已有监听器，先关闭，防止重复监听多个目录
-    this.stopWatching();
+  private isFileAllowed(filename: string): boolean {
+    // 忽略隐藏文件
+    if (filename.startsWith('.')) return false;
+    
+    const ext = extname(filename).toLowerCase();
+    // 如果配置中包含 '.*'，则允许所有文件
+    if (this.allowedExtensions.has('.*')) return true;
+    
+    return this.allowedExtensions.has(ext);
+  }
 
+  private startWatching(rootPath: string) {
+    this.stopWatching();
     console.log(`开始监听目录: ${rootPath}`);
 
-    // 2. 初始化 chokidar
     this.watcher = chokidar.watch(rootPath, {
-      ignored: /(^|[\/\\])\../, // 忽略隐藏文件 (以 . 开头的文件/文件夹)
+      ignored: /(^|[\/\\])\../, 
       persistent: true,
-      ignoreInitial: true, // 忽略初始化时的 add 事件，只监听后续变化
-      depth: 99, // 递归深度
-      awaitWriteFinish: { // 等待写入完成（防止文件还在写入时就触发 change）
+      ignoreInitial: true,
+      depth: 99,
+      awaitWriteFinish: {
         stabilityThreshold: 1000,
         pollInterval: 100
       }
     });
 
-    const notifyRenderer = (event: string, path: string) => {
-      // 只有当窗口存在且未销毁时才发送
+    const notifyRenderer = (event: string, filePath: string) => {
       if (this.mainWindow && !this.mainWindow.isDestroyed()) {
-        console.log(`文件变动 [${event}]: ${path}`);
+        
+        // ✅ 优化：如果是文件变更事件，检查后缀名是否在白名单中
+        // 如果是文件夹变更 (addDir, unlinkDir)，则总是通知
+        const isDirEvent = event === 'addDir' || event === 'unlinkDir';
+        
+        if (!isDirEvent && !this.isFileAllowed(basename(filePath))) {
+          // 如果文件类型不在允许列表中，忽略该事件，不发送给前端
+          return;
+        }
+
+        console.log(`有效变动 [${event}]: ${filePath}`);
         this.mainWindow.webContents.send('file-system:changed', {
           event,
-          path,
+          path: filePath,
           rootPath
         });
       }
@@ -107,12 +143,9 @@ export class OpenDirectoryFeature {
       .on('error', error => console.error(`Watcher error: ${error}`));
   }
 
-  /**
-   * 停止监听并清理资源
-   */
   private stopWatching() {
     if (this.watcher) {
-      this.watcher.close().then(() => console.log('Watcher closed'));
+      this.watcher.close();
       this.watcher = null;
     }
   }
@@ -124,6 +157,9 @@ export class OpenDirectoryFeature {
           entries.map(async (entry) => {
             const fullPath = join(dir, entry.name)
 
+            // 忽略隐藏文件
+            if (entry.name.startsWith(".")) return null;
+
             if (entry.isDirectory()) {
               const children = await this.scanDirectory(fullPath)
               return {
@@ -132,12 +168,15 @@ export class OpenDirectoryFeature {
                 type: "directory",
                 children,
               }
-            } else if (extname(entry.name).toLowerCase() === ".md") {
+            } 
+            // ✅ 使用通用的判断逻辑
+            else if (this.isFileAllowed(entry.name)) {
               return { name: entry.name, path: fullPath, type: "file" }
             }
             return null
           }),
         )
+        // 排序逻辑保持不变
         return (nodes.filter(Boolean) as FileNode[]).sort((a, b) =>
           a.type === b.type
             ? a.name.localeCompare(b.name)
