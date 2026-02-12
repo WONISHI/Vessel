@@ -13,9 +13,11 @@ if (process.contextIsolated) {
     contextBridge.exposeInMainWorld("api", api)
     contextBridge.exposeInMainWorld("electronAPI", {
       openDirectory: () => ipcRenderer.invoke("dialog:openDirectory"),
+      // prettier-ignore
       readContent: (path: string) =>
         ipcRenderer.invoke("file:readContent", path),
       openDevTool: () => ipcRenderer.invoke("open-devtools"),
+      // prettier-ignore
       saveContent: (path: string, content: string) =>
         ipcRenderer.invoke("file:saveContent", path, content),
     })

@@ -148,6 +148,7 @@ export class ImageTransformer {
       const fileMap = new Map<string, string>()
 
       await Promise.all(
+        // prettier-ignore
         files.map(async (file) => {
           const full = path.join(resolved, file)
           const stat = await fs.stat(full)

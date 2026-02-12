@@ -1,4 +1,3 @@
-// src/preload/index.d.ts
 import { ElectronAPI } from "@electron-toolkit/preload"
 
 interface WorkspaceData {
@@ -7,6 +6,7 @@ interface WorkspaceData {
   files: Array<{ name: string; path: string }>
 }
 
+declare module "react-dczs-image-preview"
 declare global {
   interface Window {
     electron: ElectronAPI
