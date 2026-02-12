@@ -1,6 +1,6 @@
 import Vditor from "vditor"
 import "vditor/dist/index.css"
-import "@/components/core/canvas/variants/markdown-canvas.css"
+import "@/components/core/canvas/variants/markdown/index.css"
 import { useEffect, useRef, useState, useCallback } from "react"
 import { toast } from "sonner"
 
@@ -119,8 +119,6 @@ export default function MarkdownCanvas({ activeFilePath }: any) {
 
         const mdContent = await (window as any).electronAPI.readContent(path)
 
-        console.log(mdContent)
-
         if (path === activeFilePath) {
           setContent(mdContent || "")
           currentFilePathRef.current = path // 记录已加载路径
@@ -171,7 +169,7 @@ export default function MarkdownCanvas({ activeFilePath }: any) {
     return () => {
       if (timer) clearTimeout(timer)
     }
-  }, [activeFilePath, loadPathFile])
+  }, [activeFilePath, initEditor, loadPathFile])
 
   return (
     <div className="flex-1 overflow-hidden w-full flex justify-center bg-[#fafafa]">

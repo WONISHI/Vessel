@@ -1,15 +1,16 @@
 import { memo } from "react"
-import MarkdownCanvas from "@/components/core/canvas/variants/markdown-canvas"
+import MarkdownCanvas from "@renderer/components/core/canvas/variants/markdown"
+import JSONCanvas from "@renderer/components/core/canvas/variants/json"
 interface EditorTabsProps {
-  fileType: string
-  editor: any
+  fileType: string | undefined
   activeFilePath: string
 }
 
-const EditorCanvas = ({ fileType, editor, activeFilePath }: EditorTabsProps) => {
-  if (!editor) return null
+const EditorCanvas = ({ fileType, activeFilePath }: EditorTabsProps) => {
   if (fileType === "md" || fileType === "markdown") {
-    return <MarkdownCanvas editor={editor} activeFilePath={activeFilePath} />
+    return <MarkdownCanvas activeFilePath={activeFilePath} />
+  } else if (fileType === "json") {
+    return <JSONCanvas activeFilePath={activeFilePath}></JSONCanvas>
   }
   return null
 }
