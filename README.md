@@ -1,3 +1,8 @@
+<p align="center">
+    <img src="./src/renderer/src/assets/vessel.png" width="128" height="128" alt="quickOps Logo" />
+</p>
+
+
 # vessel
 
 # 技术栈
