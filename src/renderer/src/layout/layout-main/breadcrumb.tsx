@@ -7,7 +7,6 @@ import { Fragment, useCallback, useMemo } from "react"
 export default function BreadCrumb() {
   const { workspace, activeFilePath, changeCollapsible } = useWorkspace()
 
-  // 使用 useCallback 包装函数，避免重复创建
   const jumpRoute = useCallback(
     (fullPath?: string) => {
       if (!fullPath) return
@@ -48,7 +47,6 @@ export default function BreadCrumb() {
     [normalizedWorkspacePath, segments]
   )
 
-  // 渲染面包屑项
   const renderBreadcrumbItems = useMemo(() => {
     if (segments.length === 0) return null
 
@@ -60,9 +58,9 @@ export default function BreadCrumb() {
         <Fragment key={`${segment}-${index}`}>
           <BreadcrumbItem>
             {isLast ? (
-              <BreadcrumbPage className="font-medium text-slate-900">{segment}</BreadcrumbPage>
+              <BreadcrumbPage className="font-medium text-zinc-900">{segment}</BreadcrumbPage>
             ) : (
-              <BreadcrumbLink className="text-slate-500 hover:text-slate-700 transition-colors cursor-pointer" onClick={() => jumpRoute(currentPath)}>
+              <BreadcrumbLink className="text-zinc-500 hover:text-zinc-700 transition-colors cursor-pointer" onClick={() => jumpRoute(currentPath)}>
                 {segment}
               </BreadcrumbLink>
             )}
@@ -73,20 +71,18 @@ export default function BreadCrumb() {
     })
   }, [segments, getPathForSegment, jumpRoute])
 
-  // 根节点路径
   const rootPath = workspace?.path || ""
 
   return (
-    <header className="sticky top-0 z-10 flex h-14 items-center border-b border-slate-200/60 bg-white/70 px-4 backdrop-blur-xl justify-between">
+    <header className="sticky top-0 z-10 flex h-12 items-center border-b border-zinc-200/60 bg-white/80 px-4 backdrop-blur-md justify-between">
       <div className="flex items-center gap-2">
-        <SidebarTrigger className="h-8 w-8 text-slate-500 hover:bg-slate-100 hover:text-slate-900 cursor-pointer" />
-        <Separator orientation="vertical" className="mr-2 h-4 bg-slate-300" />
+        <SidebarTrigger className="h-7 w-7 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 cursor-pointer" />
+        <Separator orientation="vertical" className="mr-1 h-4 bg-zinc-300" />
 
         <Breadcrumb>
-          <BreadcrumbList className="text-[12px] sm:text-[13px]">
-            {/* 根节点：点击打开根目录 */}
+          <BreadcrumbList className="text-[12px]">
             <BreadcrumbItem>
-              <BreadcrumbLink className="font-semibold text-slate-700 hover:text-slate-900 cursor-pointer" onClick={() => jumpRoute(rootPath)}>
+              <BreadcrumbLink className="font-semibold text-zinc-700 hover:text-zinc-900 cursor-pointer" onClick={() => jumpRoute(rootPath)}>
                 {workspace?.name || "Workspace"}
               </BreadcrumbLink>
             </BreadcrumbItem>
@@ -97,7 +93,7 @@ export default function BreadCrumb() {
           </BreadcrumbList>
         </Breadcrumb>
       </div>
-      <div className="flex items-center gap-2">{/* 可以在这里添加其他控件，如保存按钮等 */}</div>
+      <div className="flex items-center gap-2" />
     </header>
   )
 }

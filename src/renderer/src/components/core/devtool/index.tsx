@@ -354,7 +354,7 @@ export default function DevTool() {
                         onCheckedChange={() => toggleType('log')}
                         className="cursor-pointer"
                     >
-                        <FileText className="mr-2 h-4 w-4 text-blue-500" /> Log
+                        <FileText className="mr-2 h-4 w-4 text-teal-600" /> Log
                     </DropdownMenuCheckboxItem>
                     <DropdownMenuCheckboxItem 
                         checked={enabledTypes.info} 
@@ -459,7 +459,7 @@ export default function DevTool() {
                         ? "border-red-500 text-red-600 ring-2 ring-red-500 hover:bg-red-50"
                         : isSpyEnabled
                           ? "border-green-500 text-green-600 ring-2 ring-green-500 hover:bg-green-50"
-                          : "border-slate-200 text-slate-600 hover:bg-slate-50",
+                          : "border-zinc-200 text-zinc-600 hover:bg-zinc-50",
                     )}
                   >
                     <Cog
@@ -505,7 +505,7 @@ export default function DevTool() {
                 return (
                   <DropdownMenuSub key={index}>
                     <DropdownMenuSubTrigger className="cursor-pointer gap-2">
-                      <Icon className="h-4 w-4 text-slate-500" />
+                      <Icon className="h-4 w-4 text-zinc-500" />
                       <span>{item.label}</span>
                     </DropdownMenuSubTrigger>
                     <DropdownMenuSubContent className="p-0">
@@ -528,7 +528,7 @@ export default function DevTool() {
                   <Icon
                     className={cn(
                       "h-4 w-4",
-                      item.active ? "text-green-600" : "text-slate-500",
+                      item.active ? "text-green-600" : "text-zinc-500",
                     )}
                   />
                   <span>{item.label}</span>
@@ -543,15 +543,15 @@ export default function DevTool() {
       <Sheet open={isConsoleOpen} onOpenChange={setIsConsoleOpen}>
         <SheetContent
           side="bottom"
-          className="h-[40vh] p-0 flex flex-col shadow-2xl border-t border-slate-200 z-[100]"
+          className="h-[40vh] p-0 flex flex-col shadow-2xl border-t border-zinc-200 z-[100]"
         >
-          <div className="flex items-center justify-between px-4 py-2 bg-slate-100 border-b border-slate-200">
+          <div className="flex items-center justify-between px-4 py-2 bg-zinc-100 border-b border-zinc-200">
             <div className="flex items-center gap-2">
-              <Terminal className="h-4 w-4 text-slate-500" />
-              <span className="text-sm font-semibold text-slate-700">
+              <Terminal className="h-4 w-4 text-zinc-500" />
+              <span className="text-sm font-semibold text-zinc-700">
                 Console History
               </span>
-              <span className="text-xs text-slate-400 bg-white px-1.5 py-0.5 rounded border border-slate-200">
+              <span className="text-xs text-zinc-400 bg-white px-1.5 py-0.5 rounded border border-zinc-200">
                 {logs.length} events
               </span>
             </div>
@@ -559,7 +559,7 @@ export default function DevTool() {
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-6 px-2 text-xs hover:bg-slate-200 text-slate-500"
+                className="h-6 px-2 text-xs hover:bg-zinc-200 text-zinc-500"
                 // 🔴 清除记录时，也清除了 logs，因此 hasError 会变回 false
                 onClick={() => setLogs([])}
               >
@@ -569,16 +569,16 @@ export default function DevTool() {
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-6 w-6 p-0 hover:bg-slate-200"
+                className="h-6 w-6 p-0 hover:bg-zinc-200"
                 onClick={() => setIsConsoleOpen(false)}
               >
-                <X className="h-4 w-4 text-slate-500" />
+                <X className="h-4 w-4 text-zinc-500" />
               </Button>
             </div>
           </div>
-          <div className="flex-1 overflow-y-auto p-4 font-mono text-xs bg-slate-50 space-y-1">
+          <div className="flex-1 overflow-y-auto p-4 font-mono text-xs bg-zinc-50 space-y-1">
             {logs.length === 0 && (
-              <div className="text-slate-400 italic text-center py-4">
+              <div className="text-zinc-400 italic text-center py-4">
                 No logs recorded in this session...
               </div>
             )}
@@ -586,15 +586,15 @@ export default function DevTool() {
               <div
                 key={i}
                 className={cn(
-                  "flex items-start gap-2 py-1 px-2 rounded hover:bg-slate-200/50 break-all",
+                  "flex items-start gap-2 py-1 px-2 rounded hover:bg-zinc-200/50 break-all",
                   log.type === "error" &&
                     "text-red-600 bg-red-50 hover:bg-red-100",
                   log.type === "warn" &&
                     "text-amber-600 bg-amber-50 hover:bg-amber-100",
-                  log.type === "info" && "text-blue-600",
+                  log.type === "info" && "text-teal-700",
                 )}
               >
-                <span className="text-slate-400 shrink-0 select-none">
+                <span className="text-zinc-400 shrink-0 select-none">
                   [{log.timestamp}]
                 </span>
                 <div className="flex-1 flex gap-2">

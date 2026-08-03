@@ -23,7 +23,7 @@ export default function MarkdownCanvas({ activeFilePath }: any) {
           vditorInstanceRef.current.destroy()
         }
       } catch (err) {
-        console.warn("销毁编辑器时出错（可忽略）:", err)
+        console.warn("Destroy editor error (ignorable):", err)
       } finally {
         vditorInstanceRef.current = null
       }
@@ -37,7 +37,7 @@ export default function MarkdownCanvas({ activeFilePath }: any) {
     try {
       isInitializedRef.current = true
       const vditor = new Vditor(editorRef.current, {
-        placeholder: "此处为话题内容……",
+        placeholder: "Start writing...",
         lang: "zh_CN",
         theme: "classic",
         counter: { enable: true, type: "markdown" },
@@ -88,12 +88,12 @@ export default function MarkdownCanvas({ activeFilePath }: any) {
           },
         ],
         input: (value: string) => setContent(value),
-        after: () => console.log("Vditor 编辑器已准备就绪"),
+        after: () => console.log("Vditor editor ready"),
       })
       vditorInstanceRef.current = vditor
     } catch (err) {
-      console.error("初始化编辑器失败:", err)
-      toast.error("编辑器初始化失败")
+      console.error("Init editor error:", err)
+      toast.error("Editor init failed")
       isInitializedRef.current = false
     }
   }, [safeDestroyEditor])
@@ -105,7 +105,7 @@ export default function MarkdownCanvas({ activeFilePath }: any) {
       }
 
       if (isLoadingRef.current) {
-        console.warn("已有加载任务正在进行，跳过本次加载")
+        console.warn("Loading in progress, skipping")
         return
       }
 
@@ -114,22 +114,22 @@ export default function MarkdownCanvas({ activeFilePath }: any) {
 
       try {
         if (!(window as any).electronAPI) {
-          throw new Error("electronAPI 不可用")
+          throw new Error("electronAPI not available")
         }
 
         const mdContent = await (window as any).electronAPI.readContent(path)
 
         if (path === activeFilePath) {
           setContent(mdContent || "")
-          currentFilePathRef.current = path // 记录已加载路径
+          currentFilePathRef.current = path
 
           if (vditorInstanceRef.current?.vditor) {
             vditorInstanceRef.current.setValue(mdContent || "")
           }
         }
       } catch (err: any) {
-        console.error("读取文件失败:", err)
-        toast.error(`读取文件失败: ${err.message || "未知错误"}`)
+        console.error("Read file error:", err)
+        toast.error(`Read file failed: ${err.message || "Unknown error"}`)
       } finally {
         setIsLoading(false)
         isLoadingRef.current = false
@@ -157,7 +157,6 @@ export default function MarkdownCanvas({ activeFilePath }: any) {
       }, 150)
     }
 
-    // 路径为空时清空编辑器
     if (!activeFilePath) {
       setContent("")
       currentFilePathRef.current = ""
@@ -172,13 +171,17 @@ export default function MarkdownCanvas({ activeFilePath }: any) {
   }, [activeFilePath, initEditor, loadPathFile])
 
   return (
-    <div className="flex-1 overflow-hidden w-full flex justify-center bg-[#fafafa]">
-      <div className={`relative overflow-hidden w-full bg-white shadow-sm border border-slate-200/60 rounded-sm p-5 cursor-text ${isLoading ? "opacity-30" : "opacity-100"}`}>
+    <div className="flex-1 overflow-hidden w-full flex justify-center bg-zinc-50/50">
+      <div
+        className={`relative overflow-hidden w-full bg-white shadow-sm border border-zinc-200/60 rounded-sm p-5 cursor-text ${
+          isLoading ? "opacity-50" : "opacity-100"
+        }`}
+      >
         {isLoading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-70 z-10">
-            <div className="flex flex-col items-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mb-2" />
-              <p className="text-sm text-gray-600">正在读取文件...</p>
+          <div className="absolute inset-0 flex items-center justify-center bg-white/80 z-10">
+            <div className="flex flex-col items-center gap-2">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600" />
+              <p className="text-sm text-zinc-500">Reading file...</p>
             </div>
           </div>
         )}
