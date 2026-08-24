@@ -1,4 +1,4 @@
-import Logo from "@/assets/vessel.png"
+import Logo from "@/assets/logo.png"
 import { Card, CardContent } from "@/components/ui/card"
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
