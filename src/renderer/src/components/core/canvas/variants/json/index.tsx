@@ -30,7 +30,7 @@ export default function JSONCanvas({ activeFilePath }: any) {
     monaco.languages.json.jsonDefaults.setDiagnosticsOptions({
       validate: true,
       allowComments: false,
-      schemas: [],
+      schemas: []
     })
   }
 
@@ -95,7 +95,7 @@ export default function JSONCanvas({ activeFilePath }: any) {
           fontSize: 14,
           scrollBeyondLastLine: false,
           wordWrap: "on",
-          renderWhitespace: "selection",
+          renderWhitespace: "selection"
         }}
       />
     </>

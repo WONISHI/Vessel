@@ -44,7 +44,7 @@ export default function MarkdownCanvas({ activeFilePath }: any) {
         preview: {
           delay: 0,
           hljs: { style: "monokai", lineNumber: true },
-          markdown: { toc: true },
+          markdown: { toc: true }
         },
         outline: { enable: true, position: "right" },
         value: content,
@@ -84,11 +84,11 @@ export default function MarkdownCanvas({ activeFilePath }: any) {
           "export",
           {
             name: "more",
-            toolbar: ["fullscreen", "both", "preview", "info", "help"],
-          },
+            toolbar: ["fullscreen", "both", "preview", "info", "help"]
+          }
         ],
         input: (value: string) => setContent(value),
-        after: () => console.log("Vditor editor ready"),
+        after: () => console.log("Vditor editor ready")
       })
       vditorInstanceRef.current = vditor
     } catch (err) {
@@ -172,11 +172,7 @@ export default function MarkdownCanvas({ activeFilePath }: any) {
 
   return (
     <div className="flex-1 overflow-hidden w-full flex justify-center bg-zinc-50/50">
-      <div
-        className={`relative overflow-hidden w-full bg-white shadow-sm border border-zinc-200/60 rounded-sm p-5 cursor-text ${
-          isLoading ? "opacity-50" : "opacity-100"
-        }`}
-      >
+      <div className={`relative overflow-hidden w-full bg-white shadow-sm border border-zinc-200/60 rounded-sm p-5 cursor-text ${isLoading ? "opacity-50" : "opacity-100"}`}>
         {isLoading && (
           <div className="absolute inset-0 flex items-center justify-center bg-white/80 z-10">
             <div className="flex flex-col items-center gap-2">
@@ -185,7 +181,10 @@ export default function MarkdownCanvas({ activeFilePath }: any) {
             </div>
           </div>
         )}
-        <div ref={editorRef} className="!h-full" />
+        <div
+          ref={editorRef}
+          className="!h-full"
+        />
       </div>
     </div>
   )

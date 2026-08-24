@@ -16,11 +16,7 @@ const EditorCanvas = ({ fileType, activeFilePath }: EditorTabsProps) => {
   } else if (["png", "jpg", "jpeg", "bmp", "gif", "webp"].includes(fileType!)) {
     return <MediaCanvas activeFilePath={activeFilePath} />
   }
-  return (
-    <div className="flex items-center justify-center h-full text-zinc-300 text-sm">
-      Select a file to preview
-    </div>
-  )
+  return <div className="flex items-center justify-center h-full text-zinc-300 text-sm">Select a file to preview</div>
 }
 
 export default memo(EditorCanvas)

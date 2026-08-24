@@ -2,15 +2,13 @@
   "singleQuote": false,
   "jsxSingleQuote": false,
   "printWidth": 200,
+  "tabWidth": 2,
   "useTabs": false,
+  "semi": false,
+  "trailingComma": "none",
   "bracketSpacing": true,
+  "bracketSameLine": false,
   "arrowParens": "always",
   "endOfLine": "lf",
-  "tabWidth": 2,
-  "trailingComma": "none",
-  "singleAttributePerLine": false,
-  "typeAngleBracketSpacing": true,
-  "semi": false,
-  "commaPosition": "first",
-  "multilineCollections": "always"
+  "singleAttributePerLine": true
 }

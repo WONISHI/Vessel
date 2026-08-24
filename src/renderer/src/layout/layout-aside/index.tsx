@@ -28,10 +28,7 @@ function NavItem({ node, activeFilePath, collapsibleFold, setCollapsibleFold, on
       <SidebarMenuItem>
         <SidebarMenuButton
           onClick={() => onFileClick(node.path)}
-          className={cn(
-            "h-8 transition-all hover:bg-zinc-100 text-zinc-500",
-            active && "bg-zinc-100 text-zinc-900 font-medium"
-          )}
+          className={cn("h-8 transition-all hover:bg-zinc-100 text-zinc-500", active && "bg-zinc-100 text-zinc-900 font-medium")}
         >
           <FileText className={cn("h-3.5 w-3.5", active ? "text-teal-600" : "text-zinc-400")} />
           <span className="truncate text-xs">{node.name}</span>
@@ -122,17 +119,22 @@ export default function LayoutSide({ workspace, children }: any) {
         activeFilePath,
         fileType,
         onSave,
-        changeCollapsible,
+        changeCollapsible
       }}
     >
-      <Sidebar variant="floating" className="border-r-0 bg-zinc-50/80">
+      <Sidebar
+        variant="floating"
+        className="border-r-0 bg-zinc-50/80"
+      >
         <SidebarHeader className="p-4 flex flex-row items-center gap-3">
           <div className="h-8 w-8 rounded-lg bg-white shadow-sm ring-1 ring-zinc-200/80 flex items-center justify-center p-1.5">
-            <img src={Logo} className="w-full h-full object-contain" alt="Logo" />
+            <img
+              src={Logo}
+              className="w-full h-full object-contain"
+              alt="Logo"
+            />
           </div>
-          <span className="truncate text-sm font-semibold text-zinc-800">
-            {workspace.name}
-          </span>
+          <span className="truncate text-sm font-semibold text-zinc-800">{workspace.name}</span>
         </SidebarHeader>
         <SidebarContent className="px-2 mt-1">
           <SidebarMenu>

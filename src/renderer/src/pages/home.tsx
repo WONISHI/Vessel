@@ -17,6 +17,7 @@ interface HomePageProps {
 export default function HomePage({ onEnter }: HomePageProps) {
   const [workspace, setWorkspace] = useState<WorkspaceData | null>(null)
   const [loading, setLoading] = useState(false)
+  const activeClassName = "bg-zinc-900 text-white hover:bg-zinc-800 shadow-sm active:scale-[0.98]"
   const navigate = useNavigate()
 
   const handleOpenFolder = async () => {
@@ -48,22 +49,6 @@ export default function HomePage({ onEnter }: HomePageProps) {
             />
           </div>
 
-          <h1 className="mb-1 text-2xl font-semibold tracking-tight text-zinc-900">
-            Vessel
-          </h1>
-
-          <div className="mb-10 h-5">
-            {workspace ? (
-              <p className="text-sm text-teal-700">
-                {workspace.name}
-              </p>
-            ) : (
-              <p className="text-xs text-zinc-400">
-                File workspace
-              </p>
-            )}
-          </div>
-
           <div className="flex flex-col w-full gap-3">
             <button
               onClick={handleOpenFolder}
@@ -80,9 +65,7 @@ export default function HomePage({ onEnter }: HomePageProps) {
               disabled={!workspace || loading}
               onClick={handleStart}
               className={`flex h-12 w-full items-center justify-center gap-2 rounded-xl text-sm font-medium transition-all duration-300 ${
-                workspace
-                  ? "bg-zinc-900 text-white hover:bg-zinc-800 shadow-sm active:scale-[0.98]"
-                  : "bg-zinc-100 text-zinc-300 cursor-not-allowed"
+                workspace ? activeClassName : "bg-zinc-100 text-zinc-300 cursor-not-allowed"
               }`}
             >
               <NotebookPen className="h-4 w-4" />

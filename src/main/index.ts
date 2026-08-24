@@ -17,8 +17,8 @@ function createWindow(): void {
       preload: join(__dirname, "../preload/index.js"),
       sandbox: false,
       contextIsolation: true,
-      nodeIntegration: true,
-    },
+      nodeIntegration: true
+    }
   })
 
   mainWindow.on("ready-to-show", () => {
@@ -39,8 +39,8 @@ function createWindow(): void {
         "bmp",
         "gif",
         "webp"
-      ],
-    }),
+      ]
+    })
   ]
 
   const start = () => {

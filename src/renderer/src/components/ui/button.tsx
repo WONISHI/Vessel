@@ -10,48 +10,40 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default: "bg-zinc-900 text-white hover:bg-zinc-800",
-        destructive:
-          "bg-destructive text-destructive-foreground hover:bg-destructive/90",
-        outline:
-          "border border-zinc-200 bg-white hover:bg-zinc-50 hover:text-zinc-900",
-        secondary:
-          "bg-zinc-100 text-zinc-900 hover:bg-zinc-200",
+        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+        outline: "border border-zinc-200 bg-white hover:bg-zinc-50 hover:text-zinc-900",
+        secondary: "bg-zinc-100 text-zinc-900 hover:bg-zinc-200",
         ghost: "hover:bg-zinc-100 hover:text-zinc-900",
-        link: "text-zinc-900 underline-offset-4 hover:underline",
+        link: "text-zinc-900 underline-offset-4 hover:underline"
       },
       size: {
         default: "h-9 px-4 py-2",
         sm: "h-8 rounded-md px-3 text-xs",
         lg: "h-10 rounded-lg px-6",
-        icon: "h-9 w-9",
-      },
+        icon: "h-9 w-9"
+      }
     },
     defaultVariants: {
       variant: "default",
-      size: "default",
-    },
-  },
+      size: "default"
+    }
+  }
 )
 
-export interface ButtonProps
-  extends
-    React.ButtonHTMLAttributes<HTMLButtonElement>,
-    VariantProps<typeof buttonVariants> {
+export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement>, VariantProps<typeof buttonVariants> {
   asChild?: boolean
 }
 
-const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
-    const Comp = asChild ? Slot : "button"
-    return (
-      <Comp
-        className={cn(buttonVariants({ variant, size, className }))}
-        ref={ref}
-        {...props}
-      />
-    )
-  },
-)
+const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({ className, variant, size, asChild = false, ...props }, ref) => {
+  const Comp = asChild ? Slot : "button"
+  return (
+    <Comp
+      className={cn(buttonVariants({ variant, size, className }))}
+      ref={ref}
+      {...props}
+    />
+  )
+})
 Button.displayName = "Button"
 
 export { Button, buttonVariants }

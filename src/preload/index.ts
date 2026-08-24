@@ -19,7 +19,7 @@ if (process.contextIsolated) {
       openDevTool: () => ipcRenderer.invoke("open-devtools"),
       // prettier-ignore
       saveContent: (path: string, content: string) =>
-        ipcRenderer.invoke("file:saveContent", path, content),
+        ipcRenderer.invoke("file:saveContent", path, content)
     })
   } catch (error) {
     console.error(error)

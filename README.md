@@ -2,7 +2,6 @@
     <img src="./src/renderer/src/assets/vessel.png" width="128" height="128" alt="quickOps Logo" />
 </p>
 
-
 # vessel
 
 # 技术栈
@@ -57,12 +56,12 @@ npx tailwindcss init -p
 module.exports = {
   content: [
     "./src/renderer/index.html",
-    "./src/renderer/src/**/*.{js,ts,jsx,tsx}", // 注意路径匹配你的 renderer 目录
+    "./src/renderer/src/**/*.{js,ts,jsx,tsx}" // 注意路径匹配你的 renderer 目录
   ],
   theme: {
-    extend: {},
+    extend: {}
   },
-  plugins: [],
+  plugins: []
 }
 ```
 
@@ -151,12 +150,7 @@ module.exports = {
 ```json
 {
   "extends": "@electron-toolkit/tsconfig/tsconfig.web.json",
-  "include": [
-    "src/renderer/src/env.d.ts",
-    "src/renderer/src/**/*",
-    "src/renderer/src/**/*.tsx",
-    "src/preload/*.d.ts"
-  ],
+  "include": ["src/renderer/src/env.d.ts", "src/renderer/src/**/*", "src/renderer/src/**/*.tsx", "src/preload/*.d.ts"],
   "compilerOptions": {
     "composite": true,
     "jsx": "react-jsx",
@@ -193,9 +187,9 @@ export default defineConfig({
   resolve: {
     alias: {
       // 2. 添加这一行配置
-      "@": resolve(__dirname, "src/renderer/src"),
-    },
-  },
+      "@": resolve(__dirname, "src/renderer/src")
+    }
+  }
 })
 ```
 
@@ -431,10 +425,7 @@ export function cn(...inputs: ClassValue[]): string {
     }
   },
   "files": [],
-  "references": [
-    { "path": "./tsconfig.node.json" },
-    { "path": "./tsconfig.web.json" }
-  ]
+  "references": [{ "path": "./tsconfig.node.json" }, { "path": "./tsconfig.web.json" }]
 }
 ```
 
@@ -447,21 +438,21 @@ import react from "@vitejs/plugin-react"
 
 export default defineConfig({
   main: {
-    plugins: [externalizeDepsPlugin()],
+    plugins: [externalizeDepsPlugin()]
   },
   preload: {
-    plugins: [externalizeDepsPlugin()],
+    plugins: [externalizeDepsPlugin()]
   },
   renderer: {
     resolve: {
       alias: {
         "@renderer": resolve("src/renderer/src"),
         /* 👇 加上这一行，让 Vite 也能识别 shadcn 的路径 */
-        "@": resolve("src/renderer/src"),
-      },
+        "@": resolve("src/renderer/src")
+      }
     },
-    plugins: [react()],
-  },
+    plugins: [react()]
+  }
 })
 ```
 

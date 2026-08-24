@@ -60,7 +60,10 @@ export default function BreadCrumb() {
             {isLast ? (
               <BreadcrumbPage className="font-medium text-zinc-900">{segment}</BreadcrumbPage>
             ) : (
-              <BreadcrumbLink className="text-zinc-500 hover:text-zinc-700 transition-colors cursor-pointer" onClick={() => jumpRoute(currentPath)}>
+              <BreadcrumbLink
+                className="text-zinc-500 hover:text-zinc-700 transition-colors cursor-pointer"
+                onClick={() => jumpRoute(currentPath)}
+              >
                 {segment}
               </BreadcrumbLink>
             )}
@@ -77,12 +80,18 @@ export default function BreadCrumb() {
     <header className="sticky top-0 z-10 flex h-12 items-center border-b border-zinc-200/60 bg-white/80 px-4 backdrop-blur-md justify-between">
       <div className="flex items-center gap-2">
         <SidebarTrigger className="h-7 w-7 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 cursor-pointer" />
-        <Separator orientation="vertical" className="mr-1 h-4 bg-zinc-300" />
+        <Separator
+          orientation="vertical"
+          className="mr-1 h-4 bg-zinc-300"
+        />
 
         <Breadcrumb>
           <BreadcrumbList className="text-[12px]">
             <BreadcrumbItem>
-              <BreadcrumbLink className="font-semibold text-zinc-700 hover:text-zinc-900 cursor-pointer" onClick={() => jumpRoute(rootPath)}>
+              <BreadcrumbLink
+                className="font-semibold text-zinc-700 hover:text-zinc-900 cursor-pointer"
+                onClick={() => jumpRoute(rootPath)}
+              >
                 {workspace?.name || "Workspace"}
               </BreadcrumbLink>
             </BreadcrumbItem>

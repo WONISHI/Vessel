@@ -155,13 +155,13 @@ export class ImageTransformer {
           if (stat.isFile()) {
             fileMap.set(file, full)
           }
-        }),
+        })
       )
 
       if (this.cache) {
         this._cache.set(resolved, {
           timestamp: now,
-          fileMap,
+          fileMap
         })
       }
 

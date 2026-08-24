@@ -26,23 +26,16 @@ export class OpenDirectoryFeature {
    * @param mainWindow 主窗口实例
    * @param options 配置项，默认只监听 .md
    */
-  constructor(
-    mainWindow: BrowserWindow,
-    options: FeatureOptions = { extensions: [".md"] },
-  ) {
+  constructor(mainWindow: BrowserWindow, options: FeatureOptions = { extensions: [".md"] }) {
     this.mainWindow = mainWindow
     // ✅ 统一转为小写并确保带点，存入 Set
-    this.allowedExtensions = new Set(
-      options.extensions.map((ext) =>
-        ext.startsWith(".") ? ext.toLowerCase() : `.${ext.toLowerCase()}`,
-      ),
-    )
+    this.allowedExtensions = new Set(options.extensions.map((ext) => (ext.startsWith(".") ? ext.toLowerCase() : `.${ext.toLowerCase()}`)))
   }
 
   activate() {
     ipcMain.handle("dialog:openDirectory", async () => {
       const { canceled, filePaths } = await dialog.showOpenDialog({
-        properties: ["openDirectory"],
+        properties: ["openDirectory"]
       })
 
       if (canceled || filePaths.length === 0) return null
@@ -80,11 +73,7 @@ export class OpenDirectoryFeature {
 
     // ✅ (可选) 新增：允许运行时动态更新文件过滤规则
     ipcMain.handle("config:updateExtensions", (_, extensions: string[]) => {
-      this.allowedExtensions = new Set(
-        extensions.map((ext) =>
-          ext.startsWith(".") ? ext.toLowerCase() : `.${ext.toLowerCase()}`,
-        ),
-      )
+      this.allowedExtensions = new Set(extensions.map((ext) => (ext.startsWith(".") ? ext.toLowerCase() : `.${ext.toLowerCase()}`)))
       // 如果正在监听，可能需要通知前端重新刷新
       console.log("更新文件过滤器:", extensions)
       return true
@@ -116,8 +105,8 @@ export class OpenDirectoryFeature {
       depth: 99,
       awaitWriteFinish: {
         stabilityThreshold: 1000,
-        pollInterval: 100,
-      },
+        pollInterval: 100
+      }
     })
 
     const notifyRenderer = (event: string, filePath: string) => {
@@ -135,7 +124,7 @@ export class OpenDirectoryFeature {
         this.mainWindow.webContents.send("file-system:changed", {
           event,
           path: filePath,
-          rootPath,
+          rootPath
         })
       }
     }
@@ -172,7 +161,7 @@ export class OpenDirectoryFeature {
               name: entry.name,
               path: fullPath,
               type: "directory",
-              children,
+              children
             }
           }
           // ✅ 使用通用的判断逻辑
@@ -180,16 +169,10 @@ export class OpenDirectoryFeature {
             return { name: entry.name, path: fullPath, type: "file" }
           }
           return null
-        }),
+        })
       )
       // 排序逻辑保持不变
-      return (nodes.filter(Boolean) as FileNode[]).sort((a, b) =>
-        a.type === b.type
-          ? a.name.localeCompare(b.name)
-          : a.type === "directory"
-            ? -1
-            : 1,
-      )
+      return (nodes.filter(Boolean) as FileNode[]).sort((a, b) => (a.type === b.type ? a.name.localeCompare(b.name) : a.type === "directory" ? -1 : 1))
     } catch (e) {
       return []
     }

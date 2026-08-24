@@ -1,22 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from "react"
-import {
-  Cog,
-  RefreshCcw,
-  FolderSymlink,
-  Terminal,
-  Ban,
-  X,
-  type LucideIcon,
-  Play,
-  Square,
-  Trash2,
-  Info,
-  AlertTriangle,
-  AlertCircle,
-  FileText,
-  CheckCircle2,
-  Bug,
-} from "lucide-react"
+import { Cog, RefreshCcw, FolderSymlink, Terminal, Ban, X, type LucideIcon, Play, Square, Trash2, Info, AlertTriangle, AlertCircle, FileText, CheckCircle2, Bug } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -28,14 +11,9 @@ import {
   DropdownMenuSub,
   DropdownMenuSubTrigger,
   DropdownMenuSubContent,
-  DropdownMenuCheckboxItem,
+  DropdownMenuCheckboxItem
 } from "@/components/ui/dropdown-menu"
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Sheet, SheetContent } from "@/components/ui/sheet"
 import { TreeView } from "@/components/ui/tree"
 import { useNavigate } from "react-router-dom"
@@ -68,34 +46,23 @@ export default function DevTool() {
   const [isConsoleOpen, setIsConsoleOpen] = useState(false)
 
   // 总开关
-  const [isSpyEnabled, setIsSpyEnabled] = useState(
-    () => localStorage.getItem("vessel-dev-spy") === "true",
-  )
+  const [isSpyEnabled, setIsSpyEnabled] = useState(() => localStorage.getItem("vessel-dev-spy") === "true")
 
   // 子类型开关
-  const [enabledTypes, setEnabledTypes] = useState<Record<LogType, boolean>>(
-    () => {
-      const saved = localStorage.getItem("vessel-dev-spy-types")
-      return saved
-        ? JSON.parse(saved)
-        : { log: true, warn: true, error: true, info: true }
-    },
-  )
+  const [enabledTypes, setEnabledTypes] = useState<Record<LogType, boolean>>(() => {
+    const saved = localStorage.getItem("vessel-dev-spy-types")
+    return saved ? JSON.parse(saved) : { log: true, warn: true, error: true, info: true }
+  })
 
   const [logs, setLogs] = useState<LogEntry[]>([])
   const bottomRef = useRef<HTMLDivElement>(null)
   const activeToastsRef = useRef<Record<string, string | number>>({})
 
   // 🔴 计算当前是否有错误 (用于控制按钮红色警报)
-  const hasError = useMemo(
-    () => logs.some((log) => log.type === "error"),
-    [logs],
-  )
+  const hasError = useMemo(() => logs.some((log) => log.type === "error"), [logs])
 
   // --- 拖拽相关 ---
-  const [position, setPosition] = useState<{ x: number; y: number } | null>(
-    null,
-  )
+  const [position, setPosition] = useState<{ x: number; y: number } | null>(null)
   const isDraggingRef = useRef(false)
   const dragStartRef = useRef({ x: 0, y: 0 })
   const timerRef = useRef<any>(null)
@@ -118,11 +85,7 @@ export default function DevTool() {
     }
 
     const msg = formatArgs(log.message)
-    const Content = () => (
-      <div className="max-h-[200px] overflow-y-auto w-full text-xs font-mono break-all whitespace-pre-wrap">
-        {msg}
-      </div>
-    )
+    const Content = () => <div className="max-h-[200px] overflow-y-auto w-full text-xs font-mono break-all whitespace-pre-wrap">{msg}</div>
 
     const toastOptions = {
       id: log.id,
@@ -130,24 +93,24 @@ export default function DevTool() {
       onDismiss: () => {
         delete activeToastsRef.current[log.id]
       },
-      cancel: { label: "关闭", onClick: () => {} },
+      cancel: { label: "关闭", onClick: () => {} }
     }
 
     let toastId
     if (log.type === "error") {
       toastId = toast.error(<Content />, {
         ...toastOptions,
-        description: "Console Error",
+        description: "Console Error"
       })
     } else if (log.type === "warn") {
       toastId = toast.warning(<Content />, {
         ...toastOptions,
-        description: "Console Warning",
+        description: "Console Warning"
       })
     } else {
       toastId = toast.info(<Content />, {
         ...toastOptions,
-        description: `Console ${log.type}`,
+        description: `Console ${log.type}`
       })
     }
 
@@ -165,7 +128,7 @@ export default function DevTool() {
 
     const handleLog = (type: LogType, args: any[]) => {
       const timestamp = new Date().toLocaleTimeString("en-US", {
-        hour12: false,
+        hour12: false
       })
       const id = Math.random().toString(36).substr(2, 9)
 
@@ -173,10 +136,7 @@ export default function DevTool() {
 
       // 1. 存入历史记录
       setLogs((prev) => [...prev, newLog])
-      setTimeout(
-        () => bottomRef.current?.scrollIntoView({ behavior: "smooth" }),
-        50,
-      )
+      setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 50)
 
       // 2. 弹窗逻辑
       if (enabledTypes[type]) {
@@ -243,9 +203,7 @@ export default function DevTool() {
     localStorage.setItem("vessel-dev-spy-types", JSON.stringify(newTypes))
 
     // 🔴 关键逻辑：检查是否所有类型都关闭了
-    const allTypesDisabled = Object.values(newTypes).every(
-      (enabled) => !enabled,
-    )
+    const allTypesDisabled = Object.values(newTypes).every((enabled) => !enabled)
 
     if (allTypesDisabled) {
       // 如果所有类型都关了，自动关闭总开关
@@ -302,20 +260,11 @@ export default function DevTool() {
     const handleMouseMove = (ev: MouseEvent) => {
       ev.preventDefault()
       if (isDraggingRef.current) {
-        const newX = Math.min(
-          Math.max(0, ev.clientX - offsetX),
-          window.innerWidth - rect.width,
-        )
-        const newY = Math.min(
-          Math.max(0, ev.clientY - offsetY),
-          window.innerHeight - rect.height,
-        )
+        const newX = Math.min(Math.max(0, ev.clientX - offsetX), window.innerWidth - rect.width)
+        const newY = Math.min(Math.max(0, ev.clientY - offsetY), window.innerHeight - rect.height)
         setPosition({ x: newX, y: newY })
       } else {
-        const moveDist = Math.hypot(
-          ev.clientX - dragStartRef.current.x,
-          ev.clientY - dragStartRef.current.y,
-        )
+        const moveDist = Math.hypot(ev.clientX - dragStartRef.current.x, ev.clientY - dragStartRef.current.y)
         if (moveDist > 5 && timerRef.current) {
           clearTimeout(timerRef.current)
           timerRef.current = null
@@ -336,110 +285,105 @@ export default function DevTool() {
     window.addEventListener("mouseup", handleMouseUp)
   }
 
-    // --- 菜单配置 ---
-    const devTools: DevToolsItem[] = [
-        {
-            label: isSpyEnabled ? '关闭 Console 监听 (总开关)' : '开启 Console 监听 (总开关)',
-            icon: isSpyEnabled ? Square : Play,
-            active: isSpyEnabled,
-            action: toggleSpy
-        },
-        {
-            label: '监听类型设置',
-            icon: CheckCircle2,
-            children: (
-                <div className="w-40">
-                    <DropdownMenuCheckboxItem 
-                        checked={enabledTypes.log} 
-                        onCheckedChange={() => toggleType('log')}
-                        className="cursor-pointer"
-                    >
-                        <FileText className="mr-2 h-4 w-4 text-teal-600" /> Log
-                    </DropdownMenuCheckboxItem>
-                    <DropdownMenuCheckboxItem 
-                        checked={enabledTypes.info} 
-                        onCheckedChange={() => toggleType('info')}
-                        className="cursor-pointer"
-                    >
-                        <Info className="mr-2 h-4 w-4 text-cyan-500" /> Info
-                    </DropdownMenuCheckboxItem>
-                    <DropdownMenuCheckboxItem 
-                        checked={enabledTypes.warn} 
-                        onCheckedChange={() => toggleType('warn')}
-                        className="cursor-pointer"
-                    >
-                        <AlertTriangle className="mr-2 h-4 w-4 text-amber-500" /> Warn
-                    </DropdownMenuCheckboxItem>
-                    <DropdownMenuCheckboxItem 
-                        checked={enabledTypes.error} 
-                        onCheckedChange={() => toggleType('error')}
-                        className="cursor-pointer"
-                    >
-                        <AlertCircle className="mr-2 h-4 w-4 text-red-500" /> Error
-                    </DropdownMenuCheckboxItem>
-                </div>
-            )
-        },
-        { type: 'separator' } as any,
-        {
-            label: '清除所有弹窗与记录',
-            icon: Trash2,
-            action: () => {
-                toast.dismiss();
-                activeToastsRef.current = {};
-                setLogs([]); 
-            }
-        },
-        {
-            label: '打开控制台',
-            icon: Bug,
-            action: () => {
-                (window.electronAPI as any).openDevTool()
-            }
-        },
-        {
-            label: '打开历史记录面板',
-            icon: Terminal,
-            action: () => setIsConsoleOpen(true)
-        }, 
-        { type: 'separator' } as any,
-        {
-            label: '刷新页面',
-            icon: RefreshCcw,
-            action: () => window.location.reload()
-        },
-        {
-            label: '页面跳转',
-            icon: FolderSymlink,
-            children: (
-                <div className="p-1 min-w-[120px]">
-                    <TreeView
-                        data={[
-                            { name: '首页', path: '/' },
-                            { name: '编辑器', path: '/editor' }
-                        ]}
-                        onSelect={(path) => navigate(path)}
-                    />
-                </div>
-            )
-        }
-    ];
+  // --- 菜单配置 ---
+  const devTools: DevToolsItem[] = [
+    {
+      label: isSpyEnabled ? "关闭 Console 监听 (总开关)" : "开启 Console 监听 (总开关)",
+      icon: isSpyEnabled ? Square : Play,
+      active: isSpyEnabled,
+      action: toggleSpy
+    },
+    {
+      label: "监听类型设置",
+      icon: CheckCircle2,
+      children: (
+        <div className="w-40">
+          <DropdownMenuCheckboxItem
+            checked={enabledTypes.log}
+            onCheckedChange={() => toggleType("log")}
+            className="cursor-pointer"
+          >
+            <FileText className="mr-2 h-4 w-4 text-teal-600" /> Log
+          </DropdownMenuCheckboxItem>
+          <DropdownMenuCheckboxItem
+            checked={enabledTypes.info}
+            onCheckedChange={() => toggleType("info")}
+            className="cursor-pointer"
+          >
+            <Info className="mr-2 h-4 w-4 text-cyan-500" /> Info
+          </DropdownMenuCheckboxItem>
+          <DropdownMenuCheckboxItem
+            checked={enabledTypes.warn}
+            onCheckedChange={() => toggleType("warn")}
+            className="cursor-pointer"
+          >
+            <AlertTriangle className="mr-2 h-4 w-4 text-amber-500" /> Warn
+          </DropdownMenuCheckboxItem>
+          <DropdownMenuCheckboxItem
+            checked={enabledTypes.error}
+            onCheckedChange={() => toggleType("error")}
+            className="cursor-pointer"
+          >
+            <AlertCircle className="mr-2 h-4 w-4 text-red-500" /> Error
+          </DropdownMenuCheckboxItem>
+        </div>
+      )
+    },
+    { type: "separator" } as any,
+    {
+      label: "清除所有弹窗与记录",
+      icon: Trash2,
+      action: () => {
+        toast.dismiss()
+        activeToastsRef.current = {}
+        setLogs([])
+      }
+    },
+    {
+      label: "打开控制台",
+      icon: Bug,
+      action: () => {
+        ;(window.electronAPI as any).openDevTool()
+      }
+    },
+    {
+      label: "打开历史记录面板",
+      icon: Terminal,
+      action: () => setIsConsoleOpen(true)
+    },
+    { type: "separator" } as any,
+    {
+      label: "刷新页面",
+      icon: RefreshCcw,
+      action: () => window.location.reload()
+    },
+    {
+      label: "页面跳转",
+      icon: FolderSymlink,
+      children: (
+        <div className="p-1 min-w-[120px]">
+          <TreeView
+            data={[
+              { name: "首页", path: "/" },
+              { name: "编辑器", path: "/editor" }
+            ]}
+            onSelect={(path) => navigate(path)}
+          />
+        </div>
+      )
+    }
+  ]
 
   return (
     <>
       <div
-        className={cn(
-          "fixed z-50 transition-shadow",
-          !position && "right-4 bottom-4",
-        )}
+        className={cn("fixed z-50 transition-shadow", !position && "right-4 bottom-4")}
         style={position ? { left: position.x, top: position.y } : undefined}
         onContextMenu={(e) => e.preventDefault()}
         onMouseDownCapture={handleMouseDownCapture}
       >
         {/* 🔴 涟漪效果层：只有当 hasError 为 true 时才显示 */}
-        {hasError && (
-          <span className="absolute inline-flex h-full w-full rounded-full animate-ping bg-red-400 opacity-75" />
-        )}
+        {hasError && <span className="absolute inline-flex h-full w-full rounded-full animate-ping bg-red-400 opacity-75" />}
 
         <DropdownMenu>
           <TooltipProvider>
@@ -459,21 +403,19 @@ export default function DevTool() {
                         ? "border-red-500 text-red-600 ring-2 ring-red-500 hover:bg-red-50"
                         : isSpyEnabled
                           ? "border-green-500 text-green-600 ring-2 ring-green-500 hover:bg-green-50"
-                          : "border-zinc-200 text-zinc-600 hover:bg-zinc-50",
+                          : "border-zinc-200 text-zinc-600 hover:bg-zinc-50"
                     )}
                   >
                     <Cog
                       className={cn(
                         "h-5 w-5 transition-transform duration-500",
                         // 开启时旋转
-                        isSpyEnabled && "animate-spin-slow",
+                        isSpyEnabled && "animate-spin-slow"
                       )}
                     />
 
                     {/* 🔴 小红点指示器：即使没开涟漪，也显示一个小红点 */}
-                    {hasError && (
-                      <span className="absolute top-0 right-0 h-3 w-3 rounded-full bg-red-600 border-2 border-white" />
-                    )}
+                    {hasError && <span className="absolute top-0 right-0 h-3 w-3 rounded-full bg-red-600 border-2 border-white" />}
                   </Button>
                 </DropdownMenuTrigger>
               </TooltipTrigger>
@@ -483,15 +425,14 @@ export default function DevTool() {
             </Tooltip>
           </TooltipProvider>
 
-          <DropdownMenuContent align="end" className="w-64 mb-2">
+          <DropdownMenuContent
+            align="end"
+            className="w-64 mb-2"
+          >
             <DropdownMenuLabel className="flex justify-between items-center">
               <span>Dev Actions</span>
               {/* 在菜单标题栏显示简报 */}
-              {hasError && (
-                <span className="text-xs text-red-500 font-bold px-2 py-0.5 bg-red-50 rounded">
-                  Errors!
-                </span>
-              )}
+              {hasError && <span className="text-xs text-red-500 font-bold px-2 py-0.5 bg-red-50 rounded">Errors!</span>}
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
 
@@ -508,9 +449,7 @@ export default function DevTool() {
                       <Icon className="h-4 w-4 text-zinc-500" />
                       <span>{item.label}</span>
                     </DropdownMenuSubTrigger>
-                    <DropdownMenuSubContent className="p-0">
-                      {item.children}
-                    </DropdownMenuSubContent>
+                    <DropdownMenuSubContent className="p-0">{item.children}</DropdownMenuSubContent>
                   </DropdownMenuSub>
                 )
               }
@@ -519,18 +458,9 @@ export default function DevTool() {
                 <DropdownMenuItem
                   key={index}
                   onClick={item.action}
-                  className={cn(
-                    "cursor-pointer gap-2",
-                    item.active &&
-                      "bg-green-50 text-green-700 focus:bg-green-100 focus:text-green-800",
-                  )}
+                  className={cn("cursor-pointer gap-2", item.active && "bg-green-50 text-green-700 focus:bg-green-100 focus:text-green-800")}
                 >
-                  <Icon
-                    className={cn(
-                      "h-4 w-4",
-                      item.active ? "text-green-600" : "text-zinc-500",
-                    )}
-                  />
+                  <Icon className={cn("h-4 w-4", item.active ? "text-green-600" : "text-zinc-500")} />
                   <span>{item.label}</span>
                 </DropdownMenuItem>
               )
@@ -540,7 +470,10 @@ export default function DevTool() {
       </div>
 
       {/* 历史记录面板 */}
-      <Sheet open={isConsoleOpen} onOpenChange={setIsConsoleOpen}>
+      <Sheet
+        open={isConsoleOpen}
+        onOpenChange={setIsConsoleOpen}
+      >
         <SheetContent
           side="bottom"
           className="h-[40vh] p-0 flex flex-col shadow-2xl border-t border-zinc-200 z-[100]"
@@ -548,12 +481,8 @@ export default function DevTool() {
           <div className="flex items-center justify-between px-4 py-2 bg-zinc-100 border-b border-zinc-200">
             <div className="flex items-center gap-2">
               <Terminal className="h-4 w-4 text-zinc-500" />
-              <span className="text-sm font-semibold text-zinc-700">
-                Console History
-              </span>
-              <span className="text-xs text-zinc-400 bg-white px-1.5 py-0.5 rounded border border-zinc-200">
-                {logs.length} events
-              </span>
+              <span className="text-sm font-semibold text-zinc-700">Console History</span>
+              <span className="text-xs text-zinc-400 bg-white px-1.5 py-0.5 rounded border border-zinc-200">{logs.length} events</span>
             </div>
             <div className="flex items-center gap-2">
               <Button
@@ -577,32 +506,25 @@ export default function DevTool() {
             </div>
           </div>
           <div className="flex-1 overflow-y-auto p-4 font-mono text-xs bg-zinc-50 space-y-1">
-            {logs.length === 0 && (
-              <div className="text-zinc-400 italic text-center py-4">
-                No logs recorded in this session...
-              </div>
-            )}
+            {logs.length === 0 && <div className="text-zinc-400 italic text-center py-4">No logs recorded in this session...</div>}
             {logs.map((log, i) => (
               <div
                 key={i}
                 className={cn(
                   "flex items-start gap-2 py-1 px-2 rounded hover:bg-zinc-200/50 break-all",
-                  log.type === "error" &&
-                    "text-red-600 bg-red-50 hover:bg-red-100",
-                  log.type === "warn" &&
-                    "text-amber-600 bg-amber-50 hover:bg-amber-100",
-                  log.type === "info" && "text-teal-700",
+                  log.type === "error" && "text-red-600 bg-red-50 hover:bg-red-100",
+                  log.type === "warn" && "text-amber-600 bg-amber-50 hover:bg-amber-100",
+                  log.type === "info" && "text-teal-700"
                 )}
               >
-                <span className="text-zinc-400 shrink-0 select-none">
-                  [{log.timestamp}]
-                </span>
+                <span className="text-zinc-400 shrink-0 select-none">[{log.timestamp}]</span>
                 <div className="flex-1 flex gap-2">
                   {log.message.map((msg, j) => (
-                    <span key={j} className="whitespace-pre-wrap">
-                      {typeof msg === "object"
-                        ? JSON.stringify(msg, null, 2)
-                        : String(msg)}
+                    <span
+                      key={j}
+                      className="whitespace-pre-wrap"
+                    >
+                      {typeof msg === "object" ? JSON.stringify(msg, null, 2) : String(msg)}
                     </span>
                   ))}
                 </div>
