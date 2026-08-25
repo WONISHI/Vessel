@@ -10,6 +10,14 @@
     "directories": {
       "buildResources": "build"
     },
+    "mac": {
+      "icon": "build/icon.icns",
+      "category": "public.app-category.productivity",
+      "target": [
+        "dmg",
+        "zip"
+      ]
+    },
     "win": {
       "icon": "resources/icon"
     }

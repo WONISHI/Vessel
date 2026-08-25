@@ -50,7 +50,7 @@ export default function HomePage({ onEnter }: HomePageProps) {
       {/* 两栏容器 */}
       <div className="relative z-10 grid w-full max-w-[880px] grid-cols-1 items-center gap-12 px-8 md:grid-cols-2 md:gap-16">
         {/* ========== 左栏：品牌展示 ========== */}
-        <div className="flex flex-col justify-center">
+        <div className="flex flex-col justify-center items-center">
           {/* Logo */}
           <div className="relative mb-8">
             <div className="absolute inset-0 -z-10 scale-[2] rounded-full bg-green-50/50 blur-2xl" />
@@ -87,7 +87,7 @@ export default function HomePage({ onEnter }: HomePageProps) {
 
         {/* ========== 右栏：操作区 ========== */}
         <div className="flex flex-col justify-center">
-          <div className="mb-6">
+          <div className="mb-6 flex flex-col items-center">
             <h2 className="mb-1 text-lg font-semibold text-stone-900">开始使用</h2>
             <p className="text-sm text-stone-400">选择一个本地文件夹作为你的工作区</p>
           </div>

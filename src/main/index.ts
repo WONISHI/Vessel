@@ -1,9 +1,8 @@
-import { app, shell, BrowserWindow, ipcMain } from "electron"
+import { app, shell, BrowserWindow, ipcMain, nativeImage } from "electron"
 import { join } from "path"
 import { electronApp, optimizer, is } from "@electron-toolkit/utils"
-import icon from "../../resources/icon.ico?asset"
+import icon from "../../resources/icon.png?asset"
 import type { IFeature } from "./type/interfaces/index"
-
 import { OpenDirectoryFeature } from "./features/OpenDirectoryFeature"
 
 function createWindow(): void {
@@ -29,16 +28,8 @@ function createWindow(): void {
     new OpenDirectoryFeature(mainWindow, {
       // prettier-ignore
       extensions: [
-        "md",
-        "json",
-        "js",
-        "css",
-        "png",
-        "jpg",
-        "jpeg",
-        "bmp",
-        "gif",
-        "webp"
+        "md", "json", "js", "css",
+        "png", "jpg", "jpeg", "bmp", "gif", "webp"
       ]
     })
   ]
@@ -52,7 +43,6 @@ function createWindow(): void {
       }
     }
   }
-
   start()
 
   ipcMain.handle("open-devtools", (event) => {
@@ -68,6 +58,7 @@ function createWindow(): void {
     shell.openExternal(details.url)
     return { action: "deny" }
   })
+
   if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
     mainWindow.loadURL(process.env["ELECTRON_RENDERER_URL"])
   } else {
@@ -77,6 +68,17 @@ function createWindow(): void {
 
 app.whenReady().then(() => {
   electronApp.setAppUserModelId("com.electron")
+
+  if (process.platform === "darwin" && is.dev) {
+    // 开发模式下直接拼路径，不需要额外函数
+    const iconPath = join(process.cwd(), "resources", "icon.png")
+    const original = nativeImage.createFromPath(iconPath)
+    if (!original.isEmpty()) {
+      const dockIcon = original.resize({ width: 192, height: 192 })
+      app.dock?.setIcon(dockIcon)
+    }
+  }
+
   app.on("browser-window-created", (_, window) => {
     optimizer.watchWindowShortcuts(window)
   })
