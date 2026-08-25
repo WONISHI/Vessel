@@ -1,7 +1,7 @@
 import { app, shell, BrowserWindow, ipcMain } from "electron"
 import { join } from "path"
 import { electronApp, optimizer, is } from "@electron-toolkit/utils"
-import icon from "../../resources/icon.ico.jpg?asset"
+import icon from "../../resources/icon.ico?asset"
 import type { IFeature } from "./type/interfaces/index"
 
 import { OpenDirectoryFeature } from "./features/OpenDirectoryFeature"
