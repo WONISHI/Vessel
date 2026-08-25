@@ -20,3 +20,8 @@ body,
 #root {
   display: flex;
 }
+
+body,
+html {
+  font-family: "Plus Jakarta Sans", system-ui, sans-serif;
+}
