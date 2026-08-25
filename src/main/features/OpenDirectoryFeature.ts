@@ -10,16 +10,13 @@ interface FileNode {
   children?: FileNode[]
 }
 
-// ✅ 定义配置接口
 interface FeatureOptions {
-  extensions: string[] // 例如: ['.md', '.txt', '.json']
+  extensions: string[]
 }
 
 export class OpenDirectoryFeature {
   private watcher: chokidar.FSWatcher | null = null
   private mainWindow: BrowserWindow | null = null
-
-  // ✅ 保存允许的文件后缀 (使用 Set 提高查询性能)
   private allowedExtensions: Set<string>
 
   /**
@@ -28,7 +25,6 @@ export class OpenDirectoryFeature {
    */
   constructor(mainWindow: BrowserWindow, options: FeatureOptions = { extensions: [".md"] }) {
     this.mainWindow = mainWindow
-    // ✅ 统一转为小写并确保带点，存入 Set
     this.allowedExtensions = new Set(options.extensions.map((ext) => (ext.startsWith(".") ? ext.toLowerCase() : `.${ext.toLowerCase()}`)))
   }
 
@@ -71,18 +67,13 @@ export class OpenDirectoryFeature {
       this.stopWatching()
     })
 
-    // ✅ (可选) 新增：允许运行时动态更新文件过滤规则
     ipcMain.handle("config:updateExtensions", (_, extensions: string[]) => {
       this.allowedExtensions = new Set(extensions.map((ext) => (ext.startsWith(".") ? ext.toLowerCase() : `.${ext.toLowerCase()}`)))
-      // 如果正在监听，可能需要通知前端重新刷新
       console.log("更新文件过滤器:", extensions)
       return true
     })
   }
 
-  /**
-   * ✅ 核心辅助方法：检查文件是否符合配置
-   */
   private isFileAllowed(filename: string): boolean {
     // 忽略隐藏文件
     if (filename.startsWith(".")) return false
@@ -111,12 +102,9 @@ export class OpenDirectoryFeature {
 
     const notifyRenderer = (event: string, filePath: string) => {
       if (this.mainWindow && !this.mainWindow.isDestroyed()) {
-        // ✅ 优化：如果是文件变更事件，检查后缀名是否在白名单中
-        // 如果是文件夹变更 (addDir, unlinkDir)，则总是通知
         const isDirEvent = event === "addDir" || event === "unlinkDir"
 
         if (!isDirEvent && !this.isFileAllowed(basename(filePath))) {
-          // 如果文件类型不在允许列表中，忽略该事件，不发送给前端
           return
         }
 
@@ -152,7 +140,6 @@ export class OpenDirectoryFeature {
         entries.map(async (entry) => {
           const fullPath = join(dir, entry.name)
 
-          // 忽略隐藏文件
           if (entry.name.startsWith(".")) return null
 
           if (entry.isDirectory()) {
@@ -163,15 +150,12 @@ export class OpenDirectoryFeature {
               type: "directory",
               children
             }
-          }
-          // ✅ 使用通用的判断逻辑
-          else if (this.isFileAllowed(entry.name)) {
+          } else if (this.isFileAllowed(entry.name)) {
             return { name: entry.name, path: fullPath, type: "file" }
           }
           return null
         })
       )
-      // 排序逻辑保持不变
       return (nodes.filter(Boolean) as FileNode[]).sort((a, b) => (a.type === b.type ? a.name.localeCompare(b.name) : a.type === "directory" ? -1 : 1))
     } catch (e) {
       return []
