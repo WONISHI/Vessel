@@ -17,7 +17,7 @@ interface TreeProps extends React.HTMLAttributes<HTMLDivElement> {
   children?: React.ReactNode
 }
 
-const Tree = React.forwardRef<HTMLDivElement, TreeProps>(({ className, data, initialSelectedId, onSelect, children, ...props }, ref) => {
+const Tree = React.forwardRef<HTMLDivElement, TreeProps>(({ className, initialSelectedId, onSelect, children, ...props }, ref) => {
   const [selectedId, setSelectedId] = React.useState<string | undefined>(initialSelectedId)
 
   const handleSelect = React.useCallback(
@@ -49,7 +49,7 @@ interface FolderProps extends React.ComponentPropsWithoutRef<typeof Collapsible>
   icon?: LucideIcon
 }
 
-const Folder = React.forwardRef<HTMLDivElement, FolderProps>(({ className, name, icon: Icon = FolderIcon, children, ...props }, ref) => {
+const Folder = React.forwardRef<HTMLDivElement, FolderProps>(({ className, name, icon: Icon = FolderIcon, children, ...props }) => {
   return (
     <Collapsible
       className={cn("group/folder w-full", className)}

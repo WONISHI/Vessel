@@ -1,5 +1,5 @@
-import { HashRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom"
-import { useState, useEffect } from "react"
+import { HashRouter, Routes, Route, Navigate } from "react-router-dom"
+import { useState } from "react"
 import HomePage from "./pages/home"
 import Layout from "./layout/index"
 import { Toaster } from "sonner"
@@ -30,10 +30,10 @@ function App() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
   }
 
-  const handleClearWorkspace = () => {
-    setCurrentWorkspace(null)
-    localStorage.removeItem(STORAGE_KEY)
-  }
+  // const handleClearWorkspace = () => {
+  //   setCurrentWorkspace(null)
+  //   localStorage.removeItem(STORAGE_KEY)
+  // }
 
   return (
     <>
