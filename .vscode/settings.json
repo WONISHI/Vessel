@@ -23,6 +23,7 @@
     "editor.defaultFormatter": "esbenp.prettier-vscode",
     "editor.tabSize": 2
   },
+  "json.schemaDownload.enable": false,
   "[json]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   }
