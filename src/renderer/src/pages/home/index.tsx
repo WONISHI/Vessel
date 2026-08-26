@@ -2,16 +2,7 @@ import Logo from "@/assets/logo.png"
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { FolderOpen, NotebookPen, ChevronRight, FolderCheck, LayoutGrid, WifiOff, Eye } from "lucide-react"
-
-interface WorkspaceData {
-  name: string
-  path: string
-  files: Array<{ name: string; path: string }>
-}
-
-interface HomePageProps {
-  onEnter?: (data: WorkspaceData) => void
-}
+import type { WorkspaceData, HomePageProps } from "./type"
 
 export default function HomePage({ onEnter }: HomePageProps) {
   const [workspace, setWorkspace] = useState<WorkspaceData | null>(null)

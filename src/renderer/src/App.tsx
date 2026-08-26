@@ -1,6 +1,6 @@
 import { HashRouter, Routes, Route, Navigate } from "react-router-dom"
 import { useState } from "react"
-import HomePage from "./pages/home"
+import HomePage from "./pages/home/index"
 import Layout from "./layout/index"
 import { Toaster } from "sonner"
 import DevTool from "@/components/core/devtool"
