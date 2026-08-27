@@ -1,8 +1,16 @@
-import { contextBridge, ipcRenderer } from "electron"
+import { contextBridge } from "electron"
 import { electronAPI } from "@electron-toolkit/preload"
+import { developerAPI } from "./developer"
+import { fileAPI } from "./file"
+import { welcomeAPI } from "./welcome"
 
 // Custom APIs for renderer
 const api = {}
+const vesselAPI = {
+  ...welcomeAPI,
+  ...fileAPI,
+  ...developerAPI
+}
 
 // Use `contextBridge` APIs to expose Electron APIs to
 // renderer only if context isolation is enabled, otherwise
@@ -11,16 +19,7 @@ if (process.contextIsolated) {
   try {
     contextBridge.exposeInMainWorld("electron", electronAPI)
     contextBridge.exposeInMainWorld("api", api)
-    contextBridge.exposeInMainWorld("electronAPI", {
-      openDirectory: () => ipcRenderer.invoke("dialog:openDirectory"),
-      // prettier-ignore
-      readContent: (path: string) =>
-        ipcRenderer.invoke("file:readContent", path),
-      openDevTool: () => ipcRenderer.invoke("open-devtools"),
-      // prettier-ignore
-      saveContent: (path: string, content: string) =>
-        ipcRenderer.invoke("file:saveContent", path, content)
-    })
+    contextBridge.exposeInMainWorld("electronAPI", vesselAPI)
   } catch (error) {
     console.error(error)
   }
@@ -29,4 +28,6 @@ if (process.contextIsolated) {
   window.electron = electronAPI
   // @ts-ignore (define in dts)
   window.api = api
+  // @ts-ignore (define in dts)
+  window.electronAPI = vesselAPI
 }

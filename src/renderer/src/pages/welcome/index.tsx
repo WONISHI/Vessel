@@ -7,13 +7,47 @@ import type { WorkspaceData, HomePageProps } from "./type"
 export default function HomePage({ onEnter }: HomePageProps) {
   const [workspace, setWorkspace] = useState<WorkspaceData | null>(null)
   const [loading, setLoading] = useState(false)
+  const [errorMessage, setErrorMessage] = useState("")
   const navigate = useNavigate()
+
+  function isPersistedWorkspaceData(value: unknown): value is WorkspaceData {
+    if (!value || typeof value !== "object") return false
+
+    const workspace = value as Partial<WorkspaceData>
+
+    return (
+      typeof workspace.id === "number" &&
+      typeof workspace.name === "string" &&
+      typeof workspace.path === "string" &&
+      Array.isArray(workspace.files) &&
+      workspace.files.every((file) => file && typeof file === "object" && typeof file.name === "string" && typeof file.path === "string") &&
+      typeof workspace.deviceId === "string" &&
+      typeof workspace.sessionId === "string" &&
+      typeof workspace.firstOpenedAt === "string" &&
+      typeof workspace.lastOpenedAt === "string" &&
+      typeof workspace.openedAt === "string" &&
+      typeof workspace.openCount === "number"
+    )
+  }
 
   const handleOpenFolder = async () => {
     setLoading(true)
+    setErrorMessage("")
+
     try {
-      const data = await window.electronAPI.openDirectory()
-      if (data) setWorkspace(data)
+      // IPC 返回值先按照 unknown 处理，通过类型校验后再写入 React 状态。
+      const data: unknown = await window.electronAPI.openDirectory()
+
+      if (data === null) return
+
+      if (!isPersistedWorkspaceData(data)) {
+        throw new TypeError("主进程返回的工作区数据不完整")
+      }
+
+      setWorkspace(data)
+    } catch (error) {
+      console.error("打开工作区失败", error)
+      setErrorMessage(error instanceof Error ? error.message : "打开工作区失败，请重试")
     } finally {
       setLoading(false)
     }
@@ -117,7 +151,7 @@ export default function HomePage({ onEnter }: HomePageProps) {
                   className="flex h-10 shrink-0 items-center gap-1.5 rounded-xl border border-stone-200 bg-white px-4 text-sm font-medium text-stone-700 transition-all hover:border-stone-300 hover:bg-stone-50 active:scale-[0.98] disabled:opacity-60"
                 >
                   <FolderCheck className="h-4 w-4 text-green-700" />
-                  选择文件夹
+                  {loading ? "正在选择..." : "选择文件夹"}
                 </button>
               </div>
 
@@ -126,9 +160,12 @@ export default function HomePage({ onEnter }: HomePageProps) {
                   <div className="h-1.5 w-1.5 rounded-full bg-green-500" />
                   <span className="text-xs text-stone-500">
                     已识别 <span className="font-medium text-stone-700">{workspace.files.length}</span> 个支持的文件
+                    <span className="mx-1.5 text-stone-300">·</span>第 <span className="font-medium text-stone-700">{workspace.openCount}</span> 次打开记录已保存
                   </span>
                 </div>
               )}
+
+              {errorMessage && <p className="mt-3 text-xs text-red-500">{errorMessage}</p>}
             </div>
 
             {/* 主按钮：高度从 h-11 sm:h-12 改成 h-10(40px) */}

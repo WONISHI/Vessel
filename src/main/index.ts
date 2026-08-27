@@ -2,8 +2,7 @@ import { app, shell, BrowserWindow, ipcMain, nativeImage } from "electron"
 import { join } from "path"
 import { electronApp, optimizer, is } from "@electron-toolkit/utils"
 import icon from "../../resources/icon.png?asset"
-import type { IFeature } from "./type/interfaces/index"
-import { OpenDirectoryFeature } from "./features/OpenDirectoryFeature"
+import { mainApps } from "./app"
 
 function createWindow(): void {
   const mainWindow = new BrowserWindow({
@@ -23,27 +22,6 @@ function createWindow(): void {
   mainWindow.on("ready-to-show", () => {
     mainWindow.show()
   })
-
-  const features: IFeature[] = [
-    new OpenDirectoryFeature(mainWindow, {
-      // prettier-ignore
-      extensions: [
-        "md", "json", "js", "css",
-        "png", "jpg", "jpeg", "bmp", "gif", "webp"
-      ]
-    })
-  ]
-
-  const start = () => {
-    for (const feature of features) {
-      try {
-        feature.activate()
-      } catch (err) {
-        console.log(err)
-      }
-    }
-  }
-  start()
 
   ipcMain.handle("open-devtools", (event) => {
     const contents = event.sender
@@ -68,6 +46,8 @@ function createWindow(): void {
 
 app.whenReady().then(() => {
   electronApp.setAppUserModelId("com.electron")
+
+  mainApps.activate()
 
   if (process.platform === "darwin" && is.dev) {
     // 开发模式下直接拼路径，不需要额外函数
@@ -96,4 +76,8 @@ app.on("window-all-closed", () => {
   if (process.platform !== "darwin") {
     app.quit()
   }
+})
+
+app.on("before-quit", () => {
+  mainApps.dispose()
 })
