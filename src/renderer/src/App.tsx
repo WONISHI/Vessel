@@ -1,6 +1,6 @@
 import { HashRouter, Routes, Route, Navigate } from "react-router-dom"
 import { useState } from "react"
-import HomePage from "./pages/home/index"
+import Welcome from "./pages/welcome/index"
 import Layout from "./layout/index"
 import { Toaster } from "sonner"
 import DevTool from "@/components/core/devtool"
@@ -50,7 +50,7 @@ function App() {
           <Route
             path="/"
             element={
-              <HomePage
+              <Welcome
                 // 使用新的处理函数
                 onEnter={handleSetWorkspace}
               />
