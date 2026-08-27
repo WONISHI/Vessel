@@ -1,56 +1,35 @@
 import { ipcRenderer } from "electron"
-import type { DeviceInfo, PersistedWorkspaceData, RecentWorkspace, WorkspaceDataInput, WorkspaceOpenRecord } from "../../main/modules/welcome/index.type"
 
-export interface StorageInfo {
-  databasePath: string
-  databaseVersion: number
-  deviceId: string
-  sessionId: string
-}
-
-/**
- * 欢迎页暴露给渲染进程的 API 类型。
- *
- * openDirectory 返回的不是选择文件夹时的基础数据，
- * 而是经过 workspace:recordOpened 保存后的完整工作区数据。
- */
-export interface WelcomeAPI {
-  openDirectory: () => Promise<PersistedWorkspaceData | null>
-  getRecentWorkspaces: (limit?: number) => Promise<RecentWorkspace[]>
-  getWorkspaceOpenRecords: (workspaceId: number, limit?: number) => Promise<WorkspaceOpenRecord[]>
-  getCurrentDevice: () => Promise<DeviceInfo>
-  getAppState: <T>(key: string) => Promise<T | null>
-  setAppState: (key: string, value: unknown) => Promise<void>
-  deleteAppState: (key: string) => Promise<boolean>
-  getStorageInfo: () => Promise<StorageInfo>
-}
-
-export const welcomeAPI: WelcomeAPI = {
+export const welcomeAPI = {
   /**
-   * 选择文件夹并记录本次打开信息。
-   *
-   * dialog:openDirectory 返回 WorkspaceDataInput；
-   * workspace:recordOpened 返回 PersistedWorkspaceData。
+   * 选择文件夹，并将工作区打开信息保存到数据库。
    */
-  openDirectory: async (): Promise<PersistedWorkspaceData | null> => {
-    const workspace = (await ipcRenderer.invoke("dialog:openDirectory")) as WorkspaceDataInput | null
+  openDirectory: async () => {
+    const workspace = await ipcRenderer.invoke("dialog:openDirectory")
 
     if (!workspace) return null
 
-    return ipcRenderer.invoke("workspace:recordOpened", workspace) as Promise<PersistedWorkspaceData>
+    return ipcRenderer.invoke("workspace:recordOpened", workspace)
   },
 
-  getRecentWorkspaces: (limit = 10) => ipcRenderer.invoke("workspace:listRecent", limit) as Promise<RecentWorkspace[]>,
+  /** 获取最近打开的工作区。 */
+  getRecentWorkspaces: (limit = 10) => ipcRenderer.invoke("workspace:listRecent", limit),
 
-  getWorkspaceOpenRecords: (workspaceId: number, limit = 100) => ipcRenderer.invoke("workspace:listOpenRecords", workspaceId, limit) as Promise<WorkspaceOpenRecord[]>,
+  /** 获取指定工作区的打开历史。 */
+  getWorkspaceOpenRecords: (workspaceId: number, limit = 100) => ipcRenderer.invoke("workspace:listOpenRecords", workspaceId, limit),
 
-  getCurrentDevice: () => ipcRenderer.invoke("device:getCurrent") as Promise<DeviceInfo>,
+  /** 获取当前设备信息。 */
+  getCurrentDevice: () => ipcRenderer.invoke("device:getCurrent"),
 
-  getAppState: <T>(key: string) => ipcRenderer.invoke("app-state:get", key) as Promise<T | null>,
+  /** 读取一项应用状态。 */
+  getAppState: <T>(key: string): Promise<T | null> => ipcRenderer.invoke("app-state:get", key),
 
-  setAppState: (key: string, value: unknown) => ipcRenderer.invoke("app-state:set", key, value) as Promise<void>,
+  /** 保存或覆盖一项应用状态。 */
+  setAppState: (key: string, value: unknown): Promise<void> => ipcRenderer.invoke("app-state:set", key, value),
 
-  deleteAppState: (key: string) => ipcRenderer.invoke("app-state:delete", key) as Promise<boolean>,
+  /** 删除一项应用状态。 */
+  deleteAppState: (key: string): Promise<boolean> => ipcRenderer.invoke("app-state:delete", key),
 
-  getStorageInfo: () => ipcRenderer.invoke("storage:getInfo") as Promise<StorageInfo>
+  /** 获取本地数据库信息。 */
+  getStorageInfo: () => ipcRenderer.invoke("storage:getInfo")
 }
