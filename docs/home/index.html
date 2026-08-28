@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vessel - 历史记录 & 工具箱</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    background: #faf9f7;
+    color: #1c1917;
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* ========== 活动栏 ========== */
+  .activity-bar {
+    width: 52px;
+    min-width: 52px;
+    background: #faf9f7;
+    border-right: 1px solid #f0efed;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 8px 0;
+    gap: 2px;
+    z-index: 10;
+  }
+  .activity-bar-top {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    width: 100%;
+  }
+  .activity-bar-bottom {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    width: 100%;
+    margin-top: auto;
+  }
+  .collapse-btn {
+    width: 36px;
+    height: 36px;
+    border: none;
+    background: transparent;
+    border-radius: 9px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #78716c;
+    transition: all 0.15s;
+    margin-bottom: 4px;
+  }
+  .collapse-btn:hover { background: #f0efed; color: #1c1917; }
+  .activity-logo {
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, #1c1917 0%, #44403c 100%);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 800;
+    margin-bottom: 8px;
+  }
+  .activity-btn {
+    width: 38px;
+    height: 38px;
+    border: none;
+    background: transparent;
+    border-radius: 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #78716c;
+    transition: all 0.15s;
+    position: relative;
+  }
+  .activity-btn:hover { background: #f0efed; color: #1c1917; }
+  .activity-btn.active { background: #ecfdf5; color: #15803d; }
+  .activity-btn.active::before {
+    content: "";
+    position: absolute;
+    left: -12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3px;
+    height: 22px;
+    background: #15803d;
+    border-radius: 0 3px 3px 0;
+  }
+  .activity-btn .tooltip {
+    position: absolute;
+    left: 48px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: #1c1917;
+    color: #fff;
+    padding: 6px 11px;
+    border-radius: 7px;
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s;
+    z-index: 100;
+  }
+  .activity-btn:hover .tooltip { opacity: 1; }
+
+  /* ========== 侧边栏面板 ========== */
+  .sidebar-panel {
+    width: 240px;
+    min-width: 240px;
+    background: #faf9f7;
+    border-right: 1px solid #f0efed;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: width 0.2s ease, min-width 0.2s ease, opacity 0.15s ease;
+  }
+  .sidebar-panel.collapsed {
+    width: 0; min-width: 0; opacity: 0;
+    border-right: none; overflow: hidden;
+  }
+  .panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px 10px;
+  }
+  .panel-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: #1c1917;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .panel-title svg { color: #15803d; }
+  .panel-search { padding: 0 12px 10px; }
+  .panel-search-input { position: relative; width: 100%; }
+  .panel-search-input svg {
+    position: absolute; left: 10px; top: 50%;
+    transform: translateY(-50%);
+    width: 14px; height: 14px; color: #a8a29e;
+  }
+  .panel-search-input input {
+    width: 100%; height: 32px;
+    border: 1px solid #e7e5e4; border-radius: 8px;
+    background: #fff; padding: 0 10px 0 32px;
+    font-size: 12.5px; color: #1c1917;
+    outline: none; transition: all 0.15s; font-family: inherit;
+  }
+  .panel-search-input input::placeholder { color: #a8a29e; }
+  .panel-search-input input:focus {
+    border-color: #15803d;
+    box-shadow: 0 0 0 3px rgba(21,128,61,0.08);
+  }
+  .file-tree {
+    flex: 1; overflow-y: auto; padding: 2px 8px 12px;
+  }
+  .file-tree::-webkit-scrollbar { width: 6px; }
+  .file-tree::-webkit-scrollbar-thumb { background: #e7e5e4; border-radius: 3px; }
+  .tree-folder, .tree-file {
+    display: flex; align-items: center; gap: 8px;
+    padding: 5px 9px; border-radius: 8px;
+    font-size: 13px; color: #44403c;
+    cursor: pointer; transition: background 0.12s;
+    user-select: none; font-weight: 500;
+  }
+  .tree-folder:hover, .tree-file:hover { background: #f0efed; }
+  .tree-file.active { background: #ecfdf5; color: #166534; font-weight: 600; }
+  .tree-arrow {
+    width: 16px; height: 16px;
+    display: flex; align-items: center; justify-content: center;
+    color: #a8a29e; transition: transform 0.15s; flex-shrink: 0;
+  }
+  .tree-folder.collapsed .tree-arrow { transform: rotate(-90deg); }
+  .tree-icon { width: 17px; height: 17px; flex-shrink: 0; }
+  .tree-children { padding-left: 16px; }
+  .tree-folder.collapsed + .tree-children { display: none; }
+
+  /* ========== 主内容区 ========== */
+  .main-content {
+    flex: 1; display: flex; flex-direction: column;
+    background: #fff; overflow: hidden; min-width: 0;
+  }
+  .tab-bar {
+    height: 40px; min-height: 40px;
+    background: #faf9f7; border-bottom: 1px solid #f0efed;
+    display: flex; align-items: flex-end; padding: 0 8px;
+    gap: 2px; overflow-x: auto;
+  }
+  .tab-bar::-webkit-scrollbar { display: none; }
+
+  .history-page {
+    flex: 1; overflow-y: auto; padding: 28px 36px;
+  }
+  .history-page::-webkit-scrollbar { width: 8px; }
+  .history-page::-webkit-scrollbar-thumb { background: #e7e5e4; border-radius: 4px; }
+  .history-page::-webkit-scrollbar-thumb:hover { background: #d6d3d1; }
+
+  /* 页面头部 */
+  .history-header {
+    display: flex; align-items: flex-start;
+    justify-content: space-between; margin-bottom: 20px;
+  }
+  .history-header-left {
+    display: flex; align-items: center; gap: 14px;
+  }
+  .history-icon {
+    width: 40px; height: 40px;
+    background: linear-gradient(135deg, #1c1917 0%, #44403c 100%);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff;
+  }
+  .history-title {
+    font-size: 22px; font-weight: 800; color: #1c1917;
+    letter-spacing: -0.5px; margin-bottom: 2px;
+  }
+  .history-subtitle {
+    font-size: 13px; color: #78716c;
+  }
+  .history-header-actions {
+    display: flex; align-items: center; gap: 8px;
+  }
+  .clear-history-btn {
+    display: flex; align-items: center; gap: 6px;
+    padding: 8px 14px;
+    border: 1px solid #e7e5e4; border-radius: 9px;
+    background: #fff; font-size: 13px; font-weight: 500;
+    color: #78716c; cursor: pointer; transition: all 0.12s;
+    font-family: inherit;
+  }
+  .clear-history-btn:hover {
+    border-color: #dc2626; background: #fef2f2; color: #dc2626;
+  }
+
+  /* 搜索框 */
+  .history-search {
+    position: relative; margin-bottom: 16px;
+  }
+  .history-search svg {
+    position: absolute; left: 14px; top: 50%;
+    transform: translateY(-50%);
+    width: 16px; height: 16px; color: #a8a29e;
+  }
+  .history-search input {
+    width: 100%; height: 42px;
+    border: 1px solid #e7e5e4; border-radius: 11px;
+    background: #fff; padding: 0 16px 0 42px;
+    font-size: 14px; color: #1c1917;
+    outline: none; transition: all 0.15s; font-family: inherit;
+  }
+  .history-search input::placeholder { color: #a8a29e; }
+  .history-search input:focus {
+    border-color: #15803d;
+    box-shadow: 0 0 0 3px rgba(21,128,61,0.08);
+  }
+
+  /* 筛选标签 */
+  .history-filters {
+    display: flex; align-items: center; gap: 6px;
+    margin-bottom: 24px; flex-wrap: wrap;
+  }
+  .filter-tab {
+    padding: 6px 14px; border-radius: 20px;
+    font-size: 13px; font-weight: 500;
+    color: #57534e; cursor: pointer;
+    transition: all 0.12s; background: #f5f5f4;
+    border: 1px solid transparent; font-family: inherit;
+  }
+  .filter-tab:hover { background: #e7e5e4; color: #1c1917; }
+  .filter-tab.active {
+    background: #15803d; color: #fff; font-weight: 600;
+  }
+
+  /* 两栏布局 */
+  .history-layout {
+    display: grid; grid-template-columns: 1fr 340px;
+    gap: 28px; align-items: start;
+  }
+
+  /* 历史记录列表 */
+  .history-list-section { min-width: 0; }
+  .history-group { margin-bottom: 24px; }
+  .history-group-title {
+    font-size: 12px; font-weight: 700; color: #a8a29e;
+    margin-bottom: 10px; padding: 0 4px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .history-group-count {
+    font-weight: 500; color: #d6d3d1;
+  }
+
+  .history-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 16px; border-radius: 12px;
+    cursor: pointer; transition: all 0.12s;
+    border: 1px solid #f0efed; background: #fff;
+    margin-bottom: 8px;
+  }
+  .history-item:hover {
+    border-color: #15803d; background: #f0fdf4;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(21,128,61,0.06);
+  }
+  .history-item-icon {
+    width: 40px; height: 40px; border-radius: 10px;
+    background: #f5f5f4;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .history-item-info { flex: 1; min-width: 0; }
+  .history-item-name-row {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 4px;
+  }
+  .history-item-name {
+    font-size: 14px; font-weight: 600; color: #1c1917;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .history-item-type {
+    font-size: 11px; font-weight: 600;
+    padding: 2px 8px; border-radius: 6px;
+    flex-shrink: 0;
+  }
+  .type-workspace { background: #dcfce7; color: #166534; }
+  .type-note { background: #dbeafe; color: #1e40af; }
+  .type-page { background: #f3e8ff; color: #6b21a8; }
+  .type-image { background: #ffedd5; color: #9a3412; }
+  .type-code { background: #f1f5f9; color: #334155; }
+
+  .history-item-path {
+    font-size: 12px; color: #a8a29e;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .history-item-meta {
+    display: flex; align-items: center; gap: 14px;
+    flex-shrink: 0; margin-left: 12px;
+  }
+  .history-item-files {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 12px; color: #78716c;
+  }
+  .history-item-time {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 12px; color: #a8a29e; white-space: nowrap;
+  }
+
+  /* 工具箱 */
+  .toolbox-section {
+    position: sticky; top: 0;
+  }
+  .toolbox-card {
+    border: 1px solid #f0efed; border-radius: 14px;
+    background: #fff; padding: 18px;
+  }
+  .toolbox-header {
+    display: flex; align-items: center;
+    justify-content: space-between; margin-bottom: 16px;
+  }
+  .toolbox-title {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 15px; font-weight: 700; color: #1c1917;
+  }
+  .toolbox-title svg { color: #15803d; }
+  .toolbox-count {
+    font-size: 12px; color: #a8a29e; font-weight: 500;
+  }
+  .toolbox-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .tool-item {
+    display: flex; flex-direction: column;
+    padding: 14px 12px; border-radius: 10px;
+    border: 1px solid #f0efed; background: #fff;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .tool-item:hover {
+    border-color: #15803d; background: #f0fdf4;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(21,128,61,0.08);
+  }
+  .tool-icon {
+    width: 32px; height: 32px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 10px;
+  }
+  .tool-name {
+    font-size: 13px; font-weight: 700; color: #1c1917;
+    margin-bottom: 3px;
+  }
+  .tool-desc {
+    font-size: 11px; color: #a8a29e; line-height: 1.4;
+  }
+  .toolbox-footer {
+    margin-top: 14px; padding-top: 14px;
+    border-top: 1px solid #f0efed;
+    text-align: center;
+  }
+  .toolbox-more {
+    font-size: 13px; font-weight: 600; color: #15803d;
+    cursor: pointer; display: inline-flex;
+    align-items: center; gap: 4px;
+    transition: gap 0.15s;
+  }
+  .toolbox-more:hover { gap: 8px; }
+</style>
+</head>
+<body>
+
+<!-- 活动栏 -->
+<div class="activity-bar">
+  <div class="activity-bar-top">
+    <button class="collapse-btn" id="collapseBtn" title="切换侧边栏">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="18" height="18" rx="2"/>
+        <line x1="9" y1="3" x2="9" y2="21"/>
+      </svg>
+    </button>
+    <div class="activity-logo">V</div>
+    <button class="activity-btn" data-panel="files" title="文件">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+      <span class="tooltip">文件</span>
+    </button>
+    <button class="activity-btn" data-panel="search" title="搜索">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <span class="tooltip">搜索</span>
+    </button>
+    <button class="activity-btn active" data-panel="history" title="历史记录">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      <span class="tooltip">历史记录</span>
+    </button>
+  </div>
+  <div class="activity-bar-bottom">
+    <button class="activity-btn" data-panel="settings" title="设置">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      <span class="tooltip">设置</span>
+    </button>
+  </div>
+</div>
+
+<!-- 侧边栏面板 -->
+<div class="sidebar-panel" id="sidebarPanel">
+  <div class="panel" id="panel-files" style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
+    <div class="panel-header">
+      <span class="panel-title">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+        资源管理器
+      </span>
+    </div>
+    <div class="panel-search">
+      <div class="panel-search-input">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" placeholder="搜索文件...">
+      </div>
+    </div>
+    <div class="file-tree" id="fileTree"></div>
+  </div>
+  <div class="panel" id="panel-search" style="display:none;flex-direction:column;flex:1;overflow:hidden;">
+    <div class="panel-header"><span class="panel-title">搜索</span></div>
+    <div style="padding:20px;text-align:center;color:#a8a29e;font-size:13px;">搜索功能</div>
+  </div>
+  <div class="panel" id="panel-history" style="display:none;flex-direction:column;flex:1;overflow:hidden;">
+    <div class="panel-header"><span class="panel-title">历史记录</span></div>
+    <div style="padding:20px;text-align:center;color:#a8a29e;font-size:13px;">历史记录已在主区域展示</div>
+  </div>
+  <div class="panel" id="panel-settings" style="display:none;flex-direction:column;flex:1;overflow:hidden;">
+    <div class="panel-header"><span class="panel-title">设置</span></div>
+    <div style="padding:20px;text-align:center;color:#a8a29e;font-size:13px;">设置功能</div>
+  </div>
+</div>
+
+<!-- 主内容区 -->
+<div class="main-content">
+  <div class="tab-bar"></div>
+
+  <div class="history-page">
+    <!-- 页面头部 -->
+    <div class="history-header">
+      <div class="history-header-left">
+        <div class="history-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
+        <div>
+          <div class="history-title">历史记录 & 工具箱</div>
+          <div class="history-subtitle">查看最近打开的项目，快速访问开发工具</div>
+        </div>
+      </div>
+      <div class="history-header-actions">
+        <button class="clear-history-btn">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+          清除历史
+        </button>
+      </div>
+    </div>
+
+    <!-- 搜索框 -->
+    <div class="history-search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" placeholder="搜索历史记录...">
+    </div>
+
+    <!-- 筛选标签 -->
+    <div class="history-filters">
+      <button class="filter-tab active">全部</button>
+      <button class="filter-tab">工作区</button>
+      <button class="filter-tab">笔记</button>
+      <button class="filter-tab">页面</button>
+      <button class="filter-tab">图片</button>
+      <button class="filter-tab">代码</button>
+    </div>
+
+    <!-- 两栏布局 -->
+    <div class="history-layout">
+      <!-- 左侧：历史记录列表 -->
+      <div class="history-list-section">
+        <!-- 今天 -->
+        <div class="history-group">
+          <div class="history-group-title">今天 <span class="history-group-count">3 项</span></div>
+
+          <div class="history-item">
+            <div class="history-item-icon" style="color:#16a34a">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+            </div>
+            <div class="history-item-info">
+              <div class="history-item-name-row">
+                <span class="history-item-name">我的知识管理工作区</span>
+                <span class="history-item-type type-workspace">工作区</span>
+              </div>
+              <div class="history-item-path">/Users/vessel/Documents/knowledge</div>
+            </div>
+            <div class="history-item-meta">
+              <span class="history-item-files">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                128 个文件
+              </span>
+              <span class="history-item-time">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                30 分钟前
+              </span>
+            </div>
+          </div>
+
+          <div class="history-item">
+            <div class="history-item-icon" style="color:#2563eb">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            </div>
+            <div class="history-item-info">
+              <div class="history-item-name-row">
+                <span class="history-item-name">FlexNote 设计规范.md</span>
+                <span class="history-item-type type-note">笔记</span>
+              </div>
+              <div class="history-item-path">/Users/vessel/Documents/knowledge/design/flexnote.md</div>
+            </div>
+            <div class="history-item-meta">
+              <span class="history-item-time">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                2 小时前
+              </span>
+            </div>
+          </div>
+
+          <div class="history-item">
+            <div class="history-item-icon" style="color:#16a34a">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+            </div>
+            <div class="history-item-info">
+              <div class="history-item-name-row">
+                <span class="history-item-name">项目需求文档</span>
+                <span class="history-item-type type-workspace">工作区</span>
+              </div>
+              <div class="history-item-path">/Users/vessel/Documents/work/project-alpha</div>
+            </div>
+            <div class="history-item-meta">
+              <span class="history-item-files">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                42 个文件
+              </span>
+              <span class="history-item-time">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                5 小时前
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 昨天 -->
+        <div class="history-group">
+          <div class="history-group-title">昨天 <span class="history-group-count">2 项</span></div>
+
+          <div class="history-item">
+            <div class="history-item-icon" style="color:#7c3aed">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            </div>
+            <div class="history-item-info">
+              <div class="history-item-name-row">
+                <span class="history-item-name">API 接口设计.page</span>
+                <span class="history-item-type type-page">页面</span>
+              </div>
+              <div class="history-item-path">/Users/vessel/Documents/knowledge/api/page.json</div>
+            </div>
+            <div class="history-item-meta">
+              <span class="history-item-time">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                昨天
+              </span>
+            </div>
+          </div>
+
+          <div class="history-item">
+            <div class="history-item-icon" style="color:#ea580c">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            </div>
+            <div class="history-item-info">
+              <div class="history-item-name-row">
+                <span class="history-item-name">logo-设计稿.png</span>
+                <span class="history-item-type type-image">图片</span>
+              </div>
+              <div class="history-item-path">/Users/vessel/Documents/design/logo.png</div>
+            </div>
+            <div class="history-item-meta">
+              <span class="history-item-time">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                昨天
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 更早 -->
+        <div class="history-group">
+          <div class="history-group-title">更早 <span class="history-group-count">3 项</span></div>
+
+          <div class="history-item">
+            <div class="history-item-icon" style="color:#16a34a">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+            </div>
+            <div class="history-item-info">
+              <div class="history-item-name-row">
+                <span class="history-item-name">学习笔记工作区</span>
+                <span class="history-item-type type-workspace">工作区</span>
+              </div>
+              <div class="history-item-path">/Users/vessel/Documents/study</div>
+            </div>
+            <div class="history-item-meta">
+              <span class="history-item-files">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                86 个文件
+              </span>
+              <span class="history-item-time">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                3 天前
+              </span>
+            </div>
+          </div>
+
+          <div class="history-item">
+            <div class="history-item-icon" style="color:#475569">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            </div>
+            <div class="history-item-info">
+              <div class="history-item-name-row">
+                <span class="history-item-name">utils.ts</span>
+                <span class="history-item-type type-code">代码</span>
+              </div>
+              <div class="history-item-path">/Users/vessel/Projects/vessel/src/utils.ts</div>
+            </div>
+            <div class="history-item-meta">
+              <span class="history-item-time">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                5 天前
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 右侧：工具箱 -->
+      <div class="toolbox-section">
+        <div class="toolbox-card">
+          <div class="toolbox-header">
+            <div class="toolbox-title">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+              工具箱
+            </div>
+            <span class="toolbox-count">6 个工具</span>
+          </div>
+
+          <div class="toolbox-grid">
+            <div class="tool-item">
+              <div class="tool-icon" style="background:#dcfce7;color:#16a34a">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+              </div>
+              <div class="tool-name">JSON</div>
+              <div class="tool-desc">格式化、压缩、校验</div>
+            </div>
+
+            <div class="tool-item">
+              <div class="tool-icon" style="background:#dbeafe;color:#2563eb">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+              </div>
+              <div class="tool-name">Base64</div>
+              <div class="tool-desc">编码与解码</div>
+            </div>
+
+            <div class="tool-item">
+              <div class="tool-icon" style="background:#f3e8ff;color:#7c3aed">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+              </div>
+              <div class="tool-name">URL</div>
+              <div class="tool-desc">编码与解码</div>
+            </div>
+
+            <div class="tool-item">
+              <div class="tool-icon" style="background:#ffedd5;color:#ea580c">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              </div>
+              <div class="tool-name">时间戳</div>
+              <div class="tool-desc">时间与日期互转</div>
+            </div>
+
+            <div class="tool-item">
+              <div class="tool-icon" style="background:#fef2f2;color:#dc2626">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r=".5"/><circle cx="17.5" cy="10.5" r=".5"/><circle cx="8.5" cy="7.5" r=".5"/><circle cx="6.5" cy="12.5" r=".5"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg>
+              </div>
+              <div class="tool-name">颜色</div>
+              <div class="tool-desc">HEX/RGB/HSL</div>
+            </div>
+
+            <div class="tool-item">
+              <div class="tool-icon" style="background:#f1f5f9;color:#475569">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+              <div class="tool-name">正则</div>
+              <div class="tool-desc">表达式匹配测试</div>
+            </div>
+          </div>
+
+          <div class="toolbox-footer">
+            <span class="toolbox-more">
+              查看全部工具
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// 文件扩展名颜色映射
+const fileColorMap = {
+  md: "#15803d", js: "#ca8a04", jsx: "#ca8a04",
+  ts: "#2563eb", tsx: "#2563eb", css: "#2563eb",
+  json: "#1c1917", png: "#a855f7", jpg: "#a855f7",
+  svg: "#dc2626", pdf: "#dc2626",
+};
+function getFileColor(name) {
+  const ext = name.split(".").pop().toLowerCase();
+  return fileColorMap[ext] || "#78716c";
+}
+
+// 文件树数据
+const fileTreeData = [
+  { type: "folder", name: "src", children: [
+    { type: "file", name: "App.tsx", active: true },
+    { type: "file", name: "main.tsx" },
+    { type: "file", name: "utils.js" },
+  ]},
+  { type: "folder", name: "docs", children: [
+    { type: "file", name: "README.md" },
+  ]},
+  { type: "file", name: "package.json" },
+  { type: "file", name: ".env" },
+];
+
+function renderFileTree(data, container) {
+  data.forEach((item) => {
+    if (item.type === "folder") {
+      const el = document.createElement("div");
+      el.className = "tree-folder";
+      el.innerHTML = `<span class="tree-arrow"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span><svg class="tree-icon" style="color:#a16207" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg><span>${item.name}</span>`;
+      container.appendChild(el);
+      const children = document.createElement("div");
+      children.className = "tree-children";
+      container.appendChild(children);
+      if (item.children && item.children.length > 0) renderFileTree(item.children, children);
+      else el.classList.add("collapsed");
+      el.addEventListener("click", (e) => { e.stopPropagation(); el.classList.toggle("collapsed"); });
+    } else {
+      const color = getFileColor(item.name);
+      const el = document.createElement("div");
+      el.className = "tree-file" + (item.active ? " active" : "");
+      el.innerHTML = `<span class="tree-arrow" style="visibility:hidden"></span><svg class="tree-icon" style="color:${color}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span>${item.name}</span>`;
+      container.appendChild(el);
+    }
+  });
+}
+renderFileTree(fileTreeData, document.getElementById("fileTree"));
+
+// 活动栏切换面板
+document.querySelectorAll(".activity-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const panel = btn.dataset.panel;
+    document.querySelectorAll(".activity-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    document.querySelectorAll(".panel").forEach(p => p.style.display = "none");
+    const targetPanel = document.getElementById("panel-" + panel);
+    targetPanel.style.display = "flex";
+    targetPanel.style.flexDirection = "column";
+    targetPanel.style.flex = "1";
+    targetPanel.style.overflow = "hidden";
+  });
+});
+
+// 折叠侧边栏
+const collapseBtn = document.getElementById("collapseBtn");
+const sidebarPanel = document.getElementById("sidebarPanel");
+collapseBtn.addEventListener("click", () => {
+  sidebarPanel.classList.toggle("collapsed");
+});
+
+// 筛选标签切换
+document.querySelectorAll(".filter-tab").forEach(tab => {
+  tab.addEventListener("click", () => {
+    document.querySelectorAll(".filter-tab").forEach(t => t.classList.remove("active"));
+    tab.classList.add("active");
+  });
+});
+</script>
+</body>
+</html>

@@ -10,6 +10,12 @@
     "asarUnpack": [
       "**/node_modules/better-sqlite3/**/*"
     ],
+    "nsis": {
+      "artifactName": "${productName}-Setup-${version}.${ext}"
+    },
+    "electronDownload": {
+      "mirror": "https://npmmirror.com/mirrors/electron/"
+    },
     "npmRebuild": true,
     "directories": {
       "buildResources": "build"
