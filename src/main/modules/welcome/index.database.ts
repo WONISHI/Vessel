@@ -1,0 +1,535 @@
+import { app } from "electron"
+import Database from "better-sqlite3"
+import { randomUUID } from "crypto"
+import { existsSync, mkdirSync } from "fs"
+import { arch, cpus, hostname, platform, release, totalmem, type, version } from "os"
+import { dirname, join, normalize, resolve } from "path"
+import type { WorkspaceDataInput, PersistedWorkspaceData, RecentWorkspace, WorkspaceOpenRecord, DeviceInfo, WorkspaceRow, WorkspaceOpenRecordRow, DeviceRow } from "./index.type"
+
+/**
+ * 当前数据库结构版本。
+ * 后续调整表结构时递增该值，并在 migrate 中增加对应的迁移步骤。
+ */
+const DATABASE_VERSION = 1
+
+/**
+ * Vessel 本地数据库管理器。
+ *
+ * 该类只在 Electron 主进程中创建，负责：
+ * 1. 初始化和迁移 SQLite 数据库；
+ * 2. 维护设备与应用会话信息；
+ * 3. 保存工作区及其每次打开记录；
+ * 4. 提供通用 JSON 状态的持久化能力。
+ */
+export class AppDatabase {
+  /** better-sqlite3 数据库连接实例。 */
+  private readonly database: Database.Database
+
+  /** vessel.db 在当前设备上的绝对路径。 */
+  private readonly databasePath: string
+
+  /** 当前设备的持久化 ID，同一份 userData 下不会随应用重启变化。 */
+  private readonly deviceId: string
+
+  /** 本次应用运行的会话 ID，每次启动都会重新生成。 */
+  private readonly sessionId = randomUUID()
+
+  /** 防止数据库连接被重复关闭。 */
+  private closed = false
+
+  constructor() {
+    // 数据库统一放在 Electron 的 userData 目录，不能放到用户选择的工作区内。
+    this.databasePath = join(app.getPath("userData"), "vessel.db")
+
+    // 首次运行时 userData 目录可能尚未创建。
+    mkdirSync(dirname(this.databasePath), { recursive: true })
+
+    // 打开数据库后先完成连接配置和表结构迁移，再创建本次设备与会话记录。
+    this.database = new Database(this.databasePath)
+    this.configure()
+    this.migrate()
+
+    this.deviceId = this.resolveDeviceId()
+    this.upsertCurrentDevice()
+    this.startSession()
+  }
+
+  /** 配置 SQLite 连接级参数。 */
+  private configure(): void {
+    // WAL 提升读写并发能力，适合桌面应用频繁读取、少量写入的场景。
+    this.database.pragma("journal_mode = WAL")
+
+    // 启用外键约束，保证工作区记录、设备和会话之间的数据关系有效。
+    this.database.pragma("foreign_keys = ON")
+
+    // NORMAL 在安全性和本地写入性能之间取得平衡。
+    this.database.pragma("synchronous = NORMAL")
+
+    // 数据库被短暂占用时最多等待 5 秒，避免立即抛出 SQLITE_BUSY。
+    this.database.pragma("busy_timeout = 5000")
+  }
+
+  /** 创建初始表结构，并通过 user_version 管理数据库版本。 */
+  private migrate(): void {
+    const currentVersion = this.database.pragma("user_version", {
+      simple: true
+    }) as number
+
+    if (currentVersion > DATABASE_VERSION) {
+      // 防止旧版应用错误打开由新版应用创建的数据库。
+      throw new Error(`数据库版本 ${currentVersion} 高于当前应用支持的版本 ${DATABASE_VERSION}`)
+    }
+
+    if (currentVersion < 1) {
+      // 所有建表语句放在同一个事务中，任何一步失败都会整体回滚。
+      this.database.transaction(() => {
+        this.database.exec(`
+          -- 应用内部元数据，目前用于保存不会随应用重启变化的设备 ID。
+          CREATE TABLE IF NOT EXISTS app_metadata (
+            key TEXT PRIMARY KEY,
+            value TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+          );
+
+          -- 当前设备的软硬件环境以及应用运行版本。
+          CREATE TABLE IF NOT EXISTS devices (
+            id TEXT PRIMARY KEY,
+            hostname TEXT NOT NULL,
+            platform TEXT NOT NULL,
+            arch TEXT NOT NULL,
+            os_type TEXT NOT NULL,
+            os_release TEXT NOT NULL,
+            os_version TEXT NOT NULL,
+            cpu_model TEXT NOT NULL,
+            cpu_count INTEGER NOT NULL,
+            total_memory INTEGER NOT NULL,
+            locale TEXT NOT NULL,
+            timezone TEXT NOT NULL,
+            app_version TEXT NOT NULL,
+            electron_version TEXT NOT NULL,
+            node_version TEXT NOT NULL,
+            first_seen_at TEXT NOT NULL,
+            last_seen_at TEXT NOT NULL
+          );
+
+          -- 每次启动应用都会创建一条会话，退出时补充 ended_at。
+          CREATE TABLE IF NOT EXISTS app_sessions (
+            id TEXT PRIMARY KEY,
+            device_id TEXT NOT NULL,
+            started_at TEXT NOT NULL,
+            ended_at TEXT,
+            app_version TEXT NOT NULL,
+            electron_version TEXT NOT NULL,
+            node_version TEXT NOT NULL,
+            platform TEXT NOT NULL,
+            arch TEXT NOT NULL,
+            FOREIGN KEY (device_id) REFERENCES devices(id)
+          );
+
+          -- 工作区汇总表，同一路径只保留一条并累计打开次数。
+          CREATE TABLE IF NOT EXISTS workspaces (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            path TEXT NOT NULL,
+            normalized_path TEXT NOT NULL UNIQUE,
+            file_count INTEGER NOT NULL DEFAULT 0,
+            first_opened_at TEXT NOT NULL,
+            last_opened_at TEXT NOT NULL,
+            open_count INTEGER NOT NULL DEFAULT 1,
+            is_available INTEGER NOT NULL DEFAULT 1,
+            last_device_id TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            FOREIGN KEY (last_device_id) REFERENCES devices(id)
+          );
+
+          -- 工作区打开明细表，每次打开都会追加新记录。
+          CREATE TABLE IF NOT EXISTS workspace_open_records (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            workspace_id INTEGER NOT NULL,
+            device_id TEXT NOT NULL,
+            session_id TEXT NOT NULL,
+            path TEXT NOT NULL,
+            file_count INTEGER NOT NULL DEFAULT 0,
+            opened_at TEXT NOT NULL,
+            app_version TEXT NOT NULL,
+            electron_version TEXT NOT NULL,
+            platform TEXT NOT NULL,
+            arch TEXT NOT NULL,
+            FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE,
+            FOREIGN KEY (device_id) REFERENCES devices(id),
+            FOREIGN KEY (session_id) REFERENCES app_sessions(id)
+          );
+
+          -- 通用状态表，用于保存主题、布局、编辑器设置等 JSON 数据。
+          CREATE TABLE IF NOT EXISTS app_state (
+            key TEXT PRIMARY KEY,
+            value_json TEXT NOT NULL,
+            device_id TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            FOREIGN KEY (device_id) REFERENCES devices(id)
+          );
+
+          -- 最近工作区及打开历史的常用查询索引。
+          CREATE INDEX IF NOT EXISTS idx_workspaces_last_opened_at
+            ON workspaces(last_opened_at DESC);
+          CREATE INDEX IF NOT EXISTS idx_workspace_open_records_workspace_id
+            ON workspace_open_records(workspace_id, opened_at DESC);
+          CREATE INDEX IF NOT EXISTS idx_workspace_open_records_device_id
+            ON workspace_open_records(device_id, opened_at DESC);
+        `)
+
+        // 只有全部表和索引创建成功后才更新数据库版本。
+        this.database.pragma(`user_version = ${DATABASE_VERSION}`)
+      })()
+    }
+  }
+
+  /**
+   * 获取当前设备的持久化 ID。
+   * 第一次运行时生成 UUID，之后始终从 app_metadata 中读取。
+   */
+  private resolveDeviceId(): string {
+    const row = this.database.prepare("SELECT value FROM app_metadata WHERE key = ?").get("device.id") as { value: string } | undefined
+
+    // 已经存在时直接复用，确保同一设备上的打开历史能够关联起来。
+    if (row?.value) return row.value
+
+    // 首次运行时生成并立即写入数据库。
+    const deviceId = randomUUID()
+    const now = new Date().toISOString()
+
+    this.database.prepare("INSERT INTO app_metadata (key, value, updated_at) VALUES (?, ?, ?)").run("device.id", deviceId, now)
+
+    return deviceId
+  }
+
+  /** 收集当前设备和应用环境中可能变化的信息。 */
+  private getCurrentDeviceValues(now: string): Omit<DeviceInfo, "id" | "firstSeenAt"> {
+    const cpuList = cpus()
+
+    return {
+      hostname: hostname(),
+      platform: platform(),
+      arch: arch(),
+      osType: type(),
+      osRelease: release(),
+      osVersion: version(),
+      cpuModel: cpuList[0]?.model ?? "unknown",
+      cpuCount: cpuList.length,
+      totalMemory: totalmem(),
+      locale: app.getLocale(),
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "unknown",
+      appVersion: app.getVersion(),
+      electronVersion: process.versions.electron ?? "unknown",
+      nodeVersion: process.versions.node,
+      lastSeenAt: now
+    }
+  }
+
+  /**
+   * 新增或刷新当前设备信息。
+   * first_seen_at 只在首次插入时保存，后续启动仅更新 last_seen_at 等可变信息。
+   */
+  private upsertCurrentDevice(): void {
+    const now = new Date().toISOString()
+    const device = this.getCurrentDeviceValues(now)
+
+    this.database
+      .prepare(
+        `
+        INSERT INTO devices (
+          id, hostname, platform, arch, os_type, os_release, os_version,
+          cpu_model, cpu_count, total_memory, locale, timezone, app_version,
+          electron_version, node_version, first_seen_at, last_seen_at
+        ) VALUES (
+          @id, @hostname, @platform, @arch, @osType, @osRelease, @osVersion,
+          @cpuModel, @cpuCount, @totalMemory, @locale, @timezone, @appVersion,
+          @electronVersion, @nodeVersion, @firstSeenAt, @lastSeenAt
+        )
+        ON CONFLICT(id) DO UPDATE SET
+          hostname = excluded.hostname,
+          platform = excluded.platform,
+          arch = excluded.arch,
+          os_type = excluded.os_type,
+          os_release = excluded.os_release,
+          os_version = excluded.os_version,
+          cpu_model = excluded.cpu_model,
+          cpu_count = excluded.cpu_count,
+          total_memory = excluded.total_memory,
+          locale = excluded.locale,
+          timezone = excluded.timezone,
+          app_version = excluded.app_version,
+          electron_version = excluded.electron_version,
+          node_version = excluded.node_version,
+          last_seen_at = excluded.last_seen_at
+      `
+      )
+      .run({
+        id: this.deviceId,
+        ...device,
+        firstSeenAt: now
+      })
+  }
+
+  /** 创建本次应用启动会话，ended_at 会在 close 中补充。 */
+  private startSession(): void {
+    const now = new Date().toISOString()
+
+    this.database
+      .prepare(
+        `
+        INSERT INTO app_sessions (
+          id, device_id, started_at, app_version, electron_version,
+          node_version, platform, arch
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `
+      )
+      .run(this.sessionId, this.deviceId, now, app.getVersion(), process.versions.electron ?? "unknown", process.versions.node, platform(), arch())
+  }
+
+  /**
+   * 生成用于判断工作区是否相同的规范路径。
+   * Windows 路径不区分大小写，因此额外转换为小写。
+   */
+  private normalizeWorkspacePath(workspacePath: string): string {
+    const normalizedPath = normalize(resolve(workspacePath))
+    return process.platform === "win32" ? normalizedPath.toLowerCase() : normalizedPath
+  }
+
+  /**
+   * 保存一次工作区打开操作。
+   *
+   * 同一个事务内同时完成：
+   * 1. 新增或更新工作区汇总信息；
+   * 2. 查询更新后的工作区主键和累计次数；
+   * 3. 追加一条不会被覆盖的打开历史。
+   */
+  recordWorkspaceOpened(workspace: WorkspaceDataInput): PersistedWorkspaceData {
+    const openedAt = new Date().toISOString()
+    const normalizedPath = this.normalizeWorkspacePath(workspace.path)
+    const isAvailable = existsSync(workspace.path) ? 1 : 0
+    const fileCount = workspace.files.length
+
+    const transaction = this.database.transaction(() => {
+      // normalized_path 唯一：首次打开时新增，再次打开时刷新信息并累加 open_count。
+      this.database
+        .prepare(
+          `
+          INSERT INTO workspaces (
+            name, path, normalized_path, file_count, first_opened_at,
+            last_opened_at, open_count, is_available, last_device_id,
+            created_at, updated_at
+          ) VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?)
+          ON CONFLICT(normalized_path) DO UPDATE SET
+            name = excluded.name,
+            path = excluded.path,
+            file_count = excluded.file_count,
+            last_opened_at = excluded.last_opened_at,
+            open_count = workspaces.open_count + 1,
+            is_available = excluded.is_available,
+            last_device_id = excluded.last_device_id,
+            updated_at = excluded.updated_at
+        `
+        )
+        .run(workspace.name, workspace.path, normalizedPath, fileCount, openedAt, openedAt, isAvailable, this.deviceId, openedAt, openedAt)
+
+      // 查询 UPSERT 后的最终数据，用于创建明细记录并返回给渲染进程。
+      const savedWorkspace = this.database
+        .prepare(
+          `
+          SELECT
+            id, name, path, file_count, first_opened_at, last_opened_at,
+            open_count, is_available, last_device_id
+          FROM workspaces
+          WHERE normalized_path = ?
+        `
+        )
+        .get(normalizedPath) as WorkspaceRow
+
+      // 汇总表会更新，但明细表始终 INSERT，从而保留每一次打开行为。
+      this.database
+        .prepare(
+          `
+          INSERT INTO workspace_open_records (
+            workspace_id, device_id, session_id, path, file_count, opened_at,
+            app_version, electron_version, platform, arch
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `
+        )
+        .run(savedWorkspace.id, this.deviceId, this.sessionId, workspace.path, fileCount, openedAt, app.getVersion(), process.versions.electron ?? "unknown", platform(), arch())
+
+      return savedWorkspace
+    })
+
+    // better-sqlite3 的 transaction 返回可执行函数，此处才真正开始事务。
+    const savedWorkspace = transaction()
+
+    return {
+      ...workspace,
+      id: savedWorkspace.id,
+      deviceId: this.deviceId,
+      sessionId: this.sessionId,
+      firstOpenedAt: savedWorkspace.first_opened_at,
+      lastOpenedAt: savedWorkspace.last_opened_at,
+      openedAt,
+      openCount: savedWorkspace.open_count
+    }
+  }
+
+  /** 查询最近打开的工作区，limit 被限制在 1 到 100 之间。 */
+  getRecentWorkspaces(limit = 10): RecentWorkspace[] {
+    const safeLimit = Math.min(Math.max(Math.trunc(limit), 1), 100)
+    const rows = this.database
+      .prepare(
+        `
+        SELECT
+          id, name, path, file_count, first_opened_at, last_opened_at,
+          open_count, is_available, last_device_id
+        FROM workspaces
+        ORDER BY last_opened_at DESC
+        LIMIT ?
+      `
+      )
+      .all(safeLimit) as WorkspaceRow[]
+
+    return rows.map((row) => ({
+      id: row.id,
+      name: row.name,
+      path: row.path,
+      fileCount: row.file_count,
+      firstOpenedAt: row.first_opened_at,
+      lastOpenedAt: row.last_opened_at,
+      openCount: row.open_count,
+      // 实时检查目录是否仍然存在，不依赖数据库中的历史状态。
+      isAvailable: existsSync(row.path),
+      deviceId: row.last_device_id
+    }))
+  }
+
+  /** 查询指定工作区的打开明细，limit 被限制在 1 到 500 之间。 */
+  getWorkspaceOpenRecords(workspaceId: number, limit = 100): WorkspaceOpenRecord[] {
+    const safeLimit = Math.min(Math.max(Math.trunc(limit), 1), 500)
+    const rows = this.database
+      .prepare(
+        `
+        SELECT
+          id, workspace_id, device_id, session_id, path, file_count, opened_at,
+          app_version, electron_version, platform, arch
+        FROM workspace_open_records
+        WHERE workspace_id = ?
+        ORDER BY opened_at DESC
+        LIMIT ?
+      `
+      )
+      .all(workspaceId, safeLimit) as WorkspaceOpenRecordRow[]
+
+    return rows.map((row) => ({
+      id: row.id,
+      workspaceId: row.workspace_id,
+      deviceId: row.device_id,
+      sessionId: row.session_id,
+      path: row.path,
+      fileCount: row.file_count,
+      openedAt: row.opened_at,
+      appVersion: row.app_version,
+      electronVersion: row.electron_version,
+      platform: row.platform,
+      arch: row.arch
+    }))
+  }
+
+  /** 获取数据库中保存的当前设备信息，并转换为渲染进程使用的 camelCase。 */
+  getCurrentDevice(): DeviceInfo {
+    const row = this.database.prepare("SELECT * FROM devices WHERE id = ?").get(this.deviceId) as DeviceRow
+
+    return {
+      id: row.id,
+      hostname: row.hostname,
+      platform: row.platform,
+      arch: row.arch,
+      osType: row.os_type,
+      osRelease: row.os_release,
+      osVersion: row.os_version,
+      cpuModel: row.cpu_model,
+      cpuCount: row.cpu_count,
+      totalMemory: row.total_memory,
+      locale: row.locale,
+      timezone: row.timezone,
+      appVersion: row.app_version,
+      electronVersion: row.electron_version,
+      nodeVersion: row.node_version,
+      firstSeenAt: row.first_seen_at,
+      lastSeenAt: row.last_seen_at
+    }
+  }
+
+  /**
+   * 读取通用应用状态。
+   * key 不存在时返回 null，存在时将 JSON 字符串反序列化为调用方指定的类型。
+   */
+  getState<T>(key: string): T | null {
+    const row = this.database.prepare("SELECT value_json FROM app_state WHERE key = ?").get(key) as { value_json: string } | undefined
+
+    if (!row) return null
+    return JSON.parse(row.value_json) as T
+  }
+
+  /** 新增或覆盖一项通用应用状态。 */
+  setState(key: string, value: unknown): void {
+    const valueJson = JSON.stringify(value)
+
+    // JSON.stringify(undefined) 的结果仍是 undefined，无法作为有效 JSON 保存。
+    if (valueJson === undefined) {
+      throw new TypeError("app_state 不支持保存 undefined")
+    }
+
+    const now = new Date().toISOString()
+    this.database
+      .prepare(
+        `
+        INSERT INTO app_state (key, value_json, device_id, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?)
+        ON CONFLICT(key) DO UPDATE SET
+          value_json = excluded.value_json,
+          device_id = excluded.device_id,
+          updated_at = excluded.updated_at
+      `
+      )
+      .run(key, valueJson, this.deviceId, now, now)
+  }
+
+  /** 删除指定状态，返回值表示数据库中是否确实删除了一条记录。 */
+  deleteState(key: string): boolean {
+    return this.database.prepare("DELETE FROM app_state WHERE key = ?").run(key).changes > 0
+  }
+
+  /** 获取数据库调试信息，不直接暴露 better-sqlite3 实例。 */
+  getInfo(): {
+    databasePath: string
+    databaseVersion: number
+    deviceId: string
+    sessionId: string
+  } {
+    return {
+      databasePath: this.databasePath,
+      databaseVersion: DATABASE_VERSION,
+      deviceId: this.deviceId,
+      sessionId: this.sessionId
+    }
+  }
+
+  /**
+   * 正常结束当前应用会话并关闭数据库连接。
+   * 该方法允许重复调用，第二次及之后会直接返回。
+   */
+  close(): void {
+    if (this.closed) return
+
+    // 退出前记录会话结束时间，便于后续统计一次应用运行了多久。
+    this.database.prepare("UPDATE app_sessions SET ended_at = ? WHERE id = ?").run(new Date().toISOString(), this.sessionId)
+    this.database.close()
+    this.closed = true
+  }
+}

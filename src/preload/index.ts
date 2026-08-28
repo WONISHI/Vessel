@@ -1,32 +1,34 @@
-import { contextBridge, ipcRenderer } from "electron"
+import { contextBridge } from "electron"
 import { electronAPI } from "@electron-toolkit/preload"
+import { developerAPI } from "./developer"
+import { fileAPI } from "./file"
+import { welcomeAPI } from "./welcome"
 
-// Custom APIs for renderer
 const api = {}
 
-// Use `contextBridge` APIs to expose Electron APIs to
-// renderer only if context isolation is enabled, otherwise
-// just add to the DOM global.
+const vesselAPI = {
+  ...welcomeAPI,
+  ...fileAPI,
+  ...developerAPI
+}
+
 if (process.contextIsolated) {
   try {
     contextBridge.exposeInMainWorld("electron", electronAPI)
+
     contextBridge.exposeInMainWorld("api", api)
-    contextBridge.exposeInMainWorld("electronAPI", {
-      openDirectory: () => ipcRenderer.invoke("dialog:openDirectory"),
-      // prettier-ignore
-      readContent: (path: string) =>
-        ipcRenderer.invoke("file:readContent", path),
-      openDevTool: () => ipcRenderer.invoke("open-devtools"),
-      // prettier-ignore
-      saveContent: (path: string, content: string) =>
-        ipcRenderer.invoke("file:saveContent", path, content)
-    })
+
+    contextBridge.exposeInMainWorld("electronAPI", vesselAPI)
   } catch (error) {
     console.error(error)
   }
 } else {
-  // @ts-ignore (define in dts)
+  // @ts-ignore 已在 index.d.ts 中声明
   window.electron = electronAPI
-  // @ts-ignore (define in dts)
+
+  // @ts-ignore 已在 index.d.ts 中声明
   window.api = api
+
+  // @ts-ignore 已在 index.d.ts 中声明
+  window.electronAPI = vesselAPI
 }
