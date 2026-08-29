@@ -40,6 +40,10 @@
     ]
   },
   "scripts": {
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:database": "vitest run tests/main/database.test.ts",
+    "test:coverage": "vitest run --coverage",
     "format": "prettier --write .",
     "lint": "eslint --cache .",
     "fix": "npm run lint -- --fix",
