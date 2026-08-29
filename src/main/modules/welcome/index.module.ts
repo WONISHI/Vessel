@@ -4,10 +4,8 @@ import { basename, extname, join } from "path"
 import { BaseModule } from "../base"
 import { AppDatabase } from "./index.database"
 import type { WorkspaceDataInput, WorkspaceFile } from "./index.type"
-import { isWorkspaceData, assertStateKey } from "./index.util"
-
-/** 欢迎页支持扫描的文件扩展名。 */
-const SUPPORTED_EXTENSIONS = new Set([".md", ".json", ".js", ".ts", ".jsx", ".tsx", ".css", ".scss", ".less", ".html", ".vue", ".png", ".jpg", ".jpeg", ".bmp", ".gif", ".webp"])
+import { isWorkspaceData, assertStateKey } from "./utils/index.util"
+import { SUPPORTED_EXTENSIONS } from "./constants/index.constant"
 
 /**
  * 欢迎页主进程模块。
