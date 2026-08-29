@@ -4,8 +4,18 @@ import { randomUUID } from "crypto"
 import { existsSync, mkdirSync } from "fs"
 import { arch, cpus, hostname, platform, release, totalmem, type, version } from "os"
 import { dirname, join, normalize, resolve } from "path"
-import { DATABASE_VERSION, DATABASE_TABLE_LABELS, DATABASE_COLUMN_LABELS } from "./constants/index.constant"
-import type { WorkspaceDataInput, PersistedWorkspaceData, RecentWorkspace, WorkspaceOpenRecord, DeviceInfo, WorkspaceRow, DatabaseColumnInfo, DatabaseTableData, DatabaseTableInfo } from "./index.type"
+import { DATABASE_VERSION, DATABASE_TABLE_LABELS, DATABASE_COLUMN_LABELS } from "../constants/index.constant"
+import type {
+  WorkspaceDataInput,
+  PersistedWorkspaceData,
+  RecentWorkspace,
+  WorkspaceOpenRecord,
+  DeviceInfo,
+  WorkspaceRow,
+  DatabaseColumnInfo,
+  DatabaseTableData,
+  DatabaseTableInfo
+} from "../index.type"
 
 /**
  * Vessel 本地数据库管理器。
