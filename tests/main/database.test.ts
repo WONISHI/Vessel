@@ -276,14 +276,15 @@ describe("AppDatabase 数据打印", () => {
      */
     const recentWorkspaces = database.getRecentWorkspaces(10)
 
-    printTable("最近打开的工作区", recentWorkspaces)
+    console.log("======最近打开的工作区=======", recentWorkspaces)
 
     /**
      * 六、打印当前工作区的每次打开记录。
      */
     const openRecords = database.getWorkspaceOpenRecords(firstOpenedWorkspace.id, 100)
 
-    printTable("工作区打开记录", openRecords)
+    // printTable("工作区打开记录", openRecords)
+    console.log(openRecords)
 
     /**
      * 七、打印当前设备信息。

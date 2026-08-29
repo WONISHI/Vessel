@@ -2,7 +2,6 @@ import Database from "better-sqlite3"
 
 export class EnhancedDatabase {
   protected readonly database: Database.Database
-
   constructor(databasePath: string) {
     this.database = new Database(databasePath)
   }
@@ -33,15 +32,10 @@ export class EnhancedDatabase {
   /** 获取指定表的数据。 */
   getTableData(tableName: string, page = 1, pageSize = 50): Record<string, unknown>[] {
     const safeTableName = this.resolveTableName(tableName)
-
     const safePage = Math.max(Math.trunc(page), 1)
-
     const safePageSize = Math.min(Math.max(Math.trunc(pageSize), 1), 200)
-
     const offset = (safePage - 1) * safePageSize
-
     const quotedTableName = this.quoteIdentifier(safeTableName)
-
     return this.database
       .prepare(
         `
@@ -57,7 +51,6 @@ export class EnhancedDatabase {
   /** 获取指定表的字段结构。 */
   getTableSchema(tableName: string) {
     const safeTableName = this.resolveTableName(tableName)
-
     return this.database
       .prepare(
         `
