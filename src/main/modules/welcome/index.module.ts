@@ -1,11 +1,11 @@
 import { BrowserWindow, dialog, ipcMain } from "electron"
 import { readdir } from "fs/promises"
 import { basename, extname, join } from "path"
-import { BaseModule } from "../base"
-import { AppDatabase } from "./database/index.database"
-import type { WorkspaceDataInput, WorkspaceFile } from "./index.type"
-import { isWorkspaceData, assertStateKey } from "./utils/index.util"
-import { SUPPORTED_EXTENSIONS } from "./constants/index.constant"
+import { BaseModule } from "@main/modules/base/index"
+import { AppDatabase } from "@main/modules/welcome/database/index.database"
+import type { WorkspaceDataInput, WorkspaceFile } from "@main/modules/welcome/index.type"
+import { isWorkspaceData, assertStateKey } from "@main/modules/welcome/utils/index.util"
+import { SUPPORTED_EXTENSIONS } from "@main/modules/welcome/constants/index.constant"
 
 /**
  * 欢迎页主进程模块。

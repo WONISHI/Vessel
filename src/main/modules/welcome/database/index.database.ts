@@ -1,10 +1,10 @@
 import { app } from "electron"
-import Database from "better-sqlite3"
 import { randomUUID } from "crypto"
 import { existsSync, mkdirSync } from "fs"
 import { arch, cpus, hostname, platform, release, totalmem, type, version } from "os"
 import { dirname, join, normalize, resolve } from "path"
-import { DATABASE_VERSION, DATABASE_TABLE_LABELS, DATABASE_COLUMN_LABELS } from "../constants/index.constant"
+import { DATABASE_VERSION, DATABASE_TABLE_LABELS, DATABASE_COLUMN_LABELS } from "@main/modules/welcome/constants/index.constant"
+import { EnhancedDatabase } from "@main/database/index"
 import type {
   WorkspaceDataInput,
   PersistedWorkspaceData,
@@ -15,88 +15,152 @@ import type {
   DatabaseColumnInfo,
   DatabaseTableData,
   DatabaseTableInfo
-} from "../index.type"
+} from "@main/modules/welcome/index.type"
 
 /**
  * Vessel 本地数据库管理器。
+ *
+ * AppDatabase 继承 EnhancedDatabase：
+ * - EnhancedDatabase 负责通用 SQLite 能力；
+ * - AppDatabase 负责 Vessel 具体业务逻辑。
  *
  * 该类只在 Electron 主进程中创建，负责：
  * 1. 初始化和迁移 SQLite 数据库；
  * 2. 维护设备与应用会话信息；
  * 3. 保存工作区及其每次打开记录；
- * 4. 提供通用 JSON 状态的持久化能力。
+ * 4. 提供通用 JSON 状态持久化能力；
+ * 5. 为 DevTools 提供数据库表查看能力。
  */
-export class AppDatabase {
-  /** better-sqlite3 数据库连接实例。 */
-  private readonly database: Database.Database
-
+export class AppDatabase extends EnhancedDatabase {
   /** vessel.db 在当前设备上的绝对路径。 */
   private readonly databasePath: string
 
-  /** 当前设备的持久化 ID，同一份 userData 下不会随应用重启变化。 */
+  /**
+   * 当前设备的持久化 ID。
+   *
+   * 同一份 Electron userData 下不会随应用重启变化。
+   */
   private readonly deviceId: string
 
-  /** 本次应用运行的会话 ID，每次启动都会重新生成。 */
+  /**
+   * 本次应用运行的会话 ID。
+   *
+   * 每次启动应用都会重新生成。
+   */
   private readonly sessionId = randomUUID()
 
   /** 防止数据库连接被重复关闭。 */
   private closed = false
 
   constructor() {
-    // 数据库统一放在 Electron 的 userData 目录，不能放到用户选择的工作区内。
-    this.databasePath = join(app.getPath("userData"), "vessel.db")
+    /**
+     * 数据库统一存放在 Electron userData 目录。
+     *
+     * 不应该放在用户选择的工作区中，否则：
+     * - 切换工作区时可能丢失全局数据；
+     * - 用户可能误删数据库；
+     * - 多个工作区无法共享应用状态。
+     */
+    const databasePath = join(app.getPath("userData"), "vessel.db")
 
-    // 首次运行时 userData 目录可能尚未创建。
-    mkdirSync(dirname(this.databasePath), { recursive: true })
+    /**
+     * 首次运行时 userData 目录可能尚未创建。
+     */
+    mkdirSync(dirname(databasePath), {
+      recursive: true
+    })
 
-    // 打开数据库后先完成连接配置和表结构迁移，再创建本次设备与会话记录。
-    this.database = new Database(this.databasePath)
+    /**
+     * 调用 EnhancedDatabase 构造函数。
+     *
+     * 父类负责创建并持有唯一的 better-sqlite3 连接，
+     * 后续可以通过 this.database 使用该连接。
+     */
+    super(databasePath)
+
+    this.databasePath = databasePath
+
+    /**
+     * 数据库连接创建完成后：
+     * 1. 配置 SQLite；
+     * 2. 执行数据库迁移；
+     * 3. 获取当前设备 ID；
+     * 4. 更新当前设备信息；
+     * 5. 创建本次应用会话。
+     */
     this.configure()
     this.migrate()
 
     this.deviceId = this.resolveDeviceId()
+
     this.upsertCurrentDevice()
     this.startSession()
   }
 
-  /** 配置 SQLite 连接级参数。 */
+  /**
+   * 配置 SQLite 连接级参数。
+   */
   private configure(): void {
-    // WAL 提升读写并发能力，适合桌面应用频繁读取、少量写入的场景。
+    /**
+     * WAL 模式可以提升并发读写能力。
+     *
+     * 比较适合桌面应用频繁读取、少量写入的场景。
+     */
     this.database.pragma("journal_mode = WAL")
 
-    // 启用外键约束，保证工作区记录、设备和会话之间的数据关系有效。
+    /**
+     * 启用外键约束。
+     *
+     * 保证工作区、设备、应用会话之间的数据关系有效。
+     */
     this.database.pragma("foreign_keys = ON")
 
-    // NORMAL 在安全性和本地写入性能之间取得平衡。
+    /**
+     * NORMAL 在安全性和写入性能之间取得平衡。
+     */
     this.database.pragma("synchronous = NORMAL")
 
-    // 数据库被短暂占用时最多等待 5 秒，避免立即抛出 SQLITE_BUSY。
+    /**
+     * 数据库暂时被占用时最多等待 5 秒，
+     * 避免立即抛出 SQLITE_BUSY。
+     */
     this.database.pragma("busy_timeout = 5000")
   }
 
-  /** 创建初始表结构，并通过 user_version 管理数据库版本。 */
+  /**
+   * 创建和升级数据库表结构。
+   *
+   * 使用 SQLite user_version 保存当前数据库版本。
+   */
   private migrate(): void {
     let currentVersion = this.database.pragma("user_version", {
       simple: true
     }) as number
 
+    /**
+     * 防止旧版应用打开新版应用创建的数据库。
+     */
     if (currentVersion > DATABASE_VERSION) {
-      // 防止旧版应用错误打开由新版应用创建的数据库。
       throw new Error(`数据库版本 ${currentVersion} 高于当前应用支持的版本 ${DATABASE_VERSION}`)
     }
 
+    /**
+     * 数据库版本 1。
+     *
+     * 创建应用最初需要的表和索引。
+     */
     if (currentVersion < 1) {
-      // 所有建表语句放在同一个事务中，任何一步失败都会整体回滚。
       this.database.transaction(() => {
         this.database.exec(`
-          -- 应用内部元数据，目前用于保存不会随应用重启变化的设备 ID。
+          -- 应用内部元数据。
+          -- 当前用于保存不会随应用重启变化的设备 ID。
           CREATE TABLE IF NOT EXISTS app_metadata (
             key TEXT PRIMARY KEY,
             value TEXT NOT NULL,
             updated_at TEXT NOT NULL
           );
 
-          -- 当前设备的软硬件环境以及应用运行版本。
+          -- 当前设备的软硬件环境和应用运行版本。
           CREATE TABLE IF NOT EXISTS devices (
             id TEXT PRIMARY KEY,
             hostname TEXT NOT NULL,
@@ -117,7 +181,8 @@ export class AppDatabase {
             last_seen_at TEXT NOT NULL
           );
 
-          -- 每次启动应用都会创建一条会话，退出时补充 ended_at。
+          -- 每次启动应用都会创建一条会话。
+          -- 应用退出时为 ended_at 补充结束时间。
           CREATE TABLE IF NOT EXISTS app_sessions (
             id TEXT PRIMARY KEY,
             device_id TEXT NOT NULL,
@@ -131,7 +196,8 @@ export class AppDatabase {
             FOREIGN KEY (device_id) REFERENCES devices(id)
           );
 
-          -- 工作区汇总表，同一路径只保留一条并累计打开次数。
+          -- 工作区汇总表。
+          -- 同一个规范路径只保留一条数据并累计打开次数。
           CREATE TABLE IF NOT EXISTS workspaces (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
@@ -148,7 +214,8 @@ export class AppDatabase {
             FOREIGN KEY (last_device_id) REFERENCES devices(id)
           );
 
-          -- 工作区打开明细表，每次打开都会追加新记录。
+          -- 工作区打开明细表。
+          -- 每次打开工作区都会追加一条记录。
           CREATE TABLE IF NOT EXISTS workspace_open_records (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             workspace_id INTEGER NOT NULL,
@@ -161,114 +228,169 @@ export class AppDatabase {
             electron_version TEXT NOT NULL,
             platform TEXT NOT NULL,
             arch TEXT NOT NULL,
-            FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE,
-            FOREIGN KEY (device_id) REFERENCES devices(id),
-            FOREIGN KEY (session_id) REFERENCES app_sessions(id)
+            FOREIGN KEY (
+              workspace_id
+            ) REFERENCES workspaces(id) ON DELETE CASCADE,
+            FOREIGN KEY (
+              device_id
+            ) REFERENCES devices(id),
+            FOREIGN KEY (
+              session_id
+            ) REFERENCES app_sessions(id)
           );
 
-          -- 通用状态表，用于保存主题、布局、编辑器设置等 JSON 数据。
+          -- 通用应用状态表。
+          -- 用于保存主题、布局、编辑器设置等 JSON 数据。
           CREATE TABLE IF NOT EXISTS app_state (
             key TEXT PRIMARY KEY,
             value_json TEXT NOT NULL,
             device_id TEXT NOT NULL,
             created_at TEXT NOT NULL,
             updated_at TEXT NOT NULL,
-            FOREIGN KEY (device_id) REFERENCES devices(id)
+            FOREIGN KEY (
+              device_id
+            ) REFERENCES devices(id)
           );
 
-          -- 最近工作区及打开历史的常用查询索引。
+          -- 最近打开工作区查询索引。
           CREATE INDEX IF NOT EXISTS idx_workspaces_last_opened_at
             ON workspaces(last_opened_at DESC);
+
+          -- 按工作区查询打开明细的索引。
           CREATE INDEX IF NOT EXISTS idx_workspace_open_records_workspace_id
-            ON workspace_open_records(workspace_id, opened_at DESC);
+            ON workspace_open_records(
+              workspace_id,
+              opened_at DESC
+            );
+
+          -- 按设备查询打开明细的索引。
           CREATE INDEX IF NOT EXISTS idx_workspace_open_records_device_id
-            ON workspace_open_records(device_id, opened_at DESC);
+            ON workspace_open_records(
+              device_id,
+              opened_at DESC
+            );
         `)
 
-        // 这里只创建 v1 表结构，不能直接写入最新版本号。
+        /**
+         * 当前事务只完成版本 1 的迁移，
+         * 因此这里只能写入版本 1。
+         */
         this.database.pragma("user_version = 1")
       })()
 
       currentVersion = 1
     }
 
+    /**
+     * 数据库版本 2。
+     *
+     * 为工作区打开记录补充完整的设备和运行环境快照。
+     */
     if (currentVersion < 2) {
-      // v2：为每次工作区打开记录补充完整的设备和运行时快照。
       this.database.transaction(() => {
         this.database.exec(`
           ALTER TABLE workspace_open_records
             ADD COLUMN hostname TEXT NOT NULL DEFAULT 'unknown';
+
           ALTER TABLE workspace_open_records
             ADD COLUMN os_type TEXT NOT NULL DEFAULT 'unknown';
+
           ALTER TABLE workspace_open_records
             ADD COLUMN os_release TEXT NOT NULL DEFAULT 'unknown';
+
           ALTER TABLE workspace_open_records
             ADD COLUMN os_version TEXT NOT NULL DEFAULT 'unknown';
+
           ALTER TABLE workspace_open_records
             ADD COLUMN cpu_model TEXT NOT NULL DEFAULT 'unknown';
+
           ALTER TABLE workspace_open_records
             ADD COLUMN cpu_count INTEGER NOT NULL DEFAULT 0;
+
           ALTER TABLE workspace_open_records
             ADD COLUMN total_memory INTEGER NOT NULL DEFAULT 0;
+
           ALTER TABLE workspace_open_records
             ADD COLUMN locale TEXT NOT NULL DEFAULT 'unknown';
+
           ALTER TABLE workspace_open_records
             ADD COLUMN timezone TEXT NOT NULL DEFAULT 'unknown';
+
           ALTER TABLE workspace_open_records
             ADD COLUMN node_version TEXT NOT NULL DEFAULT 'unknown';
 
-          -- v1 已有记录只能使用关联设备当前保存的信息进行回填。
+          -- 版本 1 已有的记录没有设备快照。
+          -- 使用关联设备当前保存的信息进行一次回填。
           UPDATE workspace_open_records
           SET
             hostname = COALESCE((
               SELECT devices.hostname
               FROM devices
-              WHERE devices.id = workspace_open_records.device_id
+              WHERE devices.id =
+                workspace_open_records.device_id
             ), 'unknown'),
+
             os_type = COALESCE((
               SELECT devices.os_type
               FROM devices
-              WHERE devices.id = workspace_open_records.device_id
+              WHERE devices.id =
+                workspace_open_records.device_id
             ), 'unknown'),
+
             os_release = COALESCE((
               SELECT devices.os_release
               FROM devices
-              WHERE devices.id = workspace_open_records.device_id
+              WHERE devices.id =
+                workspace_open_records.device_id
             ), 'unknown'),
+
             os_version = COALESCE((
               SELECT devices.os_version
               FROM devices
-              WHERE devices.id = workspace_open_records.device_id
+              WHERE devices.id =
+                workspace_open_records.device_id
             ), 'unknown'),
+
             cpu_model = COALESCE((
               SELECT devices.cpu_model
               FROM devices
-              WHERE devices.id = workspace_open_records.device_id
+              WHERE devices.id =
+                workspace_open_records.device_id
             ), 'unknown'),
+
             cpu_count = COALESCE((
               SELECT devices.cpu_count
               FROM devices
-              WHERE devices.id = workspace_open_records.device_id
+              WHERE devices.id =
+                workspace_open_records.device_id
             ), 0),
+
             total_memory = COALESCE((
               SELECT devices.total_memory
               FROM devices
-              WHERE devices.id = workspace_open_records.device_id
+              WHERE devices.id =
+                workspace_open_records.device_id
             ), 0),
+
             locale = COALESCE((
               SELECT devices.locale
               FROM devices
-              WHERE devices.id = workspace_open_records.device_id
+              WHERE devices.id =
+                workspace_open_records.device_id
             ), 'unknown'),
+
             timezone = COALESCE((
               SELECT devices.timezone
               FROM devices
-              WHERE devices.id = workspace_open_records.device_id
+              WHERE devices.id =
+                workspace_open_records.device_id
             ), 'unknown'),
+
             node_version = COALESCE((
               SELECT devices.node_version
               FROM devices
-              WHERE devices.id = workspace_open_records.device_id
+              WHERE devices.id =
+                workspace_open_records.device_id
             ), 'unknown');
         `)
 
@@ -279,24 +401,58 @@ export class AppDatabase {
 
   /**
    * 获取当前设备的持久化 ID。
-   * 第一次运行时生成 UUID，之后始终从 app_metadata 中读取。
+   *
+   * 第一次运行时生成 UUID，
+   * 之后始终从 app_metadata 中读取。
    */
   private resolveDeviceId(): string {
-    const row = this.database.prepare("SELECT value FROM app_metadata WHERE key = ?").get("device.id") as { value: string } | undefined
+    const row = this.database
+      .prepare(
+        `
+        SELECT value
+        FROM app_metadata
+        WHERE key = ?
+      `
+      )
+      .get("device.id") as
+      | {
+          value: string
+        }
+      | undefined
 
-    // 已经存在时直接复用，确保同一设备上的打开历史能够关联起来。
-    if (row?.value) return row.value
+    /**
+     * 已经存在时直接复用，
+     * 确保同一设备上的打开历史能够关联起来。
+     */
+    if (row?.value) {
+      return row.value
+    }
 
-    // 首次运行时生成并立即写入数据库。
+    /**
+     * 首次运行时生成并写入数据库。
+     */
     const deviceId = randomUUID()
     const now = new Date().toISOString()
 
-    this.database.prepare("INSERT INTO app_metadata (key, value, updated_at) VALUES (?, ?, ?)").run("device.id", deviceId, now)
+    this.database
+      .prepare(
+        `
+        INSERT INTO app_metadata (
+          key,
+          value,
+          updated_at
+        )
+        VALUES (?, ?, ?)
+      `
+      )
+      .run("device.id", deviceId, now)
 
     return deviceId
   }
 
-  /** 收集当前设备和应用环境中可能变化的信息。 */
+  /**
+   * 收集当前设备和应用环境中可能变化的信息。
+   */
   private getCurrentDeviceValues(now: string): Omit<DeviceInfo, "id" | "firstSeenAt"> {
     const cpuList = cpus()
 
@@ -321,7 +477,9 @@ export class AppDatabase {
 
   /**
    * 新增或刷新当前设备信息。
-   * first_seen_at 只在首次插入时保存，后续启动仅更新 last_seen_at 等可变信息。
+   *
+   * first_seen_at 只在首次插入时保存，
+   * 后续启动只更新 last_seen_at 等可变信息。
    */
   private upsertCurrentDevice(): void {
     const now = new Date().toISOString()
@@ -331,13 +489,42 @@ export class AppDatabase {
       .prepare(
         `
         INSERT INTO devices (
-          id, hostname, platform, arch, os_type, os_release, os_version,
-          cpu_model, cpu_count, total_memory, locale, timezone, app_version,
-          electron_version, node_version, first_seen_at, last_seen_at
-        ) VALUES (
-          @id, @hostname, @platform, @arch, @osType, @osRelease, @osVersion,
-          @cpuModel, @cpuCount, @totalMemory, @locale, @timezone, @appVersion,
-          @electronVersion, @nodeVersion, @firstSeenAt, @lastSeenAt
+          id,
+          hostname,
+          platform,
+          arch,
+          os_type,
+          os_release,
+          os_version,
+          cpu_model,
+          cpu_count,
+          total_memory,
+          locale,
+          timezone,
+          app_version,
+          electron_version,
+          node_version,
+          first_seen_at,
+          last_seen_at
+        )
+        VALUES (
+          @id,
+          @hostname,
+          @platform,
+          @arch,
+          @osType,
+          @osRelease,
+          @osVersion,
+          @cpuModel,
+          @cpuCount,
+          @totalMemory,
+          @locale,
+          @timezone,
+          @appVersion,
+          @electronVersion,
+          @nodeVersion,
+          @firstSeenAt,
+          @lastSeenAt
         )
         ON CONFLICT(id) DO UPDATE SET
           hostname = excluded.hostname,
@@ -364,7 +551,11 @@ export class AppDatabase {
       })
   }
 
-  /** 创建本次应用启动会话，ended_at 会在 close 中补充。 */
+  /**
+   * 创建本次应用启动会话。
+   *
+   * ended_at 会在 close() 中补充。
+   */
   private startSession(): void {
     const now = new Date().toISOString()
 
@@ -372,9 +563,16 @@ export class AppDatabase {
       .prepare(
         `
         INSERT INTO app_sessions (
-          id, device_id, started_at, app_version, electron_version,
-          node_version, platform, arch
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+          id,
+          device_id,
+          started_at,
+          app_version,
+          electron_version,
+          node_version,
+          platform,
+          arch
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `
       )
       .run(this.sessionId, this.deviceId, now, app.getVersion(), process.versions.electron ?? "unknown", process.versions.node, platform(), arch())
@@ -382,82 +580,163 @@ export class AppDatabase {
 
   /**
    * 生成用于判断工作区是否相同的规范路径。
-   * Windows 路径不区分大小写，因此额外转换为小写。
+   *
+   * Windows 路径不区分大小写，
+   * 因此 Windows 下额外转换为小写。
    */
   private normalizeWorkspacePath(workspacePath: string): string {
     const normalizedPath = normalize(resolve(workspacePath))
+
     return process.platform === "win32" ? normalizedPath.toLowerCase() : normalizedPath
   }
 
   /**
    * 保存一次工作区打开操作。
    *
-   * 同一个事务内同时完成：
+   * 同一个事务内完成：
    * 1. 新增或更新工作区汇总信息；
    * 2. 查询更新后的工作区主键和累计次数；
    * 3. 追加一条不会被覆盖的打开历史。
    */
   recordWorkspaceOpened(workspace: WorkspaceDataInput): PersistedWorkspaceData {
     const openedAt = new Date().toISOString()
+
     const normalizedPath = this.normalizeWorkspacePath(workspace.path)
+
     const isAvailable = existsSync(workspace.path) ? 1 : 0
+
     const fileCount = workspace.files.length
 
-    // 读取当前设备快照，写入打开明细后不会再受 devices 表后续更新影响。
+    /**
+     * 读取当前设备快照。
+     *
+     * 快照写入打开明细后，
+     * 不再受 devices 表后续更新影响。
+     */
     const device = this.getCurrentDevice()
 
     const transaction = this.database.transaction(() => {
-      // normalized_path 唯一：首次打开时新增，再次打开时刷新信息并累加 open_count。
+      /**
+       * normalized_path 具有唯一约束：
+       * - 首次打开时新增；
+       * - 再次打开时更新并累加 open_count。
+       */
       this.database
         .prepare(
           `
-          INSERT INTO workspaces (
-            name, path, normalized_path, file_count, first_opened_at,
-            last_opened_at, open_count, is_available, last_device_id,
-            created_at, updated_at
-          ) VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?)
-          ON CONFLICT(normalized_path) DO UPDATE SET
-            name = excluded.name,
-            path = excluded.path,
-            file_count = excluded.file_count,
-            last_opened_at = excluded.last_opened_at,
-            open_count = workspaces.open_count + 1,
-            is_available = excluded.is_available,
-            last_device_id = excluded.last_device_id,
-            updated_at = excluded.updated_at
-        `
+            INSERT INTO workspaces (
+              name,
+              path,
+              normalized_path,
+              file_count,
+              first_opened_at,
+              last_opened_at,
+              open_count,
+              is_available,
+              last_device_id,
+              created_at,
+              updated_at
+            )
+            VALUES (
+              ?,
+              ?,
+              ?,
+              ?,
+              ?,
+              ?,
+              1,
+              ?,
+              ?,
+              ?,
+              ?
+            )
+            ON CONFLICT(normalized_path) DO UPDATE SET
+              name = excluded.name,
+              path = excluded.path,
+              file_count = excluded.file_count,
+              last_opened_at = excluded.last_opened_at,
+              open_count = workspaces.open_count + 1,
+              is_available = excluded.is_available,
+              last_device_id = excluded.last_device_id,
+              updated_at = excluded.updated_at
+          `
         )
         .run(workspace.name, workspace.path, normalizedPath, fileCount, openedAt, openedAt, isAvailable, this.deviceId, openedAt, openedAt)
 
-      // 查询 UPSERT 后的最终数据，用于创建明细记录并返回给渲染进程。
+      /**
+       * 查询 UPSERT 后的最终工作区数据。
+       */
       const savedWorkspace = this.database
         .prepare(
           `
-          SELECT
-            id, name, path, file_count, first_opened_at, last_opened_at,
-            open_count, is_available, last_device_id
-          FROM workspaces
-          WHERE normalized_path = ?
-        `
+            SELECT
+              id,
+              name,
+              path,
+              file_count,
+              first_opened_at,
+              last_opened_at,
+              open_count,
+              is_available,
+              last_device_id
+            FROM workspaces
+            WHERE normalized_path = ?
+          `
         )
         .get(normalizedPath) as WorkspaceRow
 
-      // 汇总表会更新，但明细表始终 INSERT，从而保留每一次打开行为。
+      /**
+       * 汇总表会被更新，
+       * 但打开明细始终执行 INSERT。
+       */
       this.database
         .prepare(
           `
-          INSERT INTO workspace_open_records (
-            workspace_id, device_id, session_id, path, file_count, opened_at,
-            hostname, os_type, os_release, os_version, cpu_model, cpu_count,
-            total_memory, locale, timezone, app_version, electron_version,
-            node_version, platform, arch
-          ) VALUES (
-            @workspaceId, @deviceId, @sessionId, @path, @fileCount, @openedAt,
-            @hostname, @osType, @osRelease, @osVersion, @cpuModel, @cpuCount,
-            @totalMemory, @locale, @timezone, @appVersion, @electronVersion,
-            @nodeVersion, @platform, @arch
-          )
-        `
+            INSERT INTO workspace_open_records (
+              workspace_id,
+              device_id,
+              session_id,
+              path,
+              file_count,
+              opened_at,
+              hostname,
+              os_type,
+              os_release,
+              os_version,
+              cpu_model,
+              cpu_count,
+              total_memory,
+              locale,
+              timezone,
+              app_version,
+              electron_version,
+              node_version,
+              platform,
+              arch
+            )
+            VALUES (
+              @workspaceId,
+              @deviceId,
+              @sessionId,
+              @path,
+              @fileCount,
+              @openedAt,
+              @hostname,
+              @osType,
+              @osRelease,
+              @osVersion,
+              @cpuModel,
+              @cpuCount,
+              @totalMemory,
+              @locale,
+              @timezone,
+              @appVersion,
+              @electronVersion,
+              @nodeVersion,
+              @platform,
+              @arch
+            )
+          `
         )
         .run({
           workspaceId: savedWorkspace.id,
@@ -485,7 +764,11 @@ export class AppDatabase {
       return savedWorkspace
     })
 
-    // better-sqlite3 的 transaction 返回可执行函数，此处才真正开始事务。
+    /**
+     * better-sqlite3 的 transaction 返回可执行函数。
+     *
+     * 此处调用后事务才会真正执行。
+     */
     const savedWorkspace = transaction()
 
     return {
@@ -500,15 +783,27 @@ export class AppDatabase {
     }
   }
 
-  /** 查询最近打开的工作区，limit 被限制在 1 到 100 之间。 */
+  /**
+   * 查询最近打开的工作区。
+   *
+   * limit 被限制在 1 到 100 之间。
+   */
   getRecentWorkspaces(limit = 10): RecentWorkspace[] {
     const safeLimit = Math.min(Math.max(Math.trunc(limit), 1), 100)
+
     const rows = this.database
       .prepare(
         `
         SELECT
-          id, name, path, file_count, first_opened_at, last_opened_at,
-          open_count, is_available, last_device_id
+          id,
+          name,
+          path,
+          file_count,
+          first_opened_at,
+          last_opened_at,
+          open_count,
+          is_available,
+          last_device_id
         FROM workspaces
         ORDER BY last_opened_at DESC
         LIMIT ?
@@ -524,8 +819,13 @@ export class AppDatabase {
       firstOpenedAt: row.first_opened_at,
       lastOpenedAt: row.last_opened_at,
       openCount: row.open_count,
-      // 实时检查目录是否仍然存在，不依赖数据库中的历史状态。
+
+      /**
+       * 实时检查目录是否仍然存在，
+       * 不依赖数据库中保存的历史状态。
+       */
       isAvailable: existsSync(row.path),
+
       deviceId: row.last_device_id
     }))
   }
@@ -539,14 +839,15 @@ export class AppDatabase {
    * - CPU、内存、语言和时区；
    * - 应用、Electron 和 Node.js 版本。
    *
-   * limit 最终会被限制在 1 到 500 之间，
-   * 防止渲染进程一次读取过多历史记录。
+   * limit 被限制在 1 到 500 之间。
    */
   getWorkspaceOpenRecords(workspaceId: number, limit = 100): WorkspaceOpenRecord[] {
     const safeLimit = Math.min(Math.max(Math.trunc(limit), 1), 500)
 
-    // 使用 AS 将数据库的 snake_case 字段直接转换为渲染进程需要的 camelCase。
-    // 查询结果已经满足 WorkspaceOpenRecord，因此不再需要额外执行 map。
+    /**
+     * 使用 AS 将数据库的 snake_case 字段
+     * 转换成渲染进程使用的 camelCase。
+     */
     return this.database
       .prepare(
         `
@@ -581,7 +882,9 @@ export class AppDatabase {
       .all(workspaceId, safeLimit) as WorkspaceOpenRecord[]
   }
 
-  /** 获取数据库中保存的当前设备信息。 */
+  /**
+   * 获取数据库中保存的当前设备信息。
+   */
   getCurrentDevice(): DeviceInfo {
     return this.database
       .prepare(
@@ -612,64 +915,30 @@ export class AppDatabase {
   }
 
   /**
-   * 查询数据库中的业务表。
+   * 查询数据库中的所有业务表。
    *
-   * 默认排除 sqlite_ 开头的 SQLite 内部表，避免调试接口依赖内部实现。
-   * 该方法只读取数据，不允许通过 DevTools 执行任意 SQL。
+   * 复用 EnhancedDatabase.getTables()，
+   * 然后补充中文表名和数据总数。
    */
   getDatabaseTables(): DatabaseTableInfo[] {
-    const tables = this.database
-      .prepare(
-        `
-        SELECT
-          name,
-          sql
-        FROM sqlite_schema
-        WHERE type = 'table'
-          AND name NOT LIKE 'sqlite_%'
-        ORDER BY name ASC
-      `
-      )
-      .all() as Array<{ name: string; sql: string | null }>
-
-    return tables.map((table) => {
-      const quotedTableName = this.quoteIdentifier(table.name)
-      const countRow = this.database.prepare(`SELECT COUNT(*) AS count FROM ${quotedTableName}`).get() as { count: number }
-
-      return {
-        name: table.name,
-        label: this.getDatabaseTableLabel(table.name),
-        rowCount: countRow.count,
-        sql: table.sql
-      }
-    })
+    return this.getTables().map((table) => ({
+      name: table.name,
+      label: this.getDatabaseTableLabel(table.name),
+      rowCount: this.getTableRowCount(table.name),
+      sql: table.sql
+    }))
   }
 
-  /** 查询指定数据库表的字段结构。 */
+  /**
+   * 查询指定数据库表的字段结构。
+   *
+   * 复用 EnhancedDatabase.getTableSchema()，
+   * 然后补充中文字段名称。
+   */
   getDatabaseTableSchema(tableName: string): DatabaseColumnInfo[] {
-    const safeTableName = this.resolveDatabaseTableName(tableName)
-    const rows = this.database
-      .prepare(
-        `
-        SELECT
-          cid,
-          name,
-          type,
-          "notnull" AS "notNull",
-          dflt_value AS "defaultValue",
-          pk AS "primaryKey"
-        FROM pragma_table_info(?)
-        ORDER BY cid ASC
-      `
-      )
-      .all(safeTableName) as Array<{
-      cid: number
-      name: string
-      type: string
-      notNull: number
-      defaultValue: string | null
-      primaryKey: number
-    }>
+    const safeTableName = this.resolveTableName(tableName)
+
+    const rows = this.getTableSchema(safeTableName)
 
     return rows.map((row) => ({
       cid: row.cid,
@@ -685,19 +954,29 @@ export class AppDatabase {
   /**
    * 分页读取指定数据库表的数据。
    *
-   * page 最小为 1；pageSize 被限制在 1 到 200 之间，
-   * 避免在 DevTools 中一次加载过多数据阻塞主进程。
+   * 复用 EnhancedDatabase：
+   * - resolveTableName()；
+   * - normalizePositiveInteger()；
+   * - getTableRowCount()；
+   * - getTableData()。
+   *
+   * page 最小为 1；
+   * pageSize 被限制在 1 到 200 之间。
    */
   getDatabaseTableData(tableName: string, page = 1, pageSize = 50): DatabaseTableData {
-    const safeTableName = this.resolveDatabaseTableName(tableName)
+    const safeTableName = this.resolveTableName(tableName)
+
     const safePage = this.normalizePositiveInteger(page, 1, Number.MAX_SAFE_INTEGER)
+
     const safePageSize = this.normalizePositiveInteger(pageSize, 50, 200)
-    const offset = (safePage - 1) * safePageSize
-    const quotedTableName = this.quoteIdentifier(safeTableName)
 
-    const countRow = this.database.prepare(`SELECT COUNT(*) AS count FROM ${quotedTableName}`).get() as { count: number }
-    const rawRows = this.database.prepare(`SELECT * FROM ${quotedTableName} LIMIT ? OFFSET ?`).all(safePageSize, offset) as Record<string, unknown>[]
+    const total = this.getTableRowCount(safeTableName)
 
+    const rawRows = this.getTableData(safeTableName, safePage, safePageSize)
+
+    /**
+     * 将不能直接通过 IPC 传递的数据转换为安全格式。
+     */
     const rows = rawRows.map((row) => this.serializeDatabaseRow(row))
 
     return {
@@ -708,68 +987,42 @@ export class AppDatabase {
       displayRows: rows.map((row) => this.toDatabaseDisplayRow(safeTableName, row)),
       page: safePage,
       pageSize: safePageSize,
-      total: countRow.count,
-      pageCount: Math.ceil(countRow.count / safePageSize)
+      total,
+      pageCount: Math.ceil(total / safePageSize)
     }
   }
 
   /**
-   * 校验表名是否来自当前数据库。
-   * 动态 SQL 无法通过 ? 绑定表名，因此必须先执行白名单查询。
+   * 获取数据库表的中文名称。
+   *
+   * 未配置中文名称时返回数据库真实表名。
    */
-  private resolveDatabaseTableName(tableName: string): string {
-    if (typeof tableName !== "string" || tableName.trim().length === 0 || tableName.length > 200) {
-      throw new TypeError("数据库表名必须是长度为 1 到 200 的字符串")
-    }
-
-    const row = this.database
-      .prepare(
-        `
-        SELECT name
-        FROM sqlite_schema
-        WHERE type = 'table'
-          AND name = ?
-          AND name NOT LIKE 'sqlite_%'
-      `
-      )
-      .get(tableName) as { name: string } | undefined
-
-    if (!row) {
-      throw new Error(`数据库表不存在或不允许访问：${tableName}`)
-    }
-
-    return row.name
-  }
-
-  /** 将经过白名单校验的 SQLite 标识符安全包裹在双引号中。 */
-  private quoteIdentifier(identifier: string): string {
-    return `"${identifier.replace(/"/g, '""')}"`
-  }
-
-  /** 获取数据库表的中文名称；未配置时退回真实表名。 */
   private getDatabaseTableLabel(tableName: string): string {
     return DATABASE_TABLE_LABELS[tableName] ?? tableName
   }
 
-  /** 获取数据库字段的中文名称；未配置时退回真实字段名。 */
+  /**
+   * 获取数据库字段的中文名称。
+   *
+   * 未配置中文名称时返回数据库真实字段名。
+   */
   private getDatabaseColumnLabel(tableName: string, columnName: string): string {
     return DATABASE_COLUMN_LABELS[tableName]?.[columnName] ?? columnName
   }
 
-  /** 将一行原始 SQLite 数据转换为适合 DevTools 展示的中文字段数据。 */
+  /**
+   * 将一行 SQLite 原始数据转换为中文字段展示数据。
+   */
   private toDatabaseDisplayRow(tableName: string, row: Record<string, unknown>): Record<string, unknown> {
     return Object.fromEntries(Object.entries(row).map(([columnName, value]) => [this.getDatabaseColumnLabel(tableName, columnName), value]))
   }
 
-  /** 将分页参数规范为指定范围内的正整数。 */
-  private normalizePositiveInteger(value: number, fallback: number, maximum: number): number {
-    const normalizedValue = Number.isFinite(value) ? Math.trunc(value) : fallback
-    return Math.min(Math.max(normalizedValue, 1), maximum)
-  }
-
   /**
    * 将 SQLite 特殊值转换为适合通过 IPC 展示的数据。
-   * BLOB 只显示大小，BigInt 使用字符串表示，避免序列化失败或数据量过大。
+   *
+   * - BLOB：只返回数据大小；
+   * - BigInt：转换成字符串；
+   * - 其他数据：保持原值。
    */
   private serializeDatabaseRow(row: Record<string, unknown>): Record<string, unknown> {
     return Object.fromEntries(
@@ -788,30 +1041,59 @@ export class AppDatabase {
   }
 
   /**
-   * 读取通用应用状态。
-   * key 不存在时返回 null，存在时将 JSON 字符串反序列化为调用方指定的类型。
+   * 读取一项通用应用状态。
+   *
+   * key 不存在时返回 null；
+   * 存在时将 JSON 字符串反序列化。
    */
   getState<T>(key: string): T | null {
-    const row = this.database.prepare("SELECT value_json FROM app_state WHERE key = ?").get(key) as { value_json: string } | undefined
+    const row = this.database
+      .prepare(
+        `
+        SELECT value_json
+        FROM app_state
+        WHERE key = ?
+      `
+      )
+      .get(key) as
+      | {
+          value_json: string
+        }
+      | undefined
 
-    if (!row) return null
+    if (!row) {
+      return null
+    }
+
     return JSON.parse(row.value_json) as T
   }
 
-  /** 新增或覆盖一项通用应用状态。 */
+  /**
+   * 新增或覆盖一项通用应用状态。
+   */
   setState(key: string, value: unknown): void {
     const valueJson = JSON.stringify(value)
 
-    // JSON.stringify(undefined) 的结果仍是 undefined，无法作为有效 JSON 保存。
+    /**
+     * JSON.stringify(undefined) 的结果是 undefined，
+     * 无法作为有效 JSON 保存。
+     */
     if (valueJson === undefined) {
       throw new TypeError("app_state 不支持保存 undefined")
     }
 
     const now = new Date().toISOString()
+
     this.database
       .prepare(
         `
-        INSERT INTO app_state (key, value_json, device_id, created_at, updated_at)
+        INSERT INTO app_state (
+          key,
+          value_json,
+          device_id,
+          created_at,
+          updated_at
+        )
         VALUES (?, ?, ?, ?, ?)
         ON CONFLICT(key) DO UPDATE SET
           value_json = excluded.value_json,
@@ -822,12 +1104,29 @@ export class AppDatabase {
       .run(key, valueJson, this.deviceId, now, now)
   }
 
-  /** 删除指定状态，返回值表示数据库中是否确实删除了一条记录。 */
+  /**
+   * 删除指定的通用应用状态。
+   *
+   * 返回值表示数据库中是否实际删除了一条记录。
+   */
   deleteState(key: string): boolean {
-    return this.database.prepare("DELETE FROM app_state WHERE key = ?").run(key).changes > 0
+    const result = this.database
+      .prepare(
+        `
+        DELETE FROM app_state
+        WHERE key = ?
+      `
+      )
+      .run(key)
+
+    return result.changes > 0
   }
 
-  /** 获取数据库调试信息，不直接暴露 better-sqlite3 实例。 */
+  /**
+   * 获取数据库调试信息。
+   *
+   * 不直接向渲染进程暴露 better-sqlite3 实例。
+   */
   getInfo(): {
     databasePath: string
     databaseVersion: number
@@ -844,14 +1143,35 @@ export class AppDatabase {
 
   /**
    * 正常结束当前应用会话并关闭数据库连接。
-   * 该方法允许重复调用，第二次及之后会直接返回。
+   *
+   * 该方法允许重复调用，
+   * 第二次及之后会直接返回。
    */
-  close(): void {
-    if (this.closed) return
+  override close(): void {
+    if (this.closed) {
+      return
+    }
 
-    // 退出前记录会话结束时间，便于后续统计一次应用运行了多久。
-    this.database.prepare("UPDATE app_sessions SET ended_at = ? WHERE id = ?").run(new Date().toISOString(), this.sessionId)
-    this.database.close()
+    /**
+     * 关闭连接前记录本次应用会话结束时间。
+     */
+    if (this.database.open) {
+      this.database
+        .prepare(
+          `
+          UPDATE app_sessions
+          SET ended_at = ?
+          WHERE id = ?
+        `
+        )
+        .run(new Date().toISOString(), this.sessionId)
+    }
+
+    /**
+     * 由 EnhancedDatabase 统一关闭连接。
+     */
+    super.close()
+
     this.closed = true
   }
 }

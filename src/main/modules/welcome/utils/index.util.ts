@@ -1,4 +1,4 @@
-import type { WorkspaceDataInput } from "../index.type"
+import type { WorkspaceDataInput } from "@main/modules/welcome/index.type"
 
 /**
  * 判断渲染进程传入的数据是否符合工作区结构。
