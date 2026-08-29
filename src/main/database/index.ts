@@ -69,15 +69,10 @@ export class EnhancedDatabase {
    */
   getTableData(tableName: string, page = 1, pageSize = 50): Record<string, unknown>[] {
     const safeTableName = this.resolveTableName(tableName)
-
     const safePage = this.normalizePositiveInteger(page, 1, Number.MAX_SAFE_INTEGER)
-
     const safePageSize = this.normalizePositiveInteger(pageSize, 50, 200)
-
     const offset = (safePage - 1) * safePageSize
-
     const quotedTableName = this.quoteIdentifier(safeTableName)
-
     return this.database
       .prepare(
         `
@@ -199,7 +194,6 @@ export class EnhancedDatabase {
    */
   protected normalizePositiveInteger(value: number, fallback: number, maximum: number): number {
     const normalizedValue = Number.isFinite(value) ? Math.trunc(value) : fallback
-
     return Math.min(Math.max(normalizedValue, 1), maximum)
   }
 

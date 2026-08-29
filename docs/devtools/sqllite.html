@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SQLite 数据查看器 - Vessel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    background: #faf9f7;
+    color: #1c1917;
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* ========== 侧边栏 - 表列表 ========== */
+  .sidebar {
+    width: 260px;
+    min-width: 260px;
+    background: #faf9f7;
+    border-right: 1px solid #f0efed;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: width 0.25s ease, min-width 0.25s ease, opacity 0.2s ease;
+  }
+  .sidebar.collapsed {
+    width: 0;
+    min-width: 0;
+    border-right: none;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .sidebar-header {
+    padding: 16px;
+    border-bottom: 1px solid #f0efed;
+  }
+  .sidebar-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: #a8a29e;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .sidebar-count {
+    background: #f0efed;
+    color: #78716c;
+    padding: 1px 7px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .sidebar-search { position: relative; }
+  .sidebar-search svg {
+    position: absolute; left: 10px; top: 50%;
+    transform: translateY(-50%);
+    width: 14px; height: 14px; color: #a8a29e;
+  }
+  .sidebar-search input {
+    width: 100%; height: 32px;
+    border: 1px solid #e7e5e4; border-radius: 8px;
+    background: #fff; padding: 0 10px 0 32px;
+    font-size: 12.5px; color: #1c1917;
+    outline: none; transition: all 0.15s; font-family: inherit;
+  }
+  .sidebar-search input::placeholder { color: #a8a29e; }
+  .sidebar-search input:focus {
+    border-color: #15803d;
+    box-shadow: 0 0 0 3px rgba(21,128,61,0.08);
+  }
+  .table-list {
+    flex: 1; overflow-y: auto; padding: 8px;
+  }
+  .table-list::-webkit-scrollbar { width: 6px; }
+  .table-list::-webkit-scrollbar-thumb { background: #e7e5e4; border-radius: 3px; }
+  .table-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px; border-radius: 8px;
+    cursor: pointer; transition: all 0.12s; margin-bottom: 2px;
+  }
+  .table-item:hover { background: #f0efed; }
+  .table-item.active { background: #ecfdf5; color: #166534; }
+  .table-item-icon {
+    width: 28px; height: 28px; border-radius: 7px;
+    background: #f5f5f4;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; color: #78716c;
+  }
+  .table-item.active .table-item-icon { background: #dcfce7; color: #16a34a; }
+  .table-item-info { flex: 1; min-width: 0; }
+  .table-item-name {
+    font-size: 13px; font-weight: 600;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .table-item-count {
+    font-size: 11px; color: #a8a29e; margin-top: 1px;
+  }
+  .table-item.active .table-item-count { color: #16a34a; }
+
+  /* 折叠按钮 - 放在侧边栏和主内容区之间 */
+  .collapse-btn {
+    position: absolute;
+    left: 260px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 18px;
+    height: 48px;
+    background: #fff;
+    border: 1px solid #e7e5e4;
+    border-left: none;
+    border-radius: 0 8px 8px 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 100;
+    transition: left 0.25s ease, background 0.15s;
+    color: #a8a29e;
+  }
+  .collapse-btn:hover {
+    background: #faf9f7;
+    color: #57534e;
+  }
+  .collapse-btn.collapsed {
+    left: 0;
+    border-radius: 0 8px 8px 0;
+  }
+  .collapse-btn svg {
+    width: 14px;
+    height: 14px;
+    transition: transform 0.25s ease;
+  }
+  .collapse-btn.collapsed svg {
+    transform: rotate(180deg);
+  }
+
+  /* ========== 主内容区 ========== */
+  .main {
+    flex: 1; display: flex; flex-direction: column;
+    background: #fff; overflow: hidden; min-width: 0;
+    position: relative;
+  }
+
+  /* 顶部工具栏 */
+  .toolbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 24px; border-bottom: 1px solid #f0efed; background: #fff;
+  }
+  .toolbar-left { display: flex; align-items: center; gap: 14px; }
+  .table-title { display: flex; align-items: center; gap: 10px; }
+  .table-title-icon {
+    width: 36px; height: 36px; border-radius: 9px;
+    background: #f0fdf4;
+    display: flex; align-items: center; justify-content: center;
+    color: #16a34a;
+  }
+  .table-title-text h2 {
+    font-size: 17px; font-weight: 700; color: #1c1917; letter-spacing: -0.3px;
+  }
+  .table-title-text p { font-size: 12px; color: #a8a29e; margin-top: 1px; }
+  .table-meta {
+    display: flex; align-items: center; gap: 6px;
+    padding: 4px 10px; background: #faf9f7;
+    border: 1px solid #f0efed; border-radius: 7px;
+    font-size: 12px; color: #78716c;
+  }
+  .toolbar-right { display: flex; align-items: center; gap: 8px; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 7px 14px; border-radius: 8px;
+    font-size: 13px; font-weight: 500; cursor: pointer;
+    transition: all 0.12s; border: 1px solid transparent; font-family: inherit;
+  }
+  .btn-outline {
+    background: #fff; border-color: #e7e5e4; color: #44403c;
+  }
+  .btn-outline:hover { background: #faf9f7; border-color: #d6d3d1; }
+  .btn-sm { padding: 5px 10px; font-size: 12px; }
+
+  /* 搜索栏 */
+  .search-bar {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 24px; border-bottom: 1px solid #f0efed; background: #faf9f7;
+  }
+  .search-input-wrapper { position: relative; flex: 1; max-width: 400px; }
+  .search-input-wrapper svg {
+    position: absolute; left: 11px; top: 50%;
+    transform: translateY(-50%);
+    width: 15px; height: 15px; color: #a8a29e;
+  }
+  .search-input-wrapper input {
+    width: 100%; height: 36px;
+    border: 1px solid #e7e5e4; border-radius: 8px;
+    background: #fff; padding: 0 12px 0 36px;
+    font-size: 13px; color: #1c1917;
+    outline: none; transition: all 0.15s; font-family: inherit;
+  }
+  .search-input-wrapper input::placeholder { color: #a8a29e; }
+  .search-input-wrapper input:focus {
+    border-color: #16a34a;
+    box-shadow: 0 0 0 3px rgba(22,163,74,0.1);
+  }
+  .search-hint {
+    font-size: 12px; color: #a8a29e;
+    display: flex; align-items: center; gap: 4px;
+  }
+  .kbd {
+    display: inline-flex; align-items: center;
+    padding: 1px 5px; background: #fff;
+    border: 1px solid #e7e5e4; border-radius: 4px;
+    font-size: 11px; font-family: "SF Mono", Monaco, monospace; color: #78716c;
+  }
+
+  /* ========== shadcn 风格 Table ========== */
+  .table-container {
+    flex: 1; overflow: auto; background: #fff;
+  }
+  .table-container::-webkit-scrollbar { height: 8px; width: 8px; }
+  .table-container::-webkit-scrollbar-thumb { background: #e7e5e4; border-radius: 4px; }
+  .table-container::-webkit-scrollbar-thumb:hover { background: #d6d3d1; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead {
+    position: sticky; top: 0; z-index: 10; background: #faf9f7;
+  }
+  th {
+    height: 40px; padding: 0 16px; text-align: left;
+    font-size: 12px; font-weight: 600; color: #57534e;
+    border-bottom: 1px solid #e7e5e4;
+    white-space: nowrap; user-select: none;
+    cursor: pointer; transition: background 0.12s;
+  }
+  th:hover { background: #f5f5f4; }
+  th .th-content {
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  th .sort-icon {
+    width: 13px; height: 13px; color: #a8a29e;
+    opacity: 0; transition: opacity 0.12s;
+  }
+  th:hover .sort-icon { opacity: 1; }
+  th.sorted .sort-icon { opacity: 1; color: #16a34a; }
+  th .col-type {
+    font-size: 10px; font-weight: 500; color: #a8a29e;
+    background: #f0efed; padding: 1px 5px; border-radius: 4px; margin-left: 4px;
+  }
+  td {
+    height: 44px; padding: 0 16px;
+    border-bottom: 1px solid #f5f5f4; color: #44403c;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    max-width: 300px;
+  }
+  tbody tr { transition: background 0.1s; }
+  tbody tr:hover { background: #faf9f7; }
+  tbody tr:last-child td { border-bottom: none; }
+
+  /* 单元格内容样式 */
+  .cell-id {
+    font-family: "SF Mono", Monaco, monospace;
+    font-size: 12px; color: #16a34a; font-weight: 600;
+  }
+  .cell-text { color: #44403c; }
+  .cell-number {
+    font-family: "SF Mono", Monaco, monospace;
+    font-size: 12.5px; color: #2563eb; font-weight: 500;
+  }
+  .cell-boolean {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 12px; font-weight: 500;
+  }
+  .cell-boolean.true { color: #16a34a; }
+  .cell-boolean.false { color: #a8a29e; }
+  .cell-boolean-dot { width: 6px; height: 6px; border-radius: 50%; }
+  .cell-boolean.true .cell-boolean-dot { background: #16a34a; }
+  .cell-boolean.false .cell-boolean-dot { background: #d6d3d1; }
+  .cell-null { font-style: italic; color: #a8a29e; font-size: 12px; }
+  .cell-date {
+    font-family: "SF Mono", Monaco, monospace;
+    font-size: 12px; color: #7c3aed;
+  }
+  .cell-json {
+    font-family: "SF Mono", Monaco, monospace;
+    font-size: 11.5px; color: #b45309;
+    background: #fffbeb; padding: 2px 6px; border-radius: 4px;
+    border: 1px solid #fef3c7;
+  }
+  .cell-badge {
+    display: inline-flex; align-items: center;
+    padding: 2px 8px; border-radius: 6px;
+    font-size: 11.5px; font-weight: 600;
+  }
+  .badge-active { background: #dcfce7; color: #166534; }
+  .badge-inactive { background: #f5f5f4; color: #78716c; }
+  .badge-pending { background: #fef3c7; color: #92400e; }
+  .badge-admin { background: #fce7f3; color: #9d174d; }
+  .badge-user { background: #dbeafe; color: #1e40af; }
+
+  /* ========== 底部分页 ========== */
+  .pagination {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 24px; border-top: 1px solid #f0efed; background: #faf9f7;
+  }
+  .pagination-info { font-size: 12.5px; color: #78716c; }
+  .pagination-info strong { color: #1c1917; font-weight: 600; }
+  .pagination-controls { display: flex; align-items: center; gap: 6px; }
+  .page-btn {
+    min-width: 32px; height: 32px; padding: 0 8px;
+    border: 1px solid #e7e5e4; border-radius: 7px;
+    background: #fff; font-size: 12.5px; font-weight: 500;
+    color: #57534e; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 4px;
+    transition: all 0.12s; font-family: inherit;
+  }
+  .page-btn:hover:not(:disabled) { background: #faf9f7; border-color: #d6d3d1; }
+  .page-btn.active { background: #16a34a; border-color: #16a34a; color: #fff; }
+  .page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .page-size-select {
+    height: 32px; padding: 0 8px;
+    border: 1px solid #e7e5e4; border-radius: 7px;
+    background: #fff; font-size: 12.5px; color: #57534e;
+    cursor: pointer; font-family: inherit; outline: none;
+  }
+  .page-size-select:focus { border-color: #16a34a; }
+</style>
+</head>
+<body>
+
+<!-- 侧边栏 - 表列表 -->
+<div class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <div class="sidebar-title">
+      <span>数据表</span>
+      <span class="sidebar-count">8</span>
+    </div>
+    <div class="sidebar-search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" placeholder="搜索表名...">
+    </div>
+  </div>
+  <div class="table-list">
+    <div class="table-item active">
+      <div class="table-item-icon">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+      </div>
+      <div class="table-item-info">
+        <div class="table-item-name">users</div>
+        <div class="table-item-count">1,248 行 · 8 列</div>
+      </div>
+    </div>
+    <div class="table-item">
+      <div class="table-item-icon">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+      </div>
+      <div class="table-item-info">
+        <div class="table-item-name">notes</div>
+        <div class="table-item-count">3,567 行 · 12 列</div>
+      </div>
+    </div>
+    <div class="table-item">
+      <div class="table-item-icon">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+      </div>
+      <div class="table-item-info">
+        <div class="table-item-name">workspaces</div>
+        <div class="table-item-count">24 行 · 6 列</div>
+      </div>
+    </div>
+    <div class="table-item">
+      <div class="table-item-icon">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+      </div>
+      <div class="table-item-info">
+        <div class="table-item-name">tags</div>
+        <div class="table-item-count">156 行 · 4 列</div>
+      </div>
+    </div>
+    <div class="table-item">
+      <div class="table-item-icon">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+      </div>
+      <div class="table-item-info">
+        <div class="table-item-name">history</div>
+        <div class="table-item-count">8,932 行 · 7 列</div>
+      </div>
+    </div>
+    <div class="table-item">
+      <div class="table-item-icon">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+      </div>
+      <div class="table-item-info">
+        <div class="table-item-name">settings</div>
+        <div class="table-item-count">1 行 · 15 列</div>
+      </div>
+    </div>
+    <div class="table-item">
+      <div class="table-item-icon">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+      </div>
+      <div class="table-item-info">
+        <div class="table-item-name">attachments</div>
+        <div class="table-item-count">432 行 · 9 列</div>
+      </div>
+    </div>
+    <div class="table-item">
+      <div class="table-item-icon">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+      </div>
+      <div class="table-item-info">
+        <div class="table-item-name">sessions</div>
+        <div class="table-item-count">128 行 · 5 列</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 折叠按钮 -->
+<div class="collapse-btn" id="collapseBtn" onclick="toggleSidebar()">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+</div>
+
+<!-- 主内容区 -->
+<div class="main">
+  <!-- 顶部工具栏 -->
+  <div class="toolbar">
+    <div class="toolbar-left">
+      <div class="table-title">
+        <div class="table-title-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+        </div>
+        <div class="table-title-text">
+          <h2>users</h2>
+          <p>用户表 · 存储所有用户信息</p>
+        </div>
+      </div>
+      <div class="table-meta">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+        1,248 行
+      </div>
+      <div class="table-meta">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+        8 列
+      </div>
+    </div>
+    <div class="toolbar-right">
+      <button class="btn btn-outline btn-sm">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        导出
+      </button>
+      <button class="btn btn-outline btn-sm">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        结构
+      </button>
+      <button class="btn btn-outline btn-sm">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        刷新
+      </button>
+    </div>
+  </div>
+
+  <!-- 搜索栏 -->
+  <div class="search-bar">
+    <div class="search-input-wrapper">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" placeholder="搜索数据...（支持按列筛选，如 name:Alice）">
+    </div>
+    <div class="search-hint">
+      <span>按</span>
+      <span class="kbd">⌘</span>
+      <span class="kbd">K</span>
+      <span>快速搜索</span>
+    </div>
+  </div>
+
+  <!-- 数据表格 -->
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th class="sorted">
+            <span class="th-content">
+              id
+              <span class="col-type">INTEGER</span>
+              <svg class="sort-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </span>
+          </th>
+          <th>
+            <span class="th-content">
+              username
+              <span class="col-type">TEXT</span>
+              <svg class="sort-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </span>
+          </th>
+          <th>
+            <span class="th-content">
+              email
+              <span class="col-type">TEXT</span>
+              <svg class="sort-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </span>
+          </th>
+          <th>
+            <span class="th-content">
+              role
+              <span class="col-type">TEXT</span>
+              <svg class="sort-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </span>
+          </th>
+          <th>
+            <span class="th-content">
+              age
+              <span class="col-type">INTEGER</span>
+              <svg class="sort-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </span>
+          </th>
+          <th>
+            <span class="th-content">
+              is_active
+              <span class="col-type">BOOLEAN</span>
+              <svg class="sort-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </span>
+          </th>
+          <th>
+            <span class="th-content">
+              created_at
+              <span class="col-type">DATETIME</span>
+              <svg class="sort-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </span>
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="cell-id">1</span></td>
+          <td><span class="cell-text">alice_wonder</span></td>
+          <td><span class="cell-text">alice@example.com</span></td>
+          <td><span class="cell-badge badge-admin">admin</span></td>
+          <td><span class="cell-number">28</span></td>
+          <td><span class="cell-boolean true"><span class="cell-boolean-dot"></span>true</span></td>
+          <td><span class="cell-date">2024-01-15 09:30:00</span></td>
+        </tr>
+        <tr>
+          <td><span class="cell-id">2</span></td>
+          <td><span class="cell-text">bob_builder</span></td>
+          <td><span class="cell-text">bob@example.com</span></td>
+          <td><span class="cell-badge badge-user">user</span></td>
+          <td><span class="cell-number">35</span></td>
+          <td><span class="cell-boolean true"><span class="cell-boolean-dot"></span>true</span></td>
+          <td><span class="cell-date">2024-01-16 14:20:00</span></td>
+        </tr>
+        <tr>
+          <td><span class="cell-id">3</span></td>
+          <td><span class="cell-text">charlie_dev</span></td>
+          <td><span class="cell-text">charlie@example.com</span></td>
+          <td><span class="cell-badge badge-user">user</span></td>
+          <td><span class="cell-number">42</span></td>
+          <td><span class="cell-boolean false"><span class="cell-boolean-dot"></span>false</span></td>
+          <td><span class="cell-date">2024-01-17 08:45:00</span></td>
+        </tr>
+        <tr>
+          <td><span class="cell-id">4</span></td>
+          <td><span class="cell-text">diana_design</span></td>
+          <td><span class="cell-text">diana@example.com</span></td>
+          <td><span class="cell-badge badge-admin">admin</span></td>
+          <td><span class="cell-number">31</span></td>
+          <td><span class="cell-boolean true"><span class="cell-boolean-dot"></span>true</span></td>
+          <td><span class="cell-date">2024-01-18 16:10:00</span></td>
+        </tr>
+        <tr>
+          <td><span class="cell-id">5</span></td>
+          <td><span class="cell-text">eve_editor</span></td>
+          <td><span class="cell-text">eve@example.com</span></td>
+          <td><span class="cell-badge badge-pending">pending</span></td>
+          <td><span class="cell-number">26</span></td>
+          <td><span class="cell-boolean false"><span class="cell-boolean-dot"></span>false</span></td>
+          <td><span class="cell-date">2024-01-19 11:25:00</span></td>
+        </tr>
+        <tr>
+          <td><span class="cell-id">6</span></td>
+          <td><span class="cell-text">frank_fullstack</span></td>
+          <td><span class="cell-text">frank@example.com</span></td>
+          <td><span class="cell-badge badge-user">user</span></td>
+          <td><span class="cell-number">38</span></td>
+          <td><span class="cell-boolean true"><span class="cell-boolean-dot"></span>true</span></td>
+          <td><span class="cell-date">2024-01-20 09:00:00</span></td>
+        </tr>
+        <tr>
+          <td><span class="cell-id">7</span></td>
+          <td><span class="cell-text">grace_qa</span></td>
+          <td><span class="cell-text">grace@example.com</span></td>
+          <td><span class="cell-badge badge-inactive">inactive</span></td>
+          <td><span class="cell-number">29</span></td>
+          <td><span class="cell-null">NULL</span></td>
+          <td><span class="cell-date">2024-01-21 13:45:00</span></td>
+        </tr>
+        <tr>
+          <td><span class="cell-id">8</span></td>
+          <td><span class="cell-text">henry_ops</span></td>
+          <td><span class="cell-text">henry@example.com</span></td>
+          <td><span class="cell-badge badge-user">user</span></td>
+          <td><span class="cell-number">45</span></td>
+          <td><span class="cell-boolean true"><span class="cell-boolean-dot"></span>true</span></td>
+          <td><span class="cell-date">2024-01-22 17:30:00</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 底部分页 -->
+  <div class="pagination">
+    <div class="pagination-info">
+      显示 <strong>1-8</strong> 条，共 <strong>1,248</strong> 条
+    </div>
+    <div class="pagination-controls">
+      <select class="page-size-select">
+        <option>10 条/页</option>
+        <option>20 条/页</option>
+        <option>50 条/页</option>
+        <option>100 条/页</option>
+      </select>
+      <button class="page-btn" disabled>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <button class="page-btn active">1</button>
+      <button class="page-btn">2</button>
+      <button class="page-btn">3</button>
+      <button class="page-btn">...</button>
+      <button class="page-btn">125</button>
+      <button class="page-btn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const btn = document.getElementById('collapseBtn');
+    sidebar.classList.toggle('collapsed');
+    btn.classList.toggle('collapsed');
+  }
+</script>
+
+</body>
+</html>

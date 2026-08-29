@@ -6,10 +6,10 @@
     "types": ["electron-vite/node"],
      "paths": {
       "@main/*": [
-        "src/main/*"
+        "./src/main/*"
       ],
       "@preload/*": [
-        "src/preload/*"
+        "./src/preload/*"
       ]
     }
   }
