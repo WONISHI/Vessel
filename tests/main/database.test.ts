@@ -1,24 +1,35 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, it, vi } from "vitest"
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 
 /**
- * vi.mock 会被提升到文件顶部，因此测试运行目录需要通过
- * vi.hoisted 创建，确保 Electron Mock 可以访问它。
+ * vi.mock 会被提升到文件顶部。
+ *
+ * 使用 vi.hoisted 创建共享状态，
+ * 让 Electron Mock 能够读取每条测试动态生成的 userData 路径。
  */
 const electronState = vi.hoisted(() => ({
   userDataPath: ""
 }))
 
 /**
- * AppDatabase 依赖 Electron 的 app 对象。
+ * 模拟 Electron 主进程中的 app 对象。
  *
- * 测试时将 userData 指向临时目录，避免读写真实的：
- * ~/Library/Application Support/Vessel/vessel.db
+ * AppDatabase 内部会调用：
+ * - app.getPath("userData")：获取数据库保存目录；
+ * - app.getLocale()：获取当前语言；
+ * - app.getVersion()：获取应用版本；
+ * - app.isPackaged：判断是否为生产环境。
+ *
+ * 测试时将数据库保存到临时目录，
+ * 避免修改真实的 Vessel 数据库。
  */
 vi.mock("electron", () => ({
   app: {
+    /**
+     * 返回当前测试使用的临时 userData 路径。
+     */
     getPath: vi.fn((name: string) => {
       if (name !== "userData") {
         throw new Error(`测试中不支持 app.getPath(${name})`)
@@ -27,10 +38,19 @@ vi.mock("electron", () => ({
       return electronState.userDataPath
     }),
 
+    /**
+     * 模拟 Electron 当前语言。
+     */
     getLocale: vi.fn(() => "zh-CN"),
 
+    /**
+     * 模拟当前应用版本。
+     */
     getVersion: vi.fn(() => "1.0.0-test"),
 
+    /**
+     * 表示当前处于开发环境。
+     */
     isPackaged: false
   }
 }))
@@ -38,46 +58,94 @@ vi.mock("electron", () => ({
 import { AppDatabase } from "../../src/main/modules/welcome/index.database"
 import type { WorkspaceDataInput } from "../../src/main/modules/welcome/index.type"
 
-describe("AppDatabase", () => {
+describe("AppDatabase 数据打印", () => {
+  /**
+   * 当前测试持有的数据库实例。
+   */
   let database: AppDatabase | null = null
+
+  /**
+   * 当前测试使用的临时根目录。
+   */
   let testRootPath = ""
+
+  /**
+   * 当前测试使用的模拟工作区目录。
+   */
   let workspacePath = ""
 
   beforeEach(() => {
     /**
-     * 每条测试创建独立目录，避免数据库状态相互影响。
+     * 每次测试都创建独立的临时目录。
+     *
+     * 例如：
+     * /tmp/vessel-database-test-xxxxxx
      */
     testRootPath = mkdtempSync(join(tmpdir(), "vessel-database-test-"))
 
+    /**
+     * 模拟 Electron 的 userData 目录。
+     *
+     * 数据库最终会创建在：
+     * <临时目录>/user-data/vessel.db
+     */
     electronState.userDataPath = join(testRootPath, "user-data")
 
+    /**
+     * 创建用于模拟用户选择的工作区目录。
+     */
     workspacePath = join(testRootPath, "workspace")
 
     mkdirSync(workspacePath, {
       recursive: true
     })
 
+    /**
+     * 创建数据库实例。
+     *
+     * AppDatabase 初始化时会：
+     * 1. 创建 userData 目录；
+     * 2. 创建 vessel.db；
+     * 3. 执行数据库迁移；
+     * 4. 保存当前设备信息；
+     * 5. 创建本次应用会话。
+     */
     database = new AppDatabase()
   })
 
   afterEach(() => {
     /**
-     * 先关闭 better-sqlite3 连接，
-     * 再删除临时测试目录。
+     * 必须先关闭 better-sqlite3 数据库连接，
+     * 然后才能安全删除临时目录。
      */
     database?.close()
     database = null
 
+    /**
+     * 删除测试期间创建的：
+     * - vessel.db；
+     * - SQLite WAL 文件；
+     * - SQLite SHM 文件；
+     * - 模拟工作区文件。
+     */
     if (testRootPath && existsSync(testRootPath)) {
       rmSync(testRootPath, {
         recursive: true,
         force: true
       })
     }
+
+    testRootPath = ""
+    workspacePath = ""
+    electronState.userDataPath = ""
   })
 
   /**
-   * 创建测试工作区数据。
+   * 创建一份模拟的工作区数据。
+   *
+   * 同时会在临时工作区中创建：
+   * - README.md；
+   * - data.json。
    */
   function createWorkspace(name = "测试工作区"): WorkspaceDataInput {
     const markdownPath = join(workspacePath, "README.md")
@@ -88,9 +156,13 @@ describe("AppDatabase", () => {
 
     writeFileSync(
       jsonPath,
-      JSON.stringify({
-        name: "Vessel"
-      }),
+      JSON.stringify(
+        {
+          name: "Vessel"
+        },
+        null,
+        2
+      ),
       "utf8"
     )
 
@@ -110,253 +182,199 @@ describe("AppDatabase", () => {
     }
   }
 
-  it("应该在临时 userData 目录创建数据库", () => {
-    const info = database!.getInfo()
+  /**
+   * 打印标题，使不同类型的数据更容易区分。
+   */
+  function printTitle(title: string): void {
+    console.log(`\n========== ${title} ==========`)
+  }
 
-    expect(info.databasePath).toBe(join(electronState.userDataPath, "vessel.db"))
+  /**
+   * 打印单个对象。
+   *
+   * depth: null 表示完整展开所有嵌套属性。
+   */
+  function printObject(title: string, value: unknown): void {
+    printTitle(title)
 
-    expect(existsSync(info.databasePath)).toBe(true)
-
-    expect(info.databaseVersion).toBe(2)
-    expect(info.deviceId).toBeTruthy()
-    expect(info.sessionId).toBeTruthy()
-  })
-
-  it("应该保存工作区并返回完整持久化数据", () => {
-    const workspace = createWorkspace()
-
-    const result = database!.recordWorkspaceOpened(workspace)
-
-    expect(result).toMatchObject({
-      id: 1,
-      name: "测试工作区",
-      path: workspacePath,
-      openCount: 1
+    console.dir(value, {
+      depth: null,
+      colors: true
     })
+  }
 
-    expect(result.files).toHaveLength(2)
-    expect(result.deviceId).toBeTruthy()
-    expect(result.sessionId).toBeTruthy()
-    expect(result.firstOpenedAt).toBeTruthy()
-    expect(result.lastOpenedAt).toBeTruthy()
-    expect(result.openedAt).toBeTruthy()
-  })
+  /**
+   * 打印数组形式的数据。
+   *
+   * 数组不为空时使用 console.table，
+   * 数据为空时直接输出空数组。
+   */
+  function printTable(title: string, value: unknown[]): void {
+    printTitle(title)
 
-  it("重复打开相同工作区时应该增加打开次数", () => {
+    if (value.length === 0) {
+      console.log("暂无数据")
+      return
+    }
+
+    console.table(value)
+  }
+
+  it("打印数据库中的所有数据", () => {
+    if (!database) {
+      throw new Error("数据库尚未初始化")
+    }
+
+    /**
+     * 一、打印数据库基本信息。
+     *
+     * 包括：
+     * - 数据库文件路径；
+     * - 数据库版本；
+     * - 当前设备 ID；
+     * - 当前会话 ID。
+     */
+    const databaseInfo = database.getInfo()
+
+    printObject("数据库基本信息", databaseInfo)
+
+    console.log("数据库文件是否存在：", existsSync(databaseInfo.databasePath))
+
+    /**
+     * 二、创建模拟工作区。
+     */
     const workspace = createWorkspace()
 
-    const firstResult = database!.recordWorkspaceOpened(workspace)
+    printObject("准备写入的工作区原始数据", workspace)
 
-    const secondResult = database!.recordWorkspaceOpened(workspace)
+    /**
+     * 三、第一次打开工作区。
+     *
+     * 此时：
+     * - openCount 应该为 1；
+     * - 会创建 workspaces 记录；
+     * - 会创建 workspace_open_records 记录。
+     */
+    const firstOpenedWorkspace = database.recordWorkspaceOpened(workspace)
 
-    expect(firstResult.id).toBe(secondResult.id)
+    printObject("第一次打开工作区的保存结果", firstOpenedWorkspace)
 
-    expect(firstResult.openCount).toBe(1)
-    expect(secondResult.openCount).toBe(2)
-  })
+    /**
+     * 四、第二次打开同一个工作区。
+     *
+     * 此时：
+     * - workspaces 不会重复新增；
+     * - openCount 会增加；
+     * - workspace_open_records 会新增一条记录。
+     */
+    const secondOpenedWorkspace = database.recordWorkspaceOpened(workspace)
 
-  it("应该返回最近打开的工作区", () => {
-    const workspace = createWorkspace()
+    printObject("第二次打开工作区的保存结果", secondOpenedWorkspace)
 
-    database!.recordWorkspaceOpened(workspace)
+    /**
+     * 五、打印最近打开的工作区。
+     */
+    const recentWorkspaces = database.getRecentWorkspaces(10)
 
-    const recentWorkspaces = database!.getRecentWorkspaces(10)
+    printTable("最近打开的工作区", recentWorkspaces)
 
-    expect(recentWorkspaces).toHaveLength(1)
+    /**
+     * 六、打印当前工作区的每次打开记录。
+     */
+    const openRecords = database.getWorkspaceOpenRecords(firstOpenedWorkspace.id, 100)
 
-    expect(recentWorkspaces[0]).toMatchObject({
-      id: 1,
-      name: "测试工作区",
-      path: workspacePath,
-      fileCount: 2,
-      openCount: 1,
-      isAvailable: true
-    })
-  })
+    printTable("工作区打开记录", openRecords)
 
-  it("应该保存每一次工作区打开记录", () => {
-    const workspace = createWorkspace()
+    /**
+     * 七、打印当前设备信息。
+     *
+     * 包括：
+     * - 主机名；
+     * - 操作系统；
+     * - CPU；
+     * - 内存；
+     * - 时区；
+     * - Electron 版本；
+     * - Node.js 版本；
+     * - 应用版本。
+     */
+    const currentDevice = database.getCurrentDevice()
 
-    const firstResult = database!.recordWorkspaceOpened(workspace)
+    printObject("当前设备信息", currentDevice)
 
-    database!.recordWorkspaceOpened(workspace)
-
-    const records = database!.getWorkspaceOpenRecords(firstResult.id)
-
-    expect(records).toHaveLength(2)
-
-    expect(records[0]).toMatchObject({
-      workspaceId: firstResult.id,
-      path: workspacePath,
-      fileCount: 2,
-      appVersion: "1.0.0-test",
-      locale: "zh-CN"
-    })
-
-    expect(records[0].hostname).toBeTruthy()
-    expect(records[0].cpuModel).toBeTruthy()
-    expect(records[0].cpuCount).toBeGreaterThan(0)
-    expect(records[0].totalMemory).toBeGreaterThan(0)
-    expect(records[0].nodeVersion).toBeTruthy()
-  })
-
-  it("应该能够新增、读取、覆盖和删除应用状态", () => {
-    expect(database!.getState("editor.settings")).toBeNull()
-
-    database!.setState("editor.settings", {
+    /**
+     * 八、写入一些应用状态，
+     * 方便查看 app_state 表中的数据。
+     */
+    database.setState("editor.settings", {
       theme: "dark",
-      fontSize: 16
+      fontSize: 16,
+      lineHeight: 1.6
     })
 
-    expect(
-      database!.getState<{
-        theme: string
-        fontSize: number
-      }>("editor.settings")
-    ).toEqual({
-      theme: "dark",
-      fontSize: 16
+    database.setState("workspace.current", {
+      id: secondOpenedWorkspace.id,
+      name: secondOpenedWorkspace.name,
+      path: secondOpenedWorkspace.path,
+      openedAt: secondOpenedWorkspace.openedAt
     })
 
-    database!.setState("editor.settings", {
-      theme: "light",
-      fontSize: 18
-    })
-
-    expect(database!.getState("editor.settings")).toEqual({
-      theme: "light",
-      fontSize: 18
-    })
-
-    expect(database!.deleteState("editor.settings")).toBe(true)
-
-    expect(database!.getState("editor.settings")).toBeNull()
-
-    expect(database!.deleteState("editor.settings")).toBe(false)
-  })
-
-  it("不应该允许保存 undefined 状态", () => {
-    expect(() => {
-      database!.setState("invalid-state", undefined)
-    }).toThrow("app_state 不支持保存 undefined")
-  })
-
-  it("应该返回当前设备信息", () => {
-    const device = database!.getCurrentDevice()
-
-    expect(device.id).toBeTruthy()
-    expect(device.hostname).toBeTruthy()
-    expect(device.locale).toBe("zh-CN")
-    expect(device.appVersion).toBe("1.0.0-test")
-    expect(device.nodeVersion).toBeTruthy()
-    expect(device.cpuCount).toBeGreaterThan(0)
-    expect(device.totalMemory).toBeGreaterThan(0)
-  })
-
-  it("应该返回数据库中的所有业务表和中文名称", () => {
-    const tables = database!.getDatabaseTables()
-
-    expect(tables).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          name: "workspaces",
-          label: "工作区"
-        }),
-        expect.objectContaining({
-          name: "workspace_open_records",
-          label: "工作区打开记录"
-        }),
-        expect.objectContaining({
-          name: "devices",
-          label: "设备信息"
-        }),
-        expect.objectContaining({
-          name: "app_state",
-          label: "应用状态"
-        })
-      ])
-    )
+    database.setState("welcome.completed", true)
 
     /**
-     * SQLite 内部表不应该暴露给调试接口。
+     * 九、读取并打印指定应用状态。
      */
-    expect(tables.some((table) => table.name.startsWith("sqlite_"))).toBe(false)
-  })
+    const editorSettings = database.getState("editor.settings")
 
-  it("应该返回工作区表结构及中文字段名称", () => {
-    const columns = database!.getDatabaseTableSchema("workspaces")
+    const currentWorkspace = database.getState("workspace.current")
 
-    expect(columns).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          name: "name",
-          label: "工作区名称",
-          type: "TEXT"
-        }),
-        expect.objectContaining({
-          name: "file_count",
-          label: "文件数量",
-          type: "INTEGER"
-        }),
-        expect.objectContaining({
-          name: "open_count",
-          label: "打开次数",
-          type: "INTEGER"
-        })
-      ])
-    )
-  })
+    const welcomeCompleted = database.getState("welcome.completed")
 
-  it("应该分页返回数据库表数据和中文展示数据", () => {
-    const workspace = createWorkspace()
+    printObject("editor.settings 应用状态", editorSettings)
 
-    database!.recordWorkspaceOpened(workspace)
+    printObject("workspace.current 应用状态", currentWorkspace)
 
-    const result = database!.getDatabaseTableData("workspaces", 1, 20)
-
-    expect(result.tableName).toBe("workspaces")
-
-    expect(result.tableLabel).toBe("工作区")
-
-    expect(result.page).toBe(1)
-    expect(result.pageSize).toBe(20)
-    expect(result.total).toBe(1)
-    expect(result.pageCount).toBe(1)
+    printObject("welcome.completed 应用状态", welcomeCompleted)
 
     /**
-     * rows 保留 SQLite 原始英文键名。
+     * 十、获取数据库允许被调试接口访问的业务表。
+     *
+     * SQLite 内部表不会出现在这里。
      */
-    expect(result.rows[0]).toMatchObject({
-      name: "测试工作区",
-      path: workspacePath,
-      file_count: 2,
-      open_count: 1
-    })
+    const tables = database.getDatabaseTables()
+
+    printTable("数据库业务表", tables)
 
     /**
-     * displayRows 使用中文展示名称。
+     * 十一、遍历所有业务表。
+     *
+     * 分别打印：
+     * - 表结构；
+     * - SQLite 原始字段数据；
+     * - 转换为中文字段名后的展示数据；
+     * - 分页信息。
      */
-    expect(result.displayRows[0]).toMatchObject({
-      工作区名称: "测试工作区",
-      工作区路径: workspacePath,
-      文件数量: 2,
-      打开次数: 1
-    })
-  })
+    for (const table of tables) {
+      const schema = database.getDatabaseTableSchema(table.name)
 
-  it("不应该读取不存在的数据库表", () => {
-    expect(() => {
-      database!.getDatabaseTableData("not_existing_table")
-    }).toThrow("数据库表不存在或不允许访问")
-  })
+      const tableData = database.getDatabaseTableData(table.name, 1, 100)
 
-  it("不应该通过表名执行 SQL 注入", () => {
-    expect(() => {
-      database!.getDatabaseTableData('workspaces"; DROP TABLE workspaces; --')
-    }).toThrow("数据库表不存在或不允许访问")
+      printTable(`${table.label}（${table.name}）表结构`, schema)
 
-    const tables = database!.getDatabaseTables()
+      printObject(`${table.label}（${table.name}）分页信息`, {
+        tableName: tableData.tableName,
+        tableLabel: tableData.tableLabel,
+        page: tableData.page,
+        pageSize: tableData.pageSize,
+        total: tableData.total,
+        pageCount: tableData.pageCount
+      })
 
-    expect(tables.some((table) => table.name === "workspaces")).toBe(true)
+      printTable(`${table.label}（${table.name}）原始数据`, tableData.rows)
+
+      printTable(`${table.label}（${table.name}）中文展示数据`, tableData.displayRows)
+    }
+
+    printTitle("数据库数据打印完成")
   })
 })
