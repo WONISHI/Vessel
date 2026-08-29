@@ -395,3 +395,72 @@ export interface DeviceRow {
   /** 最近一次识别到设备的时间。 */
   last_seen_at: string
 }
+
+/** DevTools 中展示的 SQLite 表信息。 */
+export interface DatabaseTableInfo {
+  /** SQLite 表名。 */
+  name: string
+
+  /** DevTools 中展示的中文表名。 */
+  label: string
+
+  /** 当前表中的数据总量。 */
+  rowCount: number
+
+  /** 创建该表时使用的 SQL。 */
+  sql: string | null
+}
+
+/** DevTools 中展示的 SQLite 字段结构。 */
+export interface DatabaseColumnInfo {
+  /** 字段在表结构中的顺序。 */
+  cid: number
+
+  /** SQLite 字段名。 */
+  name: string
+
+  /** DevTools 中展示的中文字段名。 */
+  label: string
+
+  /** SQLite 字段类型。 */
+  type: string
+
+  /** 字段是否不允许为 NULL。 */
+  notNull: boolean
+
+  /** 字段默认值对应的 SQL 表达式。 */
+  defaultValue: string | null
+
+  /** 字段是否属于主键。 */
+  primaryKey: boolean
+}
+
+/** DevTools 中分页查看 SQLite 表数据时返回的结果。 */
+export interface DatabaseTableData {
+  /** 当前查询的表名。 */
+  tableName: string
+
+  /** 当前表在 DevTools 中展示的中文名称。 */
+  tableLabel: string
+
+  /** 当前表的字段结构。 */
+  columns: DatabaseColumnInfo[]
+
+  /** 当前页原始数据，字段名保持 SQLite 中的英文名称。 */
+  rows: Record<string, unknown>[]
+
+  /** 当前页展示数据，字段名已转换成中文名称。 */
+  displayRows: Record<string, unknown>[]
+
+  /** 当前页码，从 1 开始。 */
+  page: number
+
+  /** 每页数据数量。 */
+  pageSize: number
+
+  /** 当前表的数据总量。 */
+  total: number
+
+  /** 当前表的总页数。 */
+  pageCount: number
+}
