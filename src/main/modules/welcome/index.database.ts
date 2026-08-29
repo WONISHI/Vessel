@@ -4,13 +4,175 @@ import { randomUUID } from "crypto"
 import { existsSync, mkdirSync } from "fs"
 import { arch, cpus, hostname, platform, release, totalmem, type, version } from "os"
 import { dirname, join, normalize, resolve } from "path"
-import type { WorkspaceDataInput, PersistedWorkspaceData, RecentWorkspace, WorkspaceOpenRecord, DeviceInfo, WorkspaceRow, WorkspaceOpenRecordRow, DeviceRow } from "./index.type"
+import type { WorkspaceDataInput, PersistedWorkspaceData, RecentWorkspace, WorkspaceOpenRecord, DeviceInfo, WorkspaceRow } from "./index.type"
 
 /**
  * 当前数据库结构版本。
  * 后续调整表结构时递增该值，并在 migrate 中增加对应的迁移步骤。
  */
-const DATABASE_VERSION = 1
+const DATABASE_VERSION = 2
+
+/** DevTools 中使用的数据库表中文名称，不影响真实 SQLite 表名。 */
+const DATABASE_TABLE_LABELS: Record<string, string> = {
+  app_metadata: "应用元数据",
+  devices: "设备信息",
+  app_sessions: "应用会话",
+  workspaces: "工作区",
+  workspace_open_records: "工作区打开记录",
+  app_state: "应用状态"
+}
+
+/** DevTools 中使用的字段中文名称，不影响真实 SQLite 字段名。 */
+const DATABASE_COLUMN_LABELS: Record<string, Record<string, string>> = {
+  app_metadata: {
+    key: "键",
+    value: "值",
+    updated_at: "更新时间"
+  },
+  devices: {
+    id: "设备ID",
+    hostname: "主机名",
+    platform: "系统平台",
+    arch: "系统架构",
+    os_type: "操作系统类型",
+    os_release: "操作系统发行版本",
+    os_version: "操作系统版本",
+    cpu_model: "CPU型号",
+    cpu_count: "CPU核心数",
+    total_memory: "总内存（字节）",
+    locale: "语言区域",
+    timezone: "时区",
+    app_version: "应用版本",
+    electron_version: "Electron版本",
+    node_version: "Node.js版本",
+    first_seen_at: "首次识别时间",
+    last_seen_at: "最后识别时间"
+  },
+  app_sessions: {
+    id: "会话ID",
+    device_id: "设备ID",
+    started_at: "启动时间",
+    ended_at: "结束时间",
+    app_version: "应用版本",
+    electron_version: "Electron版本",
+    node_version: "Node.js版本",
+    platform: "系统平台",
+    arch: "系统架构"
+  },
+  workspaces: {
+    id: "工作区ID",
+    name: "工作区名称",
+    path: "工作区路径",
+    normalized_path: "规范化路径",
+    file_count: "文件数量",
+    first_opened_at: "首次打开时间",
+    last_opened_at: "最后打开时间",
+    open_count: "打开次数",
+    is_available: "路径是否可用",
+    last_device_id: "最后打开设备ID",
+    created_at: "创建时间",
+    updated_at: "更新时间"
+  },
+  workspace_open_records: {
+    id: "打开记录ID",
+    workspace_id: "工作区ID",
+    device_id: "设备ID",
+    session_id: "会话ID",
+    path: "工作区路径",
+    file_count: "文件数量",
+    opened_at: "打开时间",
+    hostname: "主机名",
+    os_type: "操作系统类型",
+    os_release: "操作系统发行版本",
+    os_version: "操作系统版本",
+    cpu_model: "CPU型号",
+    cpu_count: "CPU核心数",
+    total_memory: "总内存（字节）",
+    locale: "语言区域",
+    timezone: "时区",
+    app_version: "应用版本",
+    electron_version: "Electron版本",
+    node_version: "Node.js版本",
+    platform: "系统平台",
+    arch: "系统架构"
+  },
+  app_state: {
+    key: "状态键",
+    value_json: "状态值",
+    device_id: "设备ID",
+    created_at: "创建时间",
+    updated_at: "更新时间"
+  }
+}
+
+/** DevTools 中展示的 SQLite 表信息。 */
+export interface DatabaseTableInfo {
+  /** SQLite 表名。 */
+  name: string
+
+  /** DevTools 中展示的中文表名。 */
+  label: string
+
+  /** 当前表中的数据总量。 */
+  rowCount: number
+
+  /** 创建该表时使用的 SQL。 */
+  sql: string | null
+}
+
+/** DevTools 中展示的 SQLite 字段结构。 */
+export interface DatabaseColumnInfo {
+  /** 字段在表结构中的顺序。 */
+  cid: number
+
+  /** SQLite 字段名。 */
+  name: string
+
+  /** DevTools 中展示的中文字段名。 */
+  label: string
+
+  /** SQLite 字段类型。 */
+  type: string
+
+  /** 字段是否不允许为 NULL。 */
+  notNull: boolean
+
+  /** 字段默认值对应的 SQL 表达式。 */
+  defaultValue: string | null
+
+  /** 字段是否属于主键。 */
+  primaryKey: boolean
+}
+
+/** DevTools 中分页查看 SQLite 表数据时返回的结果。 */
+export interface DatabaseTableData {
+  /** 当前查询的表名。 */
+  tableName: string
+
+  /** 当前表在 DevTools 中展示的中文名称。 */
+  tableLabel: string
+
+  /** 当前表的字段结构。 */
+  columns: DatabaseColumnInfo[]
+
+  /** 当前页原始数据，字段名保持 SQLite 中的英文名称。 */
+  rows: Record<string, unknown>[]
+
+  /** 当前页展示数据，字段名已转换成中文名称。 */
+  displayRows: Record<string, unknown>[]
+
+  /** 当前页码，从 1 开始。 */
+  page: number
+
+  /** 每页数据数量。 */
+  pageSize: number
+
+  /** 当前表的数据总量。 */
+  total: number
+
+  /** 当前表的总页数。 */
+  pageCount: number
+}
 
 /**
  * Vessel 本地数据库管理器。
@@ -71,7 +233,7 @@ export class AppDatabase {
 
   /** 创建初始表结构，并通过 user_version 管理数据库版本。 */
   private migrate(): void {
-    const currentVersion = this.database.pragma("user_version", {
+    let currentVersion = this.database.pragma("user_version", {
       simple: true
     }) as number
 
@@ -180,8 +342,94 @@ export class AppDatabase {
             ON workspace_open_records(device_id, opened_at DESC);
         `)
 
-        // 只有全部表和索引创建成功后才更新数据库版本。
-        this.database.pragma(`user_version = ${DATABASE_VERSION}`)
+        // 这里只创建 v1 表结构，不能直接写入最新版本号。
+        this.database.pragma("user_version = 1")
+      })()
+
+      currentVersion = 1
+    }
+
+    if (currentVersion < 2) {
+      // v2：为每次工作区打开记录补充完整的设备和运行时快照。
+      this.database.transaction(() => {
+        this.database.exec(`
+          ALTER TABLE workspace_open_records
+            ADD COLUMN hostname TEXT NOT NULL DEFAULT 'unknown';
+          ALTER TABLE workspace_open_records
+            ADD COLUMN os_type TEXT NOT NULL DEFAULT 'unknown';
+          ALTER TABLE workspace_open_records
+            ADD COLUMN os_release TEXT NOT NULL DEFAULT 'unknown';
+          ALTER TABLE workspace_open_records
+            ADD COLUMN os_version TEXT NOT NULL DEFAULT 'unknown';
+          ALTER TABLE workspace_open_records
+            ADD COLUMN cpu_model TEXT NOT NULL DEFAULT 'unknown';
+          ALTER TABLE workspace_open_records
+            ADD COLUMN cpu_count INTEGER NOT NULL DEFAULT 0;
+          ALTER TABLE workspace_open_records
+            ADD COLUMN total_memory INTEGER NOT NULL DEFAULT 0;
+          ALTER TABLE workspace_open_records
+            ADD COLUMN locale TEXT NOT NULL DEFAULT 'unknown';
+          ALTER TABLE workspace_open_records
+            ADD COLUMN timezone TEXT NOT NULL DEFAULT 'unknown';
+          ALTER TABLE workspace_open_records
+            ADD COLUMN node_version TEXT NOT NULL DEFAULT 'unknown';
+
+          -- v1 已有记录只能使用关联设备当前保存的信息进行回填。
+          UPDATE workspace_open_records
+          SET
+            hostname = COALESCE((
+              SELECT devices.hostname
+              FROM devices
+              WHERE devices.id = workspace_open_records.device_id
+            ), 'unknown'),
+            os_type = COALESCE((
+              SELECT devices.os_type
+              FROM devices
+              WHERE devices.id = workspace_open_records.device_id
+            ), 'unknown'),
+            os_release = COALESCE((
+              SELECT devices.os_release
+              FROM devices
+              WHERE devices.id = workspace_open_records.device_id
+            ), 'unknown'),
+            os_version = COALESCE((
+              SELECT devices.os_version
+              FROM devices
+              WHERE devices.id = workspace_open_records.device_id
+            ), 'unknown'),
+            cpu_model = COALESCE((
+              SELECT devices.cpu_model
+              FROM devices
+              WHERE devices.id = workspace_open_records.device_id
+            ), 'unknown'),
+            cpu_count = COALESCE((
+              SELECT devices.cpu_count
+              FROM devices
+              WHERE devices.id = workspace_open_records.device_id
+            ), 0),
+            total_memory = COALESCE((
+              SELECT devices.total_memory
+              FROM devices
+              WHERE devices.id = workspace_open_records.device_id
+            ), 0),
+            locale = COALESCE((
+              SELECT devices.locale
+              FROM devices
+              WHERE devices.id = workspace_open_records.device_id
+            ), 'unknown'),
+            timezone = COALESCE((
+              SELECT devices.timezone
+              FROM devices
+              WHERE devices.id = workspace_open_records.device_id
+            ), 'unknown'),
+            node_version = COALESCE((
+              SELECT devices.node_version
+              FROM devices
+              WHERE devices.id = workspace_open_records.device_id
+            ), 'unknown');
+        `)
+
+        this.database.pragma("user_version = 2")
       })()
     }
   }
@@ -312,6 +560,9 @@ export class AppDatabase {
     const isAvailable = existsSync(workspace.path) ? 1 : 0
     const fileCount = workspace.files.length
 
+    // 读取当前设备快照，写入打开明细后不会再受 devices 表后续更新影响。
+    const device = this.getCurrentDevice()
+
     const transaction = this.database.transaction(() => {
       // normalized_path 唯一：首次打开时新增，再次打开时刷新信息并累加 open_count。
       this.database
@@ -354,11 +605,39 @@ export class AppDatabase {
           `
           INSERT INTO workspace_open_records (
             workspace_id, device_id, session_id, path, file_count, opened_at,
-            app_version, electron_version, platform, arch
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            hostname, os_type, os_release, os_version, cpu_model, cpu_count,
+            total_memory, locale, timezone, app_version, electron_version,
+            node_version, platform, arch
+          ) VALUES (
+            @workspaceId, @deviceId, @sessionId, @path, @fileCount, @openedAt,
+            @hostname, @osType, @osRelease, @osVersion, @cpuModel, @cpuCount,
+            @totalMemory, @locale, @timezone, @appVersion, @electronVersion,
+            @nodeVersion, @platform, @arch
+          )
         `
         )
-        .run(savedWorkspace.id, this.deviceId, this.sessionId, workspace.path, fileCount, openedAt, app.getVersion(), process.versions.electron ?? "unknown", platform(), arch())
+        .run({
+          workspaceId: savedWorkspace.id,
+          deviceId: this.deviceId,
+          sessionId: this.sessionId,
+          path: workspace.path,
+          fileCount,
+          openedAt,
+          hostname: device.hostname,
+          osType: device.osType,
+          osRelease: device.osRelease,
+          osVersion: device.osVersion,
+          cpuModel: device.cpuModel,
+          cpuCount: device.cpuCount,
+          totalMemory: device.totalMemory,
+          locale: device.locale,
+          timezone: device.timezone,
+          appVersion: device.appVersion,
+          electronVersion: device.electronVersion,
+          nodeVersion: device.nodeVersion,
+          platform: device.platform,
+          arch: device.arch
+        })
 
       return savedWorkspace
     })
@@ -408,61 +687,261 @@ export class AppDatabase {
     }))
   }
 
-  /** 查询指定工作区的打开明细，limit 被限制在 1 到 500 之间。 */
+  /**
+   * 查询指定工作区的打开明细。
+   *
+   * 返回每次打开工作区时保存的：
+   * - 工作区路径和文件数量；
+   * - 设备及操作系统信息；
+   * - CPU、内存、语言和时区；
+   * - 应用、Electron 和 Node.js 版本。
+   *
+   * limit 最终会被限制在 1 到 500 之间，
+   * 防止渲染进程一次读取过多历史记录。
+   */
   getWorkspaceOpenRecords(workspaceId: number, limit = 100): WorkspaceOpenRecord[] {
     const safeLimit = Math.min(Math.max(Math.trunc(limit), 1), 500)
-    const rows = this.database
+
+    // 使用 AS 将数据库的 snake_case 字段直接转换为渲染进程需要的 camelCase。
+    // 查询结果已经满足 WorkspaceOpenRecord，因此不再需要额外执行 map。
+    return this.database
       .prepare(
         `
         SELECT
-          id, workspace_id, device_id, session_id, path, file_count, opened_at,
-          app_version, electron_version, platform, arch
+          id,
+          workspace_id AS workspaceId,
+          device_id AS deviceId,
+          session_id AS sessionId,
+          path,
+          file_count AS fileCount,
+          opened_at AS openedAt,
+          hostname,
+          os_type AS osType,
+          os_release AS osRelease,
+          os_version AS osVersion,
+          cpu_model AS cpuModel,
+          cpu_count AS cpuCount,
+          total_memory AS totalMemory,
+          locale,
+          timezone,
+          app_version AS appVersion,
+          electron_version AS electronVersion,
+          node_version AS nodeVersion,
+          platform,
+          arch
         FROM workspace_open_records
         WHERE workspace_id = ?
         ORDER BY opened_at DESC
         LIMIT ?
       `
       )
-      .all(workspaceId, safeLimit) as WorkspaceOpenRecordRow[]
+      .all(workspaceId, safeLimit) as WorkspaceOpenRecord[]
+  }
+
+  /** 获取数据库中保存的当前设备信息。 */
+  getCurrentDevice(): DeviceInfo {
+    return this.database
+      .prepare(
+        `
+        SELECT
+          id,
+          hostname,
+          platform,
+          arch,
+          os_type AS osType,
+          os_release AS osRelease,
+          os_version AS osVersion,
+          cpu_model AS cpuModel,
+          cpu_count AS cpuCount,
+          total_memory AS totalMemory,
+          locale,
+          timezone,
+          app_version AS appVersion,
+          electron_version AS electronVersion,
+          node_version AS nodeVersion,
+          first_seen_at AS firstSeenAt,
+          last_seen_at AS lastSeenAt
+        FROM devices
+        WHERE id = ?
+      `
+      )
+      .get(this.deviceId) as DeviceInfo
+  }
+
+  /**
+   * 查询数据库中的业务表。
+   *
+   * 默认排除 sqlite_ 开头的 SQLite 内部表，避免调试接口依赖内部实现。
+   * 该方法只读取数据，不允许通过 DevTools 执行任意 SQL。
+   */
+  getDatabaseTables(): DatabaseTableInfo[] {
+    const tables = this.database
+      .prepare(
+        `
+        SELECT
+          name,
+          sql
+        FROM sqlite_schema
+        WHERE type = 'table'
+          AND name NOT LIKE 'sqlite_%'
+        ORDER BY name ASC
+      `
+      )
+      .all() as Array<{ name: string; sql: string | null }>
+
+    return tables.map((table) => {
+      const quotedTableName = this.quoteIdentifier(table.name)
+      const countRow = this.database.prepare(`SELECT COUNT(*) AS count FROM ${quotedTableName}`).get() as { count: number }
+
+      return {
+        name: table.name,
+        label: this.getDatabaseTableLabel(table.name),
+        rowCount: countRow.count,
+        sql: table.sql
+      }
+    })
+  }
+
+  /** 查询指定数据库表的字段结构。 */
+  getDatabaseTableSchema(tableName: string): DatabaseColumnInfo[] {
+    const safeTableName = this.resolveDatabaseTableName(tableName)
+    const rows = this.database
+      .prepare(
+        `
+        SELECT
+          cid,
+          name,
+          type,
+          "notnull" AS "notNull",
+          dflt_value AS "defaultValue",
+          pk AS "primaryKey"
+        FROM pragma_table_info(?)
+        ORDER BY cid ASC
+      `
+      )
+      .all(safeTableName) as Array<{
+      cid: number
+      name: string
+      type: string
+      notNull: number
+      defaultValue: string | null
+      primaryKey: number
+    }>
 
     return rows.map((row) => ({
-      id: row.id,
-      workspaceId: row.workspace_id,
-      deviceId: row.device_id,
-      sessionId: row.session_id,
-      path: row.path,
-      fileCount: row.file_count,
-      openedAt: row.opened_at,
-      appVersion: row.app_version,
-      electronVersion: row.electron_version,
-      platform: row.platform,
-      arch: row.arch
+      cid: row.cid,
+      name: row.name,
+      label: this.getDatabaseColumnLabel(safeTableName, row.name),
+      type: row.type,
+      notNull: row.notNull === 1,
+      defaultValue: row.defaultValue,
+      primaryKey: row.primaryKey > 0
     }))
   }
 
-  /** 获取数据库中保存的当前设备信息，并转换为渲染进程使用的 camelCase。 */
-  getCurrentDevice(): DeviceInfo {
-    const row = this.database.prepare("SELECT * FROM devices WHERE id = ?").get(this.deviceId) as DeviceRow
+  /**
+   * 分页读取指定数据库表的数据。
+   *
+   * page 最小为 1；pageSize 被限制在 1 到 200 之间，
+   * 避免在 DevTools 中一次加载过多数据阻塞主进程。
+   */
+  getDatabaseTableData(tableName: string, page = 1, pageSize = 50): DatabaseTableData {
+    const safeTableName = this.resolveDatabaseTableName(tableName)
+    const safePage = this.normalizePositiveInteger(page, 1, Number.MAX_SAFE_INTEGER)
+    const safePageSize = this.normalizePositiveInteger(pageSize, 50, 200)
+    const offset = (safePage - 1) * safePageSize
+    const quotedTableName = this.quoteIdentifier(safeTableName)
+
+    const countRow = this.database.prepare(`SELECT COUNT(*) AS count FROM ${quotedTableName}`).get() as { count: number }
+    const rawRows = this.database.prepare(`SELECT * FROM ${quotedTableName} LIMIT ? OFFSET ?`).all(safePageSize, offset) as Record<string, unknown>[]
+
+    const rows = rawRows.map((row) => this.serializeDatabaseRow(row))
 
     return {
-      id: row.id,
-      hostname: row.hostname,
-      platform: row.platform,
-      arch: row.arch,
-      osType: row.os_type,
-      osRelease: row.os_release,
-      osVersion: row.os_version,
-      cpuModel: row.cpu_model,
-      cpuCount: row.cpu_count,
-      totalMemory: row.total_memory,
-      locale: row.locale,
-      timezone: row.timezone,
-      appVersion: row.app_version,
-      electronVersion: row.electron_version,
-      nodeVersion: row.node_version,
-      firstSeenAt: row.first_seen_at,
-      lastSeenAt: row.last_seen_at
+      tableName: safeTableName,
+      tableLabel: this.getDatabaseTableLabel(safeTableName),
+      columns: this.getDatabaseTableSchema(safeTableName),
+      rows,
+      displayRows: rows.map((row) => this.toDatabaseDisplayRow(safeTableName, row)),
+      page: safePage,
+      pageSize: safePageSize,
+      total: countRow.count,
+      pageCount: Math.ceil(countRow.count / safePageSize)
     }
+  }
+
+  /**
+   * 校验表名是否来自当前数据库。
+   * 动态 SQL 无法通过 ? 绑定表名，因此必须先执行白名单查询。
+   */
+  private resolveDatabaseTableName(tableName: string): string {
+    if (typeof tableName !== "string" || tableName.trim().length === 0 || tableName.length > 200) {
+      throw new TypeError("数据库表名必须是长度为 1 到 200 的字符串")
+    }
+
+    const row = this.database
+      .prepare(
+        `
+        SELECT name
+        FROM sqlite_schema
+        WHERE type = 'table'
+          AND name = ?
+          AND name NOT LIKE 'sqlite_%'
+      `
+      )
+      .get(tableName) as { name: string } | undefined
+
+    if (!row) {
+      throw new Error(`数据库表不存在或不允许访问：${tableName}`)
+    }
+
+    return row.name
+  }
+
+  /** 将经过白名单校验的 SQLite 标识符安全包裹在双引号中。 */
+  private quoteIdentifier(identifier: string): string {
+    return `"${identifier.replace(/"/g, '""')}"`
+  }
+
+  /** 获取数据库表的中文名称；未配置时退回真实表名。 */
+  private getDatabaseTableLabel(tableName: string): string {
+    return DATABASE_TABLE_LABELS[tableName] ?? tableName
+  }
+
+  /** 获取数据库字段的中文名称；未配置时退回真实字段名。 */
+  private getDatabaseColumnLabel(tableName: string, columnName: string): string {
+    return DATABASE_COLUMN_LABELS[tableName]?.[columnName] ?? columnName
+  }
+
+  /** 将一行原始 SQLite 数据转换为适合 DevTools 展示的中文字段数据。 */
+  private toDatabaseDisplayRow(tableName: string, row: Record<string, unknown>): Record<string, unknown> {
+    return Object.fromEntries(Object.entries(row).map(([columnName, value]) => [this.getDatabaseColumnLabel(tableName, columnName), value]))
+  }
+
+  /** 将分页参数规范为指定范围内的正整数。 */
+  private normalizePositiveInteger(value: number, fallback: number, maximum: number): number {
+    const normalizedValue = Number.isFinite(value) ? Math.trunc(value) : fallback
+    return Math.min(Math.max(normalizedValue, 1), maximum)
+  }
+
+  /**
+   * 将 SQLite 特殊值转换为适合通过 IPC 展示的数据。
+   * BLOB 只显示大小，BigInt 使用字符串表示，避免序列化失败或数据量过大。
+   */
+  private serializeDatabaseRow(row: Record<string, unknown>): Record<string, unknown> {
+    return Object.fromEntries(
+      Object.entries(row).map(([key, value]) => {
+        if (Buffer.isBuffer(value)) {
+          return [key, `[BLOB ${value.byteLength} bytes]`]
+        }
+
+        if (typeof value === "bigint") {
+          return [key, value.toString()]
+        }
+
+        return [key, value]
+      })
+    )
   }
 
   /**
