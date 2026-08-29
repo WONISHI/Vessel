@@ -4,3 +4,6 @@ allowBuilds:
   electron-winstaller: true
   esbuild: true
   node: true
+
+packages:
+  - "."
