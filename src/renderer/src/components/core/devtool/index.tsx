@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { Bug, Cog, RefreshCcw, Terminal, Trash2, Wrench, type LucideIcon } from "lucide-react"
+import { Bug, Cog, RefreshCcw, Terminal, Trash2, Wrench } from "lucide-react"
 import { DropdownMenu, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Button } from "@/components/ui/button"
@@ -12,7 +12,7 @@ import { ConsoleHistory } from "./components/ConsoleHistory"
 import { useDevToolToast, type DevToolLog } from "./hooks/useDevToolToast"
 import { useDraggable } from "./hooks/useDraggable"
 import { LOG_TYPES, DEFAULT_ENABLED_TYPES } from "./src/constants"
-import type { LogType } from "./src/type"
+import type { LogType, DevToolsMenuItem } from "./src/type"
 
 /**
  * Console 类型开关
@@ -35,14 +35,6 @@ function readEnabledTypes(): Record<LogType, boolean> {
       ...DEFAULT_ENABLED_TYPES
     }
   }
-}
-
-interface DevToolsMenuItem {
-  key: string
-  label: string
-  icon: LucideIcon
-  onClick: () => void
-  iconClassName?: string
 }
 
 /**

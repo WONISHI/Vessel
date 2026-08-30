@@ -16,7 +16,7 @@ export interface ConsoleHistoryProps {
 
 export type LogType = ConsoleLevel
 
-interface DevToolsMenuItem {
+export interface DevToolsMenuItem {
   key: string
   label: string
   icon: LucideIcon
