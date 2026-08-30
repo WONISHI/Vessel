@@ -1,133 +1,830 @@
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+
 import { AlertCircle, AlertTriangle, Ban, Bug, CheckCircle2, Cog, FileText, Info, Play, RefreshCcw, Square, Terminal, Trash2, Wrench, X } from "lucide-react"
-import { Button } from "@/components/ui/button"
+
 import {
   DropdownMenu,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuTrigger,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuSub,
-  DropdownMenuSubTrigger,
   DropdownMenuSubContent,
-  DropdownMenuCheckboxItem
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu"
+
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+
 import { Sheet, SheetContent } from "@/components/ui/sheet"
+
+import { Button } from "@/components/ui/button"
+
 import { useNavigate } from "react-router-dom"
+
 import { cn } from "@/lib/utils"
+
 import { toast } from "sonner"
-import { useDevToolToast, type LogType, type LogEntry } from "./hooks/useDevToolToast"
+
+import ConsoleManager, { type ConsoleLevel, type ConsoleRecord, type ConsoleSource } from "./src/console-manager"
+
+import { useDevToolToast, type DevToolLog } from "./hooks/useDevToolToast"
+
 import { useDraggable } from "./hooks/useDraggable"
 
-// 复选框样式
+type LogType = ConsoleLevel
+
+const LOG_TYPES: LogType[] = ["log", "info", "warn", "error"]
+
+const DEFAULT_ENABLED_TYPES: Record<LogType, boolean> = {
+  log: true,
+  warn: true,
+  error: true,
+  info: true
+}
+
 const checkboxItemClassName =
-  "cursor-pointer rounded-md py-[6px] pr-2 text-[12.5px] text-stone-700 focus:bg-[#faf9f7] data-[state=checked]:text-stone-700 " +
-  "[&>span:first-child]:h-[14px] [&>span:first-child]:w-[14px] " +
-  "[&>span:first-child]:rounded-[4px] [&>span:first-child]:border [&>span:first-child]:border-stone-300 " +
+  "cursor-pointer rounded-md py-[6px] pr-2 text-[12.5px] text-stone-700 " +
+  "focus:bg-[#faf9f7] data-[state=checked]:text-stone-700 " +
+  "[&>span:first-child]:h-[14px] " +
+  "[&>span:first-child]:w-[14px] " +
+  "[&>span:first-child]:rounded-[4px] " +
+  "[&>span:first-child]:border " +
+  "[&>span:first-child]:border-stone-300 " +
   "data-[state=checked]:[&>span:first-child]:border-green-600 " +
   "data-[state=checked]:[&>span:first-child]:bg-green-600 " +
   "data-[state=checked]:[&>span:first-child]:text-white " +
-  "[&>span:first-child_svg]:h-[10px] [&>span:first-child_svg]:w-[10px]"
+  "[&>span:first-child_svg]:h-[10px] " +
+  "[&>span:first-child_svg]:w-[10px]"
+
+function readEnabledTypes(): Record<LogType, boolean> {
+  const raw = localStorage.getItem("vessel-dev-spy-types")
+
+  if (!raw) {
+    return {
+      ...DEFAULT_ENABLED_TYPES
+    }
+  }
+
+  try {
+    const parsed = JSON.parse(raw)
+
+    return {
+      ...DEFAULT_ENABLED_TYPES,
+      ...parsed
+    }
+  } catch {
+    return {
+      ...DEFAULT_ENABLED_TYPES
+    }
+  }
+}
+
+function formatLogValue(value: any): string {
+  if (value === null || value === undefined) {
+    return String(value)
+  }
+
+  if (typeof value === "object") {
+    try {
+      return JSON.stringify(value, null, 2)
+    } catch {
+      return "[Circular]"
+    }
+  }
+
+  return String(value)
+}
+
+function formatLogArgs(args: any[]): string {
+  return args.map(formatLogValue).join(" ")
+}
+
+/**
+ * ============================
+ * Console History
+ * ============================
+ */
+
+interface ConsoleHistoryProps {
+  logs: DevToolLog[]
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onClear: () => void
+}
+
+function ConsoleHistory({ logs, open, onOpenChange, onClear }: ConsoleHistoryProps) {
+  const bottomRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) {
+      return
+    }
+
+    const timer = setTimeout(() => {
+      if (bottomRef.current) {
+        bottomRef.current.scrollIntoView({
+          behavior: "smooth"
+        })
+      }
+    }, 50)
+
+    return () => {
+      clearTimeout(timer)
+    }
+  }, [logs.length, open])
+
+  return (
+    <Sheet
+      open={open}
+      onOpenChange={onOpenChange}
+    >
+      <SheetContent
+        side="bottom"
+        className="
+          left-1/2 right-auto z-[100]
+          flex h-[328px] w-[calc(100%_-_32px)]
+          max-w-[900px] -translate-x-1/2
+          flex-col overflow-hidden
+          rounded-t-2xl border border-b-0
+          border-[#e7e5e4] bg-white p-0
+          shadow-[0_20px_60px_rgba(0,0,0,0.12)]
+          [&>button.absolute]:hidden
+        "
+      >
+        <div className="flex items-center justify-between border-b border-[#f0efed] bg-[#faf9f7] px-4 py-[10px]">
+          <div className="flex items-center gap-[10px]">
+            <Terminal className="h-4 w-4 text-stone-500" />
+
+            <span className="text-sm font-bold text-stone-700">Console History</span>
+
+            <span className="rounded-[5px] border border-[#e7e5e4] bg-white px-2 py-0.5 text-[11.5px] text-stone-500">{logs.length} events</span>
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={logs.length === 0}
+              className="
+                h-[26px] gap-[5px] rounded-md
+                px-[10px] text-xs font-medium
+                text-stone-500
+                hover:bg-[#f0efed]
+                hover:text-stone-700
+                disabled:cursor-not-allowed
+                disabled:opacity-50
+              "
+              onClick={onClear}
+            >
+              <Ban className="h-[13px] w-[13px]" />
+              Clear
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              className="
+                h-[26px] w-[26px]
+                rounded-md p-0
+                text-stone-500
+                hover:bg-[#f0efed]
+                hover:text-stone-700
+              "
+              onClick={() => {
+                onOpenChange(false)
+              }}
+            >
+              <X className="h-[13px] w-[13px]" />
+            </Button>
+          </div>
+        </div>
+
+        <div
+          className="
+            flex-1 overflow-y-auto
+            bg-[#faf9f7]
+            px-4 py-3
+            font-mono text-xs
+            [scrollbar-color:#e7e5e4_transparent]
+            [scrollbar-width:thin]
+          "
+        >
+          {logs.length === 0 && (
+            <div
+              className="
+                py-[30px]
+                text-center
+                font-sans
+                text-[13px]
+                italic
+                text-stone-400
+              "
+            >
+              No logs recorded in this session...
+            </div>
+          )}
+
+          {logs.map((log) => {
+            const sourceText = log.source && log.source.line ? `${log.source.fileName}:${log.source.line}:${log.source.column}` : ""
+
+            return (
+              <div
+                key={log.id}
+                className={cn(
+                  "mb-0.5 rounded-md",
+                  "px-2 py-[5px]",
+                  "transition-colors",
+                  "hover:bg-black/[0.03]",
+
+                  log.type === "error" && "bg-red-50 text-red-700 hover:bg-red-100",
+
+                  log.type === "warn" && "bg-amber-50 text-amber-700 hover:bg-amber-100",
+
+                  log.type === "info" && "text-teal-700"
+                )}
+              >
+                <div className="flex items-start gap-[10px]">
+                  <span
+                    className="
+                      shrink-0
+                      select-none
+                      text-[11px]
+                      text-stone-400
+                    "
+                  >
+                    [{log.time}]
+                  </span>
+
+                  {sourceText && (
+                    <span
+                      className="
+                        shrink-0
+                        select-none
+                        rounded-[4px]
+                        bg-white/70
+                        px-1
+                        text-[10px]
+                        text-stone-400
+                      "
+                      title={log.source ? log.source.raw : undefined}
+                    >
+                      {sourceText}
+                    </span>
+                  )}
+
+                  <div
+                    className="
+                      min-w-0
+                      flex-1
+                      break-all
+                      whitespace-pre-wrap
+                    "
+                  >
+                    {formatLogArgs(log.message)}
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+
+          <div ref={bottomRef} />
+        </div>
+      </SheetContent>
+    </Sheet>
+  )
+}
+
+/**
+ * ============================
+ * DevTools Menu
+ * ============================
+ *
+ * 注意：
+ * 不再使用 devTools.map()
+ * 动态创建 Radix ReactNode。
+ */
+interface DevToolsMenuProps {
+  isSpyEnabled: boolean
+
+  enabledTypes: Record<LogType, boolean>
+
+  hasError: boolean
+
+  onToggleSpy: () => void
+
+  onToggleType: (type: LogType) => void
+
+  onClear: () => void
+
+  onOpenDevTool: () => void
+
+  onOpenHistory: () => void
+
+  onRefresh: () => void
+
+  onNavigateDebug: () => void
+}
+
+function DevToolsMenu({ isSpyEnabled, enabledTypes, hasError, onToggleSpy, onToggleType, onClear, onOpenDevTool, onOpenHistory, onRefresh, onNavigateDebug }: DevToolsMenuProps) {
+  return (
+    <DropdownMenuContent
+      align="end"
+      sideOffset={8}
+      className="
+        w-[240px]
+        overflow-hidden
+        rounded-xl
+        border
+        border-[#e7e5e4]
+        bg-white
+        p-0
+        shadow-[0_10px_40px_rgba(0,0,0,0.1)]
+      "
+    >
+      <DropdownMenuLabel
+        className="
+          flex
+          items-center
+          justify-between
+          border-b
+          border-[#f0efed]
+          px-[12px]
+          py-[8px]
+        "
+      >
+        <span
+          className="
+            text-[11px]
+            font-bold
+            uppercase
+            tracking-[0.5px]
+            text-stone-600
+          "
+        >
+          Dev Actions
+        </span>
+
+        {hasError && (
+          <span
+            className="
+              rounded-md
+              bg-red-50
+              px-2
+              py-0.5
+              text-[10px]
+              font-bold
+              text-red-600
+            "
+          >
+            Errors!
+          </span>
+        )}
+      </DropdownMenuLabel>
+
+      {/* 总开关 */}
+      <DropdownMenuItem
+        onClick={onToggleSpy}
+        className="
+          cursor-pointer
+          gap-[8px]
+          rounded-none
+          px-[12px]
+          py-[7px]
+          text-[13px]
+          text-stone-700
+          focus:bg-[#faf9f7]
+          focus:text-stone-700
+        "
+      >
+        {isSpyEnabled ? (
+          <Square
+            className="
+              h-[15px]
+              w-[15px]
+              text-green-600
+            "
+          />
+        ) : (
+          <Play
+            className="
+              h-[15px]
+              w-[15px]
+              text-stone-500
+            "
+          />
+        )}
+
+        <span>{isSpyEnabled ? "关闭 Console 监听 (总开关)" : "开启 Console 监听 (总开关)"}</span>
+      </DropdownMenuItem>
+
+      {/* 类型设置 */}
+      <DropdownMenuSub>
+        <DropdownMenuSubTrigger
+          className="
+            cursor-pointer
+            gap-[8px]
+            rounded-none
+            px-[12px]
+            py-[7px]
+            text-[13px]
+            text-stone-700
+            focus:bg-[#faf9f7]
+            data-[state=open]:bg-[#faf9f7]
+          "
+        >
+          <CheckCircle2
+            className="
+              h-[15px]
+              w-[15px]
+              text-stone-500
+            "
+          />
+
+          <span>监听类型设置</span>
+        </DropdownMenuSubTrigger>
+
+        <DropdownMenuSubContent
+          className="
+            overflow-hidden
+            rounded-[10px]
+            border
+            border-[#e7e5e4]
+            bg-white
+            p-0
+            shadow-[0_8px_30px_rgba(0,0,0,0.1)]
+          "
+        >
+          <div className="w-[170px] p-1">
+            <DropdownMenuCheckboxItem
+              checked={enabledTypes.log}
+              onCheckedChange={() => {
+                onToggleType("log")
+              }}
+              className={checkboxItemClassName}
+            >
+              <FileText
+                className="
+                  mr-2
+                  h-[14px]
+                  w-[14px]
+                  text-teal-600
+                "
+              />
+              Log
+            </DropdownMenuCheckboxItem>
+
+            <DropdownMenuCheckboxItem
+              checked={enabledTypes.info}
+              onCheckedChange={() => {
+                onToggleType("info")
+              }}
+              className={checkboxItemClassName}
+            >
+              <Info
+                className="
+                  mr-2
+                  h-[14px]
+                  w-[14px]
+                  text-cyan-600
+                "
+              />
+              Info
+            </DropdownMenuCheckboxItem>
+
+            <DropdownMenuCheckboxItem
+              checked={enabledTypes.warn}
+              onCheckedChange={() => {
+                onToggleType("warn")
+              }}
+              className={checkboxItemClassName}
+            >
+              <AlertTriangle
+                className="
+                  mr-2
+                  h-[14px]
+                  w-[14px]
+                  text-amber-600
+                "
+              />
+              Warn
+            </DropdownMenuCheckboxItem>
+
+            <DropdownMenuCheckboxItem
+              checked={enabledTypes.error}
+              onCheckedChange={() => {
+                onToggleType("error")
+              }}
+              className={checkboxItemClassName}
+            >
+              <AlertCircle
+                className="
+                  mr-2
+                  h-[14px]
+                  w-[14px]
+                  text-red-600
+                "
+              />
+              Error
+            </DropdownMenuCheckboxItem>
+          </div>
+        </DropdownMenuSubContent>
+      </DropdownMenuSub>
+
+      <DropdownMenuSeparator
+        className="
+          my-1
+          bg-[#f0efed]
+        "
+      />
+
+      {/* 清除 */}
+      <DropdownMenuItem
+        onClick={onClear}
+        className="
+          cursor-pointer
+          gap-[8px]
+          rounded-none
+          px-[12px]
+          py-[7px]
+          text-[13px]
+          text-stone-700
+          focus:bg-[#faf9f7]
+          focus:text-stone-700
+        "
+      >
+        <Trash2
+          className="
+            h-[15px]
+            w-[15px]
+            text-stone-500
+          "
+        />
+
+        <span>清除所有弹窗与记录</span>
+      </DropdownMenuItem>
+
+      {/* 原生控制台 */}
+      <DropdownMenuItem
+        onClick={onOpenDevTool}
+        className="
+          cursor-pointer
+          gap-[8px]
+          rounded-none
+          px-[12px]
+          py-[7px]
+          text-[13px]
+          text-stone-700
+          focus:bg-[#faf9f7]
+          focus:text-stone-700
+        "
+      >
+        <Bug
+          className="
+            h-[15px]
+            w-[15px]
+            text-stone-500
+          "
+        />
+
+        <span>打开控制台</span>
+      </DropdownMenuItem>
+
+      {/* 历史记录 */}
+      <DropdownMenuItem
+        onClick={onOpenHistory}
+        className="
+          cursor-pointer
+          gap-[8px]
+          rounded-none
+          px-[12px]
+          py-[7px]
+          text-[13px]
+          text-stone-700
+          focus:bg-[#faf9f7]
+          focus:text-stone-700
+        "
+      >
+        <Terminal
+          className="
+            h-[15px]
+            w-[15px]
+            text-stone-500
+          "
+        />
+
+        <span>打开历史记录面板</span>
+      </DropdownMenuItem>
+
+      <DropdownMenuSeparator
+        className="
+          my-1
+          bg-[#f0efed]
+        "
+      />
+
+      {/* 刷新 */}
+      <DropdownMenuItem
+        onClick={onRefresh}
+        className="
+          cursor-pointer
+          gap-[8px]
+          rounded-none
+          px-[12px]
+          py-[7px]
+          text-[13px]
+          text-stone-700
+          focus:bg-[#faf9f7]
+          focus:text-stone-700
+        "
+      >
+        <RefreshCcw
+          className="
+            h-[15px]
+            w-[15px]
+            text-stone-500
+          "
+        />
+
+        <span>刷新页面</span>
+      </DropdownMenuItem>
+
+      {/* 调试页面 */}
+      <DropdownMenuItem
+        onClick={onNavigateDebug}
+        className="
+          cursor-pointer
+          gap-[8px]
+          rounded-none
+          px-[12px]
+          py-[7px]
+          text-[13px]
+          text-stone-700
+          focus:bg-[#faf9f7]
+          focus:text-stone-700
+        "
+      >
+        <Wrench
+          className="
+            h-[15px]
+            w-[15px]
+            text-stone-500
+          "
+        />
+
+        <span>调试页面</span>
+      </DropdownMenuItem>
+    </DropdownMenuContent>
+  )
+}
+
+/**
+ * ============================
+ * DevTool
+ * ============================
+ */
 
 export default function DevTool() {
   const navigate = useNavigate()
+
   const [isConsoleOpen, setIsConsoleOpen] = useState(false)
-  const [isSpyEnabled, setIsSpyEnabled] = useState(() => localStorage.getItem("vessel-dev-spy") === "true")
-  const [enabledTypes, setEnabledTypes] = useState<Record<LogType, boolean>>(() => {
-    const saved = localStorage.getItem("vessel-dev-spy-types")
-    return saved ? JSON.parse(saved) : { log: true, warn: true, error: true, info: true }
-  })
-  const [logs, setLogs] = useState<LogEntry[]>([])
-  const bottomRef = useRef<HTMLDivElement>(null)
 
-  const { showToast, showByType, dismissByType, dismissAll } = useDevToolToast()
-  const hasError = useMemo(() => logs.some((log) => log.type === "error"), [logs])
-  const { position, handleMouseDownCapture } = useDraggable({
-    onDragStart: () => {
-      toast.info("进入拖拽模式", { duration: 1000 })
-    }
+  const [isSpyEnabled, setIsSpyEnabled] = useState(() => {
+    return localStorage.getItem("vessel-dev-spy") === "true"
   })
 
-  useEffect(() => {
-    if (!isSpyEnabled) return
+  const [enabledTypes, setEnabledTypes] = useState<Record<LogType, boolean>>(() => readEnabledTypes())
 
-    const originalLog = console.log
-    const originalWarn = console.warn
-    const originalError = console.error
-    const originalInfo = console.info
+  const [logs, setLogs] = useState<DevToolLog[]>([])
 
-    const handleLog = (type: LogType, args: any[]) => {
-      const timestamp = new Date().toLocaleTimeString("en-US", {
-        hour12: false
+  const { showToast, dismissByType, dismissAll, showEnabledHistory } = useDevToolToast()
+
+  const { position, handleMouseDownCapture } = useDraggable()
+
+  const hasError = useMemo(() => {
+    return logs.some((log) => log.type === "error")
+  }, [logs])
+
+  /**
+   * ConsoleManager -> React
+   */
+  const handleRecord = useCallback(
+    (record: ConsoleRecord) => {
+      const log: DevToolLog = {
+        id: record.id,
+        type: record.type,
+        message: record.args,
+        timestamp: record.timestamp,
+        time: record.time,
+        source: record.source
+      }
+
+      setLogs((prev) => {
+        const next = [...prev, log]
+
+        /**
+         * 最多保存 1000 条。
+         */
+        if (next.length > 1000) {
+          return next.slice(next.length - 1000)
+        }
+
+        return next
       })
-      const id = Math.random().toString(36).substr(2, 9)
-      const newLog: LogEntry = {
-        id,
-        type,
-        message: args,
-        timestamp
+
+      if (enabledTypes[record.type]) {
+        showToast(log)
       }
+    },
+    [enabledTypes, showToast]
+  )
 
-      setLogs((prev) => [...prev, newLog])
-
-      setTimeout(() => {
-        bottomRef.current?.scrollIntoView({
-          behavior: "smooth"
-        })
-      }, 50)
-
-      if (enabledTypes[type]) {
-        showToast(newLog)
-      }
+  /**
+   * SourceMap 解析完成以后，
+   * 更新已经存在的日志。
+   */
+  const handleSourceUpdate = useCallback((id: string, source: ConsoleSource | undefined) => {
+    if (!source) {
+      return
     }
 
-    console.log = (...args) => {
-      originalLog(...args)
-      handleLog("log", args)
+    setLogs((prev) =>
+      prev.map((log) => {
+        if (log.id !== id) {
+          return log
+        }
+
+        return {
+          ...log,
+          source
+        }
+      })
+    )
+  }, [])
+
+  /**
+   * 安装 ConsoleManager。
+   */
+  useEffect(() => {
+    if (!isSpyEnabled) {
+      return
     }
 
-    console.warn = (...args) => {
-      originalWarn(...args)
-      handleLog("warn", args)
-    }
+    const manager = new ConsoleManager({
+      preserveOriginal: true,
 
-    console.error = (...args) => {
-      originalError(...args)
-      handleLog("error", args)
-    }
+      captureSource: true,
 
-    console.info = (...args) => {
-      originalInfo(...args)
-      handleLog("info", args)
-    }
+      /**
+       * 默认 false：
+       * 直接使用 getSync() 获取行号。
+       *
+       * 如果后续要做 SourceMap：
+       *
+       * resolveSourceMap: true
+       */
+      resolveSourceMap: false,
+
+      onLog: handleRecord,
+
+      onSourceUpdate: handleSourceUpdate
+    })
+
+    manager.install()
 
     return () => {
-      console.log = originalLog
-      console.warn = originalWarn
-      console.error = originalError
-      console.info = originalInfo
+      manager.uninstall()
     }
-  }, [enabledTypes, isSpyEnabled, showToast])
+  }, [handleRecord, handleSourceUpdate, isSpyEnabled])
 
-  // --- 切换总开关 ---
-  const toggleSpy = () => {
-    const newState = !isSpyEnabled
+  /**
+   * 清除全部日志 + Toast。
+   */
+  const clearAll = useCallback(() => {
+    dismissAll()
+    setLogs([])
+  }, [dismissAll])
 
-    if (newState) {
-      const allDisabled = Object.values(enabledTypes).every((enabled) => !enabled)
+  /**
+   * 总开关。
+   */
+  const toggleSpy = useCallback(() => {
+    const nextState = !isSpyEnabled
+
+    if (nextState) {
+      const allDisabled = LOG_TYPES.every((type) => !enabledTypes[type])
 
       if (allDisabled) {
         const resetTypes = {
-          log: true,
-          warn: true,
-          error: true,
-          info: true
+          ...DEFAULT_ENABLED_TYPES
         }
 
         setEnabledTypes(resetTypes)
+
         localStorage.setItem("vessel-dev-spy-types", JSON.stringify(resetTypes))
-        toast.success("Console 监听已开启 (已重置为全部类型)")
+
+        toast.success("Console 监听已开启（已重置为全部类型）")
       } else {
         toast.success("Console 监听已开启")
       }
@@ -135,285 +832,228 @@ export default function DevTool() {
       dismissAll()
     }
 
-    setIsSpyEnabled(newState)
-    localStorage.setItem("vessel-dev-spy", String(newState))
-  }
+    setIsSpyEnabled(nextState)
 
-  // --- 切换子类型 ---
-  const toggleType = (type: LogType) => {
-    const isTurningOn = !enabledTypes[type]
-    const newTypes = {
-      ...enabledTypes,
-      [type]: isTurningOn
+    localStorage.setItem("vessel-dev-spy", String(nextState))
+  }, [dismissAll, enabledTypes, isSpyEnabled])
+
+  /**
+   * 单独类型开关。
+   */
+  const toggleType = useCallback(
+    (type: LogType) => {
+      const nextValue = !enabledTypes[type]
+
+      const nextTypes = {
+        ...enabledTypes,
+        [type]: nextValue
+      }
+
+      setEnabledTypes(nextTypes)
+
+      localStorage.setItem("vessel-dev-spy-types", JSON.stringify(nextTypes))
+
+      const allDisabled = LOG_TYPES.every((logType) => !nextTypes[logType])
+
+      if (allDisabled) {
+        setIsSpyEnabled(false)
+
+        localStorage.setItem("vessel-dev-spy", "false")
+
+        dismissAll()
+
+        toast.info("所有类型已关闭，自动停止监听")
+
+        return
+      }
+
+      /**
+       * 打开任意类型时，
+       * 自动打开总监听。
+       */
+      if (nextValue && !isSpyEnabled) {
+        setIsSpyEnabled(true)
+
+        localStorage.setItem("vessel-dev-spy", "true")
+      }
+
+      if (nextValue) {
+        showEnabledHistory(type, logs)
+
+        toast.success(`已开启 ${type} 监听，加载历史记录...`)
+
+        return
+      }
+
+      dismissByType(type, logs)
+
+      toast.info(`已关闭 ${type} 监听`)
+    },
+    [dismissAll, dismissByType, enabledTypes, isSpyEnabled, logs, showEnabledHistory]
+  )
+
+  /**
+   * Electron 原生 DevTools。
+   */
+  const openDevTool = useCallback(() => {
+    const electronAPI = (
+      window as typeof window & {
+        electronAPI?: {
+          openDevTool?: () => void
+        }
+      }
+    ).electronAPI
+
+    if (electronAPI && electronAPI.openDevTool) {
+      electronAPI.openDevTool()
     }
+  }, [])
 
-    setEnabledTypes(newTypes)
-    localStorage.setItem("vessel-dev-spy-types", JSON.stringify(newTypes))
+  const openHistory = useCallback(() => {
+    setIsConsoleOpen(true)
+  }, [])
 
-    const allTypesDisabled = Object.values(newTypes).every((enabled) => !enabled)
+  const refreshPage = useCallback(() => {
+    window.location.reload()
+  }, [])
 
-    if (allTypesDisabled) {
-      setIsSpyEnabled(false)
-      localStorage.setItem("vessel-dev-spy", "false")
-      dismissAll()
-      toast.info("所有类型已关闭，自动停止监听")
-      return
-    }
-
-    if (isTurningOn && !isSpyEnabled) {
-      setIsSpyEnabled(true)
-      localStorage.setItem("vessel-dev-spy", "true")
-    }
-
-    if (isTurningOn) {
-      showByType(logs, type)
-      toast.success(`已开启 ${type} 监听，加载历史记录...`)
-      return
-    }
-
-    dismissByType(logs, type)
-    toast.info(`已关闭 ${type} 监听`)
-  }
-
-  // --- 清除记录 ---
-  const clearLogs = () => {
-    dismissAll()
-    setLogs([])
-  }
+  const navigateDebug = useCallback(() => {
+    navigate("/debug")
+  }, [navigate])
 
   return (
     <>
-      {/* ========== 悬浮按钮 ========== */}
+      {/* ============================
+          悬浮按钮
+      ============================ */}
       <div
-        className={cn("fixed bottom-4 right-4 z-50", position && "!bottom-auto !right-auto")}
-        style={position ? { left: position.x, top: position.y } : undefined}
-        onContextMenu={(e) => e.preventDefault()}
+        className={cn(
+          "fixed z-50 transition-shadow",
+
+          !position && "bottom-4 right-4",
+
+          position && "!bottom-auto !right-auto"
+        )}
+        style={
+          position
+            ? {
+                left: position.x,
+                top: position.y
+              }
+            : undefined
+        }
+        onContextMenu={(event) => {
+          event.preventDefault()
+        }}
         onMouseDownCapture={handleMouseDownCapture}
       >
-        {hasError && <span className="pointer-events-none absolute inset-0 h-12 w-12 animate-ping rounded-full bg-red-600/30" />}
-
-        <div className="group relative">
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              className={cn(
-                "relative flex h-12 w-12 items-center justify-center rounded-full border bg-white",
-                "outline-none transition-all duration-200",
-                "focus:outline-none focus-visible:outline-none focus-visible:ring-0",
-                "shadow-[0_4px_12px_rgba(0,0,0,0.08)]",
-                "hover:-translate-y-[1px] hover:shadow-[0_6px_16px_rgba(0,0,0,0.12)]",
-                "data-[state=open]:scale-[0.94]",
-                hasError
-                  ? "border-red-500 text-red-600 hover:border-red-600 hover:bg-red-50 hover:text-red-600 hover:shadow-[0_0_0_3px_rgba(220,38,38,0.14),0_6px_16px_rgba(0,0,0,0.1)]"
-                  : isSpyEnabled
-                    ? "border-green-500 text-green-600 hover:border-green-600 hover:bg-green-50 hover:text-green-600 hover:shadow-[0_0_0_3px_rgba(22,163,74,0.14),0_6px_16px_rgba(0,0,0,0.1)]"
-                    : "border-[#e7e5e4] text-stone-600 hover:bg-[#faf9f7] hover:text-stone-700"
-              )}
-            >
-              <Cog className={cn("!h-7 !w-7 transition-transform", isSpyEnabled && "animate-[spin_20s_linear_infinite]")} />
-
-              {hasError && <span className="pointer-events-none absolute right-0 top-0 h-3 w-3 rounded-full border-2 border-white bg-red-600" />}
-            </DropdownMenuTrigger>
-
-            <DropdownMenuContent
-              align="end"
-              sideOffset={8}
-              className="w-[240px] overflow-hidden rounded-xl border border-[#e7e5e4] bg-white p-0 shadow-[0_10px_40px_rgba(0,0,0,0.1)]"
-            >
-              <DropdownMenuLabel className="flex items-center justify-between border-b border-[#f0efed] px-[12px] py-[8px]">
-                <span className="text-[11px] font-bold uppercase tracking-[0.5px] text-stone-600">Dev Actions</span>
-
-                {hasError && <span className="rounded-md bg-red-50 px-2 py-0.5 text-[10px] font-bold text-red-600">Errors!</span>}
-              </DropdownMenuLabel>
-
-              <DropdownMenuItem
-                onClick={toggleSpy}
-                className={cn(
-                  "cursor-pointer gap-[8px] rounded-none px-[12px] py-[7px] text-[13px] text-stone-700 focus:bg-[#faf9f7] focus:text-stone-700",
-                  isSpyEnabled && "bg-green-50 text-green-700 focus:bg-green-100 focus:text-green-800"
-                )}
-              >
-                {isSpyEnabled ? <Square className="h-[15px] w-[15px] text-green-600" /> : <Play className="h-[15px] w-[15px] text-stone-500" />}
-                <span>{isSpyEnabled ? "关闭 Console 监听 (总开关)" : "开启 Console 监听 (总开关)"}</span>
-              </DropdownMenuItem>
-
-              <DropdownMenuSub>
-                <DropdownMenuSubTrigger className="cursor-pointer gap-[8px] rounded-none px-[12px] py-[7px] text-[13px] text-stone-700 focus:bg-[#faf9f7] data-[state=open]:bg-[#faf9f7]">
-                  <CheckCircle2 className="h-[15px] w-[15px] text-stone-500" />
-                  <span>监听类型设置</span>
-                </DropdownMenuSubTrigger>
-
-                <DropdownMenuSubContent className="overflow-hidden rounded-[10px] border border-[#e7e5e4] bg-white p-0 shadow-[0_8px_30px_rgba(0,0,0,0.1)]">
-                  <div className="w-[170px] p-1">
-                    <DropdownMenuCheckboxItem
-                      checked={enabledTypes.log}
-                      onCheckedChange={() => toggleType("log")}
-                      className={checkboxItemClassName}
-                    >
-                      <FileText className="mr-2 h-[14px] w-[14px] text-teal-600" />
-                      Log
-                    </DropdownMenuCheckboxItem>
-
-                    <DropdownMenuCheckboxItem
-                      checked={enabledTypes.info}
-                      onCheckedChange={() => toggleType("info")}
-                      className={checkboxItemClassName}
-                    >
-                      <Info className="mr-2 h-[14px] w-[14px] text-cyan-600" />
-                      Info
-                    </DropdownMenuCheckboxItem>
-
-                    <DropdownMenuCheckboxItem
-                      checked={enabledTypes.warn}
-                      onCheckedChange={() => toggleType("warn")}
-                      className={checkboxItemClassName}
-                    >
-                      <AlertTriangle className="mr-2 h-[14px] w-[14px] text-amber-600" />
-                      Warn
-                    </DropdownMenuCheckboxItem>
-
-                    <DropdownMenuCheckboxItem
-                      checked={enabledTypes.error}
-                      onCheckedChange={() => toggleType("error")}
-                      className={checkboxItemClassName}
-                    >
-                      <AlertCircle className="mr-2 h-[14px] w-[14px] text-red-600" />
-                      Error
-                    </DropdownMenuCheckboxItem>
-                  </div>
-                </DropdownMenuSubContent>
-              </DropdownMenuSub>
-
-              <DropdownMenuSeparator className="my-1 bg-[#f0efed]" />
-
-              <DropdownMenuItem
-                onClick={clearLogs}
-                className="cursor-pointer gap-[8px] rounded-none px-[12px] py-[7px] text-[13px] text-stone-700 focus:bg-[#faf9f7] focus:text-stone-700"
-              >
-                <Trash2 className="h-[15px] w-[15px] text-stone-500" />
-                <span>清除所有弹窗与记录</span>
-              </DropdownMenuItem>
-
-              <DropdownMenuItem
-                onClick={() => {
-                  ;(window.electronAPI as any).openDevTool()
-                }}
-                className="cursor-pointer gap-[8px] rounded-none px-[12px] py-[7px] text-[13px] text-stone-700 focus:bg-[#faf9f7] focus:text-stone-700"
-              >
-                <Bug className="h-[15px] w-[15px] text-stone-500" />
-                <span>打开控制台</span>
-              </DropdownMenuItem>
-
-              <DropdownMenuItem
-                onClick={() => setIsConsoleOpen(true)}
-                className="cursor-pointer gap-[8px] rounded-none px-[12px] py-[7px] text-[13px] text-stone-700 focus:bg-[#faf9f7] focus:text-stone-700"
-              >
-                <Terminal className="h-[15px] w-[15px] text-stone-500" />
-                <span>打开历史记录面板</span>
-              </DropdownMenuItem>
-
-              <DropdownMenuSeparator className="my-1 bg-[#f0efed]" />
-
-              <DropdownMenuItem
-                onClick={() => window.location.reload()}
-                className="cursor-pointer gap-[8px] rounded-none px-[12px] py-[7px] text-[13px] text-stone-700 focus:bg-[#faf9f7] focus:text-stone-700"
-              >
-                <RefreshCcw className="h-[15px] w-[15px] text-stone-500" />
-                <span>刷新页面</span>
-              </DropdownMenuItem>
-
-              <DropdownMenuItem
-                onClick={() => navigate("/debug")}
-                className="cursor-pointer gap-[8px] rounded-none px-[12px] py-[7px] text-[13px] text-stone-700 focus:bg-[#faf9f7] focus:text-stone-700"
-              >
-                <Wrench className="h-[15px] w-[15px] text-stone-500" />
-                <span>调试页面</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
+        {/* 错误脉冲 */}
+        {hasError && (
           <span
-            className={cn(
-              "pointer-events-none absolute right-full top-1/2 mr-2 -translate-y-1/2 whitespace-nowrap rounded-md",
-              "border border-[#e7e5e4] bg-white px-2.5 py-1 text-xs text-stone-700",
-              "shadow-[0_4px_12px_rgba(0,0,0,0.08)]",
-              "opacity-0 transition-opacity duration-150 group-hover:opacity-100"
-            )}
-          >
-            DevTools {hasError ? "(Errors Detected!)" : ""}
-          </span>
-        </div>
+            className="
+              pointer-events-none
+              absolute
+              bottom-0
+              right-0
+              h-12
+              w-12
+              animate-ping
+              rounded-full
+              bg-red-600/30
+            "
+          />
+        )}
+
+        <DropdownMenu>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className={cn(
+                      "relative h-12 w-12 rounded-full border bg-white text-stone-600",
+                      "outline-none transition-all duration-200",
+                      "shadow-[0_4px_12px_rgba(0,0,0,0.08)]",
+
+                      "focus:outline-none",
+                      "focus-visible:outline-none",
+                      "focus-visible:ring-0",
+                      "focus-visible:ring-offset-0",
+
+                      "data-[state=open]:scale-[0.94]",
+                      "data-[state=open]:bg-[#f5f5f4]",
+
+                      hasError
+                        ? "border-red-500 text-red-600 hover:bg-red-50"
+                        : isSpyEnabled
+                          ? "border-green-500 text-green-600 hover:bg-green-50"
+                          : "border-[#e7e5e4] text-stone-600 hover:bg-[#faf9f7]"
+                    )}
+                  >
+                    <Cog
+                      className={cn(
+                        "!h-7 !w-7 transition-transform duration-500",
+
+                        isSpyEnabled && "animate-[spin_20s_linear_infinite]"
+                      )}
+                    />
+
+                    {hasError && (
+                      <span
+                        className="
+                          pointer-events-none
+                          absolute
+                          right-0
+                          top-0
+                          h-3
+                          w-3
+                          rounded-full
+                          border-2
+                          border-white
+                          bg-red-600
+                        "
+                      />
+                    )}
+                  </Button>
+                </DropdownMenuTrigger>
+              </TooltipTrigger>
+
+              <TooltipContent
+                side="left"
+                className="text-xs"
+              >
+                <p>DevTools {hasError ? "(Errors Detected!)" : ""}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+
+          {/* 独立菜单组件 */}
+          <DevToolsMenu
+            isSpyEnabled={isSpyEnabled}
+            enabledTypes={enabledTypes}
+            hasError={hasError}
+            onToggleSpy={toggleSpy}
+            onToggleType={toggleType}
+            onClear={clearAll}
+            onOpenDevTool={openDevTool}
+            onOpenHistory={openHistory}
+            onRefresh={refreshPage}
+            onNavigateDebug={navigateDebug}
+          />
+        </DropdownMenu>
       </div>
 
-      {/* ========== 历史记录面板 ========== */}
-      <Sheet
+      {/* ============================
+          Console History
+      ============================ */}
+      <ConsoleHistory
+        logs={logs}
         open={isConsoleOpen}
         onOpenChange={setIsConsoleOpen}
-      >
-        <SheetContent
-          side="bottom"
-          className="left-1/2 right-auto z-[100] flex h-[328px] w-[calc(100%_-_32px)] max-w-[900px] -translate-x-1/2 flex-col overflow-hidden rounded-t-2xl border border-b-0 border-[#e7e5e4] bg-white p-0 shadow-[0_20px_60px_rgba(0,0,0,0.12)] [&>button.absolute]:hidden"
-        >
-          <div className="flex items-center justify-between border-b border-[#f0efed] bg-[#faf9f7] px-4 py-[10px]">
-            <div className="flex items-center gap-[10px]">
-              <Terminal className="h-4 w-4 text-stone-500" />
-              <span className="text-sm font-bold text-stone-700">Console History</span>
-              <span className="rounded-[5px] border border-[#e7e5e4] bg-white px-2 py-0.5 text-[11.5px] text-stone-500">{logs.length} events</span>
-            </div>
-
-            <div className="flex items-center gap-1.5">
-              <Button
-                variant="ghost"
-                size="sm"
-                disabled={logs.length === 0}
-                className="h-[26px] gap-[5px] rounded-md px-[10px] text-xs font-medium text-stone-500 hover:bg-[#f0efed] hover:text-stone-700 disabled:cursor-not-allowed disabled:opacity-50"
-                onClick={clearLogs}
-              >
-                <Ban className="h-[13px] w-[13px]" />
-                Clear
-              </Button>
-
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-[26px] w-[26px] rounded-md p-0 text-stone-500 outline-none hover:bg-[#f0efed] hover:text-stone-700 focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0"
-                onClick={() => setIsConsoleOpen(false)}
-              >
-                <X className="h-[13px] w-[13px]" />
-              </Button>
-            </div>
-          </div>
-
-          <div className="flex-1 overflow-y-auto bg-[#faf9f7] px-4 py-3 font-mono text-xs [scrollbar-color:#e7e5e4_transparent] [scrollbar-width:thin]">
-            {logs.length === 0 && <div className="py-[30px] text-center font-sans text-[13px] italic text-stone-400">No logs recorded in this session...</div>}
-
-            {logs.map((log) => (
-              <div
-                key={log.id}
-                className={cn(
-                  "mb-0.5 flex items-start gap-[10px] rounded-md px-2 py-[5px] text-stone-700 transition-colors hover:bg-black/[0.03]",
-                  log.type === "error" && "bg-red-50 text-red-700 hover:bg-red-100",
-                  log.type === "warn" && "bg-amber-50 text-amber-700 hover:bg-amber-100",
-                  log.type === "info" && "text-teal-700"
-                )}
-              >
-                <span className="shrink-0 select-none text-[11px] text-stone-400">[{log.timestamp}]</span>
-
-                <div className="flex flex-1 gap-2 break-all">
-                  {log.message.map((msg, index) => (
-                    <span
-                      key={index}
-                      className="whitespace-pre-wrap break-all"
-                    >
-                      {typeof msg === "object" ? JSON.stringify(msg, null, 2) : String(msg)}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            ))}
-            <div ref={bottomRef} />
-          </div>
-        </SheetContent>
-      </Sheet>
+        onClear={clearAll}
+      />
     </>
   )
 }

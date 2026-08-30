@@ -1,4 +1,8 @@
-import { useCallback, useEffect, useRef, useState, type MouseEvent } from "react"
+import type { MouseEvent as ReactMouseEvent } from "react"
+
+import { useCallback, useEffect, useRef, useState } from "react"
+
+import { toast } from "sonner"
 
 interface Position {
   x: number
@@ -6,109 +10,141 @@ interface Position {
 }
 
 interface UseDraggableOptions {
-  holdDelay?: number
-  moveThreshold?: number
-  onDragStart?: () => void
+  enabled?: boolean
+  delay?: number
+  threshold?: number
+  showToast?: boolean
 }
 
-export function useDraggable({ holdDelay = 300, moveThreshold = 5, onDragStart }: UseDraggableOptions = {}) {
+interface UseDraggableReturn {
+  position: Position | null
+
+  handleMouseDownCapture: (event: ReactMouseEvent<HTMLElement>) => void
+
+  resetPosition: () => void
+}
+
+export function useDraggable(options: UseDraggableOptions = {}): UseDraggableReturn {
+  const { enabled = true, delay = 300, threshold = 5, showToast: showDragToast = true } = options
+
   const [position, setPosition] = useState<Position | null>(null)
 
   const isDraggingRef = useRef(false)
-  const dragStartRef = useRef({ x: 0, y: 0 })
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const cleanupRef = useRef<(() => void) | null>(null)
 
-  const clearTimer = useCallback(() => {
-    if (timerRef.current) {
-      clearTimeout(timerRef.current)
-      timerRef.current = null
-    }
-  }, [])
+  const dragStartRef = useRef({
+    x: 0,
+    y: 0
+  })
+
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const cleanup = useCallback(() => {
-    clearTimer()
-    isDraggingRef.current = false
+    if (timerRef.current) {
+      clearTimeout(timerRef.current)
 
-    if (cleanupRef.current) {
-      const cleanupListeners = cleanupRef.current
-
-      cleanupRef.current = null
-      cleanupListeners()
+      timerRef.current = null
     }
-  }, [clearTimer])
+
+    isDraggingRef.current = false
+  }, [])
 
   const handleMouseDownCapture = useCallback(
-    (e: MouseEvent<HTMLElement>) => {
-      // 只处理鼠标右键
-      if (e.button !== 2) return
+    (event: ReactMouseEvent<HTMLElement>) => {
+      /**
+       * 只处理右键。
+       *
+       * 左键直接 return，
+       * 不会影响 DropdownMenu。
+       */
+      if (!enabled || event.button !== 2) {
+        return
+      }
 
-      e.preventDefault()
+      const element = event.currentTarget
 
-      cleanup()
+      const rect = element.getBoundingClientRect()
 
-      const el = e.currentTarget
-      const rect = el.getBoundingClientRect()
+      const offsetX = event.clientX - rect.left
 
-      const offsetX = e.clientX - rect.left
-      const offsetY = e.clientY - rect.top
+      const offsetY = event.clientY - rect.top
 
       dragStartRef.current = {
-        x: e.clientX,
-        y: e.clientY
+        x: event.clientX,
+        y: event.clientY
       }
 
       isDraggingRef.current = false
 
-      const handleMouseMove = (ev: globalThis.MouseEvent) => {
-        ev.preventDefault()
+      timerRef.current = setTimeout(() => {
+        isDraggingRef.current = true
 
-        if (isDraggingRef.current) {
-          const newX = Math.min(Math.max(0, ev.clientX - offsetX), window.innerWidth - rect.width)
-
-          const newY = Math.min(Math.max(0, ev.clientY - offsetY), window.innerHeight - rect.height)
-
-          setPosition({
-            x: newX,
-            y: newY
+        if (showDragToast) {
+          toast.info("进入拖拽模式", {
+            duration: 1000
           })
+        }
+      }, delay)
+
+      const handleMouseMove = (moveEvent: MouseEvent) => {
+        if (!isDraggingRef.current) {
+          const distance = Math.hypot(moveEvent.clientX - dragStartRef.current.x, moveEvent.clientY - dragStartRef.current.y)
+
+          if (distance > threshold && timerRef.current) {
+            clearTimeout(timerRef.current)
+
+            timerRef.current = null
+          }
 
           return
         }
 
-        const moveDistance = Math.hypot(ev.clientX - dragStartRef.current.x, ev.clientY - dragStartRef.current.y)
+        moveEvent.preventDefault()
 
-        if (moveDistance > moveThreshold) {
-          clearTimer()
-        }
+        const maxX = Math.max(0, window.innerWidth - rect.width)
+
+        const maxY = Math.max(0, window.innerHeight - rect.height)
+
+        const x = Math.min(Math.max(0, moveEvent.clientX - offsetX), maxX)
+
+        const y = Math.min(Math.max(0, moveEvent.clientY - offsetY), maxY)
+
+        setPosition({
+          x,
+          y
+        })
       }
 
       const handleMouseUp = () => {
         cleanup()
-      }
 
-      cleanupRef.current = () => {
         window.removeEventListener("mousemove", handleMouseMove)
+
         window.removeEventListener("mouseup", handleMouseUp)
       }
 
-      timerRef.current = setTimeout(() => {
-        isDraggingRef.current = true
-        onDragStart?.()
-      }, holdDelay)
-
       window.addEventListener("mousemove", handleMouseMove)
+
       window.addEventListener("mouseup", handleMouseUp)
     },
-    [cleanup, clearTimer, holdDelay, moveThreshold, onDragStart]
+    [cleanup, delay, enabled, showDragToast, threshold]
   )
 
+  const resetPosition = useCallback(() => {
+    cleanup()
+    setPosition(null)
+  }, [cleanup])
+
   useEffect(() => {
-    return cleanup
+    return () => {
+      cleanup()
+    }
   }, [cleanup])
 
   return {
     position,
-    handleMouseDownCapture
+    handleMouseDownCapture,
+    resetPosition
   }
 }
+
+export default useDraggable
