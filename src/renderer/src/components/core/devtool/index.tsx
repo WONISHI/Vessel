@@ -360,29 +360,14 @@ export default function DevTool() {
                       "data-[state=open]:scale-[0.94]",
                       "data-[state=open]:bg-[#f5f5f4]",
                       hasError
-                        ? "border-red-500 text-red-600 hover:bg-red-50"
+                        ? "border-red-500 text-red-600 hover:bg-red-50 hover:text-red-600"
                         : isSpyEnabled
                           ? "border-green-500 text-green-600 hover:bg-green-50 hover:text-green-600"
-                          : "border-[#e7e5e4] text-stone-600 hover:bg-[#faf9f7]"
+                          : "border-[#e7e5e4] text-stone-600 hover:bg-red-50 hover:text-red-600"
                     )}
                   >
-                    <Cog className={cn("!h-7 !w-7 transition-transform duration-500", isSpyEnabled && "animate-[spin_60s_linear_infinite]")} />
-                    {hasError && (
-                      <span
-                        className="
-                          pointer-events-none
-                          absolute
-                          right-0
-                          top-0
-                          h-3
-                          w-3
-                          rounded-full
-                          border-2
-                          border-white
-                          bg-red-600
-                        "
-                      />
-                    )}
+                    <Cog className={cn("!h-7 !w-7 transition-transform", isSpyEnabled && "animate-[spin_10s_linear_infinite]")} />
+                    {hasError && <span className={cn("pointer-events-none", "absolute", "right-0", "top-0", "h-3", "w-3", "rounded-full", "border-2", "border-white", "bg-red-600")} />}
                   </Button>
                 </DropdownMenuTrigger>
               </TooltipTrigger>
