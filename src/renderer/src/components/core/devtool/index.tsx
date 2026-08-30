@@ -621,9 +621,9 @@ export default function DevTool() {
   }, [logs])
 
   /**
-   * ==========================================================
+   *
    * ConsoleManager -> React
-   * ==========================================================
+   *
    */
 
   const handleRecord = useCallback(
@@ -655,9 +655,9 @@ export default function DevTool() {
   )
 
   /**
-   * ==========================================================
+   *
    * SourceMap / 行号更新
-   * ==========================================================
+   *
    */
 
   const handleSourceUpdate = useCallback((id: string, source: ConsoleSource | undefined) => {
@@ -680,9 +680,9 @@ export default function DevTool() {
   }, [])
 
   /**
-   * ==========================================================
+   *
    * 安装 ConsoleManager
-   * ==========================================================
+   *
    */
 
   useEffect(() => {
@@ -706,9 +706,9 @@ export default function DevTool() {
   }, [handleRecord, handleSourceUpdate, isSpyEnabled])
 
   /**
-   * ==========================================================
+   *
    * 清除全部日志 + Toast
-   * ==========================================================
+   *
    */
 
   const clearAll = useCallback(() => {
@@ -717,9 +717,9 @@ export default function DevTool() {
   }, [dismissAll])
 
   /**
-   * ==========================================================
+   *
    * 总开关
-   * ==========================================================
+   *
    */
 
   const toggleSpy = useCallback(() => {
@@ -753,9 +753,9 @@ export default function DevTool() {
   }, [dismissAll, enabledTypes, isSpyEnabled])
 
   /**
-   * ==========================================================
+   *
    * 单独类型开关
-   * ==========================================================
+   *
    */
 
   const toggleType = useCallback(
@@ -768,9 +768,7 @@ export default function DevTool() {
       }
 
       setEnabledTypes(nextTypes)
-
       localStorage.setItem("vessel-dev-spy-types", JSON.stringify(nextTypes))
-
       const allDisabled = LOG_TYPES.every((logType) => {
         return !nextTypes[logType]
       })
@@ -804,7 +802,6 @@ export default function DevTool() {
        */
       if (nextValue) {
         showEnabledHistory(type, logs)
-
         toast.success(`已开启 ${type} 监听，加载历史记录...`)
 
         return
@@ -821,9 +818,9 @@ export default function DevTool() {
   )
 
   /**
-   * ==========================================================
+   *
    * 打开原生 DevTools
-   * ==========================================================
+   *
    */
 
   const openDevTool = useCallback(() => {
@@ -841,9 +838,9 @@ export default function DevTool() {
   }, [])
 
   /**
-   * ==========================================================
+   *
    * 打开历史记录
-   * ==========================================================
+   *
    */
 
   const openHistory = useCallback(() => {
@@ -851,9 +848,9 @@ export default function DevTool() {
   }, [])
 
   /**
-   * ==========================================================
+   *
    * 刷新页面
-   * ==========================================================
+   *
    */
 
   const refreshPage = useCallback(() => {
@@ -861,9 +858,9 @@ export default function DevTool() {
   }, [])
 
   /**
-   * ==========================================================
+   *
    * 调试页面
-   * ==========================================================
+   *
    */
 
   const navigateDebug = useCallback(() => {
@@ -871,7 +868,7 @@ export default function DevTool() {
   }, [navigate])
 
   /**
-   * ==========================================================
+   *
    * DevTools Menu Buttons
    *
    */
