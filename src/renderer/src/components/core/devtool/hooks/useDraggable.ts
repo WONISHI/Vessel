@@ -1,6 +1,5 @@
 import type { MouseEvent as ReactMouseEvent } from "react"
 import { useCallback, useEffect, useRef, useState } from "react"
-import { toast } from "sonner"
 
 interface Position {
   x: number
@@ -68,12 +67,6 @@ export function useDraggable(options: UseDraggableOptions = {}): UseDraggableRet
 
       timerRef.current = setTimeout(() => {
         isDraggingRef.current = true
-
-        if (showDragToast) {
-          toast.info("进入拖拽模式", {
-            duration: 1000
-          })
-        }
       }, delay)
 
       const handleMouseMove = (moveEvent: MouseEvent) => {
