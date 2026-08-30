@@ -77,7 +77,6 @@ function formatLogValue(value: any): string {
   if (value === null || value === undefined) {
     return String(value)
   }
-
   if (typeof value === "object") {
     try {
       return JSON.stringify(value, null, 2)
@@ -85,7 +84,6 @@ function formatLogValue(value: any): string {
       return "[Circular]"
     }
   }
-
   return String(value)
 }
 
@@ -290,7 +288,6 @@ function ConsoleHistory({ logs, open, onOpenChange, onClear }: ConsoleHistoryPro
                       {sourceText}
                     </span>
                   )}
-
                   <div
                     className="
                       min-w-0
@@ -312,21 +309,6 @@ function ConsoleHistory({ logs, open, onOpenChange, onClear }: ConsoleHistoryPro
     </Sheet>
   )
 }
-
-/**
- *
- * DevTools Menu Item
- *
- *
- * 注意：
- * 这里保存的是“数据”和“组件类型”，
- * 不保存 DropdownMenuItem ReactNode。
- *
- * 这样可以避免：
- *
- * Cannot access refs during render
- *
- */
 
 interface DevToolsMenuItem {
   key: string
@@ -562,7 +544,6 @@ function DevToolsMenu({ isSpyEnabled, enabledTypes, hasError, menuItems, onToggl
 
       {menuItems.map((item) => {
         const Icon = item.icon
-
         return (
           <DropdownMenuItem
             key={item.key}
@@ -580,7 +561,6 @@ function DevToolsMenu({ isSpyEnabled, enabledTypes, hasError, menuItems, onToggl
             "
           >
             <Icon className={cn("h-[15px] w-[15px]", item.iconClassName || "text-stone-500")} />
-
             <span>{item.label}</span>
           </DropdownMenuItem>
         )
@@ -591,26 +571,19 @@ function DevToolsMenu({ isSpyEnabled, enabledTypes, hasError, menuItems, onToggl
 
 /**
  *
- * DevTool
+ * @description  DevTool
  *
  */
 
 export default function DevTool() {
   const navigate = useNavigate()
-
   const [isConsoleOpen, setIsConsoleOpen] = useState(false)
-
   const [isSpyEnabled, setIsSpyEnabled] = useState(() => {
     return localStorage.getItem("vessel-dev-spy") === "true"
   })
-
   const [enabledTypes, setEnabledTypes] = useState<Record<LogType, boolean>>(() => readEnabledTypes())
   const [logs, setLogs] = useState<DevToolLog[]>([])
   const { showToast, dismissByType, dismissAll, showEnabledHistory } = useDevToolToast()
-
-  /**
-   * 保持原来的拖拽 Hook
-   */
   const { position, handleMouseDownCapture } = useDraggable()
 
   /**
@@ -622,7 +595,7 @@ export default function DevTool() {
 
   /**
    *
-   * ConsoleManager -> React
+   * @description  ConsoleManager -> React
    *
    */
 
@@ -636,17 +609,13 @@ export default function DevTool() {
         time: record.time,
         source: record.source
       }
-
       setLogs((prev) => {
         const next = [...prev, log]
-
         if (next.length > 1000) {
           return next.slice(next.length - 1000)
         }
-
         return next
       })
-
       if (enabledTypes[record.type]) {
         showToast(log)
       }
@@ -656,7 +625,7 @@ export default function DevTool() {
 
   /**
    *
-   * SourceMap / 行号更新
+   * @description  SourceMap / 行号更新
    *
    */
 
@@ -664,13 +633,11 @@ export default function DevTool() {
     if (!source) {
       return
     }
-
     setLogs((prev) =>
       prev.map((log) => {
         if (log.id !== id) {
           return log
         }
-
         return {
           ...log,
           source
@@ -681,7 +648,7 @@ export default function DevTool() {
 
   /**
    *
-   * 安装 ConsoleManager
+   * @description  安装 ConsoleManager
    *
    */
 
@@ -689,7 +656,6 @@ export default function DevTool() {
     if (!isSpyEnabled) {
       return
     }
-
     const manager = new ConsoleManager({
       preserveOriginal: true,
       captureSource: true,
@@ -697,9 +663,7 @@ export default function DevTool() {
       onLog: handleRecord,
       onSourceUpdate: handleSourceUpdate
     })
-
     manager.install()
-
     return () => {
       manager.uninstall()
     }
@@ -707,7 +671,7 @@ export default function DevTool() {
 
   /**
    *
-   * 清除全部日志 + Toast
+   * @description  清除全部日志 + Toast
    *
    */
 
@@ -718,27 +682,22 @@ export default function DevTool() {
 
   /**
    *
-   * 总开关
+   * @description  总开关
    *
    */
 
   const toggleSpy = useCallback(() => {
     const nextState = !isSpyEnabled
-
     if (nextState) {
       const allDisabled = LOG_TYPES.every((type) => {
         return !enabledTypes[type]
       })
-
       if (allDisabled) {
         const resetTypes = {
           ...DEFAULT_ENABLED_TYPES
         }
-
         setEnabledTypes(resetTypes)
-
         localStorage.setItem("vessel-dev-spy-types", JSON.stringify(resetTypes))
-
         toast.success("Console 监听已开启（已重置为全部类型）")
       } else {
         toast.success("Console 监听已开启")
@@ -746,72 +705,45 @@ export default function DevTool() {
     } else {
       dismissAll()
     }
-
     setIsSpyEnabled(nextState)
-
     localStorage.setItem("vessel-dev-spy", String(nextState))
   }, [dismissAll, enabledTypes, isSpyEnabled])
 
   /**
    *
-   * 单独类型开关
+   * @description  单独类型开关
    *
    */
 
   const toggleType = useCallback(
     (type: LogType) => {
       const nextValue = !enabledTypes[type]
-
       const nextTypes = {
         ...enabledTypes,
         [type]: nextValue
       }
-
       setEnabledTypes(nextTypes)
       localStorage.setItem("vessel-dev-spy-types", JSON.stringify(nextTypes))
       const allDisabled = LOG_TYPES.every((logType) => {
         return !nextTypes[logType]
       })
-
-      /**
-       * 所有类型关闭
-       */
       if (allDisabled) {
         setIsSpyEnabled(false)
-
         localStorage.setItem("vessel-dev-spy", "false")
-
         dismissAll()
-
         toast.info("所有类型已关闭，自动停止监听")
-
         return
       }
-
-      /**
-       * 开启某个类型时自动开启总开关
-       */
       if (nextValue && !isSpyEnabled) {
         setIsSpyEnabled(true)
-
         localStorage.setItem("vessel-dev-spy", "true")
       }
-
-      /**
-       * 开启类型
-       */
       if (nextValue) {
         showEnabledHistory(type, logs)
         toast.success(`已开启 ${type} 监听，加载历史记录...`)
-
         return
       }
-
-      /**
-       * 关闭类型
-       */
       dismissByType(type, logs)
-
       toast.info(`已关闭 ${type} 监听`)
     },
     [dismissAll, dismissByType, enabledTypes, isSpyEnabled, logs, showEnabledHistory]
@@ -819,7 +751,7 @@ export default function DevTool() {
 
   /**
    *
-   * 打开原生 DevTools
+   * @description  打开原生 DevTools
    *
    */
 
@@ -839,7 +771,7 @@ export default function DevTool() {
 
   /**
    *
-   * 打开历史记录
+   * @description  打开历史记录
    *
    */
 
@@ -849,7 +781,7 @@ export default function DevTool() {
 
   /**
    *
-   * 刷新页面
+   * @description  刷新页面
    *
    */
 
@@ -859,7 +791,7 @@ export default function DevTool() {
 
   /**
    *
-   * 调试页面
+   * @description  调试页面
    *
    */
 
@@ -869,7 +801,7 @@ export default function DevTool() {
 
   /**
    *
-   * DevTools Menu Buttons
+   * @description DevTools Menu Buttons
    *
    */
 
