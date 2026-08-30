@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { Bug, Cog, RefreshCcw, Terminal, Trash2, Wrench } from "lucide-react"
 import { DropdownMenu, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Button } from "@/components/ui/button"
 import { useNavigate } from "react-router-dom"
 import { cn } from "@/lib/utils"
@@ -42,7 +41,6 @@ function readEnabledTypes(): Record<LogType, boolean> {
  * @description  DevTool
  *
  */
-
 export default function DevTool() {
   const navigate = useNavigate()
   const [isConsoleOpen, setIsConsoleOpen] = useState(false)
@@ -52,7 +50,7 @@ export default function DevTool() {
   const [enabledTypes, setEnabledTypes] = useState<Record<LogType, boolean>>(() => readEnabledTypes())
   const [logs, setLogs] = useState<DevToolLog[]>([])
   const { showToast, dismissByType, dismissAll, showEnabledHistory } = useDevToolToast()
-  const { position, handleMouseDownCapture } = useDraggable()
+  const { position } = useDraggable()
 
   /**
    * 是否存在 Error
@@ -66,7 +64,6 @@ export default function DevTool() {
    * @description  ConsoleManager -> React
    *
    */
-
   const handleRecord = useCallback(
     (record: ConsoleRecord) => {
       const log: DevToolLog = {
@@ -96,7 +93,6 @@ export default function DevTool() {
    * @description  SourceMap / 行号更新
    *
    */
-
   const handleSourceUpdate = useCallback((id: string, source: ConsoleSource | undefined) => {
     if (!source) {
       return
@@ -119,7 +115,6 @@ export default function DevTool() {
    * @description  安装 ConsoleManager
    *
    */
-
   useEffect(() => {
     if (!isSpyEnabled) {
       return
@@ -142,7 +137,6 @@ export default function DevTool() {
    * @description  清除全部日志 + Toast
    *
    */
-
   const clearAll = useCallback(() => {
     dismissAll()
     setLogs([])
@@ -153,7 +147,6 @@ export default function DevTool() {
    * @description  总开关
    *
    */
-
   const toggleSpy = useCallback(() => {
     const nextState = !isSpyEnabled
     if (nextState) {
@@ -182,7 +175,6 @@ export default function DevTool() {
    * @description  单独类型开关
    *
    */
-
   const toggleType = useCallback(
     (type: LogType) => {
       const nextValue = !enabledTypes[type]
@@ -222,7 +214,6 @@ export default function DevTool() {
    * @description  打开原生 DevTools
    *
    */
-
   const openDevTool = useCallback(() => {
     const electronAPI = (
       window as typeof window & {
@@ -231,7 +222,6 @@ export default function DevTool() {
         }
       }
     ).electronAPI
-
     if (electronAPI && electronAPI.openDevTool) {
       electronAPI.openDevTool()
     }
@@ -242,7 +232,6 @@ export default function DevTool() {
    * @description  打开历史记录
    *
    */
-
   const openHistory = useCallback(() => {
     setIsConsoleOpen(true)
   }, [])
@@ -252,7 +241,6 @@ export default function DevTool() {
    * @description  刷新页面
    *
    */
-
   const refreshPage = useCallback(() => {
     window.location.reload()
   }, [])
@@ -262,7 +250,6 @@ export default function DevTool() {
    * @description  调试页面
    *
    */
-
   const navigateDebug = useCallback(() => {
     navigate("/debug")
   }, [navigate])
@@ -272,7 +259,6 @@ export default function DevTool() {
    * @description DevTools Menu Buttons
    *
    */
-
   const menuItems = useMemo<DevToolsMenuItem[]>(
     () => [
       {
@@ -324,62 +310,38 @@ export default function DevTool() {
         onContextMenu={(event) => {
           event.preventDefault()
         }}
-        onMouseDownCapture={handleMouseDownCapture}
       >
-        {hasError && (
-          <span
-            className="
-              pointer-events-none
-              absolute
-              bottom-0
-              right-0
-              h-12
-              w-12
-              animate-ping
-              rounded-full
-              bg-red-600/30
-            "
-          />
-        )}
+        {hasError && <span className={cn("pointer-events-none", "absolute", "bottom-0", "right-0", "h-12", "w-12", "animate-ping", "rounded-full", "bg-red-600/30")} />}
         <DropdownMenu>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className={cn(
-                      "relative h-12 w-12 rounded-full border bg-white text-stone-600",
-                      "outline-none transition-all duration-200",
-                      "shadow-[0_4px_12px_rgba(0,0,0,0.08)]",
-                      "focus:outline-none",
-                      "focus-visible:outline-none",
-                      "focus-visible:ring-0",
-                      "focus-visible:ring-offset-0",
-                      "data-[state=open]:scale-[0.94]",
-                      "data-[state=open]:bg-[#f5f5f4]",
-                      hasError
-                        ? "border-red-500 text-red-600 hover:bg-red-50 hover:text-red-600"
-                        : isSpyEnabled
-                          ? "border-green-500 text-green-600 hover:bg-green-50 hover:text-green-600"
-                          : "border-[#e7e5e4] text-stone-600 hover:bg-red-50 hover:text-red-600"
-                    )}
-                  >
-                    <Cog className={cn("!h-7 !w-7 transition-transform", isSpyEnabled && "animate-[spin_10s_linear_infinite]")} />
-                    {hasError && <span className={cn("pointer-events-none", "absolute", "right-0", "top-0", "h-3", "w-3", "rounded-full", "border-2", "border-white", "bg-red-600")} />}
-                  </Button>
-                </DropdownMenuTrigger>
-              </TooltipTrigger>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="outline"
+              size="icon"
+              className={cn(
+                "relative h-12 w-12 rounded-full border bg-white text-stone-600",
+                "outline-none transition-all duration-200",
+                "shadow-[0_4px_12px_rgba(0,0,0,0.08)]",
+                "focus:outline-none",
+                "focus-visible:outline-none",
+                "focus-visible:ring-0",
+                "focus-visible:ring-offset-0",
+                "data-[state=open]:scale-[0.94]",
+                "data-[state=open]:bg-[#f5f5f4]",
+                hasError
+                  ? "border-red-500 text-red-600 hover:bg-red-50 hover:text-red-600"
+                  : isSpyEnabled
+                    ? "border-green-500 text-green-600 hover:bg-green-50 hover:text-green-600"
+                    : "border-[#e7e5e4] text-stone-600 hover:bg-[#faf9f7]"
+              )}
+            >
+              <Cog
+                className={cn("!h-7 !w-7 transition-transform", isSpyEnabled && "animate-spin")}
+                style={isSpyEnabled ? { animationDuration: "60s" } : undefined}
+              />
+              {hasError && <span className={cn("pointer-events-none", "absolute", "right-0", "top-0", "h-3", "w-3", "rounded-full", "border-2", "border-white", "bg-red-600")} />}
+            </Button>
+          </DropdownMenuTrigger>
 
-              <TooltipContent
-                side="left"
-                className="text-xs"
-              >
-                <p>DevTools {hasError ? "(Errors Detected!)" : ""}</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
           <DevToolsMenu
             isSpyEnabled={isSpyEnabled}
             enabledTypes={enabledTypes}
@@ -390,6 +352,7 @@ export default function DevTool() {
           />
         </DropdownMenu>
       </div>
+
       <ConsoleHistory
         logs={logs}
         open={isConsoleOpen}
