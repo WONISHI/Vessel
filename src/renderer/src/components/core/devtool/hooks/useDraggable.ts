@@ -1,7 +1,5 @@
 import type { MouseEvent as ReactMouseEvent } from "react"
-
 import { useCallback, useEffect, useRef, useState } from "react"
-
 import { toast } from "sonner"
 
 interface Position {
@@ -26,18 +24,14 @@ interface UseDraggableReturn {
 
 export function useDraggable(options: UseDraggableOptions = {}): UseDraggableReturn {
   const { enabled = true, delay = 300, threshold = 5, showToast: showDragToast = true } = options
-
   const [position, setPosition] = useState<Position | null>(null)
-
   const isDraggingRef = useRef(false)
-
   const dragStartRef = useRef({
     x: 0,
     y: 0
   })
 
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
   const cleanup = useCallback(() => {
     if (timerRef.current) {
       clearTimeout(timerRef.current)
@@ -61,11 +55,8 @@ export function useDraggable(options: UseDraggableOptions = {}): UseDraggableRet
       }
 
       const element = event.currentTarget
-
       const rect = element.getBoundingClientRect()
-
       const offsetX = event.clientX - rect.left
-
       const offsetY = event.clientY - rect.top
 
       dragStartRef.current = {
@@ -99,15 +90,10 @@ export function useDraggable(options: UseDraggableOptions = {}): UseDraggableRet
         }
 
         moveEvent.preventDefault()
-
         const maxX = Math.max(0, window.innerWidth - rect.width)
-
         const maxY = Math.max(0, window.innerHeight - rect.height)
-
         const x = Math.min(Math.max(0, moveEvent.clientX - offsetX), maxX)
-
         const y = Math.min(Math.max(0, moveEvent.clientY - offsetY), maxY)
-
         setPosition({
           x,
           y
@@ -116,14 +102,10 @@ export function useDraggable(options: UseDraggableOptions = {}): UseDraggableRet
 
       const handleMouseUp = () => {
         cleanup()
-
         window.removeEventListener("mousemove", handleMouseMove)
-
         window.removeEventListener("mouseup", handleMouseUp)
       }
-
       window.addEventListener("mousemove", handleMouseMove)
-
       window.addEventListener("mouseup", handleMouseUp)
     },
     [cleanup, delay, enabled, showDragToast, threshold]

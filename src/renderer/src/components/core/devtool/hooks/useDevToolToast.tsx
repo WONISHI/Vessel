@@ -1,7 +1,5 @@
 import { useCallback, useEffect, useRef } from "react"
-
 import { toast } from "sonner"
-
 import type { ConsoleLevel, ConsoleSource } from "../src/console-manager"
 
 export interface DevToolLog {
@@ -15,11 +13,8 @@ export interface DevToolLog {
 
 interface UseDevToolToastReturn {
   showToast: (log: DevToolLog) => void
-
   dismissByType: (type: ConsoleLevel, logs: DevToolLog[]) => void
-
   dismissAll: () => void
-
   showEnabledHistory: (type: ConsoleLevel, logs: DevToolLog[]) => void
 }
 
@@ -45,10 +40,8 @@ function formatArgs(args: any[]): string {
 
 export function useDevToolToast(): UseDevToolToastReturn {
   const activeToastsRef = useRef<Record<string, string | number>>({})
-
   const showToast = useCallback((log: DevToolLog) => {
     const message = formatArgs(log.message)
-
     const sourceText = log.source && log.source.line ? `${log.source.fileName}:${log.source.line}:${log.source.column}` : ""
 
     const content = (
@@ -80,13 +73,10 @@ export function useDevToolToast(): UseDevToolToastReturn {
 
     const toastOptions = {
       id: log.id,
-
       duration: Infinity,
-
       onDismiss: () => {
         delete activeToastsRef.current[log.id]
       },
-
       cancel: {
         label: "关闭",
         onClick: () => {}

@@ -124,13 +124,9 @@ export class ConsoleManager {
     }
 
     console.log = this.originalConsole.log
-
     console.info = this.originalConsole.info
-
     console.warn = this.originalConsole.warn
-
     console.error = this.originalConsole.error
-
     this.installed = false
   }
 
@@ -165,11 +161,8 @@ export class ConsoleManager {
 
   private printOriginal(record: ConsoleRecord): void {
     const original = this.originalConsole[record.type]
-
     const sourceText = record.source ? this.formatSource(record.source) : ""
-
     const prefix = this.options.prefix ? `[${this.options.prefix}]` : ""
-
     const meta = [prefix, `[${record.time}]`, sourceText ? `[${sourceText}]` : ""].filter(Boolean).join(" ")
 
     if (!meta) {
@@ -183,13 +176,10 @@ export class ConsoleManager {
      * 保留 %s / %d / %o 等 Console 格式化能力。
      */
     const firstArg = record.args[0]
-
     if (typeof firstArg === "string") {
       original(`${meta} ${firstArg}`, ...record.args.slice(1))
-
       return
     }
-
     original(meta, ...record.args)
   }
 
@@ -198,13 +188,10 @@ export class ConsoleManager {
       const stack = StackTrace.getSync({
         filter: (frame) => !this.isIgnoredFrame(frame)
       })
-
       const frame = stack.find((item) => !this.isIgnoredFrame(item))
-
       if (!frame) {
         return undefined
       }
-
       return this.toSource(frame)
     } catch {
       return undefined
@@ -216,17 +203,12 @@ export class ConsoleManager {
       const stack = await StackTrace.get({
         filter: (frame) => !this.isIgnoredFrame(frame)
       })
-
       const frame = stack.find((item) => !this.isIgnoredFrame(item))
-
       if (!frame) {
         return
       }
-
       const source = this.toSource(frame)
-
       record.source = source
-
       if (this.options.onSourceUpdate) {
         this.options.onSourceUpdate(record.id, source)
       }
@@ -238,23 +220,17 @@ export class ConsoleManager {
 
   private isIgnoredFrame(frame: StackFrame): boolean {
     const fileName = frame.fileName || ""
-
     const functionName = frame.functionName || ""
-
     return (this.options.ignorePatterns || []).some((pattern) => fileName.includes(pattern) || functionName.includes(pattern))
   }
 
   private toSource(frame: StackFrame): ConsoleSource | undefined {
     const file = frame.fileName
-
     if (!file) {
       return undefined
     }
-
     const line = Number(frame.lineNumber || 0)
-
     const column = Number(frame.columnNumber || 0)
-
     return {
       file,
       fileName: this.getFileName(file),
@@ -267,7 +243,6 @@ export class ConsoleManager {
 
   private getFileName(file: string): string {
     const cleanFile = file.split("?")[0]
-
     return cleanFile.split("/").pop() || cleanFile
   }
 
@@ -281,23 +256,16 @@ export class ConsoleManager {
 
   private formatTime(date: Date): string {
     const hours = String(date.getHours()).padStart(2, "0")
-
     const minutes = String(date.getMinutes()).padStart(2, "0")
-
     const seconds = String(date.getSeconds()).padStart(2, "0")
-
     const milliseconds = String(date.getMilliseconds()).padStart(3, "0")
-
     return `${hours}:${minutes}:${seconds}.${milliseconds}`
   }
 
   private formatDateTime(date: Date): string {
     const year = date.getFullYear()
-
     const month = String(date.getMonth() + 1).padStart(2, "0")
-
     const day = String(date.getDate()).padStart(2, "0")
-
     return `${year}-${month}-${day} ${this.formatTime(date)}`
   }
 

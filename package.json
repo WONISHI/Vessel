@@ -91,6 +91,7 @@
     "react-diff-viewer-continued": "^3.4.0",
     "react-router-dom": "^7.12.0",
     "sonner": "^2.0.7",
+    "stacktrace-js": "^2.0.2",
     "tailwind-merge": "^3.4.0",
     "vditor": "^3.11.2",
     "zustand": "^5.0.10"
