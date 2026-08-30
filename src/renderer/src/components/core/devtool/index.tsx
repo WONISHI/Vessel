@@ -90,9 +90,9 @@ function formatLogArgs(args: any[]): string {
 }
 
 /**
- * ============================
+ *
  * Console History
- * ============================
+ *
  */
 
 interface ConsoleHistoryProps {
@@ -375,7 +375,6 @@ function DevToolsMenu({ isSpyEnabled, enabledTypes, hasError, onToggleSpy, onTog
             "
           />
         )}
-
         <span>{isSpyEnabled ? "关闭 Console 监听 (总开关)" : "开启 Console 监听 (总开关)"}</span>
       </DropdownMenuItem>
 
@@ -401,7 +400,6 @@ function DevToolsMenu({ isSpyEnabled, enabledTypes, hasError, onToggleSpy, onTog
               text-stone-500
             "
           />
-
           <span>监听类型设置</span>
         </DropdownMenuSubTrigger>
 
@@ -520,7 +518,6 @@ function DevToolsMenu({ isSpyEnabled, enabledTypes, hasError, onToggleSpy, onTog
             text-stone-500
           "
         />
-
         <span>清除所有弹窗与记录</span>
       </DropdownMenuItem>
 
@@ -546,7 +543,6 @@ function DevToolsMenu({ isSpyEnabled, enabledTypes, hasError, onToggleSpy, onTog
             text-stone-500
           "
         />
-
         <span>打开控制台</span>
       </DropdownMenuItem>
 
@@ -572,7 +568,6 @@ function DevToolsMenu({ isSpyEnabled, enabledTypes, hasError, onToggleSpy, onTog
             text-stone-500
           "
         />
-
         <span>打开历史记录面板</span>
       </DropdownMenuItem>
 
@@ -605,7 +600,6 @@ function DevToolsMenu({ isSpyEnabled, enabledTypes, hasError, onToggleSpy, onTog
             text-stone-500
           "
         />
-
         <span>刷新页面</span>
       </DropdownMenuItem>
 
@@ -631,7 +625,6 @@ function DevToolsMenu({ isSpyEnabled, enabledTypes, hasError, onToggleSpy, onTog
             text-stone-500
           "
         />
-
         <span>调试页面</span>
       </DropdownMenuItem>
     </DropdownMenuContent>
@@ -639,9 +632,9 @@ function DevToolsMenu({ isSpyEnabled, enabledTypes, hasError, onToggleSpy, onTog
 }
 
 /**
- * ============================
+ *
  * DevTool
- * ============================
+ *
  */
 
 export default function DevTool() {
@@ -659,9 +652,9 @@ export default function DevTool() {
   }, [logs])
 
   /**
-   * ============================
+   *
    * ConsoleManager -> React
-   * ============================
+   *
    */
 
   const handleRecord = useCallback(
@@ -674,7 +667,6 @@ export default function DevTool() {
         time: record.time,
         source: record.source
       }
-
       setLogs((prev) => {
         const next = [...prev, log]
         if (next.length > 1000) {
@@ -682,7 +674,6 @@ export default function DevTool() {
         }
         return next
       })
-
       if (enabledTypes[record.type]) {
         showToast(log)
       }
@@ -691,9 +682,9 @@ export default function DevTool() {
   )
 
   /**
-   * ============================
+   *
    * SourceMap / 行号更新
-   * ============================
+   *
    */
 
   const handleSourceUpdate = useCallback((id: string, source: ConsoleSource | undefined) => {
@@ -714,16 +705,15 @@ export default function DevTool() {
   }, [])
 
   /**
-   * ============================
+   *
    * 安装 ConsoleManager
-   * ============================
+   *
    */
 
   useEffect(() => {
     if (!isSpyEnabled) {
       return
     }
-
     const manager = new ConsoleManager({
       preserveOriginal: true,
       captureSource: true,
@@ -738,9 +728,9 @@ export default function DevTool() {
   }, [handleRecord, handleSourceUpdate, isSpyEnabled])
 
   /**
-   * ============================
+   *
    * 清除全部日志 + Toast
-   * ============================
+   *
    */
 
   const clearAll = useCallback(() => {
@@ -749,9 +739,9 @@ export default function DevTool() {
   }, [dismissAll])
 
   /**
-   * ============================
+   *
    * 总开关
-   * ============================
+   *
    */
 
   const toggleSpy = useCallback(() => {
@@ -773,16 +763,14 @@ export default function DevTool() {
     } else {
       dismissAll()
     }
-
     setIsSpyEnabled(nextState)
-
     localStorage.setItem("vessel-dev-spy", String(nextState))
   }, [dismissAll, enabledTypes, isSpyEnabled])
 
   /**
-   * ============================
+   *
    * 单独类型开关
-   * ============================
+   *
    */
 
   const toggleType = useCallback(
