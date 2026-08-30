@@ -410,7 +410,6 @@ export default function DevTool() {
                 </div>
               </div>
             ))}
-
             <div ref={bottomRef} />
           </div>
         </SheetContent>
