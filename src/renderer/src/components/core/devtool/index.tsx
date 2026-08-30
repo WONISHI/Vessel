@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { AlertCircle, AlertTriangle, Ban, Bug, CheckCircle2, Cog, FileText, Info, Play, RefreshCcw, Square, Terminal, Trash2, Wrench, X } from "lucide-react"
+import { AlertCircle, AlertTriangle, Ban, Bug, CheckCircle2, Cog, FileText, Info, Play, RefreshCcw, Square, Terminal, Trash2, Wrench, X, type LucideIcon } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -47,15 +47,16 @@ const checkboxItemClassName =
   "[&>span:first-child_svg]:h-[10px] " +
   "[&>span:first-child_svg]:w-[10px]"
 
+/**
+ * Console 类型开关
+ */
 function readEnabledTypes(): Record<LogType, boolean> {
   const raw = localStorage.getItem("vessel-dev-spy-types")
-
   if (!raw) {
     return {
       ...DEFAULT_ENABLED_TYPES
     }
   }
-
   try {
     const parsed = JSON.parse(raw)
     return {
@@ -69,6 +70,9 @@ function readEnabledTypes(): Record<LogType, boolean> {
   }
 }
 
+/**
+ * 格式化单个 Console 参数
+ */
 function formatLogValue(value: any): string {
   if (value === null || value === undefined) {
     return String(value)
@@ -85,6 +89,9 @@ function formatLogValue(value: any): string {
   return String(value)
 }
 
+/**
+ * 格式化 Console 参数
+ */
 function formatLogArgs(args: any[]): string {
   return args.map(formatLogValue).join(" ")
 }
@@ -104,10 +111,12 @@ interface ConsoleHistoryProps {
 
 function ConsoleHistory({ logs, open, onOpenChange, onClear }: ConsoleHistoryProps) {
   const bottomRef = useRef<HTMLDivElement>(null)
+
   useEffect(() => {
     if (!open) {
       return
     }
+
     const timer = setTimeout(() => {
       if (bottomRef.current) {
         bottomRef.current.scrollIntoView({
@@ -115,6 +124,7 @@ function ConsoleHistory({ logs, open, onOpenChange, onClear }: ConsoleHistoryPro
         })
       }
     }, 50)
+
     return () => {
       clearTimeout(timer)
     }
@@ -138,20 +148,45 @@ function ConsoleHistory({ logs, open, onOpenChange, onClear }: ConsoleHistoryPro
           [&>button.absolute]:hidden
         "
       >
-        <div className="flex items-center justify-between border-b border-[#f0efed] bg-[#faf9f7] px-4 py-[10px]">
+        <div
+          className="
+            flex items-center justify-between
+            border-b border-[#f0efed]
+            bg-[#faf9f7]
+            px-4 py-[10px]
+          "
+        >
           <div className="flex items-center gap-[10px]">
             <Terminal className="h-4 w-4 text-stone-500" />
+
             <span className="text-sm font-bold text-stone-700">Console History</span>
-            <span className="rounded-[5px] border border-[#e7e5e4] bg-white px-2 py-0.5 text-[11.5px] text-stone-500">{logs.length} events</span>
+
+            <span
+              className="
+                rounded-[5px]
+                border border-[#e7e5e4]
+                bg-white
+                px-2 py-0.5
+                text-[11.5px]
+                text-stone-500
+              "
+            >
+              {logs.length} events
+            </span>
           </div>
+
           <div className="flex items-center gap-1.5">
             <Button
               variant="ghost"
               size="sm"
               disabled={logs.length === 0}
               className="
-                h-[26px] gap-[5px] rounded-md
-                px-[10px] text-xs font-medium
+                h-[26px]
+                gap-[5px]
+                rounded-md
+                px-[10px]
+                text-xs
+                font-medium
                 text-stone-500
                 hover:bg-[#f0efed]
                 hover:text-stone-700
@@ -163,12 +198,15 @@ function ConsoleHistory({ logs, open, onOpenChange, onClear }: ConsoleHistoryPro
               <Ban className="h-[13px] w-[13px]" />
               Clear
             </Button>
+
             <Button
               variant="ghost"
               size="sm"
               className="
-                h-[26px] w-[26px]
-                rounded-md p-0
+                h-[26px]
+                w-[26px]
+                rounded-md
+                p-0
                 text-stone-500
                 hover:bg-[#f0efed]
                 hover:text-stone-700
@@ -184,7 +222,8 @@ function ConsoleHistory({ logs, open, onOpenChange, onClear }: ConsoleHistoryPro
 
         <div
           className="
-            flex-1 overflow-y-auto
+            flex-1
+            overflow-y-auto
             bg-[#faf9f7]
             px-4 py-3
             font-mono text-xs
@@ -274,20 +313,45 @@ function ConsoleHistory({ logs, open, onOpenChange, onClear }: ConsoleHistoryPro
   )
 }
 
+/**
+ *
+ * DevTools Menu Item
+ *
+ *
+ * 注意：
+ * 这里保存的是“数据”和“组件类型”，
+ * 不保存 DropdownMenuItem ReactNode。
+ *
+ * 这样可以避免：
+ *
+ * Cannot access refs during render
+ *
+ */
+
+interface DevToolsMenuItem {
+  key: string
+  label: string
+  icon: LucideIcon
+  onClick: () => void
+  iconClassName?: string
+}
+
+/**
+ *
+ * DevTools Menu
+ *
+ */
+
 interface DevToolsMenuProps {
   isSpyEnabled: boolean
   enabledTypes: Record<LogType, boolean>
   hasError: boolean
+  menuItems: DevToolsMenuItem[]
   onToggleSpy: () => void
   onToggleType: (type: LogType) => void
-  onClear: () => void
-  onOpenDevTool: () => void
-  onOpenHistory: () => void
-  onRefresh: () => void
-  onNavigateDebug: () => void
 }
 
-function DevToolsMenu({ isSpyEnabled, enabledTypes, hasError, onToggleSpy, onToggleType, onClear, onOpenDevTool, onOpenHistory, onRefresh, onNavigateDebug }: DevToolsMenuProps) {
+function DevToolsMenu({ isSpyEnabled, enabledTypes, hasError, menuItems, onToggleSpy, onToggleType }: DevToolsMenuProps) {
   return (
     <DropdownMenuContent
       align="end"
@@ -343,7 +407,6 @@ function DevToolsMenu({ isSpyEnabled, enabledTypes, hasError, onToggleSpy, onTog
         )}
       </DropdownMenuLabel>
 
-      {/* 总开关 */}
       <DropdownMenuItem
         onClick={onToggleSpy}
         className="
@@ -378,7 +441,6 @@ function DevToolsMenu({ isSpyEnabled, enabledTypes, hasError, onToggleSpy, onTog
         <span>{isSpyEnabled ? "关闭 Console 监听 (总开关)" : "开启 Console 监听 (总开关)"}</span>
       </DropdownMenuItem>
 
-      {/* 类型设置 */}
       <DropdownMenuSub>
         <DropdownMenuSubTrigger
           className="
@@ -400,6 +462,7 @@ function DevToolsMenu({ isSpyEnabled, enabledTypes, hasError, onToggleSpy, onTog
               text-stone-500
             "
           />
+
           <span>监听类型设置</span>
         </DropdownMenuSubTrigger>
 
@@ -468,6 +531,7 @@ function DevToolsMenu({ isSpyEnabled, enabledTypes, hasError, onToggleSpy, onTog
               />
               Warn
             </DropdownMenuCheckboxItem>
+
             <DropdownMenuCheckboxItem
               checked={enabledTypes.error}
               onCheckedChange={() => {
@@ -496,137 +560,31 @@ function DevToolsMenu({ isSpyEnabled, enabledTypes, hasError, onToggleSpy, onTog
         "
       />
 
-      {/* 清除 */}
-      <DropdownMenuItem
-        onClick={onClear}
-        className="
-          cursor-pointer
-          gap-[8px]
-          rounded-none
-          px-[12px]
-          py-[7px]
-          text-[13px]
-          text-stone-700
-          focus:bg-[#faf9f7]
-          focus:text-stone-700
-        "
-      >
-        <Trash2
-          className="
-            h-[15px]
-            w-[15px]
-            text-stone-500
-          "
-        />
-        <span>清除所有弹窗与记录</span>
-      </DropdownMenuItem>
+      {menuItems.map((item) => {
+        const Icon = item.icon
 
-      {/* 原生控制台 */}
-      <DropdownMenuItem
-        onClick={onOpenDevTool}
-        className="
-          cursor-pointer
-          gap-[8px]
-          rounded-none
-          px-[12px]
-          py-[7px]
-          text-[13px]
-          text-stone-700
-          focus:bg-[#faf9f7]
-          focus:text-stone-700
-        "
-      >
-        <Bug
-          className="
-            h-[15px]
-            w-[15px]
-            text-stone-500
-          "
-        />
-        <span>打开控制台</span>
-      </DropdownMenuItem>
+        return (
+          <DropdownMenuItem
+            key={item.key}
+            onClick={item.onClick}
+            className="
+              cursor-pointer
+              gap-[8px]
+              rounded-none
+              px-[12px]
+              py-[7px]
+              text-[13px]
+              text-stone-700
+              focus:bg-[#faf9f7]
+              focus:text-stone-700
+            "
+          >
+            <Icon className={cn("h-[15px] w-[15px]", item.iconClassName || "text-stone-500")} />
 
-      {/* 历史记录 */}
-      <DropdownMenuItem
-        onClick={onOpenHistory}
-        className="
-          cursor-pointer
-          gap-[8px]
-          rounded-none
-          px-[12px]
-          py-[7px]
-          text-[13px]
-          text-stone-700
-          focus:bg-[#faf9f7]
-          focus:text-stone-700
-        "
-      >
-        <Terminal
-          className="
-            h-[15px]
-            w-[15px]
-            text-stone-500
-          "
-        />
-        <span>打开历史记录面板</span>
-      </DropdownMenuItem>
-
-      <DropdownMenuSeparator
-        className="
-          my-1
-          bg-[#f0efed]
-        "
-      />
-
-      {/* 刷新 */}
-      <DropdownMenuItem
-        onClick={onRefresh}
-        className="
-          cursor-pointer
-          gap-[8px]
-          rounded-none
-          px-[12px]
-          py-[7px]
-          text-[13px]
-          text-stone-700
-          focus:bg-[#faf9f7]
-          focus:text-stone-700
-        "
-      >
-        <RefreshCcw
-          className="
-            h-[15px]
-            w-[15px]
-            text-stone-500
-          "
-        />
-        <span>刷新页面</span>
-      </DropdownMenuItem>
-
-      {/* 调试页面 */}
-      <DropdownMenuItem
-        onClick={onNavigateDebug}
-        className="
-          cursor-pointer
-          gap-[8px]
-          rounded-none
-          px-[12px]
-          py-[7px]
-          text-[13px]
-          text-stone-700
-          focus:bg-[#faf9f7]
-          focus:text-stone-700
-        "
-      >
-        <Wrench
-          className="
-            h-[15px]
-            w-[15px]
-            text-stone-500
-          "
-        />
-        <span>调试页面</span>
-      </DropdownMenuItem>
+            <span>{item.label}</span>
+          </DropdownMenuItem>
+        )
+      })}
     </DropdownMenuContent>
   )
 }
@@ -639,22 +597,33 @@ function DevToolsMenu({ isSpyEnabled, enabledTypes, hasError, onToggleSpy, onTog
 
 export default function DevTool() {
   const navigate = useNavigate()
+
   const [isConsoleOpen, setIsConsoleOpen] = useState(false)
+
   const [isSpyEnabled, setIsSpyEnabled] = useState(() => {
     return localStorage.getItem("vessel-dev-spy") === "true"
   })
+
   const [enabledTypes, setEnabledTypes] = useState<Record<LogType, boolean>>(() => readEnabledTypes())
   const [logs, setLogs] = useState<DevToolLog[]>([])
   const { showToast, dismissByType, dismissAll, showEnabledHistory } = useDevToolToast()
+
+  /**
+   * 保持原来的拖拽 Hook
+   */
   const { position, handleMouseDownCapture } = useDraggable()
+
+  /**
+   * 是否存在 Error
+   */
   const hasError = useMemo(() => {
     return logs.some((log) => log.type === "error")
   }, [logs])
 
   /**
-   *
+   * ==========================================================
    * ConsoleManager -> React
-   *
+   * ==========================================================
    */
 
   const handleRecord = useCallback(
@@ -667,13 +636,17 @@ export default function DevTool() {
         time: record.time,
         source: record.source
       }
+
       setLogs((prev) => {
         const next = [...prev, log]
+
         if (next.length > 1000) {
           return next.slice(next.length - 1000)
         }
+
         return next
       })
+
       if (enabledTypes[record.type]) {
         showToast(log)
       }
@@ -682,20 +655,22 @@ export default function DevTool() {
   )
 
   /**
-   *
+   * ==========================================================
    * SourceMap / 行号更新
-   *
+   * ==========================================================
    */
 
   const handleSourceUpdate = useCallback((id: string, source: ConsoleSource | undefined) => {
     if (!source) {
       return
     }
+
     setLogs((prev) =>
       prev.map((log) => {
         if (log.id !== id) {
           return log
         }
+
         return {
           ...log,
           source
@@ -705,15 +680,16 @@ export default function DevTool() {
   }, [])
 
   /**
-   *
+   * ==========================================================
    * 安装 ConsoleManager
-   *
+   * ==========================================================
    */
 
   useEffect(() => {
     if (!isSpyEnabled) {
       return
     }
+
     const manager = new ConsoleManager({
       preserveOriginal: true,
       captureSource: true,
@@ -721,16 +697,18 @@ export default function DevTool() {
       onLog: handleRecord,
       onSourceUpdate: handleSourceUpdate
     })
+
     manager.install()
+
     return () => {
       manager.uninstall()
     }
   }, [handleRecord, handleSourceUpdate, isSpyEnabled])
 
   /**
-   *
+   * ==========================================================
    * 清除全部日志 + Toast
-   *
+   * ==========================================================
    */
 
   const clearAll = useCallback(() => {
@@ -739,23 +717,28 @@ export default function DevTool() {
   }, [dismissAll])
 
   /**
-   *
+   * ==========================================================
    * 总开关
-   *
+   * ==========================================================
    */
 
   const toggleSpy = useCallback(() => {
     const nextState = !isSpyEnabled
+
     if (nextState) {
       const allDisabled = LOG_TYPES.every((type) => {
         return !enabledTypes[type]
       })
+
       if (allDisabled) {
         const resetTypes = {
           ...DEFAULT_ENABLED_TYPES
         }
+
         setEnabledTypes(resetTypes)
+
         localStorage.setItem("vessel-dev-spy-types", JSON.stringify(resetTypes))
+
         toast.success("Console 监听已开启（已重置为全部类型）")
       } else {
         toast.success("Console 监听已开启")
@@ -763,14 +746,16 @@ export default function DevTool() {
     } else {
       dismissAll()
     }
+
     setIsSpyEnabled(nextState)
+
     localStorage.setItem("vessel-dev-spy", String(nextState))
   }, [dismissAll, enabledTypes, isSpyEnabled])
 
   /**
-   *
+   * ==========================================================
    * 单独类型开关
-   *
+   * ==========================================================
    */
 
   const toggleType = useCallback(
@@ -781,8 +766,11 @@ export default function DevTool() {
         ...enabledTypes,
         [type]: nextValue
       }
+
       setEnabledTypes(nextTypes)
+
       localStorage.setItem("vessel-dev-spy-types", JSON.stringify(nextTypes))
+
       const allDisabled = LOG_TYPES.every((logType) => {
         return !nextTypes[logType]
       })
@@ -792,26 +780,51 @@ export default function DevTool() {
        */
       if (allDisabled) {
         setIsSpyEnabled(false)
+
         localStorage.setItem("vessel-dev-spy", "false")
+
         dismissAll()
+
         toast.info("所有类型已关闭，自动停止监听")
+
         return
       }
+
+      /**
+       * 开启某个类型时自动开启总开关
+       */
       if (nextValue && !isSpyEnabled) {
         setIsSpyEnabled(true)
 
         localStorage.setItem("vessel-dev-spy", "true")
       }
+
+      /**
+       * 开启类型
+       */
       if (nextValue) {
         showEnabledHistory(type, logs)
+
         toast.success(`已开启 ${type} 监听，加载历史记录...`)
+
         return
       }
+
+      /**
+       * 关闭类型
+       */
       dismissByType(type, logs)
+
       toast.info(`已关闭 ${type} 监听`)
     },
     [dismissAll, dismissByType, enabledTypes, isSpyEnabled, logs, showEnabledHistory]
   )
+
+  /**
+   * ==========================================================
+   * 打开原生 DevTools
+   * ==========================================================
+   */
 
   const openDevTool = useCallback(() => {
     const electronAPI = (
@@ -827,17 +840,77 @@ export default function DevTool() {
     }
   }, [])
 
+  /**
+   * ==========================================================
+   * 打开历史记录
+   * ==========================================================
+   */
+
   const openHistory = useCallback(() => {
     setIsConsoleOpen(true)
   }, [])
+
+  /**
+   * ==========================================================
+   * 刷新页面
+   * ==========================================================
+   */
 
   const refreshPage = useCallback(() => {
     window.location.reload()
   }, [])
 
+  /**
+   * ==========================================================
+   * 调试页面
+   * ==========================================================
+   */
+
   const navigateDebug = useCallback(() => {
     navigate("/debug")
   }, [navigate])
+
+  /**
+   * ==========================================================
+   * DevTools Menu Buttons
+   *
+   */
+
+  const menuItems = useMemo<DevToolsMenuItem[]>(
+    () => [
+      {
+        key: "clear",
+        label: "清除所有弹窗与记录",
+        icon: Trash2,
+        onClick: clearAll
+      },
+      {
+        key: "devtools",
+        label: "打开控制台",
+        icon: Bug,
+        onClick: openDevTool
+      },
+      {
+        key: "history",
+        label: "打开历史记录面板",
+        icon: Terminal,
+        onClick: openHistory
+      },
+      {
+        key: "refresh",
+        label: "刷新页面",
+        icon: RefreshCcw,
+        onClick: refreshPage
+      },
+      {
+        key: "debug",
+        label: "调试页面",
+        icon: Wrench,
+        onClick: navigateDebug
+      }
+    ],
+    [clearAll, openDevTool, openHistory, refreshPage, navigateDebug]
+  )
 
   return (
     <>
@@ -856,8 +929,6 @@ export default function DevTool() {
         }}
         onMouseDownCapture={handleMouseDownCapture}
       >
-        {/* 错误脉冲 */}
-
         {hasError && (
           <span
             className="
@@ -931,13 +1002,9 @@ export default function DevTool() {
             isSpyEnabled={isSpyEnabled}
             enabledTypes={enabledTypes}
             hasError={hasError}
+            menuItems={menuItems}
             onToggleSpy={toggleSpy}
             onToggleType={toggleType}
-            onClear={clearAll}
-            onOpenDevTool={openDevTool}
-            onOpenHistory={openHistory}
-            onRefresh={refreshPage}
-            onNavigateDebug={navigateDebug}
           />
         </DropdownMenu>
       </div>
