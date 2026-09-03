@@ -1,9 +1,8 @@
 import { HashRouter, Routes, Route, Navigate } from "react-router-dom"
 import { useState } from "react"
-import Welcome from "./pages/welcome/index"
-import Layout from "./layout/index"
 import { Toaster } from "sonner"
 import DevTool from "@/components/core/devtool"
+import { routes, type RouteRecord } from "./router"
 
 export interface WorkspaceData {
   name: string
@@ -24,16 +23,49 @@ function App() {
     }
   })
 
-  // 2. 封装一个更新函数：同时更新 State 和 LocalStorage
+  /**
+   * 更新工作区：同时更新 State 和 LocalStorage
+   */
   const handleSetWorkspace = (data: WorkspaceData) => {
     setCurrentWorkspace(data)
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
   }
 
-  // const handleClearWorkspace = () => {
-  //   setCurrentWorkspace(null)
-  //   localStorage.removeItem(STORAGE_KEY)
-  // }
+  /**
+   * 根据路由配置渲染页面元素
+   *
+   * 类似 Vue Router 的路由守卫逻辑：
+   * - requiresWorkspace: 没有工作区时重定向到首页
+   * - 首页: 传入 onEnter 回调
+   * - 编辑器: 传入 workspace
+   * - 其他: 直接渲染
+   */
+  const renderElement = (route: RouteRecord) => {
+    const Component = route.component
+
+    // 需要工作区的路由：没有工作区时重定向到首页
+    if (route.meta?.requiresWorkspace && !currentWorkspace) {
+      return (
+        <Navigate
+          to="/"
+          replace
+        />
+      )
+    }
+
+    // 首页：传入 onEnter 回调
+    if (route.name === "welcome") {
+      return <Component onEnter={handleSetWorkspace} />
+    }
+
+    // 编辑器：传入 workspace
+    if (route.name === "editor") {
+      return <Component workspace={currentWorkspace} />
+    }
+
+    // 其他页面：直接渲染
+    return <Component />
+  }
 
   return (
     <>
@@ -42,35 +74,17 @@ function App() {
         richColors
         closeButton
       />
-
       <HashRouter>
         <DevTool />
         <Routes>
-          {/* 首页 */}
-          <Route
-            path="/"
-            element={
-              <Welcome
-                // 使用新的处理函数
-                onEnter={handleSetWorkspace}
-              />
-            }
-          />
-
-          {/* 编辑器页面 */}
-          <Route
-            path="/editor"
-            element={
-              currentWorkspace ? (
-                <Layout workspace={currentWorkspace} />
-              ) : (
-                <Navigate
-                  to="/"
-                  replace
-                />
-              )
-            }
-          />
+          {/* 遍历路由配置表生成 Route（类似 Vue Router 的 routes 数组） */}
+          {routes.map((route) => (
+            <Route
+              key={route.path}
+              path={route.path}
+              element={renderElement(route)}
+            />
+          ))}
         </Routes>
       </HashRouter>
     </>

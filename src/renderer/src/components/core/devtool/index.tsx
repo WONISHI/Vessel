@@ -251,7 +251,7 @@ export default function DevTool() {
    *
    */
   const navigateDebug = useCallback(() => {
-    navigate("/debug")
+    navigate("/devtools")
   }, [navigate])
 
   /**
