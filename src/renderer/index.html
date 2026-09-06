@@ -1,22 +1,37 @@
 <!doctype html>
-<html>
+<html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
+
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
+
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="
+    default-src 'self';
+    script-src 'self';
+    style-src 'self' 'unsafe-inline';
+    img-src 'self' data: blob:;
+    font-src 'self' data: https://at.alicdn.com;
+    connect-src 'self' http://localhost:* ws://localhost:*;
+  "
+    />
+
     <title>Vessel</title>
+
     <link
       rel="shortcut icon"
       href="./src/assets/icon_32x32.png"
       type="image/x-icon"
     />
-    <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
-    <meta
-      http-equiv="Content-Security-Policy"
-      content="default-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com http://localhost:* ws://localhost:* data: blob:; font-src 'self' data: https://at.alicdn.com http://at.alicdn.com;"
-    />
   </head>
 
   <body>
     <div id="root"></div>
+
     <script
       type="module"
       src="/src/main.tsx"
