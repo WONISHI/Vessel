@@ -1,18 +1,8 @@
-export {
-  RouterController,
-  createRouter
-} from "./router"
+export { RouterController, createRouter } from "./router"
 
-export {
-  useRoute,
-  useRouter
-} from "./hooks"
+export { useRoute, useRouter } from "./hooks"
 
-export {
-  createMemoryHistory,
-  createWebHashHistory,
-  createWebHistory
-} from "./history"
+export { createMemoryHistory, createWebHashHistory, createWebHistory } from "./history"
 
 export type {
   AfterNavigationHook,

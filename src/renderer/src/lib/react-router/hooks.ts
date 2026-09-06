@@ -2,10 +2,7 @@ import { useContext } from "react"
 import { useLocation } from "react-router-dom"
 
 import { AppRouterContext } from "./router"
-import type {
-  AppRouter,
-  RouteLocationNormalized
-} from "./types"
+import type { AppRouter, RouteLocationNormalized } from "./types"
 
 export function useRouter(): AppRouter {
   const router = useContext(AppRouterContext)

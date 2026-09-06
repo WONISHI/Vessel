@@ -1,14 +1,4 @@
-import {
-  createContext,
-  createElement,
-  useCallback,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
-  type ComponentType,
-  type LazyExoticComponent
-} from "react"
+import { createContext, createElement, useCallback, useContext, useEffect, useRef, useState, type ComponentType, type LazyExoticComponent } from "react"
 import {
   Navigate,
   Outlet,
@@ -71,8 +61,7 @@ const START_LOCATION: RouteLocationNormalized = {
   matched: []
 }
 
-export const AppRouterContext =
-  createContext<RouterController | null>(null)
+export const AppRouterContext = createContext<RouterController | null>(null)
 
 function useRouterController(): RouterController {
   const router = useContext(AppRouterContext)
@@ -111,18 +100,12 @@ function createDefinitions(routes: AppRouteRecordRaw[]): {
   definitionMap: WeakMap<AppRouteRecordRaw, RouteDefinition>
   nameMap: Map<string, RouteDefinition>
 } {
-  const definitionMap = new WeakMap<
-    AppRouteRecordRaw,
-    RouteDefinition
-  >()
+  const definitionMap = new WeakMap<AppRouteRecordRaw, RouteDefinition>()
   const nameMap = new Map<string, RouteDefinition>()
   const ids = new Set<string>()
   let autoId = 0
 
-  const walk = (
-    records: AppRouteRecordRaw[],
-    parentPath = "/"
-  ) => {
+  const walk = (records: AppRouteRecordRaw[], parentPath = "/") => {
     records.forEach((record) => {
       if (record.index && record.path) {
         throw new Error("Index route 不能同时设置 path")
@@ -140,9 +123,7 @@ function createDefinitions(routes: AppRouteRecordRaw[]): {
 
       ids.add(id)
 
-      const fullPath = record.index
-        ? parentPath
-        : joinRoutePath(parentPath, record.path)
+      const fullPath = record.index ? parentPath : joinRoutePath(parentPath, record.path)
       const definition: RouteDefinition = {
         id,
         fullPath,
@@ -185,25 +166,13 @@ function parseQuery(search: string): Record<string, string | string[]> {
       return
     }
 
-    result[key] = Array.isArray(currentValue)
-      ? [...currentValue, value]
-      : [currentValue, value]
+    result[key] = Array.isArray(currentValue) ? [...currentValue, value] : [currentValue, value]
   })
 
   return result
 }
 
-function stringifyQuery(
-  query: Record<
-    string,
-    | string
-    | number
-    | boolean
-    | null
-    | undefined
-    | Array<string | number | boolean | null | undefined>
-  >
-): string {
+function stringifyQuery(query: Record<string, string | number | boolean | null | undefined | Array<string | number | boolean | null | undefined>>): string {
   const searchParams = new URLSearchParams()
 
   Object.entries(query).forEach(([key, rawValue]) => {
@@ -231,32 +200,15 @@ function normalizeHash(hash?: string): string {
   return hash.startsWith("#") ? hash : `#${hash}`
 }
 
-function normalizeParams(
-  params: Record<string, string | number | null | undefined> = {}
-): Record<string, string | null | undefined> {
-  return Object.fromEntries(
-    Object.entries(params).map(([key, value]) => [
-      key,
-      value === null || value === undefined ? value : String(value)
-    ])
-  )
+function normalizeParams(params: Record<string, string | number | null | undefined> = {}): Record<string, string | null | undefined> {
+  return Object.fromEntries(Object.entries(params).map(([key, value]) => [key, value === null || value === undefined ? value : String(value)]))
 }
 
-function isSameLocation(
-  first: NativeLocationLike,
-  second: NativeLocationLike
-): boolean {
-  return (
-    first.pathname === second.pathname &&
-    (first.search || "") === (second.search || "") &&
-    (first.hash || "") === (second.hash || "")
-  )
+function isSameLocation(first: NativeLocationLike, second: NativeLocationLike): boolean {
+  return first.pathname === second.pathname && (first.search || "") === (second.search || "") && (first.hash || "") === (second.hash || "")
 }
 
-function getComponentProps(
-  option: RoutePropsOption | undefined,
-  route: RouteLocationNormalized
-): Record<string, unknown> {
+function getComponentProps(option: RoutePropsOption | undefined, route: RouteLocationNormalized): Record<string, unknown> {
   if (option === true) {
     return {
       ...route.params
@@ -270,32 +222,16 @@ function getComponentProps(
   return option || {}
 }
 
-function RouteComponentRenderer({
-  component: Component,
-  routeProps
-}: {
-  component:
-    | ComponentType<any>
-    | LazyExoticComponent<ComponentType<any>>
-  routeProps?: RoutePropsOption
-}) {
+function RouteComponentRenderer({ component: Component, routeProps }: { component: ComponentType<any> | LazyExoticComponent<ComponentType<any>>; routeProps?: RoutePropsOption }) {
   const route = useCurrentRoute()
 
-  return createElement(
-    Component,
-    getComponentProps(routeProps, route)
-  )
+  return createElement(Component, getComponentProps(routeProps, route))
 }
 
-function RouteRedirectRenderer({
-  redirect
-}: {
-  redirect: NonNullable<AppRouteRecordRaw["redirect"]>
-}) {
+function RouteRedirectRenderer({ redirect }: { redirect: NonNullable<AppRouteRecordRaw["redirect"]> }) {
   const router = useRouterController()
   const route = useCurrentRoute()
-  const target =
-    typeof redirect === "function" ? redirect(route) : redirect
+  const target = typeof redirect === "function" ? redirect(route) : redirect
   const resolved = router.resolve(target)
 
   return createElement(Navigate, {
@@ -305,10 +241,7 @@ function RouteRedirectRenderer({
   })
 }
 
-function convertRoutes(
-  routes: AppRouteRecordRaw[],
-  definitionMap: WeakMap<AppRouteRecordRaw, RouteDefinition>
-): RouteObject[] {
+function convertRoutes(routes: AppRouteRecordRaw[], definitionMap: WeakMap<AppRouteRecordRaw, RouteDefinition>): RouteObject[] {
   return routes.map((record) => {
     const definition = definitionMap.get(record)
 
@@ -346,28 +279,16 @@ function convertRoutes(
       action: record.action,
       shouldRevalidate: record.shouldRevalidate,
       handle,
-      children: record.children
-        ? convertRoutes(record.children, definitionMap)
-        : undefined
+      children: record.children ? convertRoutes(record.children, definitionMap) : undefined
     } as RouteObject
   })
 }
 
-function isInternalRouteHandle(
-  handle: unknown
-): handle is InternalRouteHandle {
-  return Boolean(
-    handle &&
-      typeof handle === "object" &&
-      "__appRouter" in handle
-  )
+function isInternalRouteHandle(handle: unknown): handle is InternalRouteHandle {
+  return Boolean(handle && typeof handle === "object" && "__appRouter" in handle)
 }
 
-async function invokeGuard(
-  guard: NavigationGuard,
-  to: RouteLocationNormalized,
-  from: RouteLocationNormalized
-): Promise<NavigationGuardReturn> {
+async function invokeGuard(guard: NavigationGuard, to: RouteLocationNormalized, from: RouteLocationNormalized): Promise<NavigationGuardReturn> {
   if (guard.length < 3) {
     return guard(to, from, () => undefined)
   }
@@ -398,9 +319,7 @@ async function invokeGuard(
   })
 }
 
-function toGuardOutcome(
-  result: NavigationGuardReturn
-): GuardOutcome {
+function toGuardOutcome(result: NavigationGuardReturn): GuardOutcome {
   if (result === false) {
     return {
       type: "abort"
@@ -481,9 +400,7 @@ export class RouterController implements AppRouter {
       })
     }
 
-    this.currentRouteValue = this.normalizeNativeLocation(
-      this.nativeRouter.state.location
-    )
+    this.currentRouteValue = this.normalizeNativeLocation(this.nativeRouter.state.location)
   }
 
   get currentRoute(): RouteLocationNormalized {
@@ -543,29 +460,15 @@ export class RouterController implements AppRouter {
         throw new Error(`未找到名称为 ${to.name} 的路由`)
       }
 
-      pathname = generatePath(
-        definition.fullPath,
-        normalizeParams(to.params)
-      )
+      pathname = generatePath(definition.fullPath, normalizeParams(to.params))
     } else {
       const rawPath = to.path || current.path || "/"
-      pathname = to.params
-        ? generatePath(rawPath, normalizeParams(to.params))
-        : rawPath
+      pathname = to.params ? generatePath(rawPath, normalizeParams(to.params)) : rawPath
     }
 
     const preserveCurrentQuery = !to.name && !to.path && !to.query
-    const search = to.query
-      ? stringifyQuery(to.query)
-      : preserveCurrentQuery
-        ? stringifyQuery(current.query)
-        : ""
-    const hash =
-      to.hash !== undefined
-        ? normalizeHash(to.hash)
-        : !to.name && !to.path
-          ? current.hash
-          : ""
+    const search = to.query ? stringifyQuery(to.query) : preserveCurrentQuery ? stringifyQuery(current.query) : ""
+    const hash = to.hash !== undefined ? normalizeHash(to.hash) : !to.name && !to.path ? current.hash : ""
 
     return this.normalizeResolvedLocation({
       pathname,
@@ -612,16 +515,10 @@ export class RouterController implements AppRouter {
   }
 
   hasBeforeGuards(): boolean {
-    return (
-      this.beforeGuards.size > 0 ||
-      this.resolveGuards.size > 0 ||
-      this.hasRouteBeforeEnter()
-    )
+    return this.beforeGuards.size > 0 || this.resolveGuards.size > 0 || this.hasRouteBeforeEnter()
   }
 
-  normalizeNativeLocation(
-    location: NativeLocationLike
-  ): RouteLocationNormalized {
+  normalizeNativeLocation(location: NativeLocationLike): RouteLocationNormalized {
     const basename = this.history.basename
     let pathname = location.pathname || "/"
     let matches = matchRoutes(
@@ -644,28 +541,15 @@ export class RouterController implements AppRouter {
       })
     }
 
-    return this.createNormalizedLocation(
-      pathname,
-      location.search || "",
-      location.hash || "",
-      location.state,
-      matches
-    )
+    return this.createNormalizedLocation(pathname, location.search || "", location.hash || "", location.state, matches)
   }
 
   setCurrentRoute(route: RouteLocationNormalized): void {
     this.currentRouteValue = route
   }
 
-  async runBeforeGuards(
-    to: RouteLocationNormalized,
-    from: RouteLocationNormalized
-  ): Promise<GuardOutcome> {
-    const globalOutcome = await this.runGuardQueue(
-      [...this.beforeGuards],
-      to,
-      from
-    )
+  async runBeforeGuards(to: RouteLocationNormalized, from: RouteLocationNormalized): Promise<GuardOutcome> {
+    const globalOutcome = await this.runGuardQueue([...this.beforeGuards], to, from)
 
     if (globalOutcome.type !== "allow") {
       return globalOutcome
@@ -677,15 +561,9 @@ export class RouterController implements AppRouter {
         return []
       }
 
-      return Array.isArray(item.record.beforeEnter)
-        ? item.record.beforeEnter
-        : [item.record.beforeEnter]
+      return Array.isArray(item.record.beforeEnter) ? item.record.beforeEnter : [item.record.beforeEnter]
     })
-    const routeOutcome = await this.runGuardQueue(
-      routeGuards,
-      to,
-      from
-    )
+    const routeOutcome = await this.runGuardQueue(routeGuards, to, from)
 
     if (routeOutcome.type !== "allow") {
       return routeOutcome
@@ -694,11 +572,7 @@ export class RouterController implements AppRouter {
     return this.runGuardQueue([...this.resolveGuards], to, from)
   }
 
-  async runAfterHooks(
-    to: RouteLocationNormalized,
-    from: RouteLocationNormalized,
-    failure?: NavigationFailure
-  ): Promise<void> {
+  async runAfterHooks(to: RouteLocationNormalized, from: RouteLocationNormalized, failure?: NavigationFailure): Promise<void> {
     for (const hook of this.afterHooks) {
       try {
         await hook(to, from, failure)
@@ -708,11 +582,7 @@ export class RouterController implements AppRouter {
     }
   }
 
-  emitError(
-    error: unknown,
-    to?: RouteLocationNormalized,
-    from?: RouteLocationNormalized
-  ): void {
+  emitError(error: unknown, to?: RouteLocationNormalized, from?: RouteLocationNormalized): void {
     if (this.errorHandlers.size === 0) {
       console.error(error)
       return
@@ -737,31 +607,17 @@ export class RouterController implements AppRouter {
     return this.ready
   }
 
-  private normalizeResolvedLocation(
-    location: NativeLocationLike
-  ): RouteLocationNormalized {
+  private normalizeResolvedLocation(location: NativeLocationLike): RouteLocationNormalized {
     const matches = matchRoutes(this.routeObjects, {
       pathname: location.pathname,
       search: location.search || "",
       hash: location.hash || ""
     })
 
-    return this.createNormalizedLocation(
-      location.pathname,
-      location.search || "",
-      location.hash || "",
-      location.state,
-      matches
-    )
+    return this.createNormalizedLocation(location.pathname, location.search || "", location.hash || "", location.state, matches)
   }
 
-  private createNormalizedLocation(
-    pathname: string,
-    search: string,
-    hash: string,
-    state: unknown,
-    matches: RouteMatch<string, RouteObject>[] | null
-  ): RouteLocationNormalized {
+  private createNormalizedLocation(pathname: string, search: string, hash: string, state: unknown, matches: RouteMatch<string, RouteObject>[] | null): RouteLocationNormalized {
     const matched: RouteLocationMatched[] = []
     const meta: Record<string, unknown> = {}
     let name: string | undefined
@@ -806,11 +662,7 @@ export class RouterController implements AppRouter {
     }
   }
 
-  private async runGuardQueue(
-    guards: NavigationGuard[],
-    to: RouteLocationNormalized,
-    from: RouteLocationNormalized
-  ): Promise<GuardOutcome> {
+  private async runGuardQueue(guards: NavigationGuard[], to: RouteLocationNormalized, from: RouteLocationNormalized): Promise<GuardOutcome> {
     for (const guard of guards) {
       const result = await invokeGuard(guard, to, from)
       const outcome = toGuardOutcome(result)
@@ -828,10 +680,7 @@ export class RouterController implements AppRouter {
   private hasRouteBeforeEnter(): boolean {
     const walk = (routes: AppRouteRecordRaw[]): boolean => {
       return routes.some((route) => {
-        return Boolean(
-          route.beforeEnter ||
-            (route.children && walk(route.children))
-        )
+        return Boolean(route.beforeEnter || (route.children && walk(route.children)))
       })
     }
 
@@ -893,18 +742,8 @@ function RouterRuntime({ router }: { router: RouterController }) {
   const currentRouteRef = useRef(router.currentRoute)
   const guardRunIdRef = useRef(0)
   const shouldBlock = useCallback(
-    ({
-      currentLocation,
-      nextLocation
-    }: {
-      currentLocation: Location
-      nextLocation: Location
-    }) => {
-      return (
-        ready &&
-        router.hasBeforeGuards() &&
-        !isSameLocation(currentLocation, nextLocation)
-      )
+    ({ currentLocation, nextLocation }: { currentLocation: Location; nextLocation: Location }) => {
+      return ready && router.hasBeforeGuards() && !isSameLocation(currentLocation, nextLocation)
     },
     [ready, router]
   )
@@ -939,10 +778,7 @@ function RouterRuntime({ router }: { router: RouterController }) {
     router
       .runBeforeGuards(to, from)
       .then((outcome) => {
-        if (
-          runId !== guardRunIdRef.current ||
-          blocker.state !== "blocked"
-        ) {
+        if (runId !== guardRunIdRef.current || blocker.state !== "blocked") {
           return
         }
 
@@ -998,8 +834,6 @@ function RouterRuntime({ router }: { router: RouterController }) {
   return ready ? createElement(Outlet) : null
 }
 
-export function createRouter(
-  options: CreateRouterOptions
-): RouterController {
+export function createRouter(options: CreateRouterOptions): RouterController {
   return new RouterController(options)
 }

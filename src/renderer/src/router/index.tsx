@@ -1,12 +1,13 @@
-import type { ComponentType } from "react"
-import Welcome from "@/pages/welcome/index"
 import Layout from "@/layout/index"
+import Welcome from "@/pages/welcome/index"
 // import DebugPage from "@/pages/debug/index"
 
+import { createRouter, createWebHashHistory, type AppRouteRecordRaw } from "@/lib/react-router"
+
 /**
- * 路由 meta 信息（类似 Vue Router 的 meta）
+ * 项目路由 meta
  */
-export interface RouteMeta {
+export interface RouteMeta extends Record<string, unknown> {
   /** 页面标题 */
   title?: string
   /** 是否需要工作区才能访问 */
@@ -16,26 +17,17 @@ export interface RouteMeta {
 }
 
 /**
- * 路由记录（类似 Vue Router 的 RouteRecordRaw）
+ * 项目路由记录
  */
-export interface RouteRecord {
-  /** 路由路径 */
+export interface RouteRecord extends Omit<AppRouteRecordRaw, "path" | "name" | "component" | "meta"> {
   path: string
-  /** 路由名称（唯一标识） */
   name: string
-  /** 页面组件 */
-  component: ComponentType<any>
-  /** 附加信息 */
+  component: NonNullable<AppRouteRecordRaw["component"]>
   meta?: RouteMeta
 }
 
 /**
- * 路由配置表
- *
- * 用法类似 Vue Router：
- * const router = createRouter({ routes })
- *
- * 这里通过遍历 routes 数组生成 <Route> 组件
+ * 路由配置
  */
 export const routes: RouteRecord[] = [
   {
@@ -66,18 +58,24 @@ export const routes: RouteRecord[] = [
   // }
 ]
 
-/**
- * 根据名称查找路由
- *
- * 用法类似 Vue Router 的 router.resolve({ name })
- */
-export function findRouteByName(name: string): RouteRecord | undefined {
-  return routes.find((route) => route.name === name)
-}
+const router = createRouter({
+  history: createWebHashHistory(),
+  routes
+})
 
 /**
- * 根据路径查找路由
+ * 设置页面标题
  */
-export function findRouteByPath(path: string): RouteRecord | undefined {
-  return routes.find((route) => route.path === path)
-}
+router.afterEach((to, _from, failure) => {
+  if (failure) {
+    return
+  }
+
+  const title = to.meta.title
+
+  if (typeof title === "string") {
+    document.title = title
+  }
+})
+
+export default router
