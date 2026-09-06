@@ -4,6 +4,7 @@ import App, { type WorkspaceData } from "../App"
 import Layout from "@/layout/index"
 import Welcome from "@/pages/welcome/index"
 import DebugPage from "@/pages/debug/index"
+import CheckCircle from "@/assets/vessel-icons/ui/check-circle.svg?react"
 
 import { createRouter, createWebHashHistory, type AppRouteRecordRaw } from "@/lib/react-router"
 
@@ -88,6 +89,7 @@ export const routes: AppRouteRecordRaw[] = [
         meta: {
           key: "devtools",
           title: "调试页面",
+          icon: CheckCircle,
           routeType: "root",
           hidden: true
         },
