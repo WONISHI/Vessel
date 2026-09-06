@@ -42,6 +42,7 @@ function App() {
    */
   const renderElement = (route: RouteRecord) => {
     const Component = route.component
+    console.log("renderElement", route, currentWorkspace)
 
     // 需要工作区的路由：没有工作区时重定向到首页
     if (route.meta?.requiresWorkspace && !currentWorkspace) {

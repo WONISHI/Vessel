@@ -1,7 +1,7 @@
 import type { ComponentType } from "react"
 import Welcome from "@/pages/welcome/index"
 import Layout from "@/layout/index"
-import DebugPage from "@/pages/debug/index"
+// import DebugPage from "@/pages/debug/index"
 
 /**
  * 路由 meta 信息（类似 Vue Router 的 meta）
@@ -54,16 +54,16 @@ export const routes: RouteRecord[] = [
       title: "编辑器",
       requiresWorkspace: true
     }
-  },
-  {
-    path: "/devtools",
-    name: "devtools",
-    component: DebugPage,
-    meta: {
-      title: "开发者工具",
-      hidden: true
-    }
   }
+  // {
+  //   path: "/devtools",
+  //   name: "devtools",
+  //   component: DebugPage,
+  //   meta: {
+  //     title: "开发者工具",
+  //     hidden: true
+  //   }
+  // }
 ]
 
 /**
