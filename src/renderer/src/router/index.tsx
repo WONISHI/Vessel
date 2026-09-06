@@ -3,7 +3,7 @@ import { useState } from "react"
 import App, { type WorkspaceData } from "../App"
 import Layout from "@/layout/index"
 import Welcome from "@/pages/welcome/index"
-// import DebugPage from "@/pages/debug/index"
+import DebugPage from "@/pages/debug/index"
 
 import { createRouter, createWebHashHistory, type AppRouteRecordRaw } from "@/lib/react-router"
 
@@ -81,16 +81,125 @@ export const routes: AppRouteRecordRaw[] = [
           title: "编辑器",
           requiresWorkspace: true
         }
+      },
+      {
+        path: "devtools",
+        name: "devtools",
+        meta: {
+          key: "devtools",
+          title: "调试页面",
+          routeType: "root",
+          hidden: true
+        },
+        children: [
+          {
+            index: true,
+            redirect: {
+              name: "devtools-console"
+            }
+          },
+          {
+            name: "devtools-main-group",
+            meta: {
+              key: "main",
+              title: "主要功能",
+              routeType: "group",
+              hidden: true
+            },
+            children: [
+              {
+                path: "console",
+                name: "devtools-console",
+                component: DebugPage,
+                meta: {
+                  key: "console",
+                  title: "控制台",
+                  description: "Console 日志查看与监听控制",
+                  routeType: "page",
+                  group: "main",
+                  hidden: true
+                }
+              },
+              {
+                path: "performance",
+                name: "devtools-performance",
+                component: DebugPage,
+                meta: {
+                  key: "performance",
+                  title: "性能监控",
+                  description: "CPU / 内存 / 帧率实时监控",
+                  routeType: "page",
+                  group: "main",
+                  hidden: true
+                }
+              },
+              {
+                path: "system",
+                name: "devtools-system",
+                component: DebugPage,
+                meta: {
+                  key: "system",
+                  title: "系统信息",
+                  description: "平台 / 分辨率 / 网络状态",
+                  routeType: "page",
+                  group: "main",
+                  hidden: true
+                }
+              }
+            ]
+          },
+          {
+            name: "devtools-tools-group",
+            meta: {
+              key: "tools",
+              title: "工具",
+              routeType: "group",
+              hidden: true
+            },
+            children: [
+              {
+                path: "tools",
+                name: "devtools-tools",
+                component: DebugPage,
+                meta: {
+                  key: "tools",
+                  title: "开发工具",
+                  description: "快捷操作入口",
+                  routeType: "page",
+                  group: "tools",
+                  hidden: true
+                }
+              },
+              {
+                path: "storage",
+                name: "devtools-storage",
+                component: DebugPage,
+                meta: {
+                  key: "storage",
+                  title: "数据存储",
+                  description: "SQLite 数据库表查看",
+                  routeType: "page",
+                  group: "tools",
+                  hidden: true
+                }
+              },
+              {
+                path: "navigate",
+                name: "devtools-navigate",
+                component: DebugPage,
+                meta: {
+                  key: "navigate",
+                  title: "页面跳转",
+                  description: "快速跳转到其他页面",
+                  routeType: "page",
+                  group: "tools",
+                  hidden: true
+                }
+              }
+            ]
+          }
+        ]
       }
-      // {
-      //   path: "devtools",
-      //   name: "devtools",
-      //   component: DebugPage,
-      //   meta: {
-      //     title: "开发者工具",
-      //     hidden: true
-      //   }
-      // }
     ]
   }
 ]
