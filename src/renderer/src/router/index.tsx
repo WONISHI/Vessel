@@ -4,6 +4,8 @@ import App, { type WorkspaceData } from "../App"
 import Layout from "@/layout/index"
 import Welcome from "@/pages/welcome/index"
 import DebugPage from "@/pages/debug/index"
+import DevtoolsConsole from "@/pages/debug/devtools-console"
+import DevtoolsStorage from "@/pages/debug/devtools-storage"
 import CheckCircle from "@/assets/vessel-icons/ui/check-circle.svg?react"
 
 import { createRouter, createWebHashHistory, type AppRouteRecordRaw } from "@/lib/react-router"
@@ -86,6 +88,7 @@ export const routes: AppRouteRecordRaw[] = [
       {
         path: "devtools",
         name: "devtools",
+        component: DebugPage,
         meta: {
           key: "devtools",
           title: "调试页面",
@@ -112,7 +115,7 @@ export const routes: AppRouteRecordRaw[] = [
               {
                 path: "console",
                 name: "devtools-console",
-                component: DebugPage,
+                component: DevtoolsConsole,
                 meta: {
                   key: "console",
                   title: "控制台",
@@ -125,7 +128,6 @@ export const routes: AppRouteRecordRaw[] = [
               {
                 path: "performance",
                 name: "devtools-performance",
-                component: DebugPage,
                 meta: {
                   key: "performance",
                   title: "性能监控",
@@ -138,7 +140,6 @@ export const routes: AppRouteRecordRaw[] = [
               {
                 path: "system",
                 name: "devtools-system",
-                component: DebugPage,
                 meta: {
                   key: "system",
                   title: "系统信息",
@@ -162,7 +163,6 @@ export const routes: AppRouteRecordRaw[] = [
               {
                 path: "tools",
                 name: "devtools-tools",
-                component: DebugPage,
                 meta: {
                   key: "tools",
                   title: "开发工具",
@@ -175,7 +175,7 @@ export const routes: AppRouteRecordRaw[] = [
               {
                 path: "storage",
                 name: "devtools-storage",
-                component: DebugPage,
+                component: DevtoolsStorage,
                 meta: {
                   key: "storage",
                   title: "数据存储",
@@ -188,7 +188,6 @@ export const routes: AppRouteRecordRaw[] = [
               {
                 path: "navigate",
                 name: "devtools-navigate",
-                component: DebugPage,
                 meta: {
                   key: "navigate",
                   title: "页面跳转",

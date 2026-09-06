@@ -1,10 +1,11 @@
-import { useMemo, type ElementType } from "react"
+import { type ElementType } from "react"
 import { ChevronDown, SquareCheckBig } from "lucide-react"
-
-import { useRoute, useRouter, type AppRouteRecordRaw } from "@/lib/react-router"
+import { RouterView } from "@/lib/react-router/components"
+import { useRouter, type AppRouteRecordRaw } from "@/lib/react-router"
 import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
+import { useDevToolsRouteTree } from "./hooks/useDevToolsRouteTree"
 import Check from "@/assets/vessel-icons/ui/check.svg?react"
 
 type RouteIconComponent = ElementType<{
@@ -71,52 +72,6 @@ const dropdownActiveItemClassName = `
 `
 
 /**
- * 读取 devtools 路由树和当前匹配路由。
- */
-function useDevToolsRouteTree() {
-  const route = useRoute()
-
-  return useMemo(() => {
-    /**
-     * 第一层：调试页面。
-     */
-    const root = route.matched.find((matched) => matched.name === "devtools")?.record
-
-    if (!root) {
-      return null
-    }
-
-    /**
-     * 第二层：主要功能、工具。
-     */
-    const groups = (root.children ?? []).filter((child) => {
-      return child.meta?.routeType === "group"
-    })
-
-    /**
-     * 当前分组。
-     */
-    const currentGroup = route.matched.find((matched) => {
-      return matched.meta.routeType === "group"
-    })?.record
-
-    /**
-     * 当前页面。
-     */
-    const currentPage = route.matched.find((matched) => {
-      return matched.meta.routeType === "page"
-    })?.record
-
-    return {
-      root,
-      groups,
-      currentGroup,
-      currentPage
-    }
-  }, [route.matched])
-}
-
-/**
  * 获取路由标题。
  */
 function getRouteTitle(route: AppRouteRecordRaw | undefined, fallback: string): string {
@@ -170,6 +125,8 @@ export default function DevToolsIndex() {
       return
     }
 
+    console.log("firstPage", firstPage)
+
     void router.push({
       name: firstPage.name
     })
@@ -182,6 +139,8 @@ export default function DevToolsIndex() {
     if (typeof page.name !== "string") {
       return
     }
+
+    console.log("page", page)
 
     void router.push({
       name: page.name
@@ -449,6 +408,7 @@ export default function DevToolsIndex() {
           )}
         </BreadcrumbList>
       </Breadcrumb>
+      <RouterView />
     </div>
   )
 }
