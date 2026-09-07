@@ -1,60 +1,18 @@
 import Database from "better-sqlite3"
 
 /**
- * 数据库表及其分页数据。
- */
-export interface DatabaseTableData {
-  /** 数据库真实表名 */
-  name: string
-  /** 建表 SQL */
-  sql: string | null
-  /** 数据总数 */
-  total: number
-  /** 当前页 */
-  page: number
-  /** 每页数量 */
-  pageSize: number
-  /** 当前页数据 */
-  records: Record<string, unknown>[]
-}
-
-/**
- * SQLite 基础增强类。
+ * SQLite 通用增强类。
  *
- * 负责提供与具体业务无关的数据库能力：
- * - 创建并持有 better-sqlite3 连接；
- * - 查询所有业务表；
- * - 查询指定表的数据；
- * - 查询指定表的字段结构；
- * - 安全校验动态表名；
- * - 安全处理 SQLite 标识符；
- * - 关闭数据库连接。
- *
- * 具体业务数据库可以继承该类，
- * 直接使用受保护的 database 连接。
+ * 不包含任何 Vessel 具体业务逻辑。
  */
 export class EnhancedDatabase {
-  /**
-   * better-sqlite3 数据库连接。
-   *
-   * 使用 protected，允许 AppDatabase 等子类访问，
-   * 但不会直接暴露给类外部调用者。
-   */
   protected readonly database: Database.Database
-
-  /**
-   * 创建并打开 SQLite 数据库。
-   *
-   * @param databasePath SQLite 数据库文件的绝对路径。
-   */
   constructor(databasePath: string) {
     this.database = new Database(databasePath)
   }
 
   /**
-   * 获取数据库中的所有业务表。
-   *
-   * 默认排除 sqlite_ 开头的 SQLite 内部表。
+   * 获取所有业务表。
    */
   getTables(): Array<{
     name: string
@@ -70,7 +28,7 @@ export class EnhancedDatabase {
         WHERE type = 'table'
           AND name NOT LIKE 'sqlite_%'
         ORDER BY name ASC
-      `
+        `
       )
       .all() as Array<{
       name: string
@@ -79,11 +37,7 @@ export class EnhancedDatabase {
   }
 
   /**
-   * 分页获取指定表的数据。
-   *
-   * @param tableName 数据库真实表名。
-   * @param page 当前页，从 1 开始。
-   * @param pageSize 每页数量，最大 200。
+   * 分页获取表数据。
    */
   getTableData(tableName: string, page = 1, pageSize = 50): Record<string, unknown>[] {
     const safeTableName = this.resolveTableName(tableName)
@@ -98,13 +52,13 @@ export class EnhancedDatabase {
         FROM ${quotedTableName}
         LIMIT ?
         OFFSET ?
-      `
+        `
       )
       .all(safePageSize, offset) as Record<string, unknown>[]
   }
 
   /**
-   * 获取指定表的字段结构。
+   * 获取表字段结构。
    */
   getTableSchema(tableName: string): Array<{
     cid: number
@@ -115,7 +69,6 @@ export class EnhancedDatabase {
     primaryKey: number
   }> {
     const safeTableName = this.resolveTableName(tableName)
-
     return this.database
       .prepare(
         `
@@ -128,7 +81,7 @@ export class EnhancedDatabase {
           pk AS "primaryKey"
         FROM pragma_table_info(?)
         ORDER BY cid ASC
-      `
+        `
       )
       .all(safeTableName) as Array<{
       cid: number
@@ -141,45 +94,17 @@ export class EnhancedDatabase {
   }
 
   /**
-   * 获取所有业务表及其分页数据。
-   *
-   * 每张表分别返回指定页的数据，
-   * 避免一次读取全部数据导致内存占用过大。
-   *
-   * @param page 当前页，从 1 开始。
-   * @param pageSize 每张表返回的数据量，最大 200。
-   */
-  getAllTablesData(page = 1, pageSize = 50): DatabaseTableData[] {
-    const safePage = this.normalizePositiveInteger(page, 1, Number.MAX_SAFE_INTEGER)
-
-    const safePageSize = this.normalizePositiveInteger(pageSize, 50, 200)
-
-    return this.getTables().map((table) => {
-      return {
-        name: table.name,
-        sql: table.sql,
-        total: this.getTableRowCount(table.name),
-        page: safePage,
-        pageSize: safePageSize,
-        records: this.getTableData(table.name, safePage, safePageSize)
-      }
-    })
-  }
-
-  /**
-   * 获取指定表的数据总数。
+   * 获取表数据总数。
    */
   getTableRowCount(tableName: string): number {
     const safeTableName = this.resolveTableName(tableName)
-
     const quotedTableName = this.quoteIdentifier(safeTableName)
-
     const result = this.database
       .prepare(
         `
         SELECT COUNT(*) AS count
         FROM ${quotedTableName}
-      `
+        `
       )
       .get() as {
       count: number
@@ -189,11 +114,7 @@ export class EnhancedDatabase {
   }
 
   /**
-   * 校验动态传入的表名。
-   *
-   * SQLite 的表名不能使用 ? 参数绑定，
-   * 因此必须先从 sqlite_schema 查询真实表名，
-   * 防止通过表名执行 SQL 注入。
+   * 校验动态表名。
    */
   protected resolveTableName(tableName: string): string {
     if (typeof tableName !== "string" || tableName.trim().length === 0 || tableName.length > 200) {
@@ -208,7 +129,7 @@ export class EnhancedDatabase {
         WHERE type = 'table'
           AND name = ?
           AND name NOT LIKE 'sqlite_%'
-      `
+        `
       )
       .get(tableName) as
       | {
@@ -224,17 +145,14 @@ export class EnhancedDatabase {
   }
 
   /**
-   * 安全引用 SQLite 标识符。
-   *
-   * 该方法只能用于已经通过 resolveTableName
-   * 校验过的表名或字段名。
+   * 安全引用标识符。
    */
   protected quoteIdentifier(identifier: string): string {
     return `"${identifier.replace(/"/g, '""')}"`
   }
 
   /**
-   * 将分页参数限制在指定范围内。
+   * 规范化正整数。
    */
   protected normalizePositiveInteger(value: number, fallback: number, maximum: number): number {
     const normalizedValue = Number.isFinite(value) ? Math.trunc(value) : fallback
@@ -242,10 +160,7 @@ export class EnhancedDatabase {
   }
 
   /**
-   * 关闭 better-sqlite3 数据库连接。
-   *
-   * 子类如果需要在关闭前执行其他操作，
-   * 可以重写该方法并调用 super.close()。
+   * 关闭数据库。
    */
   close(): void {
     if (this.database.open) {
