@@ -8,16 +8,7 @@ export class AppStateRepository {
    */
   get<T>(key: string): T | undefined {
     this.validateKey(key)
-
-    const row = this.database
-      .prepare(
-        `
-        SELECT value_json AS valueJson
-        FROM app_state
-        WHERE key = ?
-        `
-      )
-      .get(key) as
+    const row = this.database.prepare(`SELECT value_json AS valueJson FROM app_state WHERE key = ?`).get(key) as
       | {
           valueJson: string
         }
@@ -26,7 +17,6 @@ export class AppStateRepository {
     if (!row) {
       return undefined
     }
-
     return JSON.parse(row.valueJson) as T
   }
 
@@ -35,18 +25,14 @@ export class AppStateRepository {
    */
   set<T>(key: string, value: T): void {
     this.validateKey(key)
-
     if (value === undefined) {
       throw new TypeError("应用状态不能保存 undefined")
     }
-
     const now = new Date().toISOString()
 
     this.database
       .prepare(
-        `
-        INSERT INTO app_state (
-          key,
+        `INSERT INTO app_state (key,
           value_json,
           created_at,
           updated_at
@@ -68,7 +54,6 @@ export class AppStateRepository {
    */
   delete(key: string): boolean {
     this.validateKey(key)
-
     const result = this.database
       .prepare(
         `
@@ -77,7 +62,6 @@ export class AppStateRepository {
         `
       )
       .run(key)
-
     return result.changes > 0
   }
 

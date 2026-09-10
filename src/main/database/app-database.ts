@@ -1,55 +1,26 @@
 import { EnhancedDatabase } from "./enhanced-database"
 import { DATABASE_MIGRATIONS, DATABASE_VERSION } from "./database-schema"
-import { WorkspaceRepository } from "./repositories/workspace.repository"
 import { AppStateRepository } from "./repositories/app-state.repository"
-import { DeviceRepository } from "./repositories/device.repository"
 
-/**
- * Vessel 应用数据库。
- *
- * 负责：
- * - 配置 SQLite 连接；
- * - 执行数据库版本迁移；
- * - 创建各业务 Repository；
- * - 提供数据库文件路径。
- */
 export class AppDatabase extends EnhancedDatabase {
   /**
-   * 工作区数据仓库。
-   */
-  readonly workspaceRepository: WorkspaceRepository
-
-  /**
-   * 应用状态数据仓库。
+   * @description 应用状态数据仓库。
    */
   readonly appStateRepository: AppStateRepository
 
   /**
-   * 设备数据仓库。
-   */
-  readonly deviceRepository: DeviceRepository
-
-  /**
-   * 创建 Vessel 数据库。
-   *
+   * @description 创建 Vessel 数据库。
    * @param databasePath SQLite 数据库文件绝对路径。
    */
   constructor(databasePath: string) {
     super(databasePath)
-
-    /**
-     * Repository 创建前必须先完成数据库配置和迁移，
-     * 保证业务表已经存在。
-     */
     this.configureDatabase()
     this.migrateDatabase()
-    this.workspaceRepository = new WorkspaceRepository(this.database)
     this.appStateRepository = new AppStateRepository(this.database)
-    this.deviceRepository = new DeviceRepository(this.database)
   }
 
   /**
-   * 配置 SQLite 连接。
+   * @description 配置 SQLite 连接。
    */
   private configureDatabase(): void {
     /**
