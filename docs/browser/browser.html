@@ -1,0 +1,1158 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>内嵌浏览器 - Vessel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    background: #faf9f7;
+    color: #1c1917;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ========== 标签页栏 ========== */
+  .tab-bar {
+    display: flex;
+    align-items: flex-end;
+    background: #f5f5f4;
+    padding: 6px 8px 0;
+    gap: 2px;
+    border-bottom: 1px solid #e7e5e4;
+    min-height: 40px;
+  }
+  .tab {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: #e7e5e4;
+    border-radius: 8px 8px 0 0;
+    font-size: 12.5px;
+    color: #57534e;
+    cursor: pointer;
+    transition: all 0.15s;
+    max-width: 200px;
+    min-width: 100px;
+    position: relative;
+    border: 1px solid transparent;
+    border-bottom: none;
+  }
+  .tab:hover {
+    background: #d6d3d1;
+  }
+  .tab.active {
+    background: #fff;
+    color: #1c1917;
+    font-weight: 600;
+    border-color: #e7e5e4;
+  }
+  .tab-favicon {
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    background: #f0fdf4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: #16a34a;
+  }
+  .tab-title {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .tab-close {
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #a8a29e;
+    flex-shrink: 0;
+    transition: all 0.12s;
+  }
+  .tab-close:hover {
+    background: #e7e5e4;
+    color: #44403c;
+  }
+  .tab-add {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #78716c;
+    margin-left: 4px;
+    margin-bottom: 4px;
+    transition: all 0.15s;
+  }
+  .tab-add:hover {
+    background: #e7e5e4;
+    color: #1c1917;
+  }
+
+  /* ========== 工具栏 ========== */
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    background: #fff;
+    border-bottom: 1px solid #f0efed;
+  }
+  .tool-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    color: #57534e;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.12s;
+    flex-shrink: 0;
+  }
+  .tool-btn:hover:not(:disabled) {
+    background: #faf9f7;
+    color: #1c1917;
+  }
+  .tool-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+  .tool-btn.active {
+    background: #f0fdf4;
+    color: #16a34a;
+  }
+
+  /* 地址栏 */
+  .address-bar {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    background: #faf9f7;
+    border: 1px solid #e7e5e4;
+    border-radius: 10px;
+    padding: 0 10px;
+    height: 36px;
+    transition: all 0.15s;
+    margin: 0 4px;
+  }
+  .address-bar:focus-within {
+    border-color: #16a34a;
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.1);
+  }
+  .address-secure {
+    color: #16a34a;
+    display: flex;
+    align-items: center;
+    margin-right: 8px;
+    flex-shrink: 0;
+  }
+  .address-input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    font-size: 13px;
+    color: #1c1917;
+    outline: none;
+    font-family: inherit;
+  }
+  .address-input::placeholder {
+    color: #a8a29e;
+  }
+  .address-actions {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    margin-left: 8px;
+  }
+  .address-action-btn {
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    border: none;
+    background: transparent;
+    color: #a8a29e;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.12s;
+  }
+  .address-action-btn:hover {
+    background: #e7e5e4;
+    color: #44403c;
+  }
+  .address-action-btn.active {
+    color: #16a34a;
+  }
+
+  /* 工具栏分隔线 */
+  .toolbar-divider {
+    width: 1px;
+    height: 20px;
+    background: #e7e5e4;
+    margin: 0 4px;
+    flex-shrink: 0;
+  }
+
+  /* ========== 书签栏 ========== */
+  .bookmark-bar {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 4px 12px;
+    background: #fff;
+    border-bottom: 1px solid #f0efed;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  .bookmark-bar::-webkit-scrollbar {
+    height: 0;
+  }
+  .bookmark-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    color: #57534e;
+    cursor: pointer;
+    transition: all 0.12s;
+    flex-shrink: 0;
+  }
+  .bookmark-item:hover {
+    background: #faf9f7;
+    color: #1c1917;
+  }
+  .bookmark-icon {
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  /* ========== 网页内容区 ========== */
+  .browser-content {
+    flex: 1;
+    overflow: hidden;
+    background: #fff;
+    position: relative;
+  }
+  .webview-container {
+    width: 100%;
+    height: 100%;
+    border: none;
+    background: #fff;
+  }
+
+  /* 加载进度条 */
+  .loading-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #16a34a, #4ade80);
+    z-index: 100;
+    transition: width 0.3s ease;
+    box-shadow: 0 0 8px rgba(22, 163, 74, 0.4);
+  }
+
+  /* 新标签页内容 */
+  .new-tab-page {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(180deg, #faf9f7 0%, #f5f5f4 100%);
+    padding: 40px;
+  }
+  .new-tab-logo {
+    width: 72px;
+    height: 72px;
+    background: #fff;
+    border: 1px solid #e7e5e4;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    color: #16a34a;
+  }
+  .new-tab-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: #1c1917;
+    margin-bottom: 8px;
+  }
+  .new-tab-subtitle {
+    font-size: 14px;
+    color: #78716c;
+    margin-bottom: 32px;
+  }
+  .new-tab-search {
+    width: 100%;
+    max-width: 560px;
+    display: flex;
+    align-items: center;
+    background: #fff;
+    border: 1px solid #e7e5e4;
+    border-radius: 12px;
+    padding: 0 16px;
+    height: 48px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    margin-bottom: 32px;
+    transition: all 0.15s;
+  }
+  .new-tab-search:focus-within {
+    border-color: #16a34a;
+    box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.1), 0 2px 8px rgba(0,0,0,0.04);
+  }
+  .new-tab-search input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    font-size: 15px;
+    outline: none;
+    font-family: inherit;
+    color: #1c1917;
+  }
+  .new-tab-search input::placeholder {
+    color: #a8a29e;
+  }
+
+  /* 快捷方式 */
+  .shortcuts {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    max-width: 560px;
+    width: 100%;
+  }
+  .shortcut {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 16px 8px;
+    background: #fff;
+    border: 1px solid #e7e5e4;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .shortcut:hover {
+    border-color: #bbf7d0;
+    box-shadow: 0 4px 12px rgba(22, 163, 74, 0.1);
+    transform: translateY(-2px);
+  }
+  .shortcut-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: 700;
+    color: #fff;
+  }
+  .shortcut-name {
+    font-size: 12px;
+    color: #57534e;
+    font-weight: 500;
+  }
+
+  /* ========== 状态栏 ========== */
+  .status-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 12px;
+    background: #f5f5f4;
+    border-top: 1px solid #e7e5e4;
+    font-size: 11px;
+    color: #78716c;
+    height: 24px;
+  }
+  .status-left, .status-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .status-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  /* ========== 下拉菜单 ========== */
+  .dropdown-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 4px;
+    background: #fff;
+    border: 1px solid #e7e5e4;
+    border-radius: 10px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+    padding: 6px;
+    min-width: 220px;
+    z-index: 1000;
+    display: none;
+  }
+  .dropdown-menu.show {
+    display: block;
+  }
+  .dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 7px;
+    font-size: 13px;
+    color: #44403c;
+    cursor: pointer;
+    transition: all 0.12s;
+  }
+  .dropdown-item:hover {
+    background: #faf9f7;
+  }
+  .dropdown-item.danger {
+    color: #dc2626;
+  }
+  .dropdown-item.danger:hover {
+    background: #fef2f2;
+  }
+  .dropdown-item svg {
+    flex-shrink: 0;
+    color: #78716c;
+  }
+  .dropdown-item.danger svg {
+    color: #dc2626;
+  }
+  .dropdown-shortcut {
+    margin-left: auto;
+    font-size: 11px;
+    color: #a8a29e;
+    font-family: monospace;
+  }
+  .dropdown-divider {
+    height: 1px;
+    background: #f0efed;
+    margin: 4px 0;
+  }
+
+  /* 缩放指示器 */
+  .zoom-indicator {
+    position: absolute;
+    bottom: 32px;
+    right: 16px;
+    background: #fff;
+    border: 1px solid #e7e5e4;
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 12px;
+    color: #57534e;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    z-index: 100;
+    display: none;
+    align-items: center;
+    gap: 8px;
+  }
+  .zoom-indicator.show {
+    display: flex;
+  }
+
+  /* 模拟网页内容 */
+  .mock-webpage {
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+    background: #fff;
+  }
+  .mock-header {
+    background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+    color: #fff;
+    padding: 48px 40px;
+  }
+  .mock-header h1 {
+    font-size: 32px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .mock-header p {
+    font-size: 16px;
+    opacity: 0.9;
+  }
+  .mock-content {
+    padding: 32px 40px;
+    max-width: 900px;
+  }
+  .mock-content h2 {
+    font-size: 22px;
+    font-weight: 700;
+    color: #1c1917;
+    margin-bottom: 16px;
+    margin-top: 24px;
+  }
+  .mock-content p {
+    font-size: 15px;
+    line-height: 1.7;
+    color: #44403c;
+    margin-bottom: 16px;
+  }
+  .mock-card-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin: 24px 0;
+  }
+  .mock-card {
+    background: #faf9f7;
+    border: 1px solid #e7e5e4;
+    border-radius: 12px;
+    padding: 20px;
+  }
+  .mock-card h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1c1917;
+    margin-bottom: 8px;
+  }
+  .mock-card p {
+    font-size: 13px;
+    color: #78716c;
+    line-height: 1.6;
+  }
+</style>
+</head>
+<body>
+
+<!-- 标签页栏 -->
+<div class="tab-bar" id="tabBar">
+  <div class="tab active" data-tab="0">
+    <div class="tab-favicon">
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+    </div>
+    <span class="tab-title">新标签页</span>
+    <div class="tab-close" onclick="closeTab(event, 0)">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+    </div>
+  </div>
+  <div class="tab" data-tab="1">
+    <div class="tab-favicon" style="background:#eff6ff;color:#2563eb;">
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+    </div>
+    <span class="tab-title">Vessel 官网</span>
+    <div class="tab-close" onclick="closeTab(event, 1)">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+    </div>
+  </div>
+  <div class="tab-add" onclick="addTab()" title="新建标签页">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+  </div>
+</div>
+
+<!-- 工具栏 -->
+<div class="toolbar">
+  <button class="tool-btn" id="backBtn" onclick="goBack()" title="后退 (Alt+←)" disabled>
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+  </button>
+  <button class="tool-btn" id="forwardBtn" onclick="goForward()" title="前进 (Alt+→)" disabled>
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"/><path d="M5 12h14"/></svg>
+  </button>
+  <button class="tool-btn" id="reloadBtn" onclick="reloadPage()" title="刷新 (Ctrl+R)">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+  </button>
+  <button class="tool-btn" onclick="goHome()" title="主页">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+  </button>
+
+  <div class="address-bar">
+    <div class="address-secure" title="安全连接">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    </div>
+    <input type="text" class="address-input" id="addressInput" placeholder="搜索或输入网址" value="vessel.app" onkeydown="handleAddressKey(event)">
+    <div class="address-actions">
+      <button class="address-action-btn" id="bookmarkBtn" onclick="toggleBookmark()" title="添加书签">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="toolbar-divider"></div>
+
+  <button class="tool-btn" onclick="zoomIn()" title="放大 (Ctrl++)">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/><path d="M11 8v6"/><path d="M8 11h6"/></svg>
+  </button>
+  <button class="tool-btn" onclick="zoomOut()" title="缩小 (Ctrl+-)">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/><path d="M8 11h6"/></svg>
+  </button>
+  <button class="tool-btn" onclick="resetZoom()" title="重置缩放 (Ctrl+0)">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>
+  </button>
+
+  <div class="toolbar-divider"></div>
+
+  <button class="tool-btn" onclick="toggleDevTools()" title="开发者工具">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 16 4-4-4-4"/><path d="m6 8-4 4 4 4"/><path d="m14.5 4-5 16"/></svg>
+  </button>
+
+  <div style="position:relative;">
+    <button class="tool-btn" onclick="toggleMenu()" title="更多">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+    </button>
+    <div class="dropdown-menu" id="moreMenu">
+      <div class="dropdown-item" onclick="navigateTo('https://vessel.app')">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+        新标签页
+        <span class="dropdown-shortcut">Ctrl+T</span>
+      </div>
+      <div class="dropdown-item" onclick="showHistory()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>
+        历史记录
+        <span class="dropdown-shortcut">Ctrl+H</span>
+      </div>
+      <div class="dropdown-item" onclick="showDownloads()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+        下载内容
+        <span class="dropdown-shortcut">Ctrl+J</span>
+      </div>
+      <div class="dropdown-divider"></div>
+      <div class="dropdown-item" onclick="zoomIn()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/><path d="M11 8v6"/><path d="M8 11h6"/></svg>
+        放大
+        <span class="dropdown-shortcut">Ctrl++</span>
+      </div>
+      <div class="dropdown-item" onclick="zoomOut()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/><path d="M8 11h6"/></svg>
+        缩小
+        <span class="dropdown-shortcut">Ctrl+-</span>
+      </div>
+      <div class="dropdown-divider"></div>
+      <div class="dropdown-item" onclick="printPage()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg>
+        打印
+        <span class="dropdown-shortcut">Ctrl+P</span>
+      </div>
+      <div class="dropdown-item" onclick="screenshotPage()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+        截图
+        <span class="dropdown-shortcut">Ctrl+Shift+S</span>
+      </div>
+      <div class="dropdown-divider"></div>
+      <div class="dropdown-item danger" onclick="clearCache()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+        清除浏览数据
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 书签栏 -->
+<div class="bookmark-bar">
+  <div class="bookmark-item" onclick="navigateTo('https://vessel.app')">
+    <div class="bookmark-icon" style="background:#f0fdf4;color:#16a34a;">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+    </div>
+    Vessel 官网
+  </div>
+  <div class="bookmark-item" onclick="navigateTo('https://github.com')">
+    <div class="bookmark-icon" style="background:#f5f5f4;color:#1c1917;">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+    </div>
+    GitHub
+  </div>
+  <div class="bookmark-item" onclick="navigateTo('https://stackoverflow.com')">
+    <div class="bookmark-icon" style="background:#fff7ed;color:#ea580c;">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M15.725 0l-1.72 1.277 6.39 8.588 1.716-1.277L15.725 0zm-3.94 3.418l-1.369 1.644 8.225 6.85 1.369-1.644-8.225-6.85zm-3.15 4.465l-.905 1.94 9.702 4.517.904-1.94-9.701-4.517zm-1.85 4.86l-.44 2.093 10.473 2.201.44-2.092-10.473-2.203zM1.5 16.0h15v5H1.5v-5zm16.5 0v5h2v-5h-2z"/></svg>
+    </div>
+    Stack Overflow
+  </div>
+  <div class="bookmark-item" onclick="navigateTo('https://developer.mozilla.org')">
+    <div class="bookmark-icon" style="background:#eff6ff;color:#2563eb;">
+      <span style="font-size:9px;font-weight:700;">MDN</span>
+    </div>
+    MDN Web Docs
+  </div>
+  <div class="bookmark-item" onclick="navigateTo('https://react.dev')">
+    <div class="bookmark-icon" style="background:#ecfeff;color:#0891b2;">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="2"/><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>
+    </div>
+    React
+  </div>
+</div>
+
+<!-- 网页内容区 -->
+<div class="browser-content" id="browserContent">
+  <div class="loading-bar" id="loadingBar" style="width:0%;"></div>
+
+  <!-- 新标签页 -->
+  <div class="new-tab-page" id="newTabPage">
+    <div class="new-tab-logo">
+      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+    </div>
+    <h1 class="new-tab-title">Vessel 浏览器</h1>
+    <p class="new-tab-subtitle">快速搜索或访问常用网站</p>
+    <div class="new-tab-search">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a8a29e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:10px;flex-shrink:0;"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      <input type="text" placeholder="搜索或输入网址，按回车访问" onkeydown="handleNewTabSearch(event)">
+    </div>
+    <div class="shortcuts">
+      <div class="shortcut" onclick="navigateTo('https://vessel.app')">
+        <div class="shortcut-icon" style="background:linear-gradient(135deg,#16a34a,#15803d);">V</div>
+        <span class="shortcut-name">Vessel</span>
+      </div>
+      <div class="shortcut" onclick="navigateTo('https://github.com')">
+        <div class="shortcut-icon" style="background:#1c1917;">G</div>
+        <span class="shortcut-name">GitHub</span>
+      </div>
+      <div class="shortcut" onclick="navigateTo('https://stackoverflow.com')">
+        <div class="shortcut-icon" style="background:#ea580c;">S</div>
+        <span class="shortcut-name">StackOverflow</span>
+      </div>
+      <div class="shortcut" onclick="navigateTo('https://developer.mozilla.org')">
+        <div class="shortcut-icon" style="background:#2563eb;">M</div>
+        <span class="shortcut-name">MDN Docs</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 模拟网页（默认隐藏） -->
+  <div class="mock-webpage" id="mockWebpage" style="display:none;">
+    <div class="mock-header">
+      <h1>Vessel - 现代化笔记应用</h1>
+      <p>简洁、高效、跨平台的知识管理工具</p>
+    </div>
+    <div class="mock-content">
+      <h2>为什么选择 Vessel？</h2>
+      <p>Vessel 是一款专为开发者和知识工作者设计的现代化笔记应用。基于 Electron + React + TypeScript 构建，支持 Windows、macOS 和 Linux 平台。内置 Markdown 编辑器、SQLite 本地存储、文件树管理等功能，让你的知识管理更加高效。</p>
+      <div class="mock-card-grid">
+        <div class="mock-card">
+          <h3>本地优先</h3>
+          <p>所有数据存储在本地 SQLite 数据库中，无需联网即可使用，保护你的隐私安全。</p>
+        </div>
+        <div class="mock-card">
+          <h3>Markdown 编辑</h3>
+          <p>内置功能完善的 Markdown 编辑器，支持实时预览、语法高亮、数学公式等。</p>
+        </div>
+        <div class="mock-card">
+          <h3>开发者工具</h3>
+          <p>内置调试面板，可查看控制台日志、性能监控、系统信息、数据库内容等。</p>
+        </div>
+      </div>
+      <h2>快速开始</h2>
+      <p>下载安装后，打开应用选择或创建工作区，即可开始记录你的想法和知识。支持文件夹管理、标签分类、全文搜索等功能，帮助你快速组织和检索内容。</p>
+      <p>Vessel 还支持内嵌浏览器功能，可以在应用内直接访问网页，方便你在记录笔记的同时查阅资料。支持多标签页、书签管理、开发者工具等浏览器常用功能。</p>
+    </div>
+  </div>
+</div>
+
+<!-- 缩放指示器 -->
+<div class="zoom-indicator" id="zoomIndicator">
+  <span id="zoomLevel">100%</span>
+  <button onclick="resetZoom()" style="border:none;background:transparent;color:#16a34a;cursor:pointer;font-size:11px;font-weight:600;">重置</button>
+</div>
+
+<!-- 状态栏 -->
+<div class="status-bar">
+  <div class="status-left">
+    <div class="status-item">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      <span id="statusUrl">新标签页</span>
+    </div>
+  </div>
+  <div class="status-right">
+    <div class="status-item">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      安全连接
+    </div>
+    <div class="status-item" id="statusZoom">100%</div>
+  </div>
+</div>
+
+<script>
+// ========== 状态 ==========
+let currentTab = 0
+let tabs = [
+  { title: '新标签页', url: '', isNewTab: true },
+  { title: 'Vessel 官网', url: 'https://vessel.app', isNewTab: false }
+]
+let history = [[]]
+let historyIndex = [0]
+let zoomLevel = 100
+let isBookmarked = false
+
+// ========== 标签页 ==========
+function switchTab(index) {
+  currentTab = index
+  document.querySelectorAll('.tab').forEach((tab, i) => {
+    tab.classList.toggle('active', i === index)
+  })
+  updateContent()
+}
+
+function addTab() {
+  const newIndex = tabs.length
+  tabs.push({ title: '新标签页', url: '', isNewTab: true })
+  history.push([])
+  historyIndex.push(0)
+
+  const tabBar = document.getElementById('tabBar')
+  const addBtn = tabBar.querySelector('.tab-add')
+  const newTab = document.createElement('div')
+  newTab.className = 'tab active'
+  newTab.dataset.tab = newIndex
+  newTab.innerHTML = `
+    <div class="tab-favicon">
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+    </div>
+    <span class="tab-title">新标签页</span>
+    <div class="tab-close" onclick="closeTab(event, ${newIndex})">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+    </div>
+  `
+  newTab.onclick = () => switchTab(newIndex)
+  tabBar.insertBefore(newTab, addBtn)
+
+  document.querySelectorAll('.tab').forEach((tab, i) => {
+    tab.classList.toggle('active', i === newIndex)
+  })
+  currentTab = newIndex
+  updateContent()
+}
+
+function closeTab(event, index) {
+  event.stopPropagation()
+  if (tabs.length <= 1) return
+
+  tabs.splice(index, 1)
+  history.splice(index, 1)
+  historyIndex.splice(index, 1)
+
+  const tabElements = document.querySelectorAll('.tab')
+  tabElements[index].remove()
+
+  // 重新编号
+  document.querySelectorAll('.tab').forEach((tab, i) => {
+    tab.dataset.tab = i
+    tab.onclick = () => switchTab(i)
+    const closeBtn = tab.querySelector('.tab-close')
+    if (closeBtn) {
+      closeBtn.onclick = (e) => closeTab(e, i)
+    }
+  })
+
+  if (currentTab >= tabs.length) {
+    currentTab = tabs.length - 1
+  }
+  document.querySelectorAll('.tab').forEach((tab, i) => {
+    tab.classList.toggle('active', i === currentTab)
+  })
+  updateContent()
+}
+
+// 绑定标签页点击
+document.querySelectorAll('.tab').forEach((tab, i) => {
+  tab.onclick = () => switchTab(i)
+})
+
+// ========== 导航 ==========
+function navigateTo(url) {
+  const tab = tabs[currentTab]
+  tab.url = url
+  tab.isNewTab = false
+  tab.title = url.replace('https://', '').replace('http://', '').split('/')[0]
+
+  // 记录历史
+  if (!history[currentTab]) history[currentTab] = []
+  history[currentTab] = history[currentTab].slice(0, historyIndex[currentTab] + 1)
+  history[currentTab].push(url)
+  historyIndex[currentTab] = history[currentTab].length - 1
+
+  // 更新标签页标题
+  const tabElements = document.querySelectorAll('.tab')
+  if (tabElements[currentTab]) {
+    tabElements[currentTab].querySelector('.tab-title').textContent = tab.title
+  }
+
+  // 更新地址栏
+  document.getElementById('addressInput').value = url.replace('https://', '').replace('http://', '')
+
+  // 显示加载动画
+  showLoading()
+
+  // 更新内容
+  updateContent()
+  updateNavButtons()
+}
+
+function goBack() {
+  if (historyIndex[currentTab] > 0) {
+    historyIndex[currentTab]--
+    const url = history[currentTab][historyIndex[currentTab]]
+    tabs[currentTab].url = url
+    document.getElementById('addressInput').value = url ? url.replace('https://', '').replace('http://', '') : ''
+    showLoading()
+    updateContent()
+    updateNavButtons()
+  }
+}
+
+function goForward() {
+  if (history[currentTab] && historyIndex[currentTab] < history[currentTab].length - 1) {
+    historyIndex[currentTab]++
+    const url = history[currentTab][historyIndex[currentTab]]
+    tabs[currentTab].url = url
+    document.getElementById('addressInput').value = url ? url.replace('https://', '').replace('http://', '') : ''
+    showLoading()
+    updateContent()
+    updateNavButtons()
+  }
+}
+
+function reloadPage() {
+  showLoading()
+  updateContent()
+}
+
+function goHome() {
+  tabs[currentTab].isNewTab = true
+  tabs[currentTab].url = ''
+  tabs[currentTab].title = '新标签页'
+  document.getElementById('addressInput').value = ''
+  const tabElements = document.querySelectorAll('.tab')
+  if (tabElements[currentTab]) {
+    tabElements[currentTab].querySelector('.tab-title').textContent = '新标签页'
+  }
+  updateContent()
+}
+
+function handleAddressKey(event) {
+  if (event.key === 'Enter') {
+    let url = event.target.value.trim()
+    if (!url) return
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      if (url.includes('.') && !url.includes(' ')) {
+        url = 'https://' + url
+      } else {
+        url = 'https://www.google.com/search?q=' + encodeURIComponent(url)
+      }
+    }
+    navigateTo(url)
+  }
+}
+
+function handleNewTabSearch(event) {
+  if (event.key === 'Enter') {
+    let url = event.target.value.trim()
+    if (!url) return
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      if (url.includes('.') && !url.includes(' ')) {
+        url = 'https://' + url
+      } else {
+        url = 'https://www.google.com/search?q=' + encodeURIComponent(url)
+      }
+    }
+    navigateTo(url)
+  }
+}
+
+// ========== 内容更新 ==========
+function updateContent() {
+  const tab = tabs[currentTab]
+  const newTabPage = document.getElementById('newTabPage')
+  const mockWebpage = document.getElementById('mockWebpage')
+  const statusUrl = document.getElementById('statusUrl')
+
+  if (tab.isNewTab || !tab.url) {
+    newTabPage.style.display = 'flex'
+    mockWebpage.style.display = 'none'
+    statusUrl.textContent = '新标签页'
+  } else {
+    newTabPage.style.display = 'none'
+    mockWebpage.style.display = 'block'
+    statusUrl.textContent = tab.url
+  }
+}
+
+function updateNavButtons() {
+  const backBtn = document.getElementById('backBtn')
+  const forwardBtn = document.getElementById('forwardBtn')
+  backBtn.disabled = !(history[currentTab] && historyIndex[currentTab] > 0)
+  forwardBtn.disabled = !(history[currentTab] && historyIndex[currentTab] < history[currentTab].length - 1)
+}
+
+// ========== 加载动画 ==========
+function showLoading() {
+  const bar = document.getElementById('loadingBar')
+  bar.style.width = '0%'
+  bar.style.opacity = '1'
+  setTimeout(() => { bar.style.width = '30%' }, 50)
+  setTimeout(() => { bar.style.width = '60%' }, 200)
+  setTimeout(() => { bar.style.width = '90%' }, 400)
+  setTimeout(() => {
+    bar.style.width = '100%'
+    setTimeout(() => { bar.style.opacity = '0' }, 200)
+  }, 600)
+}
+
+// ========== 缩放 ==========
+function zoomIn() {
+  if (zoomLevel < 200) {
+    zoomLevel += 10
+    applyZoom()
+  }
+}
+
+function zoomOut() {
+  if (zoomLevel > 50) {
+    zoomLevel -= 10
+    applyZoom()
+  }
+}
+
+function resetZoom() {
+  zoomLevel = 100
+  applyZoom()
+  document.getElementById('zoomIndicator').classList.remove('show')
+}
+
+function applyZoom() {
+  const content = document.getElementById('browserContent')
+  content.style.transform = `scale(${zoomLevel / 100})`
+  content.style.transformOrigin = 'top left'
+  document.getElementById('zoomLevel').textContent = zoomLevel + '%'
+  document.getElementById('statusZoom').textContent = zoomLevel + '%'
+  if (zoomLevel !== 100) {
+    document.getElementById('zoomIndicator').classList.add('show')
+  } else {
+    document.getElementById('zoomIndicator').classList.remove('show')
+  }
+}
+
+// ========== 书签 ==========
+function toggleBookmark() {
+  isBookmarked = !isBookmarked
+  const btn = document.getElementById('bookmarkBtn')
+  btn.classList.toggle('active', isBookmarked)
+  if (isBookmarked) {
+    btn.querySelector('svg').setAttribute('fill', 'currentColor')
+  } else {
+    btn.querySelector('svg').setAttribute('fill', 'none')
+  }
+}
+
+// ========== 菜单 ==========
+function toggleMenu() {
+  const menu = document.getElementById('moreMenu')
+  menu.classList.toggle('show')
+}
+
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.dropdown-menu') && !e.target.closest('[onclick*="toggleMenu"]')) {
+    document.getElementById('moreMenu').classList.remove('show')
+  }
+})
+
+// ========== 其他功能 ==========
+function showHistory() {
+  alert('历史记录功能\n\n最近访问：\n1. Vessel 官网 - 刚刚\n2. GitHub - 5分钟前\n3. Stack Overflow - 10分钟前\n4. MDN Web Docs - 30分钟前')
+  document.getElementById('moreMenu').classList.remove('show')
+}
+
+function showDownloads() {
+  alert('下载内容\n\n暂无下载记录')
+  document.getElementById('moreMenu').classList.remove('show')
+}
+
+function printPage() {
+  alert('打印功能：正在准备打印...')
+  document.getElementById('moreMenu').classList.remove('show')
+}
+
+function screenshotPage() {
+  alert('截图功能：已捕获当前页面截图')
+  document.getElementById('moreMenu').classList.remove('show')
+}
+
+function clearCache() {
+  if (confirm('确定要清除浏览数据吗？\n\n这将清除：\n- 浏览历史\n- 下载记录\n- Cookie 和其他网站数据\n- 缓存的图片和文件')) {
+    alert('浏览数据已清除')
+  }
+  document.getElementById('moreMenu').classList.remove('show')
+}
+
+function toggleDevTools() {
+  alert('开发者工具：正在打开 DevTools...')
+}
+
+// ========== 键盘快捷键 ==========
+document.addEventListener('keydown', (e) => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === 't' || e.key === 'T') {
+      e.preventDefault()
+      addTab()
+    } else if (e.key === 'r' || e.key === 'R') {
+      e.preventDefault()
+      reloadPage()
+    } else if (e.key === '=' || e.key === '+') {
+      e.preventDefault()
+      zoomIn()
+    } else if (e.key === '-') {
+      e.preventDefault()
+      zoomOut()
+    } else if (e.key === '0') {
+      e.preventDefault()
+      resetZoom()
+    } else if (e.key === 'l' || e.key === 'L') {
+      e.preventDefault()
+      document.getElementById('addressInput').focus()
+      document.getElementById('addressInput').select()
+    }
+  }
+  if (e.altKey && e.key === 'ArrowLeft') {
+    e.preventDefault()
+    goBack()
+  }
+  if (e.altKey && e.key === 'ArrowRight') {
+    e.preventDefault()
+    goForward()
+  }
+})
+
+// 初始化
+updateContent()
+updateNavButtons()
+</script>
+</body>
+</html>

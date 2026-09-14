@@ -62,7 +62,81 @@ export const routes: RouteRecord[] = [
     meta: {
       title: "开发者工具",
       hidden: true
-    }
+    },
+    children: [
+      {
+        path: "console",
+        name: "devtools-console",
+        component: ConsolePage,
+        meta: {
+          title: "控制台",
+          icon: "Terminal",
+          description: "Console 日志查看与监听控制",
+          group: "主要功能",
+          order: 1
+        }
+      },
+      {
+        path: "performance",
+        name: "devtools-performance",
+        component: PerformancePage,
+        meta: {
+          title: "性能监控",
+          icon: "BarChart3",
+          description: "CPU、内存、渲染性能实时监控",
+          group: "主要功能",
+          order: 2
+        }
+      },
+      {
+        path: "system",
+        name: "devtools-system",
+        component: SystemPage,
+        meta: {
+          title: "系统信息",
+          icon: "Monitor",
+          description: "操作系统、运行环境、依赖版本信息",
+          group: "主要功能",
+          order: 3
+        }
+      },
+      {
+        path: "tools",
+        name: "devtools-tools",
+        component: ToolsPage,
+        meta: {
+          title: "开发工具",
+          icon: "Wrench",
+          description: "常用开发工具集合",
+          group: "工具",
+          order: 1
+        }
+      },
+      {
+        path: "storage",
+        name: "devtools-storage",
+        component: StoragePage,
+        meta: {
+          title: "数据存储",
+          icon: "Database",
+          description: "SQLite 数据库表查看",
+          group: "工具",
+          order: 2
+        }
+      },
+      {
+        path: "navigate",
+        name: "devtools-navigate",
+        component: NavigatePage,
+        meta: {
+          title: "页面跳转",
+          icon: "FolderOpen",
+          description: "快速跳转到应用各页面",
+          group: "工具",
+          order: 3
+        }
+      }
+    ]
   }
 ]
 

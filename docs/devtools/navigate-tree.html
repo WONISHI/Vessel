@@ -1,0 +1,1145 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>页面跳转 - 调试面板</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    background: #faf9f7;
+    color: #1c1917;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* ========== 页面头部 ========== */
+  .page-header {
+    padding: 12px 20px;
+    border-bottom: 1px solid #f0efed;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .page-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .page-title h1 {
+    font-size: 18px;
+    font-weight: 700;
+    color: #1c1917;
+  }
+  .page-title p {
+    font-size: 12px;
+    color: #78716c;
+    margin-top: 2px;
+  }
+  .page-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    background: #f0fdf4;
+    color: #16a34a;
+    border: 1px solid #bbf7d0;
+  }
+
+  /* ========== 主体布局 ========== */
+  .main-body {
+    display: flex;
+    height: calc(100vh - 61px);
+    overflow: hidden;
+  }
+
+  /* ========== 左侧树形面板 ========== */
+  .tree-panel {
+    width: 340px;
+    min-width: 340px;
+    background: #fff;
+    border-right: 1px solid #f0efed;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .tree-search {
+    padding: 12px;
+    border-bottom: 1px solid #f0efed;
+  }
+  .search-input {
+    width: 100%;
+    padding: 8px 12px 8px 36px;
+    border: 1px solid #e7e5e4;
+    border-radius: 8px;
+    font-size: 13px;
+    background: #faf9f7;
+    color: #1c1917;
+    outline: none;
+    transition: all 0.15s;
+    font-family: inherit;
+  }
+  .search-input:focus {
+    border-color: #16a34a;
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.1);
+  }
+  .search-input::placeholder {
+    color: #a8a29e;
+  }
+  .search-wrapper {
+    position: relative;
+  }
+  .search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #a8a29e;
+    pointer-events: none;
+  }
+
+  .tree-toolbar {
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid #f0efed;
+  }
+  .tree-count {
+    font-size: 11px;
+    color: #78716c;
+    font-weight: 500;
+  }
+  .tree-actions {
+    display: flex;
+    gap: 4px;
+  }
+  .tree-action-btn {
+    padding: 4px 8px;
+    border: 1px solid #e7e5e4;
+    border-radius: 6px;
+    background: #fff;
+    color: #57534e;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: inherit;
+    font-weight: 500;
+  }
+  .tree-action-btn:hover {
+    background: #faf9f7;
+    border-color: #d6d3d1;
+    color: #1c1917;
+  }
+
+  .tree-container {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px;
+  }
+  .tree-container::-webkit-scrollbar {
+    width: 6px;
+  }
+  .tree-container::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .tree-container::-webkit-scrollbar-thumb {
+    background: #d6d3d1;
+    border-radius: 3px;
+  }
+
+  /* ========== 树节点 ========== */
+  .tree-node {
+    user-select: none;
+  }
+  .tree-node-content {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 8px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.12s;
+    position: relative;
+  }
+  .tree-node-content:hover {
+    background: #faf9f7;
+  }
+  .tree-node-content.active {
+    background: #f0fdf4;
+  }
+  .tree-node-content.active .tree-node-label {
+    color: #16a34a;
+    font-weight: 600;
+  }
+
+  .tree-expand-btn {
+    width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    color: #a8a29e;
+    padding: 0;
+    flex-shrink: 0;
+    transition: transform 0.15s;
+  }
+  .tree-expand-btn:hover {
+    color: #57534e;
+  }
+  .tree-expand-btn.expanded {
+    transform: rotate(90deg);
+  }
+  .tree-expand-btn.leaf {
+    visibility: hidden;
+  }
+
+  .tree-node-icon {
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    border-radius: 5px;
+    padding: 3px;
+  }
+  .tree-node-icon.group {
+    background: #f5f5f4;
+    color: #78716c;
+  }
+  .tree-node-icon.route {
+    background: #f0fdf4;
+    color: #16a34a;
+  }
+  .tree-node-icon.hidden {
+    background: #fef3c7;
+    color: #d97706;
+  }
+
+  .tree-node-label {
+    flex: 1;
+    font-size: 13px;
+    color: #44403c;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .tree-node-path {
+    font-size: 10.5px;
+    color: #a8a29e;
+    font-family: "SF Mono", "Monaco", "Consolas", monospace;
+    background: #faf9f7;
+    padding: 2px 6px;
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+  .tree-node-badge {
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+  .tree-node-badge.protected {
+    background: #fef2f2;
+    color: #dc2626;
+  }
+  .tree-node-badge.hidden {
+    background: #fffbeb;
+    color: #d97706;
+  }
+
+  .tree-children {
+    margin-left: 18px;
+    border-left: 1px solid #f0efed;
+    padding-left: 4px;
+    overflow: hidden;
+    transition: max-height 0.2s ease;
+  }
+  .tree-children.collapsed {
+    display: none;
+  }
+
+  /* ========== 右侧详情面板 ========== */
+  .detail-panel {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+  }
+  .detail-panel::-webkit-scrollbar {
+    width: 8px;
+  }
+  .detail-panel::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .detail-panel::-webkit-scrollbar-thumb {
+    background: #d6d3d1;
+    border-radius: 4px;
+  }
+
+  .detail-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #a8a29e;
+  }
+  .detail-empty-icon {
+    width: 64px;
+    height: 64px;
+    background: #fff;
+    border: 1px solid #e7e5e4;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 16px;
+    color: #d6d3d1;
+  }
+  .detail-empty h3 {
+    font-size: 15px;
+    font-weight: 600;
+    color: #78716c;
+    margin-bottom: 6px;
+  }
+  .detail-empty p {
+    font-size: 13px;
+    color: #a8a29e;
+  }
+
+  /* ========== 详情卡片 ========== */
+  .detail-card {
+    background: #fff;
+    border: 1px solid #e7e5e4;
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+  .detail-card-header {
+    padding: 14px 16px;
+    border-bottom: 1px solid #f0efed;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .detail-card-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #44403c;
+  }
+  .detail-card-body {
+    padding: 16px;
+  }
+
+  /* 路由基本信息 */
+  .route-info-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    margin-bottom: 18px;
+  }
+  .route-info-icon {
+    width: 48px;
+    height: 48px;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #16a34a;
+    flex-shrink: 0;
+  }
+  .route-info-text h2 {
+    font-size: 18px;
+    font-weight: 700;
+    color: #1c1917;
+    margin-bottom: 4px;
+  }
+  .route-info-text p {
+    font-size: 13px;
+    color: #78716c;
+  }
+  .route-info-actions {
+    margin-left: auto;
+    display: flex;
+    gap: 8px;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    border: 1px solid transparent;
+    font-family: inherit;
+  }
+  .btn-primary {
+    background: #16a34a;
+    color: #fff;
+    border-color: #16a34a;
+  }
+  .btn-primary:hover {
+    background: #15803d;
+    border-color: #15803d;
+  }
+  .btn-outline {
+    background: #fff;
+    color: #57534e;
+    border-color: #e7e5e4;
+  }
+  .btn-outline:hover {
+    background: #faf9f7;
+    border-color: #d6d3d1;
+  }
+  .btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  /* 信息表格 */
+  .info-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .info-table tr {
+    border-bottom: 1px solid #faf9f7;
+  }
+  .info-table tr:last-child {
+    border-bottom: none;
+  }
+  .info-table th {
+    text-align: left;
+    padding: 10px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #78716c;
+    background: #faf9f7;
+    width: 140px;
+    vertical-align: top;
+  }
+  .info-table td {
+    padding: 10px 12px;
+    font-size: 13px;
+    color: #44403c;
+    vertical-align: top;
+  }
+  .code-text {
+    font-family: "SF Mono", "Monaco", "Consolas", monospace;
+    font-size: 12px;
+    background: #faf9f7;
+    padding: 3px 8px;
+    border-radius: 5px;
+    color: #16a34a;
+    border: 1px solid #f0efed;
+    display: inline-block;
+  }
+
+  /* Meta 标签 */
+  .meta-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .meta-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 10px;
+    border-radius: 7px;
+    font-size: 12px;
+    font-weight: 500;
+    border: 1px solid;
+  }
+  .meta-tag.boolean-true {
+    background: #f0fdf4;
+    color: #16a34a;
+    border-color: #bbf7d0;
+  }
+  .meta-tag.boolean-false {
+    background: #faf9f7;
+    color: #a8a29e;
+    border-color: #e7e5e4;
+  }
+  .meta-tag.text {
+    background: #eff6ff;
+    color: #2563eb;
+    border-color: #bfdbfe;
+  }
+  .meta-tag.number {
+    background: #fdf4ff;
+    color: #9333ea;
+    border-color: #e9d5ff;
+  }
+
+  /* 子路由列表 */
+  .child-routes-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .child-route-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    background: #faf9f7;
+    border: 1px solid #f0efed;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .child-route-item:hover {
+    background: #fff;
+    border-color: #d6d3d1;
+  }
+  .child-route-icon {
+    width: 28px;
+    height: 28px;
+    background: #f0fdf4;
+    border-radius: 7px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #16a34a;
+    flex-shrink: 0;
+  }
+  .child-route-info {
+    flex: 1;
+    min-width: 0;
+  }
+  .child-route-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: #44403c;
+    margin-bottom: 2px;
+  }
+  .child-route-path {
+    font-size: 11px;
+    color: #a8a29e;
+    font-family: "SF Mono", "Monaco", "Consolas", monospace;
+  }
+  .child-route-arrow {
+    color: #d6d3d1;
+    flex-shrink: 0;
+  }
+
+  /* 高亮搜索 */
+  .highlight {
+    background: #fef08a;
+    color: #713f12;
+    padding: 0 2px;
+    border-radius: 3px;
+  }
+
+  /* 跳转成功提示 */
+  .toast {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-100px);
+    background: #16a34a;
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    box-shadow: 0 10px 40px rgba(22, 163, 74, 0.3);
+    transition: transform 0.3s ease;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .toast.show {
+    transform: translateX(-50%) translateY(0);
+  }
+</style>
+</head>
+<body>
+
+<!-- 跳转提示 -->
+<div class="toast" id="toast">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+  <span id="toast-text">跳转成功</span>
+</div>
+
+<!-- 页面头部 -->
+<div class="page-header">
+  <div class="page-title">
+    <div style="width:36px;height:36px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#16a34a;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+    </div>
+    <div>
+      <h1>页面跳转</h1>
+      <p>以树形结构查看应用所有路由，点击快速跳转</p>
+    </div>
+  </div>
+  <div class="page-badge">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+    8 个路由
+  </div>
+</div>
+
+<!-- 主体 -->
+<div class="main-body">
+  <!-- 左侧树形面板 -->
+  <div class="tree-panel">
+    <div class="tree-search">
+      <div class="search-wrapper">
+        <svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        <input type="text" class="search-input" id="searchInput" placeholder="搜索路由名称或路径..." oninput="handleSearch(this.value)">
+      </div>
+    </div>
+    <div class="tree-toolbar">
+      <span class="tree-count" id="treeCount">共 8 个路由</span>
+      <div class="tree-actions">
+        <button class="tree-action-btn" onclick="expandAll()">全部展开</button>
+        <button class="tree-action-btn" onclick="collapseAll()">全部折叠</button>
+      </div>
+    </div>
+    <div class="tree-container" id="treeContainer">
+      <!-- 树节点由 JS 渲染 -->
+    </div>
+  </div>
+
+  <!-- 右侧详情面板 -->
+  <div class="detail-panel" id="detailPanel">
+    <div class="detail-empty">
+      <div class="detail-empty-icon">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+      </div>
+      <h3>选择一个路由查看详情</h3>
+      <p>点击左侧树节点查看路由信息和跳转操作</p>
+    </div>
+  </div>
+</div>
+
+<script>
+// ========== 路由数据（树形结构） ==========
+const routeTree = [
+  {
+    name: "首页",
+    path: "/",
+    icon: "home",
+    type: "route",
+    meta: {
+      title: "首页",
+      icon: "Home",
+      description: "欢迎页面，选择或创建工作区",
+      order: 1,
+      keepAlive: true,
+      requiresWorkspace: false,
+      hidden: false
+    }
+  },
+  {
+    name: "编辑器",
+    path: "/editor",
+    icon: "pencil",
+    type: "route",
+    meta: {
+      title: "编辑器",
+      icon: "Pencil",
+      description: "笔记编辑器，支持 Markdown 编辑",
+      order: 2,
+      keepAlive: true,
+      requiresWorkspace: true,
+      hidden: false
+    }
+  },
+  {
+    name: "开发者工具",
+    path: "/devtools",
+    icon: "wrench",
+    type: "group",
+    meta: {
+      title: "开发者工具",
+      icon: "Wrench",
+      description: "调试面板，查看控制台、性能、系统信息等",
+      order: 99,
+      requiresWorkspace: false,
+      hidden: true
+    },
+    children: [
+      {
+        name: "控制台",
+        path: "/devtools/console",
+        icon: "terminal",
+        type: "route",
+        meta: {
+          title: "控制台",
+          icon: "Terminal",
+          description: "Console 日志查看与监听控制",
+          group: "主要功能",
+          order: 1,
+          requiresWorkspace: false,
+          hidden: false
+        }
+      },
+      {
+        name: "性能监控",
+        path: "/devtools/performance",
+        icon: "chart",
+        type: "route",
+        meta: {
+          title: "性能监控",
+          icon: "BarChart3",
+          description: "CPU、内存、渲染性能实时监控",
+          group: "主要功能",
+          order: 2,
+          requiresWorkspace: false,
+          hidden: false
+        }
+      },
+      {
+        name: "系统信息",
+        path: "/devtools/system",
+        icon: "monitor",
+        type: "route",
+        meta: {
+          title: "系统信息",
+          icon: "Monitor",
+          description: "操作系统、运行环境、依赖版本信息",
+          group: "主要功能",
+          order: 3,
+          requiresWorkspace: false,
+          hidden: false
+        }
+      },
+      {
+        name: "开发工具",
+        path: "/devtools/tools",
+        icon: "wrench",
+        type: "route",
+        meta: {
+          title: "开发工具",
+          icon: "Wrench",
+          description: "常用开发工具集合",
+          group: "工具",
+          order: 1,
+          requiresWorkspace: false,
+          hidden: false
+        }
+      },
+      {
+        name: "数据存储",
+        path: "/devtools/storage",
+        icon: "database",
+        type: "route",
+        meta: {
+          title: "数据存储",
+          icon: "Database",
+          description: "SQLite 数据库表查看",
+          group: "工具",
+          order: 2,
+          requiresWorkspace: false,
+          hidden: false
+        }
+      },
+      {
+        name: "页面跳转",
+        path: "/devtools/navigate",
+        icon: "folder",
+        type: "route",
+        meta: {
+          title: "页面跳转",
+          icon: "FolderOpen",
+          description: "快速跳转到应用各页面",
+          group: "工具",
+          order: 3,
+          requiresWorkspace: false,
+          hidden: false
+        }
+      }
+    ]
+  },
+  {
+    name: "404 页面",
+    path: "/404",
+    icon: "alert",
+    type: "route",
+    meta: {
+      title: "页面未找到",
+      icon: "AlertCircle",
+      description: "404 错误页面",
+      order: 100,
+      requiresWorkspace: false,
+      hidden: true
+    }
+  }
+]
+
+// ========== 图标 SVG ==========
+const icons = {
+  home: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',
+  pencil: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>',
+  wrench: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>',
+  terminal: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>',
+  chart: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>',
+  monitor: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>',
+  database: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>',
+  folder: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>',
+  alert: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>',
+  chevron: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>',
+  arrow: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>',
+  external: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>',
+  copy: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>'
+}
+
+// ========== 状态 ==========
+let expandedNodes = new Set(['/devtools'])  // 默认展开开发者工具
+let selectedRoute = null
+let searchKeyword = ''
+
+// ========== 渲染树 ==========
+function renderTree(nodes, container, level = 0) {
+  nodes.forEach(node => {
+    const nodeEl = document.createElement('div')
+    nodeEl.className = 'tree-node'
+
+    const hasChildren = node.children && node.children.length > 0
+    const isExpanded = expandedNodes.has(node.path)
+    const isActive = selectedRoute && selectedRoute.path === node.path
+
+    // 搜索过滤
+    if (searchKeyword) {
+      const matchName = node.name.toLowerCase().includes(searchKeyword.toLowerCase())
+      const matchPath = node.path.toLowerCase().includes(searchKeyword.toLowerCase())
+      const matchDesc = node.meta.description && node.meta.description.toLowerCase().includes(searchKeyword.toLowerCase())
+      if (!matchName && !matchPath && !matchDesc && !hasChildren) return
+      if (hasChildren) {
+        const childMatch = node.children.some(child =>
+          child.name.toLowerCase().includes(searchKeyword.toLowerCase()) ||
+          child.path.toLowerCase().includes(searchKeyword.toLowerCase())
+        )
+        if (!matchName && !matchPath && !childMatch) return
+      }
+    }
+
+    // 高亮文本
+    const highlightText = (text) => {
+      if (!searchKeyword) return text
+      const regex = new RegExp(`(${searchKeyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi')
+      return text.replace(regex, '<span class="highlight">$1</span>')
+    }
+
+    nodeEl.innerHTML = `
+      <div class="tree-node-content ${isActive ? 'active' : ''}" data-path="${node.path}">
+        <button class="tree-expand-btn ${hasChildren ? (isExpanded ? 'expanded' : '') : 'leaf'}" data-path="${node.path}">
+          ${icons.chevron}
+        </button>
+        <div class="tree-node-icon ${node.type === 'group' ? 'group' : (node.meta.hidden ? 'hidden' : 'route')}">
+          ${icons[node.icon] || icons.folder}
+        </div>
+        <span class="tree-node-label">${highlightText(node.name)}</span>
+        ${node.meta.requiresWorkspace ? '<span class="tree-node-badge protected">需工作区</span>' : ''}
+        ${node.meta.hidden ? '<span class="tree-node-badge hidden">隐藏</span>' : ''}
+        <span class="tree-node-path">${highlightText(node.path)}</span>
+      </div>
+      ${hasChildren ? `
+        <div class="tree-children ${isExpanded ? '' : 'collapsed'}" data-parent="${node.path}">
+        </div>
+      ` : ''}
+    `
+
+    container.appendChild(nodeEl)
+
+    // 绑定事件
+    const contentEl = nodeEl.querySelector('.tree-node-content')
+    contentEl.addEventListener('click', (e) => {
+      if (e.target.closest('.tree-expand-btn')) return
+      selectRoute(node)
+    })
+
+    if (hasChildren) {
+      const expandBtn = nodeEl.querySelector('.tree-expand-btn')
+      expandBtn.addEventListener('click', (e) => {
+        e.stopPropagation()
+        toggleExpand(node.path)
+      })
+
+      const childrenContainer = nodeEl.querySelector('.tree-children')
+      renderTree(node.children, childrenContainer, level + 1)
+    }
+  })
+}
+
+// ========== 展开/折叠 ==========
+function toggleExpand(path) {
+  if (expandedNodes.has(path)) {
+    expandedNodes.delete(path)
+  } else {
+    expandedNodes.add(path)
+  }
+  refreshTree()
+}
+
+function expandAll() {
+  function collect(nodes) {
+    nodes.forEach(node => {
+      if (node.children && node.children.length > 0) {
+        expandedNodes.add(node.path)
+        collect(node.children)
+      }
+    })
+  }
+  collect(routeTree)
+  refreshTree()
+}
+
+function collapseAll() {
+  expandedNodes.clear()
+  refreshTree()
+}
+
+// ========== 选择路由 ==========
+function selectRoute(route) {
+  selectedRoute = route
+  refreshTree()
+  renderDetail(route)
+}
+
+// ========== 渲染详情 ==========
+function renderDetail(route) {
+  const panel = document.getElementById('detailPanel')
+  const hasChildren = route.children && route.children.length > 0
+
+  panel.innerHTML = `
+    <!-- 基本信息卡片 -->
+    <div class="detail-card">
+      <div class="detail-card-body">
+        <div class="route-info-header">
+          <div class="route-info-icon">
+            ${icons[route.icon] || icons.folder}
+          </div>
+          <div class="route-info-text">
+            <h2>${route.name}</h2>
+            <p>${route.meta.description || '暂无描述'}</p>
+          </div>
+          <div class="route-info-actions">
+            <button class="btn btn-outline" onclick="copyPath('${route.path}')">
+              ${icons.copy}
+              复制路径
+            </button>
+            <button class="btn btn-primary" ${route.type === 'group' ? 'disabled' : ''} onclick="navigateTo('${route.path}', '${route.name}')">
+              ${icons.external}
+              跳转页面
+            </button>
+          </div>
+        </div>
+
+        <table class="info-table">
+          <tr>
+            <th>路由路径</th>
+            <td><span class="code-text">${route.path}</span></td>
+          </tr>
+          <tr>
+            <th>路由名称</th>
+            <td><span class="code-text">${route.name.toLowerCase().replace(/\s+/g, '-')}</span></td>
+          </tr>
+          <tr>
+            <th>页面标题</th>
+            <td>${route.meta.title}</td>
+          </tr>
+          <tr>
+            <th>图标组件</th>
+            <td><span class="code-text">${route.meta.icon || '无'}</span></td>
+          </tr>
+          ${route.meta.group ? `
+          <tr>
+            <th>所属分组</th>
+            <td>${route.meta.group}</td>
+          </tr>
+          ` : ''}
+          <tr>
+            <th>排序权重</th>
+            <td>${route.meta.order ?? '默认'}</td>
+          </tr>
+        </table>
+      </div>
+    </div>
+
+    <!-- Meta 信息卡片 -->
+    <div class="detail-card">
+      <div class="detail-card-header">
+        <div class="detail-card-title">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+          Meta 配置
+        </div>
+      </div>
+      <div class="detail-card-body">
+        <div class="meta-tags">
+          <span class="meta-tag ${route.meta.requiresWorkspace ? 'boolean-true' : 'boolean-false'}">
+            requiresWorkspace: ${route.meta.requiresWorkspace ? 'true' : 'false'}
+          </span>
+          <span class="meta-tag ${route.meta.hidden ? 'boolean-true' : 'boolean-false'}">
+            hidden: ${route.meta.hidden ? 'true' : 'false'}
+          </span>
+          <span class="meta-tag ${route.meta.keepAlive ? 'boolean-true' : 'boolean-false'}">
+            keepAlive: ${route.meta.keepAlive ? 'true' : 'false'}
+          </span>
+          ${route.meta.group ? `<span class="meta-tag text">group: "${route.meta.group}"</span>` : ''}
+          <span class="meta-tag number">order: ${route.meta.order ?? 999}</span>
+        </div>
+      </div>
+    </div>
+
+    ${hasChildren ? `
+    <!-- 子路由列表 -->
+    <div class="detail-card">
+      <div class="detail-card-header">
+        <div class="detail-card-title">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h18v18H3z"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+          子路由 (${route.children.length})
+        </div>
+      </div>
+      <div class="detail-card-body">
+        <div class="child-routes-list">
+          ${route.children.map(child => `
+            <div class="child-route-item" onclick="selectRouteByPath('${child.path}')">
+              <div class="child-route-icon">
+                ${icons[child.icon] || icons.folder}
+              </div>
+              <div class="child-route-info">
+                <div class="child-route-name">${child.name}</div>
+                <div class="child-route-path">${child.path}</div>
+              </div>
+              <div class="child-route-arrow">${icons.arrow}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    </div>
+    ` : ''}
+  `
+}
+
+// ========== 通过路径选择路由 ==========
+function selectRouteByPath(path) {
+  function find(nodes) {
+    for (const node of nodes) {
+      if (node.path === path) return node
+      if (node.children) {
+        const found = find(node.children)
+        if (found) return found
+      }
+    }
+    return null
+  }
+  const route = find(routeTree)
+  if (route) {
+    // 展开父节点
+    function expandParents(nodes, targetPath, parents = []) {
+      for (const node of nodes) {
+        if (node.path === targetPath) {
+          parents.forEach(p => expandedNodes.add(p))
+          return true
+        }
+        if (node.children && expandParents(node.children, targetPath, [...parents, node.path])) {
+          return true
+        }
+      }
+      return false
+    }
+    expandParents(routeTree, path)
+    selectRoute(route)
+  }
+}
+
+// ========== 跳转页面 ==========
+function navigateTo(path, name) {
+  const toast = document.getElementById('toast')
+  const toastText = document.getElementById('toast-text')
+  toastText.textContent = `正在跳转到 ${name} (${path})...`
+  toast.classList.add('show')
+  setTimeout(() => {
+    toast.classList.remove('show')
+  }, 2000)
+  // 实际项目中: window.location.hash = path 或 navigate(path)
+  console.log('[Navigate]', path)
+}
+
+// ========== 复制路径 ==========
+function copyPath(path) {
+  navigator.clipboard.writeText(path).then(() => {
+    const toast = document.getElementById('toast')
+    const toastText = document.getElementById('toast-text')
+    toastText.textContent = `路径已复制: ${path}`
+    toast.classList.add('show')
+    setTimeout(() => toast.classList.remove('show'), 1500)
+  })
+}
+
+// ========== 搜索 ==========
+function handleSearch(value) {
+  searchKeyword = value.trim()
+  // 搜索时自动展开所有节点
+  if (searchKeyword) {
+    expandAll()
+  }
+  refreshTree()
+  updateCount()
+}
+
+// ========== 更新计数 ==========
+function updateCount() {
+  function count(nodes) {
+    let c = 0
+    nodes.forEach(node => {
+      if (searchKeyword) {
+        const match = node.name.toLowerCase().includes(searchKeyword.toLowerCase()) ||
+                      node.path.toLowerCase().includes(searchKeyword.toLowerCase()) ||
+                      (node.meta.description && node.meta.description.toLowerCase().includes(searchKeyword.toLowerCase()))
+        if (match) c++
+      } else {
+        c++
+      }
+      if (node.children) c += count(node.children)
+    })
+    return c
+  }
+  const total = count(routeTree)
+  document.getElementById('treeCount').textContent = searchKeyword
+    ? `搜索到 ${total} 个路由`
+    : `共 ${total} 个路由`
+}
+
+// ========== 刷新树 ==========
+function refreshTree() {
+  const container = document.getElementById('treeContainer')
+  container.innerHTML = ''
+  renderTree(routeTree, container)
+}
+
+// ========== 初始化 ==========
+refreshTree()
+updateCount()
+</script>
+</body>
+</html>
