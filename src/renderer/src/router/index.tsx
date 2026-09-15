@@ -1,43 +1,69 @@
-import type { ComponentType } from "react"
-import Welcome from "@/pages/welcome/index"
+import { useState } from "react"
+
+import App, { type WorkspaceData } from "../App"
 import Layout from "@/layout/index"
+import Welcome from "@/pages/welcome/index"
 import DebugPage from "@/pages/debug/index"
+import DevtoolsConsole from "@/pages/debug/devtools-console"
+import DevtoolsStorage from "@/pages/debug/devtools-storage"
+import CheckCircle from "@/assets/vessel-icons/ui/check-circle.svg?react"
+
+import { createRouter, createWebHashHistory, type AppRouteRecordRaw } from "@/lib/react-router"
+
+const STORAGE_KEY = "app_current_workspace"
 
 /**
- * 路由 meta 信息（类似 Vue Router 的 meta）
+ * 读取当前工作区
  */
-export interface RouteMeta {
-  /** 页面标题 */
-  title?: string
-  /** 是否需要工作区才能访问 */
-  requiresWorkspace?: boolean
-  /** 是否在菜单中隐藏 */
-  hidden?: boolean
+function readCurrentWorkspace(): WorkspaceData | null {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY)
+
+    return saved ? JSON.parse(saved) : null
+  } catch (error) {
+    console.error("读取工作区缓存失败", error)
+
+    return null
+  }
 }
 
 /**
- * 路由记录（类似 Vue Router 的 RouteRecordRaw）
+ * 保存当前工作区
  */
-export interface RouteRecord {
-  /** 路由路径 */
-  path: string
-  /** 路由名称（唯一标识） */
-  name: string
-  /** 页面组件 */
-  component: ComponentType<any>
-  /** 附加信息 */
-  meta?: RouteMeta
+function saveCurrentWorkspace(data: WorkspaceData): void {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
 }
 
 /**
- * 路由配置表
+ * 欢迎页路由适配组件
  *
- * 用法类似 Vue Router：
- * const router = createRouter({ routes })
- *
- * 这里通过遍历 routes 数组生成 <Route> 组件
+ * 给 Welcome 传递 onEnter。
  */
-export const routes: RouteRecord[] = [
+function WelcomeRoute() {
+  return <Welcome onEnter={saveCurrentWorkspace} />
+}
+
+/**
+ * 编辑器路由适配组件
+ *
+ * 给 Layout 传递 workspace。
+ */
+function EditorRoute() {
+  const [workspace] = useState<WorkspaceData | null>(() => {
+    return readCurrentWorkspace()
+  })
+
+  if (!workspace) {
+    return null
+  }
+
+  return <Layout workspace={workspace} />
+}
+
+/**
+ * 路由配置
+ */
+export const routes: AppRouteRecordRaw[] = [
   {
     path: "/",
     name: "welcome",
@@ -140,18 +166,51 @@ export const routes: RouteRecord[] = [
   }
 ]
 
-/**
- * 根据名称查找路由
- *
- * 用法类似 Vue Router 的 router.resolve({ name })
- */
-export function findRouteByName(name: string): RouteRecord | undefined {
-  return routes.find((route) => route.name === name)
-}
+const router = createRouter({
+  history: createWebHashHistory(),
+  routes
+})
 
 /**
- * 根据路径查找路由
+ * 工作区路由守卫
+ *
+ * 需要工作区但没有工作区时返回首页。
  */
-export function findRouteByPath(path: string): RouteRecord | undefined {
-  return routes.find((route) => route.path === path)
-}
+router.beforeEach((to) => {
+  const requiresWorkspace = to.meta.requiresWorkspace === true
+
+  if (!requiresWorkspace) {
+    return true
+  }
+
+  const currentWorkspace = readCurrentWorkspace()
+
+  if (!currentWorkspace) {
+    return {
+      name: "welcome"
+    }
+  }
+
+  return true
+})
+
+/**
+ * 设置页面标题
+ */
+router.afterEach((to, _from, failure) => {
+  if (failure) {
+    return
+  }
+
+  const title = to.meta.title
+
+  if (typeof title === "string") {
+    document.title = title
+  }
+})
+
+router.onError((error) => {
+  console.error("路由执行失败", error)
+})
+
+export default router

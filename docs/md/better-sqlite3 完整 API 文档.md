@@ -7,45 +7,45 @@
 
 ## 目录
 
-- [安装](#安装)
-- [快速开始](#快速开始)
-- [一、Database 类](#一database-类)
-  - [1.1 new Database()](#11-new-databasepath-options)
-  - [1.2 db.prepare()](#12-dbpreparesql)
-  - [1.3 db.exec()](#13-dbexecsql)
-  - [1.4 db.pragma()](#14-dbpragmaname-options)
-  - [1.5 db.transaction()](#15-dbtransactionfn)
-  - [1.6 db.function()](#16-dbfunctionname-options-fn)
-  - [1.7 db.aggregate()](#17-dbaggregatename-options)
-  - [1.8 db.backup()](#18-dbbackupdestination-options)
-  - [1.9 db.serialize() / db.deserialize()](#19-dbserialize--dbdeserializebuffer)
-  - [1.10 db.loadExtension()](#110-dbloadextensionpath-entrypoint)
-  - [1.11 db.close()](#111-dbclose)
-  - [1.12 db.on() 事件](#112-dbonevent-listener)
-  - [1.13 Database 属性](#113-database-属性)
-- [二、Statement 类](#二statement-类)
-  - [2.1 stmt.run()](#21-stmtrunparams)
-  - [2.2 stmt.get()](#22-stmtgetparams)
-  - [2.3 stmt.all()](#23-stmtallparams)
-  - [2.4 stmt.iterate()](#24-stmtiterateparams)
-  - [2.5 stmt.raw()](#25-stmtraw)
-  - [2.6 stmt.pluck()](#26-stmtpluck)
-  - [2.7 stmt.expand()](#27-stmtexand)
-  - [2.8 stmt.bind()](#28-stmtbindparams)
-  - [2.9 stmt.columns()](#29-stmtcolumns)
-  - [2.10 Statement 属性](#210-statement-属性)
-- [三、Transaction 类](#三transaction-类)
-  - [3.1 事务执行](#31-事务执行)
-  - [3.2 事务类型](#32-事务类型)
-  - [3.3 嵌套事务](#33-嵌套事务)
-- [四、参数绑定](#四参数绑定)
-  - [4.1 位置参数](#41-位置参数)
-  - [4.2 命名参数](#42-命名参数)
-  - [4.3 数组参数](#43-数组参数)
-- [五、数据类型映射](#五数据类型映射)
-- [六、错误处理](#六错误处理)
-- [七、性能最佳实践](#七性能最佳实践)
-- [八、常见问题](#八常见问题)
+- <a href="#安装" class="meta-link" target="_blank" rel="noopener noreferrer">安装</a>
+- <a href="#快速开始" class="meta-link" target="_blank" rel="noopener noreferrer">快速开始</a>
+- <a href="#一database-类" class="meta-link" target="_blank" rel="noopener noreferrer">一、Database 类</a>
+  - <a href="#11-new-databasepath-options" class="meta-link" target="_blank" rel="noopener noreferrer">1.1 new Database()</a>
+  - <a href="#12-dbpreparesql" class="meta-link" target="_blank" rel="noopener noreferrer">1.2 db.prepare()</a>
+  - <a href="#13-dbexecsql" class="meta-link" target="_blank" rel="noopener noreferrer">1.3 db.exec()</a>
+  - <a href="#14-dbpragmaname-options" class="meta-link" target="_blank" rel="noopener noreferrer">1.4 db.pragma()</a>
+  - <a href="#15-dbtransactionfn" class="meta-link" target="_blank" rel="noopener noreferrer">1.5 db.transaction()</a>
+  - <a href="#16-dbfunctionname-options-fn" class="meta-link" target="_blank" rel="noopener noreferrer">1.6 db.function()</a>
+  - <a href="#17-dbaggregatename-options" class="meta-link" target="_blank" rel="noopener noreferrer">1.7 db.aggregate()</a>
+  - <a href="#18-dbbackupdestination-options" class="meta-link" target="_blank" rel="noopener noreferrer">1.8 db.backup()</a>
+  - <a href="#19-dbserialize--dbdeserializebuffer" class="meta-link" target="_blank" rel="noopener noreferrer">1.9 db.serialize() / db.deserialize()</a>
+  - <a href="#110-dbloadextensionpath-entrypoint" class="meta-link" target="_blank" rel="noopener noreferrer">1.10 db.loadExtension()</a>
+  - <a href="#111-dbclose" class="meta-link" target="_blank" rel="noopener noreferrer">1.11 db.close()</a>
+  - <a href="#112-dbonevent-listener" class="meta-link" target="_blank" rel="noopener noreferrer">1.12 db.on() 事件</a>
+  - <a href="#113-database-属性" class="meta-link" target="_blank" rel="noopener noreferrer">1.13 Database 属性</a>
+- <a href="#二statement-类" class="meta-link" target="_blank" rel="noopener noreferrer">二、Statement 类</a>
+  - <a href="#21-stmtrunparams" class="meta-link" target="_blank" rel="noopener noreferrer">2.1 stmt.run()</a>
+  - <a href="#22-stmtgetparams" class="meta-link" target="_blank" rel="noopener noreferrer">2.2 stmt.get()</a>
+  - <a href="#23-stmtallparams" class="meta-link" target="_blank" rel="noopener noreferrer">2.3 stmt.all()</a>
+  - <a href="#24-stmtiterateparams" class="meta-link" target="_blank" rel="noopener noreferrer">2.4 stmt.iterate()</a>
+  - <a href="#25-stmtraw" class="meta-link" target="_blank" rel="noopener noreferrer">2.5 stmt.raw()</a>
+  - <a href="#26-stmtpluck" class="meta-link" target="_blank" rel="noopener noreferrer">2.6 stmt.pluck()</a>
+  - <a href="#27-stmtexand" class="meta-link" target="_blank" rel="noopener noreferrer">2.7 stmt.expand()</a>
+  - <a href="#28-stmtbindparams" class="meta-link" target="_blank" rel="noopener noreferrer">2.8 stmt.bind()</a>
+  - <a href="#29-stmtcolumns" class="meta-link" target="_blank" rel="noopener noreferrer">2.9 stmt.columns()</a>
+  - <a href="#210-statement-属性" class="meta-link" target="_blank" rel="noopener noreferrer">2.10 Statement 属性</a>
+- <a href="#三transaction-类" class="meta-link" target="_blank" rel="noopener noreferrer">三、Transaction 类</a>
+  - <a href="#31-事务执行" class="meta-link" target="_blank" rel="noopener noreferrer">3.1 事务执行</a>
+  - <a href="#32-事务类型" class="meta-link" target="_blank" rel="noopener noreferrer">3.2 事务类型</a>
+  - <a href="#33-嵌套事务" class="meta-link" target="_blank" rel="noopener noreferrer">3.3 嵌套事务</a>
+- <a href="#四参数绑定" class="meta-link" target="_blank" rel="noopener noreferrer">四、参数绑定</a>
+  - <a href="#41-位置参数" class="meta-link" target="_blank" rel="noopener noreferrer">4.1 位置参数</a>
+  - <a href="#42-命名参数" class="meta-link" target="_blank" rel="noopener noreferrer">4.2 命名参数</a>
+  - <a href="#43-数组参数" class="meta-link" target="_blank" rel="noopener noreferrer">4.3 数组参数</a>
+- <a href="#五数据类型映射" class="meta-link" target="_blank" rel="noopener noreferrer">五、数据类型映射</a>
+- <a href="#六错误处理" class="meta-link" target="_blank" rel="noopener noreferrer">六、错误处理</a>
+- <a href="#七性能最佳实践" class="meta-link" target="_blank" rel="noopener noreferrer">七、性能最佳实践</a>
+- <a href="#八常见问题" class="meta-link" target="_blank" rel="noopener noreferrer">八、常见问题</a>
 
 ---
 
@@ -124,12 +124,14 @@ db.close()
 
 **参数：**
 
+
 | 参数      | 类型     | 必填 | 默认值 | 说明                                                                       |
 | --------- | -------- | ---- | ------ | -------------------------------------------------------------------------- |
 | `path`    | `string` | 是   | -      | 数据库文件路径。特殊值：`:memory:` 表示内存数据库，`''` 表示临时磁盘数据库 |
 | `options` | `object` | 否   | -      | 配置选项                                                                   |
 
 **options 取值：**
+
 
 | 选项            | 类型       | 默认值  | 说明                                |
 | --------------- | ---------- | ------- | ----------------------------------- |
@@ -172,6 +174,7 @@ const db = new Database("")
 
 **参数：**
 
+
 | 参数  | 类型     | 必填 | 说明                                  |
 | ----- | -------- | ---- | ------------------------------------- |
 | `sql` | `string` | 是   | 要预编译的 SQL 语句，只能包含一条语句 |
@@ -198,6 +201,7 @@ stmt.get(3)
 执行一条或多条 SQL 语句，**不返回任何结果**。
 
 **参数：**
+
 
 | 参数  | 类型     | 必填 | 说明                                         |
 | ----- | -------- | ---- | -------------------------------------------- |
@@ -230,6 +234,7 @@ db.exec("CREATE TABLE foo (bar)").exec("INSERT INTO foo VALUES (1)")
 
 **参数：**
 
+
 | 参数      | 类型     | 必填 | 说明                                                           |
 | --------- | -------- | ---- | -------------------------------------------------------------- |
 | `name`    | `string` | 是   | PRAGMA 名称和值，如 `'journal_mode = WAL'` 或 `'journal_mode'` |
@@ -237,11 +242,13 @@ db.exec("CREATE TABLE foo (bar)").exec("INSERT INTO foo VALUES (1)")
 
 **options 取值：**
 
+
 | 选项     | 类型      | 默认值  | 说明                                             |
 | -------- | --------- | ------- | ------------------------------------------------ |
 | `simple` | `boolean` | `false` | 简单模式：设置时不返回结果，查询时只返回第一个值 |
 
 **常用 PRAGMA 取值：**
+
 
 | PRAGMA                  | 说明           | 常用值                                          |
 | ----------------------- | -------------- | ----------------------------------------------- |
@@ -287,6 +294,7 @@ db.pragma("journal_mode", { simple: true }) // 'wal'（查询时返回第一个�
 
 **参数：**
 
+
 | 参数 | 类型       | 必填 | 说明                 |
 | ---- | ---------- | ---- | -------------------- |
 | `fn` | `function` | 是   | 要在事务中执行的函数 |
@@ -330,6 +338,7 @@ try {
 
 **参数：**
 
+
 | 参数      | 类型       | 必填 | 说明                            |
 | --------- | ---------- | ---- | ------------------------------- |
 | `name`    | `string`   | 是   | 函数名（在 SQL 中使用）         |
@@ -337,6 +346,7 @@ try {
 | `fn`      | `function` | 是   | 函数实现，参数为 SQL 传入的参数 |
 
 **options 取值：**
+
 
 | 选项            | 类型      | 默认值  | 说明                                                               |
 | --------------- | --------- | ------- | ------------------------------------------------------------------ |
@@ -380,12 +390,14 @@ db.function("upper", (s) => s.toUpperCase())
 
 **参数：**
 
+
 | 参数      | 类型     | 必填 | 说明         |
 | --------- | -------- | ---- | ------------ |
 | `name`    | `string` | 是   | 聚合函数名   |
 | `options` | `object` | 是   | 聚合函数配置 |
 
 **options 取值：**
+
 
 | 选项            | 类型               | 必填 | 说明                                                           |
 | --------------- | ------------------ | ---- | -------------------------------------------------------------- |
@@ -443,12 +455,14 @@ db.aggregate("max_length", {
 
 **参数：**
 
+
 | 参数          | 类型     | 必填 | 说明         |
 | ------------- | -------- | ---- | ------------ |
 | `destination` | `string` | 是   | 目标文件路径 |
 | `options`     | `object` | 否   | 配置选项     |
 
 **options 取值：**
+
 
 | 选项       | 类型       | 默认值 | 说明                                              |
 | ---------- | ---------- | ------ | ------------------------------------------------- |
@@ -522,6 +536,7 @@ const copy = new Database(db.serialize())
 
 **参数：**
 
+
 | 参数         | 类型     | 必填 | 说明                                      |
 | ------------ | -------- | ---- | ----------------------------------------- |
 | `path`       | `string` | 是   | 扩展文件路径（`.so` / `.dylib` / `.dll`） |
@@ -576,12 +591,14 @@ try {
 
 **支持的事件：**
 
+
 | 事件     | 回调参数 | 说明                                 |
 | -------- | -------- | ------------------------------------ |
 | `change` | `info`   | 数据变更事件（INSERT/UPDATE/DELETE） |
 | `close`  | 无       | 数据库关闭事件                       |
 
 **change 事件 info 对象：**
+
 
 | 字段       | 类型     | 说明                                           |
 | ---------- | -------- | ---------------------------------------------- |
@@ -613,6 +630,7 @@ db.off("change", listener) // 移除
 
 ### 1.13 Database 属性
 
+
 | 属性               | 类型      | 只读 | 说明             |
 | ------------------ | --------- | ---- | ---------------- |
 | `db.name`          | `string`  | 是   | 数据库文件名     |
@@ -643,6 +661,7 @@ Statement 对象由 `db.prepare(sql)` 创建，表示一条预编译的 SQL 语�
 
 **参数：**
 
+
 | 参数        | 类型  | 说明                               |
 | ----------- | ----- | ---------------------------------- |
 | `...params` | `any` | 绑定参数（位置参数或命名参数对象） |
@@ -650,6 +669,7 @@ Statement 对象由 `db.prepare(sql)` 创建，表示一条预编译的 SQL 语�
 **返回值：** `RunResult` 对象
 
 **RunResult 字段：**
+
 
 | 字段              | 类型                | 说明                                |
 | ----------------- | ------------------- | ----------------------------------- |
@@ -690,6 +710,7 @@ db.prepare("INSERT INTO users (name, age) VALUES (@name, @age)").run({
 
 **参数：**
 
+
 | 参数        | 类型  | 说明     |
 | ----------- | ----- | -------- |
 | `...params` | `any` | 绑定参数 |
@@ -717,6 +738,7 @@ const adult = db.prepare("SELECT * FROM users WHERE age >= ? ORDER BY age LIMIT 
 执行查询，返回**所有行**的数组。
 
 **参数：**
+
 
 | 参数        | 类型  | 说明     |
 | ----------- | ----- | -------- |
@@ -753,6 +775,7 @@ console.log(empty) // []
 执行查询，返回一个**迭代器**（Iterator），逐行返回结果。
 
 **参数：**
+
 
 | 参数        | 类型  | 说明     |
 | ----------- | ----- | -------- |
@@ -896,6 +919,7 @@ db.prepare(
 
 **参数：**
 
+
 | 参数        | 类型  | 说明         |
 | ----------- | ----- | ------------ |
 | `...params` | `any` | 要绑定的参数 |
@@ -932,6 +956,7 @@ const user2 = stmt.bind(2, "inactive")
 
 **列信息字段：**
 
+
 | 字段       | 类型     | 说明                           |
 | ---------- | -------- | ------------------------------ |
 | `name`     | `string` | 列名（AS 别名）                |
@@ -963,6 +988,7 @@ db.prepare("SELECT COUNT(*) AS count, MAX(age) AS max_age FROM users").columns()
 ---
 
 ### 2.10 Statement 属性
+
 
 | 属性            | 类型       | 只读 | 说明                              |
 | --------------- | ---------- | ---- | --------------------------------- |
@@ -1017,6 +1043,7 @@ updateUser(1, { name: "Alice Updated", age: 26 })
 ### 3.2 事务类型
 
 SQLite 支持三种事务类型，better-sqlite3 都支持：
+
 
 | 类型        | 方法                           | 锁级别         | 说明                                                 |
 | ----------- | ------------------------------ | -------------- | ---------------------------------------------------- |
@@ -1151,6 +1178,7 @@ db.prepare("INSERT INTO users (name, age, status) VALUES (?, ?, ?)").run(params)
 
 ### JavaScript → SQLite
 
+
 | JavaScript 类型      | SQLite 类型                 | 说明                           |
 | -------------------- | --------------------------- | ------------------------------ |
 | `null`               | `NULL`                      | -                              |
@@ -1159,13 +1187,14 @@ db.prepare("INSERT INTO users (name, age, status) VALUES (?, ?, ?)").run(params)
 | `number` (浮点数)    | `REAL`                      | 非整数的 number                |
 | `bigint`             | `INTEGER`                   | 支持 64 位整数                 |
 | `string`             | `TEXT`                      | -                              |
-| `boolean`            | `INTEGER`                   | `true` → 1，`false` → 0        |
+| `boolean`            | `INTEGER`                   | `true` → 1，`false` → 0      |
 | `Buffer`             | `BLOB`                      | 二进制数据                     |
 | `Date`               | `TEXT` / `REAL` / `INTEGER` | 不自动转换，需手动处理         |
 | `object` (非 Buffer) | 不支持                      | 需手动 JSON.stringify          |
 | `symbol`             | 不支持                      | -                              |
 
 ### SQLite → JavaScript
+
 
 | SQLite 类型 | JavaScript 类型      | 说明                                                          |
 | ----------- | -------------------- | ------------------------------------------------------------- |
@@ -1247,6 +1276,7 @@ try {
 ```
 
 ### 常见错误码
+
 
 | 错误码              | 说明         | 常见原因                       |
 | ------------------- | ------------ | ------------------------------ |
@@ -1641,6 +1671,7 @@ const memDb = new Database(buffer) // 内存副本，读超快
 
 ### Database
 
+
 | 方法                           | 说明            | 返回值      |
 | ------------------------------ | --------------- | ----------- |
 | `new Database(path, opts?)`    | 打开/创建数据库 | `Database`  |
@@ -1658,6 +1689,7 @@ const memDb = new Database(buffer) // 内存副本，读超快
 
 ### Statement
 
+
 | 方法                      | 说明               | 返回值                         |
 | ------------------------- | ------------------ | ------------------------------ |
 | `stmt.run(...params)`     | 执行（无返回数据） | `{ changes, lastInsertRowid }` |
@@ -1671,6 +1703,7 @@ const memDb = new Database(buffer) // 内存副本，读超快
 | `stmt.columns()`          | 列信息             | 数组                           |
 
 ### Transaction
+
 
 | 方法                           | 说明                  |
 | ------------------------------ | --------------------- |
