@@ -47,6 +47,26 @@ export interface DatabaseTableOverview {
   records: Record<string, unknown>[]
 }
 
+/**
+ * 数据库迁移配置。
+ */
+export interface DatabaseMigration {
+  /**
+   * 迁移完成后的数据库版本。
+   */
+  version: number
+
+  /**
+   * 迁移说明。
+   */
+  description: string
+
+  /**
+   * 当前版本需要执行的 SQL。
+   */
+  sql: string
+}
+
 export interface DatabaseRendererAPI {
   getTables(): Promise<DatabaseTableInfo[]>
   getTableData(request: DatabaseTableDataRequest): Promise<DatabaseTableDataResult>

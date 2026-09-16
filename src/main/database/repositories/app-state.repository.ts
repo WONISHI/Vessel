@@ -4,7 +4,7 @@ export class AppStateRepository {
   constructor(private readonly database: Database.Database) {}
 
   /**
-   * 获取状态。
+   * @description 获取状态。
    */
   get<T>(key: string): T | undefined {
     this.validateKey(key)
@@ -21,7 +21,7 @@ export class AppStateRepository {
   }
 
   /**
-   * 保存状态。
+   * @description 保存状态。
    */
   set<T>(key: string, value: T): void {
     this.validateKey(key)
@@ -50,7 +50,7 @@ export class AppStateRepository {
   }
 
   /**
-   * 删除状态。
+   * @description 删除状态。
    */
   delete(key: string): boolean {
     this.validateKey(key)

@@ -1,14 +1,12 @@
 import { contextBridge } from "electron"
 import { electronAPI } from "@electron-toolkit/preload"
-import { developerAPI } from "./developer"
-import { fileAPI } from "./file"
-import { welcomeAPI } from "./welcome"
+import { welcomeAPI } from "./apis/welcome.api"
+import { developerAPI } from "./apis/developer.api"
 
 const api = {}
 
 const vesselAPI = {
   ...welcomeAPI,
-  ...fileAPI,
   ...developerAPI
 }
 

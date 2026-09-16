@@ -1,31 +1,5 @@
-/**
- * 数据库迁移配置。
- */
-export interface DatabaseMigration {
-  /**
-   * 迁移完成后的数据库版本。
-   */
-  version: number
+import type { DatabaseMigration } from "@main/database/type"
 
-  /**
-   * 迁移说明。
-   */
-  description: string
-
-  /**
-   * 当前版本需要执行的 SQL。
-   */
-  sql: string
-}
-
-/**
- * Vessel 数据库迁移列表。
- *
- * 注意：
- * - 版本必须从 1 开始连续递增；
- * - 已发布的迁移不能修改；
- * - 新增结构时继续添加新的迁移版本。
- */
 export const DATABASE_MIGRATIONS: readonly DatabaseMigration[] = [
   {
     version: 1,
