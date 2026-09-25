@@ -101,7 +101,7 @@ function getRouteIcon(route: AppRouteRecordRaw | undefined): RouteIconComponent 
  */
 function getFirstPage(group: AppRouteRecordRaw): AppRouteRecordRaw | undefined {
   return group.children?.find((route) => {
-    return route.meta?.routeType === "page" && typeof route.name === "string"
+    return typeof route.name === "string"
   })
 }
 
@@ -125,8 +125,6 @@ export default function DevToolsIndex() {
       return
     }
 
-    console.log("firstPage", firstPage)
-
     void router.push({
       name: firstPage.name
     })
@@ -139,8 +137,6 @@ export default function DevToolsIndex() {
     if (typeof page.name !== "string") {
       return
     }
-
-    console.log("page", page)
 
     void router.push({
       name: page.name
@@ -334,41 +330,37 @@ export default function DevToolsIndex() {
 
                   <DropdownMenuSeparator className={dropdownSeparatorClassName} />
 
-                  {currentGroup.children
-                    ?.filter((page) => {
-                      return page.meta?.routeType === "page"
-                    })
-                    .map((page) => {
-                      const Icon = getRouteIcon(page)
+                  {currentGroup.children?.map((page) => {
+                    const Icon = getRouteIcon(page)
 
-                      const isActive = page.name === currentPage?.name
+                    const isActive = page.name === currentPage?.name
 
-                      return (
-                        <DropdownMenuItem
-                          key={page.name}
-                          className={cn(dropdownItemClassName, isActive && dropdownActiveItemClassName)}
-                          onSelect={() => {
-                            handlePageNavigate(page)
-                          }}
-                        >
-                          {Icon && <Icon className={cn("!h-4 !w-4 shrink-0", isActive ? "text-[#16a34a]" : "text-[#78716c]")} />}
+                    return (
+                      <DropdownMenuItem
+                        key={page.name}
+                        className={cn(dropdownItemClassName, isActive && dropdownActiveItemClassName)}
+                        onSelect={() => {
+                          handlePageNavigate(page)
+                        }}
+                      >
+                        {Icon && <Icon className={cn("!h-4 !w-4 shrink-0", isActive ? "text-[#16a34a]" : "text-[#78716c]")} />}
 
-                          <span>{getRouteTitle(page, String(page.name))}</span>
+                        <span>{getRouteTitle(page, String(page.name))}</span>
 
-                          {isActive && (
-                            <Check
-                              className="
+                        {isActive && (
+                          <Check
+                            className="
                                 ml-auto
                                 !h-[14px]
                                 !w-[14px]
                                 shrink-0
                                 text-[#16a34a]
                               "
-                            />
-                          )}
-                        </DropdownMenuItem>
-                      )
-                    })}
+                          />
+                        )}
+                      </DropdownMenuItem>
+                    )
+                  })}
                 </DropdownMenuContent>
               </DropdownMenu>
             </BreadcrumbItem>

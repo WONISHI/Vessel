@@ -327,11 +327,7 @@ export default function DevTool() {
                 "focus-visible:ring-offset-0",
                 "data-[state=open]:scale-[0.94]",
                 "data-[state=open]:bg-[#f5f5f4]",
-                hasError
-                  ? "border-red-500 text-red-600 hover:bg-red-50 hover:text-red-600"
-                  : isSpyEnabled
-                    ? "border-green-500 text-green-600 hover:bg-green-50 hover:text-green-600"
-                    : "border-[#e7e5e4] text-stone-600 hover:bg-[#faf9f7]"
+                hasError ? "border-red-500 text-red-600 hover:bg-red-50 hover:text-red-600" : isSpyEnabled ? "border-green-500 text-green-600 hover:bg-green-50 hover:text-green-600" : "border-[#e7e5e4] text-stone-600 hover:text-stone-600 hover:bg-[#faf9f7]"
               )}
             >
               <Cog
