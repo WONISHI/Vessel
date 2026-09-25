@@ -2,7 +2,7 @@ import { app, shell, BrowserWindow, ipcMain, nativeImage } from "electron"
 import { join } from "path"
 import { electronApp, optimizer, is } from "@electron-toolkit/utils"
 import icon from "../../resources/icon.png?asset"
-import { mainApps } from "./app"
+import { mainApps } from "@main/app"
 
 function createWindow(): void {
   const mainWindow = new BrowserWindow({

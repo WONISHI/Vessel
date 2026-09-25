@@ -84,9 +84,6 @@
   .nav-item.active .nav-badge {
     background: #dcfce7; color: #166534;
   }
-  .nav-badge.error {
-    background: #fef2f2; color: #dc2626;
-  }
 
   .sidebar-footer {
     padding: 12px;
@@ -107,8 +104,111 @@
     flex: 1; display: flex; flex-direction: column;
     overflow: hidden; min-width: 0;
   }
+
+  /* ========== 面包屑导航 ========== */
+  .breadcrumb-bar {
+    padding: 8px 16px;
+    border-bottom: 1px solid #f0efed;
+    background: #fff;
+    display: flex; align-items: center; gap: 4px;
+    position: relative;
+  }
+  .breadcrumb-item {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 13px; color: #78716c;
+    cursor: pointer; transition: all 0.12s;
+    padding: 5px 10px; border-radius: 6px;
+    position: relative;
+    user-select: none;
+  }
+  .breadcrumb-item:hover {
+    color: #1c1917;
+    background: #faf9f7;
+  }
+  .breadcrumb-item.current {
+    color: #16a34a;
+    font-weight: 600;
+    cursor: default;
+  }
+  .breadcrumb-item.current:hover {
+    background: transparent;
+    color: #16a34a;
+  }
+  .breadcrumb-item .chevron {
+    width: 12px; height: 12px;
+    transition: transform 0.15s;
+    opacity: 0.6;
+  }
+  .breadcrumb-item.open .chevron {
+    transform: rotate(180deg);
+  }
+  .breadcrumb-separator {
+    color: #d6d3d1;
+    font-size: 12px;
+    user-select: none;
+  }
+
+  /* 面包屑下拉菜单 */
+  .breadcrumb-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    margin-top: 4px;
+    min-width: 180px;
+    background: #fff;
+    border: 1px solid #e7e5e4;
+    border-radius: 10px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.12);
+    z-index: 1000;
+    overflow: hidden;
+    display: none;
+    animation: dropdownIn 0.15s ease;
+  }
+  .breadcrumb-dropdown.show { display: block; }
+  @keyframes dropdownIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .dropdown-group-label {
+    font-size: 10px; font-weight: 700; color: #a8a29e;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    padding: 8px 12px 4px;
+  }
+  .dropdown-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 12px;
+    font-size: 13px; color: #44403c;
+    cursor: pointer; transition: all 0.1s;
+  }
+  .dropdown-item:hover {
+    background: #faf9f7;
+    color: #1c1917;
+  }
+  .dropdown-item.active {
+    background: #f0fdf4;
+    color: #15803d;
+    font-weight: 600;
+  }
+  .dropdown-item .check {
+    width: 14px; height: 14px;
+    margin-left: auto;
+    opacity: 0;
+  }
+  .dropdown-item.active .check { opacity: 1; }
+  .dropdown-item .icon {
+    width: 16px; height: 16px;
+    display: flex; align-items: center; justify-content: center;
+    color: #78716c;
+  }
+  .dropdown-item.active .icon { color: #16a34a; }
+  .dropdown-separator {
+    height: 1px; background: #f0efed;
+    margin: 4px 0;
+  }
+
+  /* ========== 页面头部 ========== */
   .main-header {
-    padding: 14px 24px;
+    padding: 10px 16px;
     border-bottom: 1px solid #f0efed;
     background: #fff;
     display: flex; align-items: center; justify-content: space-between;
@@ -130,17 +230,29 @@
   }
 
   .main-body {
-    flex: 1; overflow-y: auto;
-    padding: 24px;
+    flex: 1; overflow: hidden;
+    position: relative;
   }
-  .main-body::-webkit-scrollbar { width: 6px; }
-  .main-body::-webkit-scrollbar-thumb { background: #e7e5e4; border-radius: 3px; }
+  .page {
+    display: none;
+    height: 100%;
+    overflow-y: auto;
+    padding: 16px;
+    animation: fadeIn 0.2s ease;
+  }
+  .page.active { display: block; }
+  .page::-webkit-scrollbar { width: 6px; }
+  .page::-webkit-scrollbar-thumb { background: #e7e5e4; border-radius: 3px; }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
 
   /* ========== 卡片通用 ========== */
   .card {
     background: #fff; border: 1px solid #e7e5e4;
     border-radius: 12px; overflow: hidden;
-    margin-bottom: 20px;
+    margin-bottom: 12px;
   }
   .card-header {
     padding: 12px 16px;
@@ -167,7 +279,6 @@
     cursor: pointer; transition: all 0.12s; font-family: inherit;
   }
   .ghost-btn:hover { background: #f0efed; color: #44403c; }
-  .ghost-btn:disabled { opacity: 0.5; cursor: not-allowed; }
   .card-body { padding: 16px; }
 
   /* ========== Console 日志 ========== */
@@ -200,7 +311,7 @@
   /* 统计卡片行 */
   .stats-row {
     display: grid; grid-template-columns: repeat(4, 1fr);
-    gap: 12px; margin-bottom: 20px;
+    gap: 10px; margin-bottom: 12px;
   }
   .stat-card {
     background: #fff; border: 1px solid #e7e5e4;
@@ -247,14 +358,14 @@
   /* 两栏内容布局 */
   .content-grid {
     display: grid; grid-template-columns: 1fr 1fr;
-    gap: 20px;
+    gap: 12px;
   }
   .content-grid .card { margin-bottom: 0; }
 
-  /* 监控页面 - 性能指标 */
+  /* 性能监控 */
   .perf-grid {
     display: grid; grid-template-columns: repeat(3, 1fr);
-    gap: 12px; margin-bottom: 20px;
+    gap: 10px; margin-bottom: 12px;
   }
   .perf-card {
     background: #fff; border: 1px solid #e7e5e4;
@@ -271,8 +382,6 @@
     height: 100%; border-radius: 3px;
     transition: width 0.3s;
   }
-
-  /* 进程列表 */
   .process-list { display: flex; flex-direction: column; }
   .process-row {
     display: flex; align-items: center; gap: 12px;
@@ -283,7 +392,6 @@
   .process-row:hover { background: #faf9f7; }
   .process-row:last-child { border-bottom: none; }
   .process-name { font-size: 13px; font-weight: 500; color: #44403c; flex: 1; }
-  .process-meta { font-size: 11px; color: #a8a29e; }
   .process-cpu { font-size: 12px; font-weight: 600; font-family: monospace; width: 60px; text-align: right; }
   .process-mem { font-size: 12px; font-weight: 600; font-family: monospace; width: 70px; text-align: right; color: #78716c; }
 
@@ -307,12 +415,11 @@
     font-family: monospace;
   }
   .system-value.green { color: #16a34a; }
-  .system-value.red { color: #dc2626; }
 
   /* 工具按钮网格 */
   .tools-grid {
     display: grid; grid-template-columns: repeat(3, 1fr);
-    gap: 12px; padding: 16px;
+    gap: 10px; padding: 12px;
   }
   .tool-btn {
     display: flex; flex-direction: column; align-items: center; gap: 8px;
@@ -338,84 +445,395 @@
   }
   .tool-btn-label { font-size: 12px; font-weight: 600; color: #44403c; }
   .tool-btn-desc { font-size: 10px; color: #a8a29e; text-align: center; }
+
+  /* 页面跳转 */
+  .nav-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  .nav-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+    background: #fff;
+    border: 1px solid #e7e5e4;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .nav-card:hover {
+    border-color: #16a34a;
+    background: #f0fdf4;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(22,163,74,0.1);
+  }
+  .nav-card-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #faf9f7;
+    color: #57534e;
+    flex-shrink: 0;
+    transition: all 0.15s;
+  }
+  .nav-card:hover .nav-card-icon {
+    background: #dcfce7;
+    color: #16a34a;
+  }
+  .nav-card-text h3 {
+    font-size: 13px;
+    font-weight: 600;
+    color: #44403c;
+  }
+  .nav-card-text p {
+    font-size: 11px;
+    color: #a8a29e;
+    margin-top: 2px;
+  }
+
+  /* ========== SQLite 数据查看器（嵌入页面） ========== */
+  .sqlite-page {
+    display: flex;
+    height: 100%;
+    overflow: hidden;
+    background: #fff;
+  }
+  .sqlite-sidebar {
+    width: 240px;
+    min-width: 240px;
+    background: #faf9f7;
+    border-right: 1px solid #f0efed;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .sqlite-sidebar-header {
+    padding: 14px 16px;
+    border-bottom: 1px solid #f0efed;
+  }
+  .sqlite-sidebar-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: #a8a29e;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .sqlite-sidebar-count {
+    background: #f0efed;
+    color: #78716c;
+    padding: 1px 7px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .sqlite-table-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px;
+  }
+  .sqlite-table-list::-webkit-scrollbar { width: 6px; }
+  .sqlite-table-list::-webkit-scrollbar-thumb { background: #e7e5e4; border-radius: 3px; }
+  .sqlite-table-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.12s;
+    margin-bottom: 2px;
+  }
+  .sqlite-table-item:hover { background: #f0efed; }
+  .sqlite-table-item.active { background: #ecfdf5; color: #166534; }
+  .sqlite-table-item-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 7px;
+    background: #f5f5f4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: #78716c;
+  }
+  .sqlite-table-item.active .sqlite-table-item-icon {
+    background: #dcfce7;
+    color: #16a34a;
+  }
+  .sqlite-table-item-info { flex: 1; min-width: 0; }
+  .sqlite-table-item-name {
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .sqlite-table-item-count {
+    font-size: 11px;
+    color: #a8a29e;
+    margin-top: 1px;
+  }
+  .sqlite-table-item.active .sqlite-table-item-count { color: #16a34a; }
+
+  .sqlite-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+    overflow: hidden;
+    min-width: 0;
+  }
+  .sqlite-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+    border-bottom: 1px solid #f0efed;
+    background: #fff;
+  }
+  .sqlite-toolbar-left { display: flex; align-items: center; gap: 12px; }
+  .sqlite-table-title { display: flex; align-items: center; gap: 10px; }
+  .sqlite-table-title-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: #f0fdf4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #16a34a;
+  }
+  .sqlite-table-title-text h2 {
+    font-size: 15px;
+    font-weight: 700;
+    color: #1c1917;
+  }
+  .sqlite-table-title-text p {
+    font-size: 11px;
+    color: #a8a29e;
+    margin-top: 1px;
+  }
+  .sqlite-table-meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: #faf9f7;
+    border: 1px solid #f0efed;
+    border-radius: 6px;
+    font-size: 11px;
+    color: #78716c;
+  }
+  .sqlite-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 12px;
+    border-radius: 7px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.12s;
+    border: 1px solid #e7e5e4;
+    background: #fff;
+    color: #44403c;
+    font-family: inherit;
+  }
+  .sqlite-btn:hover { background: #faf9f7; border-color: #d6d3d1; }
+
+  .sqlite-table-container {
+    flex: 1;
+    overflow: auto;
+    background: #fff;
+  }
+  .sqlite-table-container::-webkit-scrollbar { height: 8px; width: 8px; }
+  .sqlite-table-container::-webkit-scrollbar-thumb { background: #e7e5e4; border-radius: 4px; }
+  .sqlite-data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+  }
+  .sqlite-data-table thead {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: #faf9f7;
+  }
+  .sqlite-data-table th {
+    height: 38px;
+    padding: 0 14px;
+    text-align: left;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: #57534e;
+    border-bottom: 1px solid #e7e5e4;
+    white-space: nowrap;
+    user-select: none;
+  }
+  .sqlite-data-table th .col-type {
+    font-size: 10px;
+    font-weight: 500;
+    color: #a8a29e;
+    background: #f0efed;
+    padding: 1px 5px;
+    border-radius: 4px;
+    margin-left: 4px;
+  }
+  .sqlite-data-table td {
+    height: 40px;
+    padding: 0 14px;
+    border-bottom: 1px solid #f5f5f4;
+    color: #44403c;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 250px;
+  }
+  .sqlite-data-table tbody tr { transition: background 0.1s; }
+  .sqlite-data-table tbody tr:hover { background: #faf9f7; }
+  .sqlite-data-table tbody tr:last-child td { border-bottom: none; }
+
+  .cell-id {
+    font-family: "SF Mono", Monaco, monospace;
+    font-size: 11.5px;
+    color: #16a34a;
+    font-weight: 600;
+  }
+  .cell-number {
+    font-family: "SF Mono", Monaco, monospace;
+    font-size: 12px;
+    color: #2563eb;
+    font-weight: 500;
+  }
+  .cell-boolean {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11.5px;
+    font-weight: 500;
+  }
+  .cell-boolean.true { color: #16a34a; }
+  .cell-boolean.false { color: #a8a29e; }
+  .cell-boolean-dot { width: 6px; height: 6px; border-radius: 50%; }
+  .cell-boolean.true .cell-boolean-dot { background: #16a34a; }
+  .cell-boolean.false .cell-boolean-dot { background: #d6d3d1; }
+  .cell-date {
+    font-family: "SF Mono", Monaco, monospace;
+    font-size: 11.5px;
+    color: #7c3aed;
+  }
+  .cell-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 5px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .badge-active { background: #dcfce7; color: #166534; }
+  .badge-user { background: #dbeafe; color: #1e40af; }
+  .badge-pending { background: #fef3c7; color: #92400e; }
+  .badge-inactive { background: #f5f5f4; color: #78716c; }
+
+  .sqlite-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 20px;
+    border-top: 1px solid #f0efed;
+    background: #faf9f7;
+  }
+  .sqlite-pagination-info { font-size: 12px; color: #78716c; }
+  .sqlite-pagination-info strong { color: #1c1917; font-weight: 600; }
+  .sqlite-pagination-controls { display: flex; align-items: center; gap: 5px; }
+  .sqlite-page-btn {
+    min-width: 28px;
+    height: 28px;
+    padding: 0 7px;
+    border: 1px solid #e7e5e4;
+    border-radius: 6px;
+    background: #fff;
+    font-size: 11.5px;
+    font-weight: 500;
+    color: #57534e;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.12s;
+    font-family: inherit;
+  }
+  .sqlite-page-btn:hover:not(:disabled) { background: #faf9f7; border-color: #d6d3d1; }
+  .sqlite-page-btn.active { background: #16a34a; border-color: #16a34a; color: #fff; }
+  .sqlite-page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 </style>
 </head>
 <body>
 
-<!-- ========== 左侧导航栏 ========== -->
-<aside class="sidebar">
-  <div class="sidebar-header">
-    <div class="sidebar-logo">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 11 3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-    </div>
-    <div class="sidebar-title">
-      <h1>调试面板</h1>
-      <p>Debug Dashboard</p>
-    </div>
-  </div>
-
-  <div class="nav-section">
-    <div class="nav-label">主要功能</div>
-    <div class="nav-item active">
-      <div class="nav-icon">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
-      </div>
-      <span>控制台</span>
-      <span class="nav-badge">6</span>
-    </div>
-    <div class="nav-item">
-      <div class="nav-icon">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>
-      </div>
-      <span>性能监控</span>
-      <span class="nav-badge">Live</span>
-    </div>
-    <div class="nav-item">
-      <div class="nav-icon">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-      </div>
-      <span>系统信息</span>
-    </div>
-
-    <div class="nav-label" style="margin-top:16px;">工具</div>
-    <div class="nav-item">
-      <div class="nav-icon">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
-      </div>
-      <span>开发工具</span>
-    </div>
-    <div class="nav-item">
-      <div class="nav-icon">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
-      </div>
-      <span>数据存储</span>
-    </div>
-    <div class="nav-item">
-      <div class="nav-icon">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-      </div>
-      <span>页面跳转</span>
-    </div>
-  </div>
-
-  <div class="sidebar-footer">
-    <button class="back-btn">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
-      返回应用
-    </button>
-  </div>
-</aside>
-
 <!-- ========== 右侧内容区 ========== -->
 <main class="main">
+  <!-- 面包屑导航（带下拉菜单） -->
+  <div class="breadcrumb-bar" id="breadcrumb">
+    <!-- 第一级：调试页面 -->
+    <div class="breadcrumb-item" id="bc-root" onclick="toggleDropdown('root')">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 11 3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      调试页面
+      <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      <!-- 下拉菜单：选择分组 -->
+      <div class="breadcrumb-dropdown" id="dropdown-root">
+        <div class="dropdown-group-label">选择分组</div>
+        <div class="dropdown-item" onclick="selectGroup('main')">
+          <div class="icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+          </div>
+          主要功能
+        </div>
+        <div class="dropdown-item" onclick="selectGroup('tools')">
+          <div class="icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+          </div>
+          工具
+        </div>
+      </div>
+    </div>
+
+    <span class="breadcrumb-separator">/</span>
+
+    <!-- 第二级：分组 -->
+    <div class="breadcrumb-item" id="bc-group" onclick="toggleDropdown('group')">
+      <span id="bc-group-text">主要功能</span>
+      <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      <!-- 下拉菜单：选择子页面 -->
+      <div class="breadcrumb-dropdown" id="dropdown-group">
+        <div class="dropdown-group-label" id="dropdown-group-label">主要功能</div>
+        <div id="dropdown-group-items"></div>
+      </div>
+    </div>
+
+    <span class="breadcrumb-separator">/</span>
+
+    <!-- 第三级：当前页面 -->
+    <div class="breadcrumb-item current" id="bc-current">控制台</div>
+  </div>
+
+  <!-- 页面头部 -->
   <div class="main-header">
     <div class="main-title">
       <div>
-        <h2>控制台</h2>
-        <p>Console 日志查看与监听控制</p>
+        <h2 id="page-title">控制台</h2>
+        <p id="page-desc">Console 日志查看与监听控制</p>
       </div>
     </div>
-    <div class="main-actions">
+    <div class="main-actions" id="page-actions">
       <span class="badge badge-red">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
         1 Error
@@ -424,160 +842,821 @@
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
         监听中
       </span>
-      <span class="badge badge-outline">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-        14:32:25
-      </span>
     </div>
   </div>
 
   <div class="main-body">
-    <!-- 统计卡片 -->
-    <div class="stats-row">
-      <div class="stat-card">
-        <div>
-          <div class="stat-label">总日志</div>
-          <div class="stat-value" style="color:#1c1917;">6</div>
+    <!-- ========== 控制台页面 ========== -->
+    <div class="page active" id="page-console">
+      <div class="stats-row">
+        <div class="stat-card">
+          <div>
+            <div class="stat-label">总日志</div>
+            <div class="stat-value" style="color:#1c1917;">6</div>
+          </div>
+          <div class="stat-icon" style="background:#f5f5f4;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#78716c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+          </div>
         </div>
-        <div class="stat-icon" style="background:#f5f5f4;">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#78716c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+        <div class="stat-card">
+          <div>
+            <div class="stat-label">Log</div>
+            <div class="stat-value" style="color:#0d9488;">3</div>
+          </div>
+          <div class="stat-icon" style="background:#f0fdfa;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div>
+            <div class="stat-label">Warn</div>
+            <div class="stat-value" style="color:#d97706;">1</div>
+          </div>
+          <div class="stat-icon" style="background:#fffbeb;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div>
+            <div class="stat-label">Error</div>
+            <div class="stat-value" style="color:#dc2626;">1</div>
+          </div>
+          <div class="stat-icon" style="background:#fef2f2;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+          </div>
         </div>
       </div>
-      <div class="stat-card">
-        <div>
-          <div class="stat-label">Log</div>
-          <div class="stat-value" style="color:#0d9488;">3</div>
+
+      <div class="content-grid">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+              Console 日志
+              <span class="card-count">6 条</span>
+            </div>
+            <button class="ghost-btn">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+              清空
+            </button>
+          </div>
+          <div class="console-body">
+            <div class="log-entry log-log">
+              <span class="log-timestamp">[14:32:05]</span>
+              <span class="log-message">App initialized successfully</span>
+            </div>
+            <div class="log-entry log-info">
+              <span class="log-timestamp">[14:32:06]</span>
+              <span class="log-message">Workspace loaded: /Users/dev/Documents/notes</span>
+            </div>
+            <div class="log-entry log-log">
+              <span class="log-timestamp">[14:32:08]</span>
+              <span class="log-message">Rendered 42 files in workspace</span>
+            </div>
+            <div class="log-entry log-warn">
+              <span class="log-timestamp">[14:32:15]</span>
+              <span class="log-message">Deprecated API used: oldFormat() will be removed in v2.0</span>
+            </div>
+            <div class="log-entry log-log">
+              <span class="log-timestamp">[14:32:20]</span>
+              <span class="log-message">{"user": "alice", "action": "save", "file": "note.md"}</span>
+            </div>
+            <div class="log-entry log-error">
+              <span class="log-timestamp">[14:32:25]</span>
+              <span class="log-message">TypeError: Cannot read properties of undefined (reading 'map')
+at Editor.render (editor.tsx:142)
+at ReactComponent.render (react-dom.js:1234)</span>
+            </div>
+          </div>
         </div>
-        <div class="stat-icon" style="background:#f0fdfa;">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-        </div>
-      </div>
-      <div class="stat-card">
-        <div>
-          <div class="stat-label">Warn</div>
-          <div class="stat-value" style="color:#d97706;">1</div>
-        </div>
-        <div class="stat-icon" style="background:#fffbeb;">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-        </div>
-      </div>
-      <div class="stat-card">
-        <div>
-          <div class="stat-label">Error</div>
-          <div class="stat-value" style="color:#dc2626;">1</div>
-        </div>
-        <div class="stat-icon" style="background:#fef2f2;">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+              监听控制
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="switch-row">
+              <div class="switch-label">
+                <div>
+                  <div class="switch-text">总开关</div>
+                  <div class="switch-desc">拦截 console 输出</div>
+                </div>
+              </div>
+              <div class="switch on" onclick="this.classList.toggle('on')"><div class="switch-thumb"></div></div>
+            </div>
+            <div class="separator"></div>
+            <div style="font-size:11px;font-weight:600;color:#a8a29e;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;">监听类型</div>
+            <div class="switch-row">
+              <div class="switch-label">
+                <div class="switch-icon" style="background:#f0fdfa;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                </div>
+                <span class="switch-text">Log</span>
+              </div>
+              <div class="switch on" onclick="this.classList.toggle('on')"><div class="switch-thumb"></div></div>
+            </div>
+            <div class="switch-row">
+              <div class="switch-label">
+                <div class="switch-icon" style="background:#ecfeff;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0891b2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                </div>
+                <span class="switch-text">Info</span>
+              </div>
+              <div class="switch on" onclick="this.classList.toggle('on')"><div class="switch-thumb"></div></div>
+            </div>
+            <div class="switch-row">
+              <div class="switch-label">
+                <div class="switch-icon" style="background:#fffbeb;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                </div>
+                <span class="switch-text">Warn</span>
+              </div>
+              <div class="switch on" onclick="this.classList.toggle('on')"><div class="switch-thumb"></div></div>
+            </div>
+            <div class="switch-row">
+              <div class="switch-label">
+                <div class="switch-icon" style="background:#fef2f2;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                </div>
+                <span class="switch-text">Error</span>
+              </div>
+              <div class="switch" onclick="this.classList.toggle('on')"><div class="switch-thumb"></div></div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- 两栏内容 -->
-    <div class="content-grid">
-      <!-- 左侧：Console 日志 -->
+    <!-- ========== 性能监控页面 ========== -->
+    <div class="page" id="page-performance">
+      <div class="perf-grid">
+        <div class="perf-card">
+          <div class="perf-label">CPU 使用率</div>
+          <div class="perf-value">23<span class="perf-unit">%</span></div>
+          <div class="perf-bar"><div class="perf-bar-fill" style="width:23%;background:#16a34a;"></div></div>
+        </div>
+        <div class="perf-card">
+          <div class="perf-label">内存使用</div>
+          <div class="perf-value">1.2<span class="perf-unit">GB</span></div>
+          <div class="perf-bar"><div class="perf-bar-fill" style="width:45%;background:#0891b2;"></div></div>
+        </div>
+        <div class="perf-card">
+          <div class="perf-label">渲染帧率</div>
+          <div class="perf-value">60<span class="perf-unit">FPS</span></div>
+          <div class="perf-bar"><div class="perf-bar-fill" style="width:100%;background:#16a34a;"></div></div>
+        </div>
+      </div>
       <div class="card">
         <div class="card-header">
           <div class="card-title">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
-            Console 日志
-            <span class="card-count">6 条</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+            进程列表
           </div>
-          <button class="ghost-btn">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-            清空
-          </button>
+          <span class="card-count">4 个进程</span>
         </div>
-        <div class="console-body">
-          <div class="log-entry log-log">
-            <span class="log-timestamp">[14:32:05]</span>
-            <span class="log-message">App initialized successfully</span>
+        <div class="process-list">
+          <div class="process-row">
+            <span class="process-name">主进程 (Main)</span>
+            <span class="process-cpu" style="color:#16a34a;">12%</span>
+            <span class="process-mem">320 MB</span>
           </div>
-          <div class="log-entry log-info">
-            <span class="log-timestamp">[14:32:06]</span>
-            <span class="log-message">Workspace loaded: /Users/dev/Documents/notes</span>
+          <div class="process-row">
+            <span class="process-name">渲染进程 (Renderer)</span>
+            <span class="process-cpu" style="color:#d97706;">8%</span>
+            <span class="process-mem">580 MB</span>
           </div>
-          <div class="log-entry log-log">
-            <span class="log-timestamp">[14:32:08]</span>
-            <span class="log-message">Rendered 42 files in workspace</span>
+          <div class="process-row">
+            <span class="process-name">GPU 进程</span>
+            <span class="process-cpu" style="color:#16a34a;">2%</span>
+            <span class="process-mem">180 MB</span>
           </div>
-          <div class="log-entry log-warn">
-            <span class="log-timestamp">[14:32:15]</span>
-            <span class="log-message">Deprecated API used: oldFormat() will be removed in v2.0</span>
-          </div>
-          <div class="log-entry log-log">
-            <span class="log-timestamp">[14:32:20]</span>
-            <span class="log-message">{"user": "alice", "action": "save", "file": "note.md"}</span>
-          </div>
-          <div class="log-entry log-error">
-            <span class="log-timestamp">[14:32:25]</span>
-            <span class="log-message">TypeError: Cannot read properties of undefined (reading 'map')
-at Editor.render (editor.tsx:142)
-at ReactComponent.render (react-dom.js:1234)</span>
+          <div class="process-row">
+            <span class="process-name">Utility 进程</span>
+            <span class="process-cpu" style="color:#16a34a;">1%</span>
+            <span class="process-mem">120 MB</span>
           </div>
         </div>
       </div>
+    </div>
 
-      <!-- 右侧：监听控制 -->
+    <!-- ========== 系统信息页面 ========== -->
+    <div class="page" id="page-system">
       <div class="card">
         <div class="card-header">
           <div class="card-title">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-            监听控制
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+            系统信息
+          </div>
+        </div>
+        <div class="system-grid">
+          <div class="system-col">
+            <div class="system-row">
+              <span class="system-label">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/></svg>
+                平台
+              </span>
+              <span class="system-value">darwin (macOS)</span>
+            </div>
+            <div class="system-row">
+              <span class="system-label">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                语言
+              </span>
+              <span class="system-value">zh-CN</span>
+            </div>
+            <div class="system-row">
+              <span class="system-label">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                Electron
+              </span>
+              <span class="system-value green">v28.0.0</span>
+            </div>
+            <div class="system-row">
+              <span class="system-label">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/></svg>
+                存储占用
+              </span>
+              <span class="system-value">2.34 KB</span>
+            </div>
+          </div>
+          <div class="system-col">
+            <div class="system-row">
+              <span class="system-label">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/></svg>
+                屏幕分辨率
+              </span>
+              <span class="system-value">1920 × 1080</span>
+            </div>
+            <div class="system-row">
+              <span class="system-label">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/></svg>
+                窗口尺寸
+              </span>
+              <span class="system-value">1174 × 682</span>
+            </div>
+            <div class="system-row">
+              <span class="system-label">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                像素比
+              </span>
+              <span class="system-value">2x</span>
+            </div>
+            <div class="system-row">
+              <span class="system-label">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
+                网络状态
+              </span>
+              <span class="system-value green">在线</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== 开发工具页面 ========== -->
+    <div class="page" id="page-tools">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+            开发工具
+          </div>
+        </div>
+        <div class="tools-grid">
+          <div class="tool-btn">
+            <div class="tool-btn-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+            </div>
+            <span class="tool-btn-label">打开控制台</span>
+            <span class="tool-btn-desc">Chrome DevTools</span>
+          </div>
+          <div class="tool-btn">
+            <div class="tool-btn-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+            </div>
+            <span class="tool-btn-label">刷新页面</span>
+            <span class="tool-btn-desc">重新加载当前页</span>
+          </div>
+          <div class="tool-btn">
+            <div class="tool-btn-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            </div>
+            <span class="tool-btn-label">清除缓存</span>
+            <span class="tool-btn-desc">清空所有本地数据</span>
+          </div>
+          <div class="tool-btn">
+            <div class="tool-btn-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            </div>
+            <span class="tool-btn-label">查看日志</span>
+            <span class="tool-btn-desc">历史记录面板</span>
+          </div>
+          <div class="tool-btn">
+            <div class="tool-btn-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            </div>
+            <span class="tool-btn-label">错误报告</span>
+            <span class="tool-btn-desc">查看崩溃日志</span>
+          </div>
+          <div class="tool-btn">
+            <div class="tool-btn-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </div>
+            <span class="tool-btn-label">性能分析</span>
+            <span class="tool-btn-desc">启动性能追踪</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== 数据存储页面（SQLite 查看器） ========== -->
+    <div class="page" id="page-storage" style="padding:0;">
+      <div class="sqlite-page">
+        <!-- 左侧表列表 -->
+        <div class="sqlite-sidebar">
+          <div class="sqlite-sidebar-header">
+            <div class="sqlite-sidebar-title">
+              <span>数据表</span>
+              <span class="sqlite-sidebar-count">8</span>
+            </div>
+          </div>
+          <div class="sqlite-table-list">
+            <div class="sqlite-table-item active" onclick="selectSqliteTable(this, 'users')">
+              <div class="sqlite-table-item-icon">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+              </div>
+              <div class="sqlite-table-item-info">
+                <div class="sqlite-table-item-name">users</div>
+                <div class="sqlite-table-item-count">1,248 行 · 7 列</div>
+              </div>
+            </div>
+            <div class="sqlite-table-item" onclick="selectSqliteTable(this, 'notes')">
+              <div class="sqlite-table-item-icon">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+              </div>
+              <div class="sqlite-table-item-info">
+                <div class="sqlite-table-item-name">notes</div>
+                <div class="sqlite-table-item-count">3,567 行 · 12 列</div>
+              </div>
+            </div>
+            <div class="sqlite-table-item" onclick="selectSqliteTable(this, 'workspaces')">
+              <div class="sqlite-table-item-icon">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+              </div>
+              <div class="sqlite-table-item-info">
+                <div class="sqlite-table-item-name">workspaces</div>
+                <div class="sqlite-table-item-count">24 行 · 6 列</div>
+              </div>
+            </div>
+            <div class="sqlite-table-item" onclick="selectSqliteTable(this, 'tags')">
+              <div class="sqlite-table-item-icon">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+              </div>
+              <div class="sqlite-table-item-info">
+                <div class="sqlite-table-item-name">tags</div>
+                <div class="sqlite-table-item-count">156 行 · 4 列</div>
+              </div>
+            </div>
+            <div class="sqlite-table-item" onclick="selectSqliteTable(this, 'history')">
+              <div class="sqlite-table-item-icon">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+              </div>
+              <div class="sqlite-table-item-info">
+                <div class="sqlite-table-item-name">history</div>
+                <div class="sqlite-table-item-count">8,932 行 · 7 列</div>
+              </div>
+            </div>
+            <div class="sqlite-table-item" onclick="selectSqliteTable(this, 'settings')">
+              <div class="sqlite-table-item-icon">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+              </div>
+              <div class="sqlite-table-item-info">
+                <div class="sqlite-table-item-name">settings</div>
+                <div class="sqlite-table-item-count">1 行 · 15 列</div>
+              </div>
+            </div>
+            <div class="sqlite-table-item" onclick="selectSqliteTable(this, 'attachments')">
+              <div class="sqlite-table-item-icon">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+              </div>
+              <div class="sqlite-table-item-info">
+                <div class="sqlite-table-item-name">attachments</div>
+                <div class="sqlite-table-item-count">432 行 · 9 列</div>
+              </div>
+            </div>
+            <div class="sqlite-table-item" onclick="selectSqliteTable(this, 'sessions')">
+              <div class="sqlite-table-item-icon">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+              </div>
+              <div class="sqlite-table-item-info">
+                <div class="sqlite-table-item-name">sessions</div>
+                <div class="sqlite-table-item-count">128 行 · 5 列</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 右侧数据表格 -->
+        <div class="sqlite-main">
+          <div class="sqlite-toolbar">
+            <div class="sqlite-toolbar-left">
+              <div class="sqlite-table-title">
+                <div class="sqlite-table-title-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+                </div>
+                <div class="sqlite-table-title-text">
+                  <h2 id="sqlite-table-name">users</h2>
+                  <p id="sqlite-table-desc">用户表 · 存储所有用户信息</p>
+                </div>
+              </div>
+              <div class="sqlite-table-meta">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+                <span id="sqlite-row-count">1,248 行</span>
+              </div>
+              <div class="sqlite-table-meta">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+                <span id="sqlite-col-count">7 列</span>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <button class="sqlite-btn">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                导出
+              </button>
+              <button class="sqlite-btn">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                刷新
+              </button>
+            </div>
+          </div>
+
+          <div class="sqlite-table-container">
+            <table class="sqlite-data-table">
+              <thead>
+                <tr>
+                  <th>id <span class="col-type">INTEGER</span></th>
+                  <th>username <span class="col-type">TEXT</span></th>
+                  <th>email <span class="col-type">TEXT</span></th>
+                  <th>role <span class="col-type">TEXT</span></th>
+                  <th>age <span class="col-type">INTEGER</span></th>
+                  <th>is_active <span class="col-type">BOOLEAN</span></th>
+                  <th>created_at <span class="col-type">DATETIME</span></th>
+                </tr>
+              </thead>
+              <tbody id="sqlite-table-body">
+                <tr>
+                  <td><span class="cell-id">1</span></td>
+                  <td>alice_wonder</td>
+                  <td>alice@example.com</td>
+                  <td><span class="cell-badge badge-active">admin</span></td>
+                  <td><span class="cell-number">28</span></td>
+                  <td><span class="cell-boolean true"><span class="cell-boolean-dot"></span>true</span></td>
+                  <td><span class="cell-date">2024-01-15 09:30:00</span></td>
+                </tr>
+                <tr>
+                  <td><span class="cell-id">2</span></td>
+                  <td>bob_builder</td>
+                  <td>bob@example.com</td>
+                  <td><span class="cell-badge badge-user">user</span></td>
+                  <td><span class="cell-number">35</span></td>
+                  <td><span class="cell-boolean true"><span class="cell-boolean-dot"></span>true</span></td>
+                  <td><span class="cell-date">2024-01-16 14:20:00</span></td>
+                </tr>
+                <tr>
+                  <td><span class="cell-id">3</span></td>
+                  <td>charlie_dev</td>
+                  <td>charlie@example.com</td>
+                  <td><span class="cell-badge badge-user">user</span></td>
+                  <td><span class="cell-number">42</span></td>
+                  <td><span class="cell-boolean false"><span class="cell-boolean-dot"></span>false</span></td>
+                  <td><span class="cell-date">2024-01-17 08:45:00</span></td>
+                </tr>
+                <tr>
+                  <td><span class="cell-id">4</span></td>
+                  <td>diana_design</td>
+                  <td>diana@example.com</td>
+                  <td><span class="cell-badge badge-active">admin</span></td>
+                  <td><span class="cell-number">31</span></td>
+                  <td><span class="cell-boolean true"><span class="cell-boolean-dot"></span>true</span></td>
+                  <td><span class="cell-date">2024-01-18 16:10:00</span></td>
+                </tr>
+                <tr>
+                  <td><span class="cell-id">5</span></td>
+                  <td>eve_editor</td>
+                  <td>eve@example.com</td>
+                  <td><span class="cell-badge badge-pending">pending</span></td>
+                  <td><span class="cell-number">26</span></td>
+                  <td><span class="cell-boolean false"><span class="cell-boolean-dot"></span>false</span></td>
+                  <td><span class="cell-date">2024-01-19 11:25:00</span></td>
+                </tr>
+                <tr>
+                  <td><span class="cell-id">6</span></td>
+                  <td>frank_fullstack</td>
+                  <td>frank@example.com</td>
+                  <td><span class="cell-badge badge-user">user</span></td>
+                  <td><span class="cell-number">38</span></td>
+                  <td><span class="cell-boolean true"><span class="cell-boolean-dot"></span>true</span></td>
+                  <td><span class="cell-date">2024-01-20 09:00:00</span></td>
+                </tr>
+                <tr>
+                  <td><span class="cell-id">7</span></td>
+                  <td>grace_qa</td>
+                  <td>grace@example.com</td>
+                  <td><span class="cell-badge badge-inactive">inactive</span></td>
+                  <td><span class="cell-number">29</span></td>
+                  <td><span class="cell-boolean false"><span class="cell-boolean-dot"></span>false</span></td>
+                  <td><span class="cell-date">2024-01-21 13:45:00</span></td>
+                </tr>
+                <tr>
+                  <td><span class="cell-id">8</span></td>
+                  <td>henry_ops</td>
+                  <td>henry@example.com</td>
+                  <td><span class="cell-badge badge-user">user</span></td>
+                  <td><span class="cell-number">45</span></td>
+                  <td><span class="cell-boolean true"><span class="cell-boolean-dot"></span>true</span></td>
+                  <td><span class="cell-date">2024-01-22 17:30:00</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="sqlite-pagination">
+            <div class="sqlite-pagination-info">
+              显示 <strong>1-8</strong> 条，共 <strong>1,248</strong> 条
+            </div>
+            <div class="sqlite-pagination-controls">
+              <button class="sqlite-page-btn" disabled>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+              </button>
+              <button class="sqlite-page-btn active">1</button>
+              <button class="sqlite-page-btn">2</button>
+              <button class="sqlite-page-btn">3</button>
+              <button class="sqlite-page-btn">...</button>
+              <button class="sqlite-page-btn">125</button>
+              <button class="sqlite-page-btn">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== 页面跳转页面 ========== -->
+    <div class="page" id="page-navigate">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+            页面跳转
           </div>
         </div>
         <div class="card-body">
-          <div class="switch-row">
-            <div class="switch-label">
-              <div>
-                <div class="switch-text">总开关</div>
-                <div class="switch-desc">拦截 console 输出</div>
+          <div class="nav-grid">
+            <div class="nav-card" onclick="navigateTo('console')">
+              <div class="nav-card-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+              </div>
+              <div class="nav-card-text">
+                <h3>控制台</h3>
+                <p>Console 日志查看</p>
               </div>
             </div>
-            <div class="switch on"><div class="switch-thumb"></div></div>
-          </div>
-          <div class="separator"></div>
-          <div style="font-size:11px;font-weight:600;color:#a8a29e;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;">监听类型</div>
-          <div class="switch-row">
-            <div class="switch-label">
-              <div class="switch-icon" style="background:#f0fdfa;">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            <div class="nav-card" onclick="navigateTo('performance')">
+              <div class="nav-card-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>
               </div>
-              <span class="switch-text">Log</span>
-            </div>
-            <div class="switch on"><div class="switch-thumb"></div></div>
-          </div>
-          <div class="switch-row">
-            <div class="switch-label">
-              <div class="switch-icon" style="background:#ecfeff;">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0891b2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+              <div class="nav-card-text">
+                <h3>性能监控</h3>
+                <p>CPU / 内存 / 帧率</p>
               </div>
-              <span class="switch-text">Info</span>
             </div>
-            <div class="switch on"><div class="switch-thumb"></div></div>
-          </div>
-          <div class="switch-row">
-            <div class="switch-label">
-              <div class="switch-icon" style="background:#fffbeb;">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            <div class="nav-card" onclick="navigateTo('system')">
+              <div class="nav-card-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
               </div>
-              <span class="switch-text">Warn</span>
-            </div>
-            <div class="switch on"><div class="switch-thumb"></div></div>
-          </div>
-          <div class="switch-row">
-            <div class="switch-label">
-              <div class="switch-icon" style="background:#fef2f2;">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+              <div class="nav-card-text">
+                <h3>系统信息</h3>
+                <p>平台 / 分辨率 / 网络</p>
               </div>
-              <span class="switch-text">Error</span>
             </div>
-            <div class="switch"><div class="switch-thumb"></div></div>
+            <div class="nav-card" onclick="navigateTo('storage')">
+              <div class="nav-card-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+              </div>
+              <div class="nav-card-text">
+                <h3>数据存储</h3>
+                <p>SQLite 数据查看器</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
     </div>
   </div>
 </main>
+
+<script>
+  // 页面配置
+  const pageConfig = {
+    console: {
+      title: '控制台',
+      desc: 'Console 日志查看与监听控制',
+      group: 'main',
+      groupLabel: '主要功能',
+      actions: `
+        <span class="badge badge-red">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+          1 Error
+        </span>
+        <span class="badge badge-green">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          监听中
+        </span>
+      `
+    },
+    performance: {
+      title: '性能监控',
+      desc: 'CPU / 内存 / 帧率实时监控',
+      group: 'main',
+      groupLabel: '主要功能',
+      actions: `
+        <span class="badge badge-green">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          Live
+        </span>
+      `
+    },
+    system: {
+      title: '系统信息',
+      desc: '平台 / 分辨率 / 网络状态',
+      group: 'main',
+      groupLabel: '主要功能',
+      actions: ''
+    },
+    tools: {
+      title: '开发工具',
+      desc: '快捷操作入口',
+      group: 'tools',
+      groupLabel: '工具',
+      actions: ''
+    },
+    storage: {
+      title: '数据存储',
+      desc: 'SQLite 数据库表查看',
+      group: 'tools',
+      groupLabel: '工具',
+      actions: `
+        <span class="badge badge-outline">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/></svg>
+          8 张表
+        </span>
+      `
+    },
+    navigate: {
+      title: '页面跳转',
+      desc: '快速跳转到其他页面',
+      group: 'tools',
+      groupLabel: '工具',
+      actions: ''
+    }
+  }
+
+  // 分组下的页面列表
+  const groupPages = {
+    main: ['console', 'performance', 'system'],
+    tools: ['tools', 'storage', 'navigate']
+  }
+
+  // 当前状态
+  let currentPage = 'console'
+  let currentGroup = 'main'
+  let openDropdown = null
+
+  // 导航到指定页面
+  function navigateTo(page) {
+    const config = pageConfig[page]
+    if (!config) return
+
+    currentPage = page
+    currentGroup = config.group
+
+    // 更新左侧导航选中状态
+    document.querySelectorAll('.nav-item').forEach(item => {
+      item.classList.remove('active')
+      if (item.dataset.page === page) {
+        item.classList.add('active')
+      }
+    })
+
+    // 更新页面内容显示
+    document.querySelectorAll('.page').forEach(p => {
+      p.classList.remove('active')
+    })
+    const targetPage = document.getElementById('page-' + page)
+    if (targetPage) {
+      targetPage.classList.add('active')
+    }
+
+    // 更新页面标题
+    document.getElementById('page-title').textContent = config.title
+    document.getElementById('page-desc').textContent = config.desc
+
+    // 更新面包屑
+    document.getElementById('bc-group-text').textContent = config.groupLabel
+    document.getElementById('bc-current').textContent = config.title
+    document.getElementById('dropdown-group-label').textContent = config.groupLabel
+
+    // 更新面包屑第二级下拉菜单
+    updateGroupDropdown()
+
+    // 更新页面操作按钮
+    document.getElementById('page-actions').innerHTML = config.actions
+
+    // 关闭所有下拉菜单
+    closeAllDropdowns()
+  }
+
+  // 更新分组下拉菜单
+  function updateGroupDropdown() {
+    const container = document.getElementById('dropdown-group-items')
+    const pages = groupPages[currentGroup]
+
+    container.innerHTML = pages.map(page => {
+      const config = pageConfig[page]
+      const isActive = page === currentPage
+      return `
+        <div class="dropdown-item ${isActive ? 'active' : ''}" onclick="navigateTo('${page}')">
+          <span>${config.title}</span>
+          <svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+      `
+    }).join('')
+  }
+
+  // 选择分组
+  function selectGroup(group) {
+    currentGroup = group
+    const pages = groupPages[group]
+    // 跳转到该分组的第一个页面
+    navigateTo(pages[0])
+  }
+
+  // 切换下拉菜单
+  function toggleDropdown(type) {
+    event.stopPropagation()
+    const dropdownId = 'dropdown-' + type
+    const itemId = 'bc-' + type
+    const dropdown = document.getElementById(dropdownId)
+    const item = document.getElementById(itemId)
+
+    if (openDropdown === type) {
+      dropdown.classList.remove('show')
+      item.classList.remove('open')
+      openDropdown = null
+    } else {
+      closeAllDropdowns()
+      dropdown.classList.add('show')
+      item.classList.add('open')
+      openDropdown = type
+    }
+  }
+
+  // 关闭所有下拉菜单
+  function closeAllDropdowns() {
+    document.querySelectorAll('.breadcrumb-dropdown').forEach(d => {
+      d.classList.remove('show')
+    })
+    document.querySelectorAll('.breadcrumb-item').forEach(i => {
+      i.classList.remove('open')
+    })
+    openDropdown = null
+  }
+
+  // 点击外部关闭下拉菜单
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.breadcrumb-item')) {
+      closeAllDropdowns()
+    }
+  })
+
+  // SQLite 表选择
+  function selectSqliteTable(element, tableName) {
+    document.querySelectorAll('.sqlite-table-item').forEach(item => {
+      item.classList.remove('active')
+    })
+    element.classList.add('active')
+    document.getElementById('sqlite-table-name').textContent = tableName
+  }
+
+  // 初始化
+  document.addEventListener('DOMContentLoaded', () => {
+    navigateTo('console')
+  })
+</script>
 
 </body>
 </html>

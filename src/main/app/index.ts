@@ -1,5 +1,5 @@
-import { WelcomeModule } from "../modules/welcome/index.module"
-import { type BaseModule, type ModuleConstructor } from "../modules/base/index"
+import { WelcomeModule } from "@main/modules/welcome/index.module"
+import { type BaseModule, type ModuleConstructor } from "@main/modules/base/index"
 
 const MODULES: ModuleConstructor[] = [WelcomeModule]
 
