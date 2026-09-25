@@ -1,154 +1,28 @@
-import { useMemo, useState } from "react"
+import { useEffect, useState } from "react"
 import { Database, Table2, Rows3, Columns3, Download, RefreshCw, ChevronLeft, ChevronRight, type LucideIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 
-/* ============================================================
- * 类型 & 模拟数据
- * ========================================================== */
-
-type ColumnType = "INTEGER" | "TEXT" | "BOOLEAN" | "DATETIME" | "REAL"
-
 interface Column {
   key: string
-  type: ColumnType
+  type: string
+  primaryKey: number
 }
-
-type RowData = Record<string, string | number | boolean>
-
 interface TableMeta {
   name: string
   comment: string
   rowCount: number
-  /** 显示用列数（columns 仅渲染代表性列，可少于该值） */
   columnCount: number
   columns: Column[]
-  rows: RowData[]
 }
 
-const TABLES: TableMeta[] = [
-  {
-    name: "users",
-    comment: "用户表 · 存储所有用户信息",
-    rowCount: 1248,
-    columnCount: 7,
-    columns: [
-      { key: "id", type: "INTEGER" },
-      { key: "username", type: "TEXT" },
-      { key: "email", type: "TEXT" },
-      { key: "role", type: "TEXT" },
-      { key: "age", type: "INTEGER" },
-      { key: "is_active", type: "BOOLEAN" },
-      { key: "created_at", type: "DATETIME" }
-    ],
-    rows: [
-      { id: 1, username: "alice_wonder", email: "alice@example.com", role: "admin", age: 28, is_active: true, created_at: "2024-01-15 09:30:00" },
-      { id: 2, username: "bob_builder", email: "bob@example.com", role: "user", age: 35, is_active: true, created_at: "2024-01-16 14:20:00" },
-      { id: 3, username: "charlie_dev", email: "charlie@example.com", role: "user", age: 42, is_active: false, created_at: "2024-01-17 08:45:00" },
-      { id: 4, username: "diana_design", email: "diana@example.com", role: "admin", age: 31, is_active: true, created_at: "2024-01-18 16:10:00" },
-      { id: 5, username: "eve_editor", email: "eve@example.com", role: "pending", age: 26, is_active: false, created_at: "2024-01-19 11:25:00" },
-      { id: 6, username: "frank_fullstack", email: "frank@example.com", role: "user", age: 38, is_active: true, created_at: "2024-01-20 09:00:00" },
-      { id: 7, username: "grace_qa", email: "grace@example.com", role: "inactive", age: 29, is_active: false, created_at: "2024-01-21 13:45:00" },
-      { id: 8, username: "henry_ops", email: "henry@example.com", role: "user", age: 45, is_active: true, created_at: "2024-01-22 17:30:00" }
-    ]
-  },
-  {
-    name: "notes",
-    comment: "笔记表 · 存储笔记内容",
-    rowCount: 3567,
-    columnCount: 12,
-    columns: [
-      { key: "id", type: "INTEGER" },
-      { key: "workspace_id", type: "INTEGER" },
-      { key: "title", type: "TEXT" },
-      { key: "type", type: "TEXT" },
-      { key: "word_count", type: "INTEGER" },
-      { key: "updated_at", type: "DATETIME" }
-    ],
-    rows: []
-  },
-  {
-    name: "workspaces",
-    comment: "工作区表 · 存储工作区配置",
-    rowCount: 24,
-    columnCount: 6,
-    columns: [
-      { key: "id", type: "INTEGER" },
-      { key: "name", type: "TEXT" },
-      { key: "path", type: "TEXT" },
-      { key: "last_opened", type: "DATETIME" }
-    ],
-    rows: []
-  },
-  {
-    name: "tags",
-    comment: "标签表 · 存储标签定义",
-    rowCount: 156,
-    columnCount: 4,
-    columns: [
-      { key: "id", type: "INTEGER" },
-      { key: "name", type: "TEXT" },
-      { key: "color", type: "TEXT" },
-      { key: "count", type: "INTEGER" }
-    ],
-    rows: []
-  },
-  {
-    name: "history",
-    comment: "历史记录表 · 存储操作历史",
-    rowCount: 8932,
-    columnCount: 7,
-    columns: [
-      { key: "id", type: "INTEGER" },
-      { key: "note_id", type: "INTEGER" },
-      { key: "action", type: "TEXT" },
-      { key: "timestamp", type: "DATETIME" }
-    ],
-    rows: []
-  },
-  {
-    name: "settings",
-    comment: "设置表 · 存储应用配置",
-    rowCount: 1,
-    columnCount: 15,
-    columns: [
-      { key: "id", type: "INTEGER" },
-      { key: "key", type: "TEXT" },
-      { key: "value", type: "TEXT" },
-      { key: "type", type: "TEXT" }
-    ],
-    rows: []
-  },
-  {
-    name: "attachments",
-    comment: "附件表 · 存储附件元数据",
-    rowCount: 432,
-    columnCount: 9,
-    columns: [
-      { key: "id", type: "INTEGER" },
-      { key: "note_id", type: "INTEGER" },
-      { key: "filename", type: "TEXT" },
-      { key: "size", type: "INTEGER" },
-      { key: "created_at", type: "DATETIME" }
-    ],
-    rows: []
-  },
-  {
-    name: "sessions",
-    comment: "会话表 · 存储会话状态",
-    rowCount: 128,
-    columnCount: 5,
-    columns: [
-      { key: "id", type: "INTEGER" },
-      { key: "token", type: "TEXT" },
-      { key: "device", type: "TEXT" },
-      { key: "created_at", type: "DATETIME" }
-    ],
-    rows: []
-  }
-]
+function displayType(name: string, type: string): string {
+  if (/BOOL/i.test(type) || (/^(is_|has_)/.test(name) && /INT/i.test(type))) return "BOOLEAN"
+  if (/DATE|TIME/i.test(type) || (/_at$/.test(name) && /TEXT/i.test(type))) return "DATETIME"
+  return type.toUpperCase() || "ANY"
+}
 
 /** role 值 → 徽章配色 */
 const ROLE_STYLE: Record<string, string> = {
@@ -158,7 +32,7 @@ const ROLE_STYLE: Record<string, string> = {
   inactive: "bg-stone-100 text-stone-500"
 }
 
-const PAGE_SIZE = 10 // 用于计算总页数（1248 条 → 125 页）
+const PAGE_SIZE = 50
 
 /* ============================================================
  * 小部件
@@ -174,15 +48,27 @@ function MetaBadge({ icon: Icon, text }: { icon: LucideIcon; text: string }) {
 }
 
 /** 单元格按列类型/列名着色 */
-function Cell({ col, value }: { col: Column; value: string | number | boolean }) {
+function Cell({ col, value }: { col: Column; value: unknown }) {
+  if (value === null || value === undefined) return <span className="font-mono italic text-stone-300">NULL</span>
+  const text = value instanceof Uint8Array ? `0x${Array.from(value, (byte) => byte.toString(16).padStart(2, "0")).join("")}` : typeof value === "object" ? JSON.stringify(value) : String(value)
+  if (col.primaryKey > 0)
+    return (
+      <span
+        title="主键"
+        className="inline-block rounded-full bg-green-50 px-2.5 py-1 text-[12px] font-semibold text-green-700"
+      >
+        {text}
+      </span>
+    )
   // role 用彩色徽章
   if (col.key === "role") {
     const v = String(value)
-    return <span className={cn("inline-block rounded-md px-2 py-0.5 text-[12px] font-semibold", ROLE_STYLE[v] ?? "bg-stone-100 text-stone-600")}>{v}</span>
+    return <span className={cn("inline-block rounded-full px-2.5 py-1 text-[12px] font-semibold", ROLE_STYLE[v] ?? "bg-stone-100 text-stone-600")}>{v}</span>
   }
   // 布尔值：圆点 + true/false
   if (col.type === "BOOLEAN") {
-    const on = value === true
+    const on = value === true || value === 1 || value === "1" || value === "true"
+    if (!on && value !== false && value !== 0 && value !== "0" && value !== "false") return <span>{text}</span>
     return (
       <span className={cn("inline-flex items-center gap-1.5 font-mono text-[12.5px]", on ? "text-green-600" : "text-stone-400")}>
         <span className={cn("h-1.5 w-1.5 rounded-full", on ? "bg-green-500" : "bg-stone-300")} />
@@ -190,14 +76,20 @@ function Cell({ col, value }: { col: Column; value: string | number | boolean })
       </span>
     )
   }
-  // 主键 id 绿色
-  if (col.key === "id") return <span className="font-mono text-[12.5px] font-semibold text-green-600">{value}</span>
-  // 时间紫色
-  if (col.type === "DATETIME") return <span className="whitespace-nowrap font-mono text-[12.5px] text-purple-600">{value}</span>
-  // 其他整数蓝色
-  if (col.type === "INTEGER") return <span className="font-mono text-[12.5px] text-blue-600">{value}</span>
+  if (col.type === "DATETIME") {
+    const formatted = text.replace(/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2}:\d{2})(?:\.\d+)?Z$/, "$1 $2")
+    return (
+      <span
+        title={text}
+        className="whitespace-nowrap font-mono text-[12.5px] text-purple-600"
+      >
+        {formatted}
+      </span>
+    )
+  }
+  if (typeof value === "number" || /INT|REAL|FLOAT|DOUBLE|NUMERIC|DECIMAL/.test(col.type)) return <span className="font-mono text-[12.5px] text-blue-600">{text}</span>
   // 普通文本
-  return <span className="font-mono text-[12.5px] text-stone-700">{value}</span>
+  return <span className="font-mono text-[12.5px] text-stone-700">{text}</span>
 }
 
 /** 生成分页页码序列：1 2 3 ... 125 */
@@ -218,34 +110,89 @@ function getPageItems(current: number, total: number): (number | "...")[] {
  * ========================================================== */
 
 export default function StoragePage() {
-  const [activeName, setActiveName] = useState(TABLES[0].name)
+  const [tables, setTables] = useState<TableMeta[]>([])
+  const [activeName, setActiveName] = useState("")
   const [page, setPage] = useState(1)
-  const [spinning, setSpinning] = useState(false)
+  const [revision, setRevision] = useState(0)
+  const [spinning, setSpinning] = useState(true)
+  const [error, setError] = useState("")
+  const [result, setResult] = useState<{ name: string; page: number; rows: Record<string, unknown>[]; total: number } | null>(null)
 
-  const table = useMemo(() => TABLES.find((t) => t.name === activeName) ?? TABLES[0], [activeName])
+  useEffect(() => {
+    let cancelled = false
+    setError("")
+    window.electronAPI
+      .listStorageTables()
+      .then((items) => {
+        if (cancelled) return
+        setTables(items.map((item) => ({ ...item, comment: "本地 SQLite 数据 · 只读", columnCount: item.columns.length, columns: item.columns.map((col) => ({ key: col.name, type: displayType(col.name, col.type), primaryKey: col.primaryKey })) })))
+        setActiveName((name) => (items.some((item) => item.name === name) ? name : (items[0]?.name ?? "")))
+        if (!items.length) setSpinning(false)
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setError(String(err))
+          setSpinning(false)
+        }
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [revision])
+
+  useEffect(() => {
+    if (!activeName) return
+    let cancelled = false
+    setSpinning(true)
+    setError("")
+    setResult(null)
+    window.electronAPI
+      .readStorageTable(activeName, page)
+      .then((data) => {
+        if (cancelled) return
+        setResult({ name: activeName, ...data })
+        setPage(data.page)
+        setTables((items) => items.map((item) => (item.name === activeName ? { ...item, rowCount: data.total } : item)))
+      })
+      .catch((err) => {
+        if (!cancelled) setError(String(err))
+      })
+      .finally(() => {
+        if (!cancelled) setSpinning(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [activeName, page, revision])
+
+  const table = tables.find((item) => item.name === activeName) ?? { name: "暂无数据表", comment: "", rowCount: 0, columnCount: 0, columns: [] }
   const totalPages = Math.max(1, Math.ceil(table.rowCount / PAGE_SIZE))
   const pageItems = getPageItems(page, totalPages)
-  const shownRows = table.rows
-  const rangeStart = (page - 1) * PAGE_SIZE + 1
-  const rangeEnd = Math.min(rangeStart + shownRows.length - 1, table.rowCount)
-
+  const shownRows = result?.name === activeName && result.page === page ? result.rows : []
+  const rangeStart = shownRows.length ? (page - 1) * PAGE_SIZE + 1 : 0
+  const rangeEnd = shownRows.length ? rangeStart + shownRows.length - 1 : 0
   const switchTable = (name: string) => {
     setActiveName(name)
     setPage(1)
   }
-
   const handleRefresh = () => {
     setSpinning(true)
-    setTimeout(() => {
-      setSpinning(false)
-      toast.success("数据已刷新")
-    }, 600)
+    setRevision((value) => value + 1)
+  }
+  const handleExport = () => {
+    const escape = (value: unknown) => `"${String(value ?? "").replace(/"/g, '""')}"`
+    const csv = [table.columns.map((col) => escape(col.key)).join(","), ...shownRows.map((row) => table.columns.map((col) => escape(row[col.key])).join(","))].join("\r\n")
+    const url = URL.createObjectURL(new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" }))
+    const link = document.createElement("a")
+    link.href = url
+    link.download = `${table.name}-page-${page}.csv`
+    link.click()
+    setTimeout(() => URL.revokeObjectURL(url), 1000)
+    toast.success("当前页已导出")
   }
 
-  const handleExport = () => toast.success(`正在导出 ${table.name}.csv ...`)
-
   return (
-    <div className="flex h-full flex-col bg-[#faf9f7]">
+    <div className="flex min-h-0 flex-1 flex-col bg-[#faf9f7]">
       {/* 页面标题（高度固定 60px，参考 main-header） */}
       <div className="flex h-[60px] shrink-0 items-center justify-between border-b border-[#f0efed] bg-white px-4">
         <div className="flex items-baseline gap-2.5">
@@ -254,7 +201,7 @@ export default function StoragePage() {
         </div>
         <span className="inline-flex items-center gap-1.5 rounded-full border border-[#e7e5e4] bg-white px-3 py-1 text-[12px] font-semibold text-stone-500">
           <Database className="h-3.5 w-3.5" />
-          {TABLES.length} 张表
+          {tables.length} 张表
         </span>
       </div>
 
@@ -264,10 +211,10 @@ export default function StoragePage() {
         <aside className="w-[224px] shrink-0 overflow-y-auto rounded-xl border border-[#e7e5e4] bg-white p-2 [scrollbar-width:thin]">
           <div className="flex items-center justify-between px-1.5 pb-2 pt-1">
             <span className="text-[12px] font-semibold text-stone-400">数据表</span>
-            <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-stone-200/70 px-1.5 text-[11px] font-semibold text-stone-500">{TABLES.length}</span>
+            <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-stone-200/70 px-1.5 text-[11px] font-semibold text-stone-500">{tables.length}</span>
           </div>
           <div className="space-y-0.5">
-            {TABLES.map((t) => {
+            {tables.map((t) => {
               const active = t.name === table.name
               return (
                 <button
@@ -318,15 +265,17 @@ export default function StoragePage() {
                 variant="outline"
                 size="sm"
                 className="h-8 gap-1.5 rounded-lg text-[12.5px]"
+                disabled={spinning || !shownRows.length}
                 onClick={handleExport}
               >
                 <Download className="h-3.5 w-3.5" />
-                导出
+                导出当前页
               </Button>
               <Button
                 variant="outline"
                 size="sm"
                 className="h-8 gap-1.5 rounded-lg text-[12.5px]"
+                disabled={spinning}
                 onClick={handleRefresh}
               >
                 <RefreshCw className={cn("h-3.5 w-3.5", spinning && "animate-spin")} />
@@ -357,10 +306,10 @@ export default function StoragePage() {
                 {shownRows.length === 0 && (
                   <TableRow className="hover:bg-transparent">
                     <TableCell
-                      colSpan={table.columns.length}
+                      colSpan={Math.max(1, table.columns.length)}
                       className="py-16 text-center text-[13px] italic text-stone-400"
                     >
-                      该表为示例数据，暂未加载预览行（只读查看器，不提供编辑）
+                      {error || (spinning ? "正在加载数据…" : activeName ? "该表暂无数据" : "暂无数据表")}
                     </TableCell>
                   </TableRow>
                 )}
@@ -395,7 +344,7 @@ export default function StoragePage() {
               <Button
                 variant="outline"
                 size="icon"
-                disabled={page === 1}
+                disabled={spinning || page === 1}
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 className="h-8 w-8 rounded-lg"
               >
@@ -412,11 +361,9 @@ export default function StoragePage() {
                 ) : (
                   <button
                     key={item}
+                    disabled={spinning}
                     onClick={() => setPage(item)}
-                    className={cn(
-                      "h-8 min-w-8 rounded-lg px-2 text-[12.5px] font-medium transition-colors",
-                      item === page ? "bg-green-600 font-semibold text-white" : "border border-[#e7e5e4] bg-white text-stone-600 hover:bg-[#faf9f7]"
-                    )}
+                    className={cn("h-8 min-w-8 rounded-lg px-2 text-[12.5px] font-medium transition-colors", item === page ? "bg-green-600 font-semibold text-white" : "border border-[#e7e5e4] bg-white text-stone-600 hover:bg-[#faf9f7]")}
                   >
                     {item}
                   </button>
@@ -425,7 +372,7 @@ export default function StoragePage() {
               <Button
                 variant="outline"
                 size="icon"
-                disabled={page === totalPages}
+                disabled={spinning || page === totalPages}
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 className="h-8 w-8 rounded-lg"
               >

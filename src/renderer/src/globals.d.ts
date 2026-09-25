@@ -111,6 +111,21 @@ interface VesselAPI {
   deleteAppState: (key: string) => Promise<boolean>
 
   /** 获取数据库信息。 */
+  listStorageTables: () => Promise<
+    Array<{
+      name: string
+      rowCount: number
+      columns: Array<{ name: string; type: string; primaryKey: number }>
+    }>
+  >
+  readStorageTable: (
+    name: string,
+    page?: number
+  ) => Promise<{
+    rows: Record<string, unknown>[]
+    total: number
+    page: number
+  }>
   getStorageInfo: () => Promise<StorageInfo>
 
   /** 读取文件内容。 */

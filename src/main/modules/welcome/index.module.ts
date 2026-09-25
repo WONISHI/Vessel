@@ -125,6 +125,20 @@ export class WelcomeModule extends BaseModule {
       /** 获取数据库路径、数据库版本、设备 ID 和本次应用会话 ID。 */
       this.registerHandler("storage:getInfo", () => database.getInfo())
 
+      this.registerHandler("storage:listTables", () =>
+        database.getTables().map((table) => ({
+          name: table.name,
+          columns: database.getTableSchema(table.name),
+          rowCount: database.getTableRowCount(table.name)
+        }))
+      )
+      this.registerHandler("storage:readTable", (_event, name: string, page: number = 1) => {
+        const total = database.getTableRowCount(name)
+        const lastPage = Math.max(1, Math.ceil(total / 50))
+        const currentPage = Math.min(lastPage, Math.max(1, Number.isFinite(page) ? Math.trunc(page) : 1))
+        return { rows: database.getTableData(name, currentPage, 50), total, page: currentPage }
+      })
+
       // 所有初始化步骤成功后再保存实例，表示模块已经准备完毕。
       this.database = database
     } catch (error) {

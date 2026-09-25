@@ -31,5 +31,7 @@ export const welcomeAPI = {
   deleteAppState: (key: string): Promise<boolean> => ipcRenderer.invoke("app-state:delete", key),
 
   /** 获取本地数据库信息。 */
+  listStorageTables: () => ipcRenderer.invoke("storage:listTables"),
+  readStorageTable: (name: string, page = 1) => ipcRenderer.invoke("storage:readTable", name, page),
   getStorageInfo: () => ipcRenderer.invoke("storage:getInfo")
 }
