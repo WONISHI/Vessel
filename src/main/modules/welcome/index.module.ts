@@ -132,11 +132,8 @@ export class WelcomeModule extends BaseModule {
           rowCount: database.getTableRowCount(table.name)
         }))
       )
-      this.registerHandler("storage:readTable", (_event, name: string, page: number = 1) => {
-        const total = database.getTableRowCount(name)
-        const lastPage = Math.max(1, Math.ceil(total / 50))
-        const currentPage = Math.min(lastPage, Math.max(1, Number.isFinite(page) ? Math.trunc(page) : 1))
-        return { rows: database.getTableData(name, currentPage, 50), total, page: currentPage }
+      this.registerHandler("storage:readTable", (_event, name: string, page: number = 1, keyword: string = "", pageSize: number = 50) => {
+        return database.searchTable(name, page, keyword, pageSize)
       })
 
       // 所有初始化步骤成功后再保存实例，表示模块已经准备完毕。

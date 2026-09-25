@@ -32,6 +32,6 @@ export const welcomeAPI = {
 
   /** 获取本地数据库信息。 */
   listStorageTables: () => ipcRenderer.invoke("storage:listTables"),
-  readStorageTable: (name: string, page = 1) => ipcRenderer.invoke("storage:readTable", name, page),
+  readStorageTable: (name: string, page = 1, keyword = "", pageSize = 50) => ipcRenderer.invoke("storage:readTable", name, page, keyword, pageSize),
   getStorageInfo: () => ipcRenderer.invoke("storage:getInfo")
 }

@@ -25,6 +25,22 @@ export class EnhancedDatabase {
    */
   protected readonly database: Database.Database
 
+  /** 按关键词搜索整张表，使用绑定参数匹配字面文本。 */
+  searchTable(tableName: string, page = 1, keyword = "", pageSize = 50) {
+    const name = this.quoteIdentifier(this.resolveTableName(tableName))
+    if (typeof keyword !== "string") throw new TypeError("关键词必须为字符串")
+    const columns = this.getTableSchema(tableName)
+    const where = keyword ? `WHERE ${columns.map((col) => `instr(lower(CAST(${this.quoteIdentifier(col.name)} AS TEXT)), lower(?)) > 0`).join(" OR ")}` : ""
+    const params = keyword ? columns.map(() => keyword) : []
+    const total = (this.database.prepare(`SELECT COUNT(*) AS total FROM ${name} ${where}`).get(...params) as { total: number }).total
+    const safePageSize = this.normalizePositiveInteger(pageSize, 50, 200)
+    const currentPage = Math.min(Math.max(1, Math.ceil(total / safePageSize)), this.normalizePositiveInteger(page, 1, Number.MAX_SAFE_INTEGER))
+    const keys = columns.filter((col) => col.primaryKey > 0).sort((a, b) => a.primaryKey - b.primaryKey)
+    const order = keys.length ? `ORDER BY ${keys.map((col) => this.quoteIdentifier(col.name)).join(", ")}` : ""
+    const rows = this.database.prepare(`SELECT * FROM ${name} ${where} ${order} LIMIT ? OFFSET ?`).all(...params, safePageSize, (currentPage - 1) * safePageSize)
+    return { rows, total, page: currentPage }
+  }
+
   /**
    * @description 创建 SQLite 数据库连接。
    * @param databasePath SQLite 数据库文件绝对路径。

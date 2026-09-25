@@ -120,7 +120,9 @@ interface VesselAPI {
   >
   readStorageTable: (
     name: string,
-    page?: number
+    page?: number,
+    keyword?: string,
+    pageSize?: number
   ) => Promise<{
     rows: Record<string, unknown>[]
     total: number
