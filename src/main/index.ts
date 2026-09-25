@@ -51,10 +51,10 @@ app.whenReady().then(() => {
 
   if (process.platform === "darwin" && is.dev) {
     // 开发模式下直接拼路径，不需要额外函数
-    const iconPath = join(process.cwd(), "resources", "icon.png")
+    const iconPath = join(process.cwd(), "resources", "icon_108x108.png")
     const original = nativeImage.createFromPath(iconPath)
     if (!original.isEmpty()) {
-      const dockIcon = original.resize({ width: 192, height: 192 })
+      const dockIcon = original.resize({ width: 108, height: 108 })
       app.dock?.setIcon(dockIcon)
     }
   }

@@ -712,13 +712,9 @@ export class AppDatabase extends BaseAppDatabase {
    */
   getDatabaseTableData(tableName: string, page = 1, pageSize = 50): DatabaseTableData {
     const safeTableName = this.resolveTableName(tableName)
-
     const safePage = this.normalizePositiveInteger(page, 1, Number.MAX_SAFE_INTEGER)
-
     const safePageSize = this.normalizePositiveInteger(pageSize, 50, 200)
-
     const total = this.getTableRowCount(safeTableName)
-
     const rawRows = this.getTableData(safeTableName, safePage, safePageSize)
 
     /**

@@ -6,14 +6,18 @@ import Welcome from "@/pages/welcome/index"
 import DebugPage from "@/pages/debug/index"
 import DevtoolsConsole from "@/pages/debug/devtools-console"
 import DevtoolsStorage from "@/pages/debug/devtools-storage"
-import CheckCircle from "@/assets/vessel-icons/ui/check-circle.svg?react"
 
 import { createRouter, createWebHashHistory, type AppRouteRecordRaw } from "@/lib/react-router"
 
 const STORAGE_KEY = "app_current_workspace"
 
 /**
- * 读取当前工作区
+ * @description 读取当前工作区。
+ *
+ * 从 localStorage 中读取当前保存的工作区数据。
+ * 当缓存不存在或解析失败时返回 null。
+ *
+ * @returns 当前工作区数据，不存在时返回 null。
  */
 function readCurrentWorkspace(): WorkspaceData | null {
   try {
@@ -28,30 +32,38 @@ function readCurrentWorkspace(): WorkspaceData | null {
 }
 
 /**
- * 保存当前工作区
+ * @description 保存当前工作区。
+ *
+ * 将当前工作区序列化后保存到 localStorage，
+ * 供编辑器页面以及路由守卫读取。
+ *
+ * @param data 当前工作区数据。
  */
 function saveCurrentWorkspace(data: WorkspaceData): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
 }
 
 /**
- * 欢迎页路由适配组件
+ * @description 欢迎页路由适配组件。
  *
- * 给 Welcome 传递 onEnter。
+ * 为 Welcome 注入工作区进入回调，
+ * 当用户进入工作区时保存当前工作区数据。
  */
 function WelcomeRoute() {
   return <Welcome onEnter={saveCurrentWorkspace} />
 }
 
 /**
- * 编辑器路由适配组件
+ * @description 编辑器路由适配组件。
  *
- * 给 Layout 传递 workspace。
+ * 从本地缓存读取当前工作区，
+ * 并将工作区数据传递给 Layout。
+ *
+ * 当不存在有效工作区时不渲染编辑器，
+ * 正常情况下该情况会优先由路由守卫拦截。
  */
 function EditorRoute() {
-  const [workspace] = useState<WorkspaceData | null>(() => {
-    return readCurrentWorkspace()
-  })
+  const [workspace] = useState<WorkspaceData | null>(() => readCurrentWorkspace())
 
   if (!workspace) {
     return null
@@ -61,13 +73,13 @@ function EditorRoute() {
 }
 
 /**
- * 路由配置
+ * @description Vessel 路由配置。
  */
 export const routes: AppRouteRecordRaw[] = [
   {
     path: "/",
     name: "welcome",
-    component: Welcome,
+    component: WelcomeRoute,
     meta: {
       title: "首页"
     }
@@ -75,7 +87,7 @@ export const routes: AppRouteRecordRaw[] = [
   {
     path: "/editor",
     name: "editor",
-    component: Layout,
+    component: EditorRoute,
     meta: {
       title: "编辑器",
       requiresWorkspace: true
@@ -93,7 +105,7 @@ export const routes: AppRouteRecordRaw[] = [
       {
         path: "console",
         name: "devtools-console",
-        component: ConsolePage,
+        component: DevtoolsConsole,
         meta: {
           title: "控制台",
           icon: "Terminal",
@@ -103,78 +115,43 @@ export const routes: AppRouteRecordRaw[] = [
         }
       },
       {
-        path: "performance",
-        name: "devtools-performance",
-        component: PerformancePage,
-        meta: {
-          title: "性能监控",
-          icon: "BarChart3",
-          description: "CPU、内存、渲染性能实时监控",
-          group: "主要功能",
-          order: 2
-        }
-      },
-      {
-        path: "system",
-        name: "devtools-system",
-        component: SystemPage,
-        meta: {
-          title: "系统信息",
-          icon: "Monitor",
-          description: "操作系统、运行环境、依赖版本信息",
-          group: "主要功能",
-          order: 3
-        }
-      },
-      {
-        path: "tools",
-        name: "devtools-tools",
-        component: ToolsPage,
-        meta: {
-          title: "开发工具",
-          icon: "Wrench",
-          description: "常用开发工具集合",
-          group: "工具",
-          order: 1
-        }
-      },
-      {
         path: "storage",
         name: "devtools-storage",
-        component: StoragePage,
+        component: DevtoolsStorage,
         meta: {
           title: "数据存储",
           icon: "Database",
           description: "SQLite 数据库表查看",
           group: "工具",
-          order: 2
-        }
-      },
-      {
-        path: "navigate",
-        name: "devtools-navigate",
-        component: NavigatePage,
-        meta: {
-          title: "页面跳转",
-          icon: "FolderOpen",
-          description: "快速跳转到应用各页面",
-          group: "工具",
-          order: 3
+          order: 1
         }
       }
     ]
   }
 ]
 
+/**
+ * @description 创建应用路由实例。
+ *
+ * Vessel 使用 Hash 路由，
+ * 避免 Electron 本地文件环境下刷新页面时出现路径问题。
+ */
 const router = createRouter({
   history: createWebHashHistory(),
-  routes
+  routes: [
+    {
+      component: App,
+      children: routes
+    }
+  ]
 })
 
 /**
- * 工作区路由守卫
+ * @description 工作区路由守卫。
  *
- * 需要工作区但没有工作区时返回首页。
+ * 当目标路由声明 requiresWorkspace，
+ * 但当前没有保存的工作区时，
+ * 自动返回欢迎页。
  */
 router.beforeEach((to) => {
   const requiresWorkspace = to.meta.requiresWorkspace === true
@@ -195,7 +172,7 @@ router.beforeEach((to) => {
 })
 
 /**
- * 设置页面标题
+ * @description 路由切换完成后更新页面标题。
  */
 router.afterEach((to, _from, failure) => {
   if (failure) {
@@ -209,6 +186,9 @@ router.afterEach((to, _from, failure) => {
   }
 })
 
+/**
+ * @description 监听路由执行异常。
+ */
 router.onError((error) => {
   console.error("路由执行失败", error)
 })

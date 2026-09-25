@@ -222,11 +222,7 @@ export default function HomePage({ onEnter }: HomePageProps) {
 
               <div className="flex gap-2">
                 <div className="flex h-10 min-w-0 flex-1 items-center rounded-xl border border-stone-200 bg-stone-50 px-4">
-                  {workspace ? (
-                    <span className="truncate text-sm text-stone-700">{workspace.path}</span>
-                  ) : (
-                    <span className="text-sm text-stone-400">{restoring ? "正在读取上次工作区..." : "尚未选择文件夹"}</span>
-                  )}
+                  {workspace ? <span className="truncate text-sm text-stone-700">{workspace.path}</span> : <span className="text-sm text-stone-400">{restoring ? "正在读取上次工作区..." : "尚未选择文件夹"}</span>}
                 </div>
 
                 <button
@@ -260,9 +256,7 @@ export default function HomePage({ onEnter }: HomePageProps) {
               type="button"
               disabled={!workspace || disabled}
               onClick={handleStart}
-              className={`flex h-10 w-full items-center justify-center gap-2 rounded-xl text-sm font-semibold transition-all duration-300 ${
-                workspace && !disabled ? "bg-green-700 text-white hover:bg-green-800 active:scale-[0.99]" : "cursor-not-allowed bg-stone-100 text-stone-300"
-              }`}
+              className={`flex h-10 w-full items-center justify-center gap-2 rounded-xl text-sm font-semibold transition-all duration-300 ${workspace && !disabled ? "bg-green-700 text-white hover:bg-green-800 active:scale-[0.99]" : "cursor-not-allowed bg-stone-100 text-stone-300"}`}
             >
               <NotebookPen className="h-4 w-4" />
 
