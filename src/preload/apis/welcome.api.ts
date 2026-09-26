@@ -1,6 +1,7 @@
 import { ipcRenderer } from "electron"
 
 export const welcomeAPI = {
+  readWorkspaceDirectory: (root: string, directory: string) => ipcRenderer.invoke("workspace:readDirectory", root, directory),
   /**
    * 选择文件夹，并将工作区打开信息保存到数据库。
    */

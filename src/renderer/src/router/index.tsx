@@ -6,7 +6,8 @@ import Welcome from "@/pages/welcome/index"
 import DebugPage from "@/pages/debug/index"
 import DevtoolsConsole from "@/pages/debug/devtools-console"
 import DevtoolsStorage from "@/pages/debug/devtools-storage"
-import CheckCircle from "@/assets/vessel-icons/ui/check-circle.svg?react"
+import WorkspaceHome from "@/layout/layout-main/workspace-home"
+import Canvas from "@/layout/layout-main/canvas"
 
 import { createRouter, createWebHashHistory, type AppRouteRecordRaw } from "@/lib/react-router"
 
@@ -75,7 +76,11 @@ export const routes: AppRouteRecordRaw[] = [
   {
     path: "/editor",
     name: "editor",
-    component: Layout,
+    component: EditorRoute,
+    children: [
+      { index: true, component: WorkspaceHome },
+      { path: "file", name: "editor-file", component: Canvas }
+    ],
     meta: {
       title: "编辑器",
       requiresWorkspace: true

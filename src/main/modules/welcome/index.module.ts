@@ -1,6 +1,6 @@
 import { BrowserWindow, dialog, ipcMain } from "electron"
-import { readdir } from "fs/promises"
-import { basename, extname, join } from "path"
+import { readdir, realpath } from "fs/promises"
+import { basename, extname, join, relative, isAbsolute } from "path"
 import { BaseModule } from "@main/modules/base/index"
 import { AppDatabase } from "@main/modules/welcome/database/index.database"
 import type { WorkspaceDataInput, WorkspaceFile } from "@main/modules/welcome/index.type"
@@ -84,6 +84,19 @@ export class WelcomeModule extends BaseModule {
         }
 
         return database.recordWorkspaceOpened(workspace)
+      })
+
+      this.registerHandler("workspace:readDirectory", async (_event, root: string, directory: string) => {
+        if (typeof root !== "string" || typeof directory !== "string") throw new TypeError("目录路径必须为字符串")
+        const rootPath = await realpath(root)
+        const directoryPath = await realpath(directory)
+        const childPath = relative(rootPath, directoryPath)
+        if (childPath === ".." || childPath.startsWith("../") || childPath.startsWith("..\\") || isAbsolute(childPath)) throw new Error("目录不属于当前工作区")
+        const entries = await readdir(directoryPath, { withFileTypes: true })
+        return entries
+          .filter((entry) => entry.isDirectory() || (entry.isFile() && SUPPORTED_EXTENSIONS.has(extname(entry.name).toLowerCase())))
+          .map((entry) => ({ name: entry.name, path: join(directoryPath, entry.name), type: entry.isDirectory() ? "directory" : "file" }))
+          .sort((a, b) => Number(b.type === "directory") - Number(a.type === "directory") || a.name.localeCompare(b.name, "zh-CN", { numeric: true }))
       })
 
       /** 查询最近打开的工作区，默认返回 10 条。 */

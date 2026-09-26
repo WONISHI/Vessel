@@ -87,6 +87,7 @@ export interface StorageInfo {
 }
 
 export interface VesselAPI {
+  readWorkspaceDirectory: (root: string, directory: string) => Promise<Array<{ name: string; path: string; type: "file" | "directory" }>>
   openDirectory: () => Promise<WorkspaceData | null>
 
   getRecentWorkspaces: (limit?: number) => Promise<RecentWorkspace[]>

@@ -1,14 +1,26 @@
+import { createContext } from "react"
+
+export interface WorkspaceNode {
+  name: string
+  path: string
+  type?: "file" | "directory"
+  children?: WorkspaceNode[]
+}
+export interface WorkspaceData {
+  name: string
+  path: string
+  files: WorkspaceNode[]
+}
 export interface WorkspaceContextType {
-  workspace: any
+  workspace: WorkspaceData
   activeFilePath: string
   fileType: string | undefined
-  onSave: () => void
+  openFiles: WorkspaceNode[]
+  expandedFolders: string[]
+  openFile: (file: WorkspaceNode) => void
+  closeFile: (path: string) => void
+  showHome: () => void
+  setFolderExpanded: (path: string, open: boolean) => void
   changeCollapsible: (path: string) => void
 }
-
-// 在此处创建并导出Context对象
-import { createContext } from "react"
-// prettier-ignore
-export const WorkspaceContext = createContext<WorkspaceContextType | undefined>(
-  undefined,
-)
+export const WorkspaceContext = createContext<WorkspaceContextType | undefined>(undefined)
