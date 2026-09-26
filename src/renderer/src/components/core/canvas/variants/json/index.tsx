@@ -50,7 +50,7 @@ export default function JSONCanvas({ activeFilePath }: any) {
         if (!(window as any).electronAPI) {
           throw new Error("electronAPI 不可用")
         }
-        const fileContent = await (window as any).electronAPI.readContent(path)
+        const fileContent = await window.electronAPI.readContent(path)
         // 假设返回的是 JSON 字符串或对象
         const contentStr = typeof fileContent === "string" ? fileContent : customJSONStringify(fileContent || {})
 

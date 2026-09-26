@@ -25,3 +25,17 @@ body,
 html {
   font-family: "Plus Jakarta Sans", system-ui, sans-serif;
 }
+
+:root {
+  --font-sans: "Plus Jakarta Sans", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+}
+html,
+body {
+  font-family: var(--font-sans);
+}
+button,
+input,
+textarea,
+select {
+  font-family: inherit;
+}

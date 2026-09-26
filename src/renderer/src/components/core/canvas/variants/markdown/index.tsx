@@ -1,191 +1,65 @@
-import Vditor from "vditor"
-import "vditor/dist/index.css"
-import "@/components/core/canvas/variants/markdown/index.css"
-import { useEffect, useRef, useState, useCallback } from "react"
-import { toast } from "sonner"
+import { useEffect, useRef, useState } from "react"
+import { DocumentOutline } from "./document-outline"
+import { VditorEditor } from "./vditor-editor"
+import "./index.css"
 
-export default function MarkdownCanvas({ activeFilePath }: any) {
-  const [isLoading, setIsLoading] = useState(false)
-  const editorRef = useRef<HTMLDivElement>(null)
-  const vditorInstanceRef = useRef<Vditor | null>(null)
-  const [content, setContent] = useState<string>("")
-  const isInitializedRef = useRef(false)
-
-  const currentFilePathRef = useRef<string>("")
-
-  const isLoadingRef = useRef(false)
-
-  const safeDestroyEditor = useCallback(() => {
-    if (vditorInstanceRef.current) {
-      try {
-        const vditor = vditorInstanceRef.current as any
-        if (vditor?.vditor?.element) {
-          vditorInstanceRef.current.destroy()
-        }
-      } catch (err) {
-        console.warn("Destroy editor error (ignorable):", err)
-      } finally {
-        vditorInstanceRef.current = null
-      }
-    }
-  }, [])
-
-  const initEditor = useCallback(() => {
-    if (isInitializedRef.current || !editorRef.current) return
-    if (vditorInstanceRef.current) safeDestroyEditor()
-
-    try {
-      isInitializedRef.current = true
-      const vditor = new Vditor(editorRef.current, {
-        placeholder: "Start writing...",
-        lang: "zh_CN",
-        theme: "classic",
-        counter: { enable: true, type: "markdown" },
-        preview: {
-          delay: 0,
-          hljs: { style: "monokai", lineNumber: true },
-          markdown: { toc: true }
-        },
-        outline: { enable: true, position: "right" },
-        value: content,
-        tab: "\t",
-        typewriterMode: true,
-        toolbarConfig: { pin: true },
-        cache: { enable: false },
-        mode: "ir",
-        toolbar: [
-          "emoji",
-          "headings",
-          "bold",
-          "italic",
-          "strike",
-          "link",
-          "|",
-          "list",
-          "ordered-list",
-          "check",
-          "outdent",
-          "indent",
-          "|",
-          "quote",
-          "line",
-          "code",
-          "inline-code",
-          "insert-before",
-          "insert-after",
-          "|",
-          "table",
-          "|",
-          "undo",
-          "redo",
-          "|",
-          "edit-mode",
-          "code-theme",
-          "export",
-          {
-            name: "more",
-            toolbar: ["fullscreen", "both", "preview", "info", "help"]
-          }
-        ],
-        input: (value: string) => setContent(value),
-        after: () => console.log("Vditor editor ready")
+/** 即时编辑文档；基于实际渲染标题同步大纲和滚动位置。 */
+export default function MarkdownCanvas({ activeFilePath }: { activeFilePath: string }) {
+  const [loaded, setLoaded] = useState<{ path: string; content: string; error?: string } | null>(null)
+  const drafts = useRef(new Map<string, string>())
+  const contentHost = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    let cancelled = false
+    const cached = drafts.current.get(activeFilePath)
+    const request = cached === undefined ? window.electronAPI.readContent(activeFilePath) : Promise.resolve(cached)
+    request
+      .then((content) => {
+        if (!cancelled) setLoaded({ path: activeFilePath, content })
       })
-      vditorInstanceRef.current = vditor
-    } catch (err) {
-      console.error("Init editor error:", err)
-      toast.error("Editor init failed")
-      isInitializedRef.current = false
-    }
-  }, [safeDestroyEditor])
-
-  const loadPathFile = useCallback(
-    async (path: string) => {
-      if (currentFilePathRef.current === path) {
-        return
-      }
-
-      if (isLoadingRef.current) {
-        console.warn("Loading in progress, skipping")
-        return
-      }
-
-      setIsLoading(true)
-      isLoadingRef.current = true
-
-      try {
-        if (!(window as any).electronAPI) {
-          throw new Error("electronAPI not available")
-        }
-
-        const mdContent = await (window as any).electronAPI.readContent(path)
-
-        if (path === activeFilePath) {
-          setContent(mdContent || "")
-          currentFilePathRef.current = path
-
-          if (vditorInstanceRef.current?.vditor) {
-            vditorInstanceRef.current.setValue(mdContent || "")
-          }
-        }
-      } catch (err: any) {
-        console.error("Read file error:", err)
-        toast.error(`Read file failed: ${err.message || "Unknown error"}`)
-      } finally {
-        setIsLoading(false)
-        isLoadingRef.current = false
-      }
-    },
-    [activeFilePath]
-  )
-
+      .catch((error) => {
+        if (!cancelled) setLoaded({ path: activeFilePath, content: "", error: String(error) })
+      })
+    const [headings, setHeadings] = useState<{ text: string; level: number }[]>([])
+  const [activeHeading, setActiveHeading] = useState(-1)
   useEffect(() => {
-    const timer = setTimeout(initEditor, 100)
-    return () => {
-      clearTimeout(timer)
-      safeDestroyEditor()
-      isInitializedRef.current = false
-      currentFilePathRef.current = ""
+    const host = contentHost.current
+    if (!host) return
+    let frame = 0
+    const update = () => {
+      cancelAnimationFrame(frame)
+      frame = requestAnimationFrame(() => {
+        const nodes = Array.from(host.querySelectorAll<HTMLElement>(".vditor-ir .vditor-reset h1, .vditor-ir .vditor-reset h2, .vditor-ir .vditor-reset h3, .vditor-ir .vditor-reset h4, .vditor-ir .vditor-reset h5, .vditor-ir .vditor-reset h6"))
+        const next = nodes.map(node => ({ text: node.textContent?.replace(/^#+\s*/, "") ?? "", level: Number(node.tagName[1]) }))
+        setHeadings(previous => JSON.stringify(previous) === JSON.stringify(next) ? previous : next)
+        const bounds = host.getBoundingClientRect()
+        const center = bounds.top + bounds.height / 2
+        let active = nodes.length ? 0 : -1
+        nodes.forEach((node, index) => { if (node.getBoundingClientRect().top <= center) active = index })
+        setActiveHeading(active)
+      })
     }
-  }, [initEditor, safeDestroyEditor])
-
-  useEffect(() => {
-    let timer: NodeJS.Timeout | undefined
-
-    if (activeFilePath && currentFilePathRef.current !== activeFilePath) {
-      timer = setTimeout(() => {
-        loadPathFile(activeFilePath)
-      }, 150)
-    }
-
-    if (!activeFilePath) {
-      setContent("")
-      currentFilePathRef.current = ""
-      if (vditorInstanceRef.current?.vditor) {
-        vditorInstanceRef.current.setValue("")
-      }
-    }
-
-    return () => {
-      if (timer) clearTimeout(timer)
-    }
-  }, [activeFilePath, initEditor, loadPathFile])
-
+    const observer = new MutationObserver(update)
+    observer.observe(host, { childList: true, subtree: true, characterData: true })
+    const resize = new ResizeObserver(update)
+    resize.observe(host)
+    host.addEventListener("scroll", update, true)
+    update()
+    return () => { observer.disconnect(); resize.disconnect(); host.removeEventListener("scroll", update, true); cancelAnimationFrame(frame) }
+  }, [activeFilePath])
   return (
-    <div className="flex-1 overflow-hidden w-full flex justify-center bg-zinc-50/50">
-      <div className={`relative overflow-hidden w-full bg-white shadow-sm border border-zinc-200/60 rounded-sm p-5 cursor-text ${isLoading ? "opacity-50" : "opacity-100"}`}>
-        {isLoading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-white/80 z-10">
-            <div className="flex flex-col items-center gap-2">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600" />
-              <p className="text-sm text-zinc-500">Reading file...</p>
-            </div>
-          </div>
-        )}
-        <div
-          ref={editorRef}
-          className="!h-full"
-        />
+    <div className="flex min-h-0 flex-1 overflow-hidden bg-white">
+      <div ref={contentHost} className="min-h-0 min-w-0 flex-1">
+        {!current ? <p role="status" className="p-6 text-sm text-stone-400">正在读取文件…</p> :
+          current.error ? <p role="alert" className="p-6 text-sm text-red-500">读取文件失败：{current.error}</p> :
+          <VditorEditor key={activeFilePath} value={current.content} onChange={(content) => {
+            drafts.current.set(activeFilePath, content)
+            setLoaded({ path: activeFilePath, content })
+          }} />}
       </div>
+      <DocumentOutline headings={headings} activeIndex={activeHeading} onSelect={(index) => {
+        const nodes = contentHost.current?.querySelectorAll(".vditor-ir .vditor-reset :is(h1,h2,h3,h4,h5,h6)")
+        nodes?.[index]?.scrollIntoView({ behavior: "smooth", block: "center" })
+      }} />
     </div>
   )
 }

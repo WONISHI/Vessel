@@ -3,10 +3,13 @@ import { electronAPI } from "@electron-toolkit/preload"
 import { welcomeAPI } from "./apis/welcome.api"
 import { developerAPI } from "./apis/developer.api"
 
+import { filesAPI } from "./apis/files.api"
+
 const api = {}
 
 const vesselAPI = {
   ...welcomeAPI,
+  ...filesAPI,
   ...developerAPI
 }
 

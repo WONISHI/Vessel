@@ -66,7 +66,7 @@ export default {
         sm: "calc(var(--radius) - 4px)"
       },
       fontFamily: {
-        sans: ["-apple-system", "BlinkMacSystemFont", '"SF Pro Display"', '"SF Pro Text"', '"Segoe UI"', "system-ui", "sans-serif"],
+        sans: ["Plus Jakarta Sans", "PingFang SC", "Microsoft YaHei", "system-ui", "sans-serif"],
         mono: ['"SF Mono"', '"Fira Code"', '"JetBrains Mono"', "ui-monospace", "monospace"]
       },
       keyframes: {
