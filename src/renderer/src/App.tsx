@@ -1,7 +1,7 @@
 import { Toaster } from "sonner"
 
 import DevTool from "@/components/core/devtool"
-import { RouterView } from "@/lib/react-router/components"
+import { RouterView } from "@vessel/react-router/components"
 
 export interface WorkspaceData {
   name: string

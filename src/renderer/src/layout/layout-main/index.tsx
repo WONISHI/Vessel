@@ -1,6 +1,6 @@
 import { File, Home, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { RouterView } from "@/lib/react-router/components"
+import { RouterView } from "@vessel/react-router/components"
 import { useLocation } from "react-router-dom"
 import { cn } from "@/lib/utils"
 import { useWorkspace } from "../hooks/useWorkspace"

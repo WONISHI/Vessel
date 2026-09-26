@@ -1,4 +1,4 @@
-import { useRoute, type AppRouteRecordRaw } from "@/lib/react-router"
+import { useRoute, type AppRouteRecordRaw } from "@vessel/react-router"
 import { useMemo } from "react"
 /**
  * 读取 devtools 路由树和当前匹配路由。

@@ -1,4 +1,4 @@
-import type { AppRouteRecordRaw } from "@/lib/react-router"
+import type { AppRouteRecordRaw } from "@vessel/react-router"
 /**
  * 项目路由 meta
  */

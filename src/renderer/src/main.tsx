@@ -11,7 +11,7 @@ import { StrictMode } from "react"
 import { createRoot } from "react-dom/client"
 
 import router from "./router"
-import { RouterProvider } from "@/lib/react-router/components"
+import { RouterProvider } from "@vessel/react-router/components"
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

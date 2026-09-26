@@ -1,3 +1,8 @@
+# 路由配置示例
+
+以下为原始示例，页面组件需由使用方提供。
+
+```tsx
 import BasicLayout from "../layouts/BasicLayout"
 import DebugPage from "../pages/DebugPage"
 import HomePage from "../pages/HomePage"
@@ -9,7 +14,7 @@ import {
   createRouter,
   createWebHashHistory,
   type AppRouteRecordRaw
-} from "./index"
+} from "@vessel/react-router"
 
 const routes: AppRouteRecordRaw[] = [
   {
@@ -118,3 +123,5 @@ router.onError((error) => {
 })
 
 export default router
+
+```

@@ -1,0 +1,20 @@
+{
+  "name": "@vessel/react-router",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Vessel React routing adapter for workspace applications",
+  "exports": {
+    ".": "./src/index.ts",
+    "./components": "./src/components.tsx"
+  },
+  "types": "./src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-router-dom": "^7.12.0"
+  }
+}

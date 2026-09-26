@@ -9,7 +9,7 @@ import DevtoolsStorage from "@/pages/debug/devtools-storage"
 import WorkspaceHome from "@/layout/layout-main/workspace-home"
 import Canvas from "@/layout/layout-main/canvas"
 
-import { createRouter, createWebHashHistory, type AppRouteRecordRaw } from "@/lib/react-router"
+import { createRouter, createWebHashHistory, type AppRouteRecordRaw } from "@vessel/react-router"
 
 const STORAGE_KEY = "app_current_workspace"
 
