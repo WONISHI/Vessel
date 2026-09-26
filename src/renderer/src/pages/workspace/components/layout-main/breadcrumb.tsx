@@ -1,18 +1,18 @@
-import { useWorkspace } from "@renderer/layout/hooks/useWorkspace"
+import { useWorkspace } from "@/pages/workspace/hooks/useWorkspace"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator, BreadcrumbPage } from "@/components/ui/breadcrumb"
 import { Separator } from "@/components/ui/separator"
 import { Fragment, useCallback, useMemo } from "react"
 
 export default function BreadCrumb() {
-  const { workspace, activeFilePath, changeCollapsible } = useWorkspace()
+  const { workspace, activeFilePath, expandDirectory } = useWorkspace()
 
   const jumpRoute = useCallback(
     (fullPath?: string) => {
       if (!fullPath) return
-      changeCollapsible(fullPath)
+      expandDirectory(fullPath)
     },
-    [changeCollapsible]
+    [expandDirectory]
   )
 
   const normalizedWorkspacePath = useMemo(() => {

@@ -1,10 +1,15 @@
-import type { WorkspaceNode } from "./types/workspace"
+import type { FileTreeNode } from "./types"
 
-/** 将扫描接口的扁平路径还原为目录树，同时兼容已有嵌套节点。 */
-export function buildWorkspaceTree(files: WorkspaceNode[], rootPath: string): WorkspaceNode[] {
+/**
+ * 将文件扫描结果转换成目录树，供文件浏览器按层级展示。
+ * @param files 文件路径列表或已有的嵌套节点；不修改传入数组。
+ * @param rootPath 工作区根路径，支持 Windows 和 POSIX 分隔符。
+ * @returns 目录优先排序的树；已嵌套的数据原样返回。
+ */
+export function createFileTreeFromPaths(files: FileTreeNode[], rootPath: string): FileTreeNode[] {
   if (files.some((file) => file.children)) return files
   const root = rootPath.replace(/\\/g, "/").replace(/\/$/, "")
-  const tree: WorkspaceNode[] = []
+  const tree: FileTreeNode[] = []
   for (const file of files) {
     const normalized = file.path.replace(/\\/g, "/")
     const relative = normalized.startsWith(`${root}/`) ? normalized.slice(root.length + 1) : file.name
@@ -22,7 +27,7 @@ export function buildWorkspaceTree(files: WorkspaceNode[], rootPath: string): Wo
     }
     siblings.push({ ...file, type: "file" })
   }
-  const sort = (nodes: WorkspaceNode[]) => {
+  const sort = (nodes: FileTreeNode[]) => {
     nodes.sort((a, b) => Number(Boolean(b.children)) - Number(Boolean(a.children)) || a.name.localeCompare(b.name, "zh-CN", { numeric: true }))
     nodes.forEach((node) => {
       if (node.children) sort(node.children)

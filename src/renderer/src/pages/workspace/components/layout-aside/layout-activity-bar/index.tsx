@@ -3,8 +3,8 @@ import { Sun } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import type { LayoutActivityBarProps } from "./types"
-import { ACTIVITY_ITEMS } from "./constants"
+import type { LayoutActivityBarProps } from "@/pages/workspace/components/layout-aside/layout-activity-bar/types"
+import { ACTIVITY_ITEMS } from "@/pages/workspace/components/layout-aside/layout-activity-bar/constants"
 
 /** 左侧窄活动栏：应用入口、活动切换和外观标识。 */
 export default function LayoutActivityBar({ activity, onActivityChange }: LayoutActivityBarProps) {

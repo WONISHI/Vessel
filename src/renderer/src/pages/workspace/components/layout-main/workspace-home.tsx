@@ -1,9 +1,9 @@
 import { FolderOpen, File } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { useWorkspace } from "../hooks/useWorkspace"
+import { useWorkspace } from "@/pages/workspace/hooks/useWorkspace"
 
 export default function WorkspaceHome() {
-  const { workspace, openFiles, openFile } = useWorkspace()
+  const { workspace, openFiles, openWorkspaceFile } = useWorkspace()
   return (
     <div className="mx-auto w-full max-w-4xl p-8">
       <div className="mb-6 flex items-center gap-3">
@@ -23,7 +23,7 @@ export default function WorkspaceHome() {
               <Button
                 key={file.path}
                 variant="ghost"
-                onClick={() => openFile(file)}
+                onClick={() => openWorkspaceFile(file)}
                 className="h-9 w-full justify-start text-xs"
               >
                 <File className="size-4 text-stone-400" />

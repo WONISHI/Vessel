@@ -1,10 +1,11 @@
-import type { WorkspaceNode } from "../../types/workspace"
+import { getFileExtension } from "@vessel/utils"
 
-export function countFiles(nodes: WorkspaceNode[]): number {
-  return nodes.reduce((count, node) => count + (node.children ? countFiles(node.children) : 1), 0)
-}
-export function fileAppearance(name: string) {
-  const extension = name.split(".").pop()?.toLowerCase() ?? ""
+/** 根据扩展名选择侧栏标签和配色，供文件树行展示使用。
+ * @param name 文件名。
+ * @returns 显示标签、图标颜色和标签背景样式。
+ */
+export function getFilePresentation(name: string) {
+  const extension = getFileExtension(name)
   if (["md", "markdown"].includes(extension)) return { label: "MD", color: "text-violet-500", badge: "bg-violet-100 text-violet-600" }
   if (["ts", "tsx"].includes(extension)) return { label: extension.toUpperCase(), color: "text-blue-500", badge: "bg-blue-100 text-blue-600" }
   if (["js", "jsx", "json"].includes(extension)) return { label: extension.toUpperCase(), color: "text-amber-500", badge: "bg-amber-100 text-amber-600" }

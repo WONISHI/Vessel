@@ -3,10 +3,10 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Wrench } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
-import { useWorkspace } from "../../hooks/useWorkspace"
-import type { LayoutWorkspaceSidebarProps } from "./types"
-import WorkspaceTree from "./workspace-tree"
-import { countFiles } from "./utils"
+import { useWorkspace } from "@/pages/workspace/hooks/useWorkspace"
+import type { LayoutWorkspaceSidebarProps } from "@/pages/workspace/components/layout-aside/layout-workspace-sidebar/types"
+import WorkspaceTree from "@/pages/workspace/components/layout-aside/layout-workspace-sidebar/workspace-tree"
+import { countFileNodes } from "@vessel/utils"
 
 /** 根据活动显示工作区文件树、本次打开列表或开发工具。 */
 export default function LayoutWorkspaceSidebar({ activity }: LayoutWorkspaceSidebarProps) {
@@ -20,7 +20,7 @@ export default function LayoutWorkspaceSidebar({ activity }: LayoutWorkspaceSide
     >
       <header className="flex items-center justify-between px-3.5 pb-2 pt-3 text-xs font-semibold text-stone-500">
         <span>{activity === "files" ? "工作区" : activity === "recent" ? "本次打开" : "开发工具"}</span>
-        <span className="text-[11px] text-stone-400">{activity === "files" ? `${countFiles(workspace.files)} 个文件` : ""}</span>
+        <span className="text-[11px] text-stone-400">{activity === "files" ? `${countFileNodes(workspace.files)} 个文件` : ""}</span>
       </header>
       <ScrollArea
         viewportRef={setViewport}

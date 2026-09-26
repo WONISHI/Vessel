@@ -1,20 +1,24 @@
 import { useEffect, useRef, useState } from "react"
 import { VirtualTree, type VirtualTreeRow } from "@/components/ui/tree"
 import { Button } from "@/components/ui/button"
-import { useWorkspace } from "../../hooks/useWorkspace"
-import type { WorkspaceNode } from "../../types/workspace"
-import FileTreeItem from "./file-tree-item"
+import { useWorkspace } from "@/pages/workspace/hooks/useWorkspace"
+import type { WorkspaceNode } from "@/pages/workspace/types/workspace"
+import FileTreeItem from "@/pages/workspace/components/layout-aside/layout-workspace-sidebar/file-tree-item"
 
 interface DirectoryState {
   nodes?: WorkspaceNode[]
   error?: string
 }
 export default function WorkspaceTree({ viewport, recent = false }: { viewport: HTMLElement | null; recent?: boolean }) {
-  const { workspace, openFiles, activeFilePath, openFile, expandedFolders, setFolderExpanded } = useWorkspace()
+  const { workspace, openFiles, activeFilePath, openWorkspaceFile, expandedFolders, setDirectoryExpanded } = useWorkspace()
   const [directories, setDirectories] = useState<Record<string, DirectoryState>>({})
   const pending = useRef(new Map<string, Promise<void>>())
   const mounted = useRef(true)
-  const load = (path: string) => {
+  /** 按需读取直接子节点并缓存，合并同一路径的并发请求。
+   * @param path 要展开的目录路径。
+   * @returns 完成缓存更新的 Promise；失败信息保留用于重试。
+   */
+  const loadDirectoryChildren = (path: string) => {
     if (pending.current.has(path)) return pending.current.get(path)!
     const request = window.electronAPI
       .readWorkspaceDirectory(workspace.path, path)
@@ -31,9 +35,9 @@ export default function WorkspaceTree({ viewport, recent = false }: { viewport: 
   useEffect(() => {
     mounted.current = true
     if (!recent) {
-      void load(workspace.path)
+      void loadDirectoryChildren(workspace.path)
       expandedFolders.forEach((path) => {
-        void load(path)
+        void loadDirectoryChildren(path)
       })
     }
     return () => {
@@ -42,15 +46,16 @@ export default function WorkspaceTree({ viewport, recent = false }: { viewport: 
     // Cache lifetime is scoped by the workspace/activity key in the parent.
   }, [])
   const rows: VirtualTreeRow<WorkspaceNode>[] = []
-  const flatten = (nodes: WorkspaceNode[], depth = 0) =>
+  /** 仅展开已打开目录，将已加载节点转换成虚拟列表所需的可见行。 */
+  const appendVisibleTreeRows = (nodes: WorkspaceNode[], depth = 0) =>
     nodes.forEach((node) => {
       const folder = node.type === "directory"
       const expanded = folder && expandedFolders.includes(node.path)
       rows.push({ id: node.path, item: node, depth, expanded: folder ? expanded : undefined })
-      if (expanded) flatten(directories[node.path]?.nodes ?? [], depth + 1)
+      if (expanded) appendVisibleTreeRows(directories[node.path]?.nodes ?? [], depth + 1)
     })
   const root = directories[workspace.path]
-  flatten(recent ? openFiles : (root?.nodes ?? []))
+  appendVisibleTreeRows(recent ? openFiles : (root?.nodes ?? []))
   if (!recent && !root)
     return (
       <p
@@ -65,7 +70,7 @@ export default function WorkspaceTree({ viewport, recent = false }: { viewport: 
       <Button
         variant="ghost"
         title={root.error}
-        onClick={() => void load(workspace.path)}
+        onClick={() => void loadDirectoryChildren(workspace.path)}
         className="w-full text-xs text-red-500"
       >
         目录加载失败，点击重试
@@ -87,15 +92,15 @@ export default function WorkspaceTree({ viewport, recent = false }: { viewport: 
           error={directories[node.path]?.error}
           onActivate={() => {
             if (node.type !== "directory") {
-              openFile(node)
+              openWorkspaceFile(node)
               return
             }
             if (directories[node.path]?.error) {
-              void load(node.path)
+              void loadDirectoryChildren(node.path)
               return
             }
-            setFolderExpanded(node.path, !expanded)
-            if (!expanded && !directories[node.path]?.nodes) void load(node.path)
+            setDirectoryExpanded(node.path, !expanded)
+            if (!expanded && !directories[node.path]?.nodes) void loadDirectoryChildren(node.path)
           }}
         />
       )}

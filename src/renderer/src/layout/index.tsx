@@ -1,58 +1,18 @@
-import { useState } from "react"
-import { useNavigate } from "react-router-dom"
-import type { LayoutProps } from "./types"
-import type { WorkspaceNode } from "./types/workspace"
-import LayoutAside from "./layout-aside"
-import LayoutMain from "./layout-main"
-import { WorkspaceProvider } from "./contexts/WorkspaceProvider"
+import type { ReactNode } from "react"
 
-/** 工作台共享文件选择、标签和目录展开状态；aside 与 main 平级布局。 */
-export default function Layout({ workspace }: LayoutProps) {
-  const navigate = useNavigate()
-  const [openFiles, setOpenFiles] = useState<WorkspaceNode[]>([])
-  const [activeFilePath, setActiveFilePath] = useState("")
-  const [expandedFolders, setExpandedFolders] = useState<string[]>([])
-  const setFolderExpanded = (path: string, open: boolean) => setExpandedFolders((current) => (open ? [...new Set([...current, path])] : current.filter((item) => item !== path)))
-  const showHome = () => {
-    setActiveFilePath("")
-    navigate("/editor")
-  }
-  const openFile = (file: WorkspaceNode) => {
-    setOpenFiles((current) => (current.some((item) => item.path === file.path) ? current : [...current, file]))
-    setActiveFilePath(file.path)
-    navigate("/editor/file")
-  }
-  const closeFile = (path: string) => {
-    const index = openFiles.findIndex((file) => file.path === path)
-    const remaining = openFiles.filter((file) => file.path !== path)
-    setOpenFiles(remaining)
-    if (path === activeFilePath) {
-      const next = remaining[Math.max(0, index - 1)]
-      if (next) {
-        setActiveFilePath(next.path)
-        navigate("/editor/file")
-      } else showHome()
-    }
-  }
+export interface LayoutProps {
+  /** 页面提供的侧栏区域，不包含业务状态。 */
+  aside: ReactNode
+  /** 页面提供的主内容区域，例如标签栏和路由出口。 */
+  children: ReactNode
+}
+
+/** 提供全屏左右布局及溢出边界；具体页面负责导航、数据和交互。 */
+export default function Layout({ aside, children }: LayoutProps) {
   return (
-    <WorkspaceProvider
-      value={{
-        workspace,
-        activeFilePath,
-        openFiles,
-        expandedFolders,
-        openFile,
-        closeFile,
-        showHome,
-        setFolderExpanded,
-        fileType: activeFilePath.split(".").pop()?.toLowerCase(),
-        changeCollapsible: (path) => setFolderExpanded(path, true)
-      }}
-    >
-      <div className="flex h-dvh min-h-0 w-full overflow-hidden bg-[#faf9f7] text-stone-800">
-        <LayoutAside />
-        <LayoutMain />
-      </div>
-    </WorkspaceProvider>
+    <div className="flex h-dvh min-h-0 w-full overflow-hidden bg-[#faf9f7] text-stone-800">
+      {aside}
+      {children}
+    </div>
   )
 }

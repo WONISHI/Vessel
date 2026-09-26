@@ -1,4 +1,4 @@
-import type { AsideActivity } from "../types"
+import type { AsideActivity } from "@/pages/workspace/components/layout-aside/types"
 
 export interface LayoutActivityBarProps {
   /** 当前选中的活动。 */

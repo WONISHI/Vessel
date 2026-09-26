@@ -47,7 +47,7 @@
     "fix": "npm run lint -- --fix",
     "typecheck:node": "tsc --noEmit -p tsconfig.node.json --composite false",
     "typecheck:web": "tsc --noEmit -p tsconfig.web.json --composite false",
-    "typecheck": "npm run typecheck:router && npm run typecheck:node && npm run typecheck:web",
+    "typecheck": "npm run typecheck:utils && npm run typecheck:router && npm run typecheck:node && npm run typecheck:web",
     "start": "electron-vite preview",
     "dev": "nodemon --watch main.js --exec \"electron-vite dev\"",
     "dev:main": "nodemon --watch src/main -e ts --exec \"electron-vite dev\"",
@@ -58,7 +58,8 @@
     "build:win": "npm run build && electron-builder --win",
     "build:mac": "electron-vite build && electron-builder --mac",
     "build:linux": "electron-vite build && electron-builder --linux",
-    "typecheck:router": "npm run typecheck --workspace=@vessel/react-router"
+    "typecheck:router": "npm run typecheck --workspace=@vessel/react-router",
+    "typecheck:utils": "npm run typecheck --workspace=@vessel/utils"
   },
   "dependencies": {
     "@codemirror/lang-markdown": "^6.5.0",
@@ -108,7 +109,8 @@
     "tailwind-merge": "^3.4.0",
     "vditor": "^3.11.2",
     "zustand": "^5.0.10",
-    "@vessel/react-router": "file:packages/react-router"
+    "@vessel/react-router": "file:packages/react-router",
+    "@vessel/utils": "file:packages/utils"
   },
   "devDependencies": {
     "@electron-toolkit/eslint-config-prettier": "^3.0.0",

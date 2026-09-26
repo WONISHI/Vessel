@@ -1,8 +1,8 @@
 import { ChevronRight, File, Folder, LoaderCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import type { WorkspaceNode } from "../../types/workspace"
-import { fileAppearance } from "./utils"
+import type { WorkspaceNode } from "@/pages/workspace/types/workspace"
+import { getFilePresentation } from "@/pages/workspace/components/layout-aside/layout-workspace-sidebar/utils"
 
 interface FileTreeItemProps {
   node: WorkspaceNode
@@ -15,7 +15,7 @@ interface FileTreeItemProps {
 /** 虚拟树中的单行；不递归挂载子节点。 */
 export default function FileTreeItem({ node, selected, expanded, loading, error, onActivate }: FileTreeItemProps) {
   const folder = node.type === "directory"
-  const appearance = fileAppearance(node.name)
+  const appearance = getFilePresentation(node.name)
   return (
     <Button
       variant="ghost"

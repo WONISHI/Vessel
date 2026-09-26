@@ -95,6 +95,9 @@ importers:
       '@vessel/react-router':
         specifier: file:packages/react-router
         version: link:packages/react-router
+      '@vessel/utils':
+        specifier: file:packages/utils
+        version: link:packages/utils
       better-sqlite3:
         specifier: ^12.4.1
         version: 12.11.1
@@ -264,6 +267,8 @@ importers:
       react-router-dom:
         specifier: ^7.12.0
         version: 7.18.2(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+
+  packages/utils: {}
 
 packages:
 

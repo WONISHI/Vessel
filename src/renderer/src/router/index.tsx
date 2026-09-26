@@ -1,13 +1,13 @@
 import { useState } from "react"
 
 import App, { type WorkspaceData } from "../App"
-import Layout from "@/layout/index"
+import WorkspacePage from "@/pages/workspace"
 import Welcome from "@/pages/welcome/index"
 import DebugPage from "@/pages/debug/index"
 import DevtoolsConsole from "@/pages/debug/devtools-console"
 import DevtoolsStorage from "@/pages/debug/devtools-storage"
-import WorkspaceHome from "@/layout/layout-main/workspace-home"
-import Canvas from "@/layout/layout-main/canvas"
+import WorkspaceHome from "@/pages/workspace/components/layout-main/workspace-home"
+import Canvas from "@/pages/workspace/components/layout-main/canvas"
 
 import { createRouter, createWebHashHistory, type AppRouteRecordRaw } from "@vessel/react-router"
 
@@ -47,7 +47,7 @@ function WelcomeRoute() {
 /**
  * 编辑器路由适配组件
  *
- * 给 Layout 传递 workspace。
+ * 给 WorkspacePage 传递 workspace。
  */
 function EditorRoute() {
   const [workspace] = useState<WorkspaceData | null>(() => {
@@ -58,7 +58,7 @@ function EditorRoute() {
     return null
   }
 
-  return <Layout workspace={workspace} />
+  return <WorkspacePage workspace={workspace} />
 }
 
 /**

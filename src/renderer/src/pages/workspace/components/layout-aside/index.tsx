@@ -1,17 +1,17 @@
 import { useState } from "react"
-import { useWorkspace } from "../hooks/useWorkspace"
-import LayoutActivityBar from "./layout-activity-bar"
-import LayoutWorkspaceSidebar from "./layout-workspace-sidebar"
-import type { AsideActivity } from "./types"
+import { useWorkspace } from "@/pages/workspace/hooks/useWorkspace"
+import LayoutActivityBar from "@/pages/workspace/components/layout-aside/layout-activity-bar/index"
+import LayoutWorkspaceSidebar from "@/pages/workspace/components/layout-aside/layout-workspace-sidebar/index"
+import type { AsideActivity } from "@/pages/workspace/components/layout-aside/types"
 
 /** 组合活动栏与侧边列表，统一管理活动选择。 */
 export default function LayoutAside() {
   const [activity, setActivity] = useState<AsideActivity>("files")
-  const { showHome } = useWorkspace()
+  const { navigateToWorkspaceHome } = useWorkspace()
 
   const handleActivityChange = (next: AsideActivity) => {
     setActivity(next)
-    if (next === "files") showHome()
+    if (next === "files") navigateToWorkspaceHome()
   }
 
   return (
