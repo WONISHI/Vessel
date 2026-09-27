@@ -1,8 +1,10 @@
+import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb"
 import { createRoot, type Root } from "react-dom/client"
-import { ObsidianImageLine, prepareObsidianImages, restoreObsidianImages } from "./obsidian-images"
+import { ObsidianImageLine } from "./obsidian-images"
+import { prepareObsidianImages, restoreObsidianImages } from "./image-source"
 import { decorateMarkdownTags } from "./decorate-tags"
 import { LinkInteractionArea } from "@/components/ui/link"
-import { useEffect, useRef } from "react"
+import { Fragment, useEffect, useRef } from "react"
 import { renderToStaticMarkup } from "react-dom/server"
 import { ImagePlus, Smile, Minus, Heading, Bold, Italic, Strikethrough, Link, List, ListOrdered, ListChecks, Quote, Code, CodeXml, Table2, Undo2, Redo2 } from "lucide-react"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -13,6 +15,7 @@ import "vditor/dist/index.css"
 /** 保留 Vditor 编辑能力，文档显示和大纲由外层 React 组件负责。 */
 export function VditorEditor({ value, onChange, workspacePath, documentPath }: { workspacePath: string; documentPath: string; value: string; onChange: (value: string) => void }) {
   const host = useRef<HTMLDivElement>(null)
+  const toolbarHost = useRef<HTMLDivElement>(null)
   const initialValue = useRef(value)
   const changeHandler = useRef(onChange)
   useEffect(() => {
@@ -65,6 +68,7 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath }: {
             } catch {
               return
             }
+            element.closest("[data-type=code-block]")?.classList.add("vessel-image-block")
             const container = document.createElement("div")
             container.contentEditable = "false"
             element.replaceChildren(container)
@@ -79,6 +83,14 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath }: {
             root.render(
               <ObsidianImageLine
                 source={source}
+                onChange={(updated) => {
+                  const sourceCode = element.closest("[data-type=code-block]")?.querySelector("pre.vditor-ir__marker code")
+                  if (!sourceCode) return
+                  sourceCode.textContent = encodeURIComponent(updated) + "\n"
+                  const next = editor.getValue()
+                  editor.setValue(next)
+                  changeHandler.current(restoreObsidianImages(next))
+                }}
                 root={workspacePath}
                 documentPath={documentPath}
               />
@@ -118,6 +130,8 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath }: {
         if (!disposed) changeHandler.current(restoreObsidianImages(content))
       },
       after: () => {
+        const toolbar = host.current?.querySelector<HTMLElement>(".vditor-toolbar")
+        if (!disposed && toolbar && toolbarHost.current) toolbarHost.current.appendChild(toolbar)
         ready = true
         if (disposed) editor.destroy()
       }
@@ -128,11 +142,40 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath }: {
       element.removeEventListener("focusout", decorate)
       disposed = true
       if (ready) editor.destroy()
+      toolbarHost.current?.replaceChildren()
     }
   }, [])
   return (
-    <LinkInteractionArea className="h-full min-h-0">
-      <ScrollArea className="vessel-editor-scroll h-full min-h-0 min-w-0">
+    <LinkInteractionArea className="flex h-full min-h-0 min-w-0 flex-col">
+      <Breadcrumb
+        className="shrink-0 px-4 pt-2"
+        aria-label="当前文件路径"
+      >
+        <BreadcrumbList className="text-xs">
+          {[workspacePath.split(/[\\/]/).filter(Boolean).pop() || "工作区", ...documentPath.slice(workspacePath.length).split(/[\\/]/).filter(Boolean)].map((part, index, parts) => (
+            <Fragment key={index}>
+              {index > 0 && <BreadcrumbSeparator />}
+              <BreadcrumbItem className="min-w-0">
+                {index === parts.length - 1 ? (
+                  <BreadcrumbPage
+                    className="truncate max-w-64"
+                    title={part}
+                  >
+                    {part}
+                  </BreadcrumbPage>
+                ) : (
+                  <span>{part}</span>
+                )}
+              </BreadcrumbItem>
+            </Fragment>
+          ))}
+        </BreadcrumbList>
+      </Breadcrumb>
+      <div
+        ref={toolbarHost}
+        className="vessel-vditor shrink-0 min-w-0 w-full"
+      />
+      <ScrollArea className="vessel-editor-scroll flex-1 min-h-0 min-w-0 mt-2">
         <Typography asChild>
           <div
             ref={host}

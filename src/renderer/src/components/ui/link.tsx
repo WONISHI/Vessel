@@ -23,23 +23,56 @@ export function LinkInteractionArea({ children, actions = [], className, inline 
   useEffect(() => {
     const element = host.current
     if (!element) return
-    const apply = () =>
+    const apply = () => {
+      {
+        const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT)
+        const nodes: Text[] = []
+        while (walker.nextNode()) {
+          const node = walker.currentNode as Text
+          const selection = window.getSelection()
+          if (element.contains(document.activeElement) && (selection?.anchorNode === node || selection?.focusNode === node)) continue
+          if (!node.parentElement?.closest('a,code,pre,button,[data-type="a"],[data-type="img"],[data-vessel-href],.vditor-ir__marker') && /https?:\/\/[^\s<>"'，。；）]+/.test(node.data)) nodes.push(node)
+        }
+        for (const node of nodes) {
+          const fragment = document.createDocumentFragment()
+          let offset = 0
+          for (const match of node.data.matchAll(/https?:\/\/[^\s<>"'，。；）]+/g)) {
+            fragment.append(node.data.slice(offset, match.index))
+            const link = document.createElement("span")
+            link.dataset.vesselHref = match[0]
+            link.dataset.vesselLink = "true"
+            link.className = linkClassName + " cursor-pointer"
+            link.setAttribute("role", "link")
+            link.tabIndex = 0
+            link.textContent = match[0]
+            fragment.append(link)
+            offset = match.index + match[0].length
+          }
+          fragment.append(node.data.slice(offset))
+          node.replaceWith(fragment)
+        }
+      }
       element.querySelectorAll<HTMLElement>('a[href], [data-type="a"] .vditor-ir__link').forEach((anchor) => {
         if (/^(https?:|mailto:)/i.test(anchor.getAttribute("href") || anchor.parentElement?.querySelector(".vditor-ir__marker--link")?.textContent || "")) {
           anchor.classList.add(...linkClassName.split(" "))
           anchor.dataset.vesselLink = "true"
         }
       })
+    }
+    element.addEventListener("focusout", apply)
     apply()
     const observer = new MutationObserver(apply)
-    observer.observe(element, { childList: true, subtree: true })
-    return () => observer.disconnect()
+    observer.observe(element, { childList: true, subtree: true, characterData: true })
+    return () => {
+      observer.disconnect()
+      element.removeEventListener("focusout", apply)
+    }
   }, [])
   const Container = inline ? "span" : "div"
   const [target, setTarget] = useState<{ href: string; x: number; y: number } | null>(null)
   const resolve = (element: EventTarget) => {
-    const anchor = element instanceof Element ? element.closest('a[href], [data-type="a"]') : null
-    const href = anchor?.getAttribute("href") || anchor?.querySelector(".vditor-ir__marker--link")?.textContent
+    const anchor = element instanceof Element ? element.closest('a[href], [data-type="a"], [data-vessel-href]') : null
+    const href = anchor?.getAttribute("data-vessel-href") || anchor?.getAttribute("href") || anchor?.querySelector(".vditor-ir__marker--link")?.textContent
     return href && /^(https?:|mailto:)/i.test(href) ? href : null
   }
   const run = async (action: () => void | Promise<void>) => {
@@ -60,6 +93,11 @@ export function LinkInteractionArea({ children, actions = [], className, inline 
       <Container
         ref={host}
         className={className}
+        onKeyDownCapture={(event) => {
+          if (event.key !== "Enter") return
+          const href = resolve(event.target)
+          if (href) { event.preventDefault(); event.stopPropagation(); void run(() => window.electronAPI.openExternal(href)) }
+        }}
         onContextMenuCapture={(event) => {
           const href = resolve(event.target)
           if (!href) return

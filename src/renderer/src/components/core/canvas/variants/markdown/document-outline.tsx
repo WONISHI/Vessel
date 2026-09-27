@@ -29,15 +29,38 @@ export function DocumentOutline({ headings, activeIndex, onSelect, fileName }: {
       }}
       className={cn("flex min-h-0 shrink-0 flex-col py-2 transition-[width]", pinned ? "w-48 px-2" : "relative w-12 px-1")}
     >
+      {!pinned && (
+        <div aria-hidden={expanded} inert={expanded} className="flex min-h-0 flex-1 flex-col bg-transparent">
+          <div className="h-8 flex justify-end">
+            <Pin className="size-3.5 m-1.5 text-stone-400" />
+          </div>
+          <ScrollArea className="min-h-0 flex-1">
+            {headings.map((heading, index) => (
+              <button
+                key={index}
+                aria-label={heading.text}
+                aria-current={index === activeIndex ? "location" : undefined}
+                onClick={() => onSelect(index)}
+                className="flex h-4 w-full items-center justify-end bg-transparent px-1"
+              >
+                <Skeleton
+                  aria-hidden="true"
+                  className={cn("h-[3px] animate-none rounded-full", index === activeIndex ? "bg-green-600" : "bg-stone-300")}
+                  style={{ width: Math.max(8, 34 - (heading.level - 1) * 5) }}
+                />
+              </button>
+            ))}
+          </ScrollArea>
+        </div>
+      )}
       <div
-        className={cn(
-          "flex min-h-0 flex-1 flex-col overflow-hidden transition-[width,padding] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
-          pinned ? "w-full" : "absolute inset-y-0 right-0 z-20",
-          !pinned && (expanded ? "w-48 rounded-lg bg-white p-2 shadow-lg ring-1 ring-stone-100" : "w-12 px-1 shadow-none ring-0")
-        )}
+        aria-hidden={!expanded}
+        inert={!expanded}
+        style={{ transition: "transform 400ms cubic-bezier(0.22,1,0.36,1), opacity 250ms ease", transform: expanded ? "translateX(0)" : "translateX(24px)", opacity: expanded ? 1 : 0 }}
+        className={cn("flex min-h-0 flex-1 flex-col overflow-hidden motion-reduce:!transition-none", pinned ? "w-full" : "absolute inset-y-0 right-0 z-20", !pinned && "w-48 rounded-lg bg-white p-2 shadow-lg ring-1 ring-stone-100")}
       >
         <div className="flex h-8 shrink-0 items-center justify-end gap-2">
-          {expanded && fileName && (
+          {fileName && (
             <span
               title={fileName}
               className="min-w-0 flex-1 truncate px-2 text-xs font-semibold text-stone-700"
@@ -45,7 +68,7 @@ export function DocumentOutline({ headings, activeIndex, onSelect, fileName }: {
               {fileName}
             </span>
           )}
-          {expanded && (
+          {
             <Button
               variant="ghost"
               size="icon"
@@ -57,7 +80,7 @@ export function DocumentOutline({ headings, activeIndex, onSelect, fileName }: {
             >
               {wrapTitles ? <AlignLeft className="!size-3.5" /> : <WrapText className="!size-3.5" />}
             </Button>
-          )}
+          }
           <Button
             variant="ghost"
             size="icon"
@@ -81,25 +104,17 @@ export function DocumentOutline({ headings, activeIndex, onSelect, fileName }: {
               onClick={() => onSelect(index)}
               className={cn(
                 "group min-w-0 w-full overflow-hidden text-[11px] font-normal hover:bg-green-600 hover:text-white",
-                expanded ? cn("min-h-8 justify-start py-1.5 text-left", wrapTitles ? "h-auto whitespace-normal" : "h-8 whitespace-nowrap") : "h-8 justify-end px-1",
+                cn("min-h-8 justify-start py-1.5 text-left", wrapTitles ? "h-auto whitespace-normal" : "h-8 whitespace-nowrap"),
                 index === activeIndex ? "text-green-700" : "text-stone-500"
               )}
-              style={expanded ? { paddingLeft: 8 + (heading.level - 1) * 10 } : undefined}
+              style={{ paddingLeft: 8 + (heading.level - 1) * 10 }}
             >
-              {expanded ? (
-                <span
-                  style={{ color: index === activeIndex ? undefined : heading.color }}
-                  className={cn("min-w-0 group-hover:!text-white", wrapTitles ? "break-words" : "truncate")}
-                >
-                  {heading.text}
-                </span>
-              ) : (
-                <Skeleton
-                  aria-hidden="true"
-                  className={cn("h-[3px] animate-none rounded-full transition-colors", index === activeIndex ? "bg-green-600" : "bg-stone-300")}
-                  style={{ width: Math.max(8, 34 - (heading.level - 1) * 5) }}
-                />
-              )}
+              <span
+                style={{ color: index === activeIndex ? undefined : heading.color }}
+                className={cn("min-w-0 group-hover:!text-white", wrapTitles ? "break-words" : "truncate")}
+              >
+                {heading.text}
+              </span>
             </Button>
           ))}
           {!headings.length && expanded && <p className="px-2 py-3 text-xs text-stone-400">暂无标题</p>}

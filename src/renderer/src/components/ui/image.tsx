@@ -1,5 +1,6 @@
 import { useState, type ComponentPropsWithoutRef } from "react"
 import { ImageOff } from "lucide-react"
+import { Dialog, DialogContent, DialogTitle } from "./dialog"
 import { Resizable } from "./resizable"
 import { cn } from "@/lib/utils"
 
@@ -10,6 +11,7 @@ export interface ImageProps extends Omit<ComponentPropsWithoutRef<"img">, "width
 }
 /** 通用图片：加载失败占位、可访问替代文本，以及可拖动的尺寸容器。 */
 export function Image({ src, alt = "", width = 480, resizable = true, className, onError, onResizeEnd, ...props }: ImageProps) {
+  const [zoomed, setZoomed] = useState(false)
   const [failedSource, setFailedSource] = useState<string | undefined>()
   const failed = !src || failedSource === src
   const content = failed ? (
@@ -29,13 +31,18 @@ export function Image({ src, alt = "", width = 480, resizable = true, className,
       alt={alt}
       className={cn("block h-auto w-full rounded-md object-contain", className)}
       loading="lazy"
+      onDoubleClick={(event) => {
+        event.stopPropagation()
+        setZoomed(true)
+        props.onDoubleClick?.(event)
+      }}
       onError={(event) => {
         setFailedSource(src)
         onError?.(event)
       }}
     />
   )
-  return resizable ? (
+  const preview = resizable ? (
     <Resizable
       defaultWidth={width}
       onResizeEnd={onResizeEnd}
@@ -44,5 +51,26 @@ export function Image({ src, alt = "", width = 480, resizable = true, className,
     </Resizable>
   ) : (
     content
+  )
+  return (
+    <>
+      {preview}
+      <Dialog
+        open={zoomed && !failed}
+        onOpenChange={setZoomed}
+      >
+        <DialogContent
+          className="max-w-[95vw] w-fit max-h-[95vh] p-6"
+          aria-describedby={undefined}
+        >
+          <DialogTitle className="sr-only">{alt || "图片预览"}</DialogTitle>
+          <img
+            src={src}
+            alt={alt}
+            className="max-h-[85vh] max-w-[90vw] object-contain"
+          />
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }

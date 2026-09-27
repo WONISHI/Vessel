@@ -190,7 +190,34 @@
 
 /* 编辑器的默认蓝色链接覆盖为通用 Link 的主题色。 */
 .vessel-vditor .vditor-reset [data-vessel-link] {
-  color: hsl(var(--primary));
+  color: #15803d !important;
   text-decoration: underline;
   text-underline-offset: 4px;
+}
+
+/* 图片使用独立预览，内部适配标记不进入可见编辑界面。 */
+.vessel-vditor .vessel-image-block > :not(.vditor-ir__preview) {
+  display: none !important;
+}
+.vessel-vditor .vessel-image-block > .vditor-ir__preview {
+  display: block !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  background: transparent !important;
+  white-space: normal;
+}
+.vessel-vditor .vditor-ir,
+.vessel-vditor .vditor-reset,
+.vessel-vditor .vditor-reset:focus,
+.vessel-vditor .vditor-ir__node--expand {
+  background-color: #fff !important;
+}
+
+/* 工具栏独立于正文滚动，宽度跟随侧栏布局变化。 */
+.vessel-vditor .vditor-toolbar {
+  position: relative !important;
+  width: 100% !important;
+  left: auto !important;
+  padding: 6px 12px !important;
+  box-sizing: border-box;
 }

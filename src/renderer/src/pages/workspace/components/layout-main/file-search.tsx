@@ -11,6 +11,7 @@ export function FileSearch({ path, contentHost }: { path: string; contentHost: R
   const [open, setOpen] = useState(false)
   const [keyword, setKeyword] = useState("")
   const [content, setContent] = useState("")
+  const [blocks, setBlocks] = useState<{ text: string; element: HTMLElement }[]>([])
   const [error, setError] = useState("")
   const searchInput = useRef<HTMLInputElement>(null)
   useEffect(() => {
@@ -29,10 +30,18 @@ export function FileSearch({ path, contentHost }: { path: string; contentHost: R
     if (!open) return
     let cancelled = false
     const editor = contentHost.current?.querySelector<HTMLElement>(".vditor-ir .vditor-reset")
+    let nextBlocks: { text: string; element: HTMLElement }[] = []
+    if (editor) {
+      const elements = Array.from(editor.querySelectorAll<HTMLElement>("p,h1,h2,h3,h4,h5,h6,li,td,th,pre")).filter((node) => !node.querySelector("p,li,pre") && !node.closest(".vditor-ir__marker"))
+      nextBlocks = elements.map((element) => ({ text: element.innerText || element.textContent || "", element }))
+    }
     const request = editor ? Promise.resolve(editor.innerText) : window.electronAPI.readContent(path)
     request
       .then((text) => {
-        if (!cancelled) setContent(text)
+        if (!cancelled) {
+          setContent(text || "")
+          setBlocks(nextBlocks)
+        }
       })
       .catch((reason) => {
         if (!cancelled) setError(String(reason))
@@ -41,12 +50,7 @@ export function FileSearch({ path, contentHost }: { path: string; contentHost: R
       cancelled = true
     }
   }, [path, open, contentHost])
-  const matches = keyword.trim()
-    ? content
-        .split("\n")
-        .map((text, index) => ({ text, line: index + 1 }))
-        .filter((item) => item.text.toLocaleLowerCase().includes(keyword.toLocaleLowerCase()))
-    : []
+  const matches = keyword.trim() ? (blocks.length ? blocks.map((block, index) => ({ ...block, line: index + 1 })) : content.split("\n").map((text, index) => ({ text, line: index + 1, element: undefined }))).filter((item) => item.text.toLocaleLowerCase().includes(keyword.toLocaleLowerCase())) : []
   return (
     <Popover
       open={open}
@@ -74,6 +78,7 @@ export function FileSearch({ path, contentHost }: { path: string; contentHost: R
         </TooltipContent>
       </Tooltip>
       <PopoverContent
+        onCloseAutoFocus={(event) => event.preventDefault()}
         align="end"
         className="w-64 space-y-2 p-3"
       >
@@ -99,18 +104,31 @@ export function FileSearch({ path, contentHost }: { path: string; contentHost: R
             role="status"
             className="text-xs text-stone-500"
           >
-            {keyword ? `找到 ${matches.length} 行匹配内容` : "输入关键词搜索"}
+            {keyword ? `找到 ${matches.length} 处匹配内容` : "输入关键词搜索"}
           </p>
         )}
         <ScrollArea className="max-h-64 [&_[data-radix-scroll-area-viewport]]:max-h-64">
           {matches.slice(0, 200).map((item) => (
-            <p
+            <button
+              type="button"
               key={item.line}
-              className="break-all border-b py-2 text-xs"
+              className="block w-full break-all border-b py-2 text-left text-xs hover:bg-emerald-50 focus-visible:outline-emerald-600"
+              onClick={() => {
+                if (!item.element?.isConnected) {
+                  setError("当前结果无法定位，请重新搜索。")
+                  return
+                }
+                const target = item.element
+                setOpen(false)
+                requestAnimationFrame(() => {
+                  target.scrollIntoView({ behavior: "smooth", block: "center" })
+                  target.animate?.([{ backgroundColor: "#bbf7d0" }, { backgroundColor: "transparent" }], { duration: 1800 })
+                })
+              }}
             >
               <span className="mr-2 text-stone-400">{item.line}</span>
               {item.text}
-            </p>
+            </button>
           ))}
           {matches.length > 200 && <p className="text-xs text-stone-400">仅显示前 200 行，请缩小搜索范围。</p>}
         </ScrollArea>

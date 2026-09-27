@@ -30,5 +30,5 @@ it("expands on hover, stays open only when pinned, and marks the active heading"
   expect(onSelect).toHaveBeenCalledWith(1)
   fireEvent.click(screen.getByRole("button", { name: "取消固定大纲" }))
   fireEvent.mouseLeave(outline)
-  await waitFor(() => expect(screen.queryByText("标题一")).toBeNull())
+  await waitFor(() => expect(screen.getByText("标题一").closest("[aria-hidden]")?.getAttribute("aria-hidden")).toBe("true"))
 })

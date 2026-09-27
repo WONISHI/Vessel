@@ -1,6 +1,7 @@
-import { app, shell, BrowserWindow, ipcMain, nativeImage } from "electron"
 import { join } from "path"
+import { app, shell, BrowserWindow, ipcMain, nativeImage } from "electron"
 import { electronApp, optimizer, is } from "@electron-toolkit/utils"
+import dockIconPath from "../../resources/icon_108x108.png?asset"
 import icon from "../../resources/icon.png?asset"
 import { mainApps } from "@main/app"
 
@@ -49,13 +50,19 @@ app.whenReady().then(() => {
 
   mainApps.activate()
 
-  if (process.platform === "darwin" && is.dev) {
-    // 开发模式下直接拼路径，不需要额外函数
-    const iconPath = join(process.cwd(), "resources", "icon_108x108.png")
-    const original = nativeImage.createFromPath(iconPath)
+  if (process.platform === "darwin") {
+    const original = nativeImage.createFromPath(dockIconPath)
     if (!original.isEmpty()) {
-      const dockIcon = original.resize({ width: 108, height: 108 })
-      app.dock?.setIcon(dockIcon)
+      // Dock 按画布缩放图标；透明边距使可见图形与其他应用的尺寸一致。
+      const size = 256
+      const inset = 24
+      const contentSize = size - inset * 2
+      const bitmap = original.resize({ width: contentSize, height: contentSize }).toBitmap()
+      const canvas = Buffer.alloc(size * size * 4)
+      for (let row = 0; row < contentSize; row++) {
+        bitmap.copy(canvas, ((row + inset) * size + inset) * 4, row * contentSize * 4, (row + 1) * contentSize * 4)
+      }
+      app.dock?.setIcon(nativeImage.createFromBitmap(canvas, { width: size, height: size }))
     }
   }
 

@@ -1,10 +1,10 @@
 import { readdir, realpath, readFile, stat } from "node:fs/promises"
 import { relative, resolve, join, extname, isAbsolute, sep } from "node:path"
-import { parseObsidianImageEmbed, resolveObsidianImagePath } from "@vessel/obsidian"
+import { parseImageReference, resolveObsidianImagePath } from "@vessel/obsidian"
 
 /** 在工作区内定位附件并返回 data URL；不跟随目录符号链接，也不允许读取根目录以外的文件。 */
 export async function readObsidianImage(root: string, documentPath: string, reference: string): Promise<string> {
-  const embed = parseObsidianImageEmbed(reference)
+  const embed = parseImageReference(reference)
   if (!embed) throw new Error("不是有效的 Obsidian 图片引用")
   const base = await realpath(root)
   const within = (path: string) => {
