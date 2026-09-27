@@ -1,3 +1,4 @@
+import TodosPage from "@/pages/todos"
 import { useState } from "react"
 
 import App, { type WorkspaceData } from "../App"
@@ -65,6 +66,7 @@ function EditorRoute() {
  * 路由配置
  */
 export const routes: AppRouteRecordRaw[] = [
+  {path: "/todos", name: "todos", component: TodosPage, meta: {title: "待办"}},
   {
     path: "/",
     name: "welcome",

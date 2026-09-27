@@ -1,3 +1,4 @@
+import type { TodosAPI } from "../../shared/todos"
 import type { ElectronAPI } from "@electron-toolkit/preload"
 
 /** 工作区中的文件信息。 */
@@ -88,7 +89,7 @@ interface StorageInfo {
 }
 
 /** preload 暴露给 React 渲染进程的完整 API。 */
-interface VesselAPI {
+interface VesselAPI extends TodosAPI {
   readWorkspaceDirectory: (root: string, directory: string) => Promise<Array<{ name: string; path: string; type: "file" | "directory" }>>
   /** 选择文件夹并记录工作区打开信息。 */
   openDirectory: () => Promise<WorkspaceData | null>

@@ -1,3 +1,4 @@
+import { todosAPI } from "./apis/todos.api"
 import { contextBridge } from "electron"
 import { electronAPI } from "@electron-toolkit/preload"
 import { welcomeAPI } from "./apis/welcome.api"
@@ -8,6 +9,7 @@ import { filesAPI } from "./apis/files.api"
 const api = {}
 
 const vesselAPI = {
+  ...todosAPI,
   ...welcomeAPI,
   ...filesAPI,
   ...developerAPI

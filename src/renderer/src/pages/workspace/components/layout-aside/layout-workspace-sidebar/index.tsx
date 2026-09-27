@@ -59,7 +59,7 @@ export default function LayoutWorkspaceSidebar({ activity }: LayoutWorkspaceSide
               tabIndex={0}
               className="min-w-0 truncate font-semibold text-black"
             >
-              {activity === "files" ? workspaceName : activity === "recent" ? "本次打开" : "开发工具"}
+              {activity === "files" ? workspaceName : "开发工具"}
             </span>
           </TooltipTrigger>
           <TooltipContent>{countFileNodes(workspace.files) + addedFiles} 个文件</TooltipContent>
@@ -109,7 +109,7 @@ export default function LayoutWorkspaceSidebar({ activity }: LayoutWorkspaceSide
               setRevision((value) => value + 1)
             }}
             viewport={viewport}
-            recent={activity === "recent"}
+            recent={false}
           />
         ) : (
           <div className="space-y-1">

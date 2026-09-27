@@ -1,8 +1,9 @@
+import { TodosModule } from "@main/modules/todos/index.module"
 import { FilesModule } from "@main/modules/files/index.module"
 import { WelcomeModule } from "@main/modules/welcome/index.module"
 import { type BaseModule, type ModuleConstructor } from "@main/modules/base/index"
 
-const MODULES: ModuleConstructor[] = [WelcomeModule, FilesModule]
+const MODULES: ModuleConstructor[] = [WelcomeModule, FilesModule, TodosModule]
 
 class MainApps {
   private modules: BaseModule[] = []

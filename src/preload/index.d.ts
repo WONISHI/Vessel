@@ -1,3 +1,4 @@
+import type { TodosAPI } from "../shared/todos"
 import type { ElectronAPI } from "@electron-toolkit/preload"
 
 export interface WorkspaceFile {
@@ -86,7 +87,7 @@ export interface StorageInfo {
   sessionId: string
 }
 
-export interface VesselAPI {
+export interface VesselAPI extends TodosAPI {
   readWorkspaceDirectory: (root: string, directory: string) => Promise<Array<{ name: string; path: string; type: "file" | "directory" }>>
   openDirectory: () => Promise<WorkspaceData | null>
 

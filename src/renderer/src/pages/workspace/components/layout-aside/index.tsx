@@ -1,7 +1,8 @@
 import { Sidebar, useSidebar } from "@/components/ui/sidebar"
+import { useRouter } from "@vessel/react-router"
 import { useState } from "react"
 import { useWorkspace } from "@/pages/workspace/hooks/useWorkspace"
-import LayoutActivityBar from "@/pages/workspace/components/layout-aside/layout-activity-bar/index"
+import LayoutActivityBar from "@/layout/activity-bar"
 import LayoutWorkspaceSidebar from "@/pages/workspace/components/layout-aside/layout-workspace-sidebar/index"
 import type { AsideActivity } from "@/pages/workspace/components/layout-aside/types"
 
@@ -11,7 +12,9 @@ export default function LayoutAside() {
   const [activity, setActivity] = useState<AsideActivity>("files")
   const { navigateToWorkspaceHome } = useWorkspace()
 
+  const router = useRouter()
   const handleActivityChange = (next: AsideActivity) => {
+    if (next === "todos") { void router.push("/todos"); return }
     setActivity(next)
     if (isMobile) setOpenMobile(true)
     else setOpen(true)
