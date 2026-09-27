@@ -1,3 +1,4 @@
+import { useWorkspace } from "@/pages/workspace/hooks/useWorkspace"
 import { useEffect, useRef, useState } from "react"
 import { DocumentOutline } from "./document-outline"
 import { VditorEditor } from "./vditor-editor"
@@ -5,6 +6,7 @@ import "./index.css"
 
 /** 即时编辑文档；基于实际渲染标题同步大纲和滚动位置。 */
 export default function MarkdownCanvas({ activeFilePath }: { activeFilePath: string }) {
+  const { workspace } = useWorkspace()
   const [loaded, setLoaded] = useState<{ path: string; content: string; error?: string } | null>(null)
   const drafts = useRef(new Map<string, string>())
   const contentHost = useRef<HTMLDivElement>(null)
@@ -89,6 +91,8 @@ export default function MarkdownCanvas({ activeFilePath }: { activeFilePath: str
         ) : (
           <VditorEditor
             key={activeFilePath}
+            workspacePath={workspace.path}
+            documentPath={activeFilePath}
             value={current.content}
             onChange={(content) => {
               drafts.current.set(activeFilePath, content)

@@ -132,6 +132,10 @@ interface VesselAPI {
   getStorageInfo: () => Promise<StorageInfo>
 
   /** 读取文件内容。 */
+  readObsidianImage: (root: string, documentPath: string, reference: string) => Promise<string>
+  mutateWorkspaceFile: (root: string, path: string, name?: string) => Promise<string>
+  createWorkspaceEntry: (root: string, parent: string, name: string, kind: "file" | "directory") => Promise<{name: string; path: string; type: "file" | "directory"}>
+  openExternal: (href: string) => Promise<void>
   readContent: (path: string) => Promise<string>
 
   /** 保存文件内容。 */

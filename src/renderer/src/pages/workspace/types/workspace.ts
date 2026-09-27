@@ -23,6 +23,7 @@ export interface WorkspaceContextType {
   /** 打开或激活文件标签，并导航到文件内容页。 */
   openWorkspaceFile: (file: WorkspaceNode) => void
   /** 关闭文件标签，并按需切换到相邻标签。 */
+  renameWorkspaceTab: (path: string, newPath: string, name: string) => void
   closeWorkspaceFile: (path: string) => void
   /** 批量关闭文件标签，并保证当前路由指向剩余标签或首页。 */
   closeWorkspaceFiles: (paths: string[]) => void

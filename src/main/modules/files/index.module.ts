@@ -1,6 +1,7 @@
-import { ipcMain } from "electron"
-import { readFile, stat } from "node:fs/promises"
-import { isAbsolute } from "node:path"
+import { readObsidianImage } from "./obsidian-image"
+import { ipcMain, shell } from "electron"
+import { readFile, stat, realpath, mkdir, writeFile, link, unlink } from "node:fs/promises"
+import { isAbsolute, relative, join, sep, dirname } from "node:path"
 import { BaseModule } from "../base"
 
 /**
@@ -18,13 +19,62 @@ export async function readTextFileContent(path: unknown): Promise<string> {
   return readFile(path, "utf8")
 }
 
+/** 在工作区内创建单个节点，拒绝越界路径、符号链接逃逸和覆盖已有文件。 */
+export async function createWorkspaceEntry(root: string, parent: string, name: string, kind: "file" | "directory") {
+  if (!isAbsolute(root) || !isAbsolute(parent) || !name.trim() || /[\\/\0]/.test(name) || name === "." || name === "..") throw new Error("名称或路径无效")
+  if (kind !== "file" && kind !== "directory") throw new Error("节点类型无效")
+  const base = await realpath(root)
+  const directory = await realpath(parent)
+  const offset = relative(base, directory)
+  if (offset === ".." || offset.startsWith(".." + sep) || isAbsolute(offset)) throw new Error("只能在当前工作区创建")
+  const path = join(directory, name)
+  if (kind === "directory") await mkdir(path)
+  else await writeFile(path, "", { flag: "wx" })
+  return { name, path, type: kind }
+}
+
+/** 修改工作区普通文件；删除移入系统废纸篓，重命名禁止覆盖。 */
+export async function mutateWorkspaceFile(root: string, path: string, name?: string) {
+  const base = await realpath(root)
+  const source = await realpath(path)
+  const offset = relative(base, source)
+  if (!offset || offset === ".." || offset.startsWith(".." + sep) || isAbsolute(offset) || !(await stat(source)).isFile()) throw new Error("只能操作工作区内的普通文件")
+  if (name === undefined) {
+    await shell.trashItem(source)
+    return ""
+  }
+  if (!name.trim() || /[\\/\0]/.test(name) || name === "." || name === "..") throw new Error("文件名无效")
+  const target = join(dirname(source), name)
+  if (target === source) return target
+  await link(source, target)
+  try {
+    await unlink(source)
+  } catch (error) {
+    await unlink(target)
+    throw error
+  }
+  return target
+}
+
 /** 将文件读取能力接入主进程生命周期，避免窗口重建时重复注册 IPC。 */
 export class FilesModule extends BaseModule {
   protected onActivate(): void {
+    ipcMain.handle("obsidian:readImage", (_event, root, documentPath, reference) => readObsidianImage(root, documentPath, reference))
+    ipcMain.handle("workspace:mutateFile", (_event, root, path, name) => mutateWorkspaceFile(root, path, name))
+    ipcMain.handle("workspace:createEntry", (_event, root, parent, name, kind) => createWorkspaceEntry(root, parent, name, kind))
+    ipcMain.handle("link:openExternal", async (_event, href: string) => {
+      const url = new URL(href)
+      if (!["https:", "http:", "mailto:"].includes(url.protocol)) throw new Error("不支持的链接协议")
+      await shell.openExternal(url.href)
+    })
     ipcMain.handle("file:readContent", (_event, path: unknown) => readTextFileContent(path))
   }
 
   protected onDispose(): void {
+    ipcMain.removeHandler("obsidian:readImage")
+    ipcMain.removeHandler("workspace:mutateFile")
     ipcMain.removeHandler("file:readContent")
+    ipcMain.removeHandler("workspace:createEntry")
+    ipcMain.removeHandler("link:openExternal")
   }
 }

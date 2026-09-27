@@ -1,3 +1,5 @@
+import { Image } from "@/components/ui/image"
+import { Link } from "@/components/ui/link"
 import { Typography } from "@/components/ui/typography"
 import { createElement, Fragment, type ReactNode } from "react"
 import type { Token, Tokens } from "marked"
@@ -82,13 +84,13 @@ export function MarkdownDocument({ document }: { document: ReturnType<typeof par
           const link = token as Tokens.Link
           const href = safeMarkdownUrl(link.href)
           element = href ? (
-            <a
+            <Link
               href={href}
               target={href.startsWith("#") ? undefined : "_blank"}
               rel="noreferrer"
             >
               {render(link.tokens, false)}
-            </a>
+            </Link>
           ) : (
             render(link.tokens, false)
           )
@@ -98,7 +100,7 @@ export function MarkdownDocument({ document }: { document: ReturnType<typeof par
           const image = token as Tokens.Image
           const href = /^https?:/i.test(image.href) ? image.href : undefined
           element = href ? (
-            <img
+            <Image
               src={href}
               alt={image.text}
               loading="lazy"

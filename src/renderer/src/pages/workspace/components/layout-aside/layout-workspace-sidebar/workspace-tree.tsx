@@ -1,3 +1,5 @@
+import { FileActions } from "./file-actions"
+import { InlineEntryEditor, type EntryDraft } from "./create-entry"
 import { useEffect, useRef, useState } from "react"
 import { VirtualTree, type VirtualTreeRow } from "@/components/ui/tree"
 import { Button } from "@/components/ui/button"
@@ -9,7 +11,7 @@ interface DirectoryState {
   nodes?: WorkspaceNode[]
   error?: string
 }
-export default function WorkspaceTree({ viewport, recent = false }: { viewport: HTMLElement | null; recent?: boolean }) {
+export default function WorkspaceTree({ viewport, recent = false, draft, onDraftFinish, revealPath }: { viewport: HTMLElement | null; recent?: boolean; revealPath?: string; draft?: EntryDraft | null; onDraftFinish?: (created: boolean) => void }) {
   const { workspace, openFiles, activeFilePath, openWorkspaceFile, expandedFolders, setDirectoryExpanded } = useWorkspace()
   const [directories, setDirectories] = useState<Record<string, DirectoryState>>({})
   const pending = useRef(new Map<string, Promise<void>>())
@@ -47,15 +49,25 @@ export default function WorkspaceTree({ viewport, recent = false }: { viewport: 
   }, [])
   const rows: VirtualTreeRow<WorkspaceNode>[] = []
   /** 仅展开已打开目录，将已加载节点转换成虚拟列表所需的可见行。 */
-  const appendVisibleTreeRows = (nodes: WorkspaceNode[], depth = 0) =>
+  const appendVisibleTreeRows = (nodes: WorkspaceNode[], depth = 0, parent = workspace.path) => {
+    if (draft?.parent === parent) rows.push({ id: "__draft__", item: { name: "", path: "__draft__" }, depth })
     nodes.forEach((node) => {
       const folder = node.type === "directory"
       const expanded = folder && expandedFolders.includes(node.path)
       rows.push({ id: node.path, item: node, depth, expanded: folder ? expanded : undefined })
-      if (expanded) appendVisibleTreeRows(directories[node.path]?.nodes ?? [], depth + 1)
+      if (expanded) appendVisibleTreeRows(directories[node.path]?.nodes ?? [], depth + 1, node.path)
     })
+  }
   const root = directories[workspace.path]
   appendVisibleTreeRows(recent ? openFiles : (root?.nodes ?? []))
+  const draftIndex = rows.findIndex((row) => row.id === "__draft__")
+  useEffect(() => {
+    if (viewport && draftIndex >= 0) viewport.scrollTo({ top: Math.max(0, draftIndex * 32 - 32) })
+  }, [viewport, draftIndex, draft])
+  const revealIndex = rows.findIndex((row) => row.id === revealPath)
+  useEffect(() => {
+    if (viewport && revealIndex >= 0 && !draft) viewport.scrollTo({ top: Math.max(0, revealIndex * 32 - viewport.clientHeight / 2 + 16), behavior: "smooth" })
+  }, [viewport, revealIndex, revealPath, draft])
   if (!recent && !root)
     return (
       <p
@@ -82,28 +94,43 @@ export default function WorkspaceTree({ viewport, recent = false }: { viewport: 
       rows={rows}
       indent={16}
       viewport={viewport}
-      selectedId={activeFilePath}
-      renderRow={({ item: node, expanded }) => (
-        <FileTreeItem
-          node={node}
-          selected={node.path === activeFilePath}
-          expanded={Boolean(expanded)}
-          loading={Boolean(expanded && !directories[node.path])}
-          error={directories[node.path]?.error}
-          onActivate={() => {
-            if (node.type !== "directory") {
-              openWorkspaceFile(node)
-              return
-            }
-            if (directories[node.path]?.error) {
-              void loadDirectoryChildren(node.path)
-              return
-            }
-            setDirectoryExpanded(node.path, !expanded)
-            if (!expanded && !directories[node.path]?.nodes) void loadDirectoryChildren(node.path)
-          }}
-        />
-      )}
+      selectedId={draft ? "__draft__" : activeFilePath}
+      renderRow={({ item: node, expanded }) =>
+        node.path === "__draft__" && draft ? (
+          <InlineEntryEditor
+            draft={draft}
+            onFinish={onDraftFinish ?? (() => {})}
+          />
+        ) : (
+          <FileActions
+            node={node}
+            onChanged={() => {
+              const index = Math.max(node.path.lastIndexOf("/"), node.path.lastIndexOf("\\"))
+              void loadDirectoryChildren(node.path.slice(0, index) || workspace.path)
+            }}
+          >
+            <FileTreeItem
+              node={node}
+              selected={node.path === activeFilePath}
+              expanded={Boolean(expanded)}
+              loading={Boolean(expanded && !directories[node.path])}
+              error={directories[node.path]?.error}
+              onActivate={() => {
+                if (node.type !== "directory") {
+                  openWorkspaceFile(node)
+                  return
+                }
+                if (directories[node.path]?.error) {
+                  void loadDirectoryChildren(node.path)
+                  return
+                }
+                setDirectoryExpanded(node.path, !expanded)
+                if (!expanded && !directories[node.path]?.nodes) void loadDirectoryChildren(node.path)
+              }}
+            />
+          </FileActions>
+        )
+      }
     />
   )
 }

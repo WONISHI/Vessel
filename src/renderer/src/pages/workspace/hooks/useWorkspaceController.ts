@@ -57,6 +57,10 @@ export function useWorkspaceController(workspace: WorkspaceData): WorkspaceConte
     }
   }
   return {
+    renameWorkspaceTab: (path, newPath, name) => {
+      setOpenFiles(files => files.map(file => file.path === path ? { ...file, path: newPath, name } : file))
+      if (activeFilePath === path) setActiveFilePath(newPath)
+    },
     workspace,
     activeFilePath,
     openFiles,

@@ -1,6 +1,8 @@
+import { CreateEntry, type EntryDraft } from "./create-entry"
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
 import { useState } from "react"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Wrench } from "lucide-react"
+import { Wrench, LocateFixed } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { useWorkspace } from "@/pages/workspace/hooks/useWorkspace"
@@ -10,17 +12,87 @@ import { countFileNodes } from "@vessel/utils"
 
 /** 根据活动显示工作区文件树、本次打开列表或开发工具。 */
 export default function LayoutWorkspaceSidebar({ activity }: LayoutWorkspaceSidebarProps) {
-  const { workspace } = useWorkspace()
+  const [revealPath, setRevealPath] = useState("")
+  const [revision, setRevision] = useState(0)
+  const [addedFiles, setAddedFiles] = useState(0)
+  const { workspace, activeFilePath, expandDirectory } = useWorkspace()
+  const [draft, setDraft] = useState<EntryDraft | null>(null)
+  const startEntry = (kind: EntryDraft["kind"], extension: string) => {
+    const index = Math.max(activeFilePath.lastIndexOf("/"), activeFilePath.lastIndexOf("\\"))
+    const parent = activeFilePath ? activeFilePath.slice(0, index) || workspace.path : workspace.path
+    // 展开目标目录及祖先，确保行内输入框可见。
+    let directory = parent
+    while (directory.length >= workspace.path.length) {
+      expandDirectory(directory)
+      const split = Math.max(directory.lastIndexOf("/"), directory.lastIndexOf("\\"))
+      if (split < workspace.path.length) break
+      directory = directory.slice(0, split)
+    }
+    setDraft({ parent, kind, extension })
+    setRevision((value) => value + 1)
+  }
+  const revealCurrentFile = () => {
+    if (!activeFilePath) return
+    let directory = activeFilePath
+    while (true) {
+      const split = Math.max(directory.lastIndexOf("/"), directory.lastIndexOf("\\"))
+      if (split < workspace.path.length) break
+      directory = directory.slice(0, split)
+      expandDirectory(directory)
+    }
+    setDraft(null)
+    setRevealPath(activeFilePath)
+    setRevision((value) => value + 1)
+  }
   const [viewport, setViewport] = useState<HTMLDivElement | null>(null)
   const navigate = useNavigate()
+  const workspaceName = workspace.path.split(/[\\/]/).filter(Boolean).pop() || workspace.name
   return (
     <section
       aria-label="工作区侧边栏"
-      className="flex w-[240px] min-h-0 flex-col border-r border-[#f0efed]"
+      className="flex h-full w-full min-h-0 flex-col border-r border-[#f0efed]"
     >
       <header className="flex items-center justify-between px-3.5 pb-2 pt-3 text-xs font-semibold text-stone-500">
-        <span>{activity === "files" ? "工作区" : activity === "recent" ? "本次打开" : "开发工具"}</span>
-        <span className="text-[11px] text-stone-400">{activity === "files" ? `${countFileNodes(workspace.files)} 个文件` : ""}</span>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span
+              tabIndex={0}
+              className="min-w-0 truncate font-semibold text-black"
+            >
+              {activity === "files" ? workspaceName : activity === "recent" ? "本次打开" : "开发工具"}
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>{countFileNodes(workspace.files) + addedFiles} 个文件</TooltipContent>
+        </Tooltip>
+        {activity === "files" && (
+          <div className="flex shrink-0 items-center">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    disabled={!activeFilePath}
+                    aria-label="定位当前文件"
+                    className="size-6 text-stone-500 hover:bg-green-600 hover:text-white"
+                    onClick={revealCurrentFile}
+                  >
+                    <LocateFixed className="!size-3.5" />
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">定位当前文件</TooltipContent>
+            </Tooltip>
+            <CreateEntry
+              kind="directory"
+              onStart={() => startEntry("directory", "")}
+            />
+            <CreateEntry
+              kind="file"
+              onStart={(extension) => startEntry("file", extension)}
+            />
+          </div>
+        )}
       </header>
       <ScrollArea
         viewportRef={setViewport}
@@ -28,7 +100,14 @@ export default function LayoutWorkspaceSidebar({ activity }: LayoutWorkspaceSide
       >
         {activity !== "tools" ? (
           <WorkspaceTree
-            key={`${workspace.path}-${activity}`}
+            key={`${workspace.path}-${activity}-${revision}`}
+            draft={draft}
+            revealPath={revealPath}
+            onDraftFinish={(created) => {
+              if (created && draft?.kind === "file") setAddedFiles((value) => value + 1)
+              setDraft(null)
+              setRevision((value) => value + 1)
+            }}
             viewport={viewport}
             recent={activity === "recent"}
           />

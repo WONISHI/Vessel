@@ -187,3 +187,10 @@
   max-width: 100%;
   overflow-x: auto;
 }
+
+/* 编辑器的默认蓝色链接覆盖为通用 Link 的主题色。 */
+.vessel-vditor .vditor-reset [data-vessel-link] {
+  color: hsl(var(--primary));
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}

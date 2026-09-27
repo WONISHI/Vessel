@@ -1,10 +1,10 @@
 import React from "react"
 import { afterEach, expect, it, vi } from "vitest"
-import { cleanup, fireEvent, render, screen } from "@testing-library/react"
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { DocumentOutline } from "../../src/renderer/src/components/core/canvas/variants/markdown/document-outline"
 afterEach(cleanup)
 
-it("expands on hover, stays open only when pinned, and marks the active heading", () => {
+it("expands on hover, stays open only when pinned, and marks the active heading", async () => {
   const onSelect = vi.fn()
   const { container } = render(
     <DocumentOutline
@@ -30,5 +30,5 @@ it("expands on hover, stays open only when pinned, and marks the active heading"
   expect(onSelect).toHaveBeenCalledWith(1)
   fireEvent.click(screen.getByRole("button", { name: "取消固定大纲" }))
   fireEvent.mouseLeave(outline)
-  expect(screen.queryByText("标题一")).toBeNull()
+  await waitFor(() => expect(screen.queryByText("标题一")).toBeNull())
 })

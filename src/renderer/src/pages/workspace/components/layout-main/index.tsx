@@ -1,6 +1,8 @@
+import { FileSearch } from "./file-search"
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
 import { useEffect, useRef } from "react"
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
-import { File, Home, X, MoreHorizontal } from "lucide-react"
+import { File, Home, X, MoreHorizontal, ChevronLeft, ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { RouterView } from "@vessel/react-router/components"
 import { useLocation } from "react-router-dom"
@@ -13,69 +15,161 @@ export default function LayoutMain() {
   const location = useLocation()
   const home = location.pathname === "/editor"
   const tabList = useRef<HTMLDivElement>(null)
+  const contentHost = useRef<HTMLDivElement>(null)
+  const activeIndex = home ? -1 : openFiles.findIndex((file) => file.path === activeFilePath)
   useEffect(() => {
-    tabList.current?.querySelector('[aria-current="page"]')?.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "smooth" })
-  }, [activeFilePath, home])
+    const handleShortcut = (event: KeyboardEvent) => {
+      if (!event.ctrlKey || event.altKey || event.shiftKey || event.metaKey || event.isComposing) return
+      const key = event.key.toLowerCase()
+      if (key !== "l" && key !== "r") return
+      event.preventDefault()
+      event.stopPropagation()
+      const target = activeIndex + (key === "l" ? -1 : 1)
+      if (activeIndex >= 0 && target >= 0 && target < openFiles.length) openWorkspaceFile(openFiles[target])
+    }
+    window.addEventListener("keydown", handleShortcut, true)
+    return () => window.removeEventListener("keydown", handleShortcut, true)
+  }, [activeIndex, openFiles, openWorkspaceFile])
+  useEffect(() => {
+    const list = tabList.current
+    if (!list) return
+    const reveal = () => {
+      const tab = list.querySelector<HTMLElement>('[data-active="true"]')
+      if (!tab) return
+      const bounds = list.getBoundingClientRect()
+      const rect = tab.getBoundingClientRect()
+      if (rect.left < bounds.left) list.scrollBy({ left: rect.left - bounds.left - 4, behavior: "smooth" })
+      else if (rect.right > bounds.right) list.scrollBy({ left: rect.right - bounds.right + 4, behavior: "smooth" })
+    }
+    const frame = requestAnimationFrame(reveal)
+    const observer = new ResizeObserver(reveal)
+    observer.observe(list)
+    return () => {
+      cancelAnimationFrame(frame)
+      observer.disconnect()
+    }
+  }, [activeFilePath, home, openFiles.length])
   return (
     <main className="relative flex min-h-0 min-w-0 flex-1 flex-col bg-white">
       <nav
         aria-label="已打开的标签"
-        className="flex h-10 shrink-0 items-center gap-1 border-b border-[#f0efed] bg-[#faf9f7] px-2.5"
+        className="flex h-10 shrink-0 items-center gap-1 border-b border-[#f0efed] bg-white px-2.5"
       >
-        <div
-          ref={tabList}
-          className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-        >
-          <Button
-            variant="ghost"
-            aria-current={home ? "page" : undefined}
-            onClick={navigateToWorkspaceHome}
-            className={cn("h-[30px] shrink-0 rounded-lg px-3 text-xs text-stone-500 hover:bg-emerald-700 hover:text-white", home && "bg-white font-semibold text-stone-900 shadow-sm")}
-          >
-            <Home className="!size-3.5" />
-            工作台
-          </Button>
-          {openFiles.map((file) => {
-            const active = !home && activeFilePath === file.path
-            return (
-              <div
-                key={file.path}
-                className={cn("group flex h-[30px] shrink-0 items-center rounded-lg pr-1 text-stone-500 hover:bg-emerald-700 hover:text-white", active && "bg-white text-stone-900 shadow-sm")}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="shrink-0">
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="上一个标签页"
+                className="size-7 text-stone-500 hover:bg-emerald-700 hover:text-white"
+                disabled={activeIndex <= 0}
+                onClick={() => openWorkspaceFile(openFiles[activeIndex - 1])}
               >
-                <Button
-                  variant="ghost"
-                  title={file.path}
-                  aria-current={active ? "page" : undefined}
-                  onClick={() => openWorkspaceFile(file)}
-                  className="h-[30px] max-w-52 gap-1.5 px-2 text-xs text-inherit hover:bg-transparent hover:text-white group-hover:text-white"
+                <ChevronLeft className="!size-4" />
+              </Button>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>
+            上一个标签页 <kbd className="ml-2 rounded border px-1 text-[10px]">Ctrl+L</kbd>
+          </TooltipContent>
+        </Tooltip>
+        <Button
+          variant="ghost"
+          aria-current={home ? "page" : undefined}
+          onClick={navigateToWorkspaceHome}
+          className={cn("h-[30px] shrink-0 rounded-lg px-3 text-xs text-stone-500 hover:bg-emerald-700 hover:text-white", home && "bg-white font-semibold text-stone-900 shadow-sm")}
+        >
+          <Home className="!size-3.5" />
+          工作台
+        </Button>
+        <div className="relative min-w-0 flex-1">
+          <div
+            ref={tabList}
+            className="relative flex min-w-0 flex-1 items-center gap-1 overflow-x-auto py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          >
+            {openFiles.map((file) => {
+              const active = !home && activeFilePath === file.path
+              return (
+                <div
+                  key={file.path}
+                  data-active={active}
+                  className={cn("group flex h-[30px] shrink-0 items-center rounded-lg pr-1 text-stone-500 hover:bg-emerald-700 hover:text-white", active && "bg-white text-stone-900 shadow-sm")}
                 >
-                  <File className="!size-3.5" />
-                  <span className="truncate">{file.name}</span>
-                </Button>
+                  <Button
+                    variant="ghost"
+                    title={file.path}
+                    aria-current={active ? "page" : undefined}
+                    onClick={() => openWorkspaceFile(file)}
+                    className="h-[30px] max-w-52 gap-1.5 px-2 text-xs text-inherit hover:bg-transparent hover:text-white group-hover:text-white"
+                  >
+                    <File className="!size-3.5" />
+                    <span className="truncate">{file.name}</span>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label={`关闭 ${file.name}`}
+                    onClick={() => closeWorkspaceFile(file.path)}
+                    className="size-5 rounded text-inherit hover:bg-white/20 hover:text-white group-hover:text-white opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+                  >
+                    <X className="!size-3" />
+                  </Button>
+                </div>
+              )
+            })}
+          </div>
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-y-0 left-0 z-10 w-2 bg-gradient-to-r from-stone-300/30 to-transparent"
+          />
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-y-0 right-0 z-10 w-2 bg-gradient-to-l from-stone-300/30 to-transparent"
+          />
+        </div>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="shrink-0">
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="下一个标签页"
+                className="size-7 text-stone-500 hover:bg-emerald-700 hover:text-white"
+                disabled={activeIndex < 0 || activeIndex >= openFiles.length - 1}
+                onClick={() => openWorkspaceFile(openFiles[activeIndex + 1])}
+              >
+                <ChevronRight className="!size-4" />
+              </Button>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>
+            下一个标签页 <kbd className="ml-2 rounded border px-1 text-[10px]">Ctrl+R</kbd>
+          </TooltipContent>
+        </Tooltip>
+        {!home && activeFilePath && (
+          <FileSearch
+            key={activeFilePath}
+            path={activeFilePath}
+            contentHost={contentHost}
+          />
+        )}
+        <DropdownMenu>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
                   size="icon"
-                  aria-label={`关闭 ${file.name}`}
-                  onClick={() => closeWorkspaceFile(file.path)}
-                  className="size-5 rounded text-inherit hover:bg-white/20 hover:text-white group-hover:text-white opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+                  aria-label="标签页操作"
+                  className="size-7 shrink-0 text-stone-500 hover:bg-emerald-700 hover:text-white"
                 >
-                  <X className="!size-3" />
+                  <MoreHorizontal className="!size-4" />
                 </Button>
-              </div>
-            )
-          })}
-        </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              aria-label="标签页操作"
-              className="size-7 shrink-0 text-stone-500 hover:bg-emerald-700 hover:text-white"
-            >
-              <MoreHorizontal className="!size-4" />
-            </Button>
-          </DropdownMenuTrigger>
+              </DropdownMenuTrigger>
+            </TooltipTrigger>
+            <TooltipContent>标签页操作</TooltipContent>
+          </Tooltip>
           <DropdownMenuContent align="end">
             <DropdownMenuItem
               disabled={!activeFilePath}
@@ -105,7 +199,10 @@ export default function LayoutMain() {
           </DropdownMenuContent>
         </DropdownMenu>
       </nav>
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-auto">
+      <div
+        ref={contentHost}
+        className="flex min-h-0 min-w-0 flex-1 flex-col overflow-auto"
+      >
         <RouterView />
       </div>
     </main>
