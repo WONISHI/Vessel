@@ -43,6 +43,19 @@ export function useWorkspaceController(workspace: WorkspaceData): WorkspaceConte
       } else navigateToWorkspaceHome()
     }
   }
+  /** 批量关闭标签并一次更新列表，避免连续关闭时使用过期状态。 */
+  const closeWorkspaceFiles = (paths: string[]) => {
+    const removed = new Set(paths)
+    const remaining = openFiles.filter((file) => !removed.has(file.path))
+    setOpenFiles(remaining)
+    if (removed.has(activeFilePath)) {
+      const next = remaining[0]
+      if (next) {
+        setActiveFilePath(next.path)
+        navigate("/editor/file")
+      } else navigateToWorkspaceHome()
+    }
+  }
   return {
     workspace,
     activeFilePath,
@@ -50,6 +63,7 @@ export function useWorkspaceController(workspace: WorkspaceData): WorkspaceConte
     expandedFolders,
     openWorkspaceFile,
     closeWorkspaceFile,
+    closeWorkspaceFiles,
     navigateToWorkspaceHome,
     setDirectoryExpanded,
     fileType: getFileExtension(activeFilePath),

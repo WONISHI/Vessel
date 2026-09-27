@@ -19,7 +19,12 @@ export default function MarkdownCanvas({ activeFilePath }: { activeFilePath: str
       .catch((error) => {
         if (!cancelled) setLoaded({ path: activeFilePath, content: "", error: String(error) })
       })
-    const [headings, setHeadings] = useState<{ text: string; level: number }[]>([])
+    return () => {
+      cancelled = true
+    }
+  }, [activeFilePath])
+  const current = loaded?.path === activeFilePath ? loaded : null
+  const [headings, setHeadings] = useState<{ text: string; level: number; color?: string }[]>([])
   const [activeHeading, setActiveHeading] = useState(-1)
   useEffect(() => {
     const host = contentHost.current
@@ -29,12 +34,22 @@ export default function MarkdownCanvas({ activeFilePath }: { activeFilePath: str
       cancelAnimationFrame(frame)
       frame = requestAnimationFrame(() => {
         const nodes = Array.from(host.querySelectorAll<HTMLElement>(".vditor-ir .vditor-reset h1, .vditor-ir .vditor-reset h2, .vditor-ir .vditor-reset h3, .vditor-ir .vditor-reset h4, .vditor-ir .vditor-reset h5, .vditor-ir .vditor-reset h6"))
-        const next = nodes.map(node => ({ text: node.textContent?.replace(/^#+\s*/, "") ?? "", level: Number(node.tagName[1]) }))
-        setHeadings(previous => JSON.stringify(previous) === JSON.stringify(next) ? previous : next)
+        const next = nodes.map((node) => {
+          // 在惰性 template 中读取标题标记，只提取文本和颜色，不执行或挂载原始 HTML。
+          const template = document.createElement("template")
+          template.innerHTML = node.textContent?.replace(/^#+\s*/, "") ?? ""
+          template.content.querySelectorAll("script,style").forEach((element) => element.remove())
+          const styled = template.content.querySelector<HTMLElement>("font[color],span[style]")
+          const color = styled?.style.color || styled?.getAttribute("color") || undefined
+          return { text: template.content.textContent ?? "", level: Number(node.tagName[1]), color }
+        })
+        setHeadings((previous) => (JSON.stringify(previous) === JSON.stringify(next) ? previous : next))
         const bounds = host.getBoundingClientRect()
         const center = bounds.top + bounds.height / 2
         let active = nodes.length ? 0 : -1
-        nodes.forEach((node, index) => { if (node.getBoundingClientRect().top <= center) active = index })
+        nodes.forEach((node, index) => {
+          if (node.getBoundingClientRect().top <= center) active = index
+        })
         setActiveHeading(active)
       })
     }
@@ -44,22 +59,53 @@ export default function MarkdownCanvas({ activeFilePath }: { activeFilePath: str
     resize.observe(host)
     host.addEventListener("scroll", update, true)
     update()
-    return () => { observer.disconnect(); resize.disconnect(); host.removeEventListener("scroll", update, true); cancelAnimationFrame(frame) }
+    return () => {
+      observer.disconnect()
+      resize.disconnect()
+      host.removeEventListener("scroll", update, true)
+      cancelAnimationFrame(frame)
+    }
   }, [activeFilePath])
   return (
     <div className="flex min-h-0 flex-1 overflow-hidden bg-white">
-      <div ref={contentHost} className="min-h-0 min-w-0 flex-1">
-        {!current ? <p role="status" className="p-6 text-sm text-stone-400">正在读取文件…</p> :
-          current.error ? <p role="alert" className="p-6 text-sm text-red-500">读取文件失败：{current.error}</p> :
-          <VditorEditor key={activeFilePath} value={current.content} onChange={(content) => {
-            drafts.current.set(activeFilePath, content)
-            setLoaded({ path: activeFilePath, content })
-          }} />}
+      <div
+        ref={contentHost}
+        className="min-h-0 min-w-0 flex-1"
+      >
+        {!current ? (
+          <p
+            role="status"
+            className="p-6 text-sm text-stone-400"
+          >
+            正在读取文件…
+          </p>
+        ) : current.error ? (
+          <p
+            role="alert"
+            className="p-6 text-sm text-red-500"
+          >
+            读取文件失败：{current.error}
+          </p>
+        ) : (
+          <VditorEditor
+            key={activeFilePath}
+            value={current.content}
+            onChange={(content) => {
+              drafts.current.set(activeFilePath, content)
+              setLoaded({ path: activeFilePath, content })
+            }}
+          />
+        )}
       </div>
-      <DocumentOutline headings={headings} activeIndex={activeHeading} onSelect={(index) => {
-        const nodes = contentHost.current?.querySelectorAll(".vditor-ir .vditor-reset :is(h1,h2,h3,h4,h5,h6)")
-        nodes?.[index]?.scrollIntoView({ behavior: "smooth", block: "center" })
-      }} />
+      <DocumentOutline
+        fileName={activeFilePath.split(/[\\/]/).pop()}
+        headings={headings}
+        activeIndex={activeHeading}
+        onSelect={(index) => {
+          const nodes = contentHost.current?.querySelectorAll(".vditor-ir .vditor-reset :is(h1,h2,h3,h4,h5,h6)")
+          nodes?.[index]?.scrollIntoView({ behavior: "smooth", block: "center" })
+        }}
+      />
     </div>
   )
 }

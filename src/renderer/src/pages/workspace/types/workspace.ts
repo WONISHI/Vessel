@@ -24,6 +24,8 @@ export interface WorkspaceContextType {
   openWorkspaceFile: (file: WorkspaceNode) => void
   /** 关闭文件标签，并按需切换到相邻标签。 */
   closeWorkspaceFile: (path: string) => void
+  /** 批量关闭文件标签，并保证当前路由指向剩余标签或首页。 */
+  closeWorkspaceFiles: (paths: string[]) => void
   /** 返回工作区首页，保留已打开标签。 */
   navigateToWorkspaceHome: () => void
   /** 更新目录展开状态，驱动懒加载树展示。 */

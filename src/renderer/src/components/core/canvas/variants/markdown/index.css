@@ -159,8 +159,16 @@
 }
 
 /* 编辑器宿主不叠加正文容器的最大宽度和内边距。 */
+.vessel-editor-scroll [data-radix-scroll-area-viewport] > div {
+  /* Radix 默认 display: table 会被长代码撑宽，令工具栏按内容宽度居中。 */
+  display: block !important;
+  width: 100%;
+  min-width: 0 !important;
+}
 .vessel-vditor.vessel-typography {
-  max-width: none;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
   margin: 0;
   padding: 0;
 }
@@ -173,5 +181,9 @@
 }
 .vessel-vditor .vditor-reset {
   max-width: none;
-  padding: 16px 20px 48px !important;
+  padding: 24px clamp(32px, 4vw, 64px) 48px !important;
+}
+.vessel-vditor .vditor-reset pre {
+  max-width: 100%;
+  overflow-x: auto;
 }

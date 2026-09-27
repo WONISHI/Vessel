@@ -67,7 +67,7 @@ export function VditorEditor({ value, onChange }: { value: string; onChange: (va
         "|",
         { name: "undo", icon: renderToStaticMarkup(<Undo2 />) },
         { name: "redo", icon: renderToStaticMarkup(<Redo2 />) }
-      ],
+      ].map((item) => (typeof item === "string" ? item : { ...item, tipPosition: "s" })),
       input: (content) => {
         if (!disposed) changeHandler.current(content)
       },
@@ -82,7 +82,7 @@ export function VditorEditor({ value, onChange }: { value: string; onChange: (va
     }
   }, [])
   return (
-    <ScrollArea className="h-full min-h-0">
+    <ScrollArea className="vessel-editor-scroll h-full min-h-0 min-w-0">
       <Typography asChild>
         <div
           ref={host}
