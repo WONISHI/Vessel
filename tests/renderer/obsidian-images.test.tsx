@@ -14,7 +14,7 @@ it("keeps source references and code examples unchanged through editor conversio
   const source = "文字\n![[Pasted image 20260303174838.png]]\n\n```md\n![[example.png]]\n```\n`![[inline.png]]`"
   expect(restoreObsidianImages(prepareObsidianImages(source))).toBe(source)
 })
-it("shows an error placeholder and supports keyboard image resizing", () => {
+it("shows an error placeholder and supports keyboard image resizing", async () => {
   render(
     <Image
       src="bad.png"
@@ -22,8 +22,8 @@ it("shows an error placeholder and supports keyboard image resizing", () => {
       width={300}
     />
   )
-  fireEvent.error(screen.getByRole("img", { name: "附件" }))
-  expect(screen.getByText("图片不存在或无法读取")).toBeTruthy()
+  fireEvent.error(await screen.findByRole("img", { name: "附件" }))
+  expect(screen.getByRole("img", {name:"图片不存在或无法读取"})).toBeTruthy()
   const handle = screen.getByRole("slider")
   fireEvent.keyDown(handle, { key: "ArrowRight" })
   expect(handle.getAttribute("aria-valuenow")).toBe("310")
@@ -36,14 +36,16 @@ it("reads Markdown widths and writes resized widths without changing the path", 
   expect(resizeImageReference("![[Pasted image.png]]", 320)).toBe("![[Pasted image.png|320]]")
   expect(restoreObsidianImages(prepareObsidianImages(source))).toBe(source)
 })
-it("opens a larger image dialog on double click", () => {
+it("opens a larger image dialog on double click", async () => {
   render(
     <Image
       src="valid.png"
       alt="放大测试"
     />
   )
-  fireEvent.doubleClick(screen.getByRole("img", { name: "放大测试" }))
+  const image = await screen.findByRole("img", {name:"放大测试"})
+  fireEvent.load(image)
+  fireEvent.doubleClick(image)
   expect(screen.getByRole("dialog")).toBeTruthy()
 })
 

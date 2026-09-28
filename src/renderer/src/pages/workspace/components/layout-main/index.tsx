@@ -1,6 +1,6 @@
 import { FileSearch } from "./file-search"
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
 import { File, Home, X, MoreHorizontal, ChevronLeft, ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -14,6 +14,7 @@ export default function LayoutMain() {
   const { openFiles, activeFilePath, openWorkspaceFile, closeWorkspaceFile, closeWorkspaceFiles, navigateToWorkspaceHome } = useWorkspace()
   const location = useLocation()
   const home = location.pathname === "/editor"
+  const [edges, setEdges] = useState({ left: false, right: false })
   const tabList = useRef<HTMLDivElement>(null)
   const contentHost = useRef<HTMLDivElement>(null)
   const activeIndex = home ? -1 : openFiles.findIndex((file) => file.path === activeFilePath)
@@ -33,7 +34,10 @@ export default function LayoutMain() {
   useEffect(() => {
     const list = tabList.current
     if (!list) return
+    const updateEdges = () => setEdges({ left: list.scrollLeft > 1, right: list.scrollLeft + list.clientWidth < list.scrollWidth - 1 })
+    list.addEventListener("scroll", updateEdges)
     const reveal = () => {
+      updateEdges()
       const tab = list.querySelector<HTMLElement>('[data-active="true"]')
       if (!tab) return
       const bounds = list.getBoundingClientRect()
@@ -47,6 +51,7 @@ export default function LayoutMain() {
     return () => {
       cancelAnimationFrame(frame)
       observer.disconnect()
+      list.removeEventListener("scroll", updateEdges)
     }
   }, [activeFilePath, home, openFiles.length])
   return (
@@ -78,7 +83,7 @@ export default function LayoutMain() {
           variant="ghost"
           aria-current={home ? "page" : undefined}
           onClick={navigateToWorkspaceHome}
-          className={cn("h-[30px] shrink-0 rounded-lg px-3 text-xs text-stone-500 hover:bg-emerald-700 hover:text-white", home && "bg-white font-semibold text-stone-900 shadow-sm")}
+          className={cn("h-[30px] shrink-0 rounded-lg border border-stone-200/70 px-3 text-xs hover:bg-[#f0efed] hover:text-stone-700", home ? "bg-emerald-700 font-semibold text-white" : "bg-white text-stone-500")}
         >
           <Home className="!size-3.5" />
           工作台
@@ -86,7 +91,7 @@ export default function LayoutMain() {
         <div className="relative min-w-0 flex-1">
           <div
             ref={tabList}
-            className="relative flex min-w-0 flex-1 items-center gap-1 overflow-x-auto py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            className="relative flex min-w-0 flex-1 items-center gap-1 overflow-x-auto px-2 py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           >
             {openFiles.map((file) => {
               const active = !home && activeFilePath === file.path
@@ -94,14 +99,14 @@ export default function LayoutMain() {
                 <div
                   key={file.path}
                   data-active={active}
-                  className={cn("group flex h-[30px] shrink-0 items-center rounded-lg pr-1 text-stone-500 hover:bg-emerald-700 hover:text-white", active && "bg-white text-stone-900 shadow-sm")}
+                  className={cn("group flex h-[30px] shrink-0 items-center rounded-lg border border-stone-200/70 pr-1 hover:bg-[#f0efed]", active ? "bg-emerald-50 text-green-700" : "bg-white text-stone-500")}
                 >
                   <Button
                     variant="ghost"
                     title={file.path}
                     aria-current={active ? "page" : undefined}
                     onClick={() => openWorkspaceFile(file)}
-                    className="h-[30px] max-w-52 gap-1.5 px-2 text-xs text-inherit hover:bg-transparent hover:text-white group-hover:text-white"
+                    className="h-[30px] gap-1.5 whitespace-nowrap px-2 text-xs text-inherit hover:bg-transparent hover:text-inherit"
                   >
                     <File className="!size-3.5" />
                     <span className="truncate">{file.name}</span>
@@ -111,7 +116,7 @@ export default function LayoutMain() {
                     size="icon"
                     aria-label={`关闭 ${file.name}`}
                     onClick={() => closeWorkspaceFile(file.path)}
-                    className="size-5 rounded text-inherit hover:bg-white/20 hover:text-white group-hover:text-white opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+                    className="size-5 rounded text-inherit hover:bg-stone-200 hover:text-inherit opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
                   >
                     <X className="!size-3" />
                   </Button>
@@ -119,14 +124,18 @@ export default function LayoutMain() {
               )
             })}
           </div>
-          <span
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-y-0 left-0 z-10 w-2 bg-gradient-to-r from-stone-300/30 to-transparent"
-          />
-          <span
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-y-0 right-0 z-10 w-2 bg-gradient-to-l from-stone-300/30 to-transparent"
-          />
+          {edges.left && (
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-y-0 left-0 z-10 w-2 bg-gradient-to-r from-stone-200/20 to-transparent"
+            />
+          )}
+          {edges.right && (
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-y-0 right-0 z-10 w-2 bg-gradient-to-l from-stone-200/20 to-transparent"
+            />
+          )}
         </div>
         <Tooltip>
           <TooltipTrigger asChild>

@@ -1,6 +1,7 @@
+import { readImageFile } from "./image-file"
 import { readObsidianImage } from "./obsidian-image"
 import { ipcMain, shell } from "electron"
-import { readFile, stat, realpath, mkdir, writeFile, link, unlink } from "node:fs/promises"
+import { readFile, stat, realpath, mkdir, writeFile, link, unlink, rename, lstat } from "node:fs/promises"
 import { isAbsolute, relative, join, sep, dirname } from "node:path"
 import { BaseModule } from "../base"
 
@@ -38,7 +39,7 @@ export async function mutateWorkspaceFile(root: string, path: string, name?: str
   const base = await realpath(root)
   const source = await realpath(path)
   const offset = relative(base, source)
-  if (!offset || offset === ".." || offset.startsWith(".." + sep) || isAbsolute(offset) || !(await stat(source)).isFile()) throw new Error("只能操作工作区内的普通文件")
+  if (!offset || offset === ".." || offset.startsWith(".." + sep) || isAbsolute(offset) || (!(await stat(source)).isFile() && !(await stat(source)).isDirectory())) throw new Error("只能操作工作区内的普通文件")
   if (name === undefined) {
     await shell.trashItem(source)
     return ""
@@ -46,6 +47,18 @@ export async function mutateWorkspaceFile(root: string, path: string, name?: str
   if (!name.trim() || /[\\/\0]/.test(name) || name === "." || name === "..") throw new Error("文件名无效")
   const target = join(dirname(source), name)
   if (target === source) return target
+  if ((await stat(source)).isDirectory()) {
+    const exists = await lstat(target).then(
+      () => true,
+      (error) => {
+        if (error.code === "ENOENT") return false
+        throw error
+      }
+    )
+    if (exists) throw new Error("目标名称已存在")
+    await rename(source, target)
+    return target
+  }
   await link(source, target)
   try {
     await unlink(source)
@@ -59,6 +72,14 @@ export async function mutateWorkspaceFile(root: string, path: string, name?: str
 /** 将文件读取能力接入主进程生命周期，避免窗口重建时重复注册 IPC。 */
 export class FilesModule extends BaseModule {
   protected onActivate(): void {
+    ipcMain.handle("workspace:revealFile", async (_event, root: string, path: string) => {
+      const base = await realpath(root),
+        source = await realpath(path),
+        offset = relative(base, source)
+      if (offset === ".." || offset.startsWith(".." + sep) || isAbsolute(offset)) throw new Error("路径不在工作区")
+      shell.showItemInFolder(source)
+    })
+    ipcMain.handle("image:readFile", (_event, root, path) => readImageFile(root, path))
     ipcMain.handle("obsidian:readImage", (_event, root, documentPath, reference) => readObsidianImage(root, documentPath, reference))
     ipcMain.handle("workspace:mutateFile", (_event, root, path, name) => mutateWorkspaceFile(root, path, name))
     ipcMain.handle("workspace:createEntry", (_event, root, parent, name, kind) => createWorkspaceEntry(root, parent, name, kind))
@@ -71,6 +92,8 @@ export class FilesModule extends BaseModule {
   }
 
   protected onDispose(): void {
+    ipcMain.removeHandler("workspace:revealFile")
+    ipcMain.removeHandler("image:readFile")
     ipcMain.removeHandler("obsidian:readImage")
     ipcMain.removeHandler("workspace:mutateFile")
     ipcMain.removeHandler("file:readContent")

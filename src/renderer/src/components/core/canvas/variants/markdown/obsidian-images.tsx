@@ -1,38 +1,11 @@
-import { useEffect, useState, Fragment } from "react"
+import { useCallback, useState, Fragment } from "react"
 import { parseImageReference, resizeImageReference } from "@vessel/obsidian"
 import { Image } from "@/components/ui/image"
 
 function ObsidianImage({ reference, root, documentPath, onChange }: { reference: string; root: string; documentPath: string; onChange: (reference: string) => void }) {
   const embed = parseImageReference(reference)!
   const [selected, setSelected] = useState(false)
-  const [src, setSrc] = useState<string>()
-  const [loaded, setLoaded] = useState(false)
-  useEffect(() => {
-    let cancelled = false
-    const request = /^(https?:|data:image\/)/.test(embed.target) ? Promise.resolve(embed.target) : window.electronAPI.readObsidianImage(root, documentPath, reference)
-    request
-      .then((value) => {
-        if (!cancelled) {
-          setSrc(value)
-          setLoaded(true)
-        }
-      })
-      .catch(() => {
-        if (!cancelled) setLoaded(true)
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [root, documentPath, reference, embed.target])
-  if (!loaded)
-    return (
-      <span
-        role="status"
-        className="block py-4 text-xs text-stone-400"
-      >
-        正在加载图片…
-      </span>
-    )
+  const loadSource = useCallback(() => (/^(https?:|data:image\/)/.test(embed.target) ? Promise.resolve(embed.target) : window.electronAPI.readObsidianImage(root, documentPath, reference)), [embed.target, root, documentPath, reference])
   return (
     <span
       className="block bg-white"
@@ -44,7 +17,8 @@ function ObsidianImage({ reference, root, documentPath, onChange }: { reference:
     >
       {selected && <span className="block break-all text-sm text-slate-500">{reference}</span>}
       <Image
-        src={src}
+        sourceKey={`${root}:${documentPath}:${reference}`}
+        loadSource={loadSource}
         alt={embed.alt}
         width={embed.width}
         onResizeEnd={(width) => onChange(resizeImageReference(reference, width))}

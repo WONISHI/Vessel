@@ -13,8 +13,8 @@ const EditorCanvas = ({ fileType, activeFilePath }: EditorTabsProps) => {
     return <MarkdownCanvas activeFilePath={activeFilePath} />
   } else if (fileType === "json") {
     return <JSONCanvas activeFilePath={activeFilePath} />
-  } else if (["png", "jpg", "jpeg", "bmp", "gif", "webp"].includes(fileType!)) {
-    return <MediaCanvas activeFilePath={activeFilePath} />
+  } else if (["png", "jpg", "jpeg", "bmp", "gif", "webp", "avif", "svg"].includes(fileType!)) {
+    return <MediaCanvas key={activeFilePath} activeFilePath={activeFilePath} />
   }
   return <div className="flex items-center justify-center h-full text-zinc-300 text-sm">Select a file to preview</div>
 }

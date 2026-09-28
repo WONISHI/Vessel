@@ -21,6 +21,8 @@ function localVditorAssets() {
 
 export default defineConfig({
   main: {
+    // Workspace 包导出 TS 源码，必须编译进产物，不能留给 Electron require。
+    build: { externalizeDeps: { exclude: ["@vessel/obsidian", "@vessel/utils", "@vessel/react-router"] } },
     resolve: {
       alias: {
         "@main": resolve("src/main")
@@ -28,6 +30,7 @@ export default defineConfig({
     }
   },
   preload: {
+    build: { externalizeDeps: { exclude: ["@vessel/obsidian", "@vessel/utils", "@vessel/react-router"] } },
     resolve: {
       alias: {
         "@main": resolve("src/main"),

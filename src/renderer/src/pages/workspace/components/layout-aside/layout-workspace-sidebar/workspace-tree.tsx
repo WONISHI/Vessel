@@ -11,7 +11,21 @@ interface DirectoryState {
   nodes?: WorkspaceNode[]
   error?: string
 }
-export default function WorkspaceTree({ viewport, recent = false, draft, onDraftFinish, revealPath }: { viewport: HTMLElement | null; recent?: boolean; revealPath?: string; draft?: EntryDraft | null; onDraftFinish?: (created: boolean) => void }) {
+export default function WorkspaceTree({
+  viewport,
+  recent = false,
+  draft,
+  onDraftFinish,
+  revealPath,
+  onCreate
+}: {
+  onCreate?: (parent: string, kind: "file" | "directory") => void
+  viewport: HTMLElement | null
+  recent?: boolean
+  revealPath?: string
+  draft?: EntryDraft | null
+  onDraftFinish?: (created: boolean) => void
+}) {
   const { workspace, openFiles, activeFilePath, openWorkspaceFile, expandedFolders, setDirectoryExpanded } = useWorkspace()
   const [directories, setDirectories] = useState<Record<string, DirectoryState>>({})
   const pending = useRef(new Map<string, Promise<void>>())
@@ -104,6 +118,11 @@ export default function WorkspaceTree({ viewport, recent = false, draft, onDraft
         ) : (
           <FileActions
             node={node}
+            onCreate={(kind) => {
+              setDirectoryExpanded(node.path, true)
+              void loadDirectoryChildren(node.path)
+              onCreate?.(node.path, kind)
+            }}
             onChanged={() => {
               const index = Math.max(node.path.lastIndexOf("/"), node.path.lastIndexOf("\\"))
               void loadDirectoryChildren(node.path.slice(0, index) || workspace.path)

@@ -98,4 +98,4 @@ export const DATABASE_COLUMN_LABELS: Record<string, Record<string, string>> = {
 }
 
 /** 欢迎页支持扫描的文件扩展名。 */
-export const SUPPORTED_EXTENSIONS = new Set([".md", ".json", ".js", ".ts", ".jsx", ".tsx", ".css", ".scss", ".less", ".html", ".vue", ".png", ".jpg", ".jpeg", ".bmp", ".gif", ".webp"])
+export const SUPPORTED_EXTENSIONS = new Set([".md", ".json", ".js", ".ts", ".jsx", ".tsx", ".css", ".scss", ".less", ".html", ".vue", ".png", ".jpg", ".jpeg", ".bmp", ".gif", ".webp", ".avif", ".svg"])

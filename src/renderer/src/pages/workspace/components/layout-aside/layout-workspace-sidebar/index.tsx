@@ -102,6 +102,7 @@ export default function LayoutWorkspaceSidebar({ activity }: LayoutWorkspaceSide
           <WorkspaceTree
             key={`${workspace.path}-${activity}-${revision}`}
             draft={draft}
+            onCreate={(parent, kind) => setDraft({parent, kind, extension: kind === "file" ? "md" : ""})}
             revealPath={revealPath}
             onDraftFinish={(created) => {
               if (created && draft?.kind === "file") setAddedFiles((value) => value + 1)

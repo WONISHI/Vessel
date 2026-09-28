@@ -1,3 +1,4 @@
+import { PageLoading } from "@/components/ui/page-loading"
 import { useWorkspace } from "@/pages/workspace/hooks/useWorkspace"
 import { useEffect, useRef, useState } from "react"
 import { DocumentOutline } from "./document-outline"
@@ -75,12 +76,7 @@ export default function MarkdownCanvas({ activeFilePath }: { activeFilePath: str
         className="min-h-0 min-w-0 flex-1"
       >
         {!current ? (
-          <p
-            role="status"
-            className="p-6 text-sm text-stone-400"
-          >
-            正在读取文件…
-          </p>
+          <PageLoading label="正在读取文档…" />
         ) : current.error ? (
           <p
             role="alert"

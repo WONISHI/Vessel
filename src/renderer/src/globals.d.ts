@@ -1,3 +1,4 @@
+import type { ImageFile } from "../../shared/image-file"
 import type { TodosAPI } from "../../shared/todos"
 import type { ElectronAPI } from "@electron-toolkit/preload"
 
@@ -133,6 +134,8 @@ interface VesselAPI extends TodosAPI {
   getStorageInfo: () => Promise<StorageInfo>
 
   /** 读取文件内容。 */
+  revealWorkspaceFile: (root: string, path: string) => Promise<void>
+  readImageFile: (root: string, path: string) => Promise<ImageFile>
   readObsidianImage: (root: string, documentPath: string, reference: string) => Promise<string>
   mutateWorkspaceFile: (root: string, path: string, name?: string) => Promise<string>
   createWorkspaceEntry: (root: string, parent: string, name: string, kind: "file" | "directory") => Promise<{name: string; path: string; type: "file" | "directory"}>
