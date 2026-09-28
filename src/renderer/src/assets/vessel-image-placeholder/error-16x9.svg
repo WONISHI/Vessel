@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
+  <rect width="1280" height="720" fill="#faf9f7"/>
+  <rect x="22" y="22" width="1236" height="676" rx="12" fill="none" stroke="#e7e5e4" stroke-width="2" stroke-dasharray="12 9"/>
+  <g transform="translate(640,321.84000000000003) scale(7.800000000000001) translate(-12,-12)" fill="none" stroke="#d6d3d1" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>
+    <line x1="6.5" y1="17.5" x2="17.5" y2="6.5"/></g>
+  <text x="640" y="485.7984" text-anchor="middle" font-family='-apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif' font-size="33.12" font-weight="500" fill="#78716c">图片加载失败</text>
+  
+</svg>
