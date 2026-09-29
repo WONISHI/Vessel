@@ -14,6 +14,7 @@ export default function LayoutAside() {
 
   const router = useRouter()
   const handleActivityChange = (next: AsideActivity) => {
+    if (next === "browser") { void router.push("/browser"); return }
     if (next === "todos") { void router.push("/todos"); return }
     setActivity(next)
     if (isMobile) setOpenMobile(true)

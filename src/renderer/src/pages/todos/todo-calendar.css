@@ -1,0 +1,16 @@
+.todo-calendar-layout {
+  display: grid;
+  grid-template-columns: 498px minmax(260px, 340px);
+  gap: 20px;
+  align-items: start;
+  justify-content: center;
+}
+.todo-calendar {
+  container-type: inline-size;
+}
+@container (max-width: 800px) {
+  .todo-calendar-layout {
+    grid-template-columns: 498px;
+    justify-content: start;
+  }
+}

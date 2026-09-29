@@ -1,1 +1,1 @@
-export type AsideActivity = "files" | "todos" | "tools"
+export type AsideActivity = "files" | "todos" | "tools" | "browser"

@@ -1,3 +1,5 @@
+import BrowserPage from "@/pages/browser"
+import { useLocation } from "react-router-dom"
 import TodosPage from "@/pages/todos"
 import { useState } from "react"
 
@@ -51,6 +53,21 @@ function WelcomeRoute() {
  * 给 WorkspacePage 传递 workspace。
  */
 function EditorRoute() {
+  const location = useLocation()
+  const external = new URLSearchParams(location.search).get("external")
+  if (external) return <ExternalEditor key={external} path={external} />
+  return <CurrentEditor />
+}
+
+function ExternalEditor({ path }: { path: string }) {
+  const name = path.split(/[\\/]/).pop() || path
+  const parent = path.slice(0, path.length - name.length)
+  const root = /^[A-Za-z]:[\\/]$/.test(parent) ? parent : parent.replace(/[\\/]$/, "") || "/"
+  const workspace = { name: root.split(/[\\/]/).pop() || root, path: root, files: [{ name, path }] }
+  return <WorkspacePage workspace={workspace} initialFile={path} />
+}
+
+function CurrentEditor() {
   const [workspace] = useState<WorkspaceData | null>(() => {
     return readCurrentWorkspace()
   })
@@ -66,6 +83,7 @@ function EditorRoute() {
  * 路由配置
  */
 export const routes: AppRouteRecordRaw[] = [
+  { path: "/browser", name: "browser", component: BrowserPage, meta: { title: "浏览器" } },
   {path: "/todos", name: "todos", component: TodosPage, meta: {title: "待办"}},
   {
     path: "/",
@@ -201,7 +219,7 @@ router.beforeEach((to) => {
 
   const currentWorkspace = readCurrentWorkspace()
 
-  if (!currentWorkspace) {
+  if (!currentWorkspace && !to.fullPath.includes("external=")) {
     return {
       name: "welcome"
     }

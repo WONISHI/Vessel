@@ -1,3 +1,4 @@
+import { PageBackButton } from "./components/page-back-button"
 import { useEffect, useState } from "react"
 import { Database, Table2, Rows3, Columns3, Download, RefreshCw, type LucideIcon } from "lucide-react"
 import { DataTable, type DataTableColumn } from "./components/data-table"
@@ -143,7 +144,8 @@ export default function StoragePage() {
     <div className="flex min-h-0 flex-1 flex-col bg-[#faf9f7]">
       {/* 页面标题（高度固定 60px，参考 main-header） */}
       <div className="flex h-[60px] shrink-0 items-center justify-between border-b border-[#f0efed] bg-white px-4">
-        <div className="flex items-baseline gap-2.5">
+        <div className="flex items-center gap-2.5">
+          <PageBackButton />
           <h2 className="text-[16px] font-bold text-stone-900">数据存储</h2>
           <span className="text-[12px] text-stone-400">SQLite 数据库表查看</span>
         </div>
@@ -179,7 +181,7 @@ export default function StoragePage() {
                   <span className="min-w-0 flex-1">
                     <span className="flex items-baseline gap-1.5">
                       <span className={cn("shrink-0 text-[11px] font-semibold", active ? "text-green-700" : "text-stone-800")}>{getTableLabel(t.name)}</span>
-                      <span className="truncate font-mono text-[10px] text-stone-400">{t.name}</span>
+                      <span className="truncate font-sans text-[10px] text-stone-400">{t.name}</span>
                     </span>
                     <span className="block truncate text-[11.5px] text-stone-400">
                       {t.rowCount.toLocaleString()}行 · {t.columnCount}列
@@ -201,7 +203,7 @@ export default function StoragePage() {
               </span>
               <div>
                 <div className="text-[16px] font-bold leading-tight text-stone-900">
-                  {getTableLabel(table.name)} <span className="ml-2 font-mono text-[12px] font-normal text-stone-400">{table.name}</span>
+                  {getTableLabel(table.name)} <span className="ml-2 font-sans text-[12px] font-normal text-stone-400">{table.name}</span>
                 </div>
                 <div className="text-[12px] leading-tight text-stone-400">{table.comment}</div>
               </div>

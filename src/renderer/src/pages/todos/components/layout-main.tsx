@@ -1,4 +1,4 @@
-import { useState, type CSSProperties } from "react"
+import { useState } from "react"
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, CircleCheck, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -6,6 +6,7 @@ import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/comp
 import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb"
 import type { Todo } from "../../../../../shared/todos"
 import { dateKey, fromKey, lunarLabel, monthDays, festivalLabel } from "../calendar"
+import "../todo-calendar.css"
 import { cn } from "@/lib/utils"
 export default function TodoMain({
   todos,
@@ -35,7 +36,7 @@ export default function TodoMain({
   const days = monthDays(month)
   const move = (delta: number) => onMonth(new Date(month.getFullYear(), month.getMonth() + delta, 1, 12))
   return (
-    <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-white p-4 lg:p-5">
+    <main className="todo-calendar min-h-0 min-w-0 flex-1 overflow-auto bg-[#faf9f7] p-5">
       <Breadcrumb>
         <BreadcrumbList className="text-xs">
           <BreadcrumbItem>首页</BreadcrumbItem>
@@ -45,50 +46,46 @@ export default function TodoMain({
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
-      <header className="mb-4 mt-3 flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-bold">
-            {month.getFullYear()}年{month.getMonth() + 1}月
-          </h1>
-          <p className="mt-1 text-xs text-stone-400">含农历 · 点击日期查看当天待办</p>
-        </div>
-        <TooltipProvider>
-          <div className="flex gap-1.5">
-            {[
-              { label: "上一年", delta: -12, Icon: ChevronsLeft },
-              { label: "上个月", delta: -1, Icon: ChevronLeft },
-              { label: "今天", delta: 0, Icon: null },
-              { label: "下个月", delta: 1, Icon: ChevronRight },
-              { label: "下一年", delta: 12, Icon: ChevronsRight }
-            ].map(({ label, delta, Icon }) => (
-              <Tooltip key={label}>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn("h-8 px-2", !Icon && "bg-green-700 !text-white hover:bg-green-800 hover:!text-white")}
-                    aria-label={label}
-                    onClick={() => (delta ? move(delta) : onSelect(today))}
-                  >
-                    {Icon ? <Icon className="size-4" /> : label}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>{label}</TooltipContent>
-              </Tooltip>
-            ))}
-          </div>
-        </TooltipProvider>
-      </header>
-      <div className="grid min-h-0 flex-1 gap-4 grid-cols-[minmax(0,1.6fr)_minmax(220px,1fr)]">
+      <div className="todo-calendar-layout mt-4">
         <section
           aria-label="月份日历"
-          className="min-h-0 min-w-0"
-          style={{ containerType: "size" }}
+          className="overflow-hidden rounded-2xl border border-stone-200 bg-white"
         >
-          <div
-            className="mx-auto rounded-2xl border p-3"
-            style={{ width: `min(100%, calc((100cqh - 58px) * 7 / ${days.length / 7}))` } as CSSProperties}
-          >
-            <div className="grid grid-cols-7">
+          <header className="flex flex-wrap items-center justify-between gap-3 border-b border-stone-100 px-4 py-4">
+            <div>
+              <h1 className="text-xl font-bold">
+                {month.getFullYear()}年{month.getMonth() + 1}月
+              </h1>
+              <p className="mt-1 text-xs text-stone-400">含农历 · 点击日期查看当天待办</p>
+            </div>
+            <TooltipProvider>
+              <div className="flex gap-1.5">
+                {[
+                  { label: "上一年", delta: -12, Icon: ChevronsLeft },
+                  { label: "上个月", delta: -1, Icon: ChevronLeft },
+                  { label: "今天", delta: 0, Icon: null },
+                  { label: "下个月", delta: 1, Icon: ChevronRight },
+                  { label: "下一年", delta: 12, Icon: ChevronsRight }
+                ].map(({ label, delta, Icon }) => (
+                  <Tooltip key={label}>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn("h-8 px-2 hover:bg-green-700 active:bg-green-800 hover:!text-white active:!text-white", !Icon && "bg-green-700 !text-white hover:bg-green-800 hover:!text-white")}
+                        aria-label={label}
+                        onClick={() => (delta ? move(delta) : onSelect(today))}
+                      >
+                        {Icon ? <Icon className="size-4" /> : label}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>{label}</TooltipContent>
+                  </Tooltip>
+                ))}
+              </div>
+            </TooltipProvider>
+          </header>
+          <div className="p-3">
+            <div className="grid grid-cols-[repeat(7,64px)] gap-1">
               {"一二三四五六日".split("").map((label, i) => (
                 <div
                   key={label}
@@ -98,7 +95,7 @@ export default function TodoMain({
                 </div>
               ))}
             </div>
-            <div className="grid grid-cols-7 gap-1">
+            <div className="grid grid-cols-[repeat(7,64px)] gap-1">
               {days.map((date) => {
                 const key = dateKey(date),
                   count = todos.filter((todo) => todo.date === key).length
@@ -109,7 +106,7 @@ export default function TodoMain({
                     aria-pressed={key === selected}
                     onClick={() => onSelect(key)}
                     className={cn(
-                      "relative flex aspect-square min-h-0 flex-col items-center justify-center overflow-hidden rounded-lg border border-transparent bg-stone-50 p-1 text-center hover:bg-emerald-50",
+                      "relative flex h-16 w-16 shrink-0 flex-col items-center justify-center overflow-hidden rounded-lg border border-transparent bg-white p-1 text-center hover:bg-emerald-50",
                       date.getMonth() !== month.getMonth() && "opacity-40",
                       key === selected && "border-green-600 bg-emerald-50"
                     )}
@@ -141,18 +138,19 @@ export default function TodoMain({
         </section>
         <section
           aria-label="当天待办"
-          className="min-h-0 overflow-y-auto overscroll-contain space-y-3 pr-1"
+          className="space-y-4"
         >
-          <p className="rounded-xl border bg-emerald-50/70 p-3 text-xs text-stone-600">
+          <p className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-xs text-green-700">
             {day.getMonth() + 1}月{day.getDate()}日 · 周{"日一二三四五六"[day.getDay()]} · 农历{lunarLabel(day, true)}
           </p>
-          <div className="rounded-2xl border p-4">
-            <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold">
+          <div className="rounded-2xl border bg-white overflow-hidden">
+            <h2 className="flex items-center gap-2 border-b border-stone-100 px-4 py-3 text-sm font-semibold">
               <CircleCheck className="size-4 text-green-700" />
               {day.getMonth() + 1}月{day.getDate()}日的待办
+              <span className="ml-auto rounded-full bg-stone-100 px-2 py-0.5 text-[11px] text-stone-500">{items.length}</span>
             </h2>
             <form
-              className="flex gap-2"
+              className="flex gap-2 px-4 pt-4"
               onSubmit={async (event) => {
                 event.preventDefault()
                 if (await onAdd(title)) setTitle("")
@@ -175,8 +173,8 @@ export default function TodoMain({
                 添加
               </Button>
             </form>
-            {!items.length && <p className="mt-4 text-xs text-stone-400">这一天还没有待办</p>}
-            <ul className="mt-3 space-y-2">
+            {!items.length && <p className="px-4 py-8 text-center text-xs text-stone-400">这一天还没有待办</p>}
+            <ul className="max-h-96 overflow-y-auto px-4 py-3 space-y-2">
               {items.map((todo) => (
                 <li
                   key={todo.id}
@@ -194,7 +192,7 @@ export default function TodoMain({
                   <Button
                     size="icon"
                     variant="ghost"
-                    className="size-6 text-stone-400"
+                    className="size-6 text-stone-400 hover:bg-green-700 active:bg-green-800 hover:!text-white active:!text-white"
                     disabled={busy}
                     aria-label={`删除：${todo.title}`}
                     onClick={() => onDelete(todo.id)}

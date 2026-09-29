@@ -1,0 +1,179 @@
+.browser-tabs {
+  display: flex;
+  align-items: end;
+  gap: 3px;
+  padding: 6px 8px 0;
+  background: #f5f5f4;
+  border-bottom: 1px solid #e7e5e4;
+  overflow-x: auto;
+  flex-shrink: 0;
+}
+.browser-tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 120px;
+  max-width: 220px;
+  padding: 9px 12px;
+  background: #e7e5e4;
+  border: 1px solid transparent;
+  border-bottom: 0;
+  border-radius: 8px 8px 0 0;
+  font-size: 12px;
+}
+.browser-tab.selected {
+  background: white;
+  border-color: #e7e5e4;
+}
+.browser-tab button:hover {
+  color: #15803d;
+}
+.browser-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px;
+  background: #fff;
+  border-bottom: 1px solid #f0efed;
+  flex-shrink: 0;
+}
+.browser-toolbar > button {
+  width: 32px;
+  height: 32px;
+  color: #78716c;
+}
+.browser-address {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+  border: 1px solid #e7e5e4;
+  background: #faf9f7;
+  border-radius: 8px;
+  padding: 7px 12px;
+  color: #78716c;
+}
+.browser-address:focus-within {
+  border-color: #16a34a;
+}
+.browser-address input {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  outline: none;
+  font-size: 13px;
+  color: #44403c;
+}
+.browser-bookmarks {
+  display: flex;
+  gap: 16px;
+  overflow: auto;
+  padding: 8px 16px;
+  border-bottom: 1px solid #f0efed;
+  background: white;
+  flex-shrink: 0;
+}
+.browser-bookmarks button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  font-size: 11px;
+  color: #78716c;
+  max-width: 180px;
+  overflow: hidden;
+}
+.browser-home {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  background: #faf9f7;
+  overflow: auto;
+  padding: 24px;
+}
+.browser-logo {
+  display: grid;
+  place-items: center;
+  width: 72px;
+  height: 72px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #16a34a, #15803d);
+  color: white;
+  box-shadow: 0 6px 20px #16a34a26;
+}
+.browser-home h1 {
+  font-size: 26px;
+  font-weight: 700;
+}
+.browser-home p {
+  font-size: 13px;
+  color: #a8a29e;
+}
+.browser-home form {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: min(520px, 90%);
+  padding: 16px 20px;
+  border-radius: 14px;
+  background: white;
+  border: 1px solid #e7e5e4;
+  box-shadow: 0 4px 16px #00000005;
+  margin: 12px 0;
+  color: #a8a29e;
+}
+.browser-home input {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  outline: none;
+  color: #44403c;
+}
+.browser-shortcuts {
+  display: flex;
+  gap: 28px;
+}
+.browser-shortcuts button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: #78716c;
+}
+.browser-shortcuts span {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: #e7e5e4;
+  color: #44403c;
+  font-size: 20px;
+  font-weight: 700;
+}
+.browser-shortcuts button:hover span {
+  background: #dcfce7;
+  color: #15803d;
+}
+.browser-status {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 5px 12px;
+  background: #faf9f7;
+  border-top: 1px solid #e7e5e4;
+  color: #a8a29e;
+  font-size: 10px;
+}
+.browser-status span:first-child {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.browser-toolbar > button:not(:disabled):is(:hover, :active, [aria-pressed="true"], [data-state="on"]) { color: white !important; background: #327f73; }

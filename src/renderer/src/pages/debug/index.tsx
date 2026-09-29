@@ -110,7 +110,7 @@ export default function DevToolsIndex() {
   const routeTree = useDevToolsRouteTree()
 
   if (!routeTree) {
-    return <div className="flex h-full w-full flex-col" />
+    return <div className="flex h-full w-full flex-col font-sans" />
   }
 
   const { root, groups, currentGroup, currentPage } = routeTree
@@ -144,7 +144,7 @@ export default function DevToolsIndex() {
   }
 
   return (
-    <div className="flex h-full w-full flex-col">
+    <div className="flex h-full w-full flex-col font-sans">
       <Breadcrumb
         className="
           relative

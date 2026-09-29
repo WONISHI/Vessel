@@ -1,3 +1,5 @@
+import { DocumentStats } from "./document-stats"
+import { outlineHeading } from "./outline-heading"
 import { PageLoading } from "@/components/ui/page-loading"
 import { useWorkspace } from "@/pages/workspace/hooks/useWorkspace"
 import { useEffect, useRef, useState } from "react"
@@ -38,13 +40,7 @@ export default function MarkdownCanvas({ activeFilePath }: { activeFilePath: str
       frame = requestAnimationFrame(() => {
         const nodes = Array.from(host.querySelectorAll<HTMLElement>(".vditor-ir .vditor-reset h1, .vditor-ir .vditor-reset h2, .vditor-ir .vditor-reset h3, .vditor-ir .vditor-reset h4, .vditor-ir .vditor-reset h5, .vditor-ir .vditor-reset h6"))
         const next = nodes.map((node) => {
-          // 在惰性 template 中读取标题标记，只提取文本和颜色，不执行或挂载原始 HTML。
-          const template = document.createElement("template")
-          template.innerHTML = node.textContent?.replace(/^#+\s*/, "") ?? ""
-          template.content.querySelectorAll("script,style").forEach((element) => element.remove())
-          const styled = template.content.querySelector<HTMLElement>("font[color],span[style]")
-          const color = styled?.style.color || styled?.getAttribute("color") || undefined
-          return { text: template.content.textContent ?? "", level: Number(node.tagName[1]), color }
+          return { ...outlineHeading(node.textContent ?? ""), level: Number(node.tagName[1]) }
         })
         setHeadings((previous) => (JSON.stringify(previous) === JSON.stringify(next) ? previous : next))
         const bounds = host.getBoundingClientRect()
@@ -70,42 +66,45 @@ export default function MarkdownCanvas({ activeFilePath }: { activeFilePath: str
     }
   }, [activeFilePath])
   return (
-    <div className="flex min-h-0 flex-1 overflow-hidden bg-white">
-      <div
-        ref={contentHost}
-        className="min-h-0 min-w-0 flex-1"
-      >
-        {!current ? (
-          <PageLoading label="正在读取文档…" />
-        ) : current.error ? (
-          <p
-            role="alert"
-            className="p-6 text-sm text-red-500"
-          >
-            读取文件失败：{current.error}
-          </p>
-        ) : (
-          <VditorEditor
-            key={activeFilePath}
-            workspacePath={workspace.path}
-            documentPath={activeFilePath}
-            value={current.content}
-            onChange={(content) => {
-              drafts.current.set(activeFilePath, content)
-              setLoaded({ path: activeFilePath, content })
-            }}
-          />
-        )}
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-white">
+      <div className="flex min-h-0 flex-1 overflow-hidden">
+        <div
+          ref={contentHost}
+          className="min-h-0 min-w-0 flex-1"
+        >
+          {!current ? (
+            <PageLoading label="正在读取文档…" />
+          ) : current.error ? (
+            <p
+              role="alert"
+              className="p-6 text-sm text-red-500"
+            >
+              读取文件失败：{current.error}
+            </p>
+          ) : (
+            <VditorEditor
+              key={activeFilePath}
+              workspacePath={workspace.path}
+              documentPath={activeFilePath}
+              value={current.content}
+              onChange={(content) => {
+                drafts.current.set(activeFilePath, content)
+                setLoaded({ path: activeFilePath, content })
+              }}
+            />
+          )}
+        </div>
+        <DocumentOutline
+          fileName={activeFilePath.split(/[\\/]/).pop()}
+          headings={headings}
+          activeIndex={activeHeading}
+          onSelect={(index) => {
+            const nodes = contentHost.current?.querySelectorAll(".vditor-ir .vditor-reset :is(h1,h2,h3,h4,h5,h6)")
+            nodes?.[index]?.scrollIntoView({ behavior: "smooth", block: "center" })
+          }}
+        />
       </div>
-      <DocumentOutline
-        fileName={activeFilePath.split(/[\\/]/).pop()}
-        headings={headings}
-        activeIndex={activeHeading}
-        onSelect={(index) => {
-          const nodes = contentHost.current?.querySelectorAll(".vditor-ir .vditor-reset :is(h1,h2,h3,h4,h5,h6)")
-          nodes?.[index]?.scrollIntoView({ behavior: "smooth", block: "center" })
-        }}
-      />
+      <DocumentStats source={current?.content ?? ""} />
     </div>
   )
 }

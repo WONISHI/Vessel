@@ -1,3 +1,4 @@
+import { decorateCodeBlocks } from "./code-blocks"
 import { parseFrontmatter } from "@vessel/obsidian/frontmatter"
 import { DocumentProperties } from "./document-properties"
 import { PageLoading } from "@/components/ui/page-loading"
@@ -31,6 +32,7 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath }: {
     if (!host.current) return
     const element = host.current
     const decorate = () => {
+      decorateCodeBlocks(element)
       const content = element.querySelector<HTMLElement>(".vditor-ir .vditor-reset")
       if (content && !content.contains(document.activeElement)) decorateMarkdownTags(content)
     }
@@ -68,6 +70,7 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath }: {
           cdn: new URL("./vendor/vditor", document.baseURI).href,
           lang: "zh_CN",
           theme: "classic",
+          preview: { hljs: { style: "atom-one-light" } },
           icon: "ant",
           height: "auto",
           value: prepareObsidianImages(initialValue.current),

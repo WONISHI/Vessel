@@ -8,10 +8,10 @@ import type { WorkspaceData, WorkspaceNode, WorkspaceContextType } from "../type
  * @param workspace 当前工作区数据。
  * @returns 提供给页面 Context 的受控状态与操作方法。
  */
-export function useWorkspaceController(workspace: WorkspaceData): WorkspaceContextType {
+export function useWorkspaceController(workspace: WorkspaceData, initialFile?: string): WorkspaceContextType {
   const navigate = useNavigate()
-  const [openFiles, setOpenFiles] = useState<WorkspaceNode[]>([])
-  const [activeFilePath, setActiveFilePath] = useState("")
+  const [openFiles, setOpenFiles] = useState<WorkspaceNode[]>(() => initialFile ? [{ name: initialFile.split(/[\\/]/).pop() || initialFile, path: initialFile }] : [])
+  const [activeFilePath, setActiveFilePath] = useState(initialFile || "")
   const [expandedFolders, setExpandedFolders] = useState<string[]>([])
   /** 更新目录展开集合，供懒加载树切换可见层级。
    * @param path 目录的唯一文件系统路径。
@@ -27,7 +27,7 @@ export function useWorkspaceController(workspace: WorkspaceData): WorkspaceConte
   const openWorkspaceFile = (file: WorkspaceNode) => {
     setOpenFiles((current) => (current.some((item) => item.path === file.path) ? current : [...current, file]))
     setActiveFilePath(file.path)
-    navigate("/editor/file")
+    navigate(initialFile ? `/editor/file?external=${encodeURIComponent(initialFile)}` : "/editor/file")
   }
   /** 关闭指定标签；关闭当前标签时优先选择左侧标签，否则返回首页。
    * @param path 要关闭的文件路径。 */
@@ -39,7 +39,7 @@ export function useWorkspaceController(workspace: WorkspaceData): WorkspaceConte
       const next = remaining[Math.max(0, index - 1)]
       if (next) {
         setActiveFilePath(next.path)
-        navigate("/editor/file")
+        navigate(initialFile ? `/editor/file?external=${encodeURIComponent(initialFile)}` : "/editor/file")
       } else navigateToWorkspaceHome()
     }
   }
@@ -52,7 +52,7 @@ export function useWorkspaceController(workspace: WorkspaceData): WorkspaceConte
       const next = remaining[0]
       if (next) {
         setActiveFilePath(next.path)
-        navigate("/editor/file")
+        navigate(initialFile ? `/editor/file?external=${encodeURIComponent(initialFile)}` : "/editor/file")
       } else navigateToWorkspaceHome()
     }
   }

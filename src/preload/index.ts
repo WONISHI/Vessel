@@ -1,5 +1,5 @@
 import { todosAPI } from "./apis/todos.api"
-import { contextBridge } from "electron"
+import { contextBridge, ipcRenderer } from "electron"
 import { electronAPI } from "@electron-toolkit/preload"
 import { welcomeAPI } from "./apis/welcome.api"
 import { developerAPI } from "./apis/developer.api"
@@ -9,6 +9,12 @@ import { filesAPI } from "./apis/files.api"
 const api = {}
 
 const vesselAPI = {
+  takePendingMarkdownFiles: (): Promise<string[]> => ipcRenderer.invoke("markdown:pending"),
+  onOpenMarkdown: (callback: (path: string) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, path: string) => callback(path)
+    ipcRenderer.on("markdown:open", handler)
+    return () => { ipcRenderer.removeListener("markdown:open", handler) }
+  },
   ...todosAPI,
   ...welcomeAPI,
   ...filesAPI,

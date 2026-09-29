@@ -1,9 +1,15 @@
+import { secureBrowserGuests } from "./browser-security"
+import { registerMarkdownOpening } from "./open-markdown"
 import { join } from "path"
 import { app, shell, BrowserWindow, ipcMain, nativeImage } from "electron"
 import { electronApp, optimizer, is } from "@electron-toolkit/utils"
 import dockIconPath from "../../resources/icon_108x108.png?asset"
 import icon from "../../resources/icon.png?asset"
 import { mainApps } from "@main/app"
+
+const primaryInstance = app.requestSingleInstanceLock()
+if (!primaryInstance) app.quit()
+else registerMarkdownOpening()
 
 function createWindow(): void {
   const mainWindow = new BrowserWindow({
@@ -14,16 +20,20 @@ function createWindow(): void {
     icon: icon,
     webPreferences: {
       preload: join(__dirname, "../preload/index.js"),
+      webviewTag: true,
       sandbox: false,
       contextIsolation: true,
       nodeIntegration: true
     }
   })
 
+  secureBrowserGuests(mainWindow.webContents)
+
   mainWindow.on("ready-to-show", () => {
     mainWindow.show()
   })
 
+  ipcMain.removeHandler("open-devtools")
   ipcMain.handle("open-devtools", (event) => {
     const contents = event.sender
     if (contents.isDevToolsOpened()) {
@@ -46,6 +56,7 @@ function createWindow(): void {
 }
 
 app.whenReady().then(() => {
+  if (!primaryInstance) return
   electronApp.setAppUserModelId("com.electron")
 
   mainApps.activate()

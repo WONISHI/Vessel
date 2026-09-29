@@ -1,3 +1,4 @@
+import { PageBackButton } from "./components/page-back-button"
 import { useMemo, useState } from "react"
 import { Terminal, FileText, Info, AlertTriangle, XCircle, CheckCircle2, Trash2, type LucideIcon } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
@@ -135,7 +136,8 @@ export default function ConsolePage() {
     <div className="flex h-full flex-col bg-[#faf9f7]">
       {/* 页面标题（高度固定 60px，参考 main-header） */}
       <div className="flex h-[60px] shrink-0 items-center justify-between border-b border-[#f0efed] bg-white px-4">
-        <div className="flex items-baseline gap-2.5">
+        <div className="flex items-center gap-2.5">
+          <PageBackButton />
           <h2 className="text-[16px] font-bold text-stone-900">控制台</h2>
           <span className="text-[12px] text-stone-400">Console 日志查看与监听控制</span>
         </div>
@@ -209,7 +211,7 @@ export default function ConsolePage() {
                 清空
               </button>
             </div>
-            <div className="min-h-0 flex-1 overflow-y-auto p-3 font-mono text-[12.5px] leading-relaxed [scrollbar-width:thin]">
+            <div className="min-h-0 flex-1 overflow-y-auto p-3 font-sans text-[12.5px] leading-relaxed [scrollbar-width:thin]">
               {logs.length === 0 && <div className="py-10 text-center font-sans text-[13px] italic text-stone-400">暂无日志</div>}
               {logs.map((log) => (
                 <div

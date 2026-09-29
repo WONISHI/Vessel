@@ -55,7 +55,7 @@ export function DataTable<T>({ columns, rows, getRowKey, loading = false, error,
                 <span className="flex items-center gap-2">
                   <span className="flex flex-col gap-0.5">
                     <span className="text-[11px] font-semibold">{col.label}</span>
-                    {col.secondaryLabel && <span className="font-mono text-[10px] font-normal text-stone-400">{col.secondaryLabel}</span>}
+                    {col.secondaryLabel && <span className="font-sans text-[10px] font-normal text-stone-400">{col.secondaryLabel}</span>}
                   </span>
                   {col.badge && <span className="shrink-0 rounded bg-stone-200/60 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-stone-400">{col.badge}</span>}
                 </span>

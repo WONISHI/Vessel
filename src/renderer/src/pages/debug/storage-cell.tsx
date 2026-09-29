@@ -15,13 +15,13 @@ const ROLE_STYLE: Record<string, string> = {
 
 /** 单元格按列类型/列名着色 */
 export function StorageCell({ col, value }: { col: Column; value: unknown }) {
-  if (value === null || value === undefined) return <span className="font-mono italic text-stone-300">NULL</span>
+  if (value === null || value === undefined) return <span className="font-sans italic text-stone-300">NULL</span>
   const text = value instanceof Uint8Array ? `0x${Array.from(value, (byte) => byte.toString(16).padStart(2, "0")).join("")}` : typeof value === "object" ? JSON.stringify(value) : String(value)
   if (col.primaryKey > 0)
     return (
       <span
         title="主键"
-        className="inline-block rounded-full bg-green-50 px-2 py-0.5 font-mono text-[11px] font-semibold text-green-700"
+        className="inline-block rounded-full bg-green-50 px-2 py-0.5 font-sans text-[11px] font-semibold text-green-700"
       >
         {text}
       </span>
@@ -36,7 +36,7 @@ export function StorageCell({ col, value }: { col: Column; value: unknown }) {
     const on = value === true || value === 1 || value === "1" || value === "true"
     if (!on && value !== false && value !== 0 && value !== "0" && value !== "false") return <span>{text}</span>
     return (
-      <span className={cn("inline-flex items-center gap-1.5 font-mono text-[11px]", on ? "text-green-600" : "text-stone-400")}>
+      <span className={cn("inline-flex items-center gap-1.5 font-sans text-[11px]", on ? "text-green-600" : "text-stone-400")}>
         <span className={cn("h-1.5 w-1.5 rounded-full", on ? "bg-green-500" : "bg-stone-300")} />
         {on ? "true" : "false"}
       </span>
@@ -47,13 +47,13 @@ export function StorageCell({ col, value }: { col: Column; value: unknown }) {
     return (
       <span
         title={text}
-        className="whitespace-nowrap font-mono text-[11px] text-purple-600"
+        className="whitespace-nowrap font-sans text-[11px] text-purple-600"
       >
         {formatted}
       </span>
     )
   }
-  if (typeof value === "number" || /INT|REAL|FLOAT|DOUBLE|NUMERIC|DECIMAL/.test(col.type)) return <span className="font-mono text-[11px] text-blue-600">{text}</span>
+  if (typeof value === "number" || /INT|REAL|FLOAT|DOUBLE|NUMERIC|DECIMAL/.test(col.type)) return <span className="font-sans text-[11px] text-blue-600">{text}</span>
   // 普通文本
-  return <span className="font-mono text-[11px] text-stone-700">{text}</span>
+  return <span className="font-sans text-[11px] text-stone-700">{text}</span>
 }
