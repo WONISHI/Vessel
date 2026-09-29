@@ -1,9 +1,9 @@
 .todo-calendar-layout {
   display: grid;
-  grid-template-columns: 498px minmax(260px, 340px);
+  grid-template-columns: 498px minmax(260px, 1fr);
   gap: 20px;
   align-items: start;
-  justify-content: center;
+  justify-content: start;
 }
 .todo-calendar {
   container-type: inline-size;

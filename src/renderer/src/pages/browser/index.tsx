@@ -1,6 +1,7 @@
+import { webviewAttributes } from "./webview-attributes"
 import { useEffect, useRef, useState } from "react"
 import type { WebviewTag } from "electron"
-import { ArrowLeft, ArrowRight, RotateCw, Home, Globe, Plus, X, Search, LockKeyhole, Bookmark, ZoomIn, ZoomOut, Code } from "lucide-react"
+import { ArrowLeft, ArrowRight, RotateCw, Home, Globe, Plus, X, Search, LockKeyhole, Bookmark, ZoomIn, ZoomOut, Bug } from "lucide-react"
 import { useRouter } from "@vessel/react-router"
 import Layout from "@/layout"
 import ActivityBar from "@/layout/activity-bar"
@@ -8,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { browserURL } from "./url"
 import "./index.css"
 
-type Tab = { id: string; url: string; title: string; loading: boolean; back: boolean; forward: boolean; error: string; zoom: number }
+type Tab = { favicon?: string; id: string; url: string; title: string; loading: boolean; back: boolean; forward: boolean; error: string; zoom: number }
 const newTab = (): Tab => ({ id: crypto.randomUUID(), url: "", title: "新标签页", loading: false, back: false, forward: false, error: "", zoom: 1 })
 const shortcuts = [
   { title: "GitHub", url: "https://github.com" },
@@ -32,9 +33,14 @@ function Guest({ tab, visible, register, update }: { tab: Tab; visible: boolean;
       sync()
       updateRef.current(tab.id, { loading: false })
     }
+    const favicon = (event: Electron.PageFaviconUpdatedEvent) => {
+      const url = event.favicons.find(value => /^https?:\/\//i.test(value) || /^data:image\//i.test(value))
+      updateRef.current(tab.id, { favicon: url })
+    }
     const fail = (event: Electron.DidFailLoadEvent) => {
       if (event.isMainFrame && event.errorCode !== -3) updateRef.current(tab.id, { loading: false, error: `页面加载失败：${event.errorDescription}` })
     }
+    view.addEventListener("page-favicon-updated", favicon)
     view.addEventListener("dom-ready", sync)
     view.addEventListener("did-navigate", sync)
     view.addEventListener("did-navigate-in-page", sync)
@@ -43,6 +49,7 @@ function Guest({ tab, visible, register, update }: { tab: Tab; visible: boolean;
     view.addEventListener("did-stop-loading", stop)
     view.addEventListener("did-fail-load", fail)
     return () => {
+      view.removeEventListener("page-favicon-updated", favicon)
       view.removeEventListener("dom-ready", sync)
       view.removeEventListener("did-navigate", sync)
       view.removeEventListener("did-navigate-in-page", sync)
@@ -55,13 +62,15 @@ function Guest({ tab, visible, register, update }: { tab: Tab; visible: boolean;
   return <webview
     ref={view => { ref.current = view as WebviewTag | null; register(tab.id, ref.current) }}
     src={initialURL}
-    {...{ partition: "persist:vessel-browser" }}
+    {...webviewAttributes}
     style={{ width: "100%", height: "100%", display: visible ? "flex" : "none" }}
   />
 }
 export default function BrowserPage() {
   const router = useRouter()
   const [tabs, setTabs] = useState<Tab[]>(() => [newTab()])
+  const [devtoolsOpen, setDevtoolsOpen] = useState(false)
+  const devtoolsHost = useRef<HTMLDivElement>(null)
   const [active, setActive] = useState("")
   const [input, setInput] = useState<string | null>(null)
   const [bookmarks, setBookmarks] = useState(() => {
@@ -74,6 +83,35 @@ export default function BrowserPage() {
   const views = useRef(new Map<string, WebviewTag>())
   const tab = tabs.find((item) => item.id === active) || tabs[0]
   const update = (id: string, patch: Partial<Tab>) => setTabs((current) => current.map((item) => (item.id === id ? { ...item, ...patch } : item)))
+  useEffect(() => {
+    const element = devtoolsHost.current
+    const view = views.current.get(tab.id)
+    if (!devtoolsOpen || !element || !view) {
+      void window.electronAPI.setBrowserDevtools(null).catch(() => {})
+      return
+    }
+    let disposed = false
+    const sync = () => {
+      const { x, y, width, height } = element.getBoundingClientRect()
+      try {
+        void window.electronAPI.setBrowserDevtools(view.getWebContentsId(), { x, y, width, height }).catch(error => {
+          if (!disposed) { update(tab.id, { error: String(error) }); setDevtoolsOpen(false) }
+        })
+      } catch { /* guest 尚未完成挂载，dom-ready 后重试。 */ }
+    }
+    const observer = new ResizeObserver(sync)
+    observer.observe(element)
+    view.addEventListener("dom-ready", sync)
+    window.addEventListener("resize", sync)
+    sync()
+    return () => {
+      disposed = true
+      observer.disconnect()
+      view.removeEventListener("dom-ready", sync)
+      window.removeEventListener("resize", sync)
+      void window.electronAPI.setBrowserDevtools(null).catch(() => {})
+    }
+  }, [devtoolsOpen, tab.id, Boolean(tab.url)])
   const navigate = (value: string) => {
     try {
       const url = browserURL(value)
@@ -92,6 +130,13 @@ export default function BrowserPage() {
     setActive(item.id)
     setInput(null)
   }
+  useEffect(() => window.electronAPI.onBrowserNewTab(url => {
+    if (!/^https?:\/\//i.test(url)) return
+    const item = { ...newTab(), url, loading: true }
+    setTabs(current => [...current, item])
+    setActive(item.id)
+    setInput(null)
+  }), [])
   const close = (id: string) => {
     const remaining = tabs.filter((item) => item.id !== id)
     if (!remaining.length) remaining.push(newTab())
@@ -137,10 +182,7 @@ export default function BrowserPage() {
                 }}
                 className="flex min-w-0 flex-1 items-center gap-2"
               >
-                <Globe
-                  size={14}
-                  className="shrink-0 text-green-600"
-                />
+                {item.favicon ? <img src={item.favicon} alt="" className="size-4 shrink-0 object-contain" onError={() => update(item.id, { favicon: undefined })} /> : <Globe size={14} className="shrink-0 text-green-600" />}
                 <span className="truncate">{item.title}</span>
               </button>
               <button
@@ -248,11 +290,13 @@ export default function BrowserPage() {
           <Button
             variant="ghost"
             size="icon"
-            title="网页开发者工具"
+            title="当前网页控制台"
+            aria-label="打开当前网页控制台"
             disabled={!tab.url}
-            onClick={() => views.current.get(tab.id)?.openDevTools()}
+            aria-pressed={devtoolsOpen}
+            onClick={() => setDevtoolsOpen(open => !open)}
           >
-            <Code />
+            <Bug />
           </Button>
         </div>
         <div className="browser-bookmarks">
@@ -332,7 +376,11 @@ export default function BrowserPage() {
             </div>
           )}
         </div>
-        <footer className="browser-status">
+        {devtoolsOpen && tab.url && <section className="flex h-[35vh] min-h-[180px] shrink-0 flex-col border-t bg-white" aria-label="当前网页控制台">
+        <header className="flex h-7 shrink-0 items-center justify-between px-3 text-xs text-stone-500"><span>当前网页控制台 · 底部停靠</span><button aria-label="关闭网页控制台" onClick={() => setDevtoolsOpen(false)}><X size={14} /></button></header>
+        <div ref={devtoolsHost} className="min-h-0 flex-1" />
+      </section>}
+      <footer className="browser-status">
           <span>{tab.loading ? "正在加载…" : tab.url || "就绪"}</span>
           <span>{Math.round(tab.zoom * 100)}%</span>
         </footer>

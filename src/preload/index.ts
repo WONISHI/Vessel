@@ -9,6 +9,12 @@ import { filesAPI } from "./apis/files.api"
 const api = {}
 
 const vesselAPI = {
+  setBrowserDevtools: (id: number | null, bounds?: Electron.Rectangle): Promise<void> => ipcRenderer.invoke("browser:devtools", id, bounds),
+  onBrowserNewTab: (callback: (url: string) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, url: string) => callback(url)
+    ipcRenderer.on("browser:new-tab", handler)
+    return () => { ipcRenderer.removeListener("browser:new-tab", handler) }
+  },
   takePendingMarkdownFiles: (): Promise<string[]> => ipcRenderer.invoke("markdown:pending"),
   onOpenMarkdown: (callback: (path: string) => void) => {
     const handler = (_event: Electron.IpcRendererEvent, path: string) => callback(path)

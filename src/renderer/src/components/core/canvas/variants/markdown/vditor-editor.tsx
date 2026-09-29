@@ -1,3 +1,4 @@
+import { decorateInlineHTML } from "./inline-html"
 import { decorateCodeBlocks } from "./code-blocks"
 import { parseFrontmatter } from "@vessel/obsidian/frontmatter"
 import { DocumentProperties } from "./document-properties"
@@ -34,7 +35,7 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath }: {
     const decorate = () => {
       decorateCodeBlocks(element)
       const content = element.querySelector<HTMLElement>(".vditor-ir .vditor-reset")
-      if (content && !content.contains(document.activeElement)) decorateMarkdownTags(content)
+      if (content && !content.contains(document.activeElement)) { decorateInlineHTML(content); decorateMarkdownTags(content) }
     }
     element.addEventListener("focusout", decorate)
     const observer = new MutationObserver(decorate)
@@ -70,7 +71,7 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath }: {
           cdn: new URL("./vendor/vditor", document.baseURI).href,
           lang: "zh_CN",
           theme: "classic",
-          preview: { hljs: { style: "atom-one-light" } },
+          preview: { hljs: { style: "atom-one-light" }, math: { engine: "KaTeX" } },
           icon: "ant",
           height: "auto",
           value: prepareObsidianImages(initialValue.current),
@@ -92,7 +93,7 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath }: {
                 element.replaceChildren(container)
                 for (const [node, root] of imageRoots) {
                   if (!node.isConnected) {
-                    root.unmount()
+                    queueMicrotask(() => root.unmount())
                     imageRoots.delete(node)
                   }
                 }
@@ -175,7 +176,7 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath }: {
       clearTimeout(timeout)
       cancelAnimationFrame(initFrame)
       cancelAnimationFrame(paintFrame)
-      imageRoots.forEach((root) => root.unmount())
+      imageRoots.forEach((root) => queueMicrotask(() => root.unmount()))
       observer.disconnect()
       element.removeEventListener("focusout", decorate)
       disposed = true

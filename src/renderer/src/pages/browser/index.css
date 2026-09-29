@@ -177,3 +177,5 @@
 }
 
 .browser-toolbar > button:not(:disabled):is(:hover, :active, [aria-pressed="true"], [data-state="on"]) { color: white !important; background: #327f73; }
+
+.browser-tabs > button:is(:hover, :active) { color: white !important; background: #327f73; }

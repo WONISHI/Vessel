@@ -89,6 +89,8 @@ export interface StorageInfo {
 }
 
 export interface VesselAPI extends TodosAPI {
+  setBrowserDevtools: (id: number | null, bounds?: { x: number; y: number; width: number; height: number }) => Promise<void>
+  onBrowserNewTab: (callback: (url: string) => void) => () => void
   takePendingMarkdownFiles: () => Promise<string[]>
   onOpenMarkdown: (callback: (path: string) => void) => () => void
   readWorkspaceDirectory: (root: string, directory: string) => Promise<Array<{ name: string; path: string; type: "file" | "directory" }>>

@@ -249,3 +249,5 @@
   padding: 16px 20px;
   overflow: auto;
 }
+
+.vessel-vditor .vessel-html-marker:not(.vditor-ir__node--expand) { display: none !important; }

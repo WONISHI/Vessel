@@ -54,9 +54,9 @@ export default function TodoMain({
           <header className="flex flex-wrap items-center justify-between gap-3 border-b border-stone-100 px-4 py-4">
             <div>
               <h1 className="text-xl font-bold">
-                {month.getFullYear()}年{month.getMonth() + 1}月
+                {month.getFullYear()}年{month.getMonth() + 1}月{Math.min(day.getDate(), new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate())}日
               </h1>
-              <p className="mt-1 text-xs text-stone-400">含农历 · 点击日期查看当天待办</p>
+
             </div>
             <TooltipProvider>
               <div className="flex gap-1.5">
