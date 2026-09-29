@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>标注 Callout · FlexNote</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2316a34a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://miaoda.feishu.cn/fonts/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+<style>
+  :root{
+    --bg:#faf9f7; --card:#ffffff; --bd:#e7e5e4; --bd-l:#f0efed;
+    --t1:#1c1917; --t2:#44403c; --t3:#78716c; --t4:#a8a29e; --green:#16a34a;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{-webkit-text-size-adjust:100%;}
+  body{
+    background:var(--bg); color:var(--t2);
+    font-family:"Plus Jakarta Sans","Noto Sans SC",-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+    line-height:1.6; -webkit-font-smoothing:antialiased;
+  }
+  /* ===== 顶栏 ===== */
+  .topbar{
+    position:sticky; top:0; z-index:40;
+    background:rgba(255,255,255,.82); backdrop-filter:saturate(180%) blur(12px);
+    border-bottom:1px solid var(--bd-l);
+  }
+  .topbar-inner{
+    max-width:860px; margin:0 auto; height:56px; padding:0 20px;
+    display:flex; align-items:center; gap:12px;
+  }
+  .icon-btn{
+    width:34px; height:34px; border:none; border-radius:8px; background:transparent;
+    color:var(--t3); cursor:pointer; display:flex; align-items:center; justify-content:center;
+    transition:background .15s,color .15s;
+  }
+  .icon-btn:hover{background:#f0efed; color:var(--t1);}
+  .topbar-title{font-size:15px; font-weight:700; color:var(--t1);}
+  .topbar-spacer{flex:1;}
+  .btn{
+    display:inline-flex; align-items:center; gap:7px;
+    font-size:13.5px; font-weight:600; font-family:inherit;
+    border-radius:8px; cursor:pointer; border:1px solid var(--bd);
+    padding:8px 14px; background:#fff; color:var(--t2);
+    transition:all .15s;
+  }
+  .btn:hover{background:#faf9f7; border-color:#d6d3d1;}
+  .btn-primary{background:var(--green); border-color:var(--green); color:#fff;}
+  .btn-primary:hover{background:#15803d; border-color:#15803d;}
+
+  /* ===== 主内容 ===== */
+  .wrap{max-width:860px; margin:0 auto; padding:28px 20px 80px;}
+  .page-head{margin-bottom:20px;}
+  .page-head h1{font-size:26px; font-weight:800; color:var(--t1); letter-spacing:-.01em;}
+  .page-head p{margin-top:6px; font-size:14px; color:var(--t3);}
+
+  .editor{
+    background:var(--card); border:1px solid var(--bd); border-radius:12px;
+    box-shadow:0 1px 2px rgba(28,25,23,.04);
+    overflow:visible;
+  }
+  /* 工具栏 */
+  .toolbar{
+    position:relative;
+    display:flex; align-items:center; gap:4px;
+    padding:8px 10px; border-bottom:1px solid var(--bd-l);
+  }
+  .tool-btn{
+    width:32px; height:32px; border:none; border-radius:7px; background:transparent;
+    color:var(--t3); cursor:pointer; display:flex; align-items:center; justify-content:center;
+    transition:background .15s,color .15s;
+  }
+  .tool-btn:hover{background:#f0efed; color:var(--t1);}
+  .tool-sep{width:1px; height:20px; background:var(--bd-l); margin:0 4px;}
+  .toolbar .btn{margin-left:auto; padding:7px 12px;}
+  .chev{transition:transform .2s;}
+  .btn[aria-expanded="true"] .chev{transform:rotate(180deg);}
+
+  /* 下拉菜单 */
+  .menu{
+    position:absolute; top:calc(100% + 6px); right:10px; z-index:60;
+    width:208px; background:#fff; border:1px solid var(--bd);
+    border-radius:10px; box-shadow:0 12px 36px rgba(28,25,23,.14),0 2px 8px rgba(28,25,23,.06);
+    padding:5px; opacity:0; transform:translateY(-4px); pointer-events:none;
+    transition:opacity .16s,transform .16s;
+  }
+  .menu.open{opacity:1; transform:translateY(0); pointer-events:auto;}
+  .menu-label{padding:6px 9px 4px; font-size:11px; font-weight:700; letter-spacing:.04em; color:var(--t4);}
+  .menu-item{
+    display:flex; align-items:center; gap:10px; width:100%;
+    border:none; background:transparent; border-radius:7px;
+    padding:7px 9px; font-size:13.5px; font-weight:500; color:var(--t2);
+    font-family:inherit; text-align:left; cursor:pointer;
+    transition:background .13s;
+  }
+  .menu-item:hover{background:#faf9f7;}
+  .menu-item .ic{width:18px; height:18px; flex-shrink:0; display:flex;}
+  .menu-item .mi-check{margin-left:auto; color:var(--t4); opacity:0;}
+  .menu-item.active .mi-check{opacity:1; color:var(--green);}
+
+  /* 文档正文 */
+  .doc{padding:26px 28px 30px;}
+  .doc-title{font-size:21px; font-weight:800; color:var(--t1); margin-bottom:4px;}
+  .doc-sub{font-size:13.5px; color:var(--t3); margin-bottom:18px;}
+  .lead{font-size:14.5px; color:var(--t2); margin-bottom:16px;}
+
+  /* ===== 标注块 Callout ===== */
+  .callout{
+    border:1px solid var(--co-bd); background:var(--co-bg);
+    border-radius:10px; margin-bottom:14px; overflow:hidden;
+    transition:box-shadow .2s,border-color .2s;
+  }
+  .callout.flash{animation:flash 1.4s ease;}
+  @keyframes flash{
+    0%{box-shadow:0 0 0 0 var(--co);}
+    30%{box-shadow:0 0 0 4px var(--co-ring);}
+    100%{box-shadow:0 0 0 0 transparent;}
+  }
+  .call-head{
+    display:flex; align-items:center; gap:10px;
+    width:100%; border:none; background:transparent; cursor:pointer;
+    padding:11px 14px; font-family:inherit; text-align:left;
+  }
+  .call-badge{
+    width:26px; height:26px; border-radius:7px; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    background:var(--co-badge); color:var(--co);
+  }
+  .call-name{font-size:13.5px; font-weight:700; color:var(--co); letter-spacing:.01em;}
+  .call-toggle{
+    margin-left:auto; color:var(--t4); display:flex;
+    transition:transform .2s;
+  }
+  .callout.collapsed .call-toggle{transform:rotate(-90deg);}
+  .call-body{
+    max-height:400px; opacity:1;
+    transition:max-height .26s ease,opacity .2s;
+    padding:0 14px 13px 50px;
+  }
+  .callout.collapsed .call-body{max-height:0; opacity:0; padding-top:0; padding-bottom:0;}
+  .call-body p{font-size:14px; color:var(--t2);}
+  .call-body p + p{margin-top:8px;}
+  .call-body code{
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    font-size:12.5px; background:#fff; border:1px solid var(--bd-l);
+    padding:1px 6px; border-radius:5px; color:var(--co);
+  }
+
+  /* ===== Toast ===== */
+  .toast-wrap{
+    position:fixed; bottom:26px; left:50%; transform:translateX(-50%);
+    z-index:100; display:flex; flex-direction:column; gap:10px; align-items:center;
+    pointer-events:none;
+  }
+  .toast{
+    display:flex; align-items:center; gap:9px;
+    background:#1c1917; color:#fff; font-size:13.5px; font-weight:500;
+    padding:11px 16px; border-radius:10px;
+    box-shadow:0 10px 30px rgba(28,25,23,.28);
+    opacity:0; transform:translateY(12px); transition:opacity .25s,transform .25s;
+  }
+  .toast.show{opacity:1; transform:translateY(0);}
+  .toast .tic{color:var(--green); display:flex;}
+
+  @media (max-width:600px){
+    .doc{padding:20px 18px 24px;}
+    .call-body{padding-left:14px;}
+    .page-head h1{font-size:22px;}
+    .toolbar .btn span.lbl{display:none;}
+  }
+</style>
+</head>
+<body>
+  <!-- ===== 顶栏 ===== -->
+  <header class="topbar">
+    <div class="topbar-inner">
+      <button class="icon-btn" onclick="toastShow('演示原型，返回上一页')" aria-label="返回">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+      </button>
+      <span class="topbar-title">标注</span>
+      <div class="topbar-spacer"></div>
+      <button class="btn" onclick="toastShow('标注样式已同步到当前主题')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
+        同步样式
+      </button>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div class="page-head">
+      <h1>标注 Callout</h1>
+      <p>用标注块强调关键信息，共 8 种类型，点击标题可折叠。</p>
+    </div>
+
+    <div class="editor">
+      <!-- 工具栏 -->
+      <div class="toolbar">
+        <button class="tool-btn" onclick="toastShow('演示：加粗')" aria-label="加粗">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 12a4 4 0 0 0 0-8H6v8Z"/><path d="M15 20a4 4 0 0 0 0-8H6v8Z"/></svg>
+        </button>
+        <button class="tool-btn" onclick="toastShow('演示：斜体')" aria-label="斜体">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="4" x2="10" y2="4"/><line x1="14" y1="20" x2="5" y2="20"/><line x1="15" y1="4" x2="9" y2="20"/></svg>
+        </button>
+        <button class="tool-btn" onclick="toastShow('演示：列表')" aria-label="列表">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+        </button>
+        <span class="tool-sep"></span>
+        <button class="btn" id="insertBtn" aria-expanded="false" aria-haspopup="true">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <span class="lbl">插入标注</span>
+          <svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <div class="menu" id="menu" role="menu"></div>
+      </div>
+
+      <!-- 文档正文 -->
+      <div class="doc">
+        <div class="doc-title">认识标注块</div>
+        <div class="doc-sub">在笔记中高亮提示、警告、示例等内容</div>
+        <p class="lead">点击工具栏「插入标注」选择类型，或在下方查看 8 种标注的实际效果：</p>
+        <div id="calloutList"></div>
+      </div>
+    </div>
+  </main>
+
+  <div class="toast-wrap" id="toastWrap"></div>
+<script>
+  // 标注类型：名称 / 图标 / 配色 / 示例内容
+  const TYPES = [
+    { id:"info", name:"信息", c:"#2563eb",
+      badge:"rgba(37,99,235,.12)", bg:"rgba(37,99,235,.06)", bd:"rgba(37,99,235,.20)", ring:"rgba(37,99,235,.18)",
+      icon:'<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>',
+      body:"Vessel 的所有数据默认保存在本地，不会上传到云端；你可以在「设置 › 隐私」中查看数据存储位置。" },
+    { id:"important", name:"重要", c:"#dc2626",
+      badge:"rgba(220,38,38,.12)", bg:"rgba(220,38,38,.06)", bd:"rgba(220,38,38,.18)", ring:"rgba(220,38,38,.16)",
+      icon:'<polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>',
+      body:"删除工作区后不可恢复，操作前请先通过「导出」功能创建一份备份。" },
+    { id:"tip", name:"提示", c:"#0d9488",
+      badge:"rgba(13,148,136,.12)", bg:"rgba(13,148,136,.06)", bd:"rgba(13,148,136,.20)", ring:"rgba(13,148,136,.18)",
+      icon:'<path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/>',
+      body:'按 <code>Ctrl/⌘ + P</code> 可快速打开命令面板，输入关键词即可执行操作。' },
+    { id:"done", name:"完成", c:"#16a34a",
+      badge:"rgba(22,163,74,.12)", bg:"rgba(22,163,74,.06)", bd:"rgba(22,163,74,.20)", ring:"rgba(22,163,74,.18)",
+      icon:'<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>',
+      body:"已成功导入 42 个 Markdown 文件，全部内容已建立索引。" },
+    { id:"question", name:"问题", c:"#7c3aed",
+      badge:"rgba(124,61,237,.12)", bg:"rgba(124,61,237,.06)", bd:"rgba(124,61,237,.18)", ring:"rgba(124,61,237,.16)",
+      icon:'<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
+      body:'该文件的编码格式无法自动识别，是否以 <code>UTF-8</code> 重新打开？' },
+    { id:"warning", name:"警告", c:"#d97706",
+      badge:"rgba(217,119,6,.12)", bg:"rgba(217,119,6,.06)", bd:"rgba(217,119,6,.20)", ring:"rgba(217,119,6,.18)",
+      icon:'<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
+      body:"检测到该文件在应用外部被修改，继续编辑并保存可能覆盖最新更改。" },
+    { id:"example", name:"示例", c:"#ea580c",
+      badge:"rgba(234,88,12,.12)", bg:"rgba(234,88,12,.06)", bd:"rgba(234,88,12,.20)", ring:"rgba(234,88,12,.18)",
+      icon:'<line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>',
+      body:'使用 <code>#标签</code> 为笔记分类，例如 <code>#工作/会议</code> 会自动归入「工作」分组。' },
+    { id:"quote", name:"引用", c:"#57534e",
+      badge:"rgba(120,113,108,.14)", bg:"rgba(120,113,108,.07)", bd:"rgba(120,113,108,.22)", ring:"rgba(120,113,108,.18)",
+      icon:'<path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1.007.085-1 3c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2z"/><path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3c0 1.25.75 2 2 2z"/>',
+      body:"「好记性不如烂笔头。」—— 中国俗语" }
+  ];
+
+  const svgWrap = (inner, sw=2) =>
+    `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round">${inner}</svg>`;
+
+  // 渲染下拉菜单
+  const menu = document.getElementById("menu");
+  menu.innerHTML = '<div class="menu-label">选择标注类型</div>' +
+    TYPES.map(t => `
+      <button class="menu-item" data-id="${t.id}" role="menuitem">
+        <span class="ic" style="color:${t.c}">${svgWrap(t.icon, 1.9)}</span>
+        ${t.name}
+        <span class="mi-check">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+        </span>
+      </button>`).join("");
+
+  // 渲染标注块
+  const list = document.getElementById("calloutList");
+  list.innerHTML = TYPES.map(t => `
+    <div class="callout" id="co-${t.id}"
+      style="--co:${t.c};--co-badge:${t.badge};--co-bg:${t.bg};--co-bd:${t.bd};--co-ring:${t.ring}">
+      <div class="call-head" role="button" tabindex="0">
+        <span class="call-badge">${svgWrap(t.icon, 2)}</span>
+        <span class="call-name">${t.name}</span>
+        <span class="call-toggle">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </span>
+      </div>
+      <div class="call-body"><p>${t.body}</p></div>
+    </div>`).join("");
+
+  // 折叠 / 展开
+  list.querySelectorAll(".call-head").forEach(head => {
+    const toggle = () => head.closest(".callout").classList.toggle("collapsed");
+    head.addEventListener("click", toggle);
+    head.addEventListener("keydown", e => { if(e.key === "Enter" || e.key === " "){ e.preventDefault(); toggle(); } });
+  });
+
+  // 下拉开关
+  const insertBtn = document.getElementById("insertBtn");
+  const setMenu = open => {
+    menu.classList.toggle("open", open);
+    insertBtn.setAttribute("aria-expanded", open ? "true" : "false");
+  };
+  insertBtn.addEventListener("click", e => { e.stopPropagation(); setMenu(!menu.classList.contains("open")); });
+  menu.addEventListener("click", e => e.stopPropagation());
+  document.addEventListener("click", () => setMenu(false));
+
+  // 选择类型 → 展开 + 高亮对应标注
+  menu.querySelectorAll(".menu-item").forEach(item => {
+    item.addEventListener("click", () => {
+      const t = TYPES.find(x => x.id === item.dataset.id);
+      const co = document.getElementById("co-" + t.id);
+      co.classList.remove("collapsed");
+      setMenu(false);
+      toastShow(`已插入「${t.name}」标注`);
+      co.scrollIntoView({ behavior:"smooth", block:"center" });
+      co.classList.remove("flash"); void co.offsetWidth; co.classList.add("flash");
+    });
+  });
+
+  // Toast
+  const toastWrap = document.getElementById("toastWrap");
+  let toastTimer;
+  function toastShow(msg){
+    const el = document.createElement("div");
+    el.className = "toast";
+    el.innerHTML = `<span class="tic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>${msg}`;
+    toastWrap.appendChild(el);
+    requestAnimationFrame(() => el.classList.add("show"));
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => {
+      el.classList.remove("show");
+      setTimeout(() => el.remove(), 260);
+    }, 2200);
+  }
+</script>
+</body>
+</html>
+<!-- （注：内容由AI生成） -->

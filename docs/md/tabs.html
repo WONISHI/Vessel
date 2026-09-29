@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>层叠标签页 · 交互原型</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='4' y='7' width='13' height='12' rx='2' fill='%233370ff' opacity='.45'/%3E%3Crect x='8' y='3.5' width='12' height='12' rx='2' fill='%233370ff'/%3E%3C/svg%3E">
+<style>
+/* ============ 基础变量 ============ */
+:root{
+  --bar-h:48px;
+  --bg:#f5f6f8;
+  --bar:#ffffff;
+  --line:#e6e8eb;
+  --text:#1f2329;
+  --text-2:#646a73;
+  --text-3:#8f959e;
+  --hover:#f2f3f5;
+  --active:#ffffff;
+  --shadow:0 1px 3px rgba(31,35,41,.10), 0 0 0 1px rgba(31,35,41,.06);
+  --c-work:#3370ff;
+  --c-todo:#e8910c;
+  --c-study:#2ba471;
+  --c-project:#8b5cf6;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  background:var(--bg);color:var(--text);font-size:14px;
+  -webkit-font-smoothing:antialiased;overflow:hidden;
+}
+button{font-family:inherit;border:none;background:none;cursor:pointer;color:inherit}
+.app{display:flex;flex-direction:column;height:100vh}
+
+/* ============ 顶部标签栏 ============ */
+.tabbar{
+  position:relative;height:var(--bar-h);flex:0 0 var(--bar-h);
+  background:var(--bar);border-bottom:1px solid var(--line);
+  display:flex;align-items:stretch;z-index:20;
+}
+.side{display:flex;align-items:center;flex:0 0 auto;padding:0 6px;gap:2px}
+.icon-btn{
+  width:32px;height:32px;border-radius:7px;display:flex;align-items:center;justify-content:center;
+  color:var(--text-3);transition:background .15s,color .15s;
+}
+.icon-btn:hover{background:var(--hover);color:var(--text-2)}
+.icon-btn:active{background:#e9ebed}
+.icon-btn svg{width:17px;height:17px}
+.icon-btn:disabled{opacity:.35;cursor:default;background:none}
+#stackBtn{color:#54607a}
+#stackBtn:hover{background:#eef3ff;color:var(--c-work)}
+#stackBtn.active{color:var(--c-work);background:#eef3ff}
+#stackBtn .stack-badge{
+  position:absolute;top:3px;right:3px;width:6px;height:6px;border-radius:50%;
+  background:var(--c-work);
+}
+#stackBtn{position:relative}
+@keyframes stackPulse{
+  0%{transform:scale(1)}
+  35%{transform:scale(.82);background:#dbe6ff}
+  70%{transform:scale(1.08)}
+  100%{transform:scale(1)}
+}
+#stackBtn.pulse{animation:stackPulse .45s ease}
+
+/* 工作台固定入口 */
+.workspace-entry{
+  display:flex;align-items:center;gap:6px;height:32px;padding:0 10px 0 8px;
+  border-radius:7px;color:var(--text-2);font-size:13px;white-space:nowrap;
+  cursor:pointer;transition:background .15s;margin-left:2px;
+}
+.workspace-entry:hover{background:var(--hover)}
+.workspace-entry svg{width:15px;height:15px;color:var(--text-3)}
+.side-divider{width:1px;height:20px;background:var(--line);margin:0 6px 0 8px}
+
+/* ============ 标签滚动区 ============ */
+.viewport{flex:1 1 auto;overflow:hidden;position:relative;min-width:0}
+.track{display:flex;align-items:center;height:100%;padding:0 4px;gap:4px;transition:transform .25s ease}
+.tab{
+  position:relative;flex:0 0 auto;display:flex;align-items:center;gap:7px;
+  height:34px;padding:0 8px 0 10px;border-radius:8px;font-size:13px;
+  color:var(--text-2);background:transparent;border:1px solid transparent;
+  white-space:nowrap;max-width:220px;cursor:pointer;user-select:none;
+  transition:background .15s,color .15s;
+}
+.tab .doc-ico{width:15px;height:15px;flex:0 0 auto;color:var(--text-3)}
+.tab .tab-name{overflow:hidden;text-overflow:ellipsis}
+.tab .tab-dot{width:6px;height:6px;border-radius:50%;flex:0 0 auto}
+.tab .tab-close{
+  width:18px;height:18px;border-radius:5px;display:flex;align-items:center;justify-content:center;
+  color:var(--text-3);opacity:0;flex:0 0 auto;transition:background .12s,opacity .12s;
+}
+.tab .tab-close svg{width:11px;height:11px}
+.tab .tab-close:hover{background:#e4e6eb;color:var(--text)}
+.tab:hover{background:var(--hover)}
+.tab:hover .tab-close{opacity:1}
+.tab.active{
+  background:var(--active);color:var(--text);font-weight:500;
+  box-shadow:var(--shadow);border-color:rgba(31,35,41,.05);
+}
+.tab.active .doc-ico{color:var(--text-2)}
+.tab.active .tab-close{opacity:.75}
+
+/* 层叠：收拢 */
+.tab.closing{animation:tabCollapse .3s cubic-bezier(.5,0,.9,.4) forwards}
+@keyframes tabCollapse{
+  to{opacity:0;transform:translateX(-64px) scale(.45);margin-right:-120px}
+}
+/* 层叠：弹出 */
+.tab.opening{opacity:0;transform:translateX(-64px) scale(.45)}
+.tab.opening.run{animation:tabPop .34s cubic-bezier(.2,.85,.32,1.25) forwards}
+@keyframes tabPop{
+  from{opacity:0;transform:translateX(-64px) scale(.45)}
+  to{opacity:1;transform:translateX(0) scale(1)}
+}
+.empty-tabs{
+  display:flex;align-items:center;gap:10px;height:100%;padding-left:14px;
+  color:var(--text-3);font-size:13px;
+}
+.empty-tabs button{
+  height:28px;padding:0 12px;border-radius:6px;background:#eef3ff;color:var(--c-work);
+  font-size:12.5px;font-weight:500;
+}
+.empty-tabs button:hover{background:#e0eaff}
+
+/* 边缘渐隐提示可滚动 */
+.viewport::before,.viewport::after{
+  content:"";position:absolute;top:0;bottom:0;width:18px;z-index:5;pointer-events:none;opacity:0;transition:opacity .2s;
+}
+.viewport::before{left:0;background:linear-gradient(90deg,#fff,transparent)}
+.viewport::after{right:0;background:linear-gradient(270deg,#fff,transparent)}
+.viewport.fade-l::before{opacity:1}
+.viewport.fade-r::after{opacity:1}
+
+/* ============ 搜索框 ============ */
+.search-wrap{display:none;align-items:center;position:relative}
+.search-wrap.open{display:flex}
+.search-wrap input{
+  width:190px;height:30px;border-radius:7px;border:1px solid var(--line);background:#f5f6f8;
+  padding:0 28px 0 30px;font-size:13px;outline:none;color:var(--text);transition:.15s;
+}
+.search-wrap input:focus{background:#fff;border-color:var(--c-work);box-shadow:0 0 0 3px rgba(51,112,255,.12)}
+.search-wrap .sw-ico{position:absolute;left:8px;width:14px;height:14px;color:var(--text-3);pointer-events:none}
+.search-wrap .sw-clear{position:absolute;right:5px;width:20px;height:20px;border-radius:5px;display:flex;align-items:center;justify-content:center;color:var(--text-3)}
+.search-wrap .sw-clear:hover{background:var(--hover);color:var(--text)}
+.search-wrap .sw-clear svg{width:11px;height:11px}
+#btnSearch.hidden{display:none}
+
+/* ============ 弹出菜单（右键菜单样式） ============ */
+.menu{
+  position:absolute;top:calc(var(--bar-h) - 2px);min-width:232px;
+  background:#fff;border-radius:10px;padding:6px;z-index:50;
+  box-shadow:0 8px 28px rgba(31,35,41,.16),0 2px 8px rgba(31,35,41,.08),0 0 0 1px rgba(31,35,41,.07);
+  display:none;transform-origin:top left;
+}
+.menu.show{display:block;animation:menuIn .16s cubic-bezier(.2,.9,.3,1.15)}
+@keyframes menuIn{from{opacity:0;transform:scale(.94) translateY(-5px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.menu-header{
+  font-size:11.5px;color:var(--text-3);padding:6px 10px 5px;letter-spacing:.3px;
+}
+.menu-item{
+  display:flex;align-items:center;gap:10px;width:100%;padding:7px 10px;border-radius:6px;
+  font-size:13px;color:var(--text);text-align:left;line-height:1.3;
+}
+.menu-item:hover{background:#f2f5ff}
+.menu-item .mi-ico{width:16px;height:16px;flex:0 0 auto;color:var(--text-3)}
+.menu-item .mi-label{flex:1 1 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.menu-item .mi-count{
+  font-size:11px;color:var(--text-3);background:#f2f3f5;border-radius:9px;
+  padding:1px 7px;flex:0 0 auto;
+}
+.menu-item .mi-check{width:14px;height:14px;flex:0 0 auto;color:var(--c-work)}
+.menu-item.current{font-weight:500}
+.menu-item.danger:hover{background:#fef1f1;color:#d9534b}
+.menu-item.danger:hover .mi-ico{color:#d9534b}
+.menu-sep{height:1px;background:var(--line);margin:5px 8px}
+.group-dot{width:8px;height:8px;border-radius:50%;flex:0 0 auto}
+.menu-item .mi-sub{font-size:11.5px;color:var(--text-3);margin-top:1px}
+.search-item .mi-tags{font-size:11px;color:var(--text-3);flex:0 0 auto}
+.menu-empty{padding:14px 12px;text-align:center;color:var(--text-3);font-size:12.5px}
+
+/* ============ 内容区 ============ */
+.content{flex:1 1 auto;overflow-y:auto;display:flex;justify-content:center;padding:34px 20px 60px}
+.paper{
+  width:100%;max-width:820px;background:#fff;border-radius:12px;
+  box-shadow:0 1px 4px rgba(31,35,41,.07);padding:46px 58px 60px;
+  animation:paperIn .28s ease;
+}
+@keyframes paperIn{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:none}}
+.crumb{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--text-3);margin-bottom:22px}
+.crumb .group-chip{display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border-radius:20px;font-size:11.5px;font-weight:500}
+.paper h1{font-size:27px;font-weight:650;letter-spacing:.2px;margin-bottom:26px}
+.paper h2{font-size:17px;font-weight:600;margin:26px 0 12px}
+.paper p{color:#3a3f45;line-height:1.85;margin-bottom:13px;font-size:14.5px}
+.paper ul{margin:0 0 14px 2px}
+.paper li{color:#3a3f45;line-height:1.85;list-style:none;display:flex;gap:9px;font-size:14.5px}
+.paper li::before{content:"";width:5px;height:5px;border-radius:50%;background:#b6bbc3;margin-top:11px;flex:0 0 auto}
+.paper li.done{color:#9aa0a8;text-decoration:line-through}
+.paper .code{
+  background:#1f2430;border-radius:9px;padding:16px 18px;margin:6px 0 16px;overflow-x:auto;
+}
+.paper .code pre{font-family:"SF Mono",Menlo,Consolas,monospace;font-size:13px;line-height:1.75;color:#d7dde8}
+.paper .code .cm{color:#6b7689}
+.paper .code .hl{color:#7fb4ff}
+.paper .note{
+  border-radius:8px;background:#f6f8fa;padding:13px 16px;font-size:13.5px;color:#555c66;line-height:1.75;margin-bottom:14px;
+}
+.content-empty{
+  margin:auto;display:flex;flex-direction:column;align-items:center;gap:14px;color:var(--text-3);
+}
+.content-empty svg{width:52px;height:52px;color:#c9ced6}
+.content-empty p{font-size:14px}
+.content-empty button{
+  height:34px;padding:0 20px;border-radius:8px;background:var(--c-work);color:#fff;font-size:13.5px;font-weight:500;
+}
+.content-empty button:hover{background:#2860e1}
+
+/* ============ Toast ============ */
+.toast{
+  position:fixed;left:50%;bottom:38px;transform:translate(-50%,14px);
+  background:#2f343c;color:#fff;font-size:13px;padding:9px 18px;border-radius:8px;
+  opacity:0;pointer-events:none;transition:.25s;z-index:100;box-shadow:0 6px 20px rgba(0,0,0,.22);
+  max-width:80vw;
+}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+
+/* ============ 响应式 ============ */
+@media (max-width:640px){
+  .content{padding:18px 12px 40px}
+  .paper{padding:28px 22px 36px;border-radius:10px}
+  .paper h1{font-size:22px}
+  .workspace-entry span{display:none}
+  .workspace-entry{padding:0 8px}
+  .search-wrap input{width:130px;font-size:16px}
+  .paper .code pre{font-size:13.5px}
+  .menu{min-width:210px}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- ============ 顶部标签栏 ============ -->
+  <header class="tabbar">
+    <div class="side">
+      <button class="icon-btn" id="btnScrollL" title="向左滚动">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <button class="icon-btn" id="stackBtn" title="层叠标签分组">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3.5" y="7.5" width="13" height="12" rx="2.2"/>
+          <rect x="8" y="3.5" width="12.5" height="12" rx="2.2" fill="rgba(51,112,255,.14)"/>
+        </svg>
+      </button>
+      <div class="workspace-entry" id="wsEntry">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M9.5 21v-6h5v6"/></svg>
+        <span>工作台</span>
+      </div>
+      <div class="side-divider"></div>
+    </div>
+
+    <div class="viewport" id="viewport">
+      <div class="track" id="track"></div>
+    </div>
+
+    <div class="side">
+      <div class="search-wrap" id="searchWrap">
+        <svg class="sw-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.2-3.2"/></svg>
+        <input id="searchInput" type="text" placeholder="搜索全部标签…">
+        <button class="sw-clear" id="searchClear"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+      </div>
+      <button class="icon-btn" id="btnScrollR" title="向右滚动">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+      <button class="icon-btn" id="btnSearch" title="搜索标签">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.2-3.2"/></svg>
+      </button>
+      <button class="icon-btn" id="btnMore" title="更多操作">
+        <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/></svg>
+      </button>
+    </div>
+
+    <!-- 分组层叠菜单 / 更多菜单 / 搜索结果 由 JS 渲染 -->
+    <div class="menu" id="groupMenu"></div>
+    <div class="menu" id="moreMenu"></div>
+    <div class="menu" id="searchMenu"></div>
+  </header>
+
+  <!-- ============ 内容区 ============ -->
+  <main class="content" id="content"></main>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ==================== 图标库 ==================== */
+const ICO = {
+  doc:`<svg class="doc-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h4"/></svg>`,
+  close:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>`,
+  briefcase:`<svg class="mi-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7.5" width="18" height="12.5" rx="2.2"/><path d="M8.5 7.5V6a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v1.5M3 12.5h18"/></svg>`,
+  check:`<svg class="mi-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m8.5 12.2 2.4 2.4 4.6-5"/></svg>`,
+  book:`<svg class="mi-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15.5H6.5A2.5 2.5 0 0 0 4 21z"/><path d="M4 21a2.5 2.5 0 0 1 2.5-2.5H20"/></svg>`,
+  folder:`<svg class="mi-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4.2a2 2 0 0 1 1.4.6L12 7h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>`,
+  tick:`<svg class="mi-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7"/></svg>`,
+  plus:`<svg class="mi-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>`,
+  closeOthers:`<svg class="mi-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="6" width="12" height="13" rx="2"/><path d="m15 9 5.5-3v13L15 16M8 10h4M8 13h4"/></svg>`,
+  trash:`<svg class="mi-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V5a1.5 1.5 0 0 1 1.5-1.5h3A1.5 1.5 0 0 1 15 5v2m2 0-.8 12.2a2 2 0 0 1-2 1.9H9.8a2 2 0 0 1-2-1.9L7 7"/></svg>`,
+  emptyDoc:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>`
+};
+
+/* ==================== 数据：分组与标签 ==================== */
+const GROUPS = [
+  { id:'work', name:'工作台', color:'#3370ff', icon:ICO.briefcase, tabs:[
+    { id:'linux', name:'linux命令.md', body:`
+      <h2>系统信息</h2>
+      <div class="code"><pre><span class="cm"># 查看磁盘占用</span>
+<span class="hl">df</span> -h
+<span class="cm"># 查看内存与端口占用</span>
+<span class="hl">free</span> -h
+<span class="hl">lsof</span> -i:8080</pre></div>
+      <h2>常用排查</h2>
+      <div class="code"><pre><span class="cm"># 实时追踪日志最后 200 行</span>
+<span class="hl">tail</span> -n 200 -f /var/log/app.log
+<span class="cm"># 查找大文件</span>
+<span class="hl">find</span> / -type f -size +500M</pre></div>
+      <div class="note">提示：生产环境执行删除类命令前，先 <b>which</b> 确认命令路径，避免 alias 误操作。</div>` },
+    { id:'deploy', name:'服务器部署清单.md', body:`
+      <h2>上线前检查</h2>
+      <ul><li>配置文件已切换为生产环境，密钥不入库</li><li>数据库已备份，迁移脚本在预发验证通过</li><li>健康检查接口 /health 返回 200</li></ul>
+      <h2>发布步骤</h2>
+      <ul><li>灰度 1 台观察 10 分钟，关注错误率与 P99</li><li>全量滚动发布，保留上一版本镜像用于回滚</li><li>发布后验证核心链路：登录、下单、支付</li></ul>` },
+    { id:'weekly', name:'周报模板.md', body:`
+      <div class="note">本周重点（不超过 3 条）：① ___ ② ___ ③ ___</div>
+      <h2>本周完成</h2>
+      <ul><li>事项 — 结果/数据 — 协作方</li><li>事项 — 结果/数据 — 协作方</li></ul>
+      <h2>下周计划</h2>
+      <ul><li>计划事项 — 预期产出 — 截止时间</li></ul>
+      <h2>风险与求助</h2>
+      <p>需要协调的资源与阻塞点，写清影响范围。</p>` },
+    { id:'meeting', name:'会议记录-0928.md', body:`
+      <h2>Q4 规划对齐会 · 9/28</h2>
+      <p>参会：产品、研发、设计三方负责人。会议明确 Q4 主线为「移动端体验升级 + 性能治理」。</p>
+      <h2>结论</h2>
+      <ul><li>10 月中旬完成新版首页灰度，设计侧 10/8 前交付视觉稿</li><li>启动包体积与启动速度专项，目标包体积下降 20%</li></ul>
+      <h2>待办</h2>
+      <ul><li>研发：输出技术方案与排期（本周五前）</li><li>产品：补充新版首页数据指标定义</li></ul>` }
+  ]},
+  { id:'todo', name:'待办', color:'#e8910c', icon:ICO.check, tabs:[
+    { id:'todo-list', name:'待办清单.md', body:`
+      <h2>今天</h2>
+      <ul><li class="done">回复客户合同邮件</li><li class="done">提交差旅报销单</li><li>整理 Q4 目标初稿，18:00 前发组长</li><li>预约周三体检</li></ul>
+      <h2>本周</h2>
+      <ul><li>完成新版需求评审</li><li>给团队做一次内部分享</li><li>更新个人年度 OKR 进度</li></ul>` },
+    { id:'expense', name:'报销流程.md', body:`
+      <h2>报销步骤</h2>
+      <ul><li>在 OA「费用报销」中选择费用类型，填写金额与事由</li><li>上传发票照片，增值税专用发票需同时上传验真截图</li><li>直属主管审批 → 财务复核 → 打款，周期约 5 个工作日</li></ul>
+      <div class="note">注意：单张发票超过 1000 元需部门总监加签；交通类需附行程说明。</div>` },
+    { id:'trip', name:'国庆出行清单.md', body:`
+      <h2>行前准备</h2>
+      <ul><li>身份证、驾照、充电宝、常备药</li><li>酒店与往返车票确认，截图离线保存</li><li>家中垃圾清理、绿植浇水托付邻居</li></ul>
+      <h2>行程</h2>
+      <ul><li>D1：广州南 → 贵阳，下午甲秀楼</li><li>D2-D3：黔东南苗寨</li><li>D4：返程，预留半天缓冲</li></ul>` },
+    { id:'grocery', name:'周末采购.md', body:`
+      <h2>超市</h2>
+      <ul><li>牛奶、鸡蛋、全麦面包</li><li>西红柿、生菜、牛肉、虾仁</li><li>洗衣液、厨房垃圾袋</li></ul>
+      <h2>水果店</h2>
+      <ul><li>秋月梨、阳光玫瑰葡萄</li></ul>` }
+  ]},
+  { id:'study', name:'学习', color:'#2ba471', icon:ICO.book, tabs:[
+    { id:'rust', name:'Rust 学习笔记.md', body:`
+      <h2>所有权三原则</h2>
+      <ul><li>每个值有且只有一个所有者</li><li>同一时刻只能有一个可变引用，或多个不可变引用</li><li>引用必须始终有效</li></ul>
+      <div class="code"><pre><span class="hl">fn</span> longest(s1: &<span class="hl">str</span>, s2: &<span class="hl">str</span>) -> &<span class="hl">str</span> {
+    <span class="hl">if</span> s1.len() > s2.len() { s1 } <span class="hl">else</span> { s2 }
+}</pre></div>
+      <p>生命周期标注不改变引用的实际寿命，只是告诉编译器引用之间的关系。</p>` },
+    { id:'pattern', name:'设计模式.md', body:`
+      <h2>创建型</h2>
+      <ul><li>工厂方法：把对象创建延迟到子类</li><li>建造者：分步构建复杂对象，链式调用</li></ul>
+      <h2>结构型</h2>
+      <ul><li>装饰器：不改变原类即可叠加行为</li><li>适配器：兼容不匹配的接口</li></ul>
+      <h2>行为型</h2>
+      <ul><li>观察者：状态变化自动通知订阅者</li><li>策略：运行时切换算法族</li></ul>` },
+    { id:'english', name:'英语词汇.md', body:`
+      <h2>高频词</h2>
+      <ul><li>align — 使一致；对齐（align with goals）</li><li>iterate — 迭代；反复改进</li><li>blocker — 阻塞项；障碍</li><li>stakeholder — 利益相关方</li></ul>
+      <h2>例句</h2>
+      <div class="note">The main blocker is the API dependency; we need to align with the platform team this week.</div>` }
+  ]},
+  { id:'project', name:'项目', color:'#8b5cf6', icon:ICO.folder, tabs:[
+    { id:'req', name:'官网改版需求.md', body:`
+      <h2>背景</h2>
+      <p>现有官网跳出率 68%，移动端转化明显低于行业均值，需整体改版。</p>
+      <h2>核心需求</h2>
+      <ul><li>首屏 3 秒内讲清产品价值，突出免费试用入口</li><li>客户案例按行业筛选，支持视频证言</li><li>全站支持中英文切换与 SEO 友好 URL</li></ul>
+      <h2>非目标</h2>
+      <ul><li>本期不做用户社区与博客迁移</li></ul>` },
+    { id:'api', name:'API 设计.md', body:`
+      <h2>标签分组接口</h2>
+      <div class="code"><pre>GET /api/v1/tab-groups
+{
+  <span class="hl">"id"</span>: <span class="hl">"todo"</span>,
+  <span class="hl">"name"</span>: <span class="hl">"待办"</span>,
+  <span class="hl">"tabs"</span>: [ { <span class="hl">"id"</span>: <span class="hl">"t1"</span>,
+    <span class="hl">"title"</span>: <span class="hl">"待办清单.md"</span> } ]
+}</pre></div>
+      <p>分组切换在前端本地完成，接口仅返回全量数据，切换时不发请求。</p>` },
+    { id:'schedule', name:'迭代排期表.md', body:`
+      <h2>第 40 周（9/30 - 10/13）</h2>
+      <ul><li>需求评审与视觉定稿 — 10/8</li><li>前端框架搭建、路由与分组状态管理 — 10/10</li><li>层叠切换动效联调 — 10/13</li></ul>
+      <h2>第 41 周</h2>
+      <ul><li>搜索、更多操作等周边功能</li><li>联调与走查，10/24 提测</li></ul>` }
+  ]}
+];
+
+/* ==================== 状态 ==================== */
+const state = { group:'work', active:{}, scrollX:0, seq:1 };
+GROUPS.forEach(g => state.active[g.id] = g.tabs[0] ? g.tabs[0].id : null);
+
+const $ = id => document.getElementById(id);
+const track=$('track'), viewport=$('viewport'), tabbar=document.querySelector('.tabbar');
+const groupMenu=$('groupMenu'), moreMenu=$('moreMenu'), searchMenu=$('searchMenu');
+
+/* ==================== Toast ==================== */
+let toastTimer;
+function toast(msg){
+  const t=$('toast'); t.textContent=msg; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),2400);
+}
+
+/* ==================== 标签轨道渲染 ==================== */
+function currentGroup(){ return GROUPS.find(g=>g.id===state.group); }
+function buildTrack(animate){
+  const g=currentGroup();
+  track.innerHTML='';
+  track.style.transform=`translateX(${-state.scrollX}px)`;
+  if(g.tabs.length===0){
+    const d=document.createElement('div'); d.className='empty-tabs';
+    d.innerHTML=`<span>「${g.name}」分组暂无标签</span><button id="emptyNew">新建标签</button>`;
+    track.appendChild(d);
+    $('emptyNew').onclick=newTab; updateScroll(); return;
+  }
+  g.tabs.forEach((tab,i)=>{
+    const el=document.createElement('div');
+    el.className='tab'+(state.active[g.id]===tab.id?' active':'');
+    el.dataset.id=tab.id;
+    el.innerHTML=`${ICO.doc}<span class="tab-name">${tab.name}</span><span class="tab-close">${ICO.close}</span>`;
+    el.addEventListener('click',e=>{
+      if(e.target.closest('.tab-close')) return;
+      activateTab(tab.id);
+    });
+    el.querySelector('.tab-close').addEventListener('click',e=>{e.stopPropagation();closeTab(tab.id);});
+    track.appendChild(el);
+    if(animate){
+      el.classList.add('opening');
+      requestAnimationFrame(()=>requestAnimationFrame(()=>{
+        el.classList.add('run'); el.style.animationDelay=(i*55)+'ms';
+      }));
+    }
+  });
+  updateScroll();
+}
+
+/* ==================== 层叠切换（核心） ==================== */
+let switching=false;
+function switchGroup(gid){
+  closeMenus();
+  if(gid===state.group||switching) return;
+  switching=true; state.scrollX=0;
+  const tabs=[...track.querySelectorAll('.tab')];
+  tabs.forEach((t,i)=>{ t.classList.add('closing'); t.style.animationDelay=Math.min(i*35,140)+'ms'; });
+  const btn=$('stackBtn');
+  btn.classList.remove('pulse'); void btn.offsetWidth; btn.classList.add('pulse');
+  setTimeout(()=>{
+    state.group=gid;
+    if(!currentGroup().tabs.find(t=>t.id===state.active[gid]))
+      state.active[gid]=currentGroup().tabs[0]?currentGroup().tabs[0].id:null;
+    buildTrack(true);
+    renderContent();
+    switching=false;
+  }, 330);
+}
+
+function activateTab(id){
+  state.active[state.group]=id;
+  track.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.id===id));
+  renderContent();
+}
+
+function closeTab(id){
+  const g=currentGroup();
+  const idx=g.tabs.findIndex(t=>t.id===id);
+  const el=track.querySelector(`.tab[data-id="${id}"]`);
+  if(el){ el.style.transition='.18s'; el.style.transform='scale(.6)'; el.style.opacity='0'; }
+  setTimeout(()=>{
+    g.tabs.splice(idx,1);
+    if(state.active[g.id]===id)
+      state.active[g.id]=g.tabs.length?g.tabs[Math.min(idx,g.tabs.length-1)].id:null;
+    buildTrack(false); renderContent();
+  },170);
+}
+
+function newTab(){
+  const g=currentGroup();
+  const id='new-'+(state.seq++);
+  g.tabs.push({id,name:`未命名文档${state.seq-1}.md`,body:`<div class="note">这是一个新建的空白文档，开始记录吧。</div><p>支持标题、列表、代码块等排版。</p>`});
+  state.active[g.id]=id;
+  buildTrack(false);
+  const last=track.lastElementChild;
+  if(last){ last.classList.add('opening'); requestAnimationFrame(()=>requestAnimationFrame(()=>last.classList.add('run'))); }
+  state.scrollX=Math.max(0,track.scrollWidth-viewport.clientWidth);
+  track.style.transform=`translateX(${-state.scrollX}px)`;
+  renderContent(); updateScroll();
+}
+
+/* ==================== 内容区 ==================== */
+function renderContent(){
+  const c=$('content'), g=currentGroup(), tab=g.tabs.find(t=>t.id===state.active[g.id]);
+  if(!tab){
+    c.innerHTML=`<div class="content-empty">${ICO.emptyDoc}<p>当前分组没有打开的标签</p><button id="cNew">新建标签</button></div>`;
+    $('cNew').onclick=newTab; return;
+  }
+  c.innerHTML=`<div class="paper">
+    <div class="crumb">
+      <span class="group-chip" style="color:${g.color};background:${g.color}1f">
+        <span class="group-dot" style="background:${g.color}"></span>${g.name}
+      </span>
+      <span>·</span><span>最近编辑 今天 09:24</span>
+    </div>
+    <h1>${tab.name.replace(/\.md$/,'')}</h1>${tab.body}
+  </div>`;
+}
+
+/* ==================== 分组层叠菜单 ==================== */
+function openGroupMenu(){
+  if(switching) return;
+  const showing=groupMenu.classList.contains('show');
+  closeMenus(); if(showing) return;
+  groupMenu.innerHTML=`<div class="menu-header">标签分组（点击层叠切换）</div>`+
+    GROUPS.map(g=>`
+      <button class="menu-item ${g.id===state.group?'current':''}" data-gid="${g.id}">
+        ${g.icon}
+        <span class="mi-label">${g.name}</span>
+        <span class="mi-count">${g.tabs.length}</span>
+        ${g.id===state.group?ICO.tick:''}
+      </button>`).join('');
+  groupMenu.querySelectorAll('.menu-item').forEach(it=>
+    it.onclick=()=>switchGroup(it.dataset.gid));
+  anchorMenu(groupMenu,$('stackBtn'));
+  groupMenu.classList.add('show');
+  $('stackBtn').classList.add('active');
+}
+
+/* ==================== 更多菜单 ==================== */
+function openMoreMenu(){
+  const showing=moreMenu.classList.contains('show');
+  closeMenus(); if(showing) return;
+  moreMenu.innerHTML=`
+    <button class="menu-item" id="mNew">${ICO.plus}<span class="mi-label">新建标签</span></button>
+    <button class="menu-item" id="mOthers">${ICO.closeOthers}<span class="mi-label">关闭其他标签</span></button>
+    <div class="menu-sep"></div>
+    <button class="menu-item danger" id="mAll">${ICO.trash}<span class="mi-label">关闭本组全部标签</span></button>`;
+  anchorMenu(moreMenu,$('btnMore'));
+  moreMenu.classList.add('show');
+  $('mNew').onclick=()=>{closeMenus();newTab();};
+  $('mOthers').onclick=()=>{
+    const g=currentGroup();
+    g.tabs=g.tabs.filter(t=>t.id===state.active[g.id]);
+    buildTrack(false); toast('已关闭其他标签'); closeMenus();
+  };
+  $('mAll').onclick=()=>{
+    currentGroup().tabs=[]; state.active[state.group]=null;
+    buildTrack(false); renderContent(); toast('已关闭本组全部标签'); closeMenus();
+  };
+}
+
+/* ==================== 菜单定位与关闭 ==================== */
+function anchorMenu(menu,anchor){
+  const ar=anchor.getBoundingClientRect(), br=tabbar.getBoundingClientRect();
+  let left=ar.left-br.left;
+  const estW=250;
+  if(left+estW>window.innerWidth-8) left=window.innerWidth-estW-8;
+  menu.style.left=Math.max(8,left)+'px';
+}
+function closeMenus(){
+  [groupMenu,moreMenu,searchMenu].forEach(m=>m.classList.remove('show'));
+  $('stackBtn').classList.remove('active');
+}
+document.addEventListener('mousedown',e=>{
+  if(e.target.closest('.menu')) return;
+  if(e.target.closest('#stackBtn')||e.target.closest('#btnMore')) return;
+  closeMenus();
+});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){closeMenus();closeSearch();}
+});
+
+/* ==================== 搜索 ==================== */
+function openSearch(){
+  $('searchWrap').classList.add('open');
+  $('btnSearch').classList.add('hidden');
+  $('searchInput').focus();
+}
+function closeSearch(){
+  $('searchWrap').classList.remove('open');
+  $('btnSearch').classList.remove('hidden');
+  $('searchInput').value=''; searchMenu.classList.remove('show');
+}
+function runSearch(q){
+  q=q.trim().toLowerCase();
+  if(!q){searchMenu.classList.remove('show');return;}
+  const hits=[];
+  GROUPS.forEach(g=>g.tabs.forEach(t=>{ if(t.name.toLowerCase().includes(q)) hits.push({g,t}); }));
+  searchMenu.innerHTML = hits.length ? hits.map(h=>`
+    <button class="menu-item search-item" data-gid="${h.g.id}" data-tid="${h.t.id}">
+      ${ICO.doc}<span class="mi-label">${h.t.name}</span>
+      <span class="mi-tags"><span class="group-dot" style="background:${h.g.color};display:inline-block;margin-right:5px;vertical-align:middle"></span>${h.g.name}</span>
+    </button>`).join('')
+    : `<div class="menu-empty">没有找到包含「${q}」的标签</div>`;
+  anchorMenu(searchMenu,$('searchWrap'));
+  searchMenu.classList.add('show');
+  searchMenu.querySelectorAll('.search-item').forEach(it=>
+    it.onclick=()=>{
+      const gid=it.dataset.gid,tid=it.dataset.tid;
+      closeSearch();
+      if(gid===state.group) activateTab(tid);
+      else { switchGroup(gid); setTimeout(()=>activateTab(tid),360); }
+    });
+}
+
+/* ==================== 滚动控制 ==================== */
+function updateScroll(){
+  const max=Math.max(0,track.scrollWidth-viewport.clientWidth);
+  state.scrollX=Math.min(state.scrollX,max);
+  track.style.transform=`translateX(${-state.scrollX}px)`;
+  viewport.classList.toggle('fade-l',state.scrollX>2);
+  viewport.classList.toggle('fade-r',state.scrollX<max-2);
+  $('btnScrollL').disabled=state.scrollX<=0;
+  $('btnScrollR').disabled=state.scrollX>=max;
+}
+function scrollByStep(dir){
+  const max=Math.max(0,track.scrollWidth-viewport.clientWidth);
+  state.scrollX=Math.min(max,Math.max(0,state.scrollX+dir*240));
+  updateScroll();
+}
+
+/* ==================== 事件绑定 ==================== */
+$('stackBtn').onclick=openGroupMenu;
+$('btnMore').onclick=openMoreMenu;
+$('btnScrollL').onclick=()=>scrollByStep(-1);
+$('btnScrollR').onclick=()=>scrollByStep(1);
+$('btnSearch').onclick=openSearch;
+$('searchClear').onclick=closeSearch;
+$('searchInput').addEventListener('input',e=>runSearch(e.target.value));
+$('wsEntry').onclick=()=>switchGroup('work');
+window.addEventListener('resize',()=>{updateScroll();});
+
+/* ==================== 初始化 ==================== */
+buildTrack(true);
+renderContent();
+setTimeout(()=>toast('点击左箭头旁的层叠图标，可切换标签分组'),650);
+</script>
+</body>
+</html>

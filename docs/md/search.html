@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>查找 · FlexNote</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2316a34a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.3-4.3'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://miaoda.feishu.cn/fonts/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+<style>
+  :root{
+    --bg:#faf9f7; --card:#ffffff; --bd:#e7e5e4; --bd-l:#f0efed;
+    --t1:#1c1917; --t2:#44403c; --t3:#78716c; --t4:#a8a29e;
+    --green:#16a34a; --green-d:#15803d;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    background:var(--bg); color:var(--t2);
+    font-family:"Plus Jakarta Sans","Noto Sans SC",-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+    line-height:1.6; -webkit-font-smoothing:antialiased;
+  }
+  /* 顶栏 */
+  .topbar{
+    position:sticky; top:0; z-index:30;
+    background:rgba(255,255,255,.82); backdrop-filter:saturate(180%) blur(12px);
+    border-bottom:1px solid var(--bd-l);
+  }
+  .topbar-inner{max-width:900px;margin:0 auto;height:56px;padding:0 20px;display:flex;align-items:center;gap:12px;}
+  .icon-btn{width:34px;height:34px;border:none;border-radius:8px;background:transparent;color:var(--t3);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s,color .15s;}
+  .icon-btn:hover{background:#f0efed;color:var(--t1);}
+  .topbar-title{font-size:15px;font-weight:700;color:var(--t1);}
+  .topbar-spacer{flex:1;}
+  .btn{display:inline-flex;align-items:center;gap:7px;font-size:13.5px;font-weight:600;font-family:inherit;border-radius:8px;cursor:pointer;border:1px solid var(--bd);padding:8px 14px;background:#fff;color:var(--t2);transition:all .15s;}
+  .btn:hover{background:#faf9f7;border-color:#d6d3d1;}
+  .btn-primary{background:var(--green);border-color:var(--green);color:#fff;}
+  .btn-primary:hover{background:var(--green-d);border-color:var(--green-d);}
+
+  /* 编辑器 */
+  .wrap{max-width:900px;margin:0 auto;padding:26px 20px 80px;}
+  .editor{background:var(--card);border:1px solid var(--bd);border-radius:12px;box-shadow:0 1px 2px rgba(28,25,23,.04);padding:24px 26px 26px;}
+  .editor h1{font-size:20px;font-weight:800;color:var(--t1);margin-bottom:4px;}
+  .editor .sub{font-size:13px;color:var(--t3);margin-bottom:18px;}
+  .editor p{font-size:14.5px;color:var(--t2);margin-bottom:14px;}
+
+  /* 代码块 */
+  .code{background:#faf9f7;border:1px solid var(--bd-l);border-radius:10px;overflow:hidden;margin-top:6px;}
+  .code-head{display:flex;align-items:center;gap:7px;padding:8px 14px;border-bottom:1px solid var(--bd-l);}
+  .code-head .dot{width:9px;height:9px;border-radius:50%;background:#e7e5e4;}
+  .code-head span{font-size:12px;color:var(--t4);font-family:ui-monospace,monospace;margin-left:4px;}
+  .code-lines{padding:10px 0;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13px;line-height:1.9;}
+  .cline{display:flex;align-items:baseline;}
+  .cline .ln{width:42px;flex-shrink:0;text-align:right;padding-right:16px;color:var(--t4);user-select:none;font-size:11.5px;}
+  .cline .ct{flex:1;padding-right:18px;white-space:pre;color:var(--t2);}
+  .cline.comment .ct{color:var(--t3);}
+  .cline.blink .ct{background:rgba(22,163,74,.08);box-shadow:inset 2px 0 0 var(--green);}
+
+  mark{border-radius:4px;padding:0 2px;color:inherit;background:#fde68a;}
+  mark.m-active{background:#86efac;color:#14532d;font-weight:600;}
+
+  /* ===== 查找面板 ===== */
+  .find-fab{display:none;position:fixed;right:22px;bottom:22px;z-index:50;}
+  .find-fab.show{display:flex;}
+  .find{
+    position:fixed;top:74px;right:22px;z-index:60;width:372px;
+    background:#fff;border:1px solid var(--bd);border-radius:12px;
+    box-shadow:0 18px 50px rgba(28,25,23,.18),0 4px 12px rgba(28,25,23,.06);
+    overflow:hidden;opacity:0;transform:translateY(-8px);pointer-events:none;
+    transition:opacity .18s,transform .18s;
+  }
+  .find.open{opacity:1;transform:translateY(0);pointer-events:auto;}
+  .find-row{display:flex;align-items:center;gap:4px;padding:10px 10px 6px;}
+  .find-search{color:var(--t4);display:flex;padding-left:5px;}
+  .find input{
+    flex:1;min-width:0;border:none;outline:none;background:transparent;
+    font-size:14px;font-family:inherit;color:var(--t1);padding:5px 4px;
+  }
+  .find input::placeholder{color:var(--t4);}
+  .fbtn{width:28px;height:28px;border:none;border-radius:7px;background:transparent;color:var(--t3);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .14s,color .14s;flex-shrink:0;}
+  .fbtn:hover{background:#f0efed;color:var(--t1);}
+  .fbtn:disabled{opacity:.35;cursor:default;}
+  .fbtn:disabled:hover{background:transparent;color:var(--t3);}
+  .count{font-size:12.5px;font-weight:600;color:var(--t4);padding:0 6px;min-width:38px;text-align:center;}
+  .fsep{width:1px;height:18px;background:var(--bd-l);margin:0 2px;}
+  /* 选项 */
+  .find-opt{display:flex;align-items:center;gap:6px;padding:0 12px 8px;}
+  .opt{
+    border:1px solid var(--bd);background:#fff;color:var(--t3);
+    font-size:12px;font-weight:600;font-family:inherit;border-radius:6px;
+    padding:3px 9px;cursor:pointer;transition:all .14s;display:inline-flex;align-items:center;gap:5px;
+  }
+  .opt:hover{border-color:#d6d3d1;color:var(--t2);}
+  .opt.on{border-color:var(--green);background:#f0fdf4;color:var(--green-d);}
+  /* 结果 */
+  .find-results{border-top:1px solid var(--bd-l);max-height:264px;overflow-y:auto;}
+  .result{display:flex;align-items:flex-start;gap:10px;padding:8px 12px;cursor:pointer;border-left:2px solid transparent;transition:background .14s;}
+  .result:hover{background:#faf9f7;}
+  .result.active{background:#f0fdf4;border-left-color:var(--green);}
+  .result .r-ln{font-size:11.5px;color:var(--t4);font-family:ui-monospace,monospace;padding-top:2px;flex-shrink:0;width:34px;}
+  .result .r-code{font-size:12.5px;font-family:ui-monospace,monospace;line-height:1.55;color:var(--t2);white-space:pre-wrap;word-break:break-all;min-width:0;}
+  .find-foot{display:flex;align-items:center;gap:7px;padding:8px 14px;border-top:1px solid var(--bd-l);background:#faf9f7;font-size:12px;color:var(--t3);}
+  .find-foot b{color:var(--green-d);font-weight:700;}
+  .find-empty{padding:30px 20px;text-align:center;}
+  .find-empty .ei{display:flex;justify-content:center;color:var(--t4);margin-bottom:9px;}
+  .find-empty p{font-size:13px;color:var(--t4);}
+
+  /* Toast */
+  .toast-wrap{position:fixed;bottom:26px;left:50%;transform:translateX(-50%);z-index:100;display:flex;flex-direction:column;gap:10px;align-items:center;pointer-events:none;}
+  .toast{display:flex;align-items:center;gap:9px;background:#1c1917;color:#fff;font-size:13.5px;font-weight:500;padding:11px 16px;border-radius:10px;box-shadow:0 10px 30px rgba(28,25,23,.28);opacity:0;transform:translateY(12px);transition:opacity .25s,transform .25s;}
+  .toast.show{opacity:1;transform:translateY(0);}
+  .toast .tic{color:var(--green);display:flex;}
+
+  @media (max-width:560px){
+    .find{left:12px;right:12px;width:auto;top:64px;}
+    .editor{padding:18px 16px 20px;}
+    .cline .ln{width:32px;padding-right:10px;}
+  }
+</style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <button class="icon-btn" onclick="toastShow('演示原型，返回上一页')" aria-label="返回">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+      </button>
+      <span class="topbar-title">Java 快速入门</span>
+      <div class="topbar-spacer"></div>
+      <button class="btn" id="openFindBtn">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        查找
+      </button>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div class="editor">
+      <h1>Java 快速入门</h1>
+      <div class="sub">演示 Java 的开发步骤与基本结构</div>
+      <p>下面是一个最简单的 Java 程序，我们通过它来认识类、主方法和输出语句。你可以打开右上角的查找面板搜索关键词。</p>
+      <div class="code">
+        <div class="code-head">
+          <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+          <span>Hello.java</span>
+        </div>
+        <div class="code-lines" id="codeLines"></div>
+      </div>
+    </div>
+  </main>
+
+  <!-- 查找面板 -->
+  <div class="find open" id="findPanel">
+    <div class="find-row">
+      <span class="find-search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></span>
+      <input id="findInput" type="text" value="hello" placeholder="在文档中查找…" autocomplete="off">
+      <button class="fbtn" id="clearBtn" aria-label="清除">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+      </button>
+      <span class="count" id="count">1/3</span>
+      <button class="fbtn" id="prevBtn" aria-label="上一个">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>
+      </button>
+      <button class="fbtn" id="nextBtn" aria-label="下一个">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+      </button>
+      <span class="fsep"></span>
+      <button class="fbtn" id="closeBtn" aria-label="关闭">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+      </button>
+    </div>
+    <div class="find-opt">
+      <button class="opt" id="caseOpt" title="区分大小写">Aa</button>
+      <button class="opt" id="wordOpt" title="全词匹配">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V5a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v2"/><path d="M9 20h6"/><path d="M12 17v3"/></svg>
+        全词
+      </button>
+    </div>
+    <div class="find-results" id="results"></div>
+    <div class="find-foot" id="findFoot"></div>
+  </div>
+
+  <!-- 关闭后重新打开的悬浮按钮 -->
+  <button class="find-fab btn btn-primary" id="fab">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+    查找
+  </button>
+
+  <div class="toast-wrap" id="toastWrap"></div>
+<script>
+  const LINES = [
+    { t:"// 这是 Java 的快速入门，演示 Java 的开发步骤", c:true },
+    { t:"// public class Hello 表示一个类，是一个公开的类", c:true },
+    { t:"public class Hello {" },
+    { t:"  public static void main(String[] args) {" },
+    { t:"    // 输出 hello, world 到屏幕", c:true },
+    { t:'    System.out.println("hello, world");' },
+    { t:"  }" },
+    { t:"}" },
+    { t:"" },
+    { t:"public class Charge {" },
+    { t:'  System.out.println("北京 / 天津 / 上海");' },
+    { t:"}" }
+  ];
+
+  const state = { keyword:"hello", matchCase:false, matchWord:false, matches:[], active:0 };
+  const codeLines = document.getElementById("codeLines");
+  const results = document.getElementById("results");
+  const findInput = document.getElementById("findInput");
+  const countEl = document.getElementById("count");
+  const findFoot = document.getElementById("findFoot");
+
+  function escapeHtml(s){
+    return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  }
+
+  function computeMatches(){
+    const kw = state.keyword, out = [];
+    if(!kw) return out;
+    const needle = state.matchCase ? kw : kw.toLowerCase();
+    const isWordChar = ch => /[a-z0-9_]/i.test(ch);
+    LINES.forEach((line, li)=>{
+      const hay = state.matchCase ? line.t : line.t.toLowerCase();
+      let from = 0;
+      while(true){
+        const idx = hay.indexOf(needle, from);
+        if(idx < 0) break;
+        let ok = true;
+        if(state.matchWord){
+          const before = idx===0 ? " " : hay[idx-1];
+          const after = idx+needle.length>=hay.length ? " " : hay[idx+needle.length];
+          ok = !isWordChar(before) && !isWordChar(after);
+        }
+        if(ok) out.push({ line:li, start:idx, end:idx+needle.length });
+        from = idx + Math.max(1, needle.length);
+      }
+    });
+    return out;
+  }
+
+  // 高亮一行中的匹配
+  function highlight(lineIndex, text){
+    const ms = state.matches.filter(m=>m.line===lineIndex).sort((a,b)=>a.start-b.start);
+    let out = "", pos = 0;
+    const current = state.matches[state.active];
+    ms.forEach(m=>{
+      out += escapeHtml(text.slice(pos, m.start));
+      out += `<mark class="${m===current?"m-active":""}">${escapeHtml(text.slice(m.start,m.end))}</mark>`;
+      pos = m.end;
+    });
+    return out + escapeHtml(text.slice(pos));
+  }
+
+  function renderCode(){
+    const current = state.matches[state.active];
+    codeLines.innerHTML = LINES.map((line,i)=>{
+      const blink = current && current.line===i;
+      const content = line.t ? highlight(i,line.t) : "&nbsp;";
+      return `<div class="cline ${line.c?"comment":""} ${blink?"blink":""}">
+        <span class="ln">${i+1}</span><span class="ct">${content}</span></div>`;
+    }).join("");
+  }
+
+  const emptyState = (icon, title) =>
+    `<div class="find-empty"><span class="ei">${icon}</span><p>${title}</p></div>`;
+
+  function renderResults(){
+    const kw = state.keyword;
+    if(!kw){
+      results.innerHTML = emptyState(
+        `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>`,
+        "输入关键词开始查找");
+    } else if(state.matches.length===0){
+      results.innerHTML = emptyState(
+        `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/><path d="M8 11h6"/></svg>`,
+        `未找到「${escapeHtml(kw)}」`);
+    } else {
+      results.innerHTML = state.matches.map((m,i)=>`
+        <div class="result ${i===state.active?"active":""}" data-i="${i}">
+          <span class="r-ln">${m.line+1}</span>
+          <span class="r-code">${highlight(m.line, LINES[m.line].t)}</span>
+        </div>`).join("");
+      const act = results.querySelector(".result.active");
+      if(act) act.scrollIntoView({block:"nearest"});
+    }
+    countEl.textContent = state.matches.length ? `${state.active+1}/${state.matches.length}` : "0/0";
+    findFoot.innerHTML = state.matches.length
+      ? `找到 <b>${state.matches.length}</b> 处匹配内容`
+      : (kw ? "没有匹配项" : "在当前文档中查找");
+    document.getElementById("prevBtn").disabled = !state.matches.length;
+    document.getElementById("nextBtn").disabled = !state.matches.length;
+  }
+
+  function refresh(){
+    state.matches = computeMatches();
+    if(state.active >= state.matches.length) state.active = 0;
+    renderCode(); renderResults();
+  }
+
+  function move(step){
+    if(!state.matches.length) return;
+    const len = state.matches.length;
+    state.active = (state.active + step + len) % len;
+    renderCode(); renderResults();
+  }
+
+  // 输入
+  findInput.addEventListener("input", ()=>{
+    state.keyword = findInput.value; state.active = 0; refresh();
+  });
+  findInput.addEventListener("keydown", e=>{
+    if(e.key==="Enter"){ e.preventDefault(); move(e.shiftKey?-1:1); }
+    if(e.key==="Escape"){ closePanel(); }
+  });
+
+  // 导航
+  document.getElementById("nextBtn").addEventListener("click", ()=>move(1));
+  document.getElementById("prevBtn").addEventListener("click", ()=>move(-1));
+  document.getElementById("clearBtn").addEventListener("click", ()=>{
+    findInput.value=""; state.keyword=""; state.active=0; refresh(); findInput.focus();
+  });
+
+  // 选项
+  const caseOpt = document.getElementById("caseOpt");
+  const wordOpt = document.getElementById("wordOpt");
+  caseOpt.addEventListener("click", ()=>{
+    state.matchCase = !state.matchCase; caseOpt.classList.toggle("on",state.matchCase);
+    state.active=0; refresh();
+  });
+  wordOpt.addEventListener("click", ()=>{
+    state.matchWord = !state.matchWord; wordOpt.classList.toggle("on",state.matchWord);
+    state.active=0; refresh();
+  });
+
+  // 点击结果
+  results.addEventListener("click", e=>{
+    const r = e.target.closest(".result");
+    if(!r) return;
+    state.active = Number(r.dataset.i); renderCode(); renderResults();
+  });
+
+  // 面板开关
+  const panel = document.getElementById("findPanel");
+  const fab = document.getElementById("fab");
+  function openPanel(){
+    panel.classList.add("open"); fab.classList.remove("show");
+    findInput.focus(); findInput.select();
+  }
+  function closePanel(){
+    panel.classList.remove("open"); fab.classList.add("show");
+  }
+  document.getElementById("closeBtn").addEventListener("click", closePanel);
+  document.getElementById("openFindBtn").addEventListener("click", openPanel);
+  fab.addEventListener("click", openPanel);
+
+  refresh();
+
+  // Toast
+  const toastWrap = document.getElementById("toastWrap");
+  let toastTimer;
+  function toastShow(msg){
+    const el = document.createElement("div");
+    el.className = "toast";
+    el.innerHTML = `<span class="tic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>${msg}`;
+    toastWrap.appendChild(el);
+    requestAnimationFrame(()=>el.classList.add("show"));
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(()=>{ el.classList.remove("show"); setTimeout(()=>el.remove(),260); }, 2200);
+  }
+</script>
+</body>
+</html>
+<!-- （注：内容由AI生成） -->
