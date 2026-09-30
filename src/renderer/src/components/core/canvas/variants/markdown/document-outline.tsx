@@ -1,3 +1,4 @@
+import { SectionPreview } from "./section-preview"
 import { useEffect, useRef, useState } from "react"
 import { Pin, PinOff, WrapText, AlignLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -6,7 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 
 /** 固定时展示标题，取消固定后用静态横线展示标题层级和当前阅读位置。 */
-export function DocumentOutline({ headings, activeIndex, onSelect, fileName }: { headings: { text: string; level: number; color?: string }[]; activeIndex: number; onSelect: (index: number) => void; fileName?: string }) {
+export function DocumentOutline({ headings, activeIndex, onSelect, fileName, sections = [] }: { headings: { text: string; level: number; color?: string }[]; activeIndex: number; onSelect: (index: number) => void; fileName?: string; sections?: string[] }) {
   const [wrapTitles, setWrapTitles] = useState(false)
   const [pinned, setPinned] = useState(false)
   const [hovered, setHovered] = useState(false)
@@ -95,10 +96,8 @@ export function DocumentOutline({ headings, activeIndex, onSelect, fileName }: {
         </div>
         <ScrollArea className="min-h-0 flex-1 [&_[data-radix-scroll-area-viewport]>div]:!block">
           {headings.map((heading, index) => (
-            <Button
-              key={index}
+            <SectionPreview key={index} source={sections[index] || heading.text}><Button
               variant="ghost"
-              title={heading.text}
               aria-label={heading.text}
               aria-current={index === activeIndex ? "location" : undefined}
               onClick={() => onSelect(index)}
@@ -115,7 +114,7 @@ export function DocumentOutline({ headings, activeIndex, onSelect, fileName }: {
               >
                 {heading.text}
               </span>
-            </Button>
+            </Button></SectionPreview>
           ))}
           {!headings.length && expanded && <p className="px-2 py-3 text-xs text-stone-400">暂无标题</p>}
         </ScrollArea>

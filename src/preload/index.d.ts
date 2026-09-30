@@ -131,6 +131,7 @@ export interface VesselAPI extends TodosAPI {
 
   revealWorkspaceFile: (root: string, path: string) => Promise<void>
   readImageFile: (root: string, path: string) => Promise<ImageFile>
+  readWikiLink: (root: string, target: string) => Promise<{ path: string; content: string }>
   readObsidianImage: (root: string, documentPath: string, reference: string) => Promise<string>
   mutateWorkspaceFile: (root: string, path: string, name?: string) => Promise<string>
   createWorkspaceEntry: (root: string, parent: string, name: string, kind: "file" | "directory") => Promise<{name: string; path: string; type: "file" | "directory"}>

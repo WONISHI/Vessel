@@ -1,3 +1,4 @@
+import { decorateWikiLinks } from "./decorate-wiki-links"
 import { decorateInlineHTML } from "./inline-html"
 import { decorateCodeBlocks } from "./code-blocks"
 import { parseFrontmatter } from "@vessel/obsidian/frontmatter"
@@ -23,8 +24,8 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath }: {
   const [loadError, setLoadError] = useState("")
   const host = useRef<HTMLDivElement>(null)
   const toolbarHost = useRef<HTMLDivElement>(null)
-  const properties = useRef(parseFrontmatter(value))
-  const initialValue = useRef(properties.current?.body ?? value)
+  const [properties] = useState(() => parseFrontmatter(value))
+  const initialValue = useRef(properties?.body ?? value)
   const changeHandler = useRef(onChange)
   useEffect(() => {
     changeHandler.current = onChange
@@ -35,7 +36,7 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath }: {
     const decorate = () => {
       decorateCodeBlocks(element)
       const content = element.querySelector<HTMLElement>(".vditor-ir .vditor-reset")
-      if (content && !content.contains(document.activeElement)) { decorateInlineHTML(content); decorateMarkdownTags(content) }
+      if (content && !content.contains(document.activeElement)) { decorateInlineHTML(content); decorateMarkdownTags(content); decorateWikiLinks(content) }
     }
     element.addEventListener("focusout", decorate)
     const observer = new MutationObserver(decorate)
@@ -108,7 +109,7 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath }: {
                       sourceCode.textContent = encodeURIComponent(updated) + "\n"
                       const next = editor.getValue()
                       editor.setValue(next)
-                      changeHandler.current((properties.current?.raw ?? "") + restoreObsidianImages(next))
+                      changeHandler.current((properties?.raw ?? "") + restoreObsidianImages(next))
                     }}
                     root={workspacePath}
                     documentPath={documentPath}
@@ -146,7 +147,7 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath }: {
             { name: "redo", icon: renderToStaticMarkup(<Redo2 />) }
           ].map((item) => (typeof item === "string" ? item : { ...item, tipPosition: "s" })),
           input: (content) => {
-            if (!disposed) changeHandler.current((properties.current?.raw ?? "") + restoreObsidianImages(content))
+            if (!disposed) changeHandler.current((properties?.raw ?? "") + restoreObsidianImages(content))
           },
           after: () => {
             const toolbar = host.current?.querySelector<HTMLElement>(".vditor-toolbar")
@@ -183,7 +184,7 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath }: {
       if (ready) editor.destroy()
       toolbarHost.current?.replaceChildren()
     }
-  }, [])
+  }, [properties])
   return (
     <LinkInteractionArea className="relative flex h-full min-h-0 min-w-0 flex-col">
       {(loading || loadError) && (
@@ -229,7 +230,7 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath }: {
         className="vessel-vditor shrink-0 min-w-0 w-full"
       />
       <ScrollArea className="vessel-editor-scroll flex-1 min-h-0 min-w-0 mt-2">
-        {properties.current && <DocumentProperties properties={properties.current.properties} />}
+        {properties && <DocumentProperties properties={properties.properties} />}
         <Typography asChild>
           <div
             ref={host}

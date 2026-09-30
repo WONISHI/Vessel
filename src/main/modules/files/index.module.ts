@@ -1,3 +1,4 @@
+import { readWikiLink } from "./wiki-link"
 import { readImageFile } from "./image-file"
 import { readObsidianImage } from "./obsidian-image"
 import { ipcMain, shell } from "electron"
@@ -79,6 +80,7 @@ export class FilesModule extends BaseModule {
       if (offset === ".." || offset.startsWith(".." + sep) || isAbsolute(offset)) throw new Error("路径不在工作区")
       shell.showItemInFolder(source)
     })
+    ipcMain.handle("obsidian:readWikiLink", (_event, root, target) => readWikiLink(root, target))
     ipcMain.handle("image:readFile", (_event, root, path) => readImageFile(root, path))
     ipcMain.handle("obsidian:readImage", (_event, root, documentPath, reference) => readObsidianImage(root, documentPath, reference))
     ipcMain.handle("workspace:mutateFile", (_event, root, path, name) => mutateWorkspaceFile(root, path, name))
@@ -93,6 +95,7 @@ export class FilesModule extends BaseModule {
 
   protected onDispose(): void {
     ipcMain.removeHandler("workspace:revealFile")
+    ipcMain.removeHandler("obsidian:readWikiLink")
     ipcMain.removeHandler("image:readFile")
     ipcMain.removeHandler("obsidian:readImage")
     ipcMain.removeHandler("workspace:mutateFile")

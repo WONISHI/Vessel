@@ -1,8 +1,10 @@
+import { headingSections } from "./heading-sections"
+import { WikiLinkPreview } from "./wiki-link-preview"
 import { DocumentStats } from "./document-stats"
 import { outlineHeading } from "./outline-heading"
 import { PageLoading } from "@/components/ui/page-loading"
 import { useWorkspace } from "@/pages/workspace/hooks/useWorkspace"
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { DocumentOutline } from "./document-outline"
 import { VditorEditor } from "./vditor-editor"
 import "./index.css"
@@ -29,6 +31,7 @@ export default function MarkdownCanvas({ activeFilePath }: { activeFilePath: str
     }
   }, [activeFilePath])
   const current = loaded?.path === activeFilePath ? loaded : null
+  const sections = useMemo(() => headingSections(current?.content ?? ""), [current?.content])
   const [headings, setHeadings] = useState<{ text: string; level: number; color?: string }[]>([])
   const [activeHeading, setActiveHeading] = useState(-1)
   useEffect(() => {
@@ -95,6 +98,7 @@ export default function MarkdownCanvas({ activeFilePath }: { activeFilePath: str
           )}
         </div>
         <DocumentOutline
+          sections={sections}
           fileName={activeFilePath.split(/[\\/]/).pop()}
           headings={headings}
           activeIndex={activeHeading}
@@ -104,6 +108,7 @@ export default function MarkdownCanvas({ activeFilePath }: { activeFilePath: str
           }}
         />
       </div>
+      <WikiLinkPreview key={activeFilePath} host={contentHost} workspacePath={workspace.path} />
       <DocumentStats source={current?.content ?? ""} />
     </div>
   )
