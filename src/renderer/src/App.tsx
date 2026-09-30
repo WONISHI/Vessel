@@ -1,3 +1,4 @@
+import { BrowserKeepAlive } from "@/pages/browser/keep-alive"
 import { useEffect } from "react"
 import { useRouter } from "@vessel/react-router"
 import { Toaster } from "sonner"
@@ -19,7 +20,15 @@ function App() {
   useEffect(() => {
     const open = (path: string) => { void router.push(`/editor/file?external=${encodeURIComponent(path)}`) }
     const unsubscribe = window.electronAPI.onOpenMarkdown(open)
-    void window.electronAPI.takePendingMarkdownFiles().then(paths => paths.forEach(open))
+    void window.electronAPI.takePendingMarkdownFiles().then(async paths => {
+      if (paths.length) { paths.forEach(open); return }
+      if (window.location.hash && window.location.hash !== "#/" && window.location.hash !== "#") return
+      const last = await window.electronAPI.getAppState<WorkspaceData>("workspace-last")
+      if (last?.path) {
+        localStorage.setItem("app_current_workspace", JSON.stringify(last))
+        void router.push("/editor")
+      }
+    }).catch(console.error)
     return unsubscribe
   }, [router])
   return (
@@ -32,6 +41,7 @@ function App() {
 
       <DevTool />
 
+      <BrowserKeepAlive />
       <RouterView />
     </>
   )

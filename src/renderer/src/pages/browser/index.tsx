@@ -66,13 +66,27 @@ function Guest({ tab, visible, register, update }: { tab: Tab; visible: boolean;
     style={{ width: "100%", height: "100%", display: visible ? "flex" : "none" }}
   />
 }
-export default function BrowserPage() {
+export default function BrowserPage({ visible = true }: { visible?: boolean }) {
   const router = useRouter()
   const [tabs, setTabs] = useState<Tab[]>(() => [newTab()])
+  const [findOpen, setFindOpen] = useState(false)
+  const [findText, setFindText] = useState("")
+  const [findResult, setFindResult] = useState({ activeMatchOrdinal: 0, matches: 0, tabId: "", text: "" })
+  const findInput = useRef<HTMLInputElement>(null)
   const [devtoolsOpen, setDevtoolsOpen] = useState(false)
+  const [dock, setDock] = useState(() => localStorage.getItem("browser-devtools-dock") || "bottom")
+  const [consoleFont, setConsoleFont] = useState(() => localStorage.getItem("browser-devtools-font") || "Menlo")
+  const [consoleSize, setConsoleSize] = useState(() => Number(localStorage.getItem("browser-devtools-size")) || 13)
+  useEffect(() => {
+    localStorage.setItem("browser-devtools-dock", dock)
+    localStorage.setItem("browser-devtools-font", consoleFont)
+    localStorage.setItem("browser-devtools-size", String(consoleSize))
+  }, [dock, consoleFont, consoleSize])
+  useEffect(() => window.electronAPI.onBrowserDevtoolsClosed(() => setDevtoolsOpen(false)), [])
   const devtoolsHost = useRef<HTMLDivElement>(null)
   const [active, setActive] = useState("")
   const [input, setInput] = useState<string | null>(null)
+  const [searchInput, setSearchInput] = useState("")
   const [bookmarks, setBookmarks] = useState(() => {
     try {
       return (JSON.parse(localStorage.getItem("browser-bookmarks") || "null") as typeof shortcuts) || shortcuts
@@ -82,11 +96,36 @@ export default function BrowserPage() {
   })
   const views = useRef(new Map<string, WebviewTag>())
   const tab = tabs.find((item) => item.id === active) || tabs[0]
+  const searchPage = (forward = true, next = false) => {
+    const view = views.current.get(tab.id)
+    if (findText) view?.findInPage(findText, { forward, findNext: next })
+    else view?.stopFindInPage("clearSelection")
+  }
+  useEffect(() => {
+    if (!visible) return
+    const show = () => { setFindOpen(true); requestAnimationFrame(() => findInput.current?.focus()) }
+    const keydown = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "f") { event.preventDefault(); show() }
+    }
+    window.addEventListener("keydown", keydown)
+    const unsubscribe = window.electronAPI.onBrowserFind(id => {
+      if (views.current.get(tab.id)?.getWebContentsId() === id) show()
+    })
+    return () => { window.removeEventListener("keydown", keydown); unsubscribe() }
+  }, [visible, tab.id])
+  useEffect(() => {
+    const view = views.current.get(tab.id)
+    const result = (event: Electron.FoundInPageEvent) => setFindResult({ ...event.result, tabId: tab.id, text: findText })
+    view?.addEventListener("found-in-page", result)
+    if (findOpen && findText) view?.findInPage(findText)
+    else view?.stopFindInPage("clearSelection")
+    return () => { view?.removeEventListener("found-in-page", result); view?.stopFindInPage("clearSelection") }
+  }, [findText, findOpen, tab.id])
   const update = (id: string, patch: Partial<Tab>) => setTabs((current) => current.map((item) => (item.id === id ? { ...item, ...patch } : item)))
   useEffect(() => {
     const element = devtoolsHost.current
     const view = views.current.get(tab.id)
-    if (!devtoolsOpen || !element || !view) {
+    if (!visible || !devtoolsOpen || !element || !view) {
       void window.electronAPI.setBrowserDevtools(null).catch(() => {})
       return
     }
@@ -94,7 +133,7 @@ export default function BrowserPage() {
     const sync = () => {
       const { x, y, width, height } = element.getBoundingClientRect()
       try {
-        void window.electronAPI.setBrowserDevtools(view.getWebContentsId(), { x, y, width, height }).catch(error => {
+        void window.electronAPI.setBrowserDevtools(view.getWebContentsId(), { x, y, width, height }, { font: consoleFont, size: consoleSize, detached: dock === "detached" }).catch(error => {
           if (!disposed) { update(tab.id, { error: String(error) }); setDevtoolsOpen(false) }
         })
       } catch { /* guest 尚未完成挂载，dom-ready 后重试。 */ }
@@ -111,7 +150,7 @@ export default function BrowserPage() {
       window.removeEventListener("resize", sync)
       void window.electronAPI.setBrowserDevtools(null).catch(() => {})
     }
-  }, [devtoolsOpen, tab.id, Boolean(tab.url)])
+  }, [visible, devtoolsOpen, tab.id, Boolean(tab.url), dock, consoleFont, consoleSize])
   const navigate = (value: string) => {
     try {
       const url = browserURL(value)
@@ -180,7 +219,7 @@ export default function BrowserPage() {
                   setActive(item.id)
                   setInput(null)
                 }}
-                className="flex min-w-0 flex-1 items-center gap-2"
+                className="browser-tab-select flex min-w-0 flex-1 items-center gap-2"
               >
                 {item.favicon ? <img src={item.favicon} alt="" className="size-4 shrink-0 object-contain" onError={() => update(item.id, { favicon: undefined })} /> : <Globe size={14} className="shrink-0 text-green-600" />}
                 <span className="truncate">{item.title}</span>
@@ -254,6 +293,9 @@ export default function BrowserPage() {
           >
             {tab.url.startsWith("https:") ? <LockKeyhole size={14} /> : <Search size={14} />}
             <input
+              spellCheck={false}
+              autoCorrect="off"
+              autoCapitalize="none"
               aria-label="搜索或输入网址"
               placeholder="搜索或输入网址"
               value={input ?? tab.url}
@@ -299,6 +341,13 @@ export default function BrowserPage() {
             <Bug />
           </Button>
         </div>
+        {findOpen && <form className="flex shrink-0 items-center justify-end gap-2 border-b bg-white p-2 text-xs" onSubmit={event => { event.preventDefault(); searchPage(true, true) }}>
+          <input ref={findInput} aria-label="在网页中查找" placeholder="在网页中查找" spellCheck={false} value={findText} onChange={event => setFindText(event.target.value)} onKeyDown={event => { if (event.key === "Escape") setFindOpen(false); if (event.key === "Enter" && event.shiftKey) { event.preventDefault(); searchPage(false, true) } }} />
+          <span>{findResult.tabId === tab.id && findResult.text === findText ? `${findResult.activeMatchOrdinal} / ${findResult.matches}` : "0 / 0"}</span>
+          <button type="button" aria-label="上一个匹配" onClick={() => searchPage(false, true)}>↑</button>
+          <button type="submit" aria-label="下一个匹配">↓</button>
+          <button type="button" aria-label="关闭查找" onClick={() => setFindOpen(false)}><X size={14} /></button>
+        </form>}
         <div className="browser-bookmarks">
           {bookmarks.map((item) => (
             <button
@@ -311,7 +360,8 @@ export default function BrowserPage() {
             </button>
           ))}
         </div>
-        <div className="relative min-h-0 flex-1 bg-white">
+        <div className={`browser-content dock-${dock}`}>
+        <div className="relative min-h-0 min-w-0 flex-1 bg-white">
           {tab.loading && <div className="absolute inset-x-0 top-0 z-10 h-0.5 animate-pulse bg-green-500" />}
           {tabs
             .filter((item) => item.url)
@@ -337,15 +387,18 @@ export default function BrowserPage() {
               <form
                 onSubmit={(event) => {
                   event.preventDefault()
-                  navigate(input ?? "")
+                  navigate(searchInput)
                 }}
               >
                 <Search size={20} />
                 <input
+              spellCheck={false}
+              autoCorrect="off"
+              autoCapitalize="none"
                   aria-label="搜索"
                   placeholder="搜索或输入网址，按 Enter 访问"
-                  value={input ?? ""}
-                  onChange={(event) => setInput(event.target.value)}
+                  value={searchInput}
+                  onChange={(event) => setSearchInput(event.target.value)}
                 />
               </form>
               <div className="browser-shortcuts">
@@ -376,10 +429,23 @@ export default function BrowserPage() {
             </div>
           )}
         </div>
-        {devtoolsOpen && tab.url && <section className="flex h-[35vh] min-h-[180px] shrink-0 flex-col border-t bg-white" aria-label="当前网页控制台">
-        <header className="flex h-7 shrink-0 items-center justify-between px-3 text-xs text-stone-500"><span>当前网页控制台 · 底部停靠</span><button aria-label="关闭网页控制台" onClick={() => setDevtoolsOpen(false)}><X size={14} /></button></header>
-        <div ref={devtoolsHost} className="min-h-0 flex-1" />
-      </section>}
+        {devtoolsOpen && tab.url && <section className="browser-devtools" aria-label="当前网页控制台">
+          <header className="flex shrink-0 flex-wrap items-center gap-2 border-b px-2 py-1 text-xs text-stone-500">
+            <span className="mr-auto">网页控制台</span>
+            <select aria-label="控制台停靠位置" value={dock} onChange={event => setDock(event.target.value)}>
+              <option value="bottom">底部停靠</option><option value="left">左侧停靠</option><option value="right">右侧停靠</option><option value="detached">独立窗口</option>
+            </select>
+            <select aria-label="控制台字体" value={consoleFont} onChange={event => setConsoleFont(event.target.value)}>
+              {["Plus Jakarta Sans", "Menlo", "Consolas", "Courier New", "monospace", "system-ui"].map(font => <option key={font}>{font}</option>)}
+            </select>
+            <select aria-label="控制台字号（整体缩放）" title="字号（整体缩放）" value={consoleSize} onChange={event => setConsoleSize(Number(event.target.value))}>
+              {[11, 12, 13, 14, 16, 18, 20].map(size => <option key={size} value={size}>{size}px</option>)}
+            </select>
+            <button aria-label="关闭网页控制台" onClick={() => setDevtoolsOpen(false)}><X size={14} /></button>
+          </header>
+          <div ref={devtoolsHost} className="min-h-0 flex-1" />
+        </section>}
+        </div>
       <footer className="browser-status">
           <span>{tab.loading ? "正在加载…" : tab.url || "就绪"}</span>
           <span>{Math.round(tab.zoom * 100)}%</span>

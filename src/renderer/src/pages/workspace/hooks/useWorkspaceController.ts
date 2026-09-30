@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { getFileExtension } from "@vessel/utils"
 import type { WorkspaceData, WorkspaceNode, WorkspaceContextType } from "../types/workspace"
@@ -13,6 +13,36 @@ export function useWorkspaceController(workspace: WorkspaceData, initialFile?: s
   const [openFiles, setOpenFiles] = useState<WorkspaceNode[]>(() => initialFile ? [{ name: initialFile.split(/[\\/]/).pop() || initialFile, path: initialFile }] : [])
   const [activeFilePath, setActiveFilePath] = useState(initialFile || "")
   const [expandedFolders, setExpandedFolders] = useState<string[]>([])
+  const navigateRef = useRef(navigate)
+  useEffect(() => { navigateRef.current = navigate }, [navigate])
+  const [sessionKey, setSessionKey] = useState("")
+  useEffect(() => {
+    let cancelled = false
+    const restore = async () => {
+      const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(workspace.path))
+      if (cancelled) return
+      const key = "workspace-tabs:" + Array.from(new Uint8Array(digest), n => n.toString(16).padStart(2, "0")).join("")
+      const saved = await window.electronAPI.getAppState<{ files: WorkspaceNode[]; active: string }>(key)
+      if (cancelled) return
+      if (saved && Array.isArray(saved.files)) {
+        const files = saved.files.filter(file => typeof file.path === "string" && typeof file.name === "string")
+        setOpenFiles(current => [...files, ...current.filter(file => !files.some(item => item.path === file.path))])
+        if (!initialFile && files.some(file => file.path === saved.active)) {
+          setActiveFilePath(saved.active)
+          navigateRef.current("/editor/file", { replace: true })
+        }
+      }
+      await window.electronAPI.setAppState("workspace-last", { name: workspace.name, path: workspace.path, files: [] })
+      if (!cancelled) setSessionKey(key)
+    }
+    void restore().catch(error => console.error("恢复工作区标签失败", error))
+    return () => { cancelled = true }
+  }, [workspace.path, workspace.name, initialFile])
+  useEffect(() => {
+    if (!sessionKey) return
+    void window.electronAPI.setAppState(sessionKey, { files: openFiles.map(({ name, path }) => ({ name, path })), active: activeFilePath })
+      .catch(error => console.error("保存工作区标签失败", error))
+  }, [sessionKey, openFiles, activeFilePath])
   /** 更新目录展开集合，供懒加载树切换可见层级。
    * @param path 目录的唯一文件系统路径。
    * @param open 是否展开目录。 */

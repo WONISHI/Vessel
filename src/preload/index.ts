@@ -9,7 +9,16 @@ import { filesAPI } from "./apis/files.api"
 const api = {}
 
 const vesselAPI = {
-  setBrowserDevtools: (id: number | null, bounds?: Electron.Rectangle): Promise<void> => ipcRenderer.invoke("browser:devtools", id, bounds),
+  onBrowserDevtoolsClosed: (callback: () => void) => {
+    ipcRenderer.on("browser:devtools-closed", callback)
+    return () => ipcRenderer.removeListener("browser:devtools-closed", callback)
+  },
+  onBrowserFind: (callback: (id: number) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, id: number) => callback(id)
+    ipcRenderer.on("browser:find", listener)
+    return () => ipcRenderer.removeListener("browser:find", listener)
+  },
+  setBrowserDevtools: (id: number | null, bounds?: Electron.Rectangle, appearance?: { font: string; size: number; detached?: boolean }): Promise<void> => ipcRenderer.invoke("browser:devtools", id, bounds, appearance),
   onBrowserNewTab: (callback: (url: string) => void) => {
     const handler = (_event: Electron.IpcRendererEvent, url: string) => callback(url)
     ipcRenderer.on("browser:new-tab", handler)

@@ -1,4 +1,4 @@
-import BrowserPage from "@/pages/browser"
+import { BrowserRoute } from "@/pages/browser/keep-alive"
 import { useLocation } from "react-router-dom"
 import TodosPage from "@/pages/todos"
 import { useState } from "react"
@@ -83,7 +83,7 @@ function CurrentEditor() {
  * 路由配置
  */
 export const routes: AppRouteRecordRaw[] = [
-  { path: "/browser", name: "browser", component: BrowserPage, meta: { title: "浏览器" } },
+  { path: "/browser", name: "browser", component: BrowserRoute, meta: { title: "浏览器" } },
   {path: "/todos", name: "todos", component: TodosPage, meta: {title: "待办"}},
   {
     path: "/",

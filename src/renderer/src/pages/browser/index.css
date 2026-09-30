@@ -1,4 +1,5 @@
 .browser-tabs {
+  --browser-tab-height: 37px;
   display: flex;
   align-items: end;
   gap: 3px;
@@ -9,17 +10,24 @@
   flex-shrink: 0;
 }
 .browser-tab {
+  height: var(--browser-tab-height);
   display: flex;
   align-items: center;
   gap: 8px;
   min-width: 120px;
   max-width: 220px;
-  padding: 9px 12px;
+  padding: 0;
+  position: relative;
   background: #e7e5e4;
   border: 1px solid transparent;
   border-bottom: 0;
   border-radius: 8px 8px 0 0;
   font-size: 12px;
+}
+.browser-tabs > button {
+  height: var(--browser-tab-height);
+  width: var(--browser-tab-height);
+  flex-shrink: 0;
 }
 .browser-tab.selected {
   background: white;
@@ -179,3 +187,17 @@
 .browser-toolbar > button:not(:disabled):is(:hover, :active, [aria-pressed="true"], [data-state="on"]) { color: white !important; background: #327f73; }
 
 .browser-tabs > button:is(:hover, :active) { color: white !important; background: #327f73; }
+
+
+.browser-tab-select { align-self: stretch; padding: 0 36px 0 12px; }
+.browser-tab > button[title="关闭标签页"] { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); }
+.browser-content { display: flex; flex: 1; min-height: 0; min-width: 0; }
+.browser-content.dock-bottom { flex-direction: column; }
+.browser-devtools { display: flex; flex-direction: column; flex-shrink: 0; background: white; border: 1px solid #e7e5e4; }
+.dock-bottom > .browser-devtools { height: 35vh; min-height: 180px; }
+.dock-left > .browser-devtools, .dock-right > .browser-devtools { width: 40%; min-width: 280px; }
+.dock-left > .browser-devtools { order: -1; }
+
+.browser-content.dock-detached { flex-direction: column; }
+.dock-detached > .browser-devtools { height: auto; }
+.dock-detached > .browser-devtools > div { height: 0; }

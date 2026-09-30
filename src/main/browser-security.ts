@@ -17,9 +17,20 @@ export function secureBrowserGuests(contents: WebContents) {
     preferences.allowRunningInsecureContent = false
   })
   contents.on("did-attach-webview", (_event, guest) => {
+    let documentURL = guest.getURL()
+    guest.on("did-navigate", (_event, url) => { documentURL = url })
+    guest.on("did-fail-load", (_event, _code, _description, url, mainFrame) => {
+      if (mainFrame && allowed(url)) documentURL = url
+    })
+    guest.on("before-input-event", (event, input) => {
+      if (input.type === "keyDown" && (input.control || input.meta) && input.key.toLowerCase() === "f") {
+        event.preventDefault()
+        contents.send("browser:find", guest.id)
+      }
+    })
     guest.on("will-navigate", (event, url) => {
       if (!allowed(url)) event.preventDefault()
-      else { event.preventDefault(); contents.send("browser:new-tab", url) }
+      else if (url !== guest.getURL() && url !== documentURL) { event.preventDefault(); contents.send("browser:new-tab", url) }
     })
     guest.on("will-redirect", (event, url) => {
       if (!allowed(url)) event.preventDefault()

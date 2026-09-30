@@ -27,6 +27,10 @@ function createWindow(): void {
     }
   })
 
+  if (process.platform === "win32") {
+    mainWindow.setOverlayIcon(null, "")
+    mainWindow.on("focus", () => mainWindow.setOverlayIcon(null, ""))
+  }
   secureBrowserGuests(mainWindow.webContents)
 
   mainWindow.on("ready-to-show", () => {
@@ -57,7 +61,7 @@ function createWindow(): void {
 
 app.whenReady().then(() => {
   if (!primaryInstance) return
-  electronApp.setAppUserModelId("com.electron")
+  electronApp.setAppUserModelId("com.your.app")
 
   mainApps.activate()
 
