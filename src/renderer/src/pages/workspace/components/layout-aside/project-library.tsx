@@ -1,3 +1,4 @@
+import { useLibraryMeta, updateLibraryMeta, readLibraryMeta } from "@/pages/resources/library-state"
 import { useEffect, useRef, useState } from "react"
 import { FolderOpen, Pin, PinOff, Plus, X, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -16,7 +17,9 @@ export function ProjectLibrary({ pinned, onPin }: { pinned: boolean; onPin: () =
   })
   return <ProjectPreview key={selected.path} project={selected} onSelect={setSelected} pinned={pinned} onPin={onPin} />
 }
-function ProjectPreview({ project, onSelect, pinned, onPin }: { project: Project; onSelect: (project: Project) => void; pinned: boolean; onPin: () => void }) {
+function ProjectPreview({ project, onSelect, onPin }: { project: Project; onSelect: (project: Project) => void; pinned: boolean; onPin: () => void }) {
+  const meta = useLibraryMeta()
+  const isPinned = !!meta.pins?.some(item => item.path === project.path)
   const controller = useWorkspaceController({ ...project, files: [] }, undefined, "resources", true)
   const navigate = useNavigate()
   const enter = (initialFile?: string) => {
@@ -26,7 +29,11 @@ function ProjectPreview({ project, onSelect, pinned, onPin }: { project: Project
     navigate(initialFile ? "/resources/file" : "/resources")
   }
   return <WorkspaceProvider value={{ ...controller, openWorkspaceFile: file => enter(file.path) }}>
-    <ProjectLibraryContent pinned={pinned} onPin={() => enter()} onSelect={onSelect} />
+    <ProjectLibraryContent pinned={isPinned} onPin={() => {
+      const pins = (meta.pins || []).filter(item => item.path !== project.path)
+      if (isPinned) updateLibraryMeta({ pins, lastPinned: meta.lastPinned?.path === project.path ? pins.at(-1) : meta.lastPinned })
+      else { updateLibraryMeta({ pins: [...pins, project], lastPinned: project }); enter() }
+    }} onSelect={onSelect} />
   </WorkspaceProvider>
 }
 function ProjectLibraryContent({ pinned, onPin, onSelect }: { pinned: boolean; onPin: () => void; onSelect: (project: Project) => void }) {
@@ -48,6 +55,7 @@ function ProjectLibraryContent({ pinned, onPin, onSelect }: { pinned: boolean; o
     return () => { cancelled = true }
   }, [workspace.path, workspace.name])
   useEffect(() => {
+    if (ready) updateLibraryMeta({ count: projects.length })
     if (ready) writes.current = writes.current.catch(() => {}).then(() => window.electronAPI.setAppState("project-library", projects)).catch(reason => setError(String(reason)))
   }, [projects, ready])
   const activate = (project: Project) => {
@@ -70,11 +78,16 @@ function ProjectLibraryContent({ pinned, onPin, onSelect }: { pinned: boolean; o
       <div className="flex min-w-0 flex-1 gap-1 overflow-x-auto">
         {projects.map(project => <div key={project.path} className={`group flex shrink-0 items-center rounded-md ${project.path === workspace.path ? "bg-green-50 text-green-700" : "text-stone-500"}`}>
           <button title={project.path} className="max-w-28 truncate px-2 py-1 text-xs" onClick={() => activate(project)}>{project.name}</button>
-          {project.path !== workspace.path && <button aria-label={`关闭项目 ${project.name}`} className="px-1 opacity-0 group-hover:opacity-100 focus:opacity-100" onClick={() => setProjects(list => list.filter(p => p.path !== project.path))}><X size={12} /></button>}
+          {project.path !== workspace.path && <button aria-label={`关闭项目 ${project.name}`} className="px-1 opacity-0 group-hover:opacity-100 focus:opacity-100" onClick={() => {
+            setProjects(list => list.filter(p => p.path !== project.path))
+            const meta = readLibraryMeta()
+            const pins = (meta.pins || []).filter(p => p.path !== project.path)
+            updateLibraryMeta({ pins, lastPinned: meta.lastPinned?.path === project.path ? pins.at(-1) : meta.lastPinned })
+          }}><X size={12} /></button>}
         </div>)}
       </div>
       <Button variant="ghost" size="icon" className="size-6 hover:bg-emerald-700 hover:!text-white active:bg-emerald-700 active:!text-white" aria-label="添加项目或附件目录" disabled={!ready} onClick={() => void add()}><Plus className="!size-3.5" /></Button>
-      <Button variant="ghost" size="icon" className={`size-6 hover:bg-emerald-700 hover:!text-white active:bg-emerald-700 active:!text-white ${pinned ? "bg-emerald-700 !text-white" : ""}`} aria-label={pinned ? "打开资源库页面" : "固定资源库"} onClick={onPin}>{pinned ? <PinOff className="!size-3.5" /> : <Pin className="!size-3.5" />}</Button>
+      <Button variant="ghost" size="icon" className={`size-6 hover:bg-emerald-700 hover:!text-white active:bg-emerald-700 active:!text-white ${pinned ? "bg-emerald-700 !text-white" : ""}`} aria-label={pinned ? "取消固定资源库" : "固定资源库"} onClick={onPin}>{pinned ? <PinOff className="!size-3.5" /> : <Pin className="!size-3.5" />}</Button>
     </header>
     <div className="flex items-center gap-2 border-b p-3">
       <FolderOpen className="size-5 shrink-0 text-green-600" />

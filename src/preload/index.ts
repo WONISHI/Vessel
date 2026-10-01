@@ -1,3 +1,4 @@
+import { fileWatchAPI } from "./apis/file-watch.api"
 import { terminalAPI } from "./apis/terminal.api"
 import { todosAPI } from "./apis/todos.api"
 import { contextBridge, ipcRenderer } from "electron"
@@ -11,6 +12,7 @@ const api = {}
 
 const vesselAPI = {
   ...terminalAPI,
+  ...fileWatchAPI,
   onBrowserDevtoolsClosed: (callback: () => void) => {
     ipcRenderer.on("browser:devtools-closed", callback)
     return () => ipcRenderer.removeListener("browser:devtools-closed", callback)

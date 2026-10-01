@@ -1,3 +1,4 @@
+import { registerFileWatch } from "./file-watch"
 import { registerTerminal } from "./terminal"
 import { secureBrowserGuests } from "./browser-security"
 import { registerMarkdownOpening } from "./open-markdown"
@@ -34,6 +35,7 @@ function createWindow(): void {
   }
   secureBrowserGuests(mainWindow.webContents)
   registerTerminal(mainWindow.webContents)
+  registerFileWatch(mainWindow.webContents)
 
   mainWindow.on("ready-to-show", () => {
     mainWindow.show()

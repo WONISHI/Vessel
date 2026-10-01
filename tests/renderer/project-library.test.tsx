@@ -35,3 +35,12 @@ it("adds directories only to the resource library", async () => {
   expect(JSON.parse(localStorage.getItem("app_current_workspace")!).path).toBe("/work")
   expect(navigate).not.toHaveBeenCalled()
 })
+it("computes the pin state from the selected project, not the current page", async () => {
+  localStorage.setItem("resource-library-meta", JSON.stringify({ pins: [{ name: "Vessel", path: "/projects/Vessel" }], lastPinned: { name: "Vessel", path: "/projects/Vessel" } }))
+  render(<ProjectLibrary pinned onPin={() => {}} />)
+  expect(screen.getByRole("button", { name: "取消固定资源库" })).toBeTruthy()
+  fireEvent.click(await screen.findByText("附件"))
+  expect(screen.getByRole("button", { name: "固定资源库" })).toBeTruthy()
+  fireEvent.click(screen.getByRole("button", { name: "固定资源库" }))
+  expect(JSON.parse(localStorage.getItem("resource-library-meta")!).lastPinned.path).toBe("/projects/assets")
+})

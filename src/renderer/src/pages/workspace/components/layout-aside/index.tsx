@@ -1,3 +1,4 @@
+import { selectLastPinned } from "@/pages/resources/library-state"
 import { ProjectLibrary } from "./project-library"
 import { Sidebar, useSidebar } from "@/components/ui/sidebar"
 import { useRouter } from "@vessel/react-router"
@@ -20,7 +21,7 @@ export default function LayoutAside({ resources = false }: { resources?: boolean
 
   const router = useRouter()
   const handleActivityChange = (next: AsideActivity) => {
-    if (next === "resources") { show(); return }
+    if (next === "resources") { if (selectLastPinned()) { setPreview(false); void router.push("/resources") } else show(); return }
     setPreview(false)
     if (next === "browser") { void router.push("/browser"); return }
     if (next === "todos") { void router.push("/todos"); return }

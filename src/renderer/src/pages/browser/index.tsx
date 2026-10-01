@@ -1,3 +1,4 @@
+import { markGuestReady, withGuest } from "./guest-lifecycle"
 import { elementPickerScript } from "./element-picker"
 import { webviewAttributes } from "./webview-attributes"
 import { useEffect, useRef, useState } from "react"
@@ -28,7 +29,8 @@ function Guest({ tab, visible, register, update }: { tab: Tab; visible: boolean;
   useEffect(() => {
     const view = ref.current
     if (!view) return
-    const sync = () => updateRef.current(tab.id, { url: view.getURL(), title: view.getTitle() || "正在加载…", back: view.canGoBack(), forward: view.canGoForward() })
+    const sync = () => withGuest(view, guest => updateRef.current(tab.id, { url: guest.getURL(), title: guest.getTitle() || "正在加载…", back: guest.canGoBack(), forward: guest.canGoForward() }))
+    const onReady = () => { markGuestReady(view, true); sync() }
     const start = () => updateRef.current(tab.id, { loading: true, error: "" })
     const stop = () => {
       sync()
@@ -42,7 +44,7 @@ function Guest({ tab, visible, register, update }: { tab: Tab; visible: boolean;
       if (event.isMainFrame && event.errorCode !== -3) updateRef.current(tab.id, { loading: false, error: `页面加载失败：${event.errorDescription}` })
     }
     view.addEventListener("page-favicon-updated", favicon)
-    view.addEventListener("dom-ready", sync)
+    view.addEventListener("dom-ready", onReady)
     view.addEventListener("did-navigate", sync)
     view.addEventListener("did-navigate-in-page", sync)
     view.addEventListener("page-title-updated", sync)
@@ -50,8 +52,9 @@ function Guest({ tab, visible, register, update }: { tab: Tab; visible: boolean;
     view.addEventListener("did-stop-loading", stop)
     view.addEventListener("did-fail-load", fail)
     return () => {
+      markGuestReady(view, false)
       view.removeEventListener("page-favicon-updated", favicon)
-      view.removeEventListener("dom-ready", sync)
+      view.removeEventListener("dom-ready", onReady)
       view.removeEventListener("did-navigate", sync)
       view.removeEventListener("did-navigate-in-page", sync)
       view.removeEventListener("page-title-updated", sync)
@@ -99,8 +102,8 @@ export default function BrowserPage({ visible = true }: { visible?: boolean }) {
   const tab = tabs.find((item) => item.id === active) || tabs[0]
   const searchPage = (forward = true, next = false) => {
     const view = views.current.get(tab.id)
-    if (findText) view?.findInPage(findText, { forward, findNext: next })
-    else view?.stopFindInPage("clearSelection")
+    if (findText) withGuest(view, guest => guest.findInPage(findText, { forward, findNext: next }))
+    else withGuest(view, guest => guest.stopFindInPage("clearSelection"))
   }
   useEffect(() => {
     if (!visible) return
@@ -110,7 +113,7 @@ export default function BrowserPage({ visible = true }: { visible?: boolean }) {
     }
     window.addEventListener("keydown", keydown)
     const unsubscribe = window.electronAPI.onBrowserFind(id => {
-      if (views.current.get(tab.id)?.getWebContentsId() === id) show()
+      if (withGuest(views.current.get(tab.id), guest => guest.getWebContentsId()) === id) show()
     })
     return () => { window.removeEventListener("keydown", keydown); unsubscribe() }
   }, [visible, tab.id])
@@ -118,9 +121,13 @@ export default function BrowserPage({ visible = true }: { visible?: boolean }) {
     const view = views.current.get(tab.id)
     const result = (event: Electron.FoundInPageEvent) => setFindResult({ ...event.result, tabId: tab.id, text: findText })
     view?.addEventListener("found-in-page", result)
-    if (findOpen && findText) view?.findInPage(findText)
-    else view?.stopFindInPage("clearSelection")
-    return () => { view?.removeEventListener("found-in-page", result); view?.stopFindInPage("clearSelection") }
+    const find = () => {
+      if (findOpen && findText) withGuest(view, guest => guest.findInPage(findText))
+      else withGuest(view, guest => guest.stopFindInPage("clearSelection"))
+    }
+    view?.addEventListener("dom-ready", find)
+    find()
+    return () => { view?.removeEventListener("dom-ready", find); view?.removeEventListener("found-in-page", result); withGuest(view, guest => guest.stopFindInPage("clearSelection")) }
   }, [findText, findOpen, tab.id])
   const update = (id: string, patch: Partial<Tab>) => setTabs((current) => current.map((item) => (item.id === id ? { ...item, ...patch } : item)))
   useEffect(() => {
@@ -188,7 +195,7 @@ export default function BrowserPage({ visible = true }: { visible?: boolean }) {
   }
   const zoom = (delta: number) => {
     const value = Math.max(0.5, Math.min(2, tab.zoom + delta))
-    views.current.get(tab.id)?.setZoomFactor(value)
+    withGuest(views.current.get(tab.id), guest => guest.setZoomFactor(value))
     update(tab.id, { zoom: value })
   }
   const bookmark = () => {
@@ -203,7 +210,7 @@ export default function BrowserPage({ visible = true }: { visible?: boolean }) {
         <ActivityBar
           activity="browser"
           onActivityChange={(item) => {
-            if (item !== "browser") void router.push(item === "todos" ? "/todos" : item === "tools" ? "/devtools" : "/editor")
+            if (item !== "browser") void router.push(item === "resources" ? "/resources" : item === "todos" ? "/todos" : item === "tools" ? "/devtools" : "/editor")
           }}
         />
       }
@@ -248,7 +255,7 @@ export default function BrowserPage({ visible = true }: { visible?: boolean }) {
             size="icon"
             title="后退"
             disabled={!tab.back}
-            onClick={() => views.current.get(tab.id)?.goBack()}
+            onClick={() => withGuest(views.current.get(tab.id), guest => guest.goBack())}
           >
             <ArrowLeft />
           </Button>
@@ -257,7 +264,7 @@ export default function BrowserPage({ visible = true }: { visible?: boolean }) {
             size="icon"
             title="前进"
             disabled={!tab.forward}
-            onClick={() => views.current.get(tab.id)?.goForward()}
+            onClick={() => withGuest(views.current.get(tab.id), guest => guest.goForward())}
           >
             <ArrowRight />
           </Button>
@@ -268,8 +275,8 @@ export default function BrowserPage({ visible = true }: { visible?: boolean }) {
             disabled={!tab.url}
             onClick={() => {
               const view = views.current.get(tab.id)
-              if (tab.loading) view?.stop()
-              else view?.reload()
+              if (tab.loading) withGuest(view, guest => guest.stop())
+              else withGuest(view, guest => guest.reload())
             }}
           >
             {tab.loading ? <X /> : <RotateCw />}
@@ -331,7 +338,7 @@ export default function BrowserPage({ visible = true }: { visible?: boolean }) {
             <ZoomOut />
           </Button>
           <Button variant="ghost" size="icon" title="查看元素信息（Esc 退出，再次点击关闭）" aria-label="查看元素信息" disabled={!tab.url}
-            onClick={() => { void views.current.get(tab.id)?.executeJavaScript(elementPickerScript).catch(error => window.alert(`无法查看元素：${String(error)}`)) }}>
+            onClick={() => { void withGuest(views.current.get(tab.id), guest => guest.executeJavaScript(elementPickerScript).catch(error => window.alert(`无法查看元素：${String(error)}`))) }}>
             <ScanSearch />
           </Button>
           <Button

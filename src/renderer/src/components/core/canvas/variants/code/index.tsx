@@ -1,3 +1,4 @@
+import { useExternalContent } from "@/pages/workspace/hooks/file-changes"
 import { StatusSlot } from "@/pages/workspace/components/layout-main/status-slot"
 import { countDocument } from "../markdown/count-document"
 import "./index.css"
@@ -13,6 +14,7 @@ export default function CodeCanvas({ activeFilePath }: { activeFilePath: string 
   const [error, setError] = useState("")
   const [status, setStatus] = useState("")
   const [saveError, setSaveError] = useState(false)
+  useExternalContent(activeFilePath, content, value => { setContent(value); setStatus("已从磁盘更新") })
   const deferredContent = useDeferredValue(content ?? "")
   const stats = useMemo(() => countDocument(deferredContent), [deferredContent])
   const revision = useRef(0)

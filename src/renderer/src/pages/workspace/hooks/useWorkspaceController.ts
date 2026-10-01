@@ -1,3 +1,4 @@
+import { useDirectoryWatch, useFileChanges } from "./file-changes"
 import { useEffect, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { getFileExtension } from "@vessel/utils"
@@ -10,6 +11,7 @@ import type { WorkspaceData, WorkspaceNode, WorkspaceContextType } from "../type
  */
 export function useWorkspaceController(workspace: WorkspaceData, initialFile?: string, scope: "workspace" | "resources" = "workspace", preview = false): WorkspaceContextType {
   const base = scope === "resources" ? "/resources" : "/editor"
+  useDirectoryWatch(workspace.path)
   const navigate = useNavigate()
   const [openFiles, setOpenFiles] = useState<WorkspaceNode[]>(() => initialFile ? [{ name: initialFile.split(/[\\/]/).pop() || initialFile, path: initialFile }] : [])
   const [activeFilePath, setActiveFilePath] = useState(initialFile || "")
@@ -52,14 +54,14 @@ export function useWorkspaceController(workspace: WorkspaceData, initialFile?: s
   /** 清除当前文件选择并返回工作区首页，保留已打开的标签。 */
   const navigateToWorkspaceHome = () => {
     setActiveFilePath("")
-    navigate(base)
+    if (!preview) navigate(base)
   }
   /** 激活文件标签，避免重复添加，并导航至文件内容路由。
    * @param file 要打开的文件节点。 */
   const openWorkspaceFile = (file: WorkspaceNode) => {
     setOpenFiles((current) => (current.some((item) => item.path === file.path) ? current : [...current, file]))
     setActiveFilePath(file.path)
-    navigate(initialFile && scope === "workspace" ? `/editor/file?external=${encodeURIComponent(initialFile)}` : `${base}/file`)
+    if (!preview) navigate(initialFile && scope === "workspace" ? `/editor/file?external=${encodeURIComponent(initialFile)}` : `${base}/file`)
   }
   /** 关闭指定标签；关闭当前标签时优先选择左侧标签，否则返回首页。
    * @param path 要关闭的文件路径。 */
@@ -71,7 +73,7 @@ export function useWorkspaceController(workspace: WorkspaceData, initialFile?: s
       const next = remaining[Math.max(0, index - 1)]
       if (next) {
         setActiveFilePath(next.path)
-        navigate(initialFile && scope === "workspace" ? `/editor/file?external=${encodeURIComponent(initialFile)}` : `${base}/file`)
+        if (!preview) navigate(initialFile && scope === "workspace" ? `/editor/file?external=${encodeURIComponent(initialFile)}` : `${base}/file`)
       } else navigateToWorkspaceHome()
     }
   }
@@ -84,10 +86,16 @@ export function useWorkspaceController(workspace: WorkspaceData, initialFile?: s
       const next = remaining[0]
       if (next) {
         setActiveFilePath(next.path)
-        navigate(initialFile && scope === "workspace" ? `/editor/file?external=${encodeURIComponent(initialFile)}` : `${base}/file`)
+        if (!preview) navigate(initialFile && scope === "workspace" ? `/editor/file?external=${encodeURIComponent(initialFile)}` : `${base}/file`)
       } else navigateToWorkspaceHome()
     }
   }
+  useFileChanges(changes => {
+    const deleted = changes.filter(change => change.type === "delete")
+    const removed = openFiles.filter(file => deleted.some(change => file.path === change.path || file.path.startsWith(change.path + "/") || file.path.startsWith(change.path + "\\"))).map(file => file.path)
+    if (removed.length) closeWorkspaceFiles(removed)
+    setExpandedFolders(current => current.filter(path => !deleted.some(change => path === change.path || path.startsWith(change.path + "/"))))
+  })
   return {
     renameWorkspaceTab: (path, newPath, name) => {
       setOpenFiles(files => files.map(file => file.path === path ? { ...file, path: newPath, name } : file))

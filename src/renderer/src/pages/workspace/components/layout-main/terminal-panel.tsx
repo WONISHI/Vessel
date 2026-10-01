@@ -12,7 +12,7 @@ export function TerminalPanel({ root, file }: { root: string; file?: string }) {
     let disposed = false
     let id: string | undefined
     const pending = new Map<string, string[]>()
-    const terminal = new Terminal({ cursorBlink: true, fontSize: 13, fontFamily: "Menlo, Consolas, monospace", scrollback: 5000, theme: { background: "#faf9f7", foreground: "#292524", cursor: "#15803d", selectionBackground: "#bbf7d0" } })
+    const terminal = new Terminal({ cursorBlink: true, fontSize: 12, fontFamily: "Menlo, Consolas, monospace", scrollback: 5000, theme: { background: "#faf9f7", foreground: "#292524", cursor: "#15803d", selectionBackground: "#bbf7d0" } })
     const fit = new FitAddon()
     terminal.loadAddon(fit)
     terminal.open(host.current)
@@ -45,6 +45,6 @@ export function TerminalPanel({ root, file }: { root: string; file?: string }) {
       <strong className="text-green-700">终端</strong><span className="min-w-0 flex-1 truncate" title={cwd}>{cwd || "正在启动…"}</span>
     </header>
     {error && <p role="alert" className="px-3 text-xs text-red-500">{error}</p>}
-    <div ref={host} className="min-h-0 flex-1 overflow-hidden p-2" />
+    <div ref={host} className="min-h-0 flex-1 overflow-hidden px-2 pt-2 pb-4" />
   </section>
 }

@@ -1,3 +1,4 @@
+import { useFileChanges } from "../../../hooks/file-changes"
 import { FileActions } from "./file-actions"
 import { InlineEntryEditor, type EntryDraft } from "./create-entry"
 import { useEffect, useRef, useState } from "react"
@@ -30,6 +31,10 @@ export default function WorkspaceTree({
 }) {
   const { workspace, openFiles, activeFilePath, openWorkspaceFile, expandedFolders, setDirectoryExpanded } = useWorkspace()
   const [directories, setDirectories] = useState<Record<string, DirectoryState>>({})
+  useFileChanges(changes => {
+    const parents = new Set(changes.filter(change => change.type !== "update").map(change => change.path.replace(/[\\/][^\\/]+$/, "")))
+    for (const parent of parents) if (parent === workspace.path || directories[parent]) void loadDirectoryChildren(parent)
+  })
   const pending = useRef(new Map<string, Promise<void>>())
   const mounted = useRef(true)
   /** 按需读取直接子节点并缓存，合并同一路径的并发请求。

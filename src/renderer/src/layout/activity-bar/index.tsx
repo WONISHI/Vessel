@@ -1,3 +1,5 @@
+import { useEffect } from "react"
+import { useLibraryMeta, updateLibraryMeta, selectLastPinned } from "@/pages/resources/library-state"
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
 import { Sun } from "lucide-react"
 import Logo from "@/assets/logo.png"
@@ -9,6 +11,10 @@ import { ACTIVITY_ITEMS } from "@/layout/activity-bar/constants"
 
 /** 左侧窄活动栏：应用入口、活动切换和外观标识。 */
 export default function LayoutActivityBar({ activity, onActivityChange, onResourceEnter, onResourceLeave }: LayoutActivityBarProps) {
+  const library = useLibraryMeta()
+  useEffect(() => {
+    void window.electronAPI.getAppState?.<unknown[]>("project-library").then(projects => { if (Array.isArray(projects)) updateLibraryMeta({ count: projects.length }) }).catch(() => {})
+  }, [])
   const { open, openMobile, isMobile } = useSidebar()
   const expanded = isMobile ? openMobile : open
   return (
@@ -48,12 +54,13 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
                 size="icon"
                 aria-label={label}
                 aria-pressed={activity === id}
-                onClick={() => onActivityChange(id)}
+                onClick={() => { if (id === "resources") selectLastPinned(); onActivityChange(id) }}
                 onMouseEnter={id === "resources" ? onResourceEnter : undefined}
                 onMouseLeave={id === "resources" ? onResourceLeave : undefined}
-                className={cn("h-[38px] w-[38px] rounded-[10px] text-stone-500 hover:bg-[#f0efed]", activity === id && "bg-emerald-50 text-green-700 hover:bg-emerald-50")}
+                className={cn("relative h-[38px] w-[38px] rounded-[10px] text-stone-500 hover:bg-[#f0efed]", activity === id && "bg-emerald-50 text-green-700 hover:bg-emerald-50")}
               >
                 <Icon className="!size-5" />
+                {id === "resources" && (library.count || 0) > 0 && <span className="absolute -right-0.5 -top-0.5 min-w-4 rounded-full bg-emerald-700 px-1 text-[9px] leading-4 !text-white" aria-label={`${library.count} 个项目`}>{library.count}</span>}
               </Button>
             </TooltipTrigger>
             <TooltipContent

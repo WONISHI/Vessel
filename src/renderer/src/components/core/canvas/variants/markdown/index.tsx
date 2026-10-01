@@ -1,3 +1,4 @@
+import { useExternalContent } from "@/pages/workspace/hooks/file-changes"
 import { headingSections } from "./heading-sections"
 import { WikiLinkPreview } from "./wiki-link-preview"
 import { DocumentStats } from "./document-stats"
@@ -32,6 +33,13 @@ export default function MarkdownCanvas({ activeFilePath }: { activeFilePath: str
       cancelled = true
     }
   }, [activeFilePath])
+  const [externalRevision, setExternalRevision] = useState(0)
+  useExternalContent(activeFilePath, loaded?.path === activeFilePath ? loaded.content : undefined, content => {
+    drafts.current.set(activeFilePath, content)
+    setLoaded({ path: activeFilePath, content })
+    setExternalRevision(value => value + 1)
+    setSaveState({ path: activeFilePath, message: "已从磁盘更新" })
+  })
   const current = loaded?.path === activeFilePath ? loaded : null
   const sections = useMemo(() => headingSections(current?.content ?? ""), [current?.content])
   const [headings, setHeadings] = useState<{ text: string; level: number; color?: string }[]>([])
@@ -88,7 +96,7 @@ export default function MarkdownCanvas({ activeFilePath }: { activeFilePath: str
             </p>
           ) : (
             <VditorEditor
-              key={activeFilePath}
+              key={`${activeFilePath}:${externalRevision}`}
               workspacePath={workspace.path}
               documentPath={activeFilePath}
               value={current.content}
@@ -119,7 +127,7 @@ export default function MarkdownCanvas({ activeFilePath }: { activeFilePath: str
           }}
         />
       </div>
-      <WikiLinkPreview key={activeFilePath} host={contentHost} workspacePath={workspace.path} />
+      <WikiLinkPreview key={`${activeFilePath}:${externalRevision}`} host={contentHost} workspacePath={workspace.path} />
       <DocumentStats source={current?.content ?? ""} saveStatus={saveState?.path === activeFilePath ? saveState : undefined} />
     </div>
   )
