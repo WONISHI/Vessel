@@ -1,3 +1,4 @@
+import { registerTerminal } from "./terminal"
 import { secureBrowserGuests } from "./browser-security"
 import { registerMarkdownOpening } from "./open-markdown"
 import { join } from "path"
@@ -32,6 +33,7 @@ function createWindow(): void {
     mainWindow.on("focus", () => mainWindow.setOverlayIcon(null, ""))
   }
   secureBrowserGuests(mainWindow.webContents)
+  registerTerminal(mainWindow.webContents)
 
   mainWindow.on("ready-to-show", () => {
     mainWindow.show()

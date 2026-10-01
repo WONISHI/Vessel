@@ -1,3 +1,4 @@
+import type { TerminalAPI } from "../../shared/terminal"
 import type { ImageFile } from "../../shared/image-file"
 import type { TodosAPI } from "../../shared/todos"
 import type { ElectronAPI } from "@electron-toolkit/preload"
@@ -90,7 +91,7 @@ interface StorageInfo {
 }
 
 /** preload 暴露给 React 渲染进程的完整 API。 */
-interface VesselAPI extends TodosAPI {
+interface VesselAPI extends TodosAPI, TerminalAPI {
   onBrowserDevtoolsClosed: (callback: () => void) => () => void
   onBrowserFind: (callback: (id: number) => void) => () => void
   setBrowserDevtools: (id: number | null, bounds?: { x: number; y: number; width: number; height: number }, appearance?: { font: string; size: number; detached?: boolean }) => Promise<void>

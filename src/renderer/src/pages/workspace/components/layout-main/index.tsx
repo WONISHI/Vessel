@@ -1,8 +1,9 @@
+import { TerminalPanel } from "./terminal-panel"
 import { FileSearch } from "./file-search"
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
 import { useEffect, useRef, useState } from "react"
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
-import { File, Home, X, MoreHorizontal, ChevronLeft, ChevronRight } from "lucide-react"
+import { File, Home, X, MoreHorizontal, ChevronLeft, ChevronRight, SquareChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { RouterView } from "@vessel/react-router/components"
 import { useLocation } from "react-router-dom"
@@ -11,7 +12,8 @@ import { useWorkspace } from "@/pages/workspace/hooks/useWorkspace"
 
 /** 主区只负责标签导航和当前子路由出口。 */
 export default function LayoutMain() {
-  const { openFiles, activeFilePath, openWorkspaceFile, closeWorkspaceFile, closeWorkspaceFiles, navigateToWorkspaceHome } = useWorkspace()
+  const { workspace, openFiles, activeFilePath, openWorkspaceFile, closeWorkspaceFile, closeWorkspaceFiles, navigateToWorkspaceHome } = useWorkspace()
+  const [terminal, setTerminal] = useState<{ file?: string } | null>(null)
   const location = useLocation()
   const home = location.pathname === "/editor"
   const [edges, setEdges] = useState({ left: false, right: false })
@@ -213,6 +215,12 @@ export default function LayoutMain() {
         className="flex min-h-0 min-w-0 flex-1 flex-col overflow-auto"
       >
         <RouterView />
+      </div>
+      {terminal && <TerminalPanel key={`${workspace.path}:${terminal.file || ""}`} root={workspace.path} file={terminal.file} onClose={() => setTerminal(null)} />}
+      <div className="flex shrink-0 items-center border-t bg-stone-50 px-3 py-1">
+        <Button variant="ghost" className="h-6 gap-1 px-2 text-xs text-stone-500" aria-label="打开控制台" onClick={() => setTerminal({ file: home ? undefined : activeFilePath || undefined })}>
+          <SquareChevronRight className="!size-4" />控制台
+        </Button>
       </div>
     </main>
   )

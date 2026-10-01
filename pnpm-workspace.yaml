@@ -5,6 +5,7 @@ allowBuilds:
   esbuild: true
   lzma-native: true
   node: true
+  node-pty: true
 
 packages:
   - "."

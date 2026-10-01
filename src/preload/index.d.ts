@@ -1,3 +1,4 @@
+import type { TerminalAPI } from "../shared/terminal"
 import type { ImageFile } from "../shared/image-file"
 import type { TodosAPI } from "../shared/todos"
 import type { ElectronAPI } from "@electron-toolkit/preload"
@@ -88,7 +89,7 @@ export interface StorageInfo {
   sessionId: string
 }
 
-export interface VesselAPI extends TodosAPI {
+export interface VesselAPI extends TodosAPI, TerminalAPI {
   onBrowserDevtoolsClosed: (callback: () => void) => () => void
   onBrowserFind: (callback: (id: number) => void) => () => void
   setBrowserDevtools: (id: number | null, bounds?: { x: number; y: number; width: number; height: number }, appearance?: { font: string; size: number; detached?: boolean }) => Promise<void>

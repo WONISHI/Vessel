@@ -8,7 +8,8 @@
   "build": {
     "appId": "com.your.app",
     "asarUnpack": [
-      "**/node_modules/better-sqlite3/**/*"
+      "**/node_modules/better-sqlite3/**/*",
+      "**/node_modules/node-pty/**/*"
     ],
     "nsis": {
       "artifactName": "${productName}-Setup-${version}.${ext}"
@@ -47,7 +48,8 @@
     "onlyBuiltDependencies": [
       "better-sqlite3",
       "electron",
-      "esbuild"
+      "esbuild",
+      "node-pty"
     ]
   },
   "scripts": {
@@ -63,7 +65,7 @@
     "dev": "electron-vite dev --watch",
     "dev:main": "electron-vite dev --watch",
     "build": "npm run typecheck && electron-vite build",
-    "postinstall": "electron-builder install-app-deps",
+    "postinstall": "electron-builder install-app-deps && node scripts/prepare-pty.cjs",
     "rebuild:deps": "electron-builder install-app-deps",
     "build:unpack": "npm run build && electron-builder --dir",
     "build:win": "npm run build && electron-builder --win",
@@ -106,6 +108,8 @@
     "@vessel/obsidian": "file:packages/obsidian",
     "@vessel/react-router": "file:packages/react-router",
     "@vessel/utils": "file:packages/utils",
+    "@xterm/addon-fit": "^0.11.0",
+    "@xterm/xterm": "^6.0.0",
     "better-sqlite3": "^12.4.1",
     "chokidar": "^5.0.0",
     "class-variance-authority": "^0.7.1",
@@ -115,6 +119,7 @@
     "marked": "^17.0.1",
     "monaco-editor": "^0.55.1",
     "node": "^25.5.0",
+    "node-pty": "^1.1.0",
     "nodemon": "^3.1.11",
     "react-dczs-image-preview": "^1.0.29",
     "react-diff-viewer-continued": "^3.4.0",

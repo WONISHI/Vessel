@@ -1,3 +1,4 @@
+import { terminalAPI } from "./apis/terminal.api"
 import { todosAPI } from "./apis/todos.api"
 import { contextBridge, ipcRenderer } from "electron"
 import { electronAPI } from "@electron-toolkit/preload"
@@ -9,6 +10,7 @@ import { filesAPI } from "./apis/files.api"
 const api = {}
 
 const vesselAPI = {
+  ...terminalAPI,
   onBrowserDevtoolsClosed: (callback: () => void) => {
     ipcRenderer.on("browser:devtools-closed", callback)
     return () => ipcRenderer.removeListener("browser:devtools-closed", callback)
