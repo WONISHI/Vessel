@@ -6,11 +6,11 @@ import { WorkspaceProvider } from "./contexts/WorkspaceProvider"
 import { useWorkspaceController } from "./hooks/useWorkspaceController"
 
 /** 组装工作区页面，为侧栏、标签栏和路由内容提供共享业务状态。 */
-export default function WorkspacePage({ workspace, initialFile }: WorkspacePageProps & { initialFile?: string }) {
-  const workspaceController = useWorkspaceController(workspace, initialFile)
+export default function WorkspacePage({ workspace, initialFile, scope = "workspace" }: WorkspacePageProps & { initialFile?: string; scope?: "workspace" | "resources" }) {
+  const workspaceController = useWorkspaceController(workspace, initialFile, scope)
   return (
     <WorkspaceProvider value={workspaceController}>
-      <Layout aside={<LayoutAside />}>
+      <Layout aside={<LayoutAside resources={scope === "resources"} />}>
         <LayoutMain />
       </Layout>
     </WorkspaceProvider>

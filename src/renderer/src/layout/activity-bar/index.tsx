@@ -8,7 +8,7 @@ import type { LayoutActivityBarProps } from "@/layout/activity-bar/types"
 import { ACTIVITY_ITEMS } from "@/layout/activity-bar/constants"
 
 /** 左侧窄活动栏：应用入口、活动切换和外观标识。 */
-export default function LayoutActivityBar({ activity, onActivityChange }: LayoutActivityBarProps) {
+export default function LayoutActivityBar({ activity, onActivityChange, onResourceEnter, onResourceLeave }: LayoutActivityBarProps) {
   const { open, openMobile, isMobile } = useSidebar()
   const expanded = isMobile ? openMobile : open
   return (
@@ -49,6 +49,8 @@ export default function LayoutActivityBar({ activity, onActivityChange }: Layout
                 aria-label={label}
                 aria-pressed={activity === id}
                 onClick={() => onActivityChange(id)}
+                onMouseEnter={id === "resources" ? onResourceEnter : undefined}
+                onMouseLeave={id === "resources" ? onResourceLeave : undefined}
                 className={cn("h-[38px] w-[38px] rounded-[10px] text-stone-500 hover:bg-[#f0efed]", activity === id && "bg-emerald-50 text-green-700 hover:bg-emerald-50")}
               >
                 <Icon className="!size-5" />

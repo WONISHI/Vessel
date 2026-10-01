@@ -1,9 +1,12 @@
+import Clock from "react-live-clock"
+import { StatusTarget } from "./status-context"
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable-panels"
 import { TerminalPanel } from "./terminal-panel"
 import { FileSearch } from "./file-search"
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
 import { useEffect, useRef, useState } from "react"
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
-import { File, Home, X, MoreHorizontal, ChevronLeft, ChevronRight, SquareChevronRight } from "lucide-react"
+import { File, Home, X, MoreHorizontal, ChevronLeft, ChevronRight, SquareChevronRight, SquareChevronDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { RouterView } from "@vessel/react-router/components"
 import { useLocation } from "react-router-dom"
@@ -13,9 +16,11 @@ import { useWorkspace } from "@/pages/workspace/hooks/useWorkspace"
 /** 主区只负责标签导航和当前子路由出口。 */
 export default function LayoutMain() {
   const { workspace, openFiles, activeFilePath, openWorkspaceFile, closeWorkspaceFile, closeWorkspaceFiles, navigateToWorkspaceHome } = useWorkspace()
+  const [weekday, setWeekday] = useState(() => new Date().getDay())
+  const [statusTarget, setStatusTarget] = useState<HTMLDivElement | null>(null)
   const [terminal, setTerminal] = useState<{ file?: string } | null>(null)
   const location = useLocation()
-  const home = location.pathname === "/editor"
+  const home = ["/editor", "/resources"].includes(location.pathname)
   const [edges, setEdges] = useState({ left: false, right: false })
   const tabList = useRef<HTMLDivElement>(null)
   const contentHost = useRef<HTMLDivElement>(null)
@@ -57,7 +62,7 @@ export default function LayoutMain() {
     }
   }, [activeFilePath, home, openFiles.length])
   return (
-    <main className="relative flex min-h-0 min-w-0 flex-1 flex-col bg-white">
+    <StatusTarget.Provider value={statusTarget}><main className="relative flex min-h-0 min-w-0 flex-1 flex-col bg-white">
       <nav
         aria-label="已打开的标签"
         className="flex h-10 shrink-0 items-center gap-1 border-b border-[#f0efed] bg-white px-2.5"
@@ -210,18 +215,22 @@ export default function LayoutMain() {
           </DropdownMenuContent>
         </DropdownMenu>
       </nav>
-      <div
-        ref={contentHost}
-        className="flex min-h-0 min-w-0 flex-1 flex-col overflow-auto"
-      >
-        <RouterView />
-      </div>
-      {terminal && <TerminalPanel key={`${workspace.path}:${terminal.file || ""}`} root={workspace.path} file={terminal.file} onClose={() => setTerminal(null)} />}
-      <div className="flex shrink-0 items-center border-t bg-stone-50 px-3 py-1">
-        <Button variant="ghost" className="h-6 gap-1 px-2 text-xs text-stone-500" aria-label="打开控制台" onClick={() => setTerminal({ file: home ? undefined : activeFilePath || undefined })}>
-          <SquareChevronRight className="!size-4" />控制台
-        </Button>
-      </div>
-    </main>
+      <ResizablePanelGroup orientation="vertical">
+        <ResizablePanel id="editor" defaultSize="70%" minSize="20%" className="flex min-h-0 flex-col">
+          <div ref={contentHost} className="flex min-h-0 min-w-0 flex-1 flex-col overflow-auto"><RouterView /></div>
+          <footer className="shrink-0 border-t bg-stone-50 px-3 py-1 text-xs text-stone-500">
+            <div className="flex flex-wrap items-center gap-2">
+              <Button variant="ghost" aria-pressed={!!terminal} className={`h-6 gap-1 px-2 text-xs hover:bg-emerald-700 hover:!text-white active:!text-white ${terminal ? "bg-emerald-700 !text-white" : "text-stone-500"}`} aria-label={terminal ? "关闭控制台" : "打开控制台"} onClick={() => setTerminal(current => current ? null : { file: home ? undefined : activeFilePath || undefined })}>
+                {terminal ? <SquareChevronDown className="!size-4" /> : <SquareChevronRight className="!size-4" />}控制台
+              </Button>
+              <div ref={setStatusTarget} className="min-w-0 flex-1" />
+              <Clock ticking interval={1000} format="YYYY年MM月DD日 HH:mm" onChange={() => setWeekday(new Date().getDay())} />
+              <span>{["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"][weekday]}</span>
+            </div>
+          </footer>
+        </ResizablePanel>
+        {terminal && <><ResizableHandle aria-label="调整终端高度" /><ResizablePanel id="terminal" defaultSize="30%" minSize="15%"><TerminalPanel key={`${workspace.path}:${terminal.file || ""}`} root={workspace.path} file={terminal.file} /></ResizablePanel></>}
+      </ResizablePanelGroup>
+    </main></StatusTarget.Provider>
   )
 }

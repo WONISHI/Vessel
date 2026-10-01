@@ -1,3 +1,4 @@
+import { StatusSlot } from "@/pages/workspace/components/layout-main/status-slot"
 import { parseWikiLinks } from "@vessel/obsidian"
 import { useDeferredValue, useMemo } from "react"
 
@@ -8,10 +9,10 @@ export function DocumentStats({ source, saveStatus }: { source: string; saveStat
   const stats = useMemo(() => countDocument(deferred), [deferred])
   const links = useMemo(() => parseWikiLinks(deferred).length, [deferred])
   return (
-    <footer
+    <StatusSlot><footer
       aria-label="文档统计"
       title="统计 Markdown 源文；字符数包含空格与换行"
-      className="flex shrink-0 flex-wrap items-center justify-end gap-5 border-t border-stone-200 bg-[#faf9f7] px-5 py-2 text-[11px] text-stone-500"
+      className="flex shrink-0 flex-wrap items-center justify-end gap-5 bg-transparent px-2 py-1 text-[11px] text-stone-500"
     >
       {saveStatus && <span role={saveStatus.failed ? "alert" : "status"} className={`mr-auto ${saveStatus.failed ? "text-red-500" : ""}`}>{saveStatus.message}</span>}
       <span>{links} 条反向链接</span>
@@ -19,6 +20,6 @@ export function DocumentStats({ source, saveStatus }: { source: string; saveStat
       <span>{stats.characters.toLocaleString()} 字符</span>
       <span>{stats.lines.toLocaleString()} 行</span>
       <span>Markdown · UTF-8</span>
-    </footer>
+    </footer></StatusSlot>
   )
 }

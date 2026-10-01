@@ -5,6 +5,10 @@ import { defineConfig } from "electron-vite"
 import react from "@vitejs/plugin-react"
 import svgr from "vite-plugin-svgr"
 
+// react-moment's CommonJS duration plugin expects the Moment function, not an ESM namespace.
+const clockRequire = createRequire(createRequire(import.meta.url).resolve("react-live-clock"))
+const momentCommonJS = clockRequire.resolve("moment/moment.js")
+
 /** 将已安装版本的编辑器资源放入 public，供开发服务和打包后的 file:// 页面共同使用。 */
 function localVditorAssets() {
   return {
@@ -41,6 +45,7 @@ export default defineConfig({
   renderer: {
     resolve: {
       alias: {
+        "moment": momentCommonJS,
         "@renderer": resolve("src/renderer/src"),
         "@": resolve("src/renderer/src")
       }

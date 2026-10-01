@@ -63,6 +63,13 @@ export default function WorkspaceTree({
     }
     // Cache lifetime is scoped by the workspace/activity key in the parent.
   }, [])
+  useEffect(() => {
+    if (!recent) expandedFolders.forEach(path => {
+      if (!directories[path]) void loadDirectoryChildren(path)
+    })
+    // Expanded folders can arrive after the initial session restore.
+  }, [expandedFolders, recent])
+
   const rows: VirtualTreeRow<WorkspaceNode>[] = []
   /** 仅展开已打开目录，将已加载节点转换成虚拟列表所需的可见行。 */
   const appendVisibleTreeRows = (nodes: WorkspaceNode[], depth = 0, parent = workspace.path) => {

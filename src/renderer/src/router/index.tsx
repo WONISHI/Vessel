@@ -1,7 +1,7 @@
 import { BrowserRoute } from "@/pages/browser/keep-alive"
 import { useLocation } from "react-router-dom"
 import TodosPage from "@/pages/todos"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 
 import App, { type WorkspaceData } from "../App"
 import WorkspacePage from "@/pages/workspace"
@@ -68,21 +68,41 @@ function ExternalEditor({ path }: { path: string }) {
 }
 
 function CurrentEditor() {
-  const [workspace] = useState<WorkspaceData | null>(() => {
+  const [workspace, setWorkspace] = useState<WorkspaceData | null>(() => {
     return readCurrentWorkspace()
   })
+
+  useEffect(() => {
+    const update = () => setWorkspace(readCurrentWorkspace())
+    window.addEventListener("vessel:workspace-changed", update)
+    return () => window.removeEventListener("vessel:workspace-changed", update)
+  }, [])
 
   if (!workspace) {
     return null
   }
 
-  return <WorkspacePage workspace={workspace} />
+  return <WorkspacePage key={workspace.path} workspace={workspace} />
+}
+
+function ResourceRoute() {
+  const [project, setProject] = useState(() => JSON.parse(localStorage.getItem("resource_current_project") || "null") as (WorkspaceData & { initialFile?: string }) | null)
+  useEffect(() => {
+    const update = () => setProject(JSON.parse(localStorage.getItem("resource_current_project") || "null"))
+    window.addEventListener("vessel:resource-changed", update)
+    return () => window.removeEventListener("vessel:resource-changed", update)
+  }, [])
+  return project ? <WorkspacePage key={`${project.path}:${project.initialFile || ""}`} workspace={project} initialFile={project.initialFile} scope="resources" /> : <Welcome onEnter={data => localStorage.setItem("resource_current_project", JSON.stringify(data))} />
 }
 
 /**
  * 路由配置
  */
 export const routes: AppRouteRecordRaw[] = [
+  { path: "/resources", name: "resources", component: ResourceRoute, meta: { title: "项目资源库" }, children: [
+    { index: true, component: WorkspaceHome },
+    { path: "file", name: "resources-file", component: Canvas }
+  ] },
   { path: "/browser", name: "browser", component: BrowserRoute, meta: { title: "浏览器" } },
   {path: "/todos", name: "todos", component: TodosPage, meta: {title: "待办"}},
   {

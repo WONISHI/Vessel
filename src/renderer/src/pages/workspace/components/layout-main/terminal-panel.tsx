@@ -1,10 +1,9 @@
 import { useEffect, useRef, useState } from "react"
 import { Terminal } from "@xterm/xterm"
 import { FitAddon } from "@xterm/addon-fit"
-import { X } from "lucide-react"
 import "@xterm/xterm/css/xterm.css"
 
-export function TerminalPanel({ root, file, onClose }: { root: string; file?: string; onClose: () => void }) {
+export function TerminalPanel({ root, file }: { root: string; file?: string }) {
   const host = useRef<HTMLDivElement>(null)
   const [cwd, setCwd] = useState("")
   const [error, setError] = useState("")
@@ -41,10 +40,9 @@ export function TerminalPanel({ root, file, onClose }: { root: string; file?: st
       if (id) void window.electronAPI.terminalClose(id).catch(() => {})
     }
   }, [root, file])
-  return <section aria-label="命令终端" className="flex h-64 min-h-32 shrink-0 flex-col border-t bg-[#faf9f7]">
+  return <section aria-label="命令终端" className="flex h-full min-h-0 flex-col border-t bg-[#faf9f7]">
     <header className="flex items-center gap-3 border-b px-3 py-1 text-xs text-stone-500">
       <strong className="text-green-700">终端</strong><span className="min-w-0 flex-1 truncate" title={cwd}>{cwd || "正在启动…"}</span>
-      <button aria-label="关闭终端并结束进程" title="关闭终端并结束进程" onClick={onClose}><X size={16} /></button>
     </header>
     {error && <p role="alert" className="px-3 text-xs text-red-500">{error}</p>}
     <div ref={host} className="min-h-0 flex-1 overflow-hidden p-2" />
