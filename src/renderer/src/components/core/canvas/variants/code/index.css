@@ -1,0 +1,11 @@
+/* Keep Monaco's virtual scroll model; match the app's ScrollArea thumb. */
+.vessel-code-editor .monaco-scrollable-element > .scrollbar > .slider {
+  background: #e4e4e7 !important;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box !important;
+}
+.vessel-code-editor .monaco-scrollable-element > .scrollbar > .slider:hover,
+.vessel-code-editor .monaco-scrollable-element > .scrollbar > .slider.active {
+  background-color: #a1a1aa !important;
+}

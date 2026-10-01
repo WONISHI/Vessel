@@ -1,3 +1,4 @@
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog"
 import { Copy, FolderOpen, FilePlus2, FolderPlus, Pencil, Trash2 } from "lucide-react"
 import { createPortal } from "react-dom"
 import { useState, type ReactNode } from "react"
@@ -12,6 +13,7 @@ import type { WorkspaceNode } from "@/pages/workspace/types/workspace"
 export function FileActions({ node, children, onChanged, onCreate }: { node: WorkspaceNode; children: ReactNode; onChanged: () => void; onCreate?: (kind: "file" | "directory") => void }) {
   const { workspace, renameWorkspaceTab, closeWorkspaceFiles, openFiles } = useWorkspace()
   const [point, setPoint] = useState<{ x: number; y: number } | null>(null)
+  const [confirmTrash, setConfirmTrash] = useState(false)
   const [renaming, setRenaming] = useState(false)
   const [name, setName] = useState(node.name)
   const [error, setError] = useState("")
@@ -25,6 +27,7 @@ export function FileActions({ node, children, onChanged, onCreate }: { node: Wor
       const affected = openFiles.filter((file) => file.path === node.path || (node.type === "directory" && file.path.startsWith(node.path + (node.path.includes("\\") ? "\\" : "/"))))
       if (next !== undefined) affected.forEach((file) => renameWorkspaceTab(file.path, path + file.path.slice(node.path.length), file.path === node.path ? next : file.name))
       else closeWorkspaceFiles(affected.map((file) => file.path))
+      setConfirmTrash(false)
       onChanged()
       setPoint(null)
     } catch (reason) {
@@ -34,6 +37,7 @@ export function FileActions({ node, children, onChanged, onCreate }: { node: Wor
     }
   }
   return (
+    <>
     <Popover
       open={!!point}
       onOpenChange={(open) => {
@@ -141,7 +145,7 @@ export function FileActions({ node, children, onChanged, onCreate }: { node: Wor
               variant="ghost"
               disabled={busy}
               className="h-8 w-full justify-start text-xs text-red-600 hover:bg-red-600 hover:text-white"
-              onClick={() => void mutate()}
+              onClick={() => { setError(""); setPoint(null); setConfirmTrash(true) }}
             >
               <Trash2 className="!size-3.5" />
               移到废纸篓
@@ -158,5 +162,23 @@ export function FileActions({ node, children, onChanged, onCreate }: { node: Wor
         )}
       </PopoverContent>
     </Popover>
+    <AlertDialog open={confirmTrash} onOpenChange={open => { if (!busy) setConfirmTrash(open) }}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>移到废纸篓？</AlertDialogTitle>
+          <AlertDialogDescription className="break-all">
+            确定将“{node.name}”{node.type === "directory" ? "及其全部内容" : ""}移到系统废纸篓吗？之后可在废纸篓中恢复。
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        {error && <p role="alert" className="break-all text-sm text-red-500">移动失败：{error}</p>}
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={busy}>取消</AlertDialogCancel>
+          <AlertDialogAction disabled={busy} className="bg-red-600 text-white hover:bg-red-700" onClick={event => { event.preventDefault(); void mutate() }}>
+            {busy ? "正在移动…" : "确认移到废纸篓"}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   )
 }

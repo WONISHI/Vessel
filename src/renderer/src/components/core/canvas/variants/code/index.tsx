@@ -1,5 +1,8 @@
+import { countDocument } from "../markdown/count-document"
+import "./index.css"
+import { codeEditors } from "./search-bridge"
 import Editor from "@monaco-editor/react"
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, useMemo, useDeferredValue } from "react"
 import { monaco } from "./monaco"
 import { codeLanguage } from "./language"
 import { PageLoading } from "@/components/ui/page-loading"
@@ -7,8 +10,10 @@ import { PageLoading } from "@/components/ui/page-loading"
 export default function CodeCanvas({ activeFilePath }: { activeFilePath: string }) {
   const [content, setContent] = useState<string>()
   const [error, setError] = useState("")
-  const [status, setStatus] = useState("预览 / 编辑")
+  const [status, setStatus] = useState("")
   const [saveError, setSaveError] = useState(false)
+  const deferredContent = useDeferredValue(content ?? "")
+  const stats = useMemo(() => countDocument(deferredContent), [deferredContent])
   const revision = useRef(0)
   const mounted = useRef(true)
   useEffect(() => {
@@ -20,7 +25,7 @@ export default function CodeCanvas({ activeFilePath }: { activeFilePath: string 
         else setContent(value)
       }
     }).catch(error => { if (!cancelled) setError(String(error)) })
-    return () => { cancelled = true; mounted.current = false }
+    return () => { cancelled = true; mounted.current = false; codeEditors.delete(activeFilePath) }
   }, [activeFilePath])
   const save = (value: string) => {
     const request = ++revision.current
@@ -35,15 +40,18 @@ export default function CodeCanvas({ activeFilePath }: { activeFilePath: string 
   if (error) return <p role="alert" className="p-4 text-red-500">读取失败：{error}</p>
   if (content === undefined) return <PageLoading label="正在读取代码…" />
   return <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-    <div className="min-h-0 flex-1">
+    <div className="vessel-code-editor min-h-0 flex-1">
       <Editor height="100%" path={monaco.Uri.file(activeFilePath).toString()} language={codeLanguage(activeFilePath)} value={content}
         loading={<PageLoading label="正在加载代码编辑器…" />}
         onChange={value => { if (value !== undefined && value !== content) { setContent(value); save(value) } }}
-        onMount={editor => { editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => save(editor.getValue())) }}
-        options={{ automaticLayout: true, minimap: { enabled: false }, fontSize: 14, scrollBeyondLastLine: false, tabSize: 2, renderWhitespace: "selection" }} />
+        onMount={editor => { codeEditors.set(activeFilePath, editor); editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => save(editor.getValue())) }}
+        options={{ automaticLayout: true, scrollbar: { verticalScrollbarSize: 10, horizontalScrollbarSize: 10, useShadows: false }, overviewRulerLanes: 0, hideCursorInOverviewRuler: true, minimap: { enabled: false }, fontSize: 14, scrollBeyondLastLine: false, tabSize: 2, renderWhitespace: "selection" }} />
     </div>
-    <footer className="flex shrink-0 justify-between border-t bg-stone-50 px-5 py-2 text-xs text-stone-500">
-      <span role={saveError ? "alert" : "status"} className={saveError ? "text-red-500" : ""}>{status}</span>
+    <footer className="flex shrink-0 flex-wrap items-center gap-5 border-t bg-stone-50 px-5 py-2 text-xs text-stone-500">
+      <span role={saveError ? "alert" : "status"} className={`mr-auto ${saveError ? "text-red-500" : ""}`}>{status}</span>
+      <span>{stats.words.toLocaleString()} 词</span>
+      <span>{stats.characters.toLocaleString()} 字符</span>
+      <span>{stats.lines.toLocaleString()} 行</span>
       <span>{codeLanguage(activeFilePath)} · UTF-8</span>
     </footer>
   </div>
