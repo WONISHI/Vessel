@@ -1,6 +1,7 @@
+import { importExtensionArchive } from "./extension-archive"
 import { app, BrowserWindow, dialog, session, type WebContents } from "electron"
-import { readFile, writeFile, rename, realpath } from "node:fs/promises"
-import { join } from "node:path"
+import { readFile, writeFile, rename, realpath, rm } from "node:fs/promises"
+import { join, dirname, basename } from "node:path"
 import { randomUUID } from "node:crypto"
 import type { BrowserExtension } from "../shared/browser-extensions"
 
@@ -37,19 +38,39 @@ export function registerBrowserExtensions(host: WebContents) {
     return operation
   }
   host.ipc.handle("browser:extensions:list", async () => { await initialize(); await queue; return records })
-  host.ipc.handle("browser:extensions:install", async () => {
+  host.ipc.handle("browser:extensions:install", async (_event, kind: "archive" | "directory" = "directory") => {
+    if (!["archive", "directory"].includes(kind)) throw new Error("安装类型无效")
     const window = BrowserWindow.fromWebContents(host)
     if (!window) throw new Error("窗口已关闭")
-    const result = await dialog.showOpenDialog(window, { title: "选择解压后的扩展目录（包含 manifest.json）", properties: ["openDirectory"] })
+    const result = await dialog.showOpenDialog(window, kind === "archive"
+      ? { title: "选择 CRX 或 ZIP 扩展包", properties: ["openFile"], filters: [{ name: "Chrome 扩展包", extensions: ["crx", "zip"] }] }
+      : { title: "选择解压后的扩展目录（包含 manifest.json）", properties: ["openDirectory"] })
     if (result.canceled) { await initialize(); return records }
-    const path = await realpath(result.filePaths[0])
-    const manifest = JSON.parse(await readFile(join(path, "manifest.json"), "utf8"))
-    if (!manifest.name || !manifest.version || ![2, 3].includes(manifest.manifest_version)) throw new Error("请选择包含有效 manifest.json 的扩展目录")
-    return mutate(async () => {
-      let record = records.find(item => item.path === path)
-      if (!record) { record = { key: randomUUID(), path, name: manifest.name, version: manifest.version, enabled: true }; records.push(record) }
-      if (!record.extensionId) { record.enabled = true; await load(record) }
-    })
+    let path = await realpath(result.filePaths[0])
+    let imported: Awaited<ReturnType<typeof importExtensionArchive>> | undefined
+    let retained = false
+    try {
+      if (kind === "archive") {
+        imported = await importExtensionArchive(path, join(app.getPath("userData"), "browser-extension-packages"))
+        let index = 0
+        if (imported.candidates.length > 1) {
+          const choice = await dialog.showMessageBox(window, { type: "question", title: "选择要安装的扩展", message: "压缩包中有多个扩展或版本", buttons: [...imported.candidates.map(item => item.label), "取消"], cancelId: imported.candidates.length, noLink: true })
+          if (choice.response >= imported.candidates.length) { await initialize(); return records }
+          index = choice.response
+        }
+        path = imported.candidates[index].path
+      }
+      const manifest = JSON.parse(await readFile(join(path, "manifest.json"), "utf8"))
+      if (!manifest.name || !manifest.version || ![2, 3].includes(manifest.manifest_version)) throw new Error("请选择包含有效 manifest.json 的扩展目录")
+      return await mutate(async () => {
+        let record = records.find(item => item.path === path || (imported && item.archiveDigest === imported.digest && item.name === manifest.name && item.version === manifest.version))
+        if (!record) {
+          record = { key: randomUUID(), path, name: manifest.name, version: manifest.version, enabled: true, managedDirectory: imported?.directory, archiveDigest: imported?.digest }
+          records.push(record); retained = true
+        }
+        if (!record.extensionId) { record.enabled = true; await load(record) }
+      })
+    } finally { if (imported && !retained) await rm(imported.directory, { recursive: true, force: true }) }
   })
   host.ipc.handle("browser:extensions:enabled", (_event, key: string, enabled: boolean) => mutate(async () => {
     if (typeof enabled !== "boolean") throw new Error("扩展状态无效")
@@ -63,5 +84,6 @@ export function registerBrowserExtensions(host: WebContents) {
     const record = records.find(item => item.key === key)
     if (record?.extensionId) extensions().removeExtension(record.extensionId)
     records = records.filter(item => item.key !== key)
+    if (record?.managedDirectory && dirname(record.managedDirectory) === join(app.getPath("userData"), "browser-extension-packages") && basename(record.managedDirectory).startsWith("import-")) await rm(record.managedDirectory, { recursive: true, force: true })
   }))
 }

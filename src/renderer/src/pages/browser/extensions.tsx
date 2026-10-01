@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { Puzzle, FolderPlus, Trash2 } from "lucide-react"
+import { Puzzle, PackagePlus, FolderPlus, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog"
 import type { BrowserExtension } from "../../../../shared/browser-extensions"
@@ -14,8 +14,11 @@ export function BrowserExtensions() {
   return <Dialog onOpenChange={open => { if (open) void run(() => window.electronAPI.listBrowserExtensions()) }}>
     <DialogTrigger asChild><Button variant="ghost" size="icon" aria-label="管理浏览器扩展" title="管理浏览器扩展"><Puzzle /></Button></DialogTrigger>
     <DialogContent className="max-w-xl">
-      <DialogHeader><DialogTitle>浏览器扩展</DialogTitle><DialogDescription>加载包含 manifest.json 的解压目录。支持部分 Chrome 扩展和 DevTools 扩展，暂不支持从 Chrome 商店直接安装。</DialogDescription></DialogHeader>
-      <Button disabled={busy} onClick={() => void run(() => window.electronAPI.installBrowserExtension())}><FolderPlus />加载解压后的扩展</Button>
+      <DialogHeader><DialogTitle>浏览器扩展</DialogTitle><DialogDescription>支持 CRX、ZIP（含 CRX 的压缩包）和包含 manifest.json 的解压目录。支持部分 Chrome 扩展和 DevTools 扩展，暂不支持从 Chrome 商店直接安装。</DialogDescription></DialogHeader>
+      <div className="flex flex-wrap gap-2">
+        <Button disabled={busy} onClick={() => void run(() => window.electronAPI.installBrowserExtension("archive"))}><PackagePlus />安装 CRX / ZIP 扩展包</Button>
+        <Button variant="outline" disabled={busy} onClick={() => void run(() => window.electronAPI.installBrowserExtension("directory"))}><FolderPlus />加载解压目录</Button>
+      </div>
       {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
       <div className="max-h-80 space-y-3 overflow-auto">
         {!items.length && <p className="py-6 text-center text-sm text-stone-400">{busy ? "正在读取扩展…" : "尚未安装扩展"}</p>}
