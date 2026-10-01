@@ -1,3 +1,4 @@
+import { browserExtensionsAPI } from "./apis/browser-extensions.api"
 import { fileWatchAPI } from "./apis/file-watch.api"
 import { terminalAPI } from "./apis/terminal.api"
 import { todosAPI } from "./apis/todos.api"
@@ -12,6 +13,7 @@ const api = {}
 
 const vesselAPI = {
   ...terminalAPI,
+  ...browserExtensionsAPI,
   ...fileWatchAPI,
   onBrowserDevtoolsClosed: (callback: () => void) => {
     ipcRenderer.on("browser:devtools-closed", callback)

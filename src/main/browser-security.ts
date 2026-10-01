@@ -1,7 +1,9 @@
+import { registerBrowserExtensions } from "./browser-extensions"
 import { registerBrowserDevtools } from "./browser-devtools"
 import type { WebContents } from "electron"
 const allowed = (url: string) => /^https?:\/\//i.test(url)
 export function secureBrowserGuests(contents: WebContents) {
+  registerBrowserExtensions(contents)
   registerBrowserDevtools(contents)
   contents.on("will-attach-webview", (event, preferences, params) => {
     if (!allowed(params.src) || params.partition !== "persist:vessel-browser") {

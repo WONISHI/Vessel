@@ -201,3 +201,26 @@
 .browser-content.dock-detached { flex-direction: column; }
 .dock-detached > .browser-devtools { height: auto; }
 .dock-detached > .browser-devtools > div { height: 0; }
+
+.browser-find { position:absolute; top:10px; right:14px; z-index:200; display:flex; align-items:center; gap:2px; padding:4px 6px 4px 10px; background:white; border:1px solid #e7e5e4; border-radius:10px; box-shadow:0 6px 20px #0000001a; max-width:calc(100% - 28px); animation:browser-find-in .15s ease; }
+.browser-find input { width:170px; min-width:30px; padding:5px 6px; font-size:13px; outline:none; background:transparent; border:0; }
+.browser-find input::placeholder { color:#a8a29e; }
+.browser-find-count { min-width:44px; font-size:12px; text-align:center; color:#78716c; font-variant-numeric:tabular-nums; }
+.browser-find button { width:26px; height:26px; border-radius:6px; display:flex; align-items:center; justify-content:center; color:#78716c; font-size:11px; font-weight:600; flex-shrink:0; }
+.browser-find button:hover:not(:disabled) { background:#faf9f7; color:#1c1917; }
+.browser-find button[aria-pressed="true"] { background:#f0fdf4; color:#16a34a; }
+.browser-find button:disabled { opacity:.3; }
+.browser-find .browser-find-close:hover { background:#fef2f2; color:#dc2626; }
+.browser-find-divider { width:1px; height:16px; background:#e7e5e4; margin:0 2px; }
+.browser-page-loading { position:absolute; inset:0; z-index:150; display:flex; align-items:center; justify-content:center; background:#faf9f7; }
+.browser-loading-card { background:white; border:1px solid #e7e5e4; border-radius:14px; padding:12px 34px 22px; display:flex; align-items:center; flex-direction:column; gap:12px; box-shadow:0 8px 30px #0000000f; font-size:13px; color:#57534e; }
+.browser-loading-card img { width:120px; height:120px; }
+.browser-loading-card small { max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#a8a29e; font-size:11px; }
+.browser-loading-dots span { animation:browser-dot 1.4s infinite; }
+.browser-loading-dots span:nth-child(2) { animation-delay:.2s; }
+.browser-loading-dots span:nth-child(3) { animation-delay:.4s; }
+.browser-loading-bar { position:absolute; top:0; left:0; height:3px; width:35%; background:linear-gradient(90deg,#16a34a,#4ade80); animation:browser-progress 1.5s ease-in-out infinite; }
+@keyframes browser-dot { 0%,60%,100% { opacity:.25 } 30% { opacity:1 } }
+@keyframes browser-progress { from { left:-35% } to { left:100% } }
+@keyframes browser-find-in { from { opacity:0; transform:translateY(-8px) } to { opacity:1; transform:translateY(0) } }
+@media (prefers-reduced-motion:reduce) { .browser-find,.browser-loading-bar,.browser-loading-dots span { animation:none; } }

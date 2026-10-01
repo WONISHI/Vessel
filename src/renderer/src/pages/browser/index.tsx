@@ -1,9 +1,11 @@
+import browserLoading from "@/assets/vessel-browser-loading/loading.svg"
+import { BrowserExtensions } from "./extensions"
 import { markGuestReady, withGuest } from "./guest-lifecycle"
 import { elementPickerScript } from "./element-picker"
 import { webviewAttributes } from "./webview-attributes"
 import { useEffect, useRef, useState } from "react"
 import type { WebviewTag } from "electron"
-import { ArrowLeft, ArrowRight, RotateCw, Home, Globe, Plus, X, Search, LockKeyhole, Bookmark, ZoomIn, ZoomOut, Bug, ScanSearch } from "lucide-react"
+import { ChevronUp, ChevronDown, ArrowLeft, ArrowRight, RotateCw, Home, Globe, Plus, X, Search, LockKeyhole, Bookmark, ZoomIn, ZoomOut, Bug, ScanSearch } from "lucide-react"
 import { useRouter } from "@vessel/react-router"
 import Layout from "@/layout"
 import ActivityBar from "@/layout/activity-bar"
@@ -74,6 +76,7 @@ export default function BrowserPage({ visible = true }: { visible?: boolean }) {
   const router = useRouter()
   const [tabs, setTabs] = useState<Tab[]>(() => [newTab()])
   const [findOpen, setFindOpen] = useState(false)
+  const [matchCase, setMatchCase] = useState(false)
   const [findText, setFindText] = useState("")
   const [findResult, setFindResult] = useState({ activeMatchOrdinal: 0, matches: 0, tabId: "", text: "" })
   const findInput = useRef<HTMLInputElement>(null)
@@ -102,12 +105,12 @@ export default function BrowserPage({ visible = true }: { visible?: boolean }) {
   const tab = tabs.find((item) => item.id === active) || tabs[0]
   const searchPage = (forward = true, next = false) => {
     const view = views.current.get(tab.id)
-    if (findText) withGuest(view, guest => guest.findInPage(findText, { forward, findNext: next }))
+    if (findText) withGuest(view, guest => guest.findInPage(findText, { forward, findNext: next, matchCase }))
     else withGuest(view, guest => guest.stopFindInPage("clearSelection"))
   }
   useEffect(() => {
     if (!visible) return
-    const show = () => { setFindOpen(true); requestAnimationFrame(() => findInput.current?.focus()) }
+    const show = () => { setFindOpen(true); requestAnimationFrame(() => { findInput.current?.focus(); findInput.current?.select() }) }
     const keydown = (event: KeyboardEvent) => {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "f") { event.preventDefault(); show() }
     }
@@ -122,13 +125,13 @@ export default function BrowserPage({ visible = true }: { visible?: boolean }) {
     const result = (event: Electron.FoundInPageEvent) => setFindResult({ ...event.result, tabId: tab.id, text: findText })
     view?.addEventListener("found-in-page", result)
     const find = () => {
-      if (findOpen && findText) withGuest(view, guest => guest.findInPage(findText))
+      if (findOpen && findText) withGuest(view, guest => guest.findInPage(findText, { matchCase }))
       else withGuest(view, guest => guest.stopFindInPage("clearSelection"))
     }
     view?.addEventListener("dom-ready", find)
     find()
     return () => { view?.removeEventListener("dom-ready", find); view?.removeEventListener("found-in-page", result); withGuest(view, guest => guest.stopFindInPage("clearSelection")) }
-  }, [findText, findOpen, tab.id])
+  }, [findText, findOpen, tab.id, matchCase])
   const update = (id: string, patch: Partial<Tab>) => setTabs((current) => current.map((item) => (item.id === id ? { ...item, ...patch } : item)))
   useEffect(() => {
     const element = devtoolsHost.current
@@ -352,14 +355,8 @@ export default function BrowserPage({ visible = true }: { visible?: boolean }) {
           >
             <Bug />
           </Button>
+          <BrowserExtensions />
         </div>
-        {findOpen && <form className="flex shrink-0 items-center justify-end gap-2 border-b bg-white p-2 text-xs" onSubmit={event => { event.preventDefault(); searchPage(true, true) }}>
-          <input ref={findInput} aria-label="在网页中查找" placeholder="在网页中查找" spellCheck={false} value={findText} onChange={event => setFindText(event.target.value)} onKeyDown={event => { if (event.key === "Escape") setFindOpen(false); if (event.key === "Enter" && event.shiftKey) { event.preventDefault(); searchPage(false, true) } }} />
-          <span>{findResult.tabId === tab.id && findResult.text === findText ? `${findResult.activeMatchOrdinal} / ${findResult.matches}` : "0 / 0"}</span>
-          <button type="button" aria-label="上一个匹配" onClick={() => searchPage(false, true)}>↑</button>
-          <button type="submit" aria-label="下一个匹配">↓</button>
-          <button type="button" aria-label="关闭查找" onClick={() => setFindOpen(false)}><X size={14} /></button>
-        </form>}
         <div className="browser-bookmarks">
           {bookmarks.map((item) => (
             <button
@@ -374,7 +371,21 @@ export default function BrowserPage({ visible = true }: { visible?: boolean }) {
         </div>
         <div className={`browser-content dock-${dock}`}>
         <div className="relative min-h-0 min-w-0 flex-1 bg-white">
-          {tab.loading && <div className="absolute inset-x-0 top-0 z-10 h-0.5 animate-pulse bg-green-500" />}
+          {findOpen && <form className="browser-find" aria-label="网页查找" onSubmit={event => { event.preventDefault(); searchPage(true, true) }}>
+            <Search size={15} className="text-stone-400" />
+            <input ref={findInput} aria-label="在网页中查找" placeholder="在网页中查找" spellCheck={false} value={findText} onChange={event => setFindText(event.target.value)} onKeyDown={event => { if (event.key === "Escape") setFindOpen(false); if (event.key === "Enter" && event.shiftKey) { event.preventDefault(); searchPage(false, true) } }} />
+            <span className="browser-find-count">{findResult.tabId === tab.id && findResult.text === findText ? `${findResult.activeMatchOrdinal}/${findResult.matches}` : "0/0"}</span>
+            <button type="button" aria-label="上一个匹配" disabled={!findText || !findResult.matches} onClick={() => searchPage(false, true)}><ChevronUp size={15} /></button>
+            <button type="submit" aria-label="下一个匹配" disabled={!findText || !findResult.matches}><ChevronDown size={15} /></button>
+            <span className="browser-find-divider" />
+            <button type="button" aria-label="区分大小写" aria-pressed={matchCase} onClick={() => setMatchCase(value => !value)}>Aa</button>
+            <button type="button" className="browser-find-close" aria-label="关闭查找" onClick={() => setFindOpen(false)}><X size={15} /></button>
+          </form>}
+
+          {tab.loading && <div className="browser-page-loading" role="status" aria-label="正在加载页面">
+            <div className="browser-loading-bar" />
+            <div className="browser-loading-card"><img src={browserLoading} alt="" /><div>正在加载页面<span className="browser-loading-dots"><span>.</span><span>.</span><span>.</span></span></div><small title={tab.url}>{tab.url}</small></div>
+          </div>}
           {tabs
             .filter((item) => item.url)
             .map((item) => (

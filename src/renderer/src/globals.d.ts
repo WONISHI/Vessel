@@ -1,3 +1,4 @@
+import type { BrowserExtensionsAPI } from "../../shared/browser-extensions"
 import type { FileWatchAPI } from "../../shared/file-watch"
 import type { TerminalAPI } from "../../shared/terminal"
 import type { ImageFile } from "../../shared/image-file"
@@ -92,7 +93,7 @@ interface StorageInfo {
 }
 
 /** preload 暴露给 React 渲染进程的完整 API。 */
-interface VesselAPI extends TodosAPI, TerminalAPI, FileWatchAPI {
+interface VesselAPI extends BrowserExtensionsAPI, TodosAPI, TerminalAPI, FileWatchAPI {
   onBrowserDevtoolsClosed: (callback: () => void) => () => void
   onBrowserFind: (callback: (id: number) => void) => () => void
   setBrowserDevtools: (id: number | null, bounds?: { x: number; y: number; width: number; height: number }, appearance?: { font: string; size: number; detached?: boolean }) => Promise<void>

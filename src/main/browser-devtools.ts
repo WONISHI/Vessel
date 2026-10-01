@@ -43,7 +43,7 @@ export function registerBrowserDevtools(host: WebContents) {
     if (inspected !== guest || !panel || Boolean(detachedWindow) !== Boolean(options?.detached)) {
       close()
       inspected = guest
-      panel = new WebContentsView({ webPreferences: { sandbox: true, contextIsolation: true, nodeIntegration: false } })
+      panel = new WebContentsView({ webPreferences: { session: guest.session, sandbox: true, contextIsolation: true, nodeIntegration: false } })
       panel.webContents.on("did-finish-load", () => { void applyAppearance().catch(console.error) })
       if (options?.detached) {
         detachedWindow = new BrowserWindow({ width: 1000, height: 600, title: "Vessel · 网页控制台", parent: window, skipTaskbar: true, autoHideMenuBar: true, webPreferences: { sandbox: true, nodeIntegration: false } })

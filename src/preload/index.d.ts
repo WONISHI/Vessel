@@ -1,3 +1,4 @@
+import type { BrowserExtensionsAPI } from "../shared/browser-extensions"
 import type { FileWatchAPI } from "../shared/file-watch"
 import type { TerminalAPI } from "../shared/terminal"
 import type { ImageFile } from "../shared/image-file"
@@ -90,7 +91,7 @@ export interface StorageInfo {
   sessionId: string
 }
 
-export interface VesselAPI extends TodosAPI, TerminalAPI, FileWatchAPI {
+export interface VesselAPI extends BrowserExtensionsAPI, TodosAPI, TerminalAPI, FileWatchAPI {
   onBrowserDevtoolsClosed: (callback: () => void) => () => void
   onBrowserFind: (callback: (id: number) => void) => () => void
   setBrowserDevtools: (id: number | null, bounds?: { x: number; y: number; width: number; height: number }, appearance?: { font: string; size: number; detached?: boolean }) => Promise<void>

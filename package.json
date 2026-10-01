@@ -133,6 +133,7 @@
     "stacktrace-js": "^2.0.2",
     "tailwind-merge": "^3.4.0",
     "vditor": "^3.11.2",
+    "yauzl": "^3.4.0",
     "zustand": "^5.0.10"
   },
   "devDependencies": {
@@ -147,6 +148,7 @@
     "@types/node": "^22.19.1",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
+    "@types/yauzl": "^3.4.0",
     "@vitejs/plugin-react": "^5.1.1",
     "@vitest/coverage-v8": "^4.1.11",
     "autoprefixer": "^10.4.23",
