@@ -251,3 +251,19 @@
 }
 
 .vessel-vditor .vessel-html-marker:not(.vditor-ir__node--expand) { display: none !important; }
+
+.vessel-wiki-link { color: #15803d; text-decoration: underline; cursor: help; font-size: 0; }
+.vessel-wiki-link::after { content: attr(data-wiki-label); font-size: 14px; }
+.vessel-hover-preview .vditor-ir { padding: 8px !important; }
+.vessel-hover-preview .vditor-toolbar, .vessel-hover-preview .vditor-ir__marker { display: none !important; }
+
+/* Read-only is still readable: Vditor defaults disabled IR content to 30% opacity. */
+.vessel-hover-preview .vditor-ir pre.vditor-reset[contenteditable="false"] { opacity: 1; }
+.vessel-vditor .vessel-wiki-link { color: #648798; font-size: 0; }
+.vessel-vditor .vessel-wiki-link.vessel-wiki-editing { font-size: 14px; outline: none; }
+.vessel-vditor .vessel-wiki-link.vessel-wiki-editing::after { content: none; }
+
+/* Compact reading margins inside hover previews. */
+.vessel-hover-preview .vessel-vditor .vditor-reset {
+  padding-inline: clamp(16px, 2vw, 32px) !important;
+}

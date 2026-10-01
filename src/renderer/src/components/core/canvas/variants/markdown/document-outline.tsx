@@ -7,13 +7,14 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 
 /** 固定时展示标题，取消固定后用静态横线展示标题层级和当前阅读位置。 */
-export function DocumentOutline({ headings, activeIndex, onSelect, fileName, sections = [] }: { headings: { text: string; level: number; color?: string }[]; activeIndex: number; onSelect: (index: number) => void; fileName?: string; sections?: string[] }) {
+export function DocumentOutline({ headings, activeIndex, onSelect, fileName, sections = [], workspacePath, documentPath }: { headings: { text: string; level: number; color?: string }[]; activeIndex: number; onSelect: (index: number) => void; fileName?: string; sections?: string[]; workspacePath: string; documentPath: string }) {
   const [wrapTitles, setWrapTitles] = useState(false)
   const [pinned, setPinned] = useState(false)
   const [hovered, setHovered] = useState(false)
   const closeTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   useEffect(() => () => clearTimeout(closeTimer.current), [])
-  const expanded = pinned || hovered
+  const [previewIndex, setPreviewIndex] = useState<number | null>(null)
+  const expanded = pinned || hovered || previewIndex !== null
   return (
     <aside
       aria-label="文档大纲"
@@ -96,13 +97,13 @@ export function DocumentOutline({ headings, activeIndex, onSelect, fileName, sec
         </div>
         <ScrollArea className="min-h-0 flex-1 [&_[data-radix-scroll-area-viewport]>div]:!block">
           {headings.map((heading, index) => (
-            <SectionPreview key={index} source={sections[index] || heading.text}><Button
+            <SectionPreview onOpenChange={(open) => setPreviewIndex(current => open ? index : current === index ? null : current)} workspacePath={workspacePath} documentPath={documentPath} key={index} source={sections[index] || heading.text}><Button
               variant="ghost"
               aria-label={heading.text}
               aria-current={index === activeIndex ? "location" : undefined}
               onClick={() => onSelect(index)}
               className={cn(
-                "group min-w-0 w-full overflow-hidden text-[11px] font-normal hover:bg-green-600 hover:text-white",
+                "group min-w-0 w-full overflow-hidden text-[11px] font-normal hover:bg-green-600 hover:text-white data-[state=open]:bg-green-600 data-[state=open]:text-white",
                 cn("min-h-8 justify-start py-1.5 text-left", wrapTitles ? "h-auto whitespace-normal" : "h-8 whitespace-nowrap"),
                 index === activeIndex ? "text-green-700" : "text-stone-500"
               )}
@@ -110,7 +111,7 @@ export function DocumentOutline({ headings, activeIndex, onSelect, fileName, sec
             >
               <span
                 style={{ color: index === activeIndex ? undefined : heading.color }}
-                className={cn("min-w-0 group-hover:!text-white", wrapTitles ? "break-words" : "truncate")}
+                className={cn("min-w-0 group-hover:!text-white group-data-[state=open]:!text-white", wrapTitles ? "break-words" : "truncate")}
               >
                 {heading.text}
               </span>

@@ -2,14 +2,14 @@ import { useCallback, useState, Fragment } from "react"
 import { parseImageReference, resizeImageReference } from "@vessel/obsidian"
 import { Image } from "@/components/ui/image"
 
-function ObsidianImage({ reference, root, documentPath, onChange }: { reference: string; root: string; documentPath: string; onChange: (reference: string) => void }) {
+function ObsidianImage({ reference, root, documentPath, onChange, readOnly = false }: { readOnly?: boolean; reference: string; root: string; documentPath: string; onChange: (reference: string) => void }) {
   const embed = parseImageReference(reference)!
   const [selected, setSelected] = useState(false)
   const loadSource = useCallback(() => (/^(https?:|data:image\/)/.test(embed.target) ? Promise.resolve(embed.target) : window.electronAPI.readObsidianImage(root, documentPath, reference)), [embed.target, root, documentPath, reference])
   return (
     <span
       className="block bg-white"
-      onClick={() => setSelected(true)}
+      onClick={() => { if (!readOnly) setSelected(true) }}
       onBlur={(event) => {
         if (!event.currentTarget.contains(event.relatedTarget)) setSelected(false)
       }}
@@ -21,18 +21,19 @@ function ObsidianImage({ reference, root, documentPath, onChange }: { reference:
         loadSource={loadSource}
         alt={embed.alt}
         width={embed.width}
-        onResizeEnd={(width) => onChange(resizeImageReference(reference, width))}
+        onResizeEnd={readOnly ? undefined : (width) => onChange(resizeImageReference(reference, width))}
       />
     </span>
   )
 }
-export function ObsidianImageLine({ source, root, documentPath, onChange }: { source: string; root: string; documentPath: string; onChange: (source: string) => void }) {
+export function ObsidianImageLine({ source, root, documentPath, onChange, readOnly = false }: { readOnly?: boolean; source: string; root: string; documentPath: string; onChange: (source: string) => void }) {
   return (
     <span className="block py-2">
       {source.split(/(!\[\[[^\]\n]+\]\]|!\[[^\]\n]*\]\([^\n]+?\))/g).map((part, index) => (
         <Fragment key={index}>
           {parseImageReference(part) ? (
             <ObsidianImage
+              readOnly={readOnly}
               reference={part}
               onChange={(updated) =>
                 onChange(

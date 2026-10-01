@@ -13,6 +13,8 @@ import "./index.css"
 export default function MarkdownCanvas({ activeFilePath }: { activeFilePath: string }) {
   const { workspace } = useWorkspace()
   const [loaded, setLoaded] = useState<{ path: string; content: string; error?: string } | null>(null)
+  const [saveState, setSaveState] = useState<{ path: string; message: string; failed?: boolean } | null>(null)
+  const saveRevision = useRef(0)
   const drafts = useRef(new Map<string, string>())
   const contentHost = useRef<HTMLDivElement>(null)
   useEffect(() => {
@@ -93,11 +95,20 @@ export default function MarkdownCanvas({ activeFilePath }: { activeFilePath: str
               onChange={(content) => {
                 drafts.current.set(activeFilePath, content)
                 setLoaded({ path: activeFilePath, content })
+                const revision = ++saveRevision.current
+                setSaveState({ path: activeFilePath, message: "正在保存…" })
+                void window.electronAPI.saveContent(activeFilePath, content).then(() => {
+                  if (revision === saveRevision.current) setSaveState({ path: activeFilePath, message: "已保存" })
+                }).catch(error => {
+                  if (revision === saveRevision.current) setSaveState({ path: activeFilePath, message: `保存失败：${String(error)}`, failed: true })
+                })
               }}
             />
           )}
         </div>
         <DocumentOutline
+          workspacePath={workspace.path}
+          documentPath={activeFilePath}
           sections={sections}
           fileName={activeFilePath.split(/[\\/]/).pop()}
           headings={headings}
@@ -109,7 +120,7 @@ export default function MarkdownCanvas({ activeFilePath }: { activeFilePath: str
         />
       </div>
       <WikiLinkPreview key={activeFilePath} host={contentHost} workspacePath={workspace.path} />
-      <DocumentStats source={current?.content ?? ""} />
+      <DocumentStats source={current?.content ?? ""} saveStatus={saveState?.path === activeFilePath ? saveState : undefined} />
     </div>
   )
 }

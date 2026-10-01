@@ -7,7 +7,7 @@ export function parseWikiLinks(source: string): WikiLink[] {
     const [destination, ...alias] = match[1].split("|")
     const [target, ...heading] = destination.trim().split("#")
     if (!target.trim()) return []
-    return [{ raw: source.slice(match.index, match.index + match[0].length), target: target.trim(), label: alias.join("|").trim() || destination.trim(), heading: heading.join("#") || undefined, index: match.index }]
+    return [{ raw: source.slice(match.index, match.index + match[0].length), target: target.trim(), label: alias.join("|").trim() || target.trim().split(/[\\/]/).pop()!.replace(/\.(md|markdown)$/i, ""), heading: heading.join("#") || undefined, index: match.index }]
   })
 }
 /** Workspace-root-relative only; never allow absolute paths or parent traversal. */

@@ -17,12 +17,14 @@ export default function WorkspaceTree({
   draft,
   onDraftFinish,
   revealPath,
+  onRevealed,
   onCreate
 }: {
   onCreate?: (parent: string, kind: "file" | "directory") => void
   viewport: HTMLElement | null
   recent?: boolean
   revealPath?: string
+  onRevealed?: () => void
   draft?: EntryDraft | null
   onDraftFinish?: (created: boolean) => void
 }) {
@@ -80,8 +82,11 @@ export default function WorkspaceTree({
   }, [viewport, draftIndex, draft])
   const revealIndex = rows.findIndex((row) => row.id === revealPath)
   useEffect(() => {
-    if (viewport && revealIndex >= 0 && !draft) viewport.scrollTo({ top: Math.max(0, revealIndex * 32 - viewport.clientHeight / 2 + 16), behavior: "smooth" })
-  }, [viewport, revealIndex, revealPath, draft])
+    if (viewport && revealIndex >= 0 && !draft) {
+      viewport.scrollTo({ top: Math.max(0, revealIndex * 32 - viewport.clientHeight / 2 + 16), behavior: "smooth" })
+      onRevealed?.()
+    }
+  }, [viewport, revealIndex, revealPath, draft, onRevealed])
   if (!recent && !root)
     return (
       <p

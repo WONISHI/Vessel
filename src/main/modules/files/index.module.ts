@@ -6,6 +6,23 @@ import { readFile, stat, realpath, mkdir, writeFile, link, unlink, rename, lstat
 import { isAbsolute, relative, join, sep, dirname } from "node:path"
 import { BaseModule } from "../base"
 
+const pendingWrites = new Map<string, Promise<void>>()
+
+export function saveTextFileContent(path: unknown, content: unknown): Promise<void> {
+  if (typeof path !== "string" || !isAbsolute(path) || path.includes("\0") || typeof content !== "string") {
+    return Promise.reject(new TypeError("文件路径或内容无效"))
+  }
+  const previous = pendingWrites.get(path) ?? Promise.resolve()
+  const write = previous.catch(() => {}).then(async () => {
+    if (!(await stat(path)).isFile()) throw new Error("只能保存普通文件")
+    await writeFile(path, content, "utf8")
+  })
+  pendingWrites.set(path, write)
+  const cleanup = () => { if (pendingWrites.get(path) === write) pendingWrites.delete(path) }
+  void write.then(cleanup, cleanup)
+  return write
+}
+
 /**
  * 读取本地文本文件，为 Markdown、JSON 编辑器提供 UTF-8 内容。
  * @param path 文件的绝对路径。
@@ -16,6 +33,7 @@ export async function readTextFileContent(path: unknown): Promise<string> {
   if (typeof path !== "string" || !isAbsolute(path) || path.includes("\0")) {
     throw new TypeError("文件路径必须为有效的绝对路径")
   }
+  await pendingWrites.get(path)
   const info = await stat(path)
   if (!info.isFile()) throw new Error("只能读取普通文件")
   return readFile(path, "utf8")
@@ -90,6 +108,7 @@ export class FilesModule extends BaseModule {
       if (!["https:", "http:", "mailto:"].includes(url.protocol)) throw new Error("不支持的链接协议")
       await shell.openExternal(url.href)
     })
+    ipcMain.handle("file:saveContent", (_event, path: unknown, content: unknown) => saveTextFileContent(path, content))
     ipcMain.handle("file:readContent", (_event, path: unknown) => readTextFileContent(path))
   }
 
@@ -100,6 +119,7 @@ export class FilesModule extends BaseModule {
     ipcMain.removeHandler("obsidian:readImage")
     ipcMain.removeHandler("workspace:mutateFile")
     ipcMain.removeHandler("file:readContent")
+    ipcMain.removeHandler("file:saveContent")
     ipcMain.removeHandler("workspace:createEntry")
     ipcMain.removeHandler("link:openExternal")
   }

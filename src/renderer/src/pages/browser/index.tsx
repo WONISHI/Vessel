@@ -1,7 +1,8 @@
+import { elementPickerScript } from "./element-picker"
 import { webviewAttributes } from "./webview-attributes"
 import { useEffect, useRef, useState } from "react"
 import type { WebviewTag } from "electron"
-import { ArrowLeft, ArrowRight, RotateCw, Home, Globe, Plus, X, Search, LockKeyhole, Bookmark, ZoomIn, ZoomOut, Bug } from "lucide-react"
+import { ArrowLeft, ArrowRight, RotateCw, Home, Globe, Plus, X, Search, LockKeyhole, Bookmark, ZoomIn, ZoomOut, Bug, ScanSearch } from "lucide-react"
 import { useRouter } from "@vessel/react-router"
 import Layout from "@/layout"
 import ActivityBar from "@/layout/activity-bar"
@@ -328,6 +329,10 @@ export default function BrowserPage({ visible = true }: { visible?: boolean }) {
             onClick={() => zoom(-0.1)}
           >
             <ZoomOut />
+          </Button>
+          <Button variant="ghost" size="icon" title="查看元素信息（Esc 退出，再次点击关闭）" aria-label="查看元素信息" disabled={!tab.url}
+            onClick={() => { void views.current.get(tab.id)?.executeJavaScript(elementPickerScript).catch(error => window.alert(`无法查看元素：${String(error)}`)) }}>
+            <ScanSearch />
           </Button>
           <Button
             variant="ghost"

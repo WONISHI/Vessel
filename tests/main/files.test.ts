@@ -4,7 +4,7 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 vi.mock("electron", () => ({ ipcMain: { handle: vi.fn(), removeHandler: vi.fn() } }))
 import { ipcMain } from "electron"
-import { FilesModule, readTextFileContent, createWorkspaceEntry, mutateWorkspaceFile } from "../../src/main/modules/files/index.module"
+import { FilesModule, saveTextFileContent, readTextFileContent, createWorkspaceEntry, mutateWorkspaceFile } from "../../src/main/modules/files/index.module"
 const directories: string[] = []
 afterEach(async () => {
   await Promise.all(directories.splice(0).map((path) => rm(path, { recursive: true, force: true })))
@@ -24,7 +24,7 @@ it("registers the reader once and removes it on disposal", () => {
   const module = new FilesModule()
   module.activate()
   module.activate()
-  expect(ipcMain.handle).toHaveBeenCalledTimes(7)
+  expect(ipcMain.handle).toHaveBeenCalledTimes(9)
   expect(ipcMain.handle).toHaveBeenCalledWith("file:readContent", expect.any(Function))
   module.dispose()
   expect(ipcMain.removeHandler).toHaveBeenCalledWith("file:readContent")
@@ -63,4 +63,17 @@ it("renames a directory with its contents and rejects an existing destination", 
  const next = await mutateWorkspaceFile(root,folder.path,"after")
  expect(await readTextFileContent(join(next,"note.md"))).toBe("")
  await expect(mutateWorkspaceFile(root,root,"renamed-root")).rejects.toThrow()
+})
+
+it("persists Markdown edits in order and waits for pending saves before reloading", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "vessel-save-"))
+  directories.push(directory)
+  const path = join(directory, "note.md")
+  await writeFile(path, "old")
+  const first = saveTextFileContent(path, "first")
+  const last = saveTextFileContent(path, "---\ntitle: 标题\n---\n[[目录/文件]]\n修改后的内容")
+  await expect(readTextFileContent(path)).resolves.toBe("---\ntitle: 标题\n---\n[[目录/文件]]\n修改后的内容")
+  await Promise.all([first, last])
+  await expect(saveTextFileContent(directory, "bad")).rejects.toThrow("普通文件")
+  await expect(saveTextFileContent("relative.md", "bad")).rejects.toThrow()
 })

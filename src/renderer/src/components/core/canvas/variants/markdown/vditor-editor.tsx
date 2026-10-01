@@ -1,4 +1,4 @@
-import { decorateWikiLinks } from "./decorate-wiki-links"
+import { bindWikiLinkEditing, decorateWikiLinks } from "./decorate-wiki-links"
 import { decorateInlineHTML } from "./inline-html"
 import { decorateCodeBlocks } from "./code-blocks"
 import { parseFrontmatter } from "@vessel/obsidian/frontmatter"
@@ -19,7 +19,7 @@ import Vditor from "vditor"
 import "vditor/dist/index.css"
 
 /** 保留 Vditor 编辑能力，文档显示和大纲由外层 React 组件负责。 */
-export function VditorEditor({ value, onChange, workspacePath, documentPath }: { workspacePath: string; documentPath: string; value: string; onChange: (value: string) => void }) {
+export function VditorEditor({ value, onChange, workspacePath, documentPath, readOnly = false }: { readOnly?: boolean; workspacePath: string; documentPath: string; value: string; onChange: (value: string) => void }) {
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState("")
   const host = useRef<HTMLDivElement>(null)
@@ -33,10 +33,15 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath }: {
   useEffect(() => {
     if (!host.current) return
     const element = host.current
+    const unbindWikiEditing = bindWikiLinkEditing(element)
     const decorate = () => {
       decorateCodeBlocks(element)
       const content = element.querySelector<HTMLElement>(".vditor-ir .vditor-reset")
-      if (content && !content.contains(document.activeElement)) { decorateInlineHTML(content); decorateMarkdownTags(content); decorateWikiLinks(content) }
+      if (content) {
+        decorateWikiLinks(content)
+        if (readOnly || !content.contains(document.activeElement)) { decorateInlineHTML(content); decorateMarkdownTags(content) }
+        if (readOnly) content.querySelectorAll<HTMLInputElement>("input").forEach(input => { input.disabled = true })
+      }
     }
     element.addEventListener("focusout", decorate)
     const observer = new MutationObserver(decorate)
@@ -102,8 +107,10 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath }: {
                 imageRoots.set(container, root)
                 root.render(
                   <ObsidianImageLine
+                    readOnly={readOnly}
                     source={source}
                     onChange={(updated) => {
+                      if (readOnly) return
                       const sourceCode = element.closest("[data-type=code-block]")?.querySelector("pre.vditor-ir__marker code")
                       if (!sourceCode) return
                       sourceCode.textContent = encodeURIComponent(updated) + "\n"
@@ -124,7 +131,7 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath }: {
           mode: "ir",
           toolbarConfig: { pin: true },
           // 内联 SVG 避免 hash 路由下的 sprite 引用和异步图标脚本加载问题。
-          toolbar: [
+          toolbar: readOnly ? [] : [
             { name: "headings", icon: renderToStaticMarkup(<Heading />) },
             { name: "bold", icon: renderToStaticMarkup(<Bold />) },
             { name: "italic", icon: renderToStaticMarkup(<Italic />) },
@@ -147,11 +154,13 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath }: {
             { name: "redo", icon: renderToStaticMarkup(<Redo2 />) }
           ].map((item) => (typeof item === "string" ? item : { ...item, tipPosition: "s" })),
           input: (content) => {
-            if (!disposed) changeHandler.current((properties?.raw ?? "") + restoreObsidianImages(content))
+            if (!disposed && !readOnly) changeHandler.current((properties?.raw ?? "") + restoreObsidianImages(content))
           },
           after: () => {
             const toolbar = host.current?.querySelector<HTMLElement>(".vditor-toolbar")
             if (!disposed && toolbar && toolbarHost.current) toolbarHost.current.appendChild(toolbar)
+            if (readOnly && !disposed) editor.disabled()
+            decorate()
             ready = true
             clearTimeout(timeout)
             if (disposed) editor.destroy()
@@ -179,12 +188,13 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath }: {
       cancelAnimationFrame(paintFrame)
       imageRoots.forEach((root) => queueMicrotask(() => root.unmount()))
       observer.disconnect()
+      unbindWikiEditing()
       element.removeEventListener("focusout", decorate)
       disposed = true
       if (ready) editor.destroy()
       toolbarHost.current?.replaceChildren()
     }
-  }, [properties])
+  }, [properties, readOnly])
   return (
     <LinkInteractionArea className="relative flex h-full min-h-0 min-w-0 flex-col">
       {(loading || loadError) && (
@@ -201,7 +211,7 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath }: {
           )}
         </div>
       )}
-      <Breadcrumb
+      {!readOnly && <Breadcrumb
         className="shrink-0 px-4 pt-2"
         aria-label="当前文件路径"
       >
@@ -224,10 +234,10 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath }: {
             </Fragment>
           ))}
         </BreadcrumbList>
-      </Breadcrumb>
+      </Breadcrumb>}
       <div
         ref={toolbarHost}
-        className="vessel-vditor shrink-0 min-w-0 w-full"
+        className={readOnly ? "hidden" : "vessel-vditor shrink-0 min-w-0 w-full"}
       />
       <ScrollArea className="vessel-editor-scroll flex-1 min-h-0 min-w-0 mt-2">
         {properties && <DocumentProperties properties={properties.properties} />}
