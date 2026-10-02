@@ -12,6 +12,8 @@ import { filesAPI } from "./apis/files.api"
 const api = {}
 
 const vesselAPI = {
+  readTransitClipboard: (): Promise<string> => ipcRenderer.invoke("transit:clipboard"),
+  openTransitWindow: (item: { kind: string; content: string; title: string }): Promise<void> => ipcRenderer.invoke("transit:window", item),
   saveOffice: (name: string, bytes: Uint8Array): Promise<boolean> => ipcRenderer.invoke("office:save", name, bytes),
   openOffice: (): Promise<string> => ipcRenderer.invoke("office:open"),
   ...terminalAPI,

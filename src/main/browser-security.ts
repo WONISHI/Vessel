@@ -1,12 +1,12 @@
 import { registerBrowserExtensions } from "./browser-extensions"
 import { registerBrowserDevtools } from "./browser-devtools"
-import type { WebContents } from "electron"
+import { session, type WebContents } from "electron"
 const allowed = (url: string) => /^https?:\/\//i.test(url)
 export function secureBrowserGuests(contents: WebContents) {
   registerBrowserExtensions(contents)
   registerBrowserDevtools(contents)
   contents.on("will-attach-webview", (event, preferences, params) => {
-    if (!allowed(params.src) || params.partition !== "persist:vessel-browser") {
+    if (!allowed(params.src) || !["persist:vessel-browser", "persist:vessel-transit"].includes(params.partition)) {
       event.preventDefault()
       return
     }
@@ -32,13 +32,16 @@ export function secureBrowserGuests(contents: WebContents) {
     })
     guest.on("will-navigate", (event, url) => {
       if (!allowed(url)) event.preventDefault()
-      else if (url !== guest.getURL() && url !== documentURL) { event.preventDefault(); contents.send("browser:new-tab", url) }
+      else if (guest.session !== session.fromPartition("persist:vessel-transit") && url !== guest.getURL() && url !== documentURL) { event.preventDefault(); contents.send("browser:new-tab", url) }
     })
     guest.on("will-redirect", (event, url) => {
       if (!allowed(url)) event.preventDefault()
     })
     guest.setWindowOpenHandler(({ url }) => {
-      if (allowed(url)) contents.send("browser:new-tab", url)
+      if (allowed(url)) {
+        if (guest.session === session.fromPartition("persist:vessel-transit")) void guest.loadURL(url).catch(() => {})
+        else contents.send("browser:new-tab", url)
+      }
       return { action: "deny" }
     })
     guest.on("dom-ready", () => {

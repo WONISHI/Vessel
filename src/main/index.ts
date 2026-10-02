@@ -1,3 +1,4 @@
+import { registerTransit } from "./transit"
 import { registerOffice } from "./office"
 import { registerFileWatch } from "./file-watch"
 import { registerTerminal } from "./terminal"
@@ -36,6 +37,7 @@ function createWindow(): void {
   }
   secureBrowserGuests(mainWindow.webContents)
   registerOffice(mainWindow.webContents)
+  registerTransit(mainWindow.webContents)
   registerTerminal(mainWindow.webContents)
   registerFileWatch(mainWindow.webContents)
 

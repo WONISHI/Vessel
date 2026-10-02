@@ -1,3 +1,4 @@
+import { TransitButton } from "@/components/transit/button"
 import { useRouter } from "@vessel/react-router"
 import { useEffect } from "react"
 import { useLibraryMeta, updateLibraryMeta, selectLastPinned } from "@/pages/resources/library-state"
@@ -74,6 +75,7 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
             </TooltipContent>
           </Tooltip>
         ))}
+        <TransitButton />
         <span
           title="浅色外观"
           className="mt-auto flex size-[38px] items-center justify-center text-stone-500"

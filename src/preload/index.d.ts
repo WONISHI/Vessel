@@ -92,6 +92,8 @@ export interface StorageInfo {
 }
 
 export interface VesselAPI extends BrowserExtensionsAPI, TodosAPI, TerminalAPI, FileWatchAPI {
+  readTransitClipboard(): Promise<string>
+  openTransitWindow(item: { kind: string; content: string; title: string }): Promise<void>
   openOffice(): Promise<string>
   saveOffice(name: string, bytes: Uint8Array): Promise<boolean>
 

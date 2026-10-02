@@ -1,3 +1,4 @@
+import { TransitPanel } from "@/components/transit/panel"
 import { OfficeKeepAlive } from "@/pages/office"
 import { BrowserKeepAlive } from "@/pages/browser/keep-alive"
 import { useEffect } from "react"
@@ -45,6 +46,7 @@ function App() {
       <BrowserKeepAlive />
       <OfficeKeepAlive />
       <RouterView />
+      <TransitPanel />
     </>
   )
 }
