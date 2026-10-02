@@ -1,7 +1,7 @@
 import { useEffect } from "react"
 import { useLibraryMeta, updateLibraryMeta, selectLastPinned } from "@/pages/resources/library-state"
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
-import { Sun } from "lucide-react"
+import { Sun, FileSpreadsheet } from "lucide-react"
 import Logo from "@/assets/logo.png"
 import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar"
 import { Button } from "@/components/ui/button"
@@ -72,6 +72,7 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
             </TooltipContent>
           </Tooltip>
         ))}
+        <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" aria-label="ONLYOFFICE" title="ONLYOFFICE" className="h-[38px] w-[38px] text-stone-500" onClick={() => { void window.electronAPI.openOffice().catch(error => alert(`打开 Office 失败：${String(error)}`)) }}><FileSpreadsheet className="!size-5" /></Button></TooltipTrigger><TooltipContent side="right">ONLYOFFICE · 本地文档</TooltipContent></Tooltip>
         <span
           title="浅色外观"
           className="mt-auto flex size-[38px] items-center justify-center text-stone-500"

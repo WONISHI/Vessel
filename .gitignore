@@ -7,3 +7,6 @@ out
 
 # Generated from the installed Vditor package by electron.vite.config.ts
 /src/renderer/public/vendor/vditor/
+
+# Downloaded ONLYOFFICE runtime (see resources/office-README.md)
+resources/office/

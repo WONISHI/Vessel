@@ -40,8 +40,14 @@
           "markdown"
         ],
         "name": "Markdown Document",
-        "description": "Markdown 文档",
+        "description": "Markdown \u6587\u6863",
         "role": "Editor"
+      }
+    ],
+    "extraResources": [
+      {
+        "from": "resources/office",
+        "to": "office"
       }
     ]
   },
@@ -133,6 +139,7 @@
     "stacktrace-js": "^2.0.2",
     "tailwind-merge": "^3.4.0",
     "vditor": "^3.11.2",
+    "wasm-onlyoffice-sdk": "^0.1.7",
     "yauzl": "^3.4.0",
     "zustand": "^5.0.10"
   },

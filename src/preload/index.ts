@@ -12,6 +12,7 @@ import { filesAPI } from "./apis/files.api"
 const api = {}
 
 const vesselAPI = {
+  openOffice: (): Promise<void> => ipcRenderer.invoke("office:open"),
   ...terminalAPI,
   ...browserExtensionsAPI,
   ...fileWatchAPI,
