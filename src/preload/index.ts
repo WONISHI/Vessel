@@ -12,7 +12,8 @@ import { filesAPI } from "./apis/files.api"
 const api = {}
 
 const vesselAPI = {
-  openOffice: (): Promise<void> => ipcRenderer.invoke("office:open"),
+  saveOffice: (name: string, bytes: Uint8Array): Promise<boolean> => ipcRenderer.invoke("office:save", name, bytes),
+  openOffice: (): Promise<string> => ipcRenderer.invoke("office:open"),
   ...terminalAPI,
   ...browserExtensionsAPI,
   ...fileWatchAPI,

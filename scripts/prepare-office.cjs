@@ -19,3 +19,5 @@ for (const name of ['x2t.js', 'x2t.wasm']) {
   const bytes = fs.readFileSync(file)
   try { fs.writeFileSync(file, zlib.brotliDecompressSync(bytes)) } catch { /* Already decompressed. */ }
 }
+
+fs.copyFileSync(path.join(root, "v9.3.0.24-1/web-apps/apps/common/main/resources/themes/themes.json"), path.join(root, "v9.3.0.24-1/themes.json"))

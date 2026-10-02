@@ -1,3 +1,4 @@
+import { OfficeKeepAlive } from "@/pages/office"
 import { BrowserKeepAlive } from "@/pages/browser/keep-alive"
 import { useEffect } from "react"
 import { useRouter } from "@vessel/react-router"
@@ -42,6 +43,7 @@ function App() {
       <DevTool />
 
       <BrowserKeepAlive />
+      <OfficeKeepAlive />
       <RouterView />
     </>
   )

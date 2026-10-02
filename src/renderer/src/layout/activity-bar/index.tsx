@@ -1,7 +1,8 @@
+import { useRouter } from "@vessel/react-router"
 import { useEffect } from "react"
 import { useLibraryMeta, updateLibraryMeta, selectLastPinned } from "@/pages/resources/library-state"
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
-import { Sun, FileSpreadsheet } from "lucide-react"
+import { Sun } from "lucide-react"
 import Logo from "@/assets/logo.png"
 import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar"
 import { Button } from "@/components/ui/button"
@@ -11,6 +12,7 @@ import { ACTIVITY_ITEMS } from "@/layout/activity-bar/constants"
 
 /** 左侧窄活动栏：应用入口、活动切换和外观标识。 */
 export default function LayoutActivityBar({ activity, onActivityChange, onResourceEnter, onResourceLeave }: LayoutActivityBarProps) {
+  const router = useRouter()
   const library = useLibraryMeta()
   useEffect(() => {
     void window.electronAPI.getAppState?.<unknown[]>("project-library").then(projects => { if (Array.isArray(projects)) updateLibraryMeta({ count: projects.length }) }).catch(() => {})
@@ -34,7 +36,7 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
               <SidebarTrigger
                 aria-label={expanded ? "收起侧边栏" : "展开侧边栏"}
                 aria-expanded={expanded}
-                className="size-[30px] rounded-lg text-stone-700 [&>svg]:opacity-0 hover:bg-stone-100 group-hover/logo:[&>svg]:!opacity-100 group-focus-within/logo:[&>svg]:!opacity-100"
+                className="!bg-transparent hover:!bg-stone-100 focus:!bg-transparent !shadow-none size-[30px] rounded-lg text-stone-700 [&>svg]:opacity-0 hover:bg-stone-100 group-hover/logo:[&>svg]:!opacity-100 group-focus-within/logo:[&>svg]:!opacity-100"
               />
             </span>
           </TooltipTrigger>
@@ -54,10 +56,10 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
                 size="icon"
                 aria-label={label}
                 aria-pressed={activity === id}
-                onClick={() => { if (id === "resources") selectLastPinned(); onActivityChange(id) }}
+                onClick={() => { if (id === "resources") { selectLastPinned(); onActivityChange(id); void router.push("/resources"); return } if (id === "office") { void router.push("/office"); return } onActivityChange(id) }}
                 onMouseEnter={id === "resources" ? onResourceEnter : undefined}
                 onMouseLeave={id === "resources" ? onResourceLeave : undefined}
-                className={cn("relative h-[38px] w-[38px] rounded-[10px] text-stone-500 hover:bg-[#f0efed]", activity === id && "bg-emerald-50 text-green-700 hover:bg-emerald-50")}
+                className={cn("relative h-[38px] w-[38px] rounded-[10px] text-stone-500 hover:!bg-[#f0efed] hover:!text-stone-500", activity === id && "!bg-emerald-50 !text-green-700 hover:!bg-emerald-50 hover:!text-green-700")}
               >
                 <Icon className="!size-5" />
                 {id === "resources" && (library.count || 0) > 0 && <span className="absolute -right-0.5 -top-0.5 min-w-4 rounded-full bg-emerald-700 px-1 text-[9px] leading-4 !text-white" aria-label={`${library.count} 个项目`}>{library.count}</span>}
@@ -72,7 +74,6 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
             </TooltipContent>
           </Tooltip>
         ))}
-        <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" aria-label="ONLYOFFICE" title="ONLYOFFICE" className="h-[38px] w-[38px] text-stone-500" onClick={() => { void window.electronAPI.openOffice().catch(error => alert(`打开 Office 失败：${String(error)}`)) }}><FileSpreadsheet className="!size-5" /></Button></TooltipTrigger><TooltipContent side="right">ONLYOFFICE · 本地文档</TooltipContent></Tooltip>
         <span
           title="浅色外观"
           className="mt-auto flex size-[38px] items-center justify-center text-stone-500"

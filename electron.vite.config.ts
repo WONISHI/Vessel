@@ -34,7 +34,7 @@ export default defineConfig({
     }
   },
   preload: {
-    build: { rollupOptions: { input: { index: resolve("src/preload/index.ts"), office: resolve("src/preload/office.ts") } }, externalizeDeps: { exclude: ["@vessel/obsidian", "@vessel/utils", "@vessel/react-router"] } },
+    build: { externalizeDeps: { exclude: ["@vessel/obsidian", "@vessel/utils", "@vessel/react-router"] } },
     resolve: {
       alias: {
         "@main": resolve("src/main"),

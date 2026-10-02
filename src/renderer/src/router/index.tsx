@@ -1,3 +1,4 @@
+import { OfficeRoute } from "@/pages/office"
 import { BrowserRoute } from "@/pages/browser/keep-alive"
 import { useLocation } from "react-router-dom"
 import TodosPage from "@/pages/todos"
@@ -99,6 +100,7 @@ function ResourceRoute() {
  * 路由配置
  */
 export const routes: AppRouteRecordRaw[] = [
+  { path: "/office", name: "office", component: OfficeRoute, meta: { title: "ONLYOFFICE" } },
   { path: "/resources", name: "resources", component: ResourceRoute, meta: { title: "项目资源库" }, children: [
     { index: true, component: WorkspaceHome },
     { path: "file", name: "resources-file", component: Canvas }

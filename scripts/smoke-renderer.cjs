@@ -20,6 +20,11 @@ app.whenReady().then(async () => {
   const window = new BrowserWindow({ show: false, webPreferences: {
     preload: resolve(__dirname, '../out/preload/index.js'), sandbox: false, webviewTag: true,
   } })
+  app.setAppPath(process.cwd())
+  const officeModule = new (require('node:module'))(resolve(__dirname, '../out/main/office-test.cjs'), module)
+  officeModule.filename = resolve(__dirname, '../out/main/office-test.cjs'); officeModule.paths = module.paths
+  officeModule._compile(require('typescript').transpile(require('node:fs').readFileSync(resolve(__dirname, '../src/main/office.ts'), 'utf8'), { module: 1, target: 9 }), officeModule.filename)
+  officeModule.exports.registerOffice(window.webContents)
   window.webContents.on('console-message', (_event, level, message) => {
     if (level === 3) { failed = true; console.error(message) }
   })
@@ -38,6 +43,15 @@ app.whenReady().then(async () => {
   const resourceText = await window.webContents.executeJavaScript('document.body.innerText')
   if (!resourceText.includes('Independent library') || !resourceText.includes('控制台')) { failed = true; console.error('Resource page did not mount:', resourceText) }
   else console.log('Independent resource page mounted')
+  await window.webContents.executeJavaScript(`document.querySelector('button[aria-label="ONLYOFFICE"]').click()`)
+  await new Promise(resolve => setTimeout(resolve, 1800))
+  const officeState = await window.webContents.executeJavaScript(`({hash:location.hash,text:document.body.innerText,frame:!!document.querySelector('iframe[title="ONLYOFFICE 本地编辑器"]'),visible:[...document.querySelectorAll('nav')].map(el => !!el.getBoundingClientRect().width)})`)
+  console.log('Office via activity bar:', officeState)
+  if (!officeState.frame || !officeState.visible.some(Boolean)) { failed = true; console.error('Office route did not mount') }
+  const officeFrame = window.webContents.mainFrame.frames.find(frame => frame.url.includes('/office.html'))
+  if (!officeFrame || !(await officeFrame.executeJavaScript('document.body.innerText')).includes('打开本地文件')) { failed = true; console.error('Office iframe failed to load') }
+  else console.log('Embedded Office start page loaded successfully')
+  writeFileSync('/tmp/vessel-office-embedded.png', (await window.webContents.capturePage()).toPNG())
   const extensionPath = join(profile, 'test-extension')
   mkdirSync(extensionPath)
   writeFileSync(join(extensionPath, 'manifest.json'), JSON.stringify({ manifest_version: 3, name: 'Vessel test extension', version: '1.0', content_scripts: [{ matches: ['http://127.0.0.1/*'], js: ['content.js'] }] }))

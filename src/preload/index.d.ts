@@ -92,7 +92,8 @@ export interface StorageInfo {
 }
 
 export interface VesselAPI extends BrowserExtensionsAPI, TodosAPI, TerminalAPI, FileWatchAPI {
-  openOffice(): Promise<void>
+  openOffice(): Promise<string>
+  saveOffice(name: string, bytes: Uint8Array): Promise<boolean>
 
   onBrowserDevtoolsClosed: (callback: () => void) => () => void
   onBrowserFind: (callback: (id: number) => void) => () => void

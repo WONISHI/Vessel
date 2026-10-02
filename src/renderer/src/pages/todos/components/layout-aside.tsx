@@ -13,7 +13,7 @@ export default function TodoAside({ todos, selected, onSelect }: { todos: Todo[]
       <ActivityBar
         activity="todos"
         onActivityChange={(activity) => {
-          if (activity !== "todos") void router.push(activity === "files" ? "/editor" : activity === "browser" ? "/browser" : "/devtools")
+          if (activity !== "todos") void router.push(activity === "resources" ? "/resources" : activity === "files" ? "/editor" : activity === "browser" ? "/browser" : "/devtools")
         }}
       />
       <Sidebar

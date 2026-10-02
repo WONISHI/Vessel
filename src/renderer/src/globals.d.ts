@@ -94,7 +94,8 @@ interface StorageInfo {
 
 /** preload 暴露给 React 渲染进程的完整 API。 */
 interface VesselAPI extends BrowserExtensionsAPI, TodosAPI, TerminalAPI, FileWatchAPI {
-  openOffice(): Promise<void>
+  openOffice(): Promise<string>
+  saveOffice(name: string, bytes: Uint8Array): Promise<boolean>
 
   onBrowserDevtoolsClosed: (callback: () => void) => () => void
   onBrowserFind: (callback: (id: number) => void) => () => void

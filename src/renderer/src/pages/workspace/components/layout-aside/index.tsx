@@ -21,7 +21,7 @@ export default function LayoutAside({ resources = false }: { resources?: boolean
 
   const router = useRouter()
   const handleActivityChange = (next: AsideActivity) => {
-    if (next === "resources") { if (selectLastPinned()) { setPreview(false); void router.push("/resources") } else show(); return }
+    if (next === "resources") { selectLastPinned(); setActivity("files"); setPreview(false); void router.push("/resources"); return }
     setPreview(false)
     if (next === "browser") { void router.push("/browser"); return }
     if (next === "todos") { void router.push("/todos"); return }
