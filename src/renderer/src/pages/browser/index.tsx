@@ -355,7 +355,7 @@ export default function BrowserPage({ visible = true }: { visible?: boolean }) {
           >
             <Bug />
           </Button>
-          <BrowserExtensions />
+          <BrowserExtensions onOpenDevtools={() => setDevtoolsOpen(true)} />
         </div>
         <div className="browser-bookmarks">
           {bookmarks.map((item) => (

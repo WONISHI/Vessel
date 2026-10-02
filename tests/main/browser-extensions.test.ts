@@ -11,12 +11,15 @@ it("installs, persists, disables, re-enables and removes extension records witho
   await writeFile(manifest, JSON.stringify({ name: "Test", version: "1.0", manifest_version: 3 }))
   const handlers = new Map<string, (...args: unknown[]) => Promise<unknown>>()
   const { registerBrowserExtensions } = await import("../../src/main/browser-extensions")
-  registerBrowserExtensions({ ipc: { handle: (name: string, handler: (...args: unknown[]) => Promise<unknown>) => handlers.set(name, handler) } } as never)
+  registerBrowserExtensions({ once: vi.fn(), ipc: { handle: (name: string, handler: (...args: unknown[]) => Promise<unknown>) => handlers.set(name, handler) } } as never)
   try {
     const installed = await handlers.get("browser:extensions:install")!() as {key: string}[]
     const key = installed[0].key
     expect(mocks.options).toMatchObject({ properties: ["openDirectory"] })
     expect(mocks.load).toHaveBeenCalled()
+    await handlers.get("browser:extensions:pin")!(null, key, true)
+    expect(JSON.parse(await readFile(join(mocks.directory, "browser-extensions.json"), "utf8"))[0].pinned).toBe(true)
+    expect(await handlers.get("browser:extensions:open")!(null, key)).toMatchObject({ kind: "background" })
     await handlers.get("browser:extensions:enabled")!(null, key, false)
     expect(JSON.parse(await readFile(join(mocks.directory, "browser-extensions.json"), "utf8"))[0].enabled).toBe(false)
     await handlers.get("browser:extensions:enabled")!(null, key, true)

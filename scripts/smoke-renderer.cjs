@@ -9,6 +9,7 @@ app.setPath('userData', profile)
 let failed = false
 app.on('will-quit', () => rmSync(profile, { recursive: true, force: true }))
 app.whenReady().then(async () => {
+  ipcMain.handle("browser:extensions:list", () => [])
   ipcMain.handle("files:watch", () => "smoke-watch")
   ipcMain.handle("files:unwatch", () => undefined)
   ipcMain.handle("browser:devtools", () => undefined)
@@ -40,6 +41,10 @@ app.whenReady().then(async () => {
   const extensionPath = join(profile, 'test-extension')
   mkdirSync(extensionPath)
   writeFileSync(join(extensionPath, 'manifest.json'), JSON.stringify({ manifest_version: 3, name: 'Vessel test extension', version: '1.0', content_scripts: [{ matches: ['http://127.0.0.1/*'], js: ['content.js'] }] }))
+  writeFileSync(join(extensionPath, 'popup.html'), '<html><body>Extension popup<script src="popup.js"></script></body></html>')
+  writeFileSync(join(extensionPath, 'popup.js'), 'location.replace("welcome.html")')
+  writeFileSync(join(extensionPath, 'welcome.html'), '<html><body>Extension welcome<script src="welcome.js"></script></body></html>')
+  writeFileSync(join(extensionPath, 'welcome.js'), 'document.body.dataset.extensionId = chrome.runtime.id; document.body.innerHTML += `<a id=login href="login.html" target=igghelperlogin>Login</a>`')
   writeFileSync(join(extensionPath, 'content.js'), "document.documentElement.dataset.vesselExtension = 'loaded'")
   const extension = await session.fromPartition('persist:vessel-browser').extensions.loadExtension(extensionPath)
   const server = require('node:http').createServer((_request, response) => response.end('<html><title>Guest regression</title><body>Guest ready</body></html>'))
@@ -57,6 +62,28 @@ app.whenReady().then(async () => {
   const guest = webContents.fromId(guestId)
   if (await guest.executeJavaScript("document.documentElement.dataset.vesselExtension") !== 'loaded') { failed = true; console.error('Extension content script did not execute') }
   else console.log('Unpacked extension content script executed in browser session')
+  const popup = new BrowserWindow({ show: false, webPreferences: { partition: 'persist:vessel-browser', sandbox: true, contextIsolation: true, nodeIntegration: false } })
+  const ts = require('typescript')
+  const loader = { exports: {} }
+  const helperSource = require('node:fs').readFileSync(resolve(__dirname, '../src/main/extension-navigation.ts'), 'utf8')
+  new Function('exports', ts.transpile(helperSource, { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 }))(loader.exports)
+  await loader.exports.loadExtensionPage(popup.webContents, `chrome-extension://${extension.id}/popup.html`)
+  if (await popup.webContents.executeJavaScript('document.body.dataset.extensionId') !== extension.id) { failed = true; console.error('Extension popup runtime unavailable') }
+  else console.log('Extension popup loaded with its own chrome.runtime in browser session')
+  writeFileSync(join(extensionPath, 'login.html'), '<html><body>Login destination</body></html>')
+  loader.exports.handleExtensionWindows(popup.webContents, extension.id, () => {})
+  await popup.webContents.executeJavaScript("document.getElementById('login').click()")
+  await new Promise(resolve => setTimeout(resolve, 500))
+  if (!popup.webContents.getURL().endsWith('/login.html')) { failed = true; console.error('Named extension login target failed') }
+  else console.log('Named extension login link navigates to login page')
+  popup.destroy()
+  await window.webContents.executeJavaScript(`document.querySelector('button[aria-label="管理浏览器扩展"]').click()`)
+  await new Promise(resolve => setTimeout(resolve, 600))
+  const sheet = await window.webContents.executeJavaScript(`(() => { const el = document.querySelector('[role="dialog"]'); return { visible: !!el, right: el?.getBoundingClientRect().right, width: innerWidth, locked: document.body.style.pointerEvents === 'none', overlay: Array.from(document.querySelectorAll('[data-state="open"]')).some(el => el.classList.contains("bg-black/80")) } })()`)
+  if (!sheet.visible || sheet.locked || sheet.overlay || Math.abs(sheet.right - sheet.width) > 2) { failed = true; console.error('Nonmodal sheet mismatch:', sheet) }
+  else console.log('Extension Sheet is right aligned, without overlay or page pointer lock')
+  writeFileSync('/tmp/vessel-extensions-sheet.png', (await window.webContents.capturePage()).toPNG())
+  await window.webContents.executeJavaScript(`document.querySelector('button[aria-label="管理浏览器扩展"]').click()`)
   session.fromPartition('persist:vessel-browser').extensions.removeExtension(extension.id)
   await window.webContents.executeJavaScript("window.dispatchEvent(new KeyboardEvent('keydown',{key:'f',ctrlKey:true,bubbles:true}))")
   await new Promise(resolve => setTimeout(resolve, 200))
