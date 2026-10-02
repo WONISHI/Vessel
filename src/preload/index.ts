@@ -1,3 +1,4 @@
+import type { TransitFile } from "../shared/transit"
 import { browserExtensionsAPI } from "./apis/browser-extensions.api"
 import { fileWatchAPI } from "./apis/file-watch.api"
 import { terminalAPI } from "./apis/terminal.api"
@@ -12,8 +13,12 @@ import { filesAPI } from "./apis/files.api"
 const api = {}
 
 const vesselAPI = {
+  readTransitFile: (root: string, path: string): Promise<TransitFile> => ipcRenderer.invoke("transit:read-file", root, path),
+  pickOfficeFile: (): Promise<{ token: string; name: string; bytes: Uint8Array } | null> => ipcRenderer.invoke("office:pick"),
+  commitOffice: (name: string, bytes: Uint8Array, token?: string): Promise<{ saved: boolean; name?: string; token?: string }> => ipcRenderer.invoke("office:commit", name, bytes, token),
+  renameOffice: (token: string | undefined, name: string): Promise<string> => ipcRenderer.invoke("office:rename", token, name),
   readTransitClipboard: (): Promise<string> => ipcRenderer.invoke("transit:clipboard"),
-  openTransitWindow: (item: { kind: string; content: string; title: string }): Promise<void> => ipcRenderer.invoke("transit:window", item),
+  openTransitWindow: (item: { kind: string; content: string; title: string; root?: string }): Promise<void> => ipcRenderer.invoke("transit:window", item),
   saveOffice: (name: string, bytes: Uint8Array): Promise<boolean> => ipcRenderer.invoke("office:save", name, bytes),
   openOffice: (): Promise<string> => ipcRenderer.invoke("office:open"),
   ...terminalAPI,

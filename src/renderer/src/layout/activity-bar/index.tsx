@@ -1,6 +1,6 @@
 import { TransitButton } from "@/components/transit/button"
 import { useRouter } from "@vessel/react-router"
-import { useEffect } from "react"
+import { Fragment, useEffect } from "react"
 import { useLibraryMeta, updateLibraryMeta, selectLastPinned } from "@/pages/resources/library-state"
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
 import { Sun } from "lucide-react"
@@ -50,7 +50,9 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
           </TooltipContent>
         </Tooltip>
         {ACTIVITY_ITEMS.map(({ id, label, icon: Icon }) => (
-          <Tooltip key={id}>
+          <Fragment key={id}>
+          {id === "tools" && <TransitButton />}
+          <Tooltip>
             <TooltipTrigger asChild>
               <Button
                 variant="ghost"
@@ -74,8 +76,8 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
               {label}
             </TooltipContent>
           </Tooltip>
+          </Fragment>
         ))}
-        <TransitButton />
         <span
           title="浅色外观"
           className="mt-auto flex size-[38px] items-center justify-center text-stone-500"

@@ -1,3 +1,4 @@
+import type { TransitFile } from "../../shared/transit"
 import type { BrowserExtensionsAPI } from "../../shared/browser-extensions"
 import type { FileWatchAPI } from "../../shared/file-watch"
 import type { TerminalAPI } from "../../shared/terminal"
@@ -95,7 +96,11 @@ interface StorageInfo {
 /** preload 暴露给 React 渲染进程的完整 API。 */
 interface VesselAPI extends BrowserExtensionsAPI, TodosAPI, TerminalAPI, FileWatchAPI {
   readTransitClipboard(): Promise<string>
-  openTransitWindow(item: { kind: string; content: string; title: string }): Promise<void>
+  openTransitWindow(item: { kind: string; content: string; title: string; root?: string }): Promise<void>
+  pickOfficeFile(): Promise<{ token: string; name: string; bytes: Uint8Array } | null>
+  commitOffice(name: string, bytes: Uint8Array, token?: string): Promise<{ saved: boolean; name?: string; token?: string }>
+  renameOffice(token: string | undefined, name: string): Promise<string>
+  readTransitFile(root: string, path: string): Promise<TransitFile>
   openOffice(): Promise<string>
   saveOffice(name: string, bytes: Uint8Array): Promise<boolean>
 

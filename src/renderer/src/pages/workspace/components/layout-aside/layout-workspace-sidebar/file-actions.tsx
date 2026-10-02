@@ -1,5 +1,6 @@
+import { addTransitFile } from "@/components/transit/state"
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog"
-import { Copy, FolderOpen, FilePlus2, FolderPlus, Pencil, Trash2 } from "lucide-react"
+import { Copy, FolderOpen, FilePlus2, FolderPlus, Pencil, Trash2, Pin } from "lucide-react"
 import { createPortal } from "react-dom"
 import { useState, type ReactNode } from "react"
 import { PopoverAnchor } from "@radix-ui/react-popover"
@@ -132,6 +133,7 @@ export function FileActions({ node, children, onChanged, onCreate }: { node: Wor
                 {label}
               </Button>
             ))}
+            {node.type !== "directory" && <Button variant="ghost" className="h-8 w-full justify-start text-xs hover:text-white" onClick={() => { try { addTransitFile(workspace.path, node.path, node.name); setPoint(null) } catch (reason) { setError(String(reason)) } }}><Pin className="!size-3.5" />加入中转站</Button>}
             <Button
               variant="ghost"
               disabled={busy}

@@ -16,9 +16,13 @@ function OfficePage() {
     const listener = (event: MessageEvent) => {
       if (event.source !== frame.current?.contentWindow || event.origin !== new URL(url).origin) return
       if (event.data?.type === "office:loaded") { clearTimeout(timeout); setReady(true); setError(""); return }
-      if (event.data?.type !== "office:save" || !event.ports[0]) return
       const port = event.ports[0]
-      void window.electronAPI.saveOffice(event.data.name, event.data.bytes).then(saved => port.postMessage({ saved }), error => port.postMessage({ error: String(error) })).finally(() => port.close())
+      if (!port) return
+      const data = event.data
+      const request = data?.type === "office:pick" ? window.electronAPI.pickOfficeFile()
+        : data?.type === "office:rename" ? window.electronAPI.renameOffice(data.token, data.name)
+        : data?.type === "office:save" ? window.electronAPI.commitOffice(data.name, data.bytes, data.token) : null
+      if (request) void request.then(result => port.postMessage({ result }), error => port.postMessage({ error: String(error) })).finally(() => port.close())
     }
     window.addEventListener("message", listener)
     return () => { clearTimeout(timeout); window.removeEventListener("message", listener) }

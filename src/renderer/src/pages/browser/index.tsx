@@ -1,3 +1,5 @@
+import Clock from "react-live-clock"
+import { addTransit } from "@/components/transit/state"
 import browserLoading from "@/assets/vessel-browser-loading/loading.svg"
 import { BrowserExtensions } from "./extensions"
 import { markGuestReady, withGuest } from "./guest-lifecycle"
@@ -5,7 +7,7 @@ import { elementPickerScript } from "./element-picker"
 import { webviewAttributes } from "./webview-attributes"
 import { useEffect, useRef, useState } from "react"
 import type { WebviewTag } from "electron"
-import { ChevronUp, ChevronDown, ArrowLeft, ArrowRight, RotateCw, Home, Globe, Plus, X, Search, LockKeyhole, Bookmark, ZoomIn, ZoomOut, Bug, ScanSearch } from "lucide-react"
+import { ChevronUp, ChevronDown, ArrowLeft, ArrowRight, RotateCw, Home, Globe, Plus, X, Search, LockKeyhole, Bookmark, ZoomIn, ZoomOut, Bug, SquareDashedMousePointer, Pin } from "lucide-react"
 import { useRouter } from "@vessel/react-router"
 import Layout from "@/layout"
 import ActivityBar from "@/layout/activity-bar"
@@ -342,8 +344,9 @@ export default function BrowserPage({ visible = true }: { visible?: boolean }) {
           </Button>
           <Button variant="ghost" size="icon" title="查看元素信息（Esc 退出，再次点击关闭）" aria-label="查看元素信息" disabled={!tab.url}
             onClick={() => { void withGuest(views.current.get(tab.id), guest => guest.executeJavaScript(elementPickerScript).catch(error => window.alert(`无法查看元素：${String(error)}`))) }}>
-            <ScanSearch />
+            <SquareDashedMousePointer />
           </Button>
+          <Button variant="ghost" size="icon" aria-label="加入中转站" title="加入中转站" disabled={!tab.url} onClick={() => { try { addTransit(tab.url, tab.title) } catch (error) { window.alert(String(error)) } }}><Pin /></Button>
           <Button
             variant="ghost"
             size="icon"
@@ -471,6 +474,7 @@ export default function BrowserPage({ visible = true }: { visible?: boolean }) {
         </div>
       <footer className="browser-status">
           <span>{tab.loading ? "正在加载…" : tab.url || "就绪"}</span>
+          <span className="ml-auto shrink-0"><Clock ticking interval={1000} format="YYYY年MM月DD日 HH:mm:ss" /></span>
           <span>{Math.round(tab.zoom * 100)}%</span>
         </footer>
       </main>

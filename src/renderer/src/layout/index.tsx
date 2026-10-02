@@ -1,5 +1,5 @@
 import { SidebarProvider } from "@/components/ui/sidebar"
-import type { CSSProperties, ReactNode } from "react"
+import type { ReactNode } from "react"
 
 export interface LayoutProps {
   /** 页面提供的侧栏区域，不包含业务状态。 */
@@ -12,7 +12,6 @@ export interface LayoutProps {
 export default function Layout({ aside, children }: LayoutProps) {
   return (
     <SidebarProvider
-      style={{ "--sidebar-width": "240px" } as CSSProperties}
       className="h-dvh min-h-0 w-full overflow-hidden bg-white text-stone-800"
     >
       {aside}

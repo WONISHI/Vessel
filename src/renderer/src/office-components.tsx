@@ -2,14 +2,23 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react"
 import { OnlyOfficeEditor } from "wasm-onlyoffice-sdk/react"
 import { FileText, FileSpreadsheet, Presentation, Plus, X, FolderOpen, Save } from "lucide-react"
 import { Popover, PopoverContent, PopoverTrigger } from "./components/ui/popover"
-type Doc = { id: string; file?: File; newDocument?: "docx" | "xlsx" | "pptx"; name: string; dirty?: boolean; status?: string }
+type Doc = { id: string; token?: string; file?: File; newDocument?: "docx" | "xlsx" | "pptx"; name: string; dirty?: boolean; status?: string }
+function requestHost<T>(data: object): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const channel = new MessageChannel()
+    const timeout = setTimeout(() => { channel.port1.close(); reject(new Error("操作超时，请重试")) }, 300000)
+    channel.port1.onmessage = event => { clearTimeout(timeout); channel.port1.close(); if (event.data.error) reject(new Error(event.data.error)); else resolve(event.data.result) }
+    parent.postMessage(data, "*", [channel.port2])
+  })
+}
 const kinds = [{ type: "docx", label: "Word 文档", Icon: FileText, color: "#2563eb" }, { type: "xlsx", label: "Excel 表格", Icon: FileSpreadsheet, color: "#16a34a" }, { type: "pptx", label: "PPT 演示文稿", Icon: Presentation, color: "#d97706" }] as const
 export function Editor() {
   const [doc, setDoc] = useState<Doc>()
-  const report = (data: object) => parent.postMessage({ type: "office:state", ...data }, location.origin)
+  const preview = new URLSearchParams(location.search).has("preview")
+  const report = (data: object) => parent.postMessage({ type: "office:state", ...data }, preview ? "*" : location.origin)
   useEffect(() => {
     const init = (event: MessageEvent) => {
-      if (event.source !== parent || event.origin !== location.origin) return
+      if (event.source !== parent || (!preview && event.origin !== location.origin)) return
       if (event.data?.type === "office:init") setDoc(event.data.doc)
       if (event.data?.type === "office:export") {
         const runtime = (document.querySelector<HTMLIFrameElement>('iframe[name="frameEditor"]')?.contentWindow as (Window & { Asc?: { editor?: { asc_DownloadAs(options: unknown): void }; asc_CDownloadOptions: new (format: number) => unknown; c_oAscFileType: Record<string, number> } }) | null)?.Asc
@@ -19,19 +28,24 @@ export function Editor() {
       }
     }
     window.addEventListener("message", init)
-    parent.postMessage({ type: "office:ready" }, location.origin)
+    parent.postMessage({ type: "office:ready" }, preview ? "*" : location.origin)
     return () => window.removeEventListener("message", init)
-  }, [])
-  return doc ? <OnlyOfficeEditor assetsPath="/office/v9.3.0.24-1" x2tPath="/office/x2t" file={doc.file} newDocument={doc.newDocument} language="zh" theme="theme-classic-light" user={{ id: "local", name: "本地用户" }} style={{ height: "100vh" }} onReady={() => report({ status: "本地编辑" })} onDocumentStateChange={dirty => { if (dirty) report({ dirty: true }) }} onError={error => report({ status: `加载失败：${error.message}` })} onSave={async (blob, name) => {
+  }, [preview])
+  return doc ? <OnlyOfficeEditor assetsPath="/office/v9.3.0.24-1" x2tPath="/office/x2t" file={doc.file} newDocument={doc.newDocument} language="zh" theme="theme-classic-light" user={{ id: "local", name: "本地用户" }} style={{ height: "100vh" }} onReady={() => {
+    if (preview) { const runtime = (document.querySelector<HTMLIFrameElement>('iframe[name="frameEditor"]')?.contentWindow as (Window & { Asc?: { editor?: { asc_setViewMode?: (view: boolean) => void } } }) | null)?.Asc; runtime?.editor?.asc_setViewMode?.(true) }
+    report({ status: "本地编辑" })
+  }} onDocumentStateChange={dirty => { if (dirty) report({ dirty: true }) }} onError={error => report({ status: `加载失败：${error.message}` })} onSave={async (blob, name) => {
     const channel = new MessageChannel()
-    channel.port1.onmessage = event => { report(event.data.saved ? { dirty: false, status: "已保存", name } : { status: event.data.error || "已取消保存" }); channel.port1.close() }
-    parent.postMessage({ type: "office:save", name, bytes: new Uint8Array(await blob.arrayBuffer()) }, location.origin, [channel.port2])
+    channel.port1.onmessage = event => { report(event.data.saved ? { dirty: false, status: "已保存" } : { status: event.data.error || "已取消保存" }); channel.port1.close() }
+    parent.postMessage({ type: "office:save", name, bytes: new Uint8Array(await blob.arrayBuffer()) }, preview ? "*" : location.origin, [channel.port2])
   }} /> : <p style={{ padding: 24 }}>正在加载本地编辑器…</p>
 }
 export function Office() {
   const [docs, setDocs] = useState<Doc[]>([])
   const [active, setActive] = useState("")
   const [menu, setMenu] = useState(false)
+  const [renameName, setRenameName] = useState<string | null>(null)
+  const [message, setMessage] = useState("")
   const frames = useRef(new Map<string, HTMLIFrameElement>())
   const docsRef = useRef(docs)
   useLayoutEffect(() => { docsRef.current = docs }, [docs])
@@ -43,15 +57,24 @@ export function Office() {
       if (!id) return
       if (event.data?.type === "office:ready") (event.source as Window).postMessage({ type: "office:init", doc: docsRef.current.find(doc => doc.id === id) }, location.origin)
       if (event.data?.type === "office:state") setDocs(items => items.map(doc => doc.id === id ? { ...doc, dirty: event.data.dirty ?? doc.dirty, status: event.data.status ?? doc.status, name: event.data.name ?? doc.name } : doc))
-      if (event.data?.type === "office:save" && event.ports[0]) parent.postMessage(event.data, "*", [event.ports[0]])
+      if (event.data?.type === "office:save" && event.ports[0]) {
+        const doc = docsRef.current.find(doc => doc.id === id)!
+        const extension = /\.(xlsx?|ods|csv)$/i.test(doc.name) ? ".xlsx" : /\.(pptx?|odp)$/i.test(doc.name) ? ".pptx" : ".docx"
+        const name = doc.name.replace(/\.[^.]+$/, "") + extension
+        const port = event.ports[0]
+        void requestHost<{ saved: boolean; token?: string; name?: string }>({ ...event.data, name, token: doc.token }).then(result => {
+          if (result.saved) setDocs(items => items.map(item => item.id === id ? { ...item, token: result.token, name: result.name || item.name, dirty: false } : item))
+          port.postMessage(result)
+        }, error => port.postMessage({ error: String(error) })).finally(() => port.close())
+      }
     }
     const leave = (event: BeforeUnloadEvent) => { if (docsRef.current.some(doc => doc.dirty)) { event.preventDefault(); event.returnValue = "" } }
     window.addEventListener("message", listener); window.addEventListener("beforeunload", leave)
     return () => { window.removeEventListener("message", listener); window.removeEventListener("beforeunload", leave) }
   }, [])
-  const add = (file?: File, newDocument?: Doc["newDocument"]) => {
+  const add = (file?: File, newDocument?: Doc["newDocument"], token?: string) => {
     const id = crypto.randomUUID()
-    setDocs(items => [...items, { id, file, newDocument, name: file?.name || `未命名-${items.length + 1}.${newDocument}`, status: "正在加载…" }]); setActive(id); setMenu(false)
+    setDocs(items => [...items, { id, file, newDocument, token, name: file?.name || `未命名-${items.length + 1}.${newDocument}`, status: "正在加载…" }]); setActive(id); setMenu(false)
   }
   const close = (doc: Doc) => {
     if (doc.dirty && !confirm(`“${doc.name}”有未保存修改，仍要关闭吗？`)) return
@@ -62,9 +85,11 @@ export function Office() {
     <div className="flex h-11 shrink-0 items-stretch border-b bg-stone-50" role="tablist" aria-label="Office 文档">
       <div className="flex min-w-0 overflow-x-auto">{docs.map(doc => { const kind = kinds.find(kind => doc.name.endsWith(kind.type)) || kinds[0]; return <div key={doc.id} className={`flex shrink-0 items-center gap-2 border-r border-t-2 px-3 text-xs ${doc.id === active ? "border-t-green-600 bg-white" : "border-t-transparent text-stone-500"}`}><button role="tab" aria-selected={doc.id === active} className="flex items-center gap-2 py-3" onClick={() => setActive(doc.id)}><kind.Icon size={14} color={kind.color} />{doc.name}{doc.dirty ? " •" : ""}</button><button aria-label={`关闭 ${doc.name}`} onClick={() => close(doc)} className="rounded p-1 hover:bg-stone-200"><X size={12} /></button></div> })}</div>
       <Popover open={menu} onOpenChange={setMenu}><PopoverTrigger asChild><button aria-label="新建 Office 文档" className="shrink-0 px-3 hover:bg-stone-100"><Plus size={16} /></button></PopoverTrigger><PopoverContent align="start" className="w-48 p-1">{kinds.map(({ type, label, Icon, color }) => <button key={type} onClick={() => add(undefined, type)} className="flex w-full items-center gap-2 rounded px-3 py-2 text-left text-xs hover:bg-stone-100"><Icon size={16} color={color} />新建 {label}</button>)}</PopoverContent></Popover>
-      <label className="ml-auto flex shrink-0 cursor-pointer items-center gap-2 px-4 text-xs hover:bg-stone-100"><FolderOpen size={15} />打开文件<input type="file" className="hidden" accept=".docx,.doc,.odt,.xlsx,.xls,.ods,.csv,.pptx,.ppt,.odp" onChange={event => { const file = event.target.files?.[0]; if (file) add(file); event.target.value = "" }} /></label>
+      <button className="ml-auto flex shrink-0 items-center gap-2 px-4 text-xs hover:bg-stone-100" onClick={() => { void requestHost<{ token: string; name: string; bytes: Uint8Array } | null>({ type: "office:pick" }).then(result => { if (result) add(new File([result.bytes as BlobPart], result.name), undefined, result.token) }).catch(error => setMessage(String(error))) }}><FolderOpen size={15} />打开文件</button>
     </div>
-    <div className="flex h-10 shrink-0 items-center justify-between border-b px-4 text-xs"><span className="truncate">本地文档 / {selected?.name || "ONLYOFFICE"}</span><div className="flex items-center gap-4"><span className="text-stone-500">{selected?.dirty ? "未保存 · " : ""}{selected?.status || "文档仅在本地处理"}</span>{selected && <button className="flex items-center gap-1 rounded bg-green-700 px-3 py-1.5 text-white hover:bg-green-800" onClick={() => frames.current.get(selected.id)?.contentWindow?.postMessage({ type: "office:export", format: selected.name.match(/\.(xlsx?|ods|csv)$/i) ? "XLSX" : selected.name.match(/\.(pptx?|odp)$/i) ? "PPTX" : "DOCX" }, location.origin)}><Save size={13} />另存为</button>}</div></div>
+    <div className="flex h-10 shrink-0 items-center justify-between border-b px-4 text-xs"><span className="truncate">本地文档 / {selected?.name || "ONLYOFFICE"}{selected?.dirty ? " · 未保存" : ""}</span><div className="flex items-center gap-4">{selected && <Popover open={renameName !== null} onOpenChange={open => setRenameName(open ? selected.name : null)}><PopoverTrigger asChild><button className="text-stone-500 hover:text-green-700">重命名</button></PopoverTrigger><PopoverContent className="w-64 p-3"><form className="flex gap-2" onSubmit={event => { event.preventDefault(); if (!renameName) return; void requestHost<string>({ type: "office:rename", token: selected.token, name: renameName }).then(name => { setDocs(items => items.map(doc => doc.id === selected.id ? { ...doc, name } : doc)); setRenameName(null) }).catch(error => setMessage(String(error))) }}><input aria-label="文档名称" autoFocus className="min-w-0 flex-1 rounded border px-2 text-xs" value={renameName || ""} onChange={e => setRenameName(e.target.value)} /><button className="rounded bg-green-700 px-2 py-1 text-xs text-white">确定</button></form></PopoverContent></Popover>}{selected && <button className="flex items-center gap-1 rounded bg-green-700 px-3 py-1.5 text-white hover:bg-green-800" onClick={() => frames.current.get(selected.id)?.contentWindow?.postMessage({ type: "office:export", format: selected.name.match(/\.(xlsx?|ods|csv)$/i) ? "XLSX" : selected.name.match(/\.(pptx?|odp)$/i) ? "PPTX" : "DOCX" }, location.origin)}><Save size={13} />保存</button>}</div></div>
+    {message && <div role="alert" className="flex justify-between bg-red-50 px-4 py-2 text-xs text-red-600">{message}<button onClick={() => setMessage("")}>关闭</button></div>}
+    {selected?.status && !["本地编辑", "已保存", "正在加载…"].includes(selected.status) && <p role="alert" className="px-4 text-xs text-red-600">{selected.status}</p>}
     <div className="relative min-h-0 flex-1">{docs.map(doc => <iframe key={doc.id} ref={frame => { if (frame) frames.current.set(doc.id, frame); else frames.current.delete(doc.id) }} hidden={doc.id !== active} title={doc.name} src="/office.html?editor=1" className="absolute inset-0 h-full w-full border-0" />)}{!docs.length && <div className="flex h-full flex-col items-center justify-center gap-4 text-stone-500"><FileText size={40} className="text-green-600" /><h1 className="text-xl font-semibold text-stone-800">ONLYOFFICE</h1><p className="text-sm">打开本地文件，或点击上方 ＋ 新建 Word、Excel、PPT。</p></div>}</div>
   </div>
 }

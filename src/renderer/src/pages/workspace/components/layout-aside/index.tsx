@@ -1,3 +1,4 @@
+import { ResizeEdge } from "@/components/ui/resize-edge"
 import { selectLastPinned } from "@/pages/resources/library-state"
 import { ProjectLibrary } from "./project-library"
 import { Sidebar, useSidebar } from "@/components/ui/sidebar"
@@ -10,7 +11,7 @@ import type { AsideActivity } from "@/pages/workspace/components/layout-aside/ty
 
 /** 组合活动栏与侧边列表，统一管理活动选择。 */
 export default function LayoutAside({ resources = false }: { resources?: boolean }) {
-  const { setOpen, setOpenMobile, isMobile } = useSidebar()
+  const { setOpen, setOpenMobile, isMobile, width, setWidth } = useSidebar()
   const [preview, setPreview] = useState(false)
   const hideTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   useEffect(() => () => clearTimeout(hideTimer.current), [])
@@ -45,6 +46,7 @@ export default function LayoutAside({ resources = false }: { resources?: boolean
         className="left-[52px] bg-white [&_[data-sidebar=sidebar]]:bg-white"
       >
         <LayoutWorkspaceSidebar activity={activity} />
+        {!isMobile && <ResizeEdge width={width} min={232} max={600} label="调整文件侧栏宽度" onChange={setWidth} />}
       </Sidebar>
     </aside>
   )

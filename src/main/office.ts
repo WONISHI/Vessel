@@ -1,9 +1,9 @@
 import { app, BrowserWindow, dialog, type WebContents } from "electron"
 import { createServer } from "node:http"
-import { readFile, realpath, writeFile } from "node:fs/promises"
-import { join, resolve, relative, extname, basename, isAbsolute } from "node:path"
+import { readFile, realpath, writeFile, stat, rename } from "node:fs/promises"
+import { join, resolve, relative, extname, basename, isAbsolute, dirname } from "node:path"
 let origin: Promise<string> | undefined
-function serve() {
+export function serveOffice() {
   return origin ||= new Promise((done, reject) => {
     const renderer = resolve(__dirname, "../renderer")
     const assets = app.isPackaged ? join(process.resourcesPath, "office") : join(app.getAppPath(), "resources/office")
@@ -36,7 +36,48 @@ function serve() {
   })
 }
 export function registerOffice(host: WebContents) {
-  host.ipc.handle("office:open", async () => (await serve()) + "/office.html")
+  const documents = new Map<string, string>()
+  const owner = () => { const window = BrowserWindow.fromWebContents(host); if (!window) throw new Error("窗口已关闭"); return window }
+  const validateName = (name: string) => { if (typeof name !== "string" || !name.trim() || /[\\/:]/.test(name) || name === "." || name === "..") throw new Error("文件名称无效") }
+  host.ipc.handle("office:pick", async () => {
+    const result = await dialog.showOpenDialog(owner(), { title: "打开 Office 文档", properties: ["openFile"], filters: [{ name: "Office 文档", extensions: ["docx", "xlsx", "pptx", "doc", "xls", "ppt", "odt", "ods", "odp", "csv"] }] })
+    if (result.canceled || !result.filePaths[0]) return null
+    const path = result.filePaths[0]
+    if ((await stat(path)).size > 256 * 1024 * 1024) throw new Error("文件超过 256 MB")
+    const bytes = new Uint8Array(await readFile(path)); const token = crypto.randomUUID()
+    documents.set(token, path)
+    return { token, name: basename(path), bytes }
+  })
+  host.ipc.handle("office:commit", async (_event, name: string, bytes: Uint8Array, token?: string) => {
+    validateName(name)
+    if (!(bytes instanceof Uint8Array) || bytes.byteLength > 256 * 1024 * 1024) throw new Error("文档数据无效")
+    let path = token ? documents.get(token) : undefined
+    if (token && !path) throw new Error("文件授权已过期，请重新打开")
+    // Legacy imports are exported as OOXML; never overwrite them with a different format.
+    if (path && extname(path).toLowerCase() !== extname(name).toLowerCase()) path = undefined
+    if (!path) {
+      const result = await dialog.showSaveDialog(owner(), { title: "保存 Office 文档", defaultPath: name })
+      if (result.canceled || !result.filePath) return { saved: false }
+      path = result.filePath; token = crypto.randomUUID()
+    }
+    await writeFile(path, bytes)
+    documents.set(token!, path)
+    return { saved: true, token, name: basename(path) }
+  })
+  host.ipc.handle("office:rename", async (_event, token: string | undefined, name: string) => {
+    validateName(name)
+    if (!token) return name
+    const path = documents.get(token)
+    if (!path) throw new Error("文件授权已过期，请重新打开")
+    if (extname(path).toLowerCase() !== extname(name).toLowerCase()) throw new Error("重命名不能更改文档格式")
+    const target = join(dirname(path), name)
+    if (target !== path) {
+      try { await stat(target); throw new Error("同名文件已存在") } catch (error) { if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error }
+      await rename(path, target); documents.set(token, target)
+    }
+    return name
+  })
+  host.ipc.handle("office:open", async () => (await serveOffice()) + "/office.html")
   host.ipc.handle("office:save", async (_event, name: string, bytes: Uint8Array) => {
     if (typeof name !== "string" || !(bytes instanceof Uint8Array) || bytes.byteLength > 256 * 1024 * 1024) throw new Error("文档数据无效或超过 256 MB")
     const window = BrowserWindow.fromWebContents(host)
