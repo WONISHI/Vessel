@@ -1,3 +1,4 @@
+import type { AppSettings, BackupStatus } from "../shared/settings"
 import type { TransitFile } from "../shared/transit"
 import { browserExtensionsAPI } from "./apis/browser-extensions.api"
 import { fileWatchAPI } from "./apis/file-watch.api"
@@ -13,6 +14,12 @@ import { filesAPI } from "./apis/files.api"
 const api = {}
 
 const vesselAPI = {
+  getSettings: (): Promise<AppSettings> => ipcRenderer.invoke("settings:get"),
+  saveSettings: (settings: AppSettings, secret?: string): Promise<AppSettings> => ipcRenderer.invoke("settings:save", settings, secret),
+  getSettingsInfo: (): Promise<{ version: string; electron: string; node: string }> => ipcRenderer.invoke("settings:info"),
+  testBackup: (settings: AppSettings["backup"], secret?: string): Promise<void> => ipcRenderer.invoke("settings:test", settings, secret),
+  runBackup: (): Promise<BackupStatus> => ipcRenderer.invoke("settings:backup"),
+  getBackupStatus: (): Promise<BackupStatus> => ipcRenderer.invoke("settings:status"),
   readTransitFile: (root: string, path: string): Promise<TransitFile> => ipcRenderer.invoke("transit:read-file", root, path),
   pickOfficeFile: (): Promise<{ token: string; name: string; bytes: Uint8Array } | null> => ipcRenderer.invoke("office:pick"),
   commitOffice: (name: string, bytes: Uint8Array, token?: string): Promise<{ saved: boolean; name?: string; token?: string }> => ipcRenderer.invoke("office:commit", name, bytes, token),

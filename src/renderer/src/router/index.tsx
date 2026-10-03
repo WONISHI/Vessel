@@ -1,3 +1,4 @@
+import SettingsPage from "@/pages/settings"
 import { OfficeRoute } from "@/pages/office"
 import { BrowserRoute } from "@/pages/browser/keep-alive"
 import { useLocation } from "react-router-dom"
@@ -105,6 +106,7 @@ export const routes: AppRouteRecordRaw[] = [
     { index: true, component: WorkspaceHome },
     { path: "file", name: "resources-file", component: Canvas }
   ] },
+  { path: "/settings", name: "settings", component: SettingsPage, meta: { title: "设置" } },
   { path: "/browser", name: "browser", component: BrowserRoute, meta: { title: "浏览器" } },
   {path: "/todos", name: "todos", component: TodosPage, meta: {title: "待办"}},
   {

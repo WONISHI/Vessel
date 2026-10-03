@@ -1,3 +1,4 @@
+import { applyAppearance } from "@/pages/settings/appearance"
 import { TransitPanel } from "@/components/transit/panel"
 import { OfficeKeepAlive } from "@/pages/office"
 import { BrowserKeepAlive } from "@/pages/browser/keep-alive"
@@ -19,6 +20,13 @@ export interface WorkspaceData {
 
 function App() {
   const router = useRouter()
+  useEffect(() => {
+    const apply = () => { void window.electronAPI.getSettings().then(applyAppearance).catch(console.error) }
+    apply()
+    const media = matchMedia("(prefers-color-scheme: dark)")
+    media.addEventListener("change", apply)
+    return () => media.removeEventListener("change", apply)
+  }, [])
   useEffect(() => {
     const open = (path: string) => { void router.push(`/editor/file?external=${encodeURIComponent(path)}`) }
     const unsubscribe = window.electronAPI.onOpenMarkdown(open)

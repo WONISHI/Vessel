@@ -1,3 +1,4 @@
+import { registerBrowserSiteCompatibility } from "./browser-site-compatibility"
 import { loadExtensionPage, handleExtensionWindows } from "./extension-navigation"
 import { extensionMetadata, extensionFile } from "./extension-metadata"
 import { importExtensionArchive } from "./extension-archive"
@@ -36,6 +37,7 @@ function initialize() {
   })()
 }
 export function registerBrowserExtensions(host: WebContents) {
+  registerBrowserSiteCompatibility(session.fromPartition("persist:vessel-browser"))
   void initialize()
   const owned = new Set<BrowserWindow>()
   host.once("destroyed", () => { for (const popup of owned) if (!popup.isDestroyed()) popup.destroy() })

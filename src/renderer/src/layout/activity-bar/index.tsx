@@ -3,7 +3,7 @@ import { useRouter } from "@vessel/react-router"
 import { Fragment, useEffect } from "react"
 import { useLibraryMeta, updateLibraryMeta, selectLastPinned } from "@/pages/resources/library-state"
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
-import { Sun } from "lucide-react"
+import { Sun, Settings } from "lucide-react"
 import Logo from "@/assets/logo.png"
 import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar"
 import { Button } from "@/components/ui/button"
@@ -78,12 +78,10 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
           </Tooltip>
           </Fragment>
         ))}
-        <span
-          title="浅色外观"
-          className="mt-auto flex size-[38px] items-center justify-center text-stone-500"
-        >
-          <Sun className="size-5" />
-        </span>
+        <div className="mt-auto flex flex-col items-center gap-1">
+          <span title="外观可在设置中调整" className="flex size-[38px] items-center justify-center text-stone-500"><Sun className="size-5" /></span>
+          <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" aria-label="设置" className="size-[38px] rounded-[10px] text-stone-500 hover:!bg-[#f0efed] hover:!text-stone-500" onClick={() => { sessionStorage.setItem("vessel-settings-from", location.hash.slice(1) || "/"); void router.push("/settings") }}><Settings className="!size-5" /></Button></TooltipTrigger><TooltipContent side="right">设置</TooltipContent></Tooltip>
+        </div>
       </nav>
     </TooltipProvider>
   )

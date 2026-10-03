@@ -1,0 +1,9 @@
+html[data-vessel-appearance] .text-green-600, html[data-vessel-appearance] .text-green-700 { color: var(--settings-accent); }
+html[data-vessel-appearance] .bg-green-600, html[data-vessel-appearance] .bg-green-700 { background-color: var(--settings-accent); }
+html[data-vessel-appearance] .vessel-settings .\!bg-green-600 { background-color: var(--settings-accent) !important; }
+html.dark .bg-white { background-color: hsl(var(--card)); }
+html.dark .bg-stone-50, html.dark .bg-stone-100 { background-color: hsl(var(--muted)); }
+html.dark .text-stone-800, html.dark .text-stone-700 { color: hsl(var(--foreground)); }
+html.dark .border-stone-200 { border-color: hsl(var(--border)); }
+html.dark .browser-toolbar, html.dark .browser-bookmarks, html.dark .browser-tab.selected { background: hsl(var(--card)); border-color: hsl(var(--border)); }
+html.dark .browser-tabs, html.dark .browser-address, html.dark .browser-status { background: hsl(var(--muted)); color: hsl(var(--foreground)); border-color: hsl(var(--border)); }

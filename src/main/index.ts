@@ -1,3 +1,4 @@
+import { registerSettings } from "./settings"
 import { registerTransit } from "./transit"
 import { registerOffice } from "./office"
 import { registerFileWatch } from "./file-watch"
@@ -36,6 +37,7 @@ function createWindow(): void {
     mainWindow.on("focus", () => mainWindow.setOverlayIcon(null, ""))
   }
   secureBrowserGuests(mainWindow.webContents)
+  registerSettings(mainWindow.webContents)
   registerOffice(mainWindow.webContents)
   registerTransit(mainWindow.webContents)
   registerTerminal(mainWindow.webContents)

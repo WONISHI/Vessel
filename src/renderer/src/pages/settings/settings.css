@@ -1,0 +1,11 @@
+.vessel-settings h2 { font-size: 16px; font-weight: 700; }
+.vessel-settings h3 { font-size: 13px; font-weight: 600; }
+.settings-description { margin: 5px 0 18px; font-size: 12px; color: hsl(var(--muted-foreground)); }
+.settings-card { margin-bottom: 16px; border: 1px solid hsl(var(--border)); border-radius: 14px; background: hsl(var(--card)); overflow: hidden; }
+.settings-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 18px 20px; border-bottom: 1px solid hsl(var(--border)); }
+.settings-row:last-child { border-bottom: 0; }
+.settings-row p { margin-top: 4px; font-size: 12px; color: hsl(var(--muted-foreground)); }
+.vessel-settings input:not([type=file]):not([type=range]), .vessel-settings select { width: 200px; border: 1px solid hsl(var(--border)); border-radius: 7px; background: hsl(var(--background)); color: hsl(var(--foreground)); padding: 8px 10px; font-size: 12px; outline-color: var(--settings-accent, #16a34a); }
+.vessel-settings input[type=range] { width: 130px; accent-color: var(--settings-accent, #16a34a); }
+.vessel-settings button:focus-visible { outline: 2px solid var(--settings-accent, #16a34a); outline-offset: 2px; }
+@media(max-width:700px) { .settings-row { align-items: stretch; flex-direction: column; } .vessel-settings input:not([type=file]):not([type=range]),.vessel-settings select { width:100%; } }
