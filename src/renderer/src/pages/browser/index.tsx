@@ -11,7 +11,7 @@ import { elementPickerScript } from "./element-picker"
 import { webviewAttributes } from "./webview-attributes"
 import { useEffect, useRef, useState } from "react"
 import type { WebviewTag } from "electron"
-import { ChevronUp, ChevronDown, ArrowLeft, ArrowRight, RotateCw, Home, Globe, Plus, X, Search, LockKeyhole, Bookmark, Bug, SquareDashedMousePointer, Pin } from "lucide-react"
+import { ChevronUp, ChevronDown, ChevronRight, ArrowLeft, ArrowRight, RotateCw, Home, Globe, Plus, X, Search, LockKeyhole, Bookmark, Bug, SquareDashedMousePointer, Pin } from "lucide-react"
 import { useRouter } from "@vessel/react-router"
 import Layout from "@/layout"
 import ActivityBar from "@/layout/activity-bar"
@@ -80,6 +80,8 @@ function Guest({ tab, visible, register, update }: { tab: Tab; visible: boolean;
 }
 export default function BrowserPage({ visible = true }: { visible?: boolean }) {
   const router = useRouter()
+  const [deviceViewport, setDeviceViewport] = useState({ width: 390, height: 844, scale: 1 })
+  const [toolbarCollapsed, setToolbarCollapsed] = useState(false)
   const [deviceMode, setDeviceMode] = useState(false)
   const [tabs, setTabs] = useState<Tab[]>(() => [newTab()])
   const [findOpen, setFindOpen] = useState(false)
@@ -111,7 +113,7 @@ export default function BrowserPage({ visible = true }: { visible?: boolean }) {
   })
   const views = useRef(new Map<string, WebviewTag>())
   const tab = tabs.find((item) => item.id === active) || tabs[0]
-  useEffect(() => { publishBrowserTabs(tabs.map(item => ({ id: item.id, title: item.title, active: item.id === tab.id }))) }, [tabs, tab.id])
+  useEffect(() => { publishBrowserTabs(tabs.filter(item => Boolean(item.url)).map(item => ({ id: item.id, title: item.title, url: item.url, favicon: item.favicon, active: item.id === tab.id }))) }, [tabs, tab.id])
   useEffect(() => {
     const select = (event: Event) => { setActive((event as CustomEvent<string>).detail); setInput(null) }
     window.addEventListener("vessel-browser-tab", select)
@@ -210,6 +212,11 @@ export default function BrowserPage({ visible = true }: { visible?: boolean }) {
       setInput(null)
     }
   }
+  useEffect(() => {
+    const action = (event: Event) => { const detail = (event as CustomEvent<{ action: string; id: string }>).detail; if (detail.action === "new") add(); else if (detail.action === "close") close(detail.id) }
+    window.addEventListener("vessel-browser-tab-action", action)
+    return () => window.removeEventListener("vessel-browser-tab-action", action)
+  })
   const zoom = (delta: number) => {
     const value = Math.max(0.5, Math.min(2, tab.zoom + delta))
     withGuest(views.current.get(tab.id), guest => guest.setZoomFactor(value))
@@ -257,7 +264,7 @@ export default function BrowserPage({ visible = true }: { visible?: boolean }) {
               </button>
             </div>
           ))}
-          <TabSwitcher tabs={tabs.map(item => ({ ...item, active: item.id === tab.id }))} onSelect={id => { setActive(id); setInput(null) }}><Button
+          <TabSwitcher tabs={tabs.filter(item => Boolean(item.url)).map(item => ({ ...item, active: item.id === tab.id }))} onSelect={id => { setActive(id); setInput(null) }}><Button
             variant="ghost"
             size="icon"
             title="新标签页"
@@ -266,6 +273,9 @@ export default function BrowserPage({ visible = true }: { visible?: boolean }) {
             <Plus />
           </Button></TabSwitcher>
         </div>
+        <div className="relative shrink-0">
+
+        <div hidden={toolbarCollapsed}>
         <div className="browser-toolbar">
           <Button
             variant="ghost"
@@ -355,7 +365,7 @@ export default function BrowserPage({ visible = true }: { visible?: boolean }) {
             <Bug />
           </Button>
           <BrowserExtensions onOpenDevtools={() => setDevtoolsOpen(true)} />
-          <BrowserMore zoomFactor={tab.zoom} zoom={zoom} onFind={() => setFindOpen(true)} onNavigate={navigate} guest={() => views.current.get(tab.id)} deviceMode={deviceMode} onDevice={() => { setDeviceMode(value => !value); if (!deviceMode) setDevtoolsOpen(true) }} />
+          <BrowserMore zoomFactor={tab.zoom} zoom={zoom} onFind={() => setFindOpen(true)} onNavigate={navigate} guest={() => views.current.get(tab.id)} deviceMode={deviceMode} onDevice={() => { setDeviceMode(value => !value) }} />
         </div>
         <div className="browser-bookmarks">
           {bookmarks.map((item) => (
@@ -369,7 +379,8 @@ export default function BrowserPage({ visible = true }: { visible?: boolean }) {
             </button>
           ))}
         </div>
-        {deviceMode && <DeviceToolbar guest={() => views.current.get(tab.id)} tabId={tab.id} onClose={() => setDeviceMode(false)} />}
+        </div></div>
+        {deviceMode && <DeviceToolbar onViewport={setDeviceViewport} guest={() => views.current.get(tab.id)} tabId={tab.id} onClose={() => setDeviceMode(false)} />}
         <div className={`browser-content dock-${dock}`}>
         <div className="relative min-h-0 min-w-0 flex-1 bg-white">
           {findOpen && <form className="browser-find" aria-label="网页查找" onSubmit={event => { event.preventDefault(); searchPage(true, true) }}>
@@ -387,6 +398,10 @@ export default function BrowserPage({ visible = true }: { visible?: boolean }) {
             <div className="browser-loading-bar" />
             <div className="browser-loading-card"><img src={browserLoading} alt="" /><div>正在加载页面<span className="browser-loading-dots"><span>.</span><span>.</span><span>.</span></span></div><small title={tab.url}>{tab.url}</small></div>
           </div>}
+          <div className={deviceMode && tab.url ? "device-preview-surface absolute inset-0 overflow-auto p-7" : "absolute inset-0"}>
+          <div style={deviceMode && tab.url ? { width: deviceViewport.width + 2, height: deviceViewport.height + 2, margin: "0 auto" } : { width: "100%", height: "100%" }}>
+          <div aria-label={deviceMode ? "设备预览边框" : undefined} style={deviceMode && tab.url ? { width: deviceViewport.width, height: deviceViewport.height, boxSizing: "content-box", border: "1px solid #d6d3d1", borderRadius: 4, boxShadow: "0 8px 32px #0000001a, 0 2px 8px #0000000a", background: "white", overflow: "hidden" } : { width: "100%", height: "100%" }}>
+          <div aria-label={deviceMode ? "设备预览内容" : undefined} style={deviceMode && tab.url ? { width: deviceViewport.width, height: deviceViewport.height, transform: `scale(${deviceViewport.scale})`, transformOrigin: "top left" } : { width: "100%", height: "100%" }}>
           {tabs
             .filter((item) => item.url)
             .map((item) => (
@@ -401,6 +416,7 @@ export default function BrowserPage({ visible = true }: { visible?: boolean }) {
                 update={update}
               />
             ))}
+          </div></div></div></div>
           {!tab.url && (
             <div className="browser-home">
               <div className="browser-logo">
@@ -472,6 +488,7 @@ export default function BrowserPage({ visible = true }: { visible?: boolean }) {
         </section>}
         </div>
       <footer className="browser-status">
+        <button aria-label={toolbarCollapsed ? "展开浏览器工具栏" : "折叠浏览器工具栏"} aria-expanded={!toolbarCollapsed} onClick={() => setToolbarCollapsed(value => !value)} className="flex size-5 shrink-0 items-center justify-center text-stone-400 hover:text-stone-700">{toolbarCollapsed ? <ChevronUp size={13} /> : <ChevronRight size={13} />}</button>
           <span>{tab.loading ? "正在加载…" : tab.url || "就绪"}</span>
           <span className="ml-auto shrink-0"><Clock ticking interval={1000} format="YYYY年MM月DD日 HH:mm" /></span>
           <span>{Math.round(tab.zoom * 100)}%</span>

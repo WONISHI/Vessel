@@ -65,9 +65,20 @@ export function registerBrowserDevtools(host: WebContents) {
     const x = Math.max(0, Math.round(bounds.x)), y = Math.max(0, Math.round(bounds.y))
     panel.setBounds({ x, y, width: Math.max(0, Math.min(Math.round(bounds.width), size.width - x)), height: Math.max(0, Math.min(Math.round(bounds.height), size.height - y)) })
   })
+  let catalog: WebContentsView | undefined
+  let catalogReady: Promise<void> | undefined
+  host.once("destroyed", () => { if (catalog && !catalog.webContents.isDestroyed()) catalog.webContents.close() })
   host.ipc.handle("browser:devices", async () => {
-    if (!panel || panel.webContents.isDestroyed()) throw new Error("请先打开网页控制台，再读取设备列表")
-    return panel.webContents.executeJavaScript(`(async () => {
+    let target = panel?.webContents
+    if (!target || target.isDestroyed()) {
+      if (!catalog || catalog.webContents.isDestroyed()) {
+        catalog = new WebContentsView({ webPreferences: { partition: "persist:vessel-browser", sandbox: true, contextIsolation: true, nodeIntegration: false } })
+        catalogReady = catalog.webContents.loadURL("devtools://devtools/bundled/inspector.html")
+      }
+      await catalogReady
+      target = catalog.webContents
+    }
+    return target.executeJavaScript(`(async () => {
       let module;
       try { module = await import('./models/emulation/emulation.js') } catch { module = await import('./panels/emulation/emulation.js') }
       const list = module.EmulatedDevices.EmulatedDevicesList.instance();

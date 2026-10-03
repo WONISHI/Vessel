@@ -1,5 +1,6 @@
+import type { BrowserDevice } from "../../../../shared/browser-tools"
 import { useSyncExternalStore } from "react"
-export interface TransitItem { id: string; kind: "url" | "text" | "file"; root?: string; title: string; content: string }
+export interface TransitItem { id: string; kind: "url" | "text" | "file"; root?: string; preview?: { device: BrowserDevice; scale: number }; title: string; content: string }
 const key = "vessel-transit-v1"
 let items: TransitItem[] = []
 try {
@@ -13,15 +14,15 @@ export function useTransit() { return useSyncExternalStore(fn => { listeners.add
 export function selectTransit(id: string | null) { update({ ...state, selected: id }) }
 function save(next: TransitItem[]) { localStorage.setItem(key, JSON.stringify(next)); update({ items: next, selected: next.some(i => i.id === state.selected) ? state.selected : null }) }
 export function deleteTransit(id: string) { save(state.items.filter(i => i.id !== id)) }
-export function addTransit(raw: string, title?: string) {
+export function addTransit(raw: string, title?: string, preview?: TransitItem["preview"]) {
   const content = raw.trim()
   if (!content) throw new Error("剪贴板中没有文字或链接")
   if (content.length > 1_000_000) throw new Error("剪贴板内容过大，请缩短后重试")
-  const existing = state.items.find(i => i.content === content)
+  const existing = state.items.find(i => i.content === content && JSON.stringify(i.preview) === JSON.stringify(preview))
   if (existing) { selectTransit(existing.id); return }
   let url: URL | undefined
   try { const parsed = new URL(content); if (["https:", "http:"].includes(parsed.protocol)) url = parsed } catch { /* Plain text. */ }
-  const item: TransitItem = { id: crypto.randomUUID(), kind: url ? "url" : "text", title: title || (url ? url.hostname : content.split(/\r?\n/)[0].slice(0, 80)), content }
+  const item: TransitItem = { id: crypto.randomUUID(), kind: url ? "url" : "text", preview, title: title || (url ? url.hostname : content.split(/\r?\n/)[0].slice(0, 80)), content }
   save([...state.items, item]); selectTransit(item.id)
 }
 

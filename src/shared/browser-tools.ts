@@ -1,4 +1,4 @@
-export type HistoryEntry = { id: number; url: string; title: string; visitedAt: number }
+export type HistoryEntry = { id: number; url: string; title: string; visitedAt: number; favicon?: string | null }
 export type BrowserDevice = { title: string; width: number; height: number; deviceScaleFactor: number; mobile: boolean; userAgent: string }
 export interface BrowserToolsAPI {
   listBrowserHistory(): Promise<HistoryEntry[]>

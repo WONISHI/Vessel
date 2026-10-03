@@ -21,11 +21,6 @@ export function secureBrowserGuests(contents: WebContents) {
     preferences.allowRunningInsecureContent = false
   })
   contents.on("did-attach-webview", (_event, guest) => {
-    let documentURL = guest.getURL()
-    guest.on("did-navigate", (_event, url) => { documentURL = url })
-    guest.on("did-fail-load", (_event, _code, _description, url, mainFrame) => {
-      if (mainFrame && allowed(url)) documentURL = url
-    })
     guest.on("before-input-event", (event, input) => {
       if (input.type === "keyDown" && (input.control || input.meta) && input.key.toLowerCase() === "f") {
         event.preventDefault()
@@ -34,7 +29,7 @@ export function secureBrowserGuests(contents: WebContents) {
     })
     guest.on("will-navigate", (event, url) => {
       if (!allowed(url)) event.preventDefault()
-      else if (guest.session !== session.fromPartition("persist:vessel-transit") && url !== guest.getURL() && url !== documentURL) { event.preventDefault(); contents.send("browser:new-tab", url) }
+      // Keep document and script redirects in their existing tab; only popups create tabs.
     })
     guest.on("will-redirect", (event, url) => {
       if (!allowed(url)) event.preventDefault()

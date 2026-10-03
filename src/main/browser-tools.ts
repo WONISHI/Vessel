@@ -14,9 +14,9 @@ function store() {
 }
 export function registerBrowserTools(host: WebContents) {
   store().prune()
-  const guest = (id: number) => {
+  const guest = (id: number, allowTransit = false) => {
     const target = webContents.fromId(id)
-    if (!target || target.hostWebContents !== host || target.session !== session.fromPartition("persist:vessel-browser")) throw new Error("浏览器页面无效")
+    if (!target || target.hostWebContents !== host || (target.session !== session.fromPartition("persist:vessel-browser") && !(allowTransit && target.session === session.fromPartition("persist:vessel-transit")))) throw new Error("浏览器页面无效")
     return target
   }
   host.ipc.handle("browser:history:list", () => store().list())
@@ -24,7 +24,7 @@ export function registerBrowserTools(host: WebContents) {
   host.ipc.handle("browser:print", (_event, id: number) => new Promise<void>((resolve, reject) => guest(id).print({ silent: false, printBackground: true }, (success, reason) => { if (success || /cancel/i.test(reason)) resolve(); else reject(new Error(reason)) })))
   const agents = new Map<number, string>()
   host.ipc.handle("browser:emulate", (_event, id: number, device: BrowserDevice | null) => {
-    const target = guest(id)
+    const target = guest(id, true)
     if (!device) { target.disableDeviceEmulation(); if (agents.has(id)) target.setUserAgent(agents.get(id)!); agents.delete(id); return }
     if (![device.width, device.height, device.deviceScaleFactor].every(Number.isFinite) || device.width < 100 || device.height < 100 || device.width > 10000 || device.height > 10000 || device.deviceScaleFactor < 0.1 || device.deviceScaleFactor > 10 || typeof device.userAgent !== "string" || device.userAgent.length > 2000) throw new Error("设备参数无效")
     if (!agents.has(id)) agents.set(id, target.getUserAgent())
@@ -38,6 +38,7 @@ export function registerBrowserTools(host: WebContents) {
     view.on("did-navigate", record)
     view.on("did-navigate-in-page", (event, url, main) => { if (main) record(event, url) })
     view.on("page-title-updated", (_event, title) => { if (visit) store().title(visit, title) })
+    view.on("page-favicon-updated", (_event, urls) => { if (visit && urls[0]) store().favicon(visit, urls[0]) })
     view.once("destroyed", () => agents.delete(view.id))
   })
 }

@@ -16,6 +16,9 @@ app.whenReady().then(async () => {
   host.webContents.ipc.handle = (name, handler) => { handlers[name] = handler }
   require('../src/main/browser-tools.ts').registerBrowserTools(host.webContents)
   require('../src/main/browser-devtools.ts').registerBrowserDevtools(host.webContents)
+  const independentDevices = await handlers['browser:devices']()
+  assert(independentDevices.length > 10, 'reads devices without opening console')
+  console.log('PASS: device catalog available with console closed')
   const attached = new Promise(resolve => host.webContents.once('did-attach-webview', (_event, guest) => resolve(guest)))
   await host.loadURL('data:text/html,' + encodeURIComponent(`<webview partition="persist:vessel-browser" src="http://127.0.0.1:${server.address().port}" style="width:1000px;height:600px"></webview>`))
   const guest = await attached

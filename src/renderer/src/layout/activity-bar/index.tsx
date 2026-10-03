@@ -1,5 +1,5 @@
 import { TabSwitcher } from "@/components/tab-switcher"
-import { useBrowserTabs, selectBrowserTab } from "@/pages/browser/tab-state"
+import { useBrowserTabs, selectBrowserTab, browserTabAction } from "@/pages/browser/tab-state"
 import { TransitButton } from "@/components/transit/button"
 import { useRouter } from "@vessel/react-router"
 import { Fragment, useEffect } from "react"
@@ -55,7 +55,7 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
         {ACTIVITY_ITEMS.map(({ id, label, icon: Icon }) => (
           <Fragment key={id}>
           {id === "tools" && <TransitButton />}
-          {id === "browser" ? <TabSwitcher tabs={browserTabs} side="right" onSelect={tab => { selectBrowserTab(tab); onActivityChange("browser"); void router.push("/browser") }}><Button variant="ghost" size="icon" aria-label="浏览器" onClick={() => { onActivityChange("browser"); void router.push("/browser") }} className={cn("size-[38px] rounded-[10px] text-stone-500 hover:!bg-[#f0efed]", activity === id && "!bg-emerald-50 !text-green-700")}><Icon className="!size-5" /></Button></TabSwitcher> : <Tooltip>
+          {id === "browser" ? <TabSwitcher preview onNew={() => { browserTabAction("new"); void router.push("/browser") }} onClose={id => browserTabAction("close", id)} tabs={browserTabs} side="right" onSelect={tab => { selectBrowserTab(tab); onActivityChange("browser"); void router.push("/browser") }}><Button variant="ghost" size="icon" aria-label="浏览器" onClick={() => { onActivityChange("browser"); void router.push("/browser") }} className={cn("relative size-[38px] rounded-[10px] text-stone-500 hover:!bg-[#f0efed]", activity === id && "!bg-emerald-50 !text-green-700")}><Icon className="!size-5" />{browserTabs.length > 0 && <span className="absolute -right-0.5 -top-0.5 min-w-4 rounded-full bg-emerald-700 px-1 text-[9px] leading-4 text-white">{browserTabs.length}</span>}</Button></TabSwitcher> : <Tooltip>
             <TooltipTrigger asChild>
               <Button
                 variant="ghost"
