@@ -1,3 +1,5 @@
+import { TabSwitcher } from "@/components/tab-switcher"
+import { useBrowserTabs, selectBrowserTab } from "@/pages/browser/tab-state"
 import { TransitButton } from "@/components/transit/button"
 import { useRouter } from "@vessel/react-router"
 import { Fragment, useEffect } from "react"
@@ -13,6 +15,7 @@ import { ACTIVITY_ITEMS } from "@/layout/activity-bar/constants"
 
 /** 左侧窄活动栏：应用入口、活动切换和外观标识。 */
 export default function LayoutActivityBar({ activity, onActivityChange, onResourceEnter, onResourceLeave }: LayoutActivityBarProps) {
+  const browserTabs = useBrowserTabs()
   const router = useRouter()
   const library = useLibraryMeta()
   useEffect(() => {
@@ -52,7 +55,7 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
         {ACTIVITY_ITEMS.map(({ id, label, icon: Icon }) => (
           <Fragment key={id}>
           {id === "tools" && <TransitButton />}
-          <Tooltip>
+          {id === "browser" ? <TabSwitcher tabs={browserTabs} side="right" onSelect={tab => { selectBrowserTab(tab); onActivityChange("browser"); void router.push("/browser") }}><Button variant="ghost" size="icon" aria-label="浏览器" onClick={() => { onActivityChange("browser"); void router.push("/browser") }} className={cn("size-[38px] rounded-[10px] text-stone-500 hover:!bg-[#f0efed]", activity === id && "!bg-emerald-50 !text-green-700")}><Icon className="!size-5" /></Button></TabSwitcher> : <Tooltip>
             <TooltipTrigger asChild>
               <Button
                 variant="ghost"
@@ -75,7 +78,7 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
             >
               {label}
             </TooltipContent>
-          </Tooltip>
+          </Tooltip>}
           </Fragment>
         ))}
         <div className="mt-auto flex flex-col items-center gap-1">

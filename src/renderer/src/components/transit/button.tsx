@@ -13,7 +13,7 @@ export function TransitButton() {
   useEffect(() => () => clearTimeout(timer.current), [])
   return <Popover open={open} onOpenChange={setOpen}>
     <PopoverTrigger asChild><Button variant="ghost" size="icon" aria-label={`中转站，${items.length} 个`} onMouseEnter={enter} onMouseLeave={leave} className={`relative size-[38px] rounded-[10px] hover:!bg-[#f0efed] hover:!text-stone-500 ${selected ? "!bg-emerald-50 !text-green-700" : "text-stone-500"}`}><Pin className="!size-5" />{items.length > 0 && <span className="absolute -right-0.5 -top-0.5 min-w-4 rounded-full bg-emerald-700 px-1 text-[9px] leading-4 !text-white">{items.length}</span>}</Button></PopoverTrigger>
-    <PopoverContent side="right" sideOffset={10} onOpenAutoFocus={e => e.preventDefault()} onMouseEnter={enter} onMouseLeave={leave} className="z-[60] w-[280px] overflow-hidden rounded-xl border-stone-200 bg-white p-0 text-stone-800 shadow-xl">
+    <PopoverContent side="right" sideOffset={10} onOpenAutoFocus={e => e.preventDefault()} onCloseAutoFocus={e => e.preventDefault()} onMouseEnter={enter} onMouseLeave={leave} className="z-[60] w-[280px] overflow-hidden rounded-xl border-stone-200 bg-white p-0 text-stone-800 shadow-xl">
       <div className="flex items-center gap-2 border-b px-3 py-2.5 text-sm font-semibold"><Pin className="size-4 text-green-600" />中转站<span className="ml-auto rounded-full bg-stone-100 px-2 text-xs font-normal text-stone-400">{items.length} 个</span></div>
       <div className="max-h-[280px] overflow-auto p-1">
         {!items.length && <p className="px-3 py-6 text-center text-xs text-stone-400">暂无内容，读取剪贴板添加链接或文字</p>}

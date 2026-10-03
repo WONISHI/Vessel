@@ -229,4 +229,4 @@
 .browser-toolbar > .browser-extension-button img { width: 16px; height: 16px; }
 .browser-toolbar > .browser-extension-button:hover:not(:focus-visible) { outline: none; box-shadow: none; }
 
-.browser-toolbar > .browser-extension-button:hover { background: #347f72 !important; color: white !important; }
+.browser-toolbar > .browser-extension-button:hover { background: #166534 !important; color: white !important; }

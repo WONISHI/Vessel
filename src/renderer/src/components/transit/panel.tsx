@@ -1,3 +1,4 @@
+import Clock from "react-live-clock"
 import { ResizeEdge } from "@/components/ui/resize-edge"
 import { FilePreview } from "./file-preview"
 import { useEffect, useRef, useState } from "react"
@@ -32,15 +33,23 @@ export function TransitPanel() {
   const { items, selected } = useTransit()
   const item = items.find(i => i.id === selected)
   const [width, setWidth] = useState(() => Math.max(320, Math.min(900, Number(localStorage.getItem("vessel-transit-width")) || 480)))
-  const [left, setLeft] = useState(false)
+  const [dock, setDock] = useState<"left" | "right" | "floating">("right")
+  const left = dock === "left"
   const [full, setFull] = useState(false)
-  return <Sheet modal={false} open={!!item} onOpenChange={open => { if (!open) selectTransit(null) }}><SheetContent showOverlay={false} showCloseButton={false} style={full ? undefined : { width: `min(${width}px, calc(100vw - 52px))` }} side={left ? "left" : "right"} onInteractOutside={e => e.preventDefault()} onOpenAutoFocus={e => e.preventDefault()} className={`flex flex-col gap-0 bg-white p-0 ${full ? "!w-[calc(100vw-52px)] !max-w-none !left-[52px]" : "!max-w-none"} ${left ? "!left-[52px]" : ""}`}>
+  return <Sheet modal={false} open={!!item} onOpenChange={open => { if (!open) selectTransit(null) }}><SheetContent showOverlay={false} showCloseButton={false} style={full ? undefined : { width: `min(${width}px, calc(100vw - 52px))`, ...(dock === "floating" ? { left: "50%", right: "auto", top: "10vh", bottom: "auto", height: "80vh", transform: "translateX(-50%)" } : {}) }} side={left ? "left" : "right"} onInteractOutside={e => e.preventDefault()} onOpenAutoFocus={e => e.preventDefault()} className={`flex flex-col gap-0 bg-white p-0 ${dock === "floating" && !full ? "rounded-xl border" : ""} ${full ? "!w-[calc(100vw-52px)] !max-w-none !left-[52px]" : "!max-w-none"} ${left ? "!left-[52px]" : ""}`}>
     {!full && <ResizeEdge width={width} min={320} max={Math.min(900, window.innerWidth - 52)} side={left ? "right" : "left"} label="调整中转站宽度" onChange={value => { setWidth(value); localStorage.setItem("vessel-transit-width", String(value)) }} />}
     {item && <><header className="flex items-center gap-2 border-b p-3"><span className="rounded-lg bg-emerald-50 p-2 text-green-600">{item.kind === "url" ? <Globe className="size-4" /> : <FileText className="size-4" />}</span><div className="min-w-0 flex-1"><SheetTitle className="truncate text-sm">{item.title}</SheetTitle><SheetDescription className="truncate text-[11px] text-stone-400">{item.kind === "text" ? "剪贴板文本" : item.content}</SheetDescription></div>
       <button title={full ? "还原" : "展开"} aria-label={full ? "还原" : "展开"} onClick={() => setFull(!full)} className="rounded p-1.5 text-stone-500 hover:bg-stone-100">{full ? <Minimize className="size-4" /> : <Maximize className="size-4" />}</button>
       <button title="独立窗口" aria-label="独立窗口" onClick={() => void window.electronAPI.openTransitWindow(item).catch(error => toast.error(String(error)))} className="rounded p-1.5 text-stone-500 hover:bg-stone-100"><ExternalLink className="size-4" /></button>
-      <button title={left ? "停靠右侧" : "停靠左侧"} aria-label={left ? "停靠右侧" : "停靠左侧"} onClick={() => setLeft(!left)} className="rounded bg-emerald-50 p-1.5 text-green-600"><PanelRight className="size-4" /></button>
+      <div className="group relative self-center">
+        <button aria-label="中转站停靠方式" className="flex items-center rounded bg-emerald-50 p-1.5 text-green-600"><PanelRight className="size-4" /></button>
+        <div className="absolute right-0 top-full z-[70] hidden w-36 pt-2 group-hover:block group-focus-within:block">
+          <div className="rounded-lg border bg-white p-1 shadow-lg">
+            {([["left", "左侧边停靠"], ["right", "右侧边停靠"], ["floating", "悬浮停靠"]] as const).map(([value, label]) => <button key={value} aria-pressed={dock === value} onClick={() => { setDock(value); setFull(false) }} className={`block w-full rounded px-3 py-2 text-left text-xs hover:bg-emerald-50 ${dock === value ? "text-green-600" : "text-stone-600"}`}>{label}</button>)}
+          </div>
+        </div>
+      </div>
       <button aria-label="关闭中转站" title="关闭" onClick={() => selectTransit(null)} className="rounded p-1.5 text-stone-500 hover:bg-stone-100"><X className="size-4" /></button>
-    </header>{item.kind === "file" ? <FilePreview key={item.id} item={item} /> : item.kind === "url" ? <WebPreview key={item.id} item={item} /> : <pre className="min-h-0 flex-1 overflow-auto whitespace-pre-wrap break-words p-5 font-sans text-sm leading-7 text-stone-700">{item.content}</pre>}<footer className="border-t bg-stone-50 px-3 py-2 text-[11px] text-stone-400"><span className="mr-2 inline-block size-1.5 rounded-full bg-green-600" />已保存 · 中转站</footer></>}
+    </header>{item.kind === "file" ? <FilePreview key={item.id} item={item} /> : item.kind === "url" ? <WebPreview key={item.id} item={item} /> : <pre className="min-h-0 flex-1 overflow-auto whitespace-pre-wrap break-words p-5 font-sans text-sm leading-7 text-stone-700">{item.content}</pre>}<footer className="border-t bg-stone-50 px-3 py-2 text-right text-[11px] text-stone-400"><Clock format="YYYY年MM月DD日 HH:mm" ticking interval={1000} /></footer></>}
   </SheetContent></Sheet>
 }

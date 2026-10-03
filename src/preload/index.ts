@@ -14,6 +14,11 @@ import { filesAPI } from "./apis/files.api"
 const api = {}
 
 const vesselAPI = {
+  listBrowserHistory: () => ipcRenderer.invoke("browser:history:list"),
+  deleteBrowserHistory: (id: number | null) => ipcRenderer.invoke("browser:history:delete", id),
+  printBrowserPage: (id: number) => ipcRenderer.invoke("browser:print", id),
+  listBrowserDevices: () => ipcRenderer.invoke("browser:devices"),
+  emulateBrowserDevice: (id: number, device: import("../shared/browser-tools").BrowserDevice | null) => ipcRenderer.invoke("browser:emulate", id, device),
   getSettings: (): Promise<AppSettings> => ipcRenderer.invoke("settings:get"),
   saveSettings: (settings: AppSettings, secret?: string): Promise<AppSettings> => ipcRenderer.invoke("settings:save", settings, secret),
   getSettingsInfo: (): Promise<{ version: string; electron: string; node: string }> => ipcRenderer.invoke("settings:info"),

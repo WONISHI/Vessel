@@ -1,7 +1,6 @@
 import { useState } from "react"
 import { FilePlus2, FolderPlus, FileCode2, FileText } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
 import { useWorkspace } from "@/pages/workspace/hooks/useWorkspace"
@@ -93,10 +92,11 @@ export function InlineEntryEditor({ draft, onFinish }: { draft: EntryDraft; onFi
         }
       }}
     >
-      <Input
+      <div className="flex min-w-0 flex-1 items-center rounded-md border border-green-600 bg-transparent px-1.5 shadow-[0_0_0_3px_rgba(22,163,74,0.1)]"><input
+        placeholder="未命名"
         autoFocus
         aria-label={draft.kind === "file" ? "新文件名称" : "新文件夹名称"}
-        className="!h-6 min-w-0 rounded-sm border-stone-300 px-1 text-[11px] shadow-none focus-visible:ring-1 focus-visible:ring-green-600"
+        className="h-6 min-w-0 flex-1 !rounded-none !border-0 !bg-transparent p-0 text-xs !shadow-none !outline-none !ring-0"
         onBlur={() => {
           if (!busy) onFinish(false)
         }}
@@ -106,10 +106,10 @@ export function InlineEntryEditor({ draft, onFinish }: { draft: EntryDraft; onFi
         onKeyDown={(event) => {
           if (event.key === "Escape" && !busy) onFinish(false)
         }}
-        title={error || "Enter 创建，Escape 取消"}
+        title={error || undefined}
         aria-invalid={!!error}
       />
-      {draft.kind === "file" && <span className="text-xs text-stone-400">.{draft.extension}</span>}
+      {draft.kind === "file" && <span className="text-xs text-stone-400">.{draft.extension}</span>}</div>
       {error && (
         <span
           role="alert"

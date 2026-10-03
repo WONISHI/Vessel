@@ -1,6 +1,6 @@
 import { useLibraryMeta, updateLibraryMeta, readLibraryMeta } from "@/pages/resources/library-state"
 import { useEffect, useRef, useState } from "react"
-import { FolderOpen, Pin, PinOff, Plus, X, RefreshCw } from "lucide-react"
+import { FolderOpen, HardDriveUpload, HardDrive, Plus, X, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useWorkspace } from "../../hooks/useWorkspace"
@@ -87,7 +87,7 @@ function ProjectLibraryContent({ pinned, onPin, onSelect }: { pinned: boolean; o
         </div>)}
       </div>
       <Button variant="ghost" size="icon" className="size-6 hover:bg-emerald-700 hover:!text-white active:bg-emerald-700 active:!text-white" aria-label="添加项目或附件目录" disabled={!ready} onClick={() => void add()}><Plus className="!size-3.5" /></Button>
-      <Button variant="ghost" size="icon" className={`size-6 hover:bg-emerald-700 hover:!text-white active:bg-emerald-700 active:!text-white ${pinned ? "bg-emerald-700 !text-white" : ""}`} aria-label={pinned ? "取消固定资源库" : "固定资源库"} onClick={onPin}>{pinned ? <PinOff className="!size-3.5" /> : <Pin className="!size-3.5" />}</Button>
+      <Button variant="ghost" size="icon" className={`size-6 hover:bg-emerald-700 hover:!text-white active:bg-emerald-700 active:!text-white ${pinned ? "bg-emerald-700 !text-white" : ""}`} aria-label={pinned ? "取消固定资源库" : "固定资源库"} onClick={onPin}>{pinned ? <HardDrive className="!size-3.5" /> : <HardDriveUpload className="!size-3.5" />}</Button>
     </header>
     <div className="flex items-center gap-2 border-b p-3">
       <FolderOpen className="size-5 shrink-0 text-green-600" />

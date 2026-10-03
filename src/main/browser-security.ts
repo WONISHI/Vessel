@@ -1,3 +1,4 @@
+import { registerBrowserTools } from "./browser-tools"
 import { registerBrowserExtensions } from "./browser-extensions"
 import { registerBrowserDevtools } from "./browser-devtools"
 import { session, type WebContents } from "electron"
@@ -5,6 +6,7 @@ const allowed = (url: string) => /^https?:\/\//i.test(url)
 export function secureBrowserGuests(contents: WebContents) {
   registerBrowserExtensions(contents)
   registerBrowserDevtools(contents)
+  registerBrowserTools(contents)
   contents.on("will-attach-webview", (event, preferences, params) => {
     if (!allowed(params.src) || !["persist:vessel-browser", "persist:vessel-transit"].includes(params.partition)) {
       event.preventDefault()

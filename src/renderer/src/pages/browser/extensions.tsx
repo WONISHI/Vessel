@@ -23,6 +23,13 @@ export function BrowserExtensions({ onOpenDevtools }: { onOpenDevtools?: () => v
     void window.electronAPI.listBrowserExtensions().then(items => { if (active) setItems(items) }, reason => { if (active) setError(String(reason)) })
     return () => { active = false }
   }, [])
+  useEffect(() => {
+    const close = () => { void window.electronAPI.closeBrowserExtension().catch(() => {}) }
+    const key = (event: KeyboardEvent) => { if (event.key === "Escape") close() }
+    document.addEventListener("pointerdown", close, true)
+    document.addEventListener("keydown", key)
+    return () => { document.removeEventListener("pointerdown", close, true); document.removeEventListener("keydown", key); close() }
+  }, [])
   const launch = async (item: BrowserExtension, mode: "open" | "options" | "inspect" = "open") => {
     setError("")
     try {

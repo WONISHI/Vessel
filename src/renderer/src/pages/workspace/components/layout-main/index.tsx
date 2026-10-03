@@ -1,3 +1,5 @@
+import { TabSwitcher } from "@/components/tab-switcher"
+import { List } from "lucide-react"
 import Clock from "react-live-clock"
 import { StatusTarget } from "./status-context"
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable-panels"
@@ -5,7 +7,7 @@ import { TerminalPanel } from "./terminal-panel"
 import { FileSearch } from "./file-search"
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
 import { useEffect, useRef, useState } from "react"
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from "@/components/ui/dropdown-menu"
 import { File, Home, X, MoreHorizontal, ChevronLeft, ChevronRight, SquareChevronRight, SquareChevronDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { RouterView } from "@vessel/react-router/components"
@@ -170,6 +172,7 @@ export default function LayoutMain() {
             contentHost={contentHost}
           />
         )}
+        <TabSwitcher tabs={openFiles.map(file => ({ id: file.path, title: file.name, active: file.path === activeFilePath }))} onSelect={id => { const file = openFiles.find(file => file.path === id); if (file) openWorkspaceFile(file) }}><Button variant="ghost" size="icon" aria-label="已打开的标签页" className="size-7"><List className="size-4" /></Button></TabSwitcher>
         <DropdownMenu>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -187,6 +190,8 @@ export default function LayoutMain() {
             <TooltipContent>标签页操作</TooltipContent>
           </Tooltip>
           <DropdownMenuContent align="end">
+            <DropdownMenuSub><DropdownMenuSubTrigger>标签页（{openFiles.length}）</DropdownMenuSubTrigger><DropdownMenuSubContent className="max-h-72 max-w-72 overflow-auto">{openFiles.map(file => <DropdownMenuItem key={file.path} className={file.path === activeFilePath ? "bg-emerald-50 text-green-700" : ""} onSelect={() => openWorkspaceFile(file)}><span className="truncate">{file.name}</span></DropdownMenuItem>)}</DropdownMenuSubContent></DropdownMenuSub>
+            <DropdownMenuSeparator />
             <DropdownMenuItem
               disabled={!activeFilePath}
               onSelect={() => closeWorkspaceFile(activeFilePath)}

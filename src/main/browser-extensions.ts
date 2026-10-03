@@ -2,7 +2,7 @@ import { registerBrowserSiteCompatibility } from "./browser-site-compatibility"
 import { loadExtensionPage, handleExtensionWindows } from "./extension-navigation"
 import { extensionMetadata, extensionFile } from "./extension-metadata"
 import { importExtensionArchive } from "./extension-archive"
-import { app, BrowserWindow, dialog, session, type WebContents } from "electron"
+import { app, BrowserWindow, WebContentsView, dialog, session, type WebContents } from "electron"
 import { readFile, writeFile, rename, realpath, rm } from "node:fs/promises"
 import { join, dirname, basename } from "node:path"
 import { randomUUID } from "node:crypto"
@@ -13,7 +13,7 @@ let initialized: Promise<void> | undefined
 let queue = Promise.resolve()
 const extensions = () => session.fromPartition("persist:vessel-browser").extensions
 const filename = () => join(app.getPath("userData"), "browser-extensions.json")
-const popups = new Map<string, BrowserWindow>()
+const popups = new Map<string, { close: () => void }>()
 const closePopup = (key: string) => { popups.get(key)?.close(); popups.delete(key) }
 const persist = async () => {
   await writeFile(filename() + ".tmp", JSON.stringify(records.map(({ icon: _icon, ...record }) => record), null, 2), "utf8")
@@ -39,8 +39,10 @@ function initialize() {
 export function registerBrowserExtensions(host: WebContents) {
   registerBrowserSiteCompatibility(session.fromPartition("persist:vessel-browser"))
   void initialize()
-  const owned = new Set<BrowserWindow>()
-  host.once("destroyed", () => { for (const popup of owned) if (!popup.isDestroyed()) popup.destroy() })
+  const owned = new Set<() => void>()
+  const closeOwned = () => { for (const close of [...owned]) close() }
+  host.once("destroyed", closeOwned)
+  host.ipc.handle("browser:extensions:close", closeOwned)
   host.ipc.handle("browser:extensions:open", async (_event, key: string, mode = "open") => {
     await initialize(); await queue
     if (!["open", "options", "inspect"].includes(mode)) throw new Error("扩展操作无效")
@@ -58,17 +60,35 @@ export function registerBrowserExtensions(host: WebContents) {
     const parent = BrowserWindow.fromWebContents(host)
     if (!parent) throw new Error("窗口已关闭")
     closePopup(key)
-    const bounds = parent.getBounds()
-    const popup = new BrowserWindow({ parent, width: 400, height: 560, x: bounds.x + Math.max(0, bounds.width - 420), y: bounds.y + 110, show: false, title: record.name, autoHideMenuBar: true,
-      webPreferences: { partition: "persist:vessel-browser", sandbox: true, contextIsolation: true, nodeIntegration: false } })
-    owned.add(popup)
-    popups.set(key, popup)
-    popup.on("closed", () => { owned.delete(popup); if (popups.get(key) === popup) popups.delete(key) })
+    closeOwned()
+    const popup = new WebContentsView({ webPreferences: { partition: "persist:vessel-browser", sandbox: true, contextIsolation: true, nodeIntegration: false } })
+    const resize = () => {
+      const [width, height] = parent.getContentSize()
+      const panelWidth = Math.min(400, width - 24), panelHeight = Math.min(560, height - 140)
+      popup.setBounds({ x: Math.max(12, width - panelWidth - 16), y: 112, width: Math.max(1, panelWidth), height: Math.max(1, panelHeight) })
+    }
+    let closed = false
+    const close = () => {
+      if (closed) return
+      closed = true
+      parent.removeListener("resize", resize)
+      parent.removeListener("blur", closeOnBlur)
+      owned.delete(close)
+      if (popups.get(key)?.close === close) popups.delete(key)
+      if (!parent.isDestroyed()) parent.contentView.removeChildView(popup)
+      if (!popup.webContents.isDestroyed()) popup.webContents.close()
+    }
+    const closeOnBlur = () => { if (mode !== "inspect" && !popup.webContents.isDevToolsOpened()) close() }
+    owned.add(close)
+    popups.set(key, { close })
+    parent.on("resize", resize)
+    parent.on("blur", closeOnBlur)
+    popup.webContents.on("before-input-event", (event, input) => { if (input.key === "Escape") { event.preventDefault(); close() } })
+    resize()
     handleExtensionWindows(popup.webContents, record.extensionId, target => host.send("browser:new-tab", target))
     popup.webContents.on("will-navigate", (event, target) => { if (!target.startsWith(`chrome-extension://${record.extensionId}/`)) { event.preventDefault(); if (/^https?:\/\//.test(target)) host.send("browser:new-tab", target) } })
-    popup.on("blur", () => { if (mode !== "options" && !popup.webContents.isDevToolsOpened()) closePopup(key) })
-    try { await loadExtensionPage(popup.webContents, url); popup.show(); if (mode === "inspect") popup.webContents.openDevTools({ mode: "detach" }) }
-    catch (error) { closePopup(key); throw error }
+    try { await loadExtensionPage(popup.webContents, url); if (popup.webContents.isDestroyed()) return { kind: "background" }; parent.contentView.addChildView(popup); if (mode === "inspect") popup.webContents.openDevTools({ mode: "detach" }) }
+    catch (error) { if (closed) return { kind: "background" }; close(); throw error }
     return { kind: "window" }
   })
   const mutate = (action: () => Promise<void>) => {

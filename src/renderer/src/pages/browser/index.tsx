@@ -1,3 +1,7 @@
+import { TabSwitcher } from "@/components/tab-switcher"
+import { publishBrowserTabs } from "./tab-state"
+import { BrowserMore, DeviceToolbar } from "./tools"
+import { ResizeEdge } from "@/components/ui/resize-edge"
 import Clock from "react-live-clock"
 import { addTransit } from "@/components/transit/state"
 import browserLoading from "@/assets/vessel-browser-loading/loading.svg"
@@ -7,7 +11,7 @@ import { elementPickerScript } from "./element-picker"
 import { webviewAttributes } from "./webview-attributes"
 import { useEffect, useRef, useState } from "react"
 import type { WebviewTag } from "electron"
-import { ChevronUp, ChevronDown, ArrowLeft, ArrowRight, RotateCw, Home, Globe, Plus, X, Search, LockKeyhole, Bookmark, ZoomIn, ZoomOut, Bug, SquareDashedMousePointer, Pin } from "lucide-react"
+import { ChevronUp, ChevronDown, ArrowLeft, ArrowRight, RotateCw, Home, Globe, Plus, X, Search, LockKeyhole, Bookmark, Bug, SquareDashedMousePointer, Pin } from "lucide-react"
 import { useRouter } from "@vessel/react-router"
 import Layout from "@/layout"
 import ActivityBar from "@/layout/activity-bar"
@@ -34,8 +38,8 @@ function Guest({ tab, visible, register, update }: { tab: Tab; visible: boolean;
     const view = ref.current
     if (!view) return
     const sync = () => withGuest(view, guest => updateRef.current(tab.id, { url: guest.getURL(), title: guest.getTitle() || "正在加载…", back: guest.canGoBack(), forward: guest.canGoForward() }))
-    const onReady = () => { markGuestReady(view, true); sync() }
-    const start = () => updateRef.current(tab.id, { loading: true, error: "" })
+    const onReady = () => { markGuestReady(view, true); sync(); updateRef.current(tab.id, { loading: false }) }
+    const start = (event: Electron.DidStartNavigationEvent) => { if (event.isMainFrame && !event.isInPlace) updateRef.current(tab.id, { loading: true, error: "" }) }
     const stop = () => {
       sync()
       updateRef.current(tab.id, { loading: false })
@@ -52,7 +56,7 @@ function Guest({ tab, visible, register, update }: { tab: Tab; visible: boolean;
     view.addEventListener("did-navigate", sync)
     view.addEventListener("did-navigate-in-page", sync)
     view.addEventListener("page-title-updated", sync)
-    view.addEventListener("did-start-loading", start)
+    view.addEventListener("did-start-navigation", start)
     view.addEventListener("did-stop-loading", stop)
     view.addEventListener("did-fail-load", fail)
     return () => {
@@ -62,7 +66,7 @@ function Guest({ tab, visible, register, update }: { tab: Tab; visible: boolean;
       view.removeEventListener("did-navigate", sync)
       view.removeEventListener("did-navigate-in-page", sync)
       view.removeEventListener("page-title-updated", sync)
-      view.removeEventListener("did-start-loading", start)
+      view.removeEventListener("did-start-navigation", start)
       view.removeEventListener("did-stop-loading", stop)
       view.removeEventListener("did-fail-load", fail)
     }
@@ -76,12 +80,14 @@ function Guest({ tab, visible, register, update }: { tab: Tab; visible: boolean;
 }
 export default function BrowserPage({ visible = true }: { visible?: boolean }) {
   const router = useRouter()
+  const [deviceMode, setDeviceMode] = useState(false)
   const [tabs, setTabs] = useState<Tab[]>(() => [newTab()])
   const [findOpen, setFindOpen] = useState(false)
   const [matchCase, setMatchCase] = useState(false)
   const [findText, setFindText] = useState("")
   const [findResult, setFindResult] = useState({ activeMatchOrdinal: 0, matches: 0, tabId: "", text: "" })
   const findInput = useRef<HTMLInputElement>(null)
+  const [consoleHeight, setConsoleHeight] = useState(() => Number(localStorage.getItem("browser-console-height")) || 300)
   const [devtoolsOpen, setDevtoolsOpen] = useState(false)
   const [dock, setDock] = useState(() => localStorage.getItem("browser-devtools-dock") || "bottom")
   const [consoleFont, setConsoleFont] = useState(() => localStorage.getItem("browser-devtools-font") || "Menlo")
@@ -105,6 +111,12 @@ export default function BrowserPage({ visible = true }: { visible?: boolean }) {
   })
   const views = useRef(new Map<string, WebviewTag>())
   const tab = tabs.find((item) => item.id === active) || tabs[0]
+  useEffect(() => { publishBrowserTabs(tabs.map(item => ({ id: item.id, title: item.title, active: item.id === tab.id }))) }, [tabs, tab.id])
+  useEffect(() => {
+    const select = (event: Event) => { setActive((event as CustomEvent<string>).detail); setInput(null) }
+    window.addEventListener("vessel-browser-tab", select)
+    return () => window.removeEventListener("vessel-browser-tab", select)
+  }, [])
   const searchPage = (forward = true, next = false) => {
     const view = views.current.get(tab.id)
     if (findText) withGuest(view, guest => guest.findInPage(findText, { forward, findNext: next, matchCase }))
@@ -245,14 +257,14 @@ export default function BrowserPage({ visible = true }: { visible?: boolean }) {
               </button>
             </div>
           ))}
-          <Button
+          <TabSwitcher tabs={tabs.map(item => ({ ...item, active: item.id === tab.id }))} onSelect={id => { setActive(id); setInput(null) }}><Button
             variant="ghost"
             size="icon"
             title="新标签页"
             onClick={add}
           >
             <Plus />
-          </Button>
+          </Button></TabSwitcher>
         </div>
         <div className="browser-toolbar">
           <Button
@@ -326,22 +338,6 @@ export default function BrowserPage({ visible = true }: { visible?: boolean }) {
               />
             </button>
           </form>
-          <Button
-            variant="ghost"
-            size="icon"
-            title="放大"
-            onClick={() => zoom(0.1)}
-          >
-            <ZoomIn />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            title="缩小"
-            onClick={() => zoom(-0.1)}
-          >
-            <ZoomOut />
-          </Button>
           <Button variant="ghost" size="icon" title="查看元素信息（Esc 退出，再次点击关闭）" aria-label="查看元素信息" disabled={!tab.url}
             onClick={() => { void withGuest(views.current.get(tab.id), guest => guest.executeJavaScript(elementPickerScript).catch(error => window.alert(`无法查看元素：${String(error)}`))) }}>
             <SquareDashedMousePointer />
@@ -359,6 +355,7 @@ export default function BrowserPage({ visible = true }: { visible?: boolean }) {
             <Bug />
           </Button>
           <BrowserExtensions onOpenDevtools={() => setDevtoolsOpen(true)} />
+          <BrowserMore zoomFactor={tab.zoom} zoom={zoom} onFind={() => setFindOpen(true)} onNavigate={navigate} guest={() => views.current.get(tab.id)} deviceMode={deviceMode} onDevice={() => { setDeviceMode(value => !value); if (!deviceMode) setDevtoolsOpen(true) }} />
         </div>
         <div className="browser-bookmarks">
           {bookmarks.map((item) => (
@@ -372,6 +369,7 @@ export default function BrowserPage({ visible = true }: { visible?: boolean }) {
             </button>
           ))}
         </div>
+        {deviceMode && <DeviceToolbar guest={() => views.current.get(tab.id)} tabId={tab.id} onClose={() => setDeviceMode(false)} />}
         <div className={`browser-content dock-${dock}`}>
         <div className="relative min-h-0 min-w-0 flex-1 bg-white">
           {findOpen && <form className="browser-find" aria-label="网页查找" onSubmit={event => { event.preventDefault(); searchPage(true, true) }}>
@@ -455,7 +453,8 @@ export default function BrowserPage({ visible = true }: { visible?: boolean }) {
             </div>
           )}
         </div>
-        {devtoolsOpen && tab.url && <section className="browser-devtools" aria-label="当前网页控制台">
+        {devtoolsOpen && tab.url && <section className="browser-devtools" style={dock === "bottom" ? { position: "relative", height: Math.min(consoleHeight, window.innerHeight * 0.7) } : undefined} aria-label="当前网页控制台">
+          {dock === "bottom" && <ResizeEdge width={consoleHeight} min={180} max={window.innerHeight * 0.7} side="top" label="调整控制台高度" onChange={value => { setConsoleHeight(value); localStorage.setItem("browser-console-height", String(value)) }} />}
           <header className="flex shrink-0 flex-wrap items-center gap-2 border-b px-2 py-1 text-xs text-stone-500">
             <span className="mr-auto">网页控制台</span>
             <select aria-label="控制台停靠位置" value={dock} onChange={event => setDock(event.target.value)}>
@@ -474,7 +473,7 @@ export default function BrowserPage({ visible = true }: { visible?: boolean }) {
         </div>
       <footer className="browser-status">
           <span>{tab.loading ? "正在加载…" : tab.url || "就绪"}</span>
-          <span className="ml-auto shrink-0"><Clock ticking interval={1000} format="YYYY年MM月DD日 HH:mm:ss" /></span>
+          <span className="ml-auto shrink-0"><Clock ticking interval={1000} format="YYYY年MM月DD日 HH:mm" /></span>
           <span>{Math.round(tab.zoom * 100)}%</span>
         </footer>
       </main>

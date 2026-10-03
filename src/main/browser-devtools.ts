@@ -65,5 +65,14 @@ export function registerBrowserDevtools(host: WebContents) {
     const x = Math.max(0, Math.round(bounds.x)), y = Math.max(0, Math.round(bounds.y))
     panel.setBounds({ x, y, width: Math.max(0, Math.min(Math.round(bounds.width), size.width - x)), height: Math.max(0, Math.min(Math.round(bounds.height), size.height - y)) })
   })
+  host.ipc.handle("browser:devices", async () => {
+    if (!panel || panel.webContents.isDestroyed()) throw new Error("请先打开网页控制台，再读取设备列表")
+    return panel.webContents.executeJavaScript(`(async () => {
+      let module;
+      try { module = await import('./models/emulation/emulation.js') } catch { module = await import('./panels/emulation/emulation.js') }
+      const list = module.EmulatedDevices.EmulatedDevicesList.instance();
+      return [...list.standard(), ...list.custom()].map(device => ({title: device.title, width: device.vertical.width, height: device.vertical.height, deviceScaleFactor: device.deviceScaleFactor, mobile: device.capabilities.includes('mobile'), userAgent: device.userAgent}));
+    })()`)
+  })
   host.once("destroyed", close)
 }

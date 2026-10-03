@@ -1,12 +1,11 @@
 import { addTransitFile } from "@/components/transit/state"
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog"
-import { Copy, FolderOpen, FilePlus2, FolderPlus, Pencil, Trash2, Pin } from "lucide-react"
+import { Copy, FolderOpen, FilePlus2, FolderPlus, Pencil, Trash2, Pin, File } from "lucide-react"
 import { createPortal } from "react-dom"
 import { useState, type ReactNode } from "react"
 import { PopoverAnchor } from "@radix-ui/react-popover"
 import { Popover, PopoverContent } from "@/components/ui/popover"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { useWorkspace } from "@/pages/workspace/hooks/useWorkspace"
 import type { WorkspaceNode } from "@/pages/workspace/types/workspace"
 
@@ -14,9 +13,17 @@ import type { WorkspaceNode } from "@/pages/workspace/types/workspace"
 export function FileActions({ node, children, onChanged, onCreate }: { node: WorkspaceNode; children: ReactNode; onChanged: () => void; onCreate?: (kind: "file" | "directory") => void }) {
   const { workspace, renameWorkspaceTab, closeWorkspaceFiles, openFiles } = useWorkspace()
   const [point, setPoint] = useState<{ x: number; y: number } | null>(null)
+  const [confirmRename, setConfirmRename] = useState(false)
+  const requestRename = () => {
+    if (busy) return
+    if (name.trim() + extension === node.name) { setRenaming(false); return }
+    if (name.trim()) setConfirmRename(true)
+    else setRenaming(false)
+  }
   const [confirmTrash, setConfirmTrash] = useState(false)
   const [renaming, setRenaming] = useState(false)
-  const [name, setName] = useState(node.name)
+  const extension = node.type === "directory" || node.name.lastIndexOf(".") <= 0 ? "" : node.name.slice(node.name.lastIndexOf("."))
+  const [name, setName] = useState(node.name.slice(0, node.name.length - extension.length))
   const [error, setError] = useState("")
   const [busy, setBusy] = useState(false)
   const mutate = async (next?: string) => {
@@ -28,6 +35,8 @@ export function FileActions({ node, children, onChanged, onCreate }: { node: Wor
       const affected = openFiles.filter((file) => file.path === node.path || (node.type === "directory" && file.path.startsWith(node.path + (node.path.includes("\\") ? "\\" : "/"))))
       if (next !== undefined) affected.forEach((file) => renameWorkspaceTab(file.path, path + file.path.slice(node.path.length), file.path === node.path ? next : file.name))
       else closeWorkspaceFiles(affected.map((file) => file.path))
+      setRenaming(false)
+      setConfirmRename(false)
       setConfirmTrash(false)
       onChanged()
       setPoint(null)
@@ -52,11 +61,18 @@ export function FileActions({ node, children, onChanged, onCreate }: { node: Wor
           event.preventDefault()
           setPoint({ x: event.clientX, y: event.clientY })
           setRenaming(false)
-          setName(node.name)
+          setName(node.name.slice(0, node.name.length - extension.length))
           setError("")
         }}
       >
-        {children}
+        {renaming ? <form className="flex min-w-0 items-center gap-2 rounded-md bg-stone-50 px-2 py-1" onClick={event => event.stopPropagation()} onSubmit={event => { event.preventDefault(); requestRename() }}>
+          {node.type === "directory" ? <FolderOpen className="size-4 shrink-0 text-amber-600" /> : <File className="size-4 shrink-0 text-violet-500" />}
+          <div className="flex min-w-0 flex-1 items-center rounded-md border border-green-600 bg-white px-1.5 py-0.5 shadow-[0_0_0_3px_rgba(22,163,74,0.1)]">
+            <input autoFocus onBlur={() => { if (renaming) requestRename() }} aria-label="文件新名称" value={name} disabled={busy} onFocus={event => event.target.select()} onChange={event => setName(event.target.value)} onKeyDown={event => { if (event.key === "Escape") { event.preventDefault(); setRenaming(false) } }} className="min-w-0 flex-1 bg-transparent text-xs outline-none" />
+            <span className="text-xs text-stone-400">{extension}</span>
+          </div>
+          {error && <span role="alert" title={error} className="text-xs text-red-500">{error}</span>}
+        </form> : children}
       </div>
       {createPortal(
         <PopoverAnchor asChild>
@@ -65,35 +81,11 @@ export function FileActions({ node, children, onChanged, onCreate }: { node: Wor
         document.body
       )}
       <PopoverContent
+        onCloseAutoFocus={event => event.preventDefault()}
         align="start"
         className={renaming ? "w-52 p-2" : "w-44 p-1"}
       >
-        {renaming ? (
-          <form
-            onSubmit={(event) => {
-              event.preventDefault()
-              if (name.trim()) void mutate(name.trim())
-            }}
-            className="space-y-2"
-          >
-            <Input
-              autoFocus
-              aria-label="文件新名称"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              disabled={busy}
-              className="h-7 text-xs"
-            />
-            <Button
-              type="submit"
-              disabled={busy || !name.trim()}
-              className="h-7 w-full text-xs"
-            >
-              保存名称
-            </Button>
-          </form>
-        ) : (
-          <>
+        {(          <>
             {node.type === "directory" &&
               (
                 [
@@ -138,7 +130,7 @@ export function FileActions({ node, children, onChanged, onCreate }: { node: Wor
               variant="ghost"
               disabled={busy}
               className="h-8 w-full justify-start text-xs hover:text-white"
-              onClick={() => setRenaming(true)}
+              onClick={() => { setPoint(null); setRenaming(true) }}
             >
               <Pencil className="!size-3.5" />
               重命名
@@ -164,6 +156,11 @@ export function FileActions({ node, children, onChanged, onCreate }: { node: Wor
         )}
       </PopoverContent>
     </Popover>
+    <AlertDialog open={confirmRename} onOpenChange={setConfirmRename}>
+      <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>确认重命名？</AlertDialogTitle><AlertDialogDescription>将“{node.name}”重命名为“{name.trim() + extension}”？</AlertDialogDescription></AlertDialogHeader>
+      {error && <p role="alert" className="text-sm text-red-500">{error}</p>}
+      <AlertDialogFooter><AlertDialogCancel disabled={busy} onClick={() => setRenaming(false)}>取消</AlertDialogCancel><AlertDialogAction disabled={busy} onClick={event => { event.preventDefault(); void mutate(name.trim() + extension) }}>确认重命名</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
+    </AlertDialog>
     <AlertDialog open={confirmTrash} onOpenChange={open => { if (!busy) setConfirmTrash(open) }}>
       <AlertDialogContent>
         <AlertDialogHeader>
