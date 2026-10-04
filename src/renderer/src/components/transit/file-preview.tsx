@@ -1,8 +1,9 @@
+import { PdfDocument } from '@/components/core/canvas/variants/pdf'
 import { useEffect, useRef, useState } from "react"
 import type { TransitFile } from "../../../../shared/transit"
 import { VditorEditor } from "@/components/core/canvas/variants/markdown/vditor-editor"
 import type { TransitItem } from "./state"
-function OfficePreview({ file }: { file: Extract<TransitFile, { kind: "office" }> }) {
+function OfficePreview({ file }: { file: Extract<TransitFile, { bytes: Uint8Array }> }) {
   const frame = useRef<HTMLIFrameElement>(null)
   const [url, setUrl] = useState("")
   const [error, setError] = useState("")
@@ -24,6 +25,7 @@ export function FilePreview({ item }: { item: TransitItem }) {
   useEffect(() => { let alive = true; void window.electronAPI.readTransitFile(item.root!, item.content).then(data => { if (alive) setFile(data) }, error => { if (alive) setError(String(error)) }); return () => { alive = false } }, [item.root, item.content])
   if (error) return <p role="alert" className="p-5 text-sm text-red-600">无法预览：{error}</p>
   if (!file) return <p className="p-5 text-sm text-stone-400">正在读取文件…</p>
+  if (file.kind === "pdf") return <PdfDocument bytes={file.bytes} name={file.name} />
   if (file.kind === "office") return <div className="min-h-0 flex-1"><OfficePreview file={file} /></div>
   if (file.kind === "markdown") return <div className="min-h-0 flex-1 overflow-auto [&_.vditor-reset]:!opacity-100 [&_.vditor-reset]:!cursor-text"><VditorEditor value={file.content} workspacePath={item.root!} documentPath={item.content} readOnly onChange={() => {}} /></div>
   if (file.kind === "image") return <div className="flex min-h-0 flex-1 items-start justify-center overflow-auto p-4"><img src={file.content} alt={item.title} className="max-w-full object-contain" /></div>

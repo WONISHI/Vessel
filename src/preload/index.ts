@@ -14,6 +14,7 @@ import { filesAPI } from "./apis/files.api"
 const api = {}
 
 const vesselAPI = {
+  syncBrowserBookmarks: (items: { url: string; title: string }[]) => ipcRenderer.invoke("browser:bookmarks:sync", items),
   listBrowserHistory: () => ipcRenderer.invoke("browser:history:list"),
   deleteBrowserHistory: (id: number | null) => ipcRenderer.invoke("browser:history:delete", id),
   printBrowserPage: (id: number) => ipcRenderer.invoke("browser:print", id),

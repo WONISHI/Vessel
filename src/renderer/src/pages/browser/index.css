@@ -6,7 +6,7 @@
   padding: 6px 8px 0;
   background: #f5f5f4;
   border-bottom: 1px solid #e7e5e4;
-  overflow-x: auto;
+  overflow-x: hidden;
   flex-shrink: 0;
 }
 .browser-tab {
@@ -14,7 +14,8 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  min-width: 120px;
+  min-width: 0;
+  flex: 1 1 0;
   max-width: 220px;
   padding: 0;
   position: relative;
@@ -75,8 +76,8 @@
 }
 .browser-bookmarks {
   display: flex;
-  gap: 16px;
-  overflow: auto;
+  gap: 8px;
+  overflow: hidden;
   padding: 8px 16px;
   border-bottom: 1px solid #f0efed;
   background: white;
@@ -246,3 +247,6 @@
 .device-menu-item[data-highlighted] { background: #faf9f7 !important; color: #44403c !important; }
 .device-menu-item[data-selected="true"] { background: #f0fdf4 !important; color: #15803d !important; font-weight: 600; }
 .device-menu-item[data-selected="true"] > svg { color: #16a34a; }
+
+.browser-tab-select { overflow: hidden; padding-left: 8px; padding-right: 22px; gap: 4px; }
+.browser-tab > button[title="关闭标签页"] { right: 4px; }

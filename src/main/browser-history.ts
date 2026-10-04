@@ -9,6 +9,7 @@ export class BrowserHistory {
     this.db.exec("CREATE TABLE IF NOT EXISTS visits (id INTEGER PRIMARY KEY, url TEXT NOT NULL, title TEXT NOT NULL, visitedAt INTEGER NOT NULL); CREATE INDEX IF NOT EXISTS visits_time ON visits(visitedAt)")
     const columns = this.db.pragma("table_info(visits)") as { name: string }[]
     if (!columns.some(column => column.name === "favicon")) this.db.exec("ALTER TABLE visits ADD COLUMN favicon TEXT")
+    this.db.exec("CREATE TABLE IF NOT EXISTS bookmarks (url TEXT PRIMARY KEY, title TEXT NOT NULL)")
     this.prune()
     this.compact()
   }
@@ -37,7 +38,11 @@ export class BrowserHistory {
   favicon(id: number, url: string) {
     if (/^https?:\/\//i.test(url) && url.length < 8192) this.db.prepare("UPDATE visits SET favicon=? WHERE id=?").run(url, id)
   }
-  list(): HistoryEntry[] { this.prune(); return this.db.prepare("SELECT * FROM visits ORDER BY visitedAt DESC, id DESC").all() as HistoryEntry[] }
+  setBookmarks(items: { url: string; title: string }[]) {
+    if (!Array.isArray(items) || items.length > 10000 || items.some(item => !item || typeof item.url !== 'string' || !/^https?:\/\//i.test(item.url) || typeof item.title !== 'string')) throw new Error('书签数据无效')
+    this.db.transaction(() => { this.db.exec('DELETE FROM bookmarks'); const insert = this.db.prepare('INSERT OR REPLACE INTO bookmarks(url,title) VALUES (?,?)'); for (const item of items) insert.run(item.url, item.title.slice(0,1000)) })()
+  }
+  list(): HistoryEntry[] { this.prune(); return this.db.prepare("SELECT visits.*, EXISTS(SELECT 1 FROM bookmarks WHERE bookmarks.url=visits.url) AS bookmarked FROM visits ORDER BY visitedAt DESC, id DESC").all() as HistoryEntry[] }
   delete(id: number | null) { if (id === null) this.db.exec("DELETE FROM visits"); else if (Number.isSafeInteger(id)) this.db.prepare("DELETE FROM visits WHERE id=?").run(id) }
   close() { this.db.close() }
 }

@@ -10,6 +10,7 @@ async function readTransitFile(root: string, file: string): Promise<TransitFile>
     if ((await stat(path)).size > 50 * 1024 * 1024) throw new Error("预览文件不能超过 50 MB")
     const extension = extname(path).toLowerCase()
     if (/^\.(docx?|xlsx?|pptx?|odt|ods|odp)$/.test(extension)) return { kind: "office", bytes: new Uint8Array(await readFile(path)), name: basename(path) }
+    if (extension === ".pdf") return { kind: "pdf", bytes: new Uint8Array(await readFile(path)), name: basename(path) }
     const mime = { ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".gif": "image/gif", ".webp": "image/webp" }[extension]
     if (mime) return { kind: "image", content: `data:${mime};base64,${(await readFile(path)).toString("base64")}` }
     if (!/^\.(md|markdown|txt|json|js|jsx|ts|tsx|css|html|xml|yaml|yml|csv|log|py|sh|sql)$/.test(extension)) throw new Error("暂不支持此文件格式的预览")
@@ -27,6 +28,7 @@ export function registerTransit(host: WebContents) {
     win.webContents.on("will-navigate", (event, url) => { if (!/^https?:\/\//i.test(url)) event.preventDefault() })
     const escape = (s: string) => s.replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`)
     try {
+      if (file?.kind === "pdf") { await win.loadFile(item.content); return }
       if (file?.kind === "office") {
         await win.loadURL((await serveOffice()) + "/office.html?editor=1&preview=1")
         await win.webContents.executeJavaScript(`window.postMessage({type:"office:init",doc:{id:"preview",name:${JSON.stringify(file.name)},file:new File([Uint8Array.from(atob(${JSON.stringify(Buffer.from(file.bytes).toString("base64"))}),c=>c.charCodeAt(0))],${JSON.stringify(file.name)})}},location.origin)`)

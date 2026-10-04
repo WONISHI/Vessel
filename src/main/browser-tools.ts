@@ -19,6 +19,7 @@ export function registerBrowserTools(host: WebContents) {
     if (!target || target.hostWebContents !== host || (target.session !== session.fromPartition("persist:vessel-browser") && !(allowTransit && target.session === session.fromPartition("persist:vessel-transit")))) throw new Error("浏览器页面无效")
     return target
   }
+  host.ipc.handle("browser:bookmarks:sync", (_event, items) => store().setBookmarks(items))
   host.ipc.handle("browser:history:list", () => store().list())
   host.ipc.handle("browser:history:delete", (_event, id: number | null) => store().delete(id))
   host.ipc.handle("browser:print", (_event, id: number) => new Promise<void>((resolve, reject) => guest(id).print({ silent: false, printBackground: true }, (success, reason) => { if (success || /cancel/i.test(reason)) resolve(); else reject(new Error(reason)) })))

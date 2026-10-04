@@ -1,3 +1,4 @@
+import { BookmarkBar } from './bookmark-bar'
 import { TabSwitcher } from "@/components/tab-switcher"
 import { publishBrowserTabs } from "./tab-state"
 import { BrowserMore, DeviceToolbar } from "./tools"
@@ -112,6 +113,7 @@ export default function BrowserPage({ visible = true }: { visible?: boolean }) {
       return shortcuts
     }
   })
+  useEffect(() => { void window.electronAPI.syncBrowserBookmarks(bookmarks).catch(console.error) }, [bookmarks])
   const views = useRef(new Map<string, WebviewTag>())
   const tab = tabs.find((item) => item.id === active) || tabs[0]
   useEffect(() => { publishBrowserTabs(tabs.filter(item => Boolean(item.url)).map(item => ({ id: item.id, title: item.title, url: item.url, favicon: item.favicon, active: item.id === tab.id }))) }, [tabs, tab.id])
@@ -341,6 +343,8 @@ export default function BrowserPage({ visible = true }: { visible?: boolean }) {
             <button
               type="button"
               title="收藏当前页面"
+              aria-label={bookmarks.some(item => item.url === tab.url) ? "取消书签" : "添加书签"}
+              disabled={!tab.url}
               onClick={bookmark}
             >
               <Bookmark
@@ -368,18 +372,7 @@ export default function BrowserPage({ visible = true }: { visible?: boolean }) {
           <BrowserExtensions onOpenDevtools={() => setDevtoolsOpen(true)} />
           <BrowserMore zoomFactor={tab.zoom} zoom={zoom} onFind={() => setFindOpen(true)} onNavigate={navigate} guest={() => views.current.get(tab.id)} deviceMode={deviceMode} onDevice={() => { setDeviceMode(value => !value) }} />
         </div>
-        <div className="browser-bookmarks">
-          {bookmarks.map((item) => (
-            <button
-              key={item.url}
-              title={item.url}
-              onClick={() => navigate(item.url)}
-            >
-              <Globe size={12} />
-              {item.title}
-            </button>
-          ))}
-        </div>
+        <BookmarkBar items={bookmarks} onNavigate={navigate} />
         </div></div>
         {deviceMode && <DeviceToolbar onViewport={setDeviceViewport} guest={() => views.current.get(tab.id)} tabId={tab.id} onClose={() => setDeviceMode(false)} />}
         <div className={`browser-content dock-${dock}`}>
