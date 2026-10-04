@@ -1,7 +1,7 @@
 import { readWikiLink } from "./wiki-link"
 import { readImageFile } from "./image-file"
 import { readObsidianImage } from "./obsidian-image"
-import { ipcMain, shell } from "electron"
+import { ipcMain, shell, clipboard } from "electron"
 import { readFile, stat, realpath, mkdir, writeFile, link, unlink, rename, lstat } from "node:fs/promises"
 import { isAbsolute, relative, join, sep, dirname } from "node:path"
 import { BaseModule } from "../base"
@@ -99,6 +99,7 @@ export class FilesModule extends BaseModule {
       shell.showItemInFolder(source)
     })
     ipcMain.handle("obsidian:readWikiLink", (_event, root, target) => readWikiLink(root, target))
+    ipcMain.handle("image:clipboard", () => { const image = clipboard.readImage(); if (image.isEmpty()) return null; const data = image.toPNG(); if (data.length > 30_000_000) throw new Error("剪贴板图片超过 30 MB"); return `data:image/png;base64,${data.toString("base64")}` })
     ipcMain.handle("image:readFile", (_event, root, path) => readImageFile(root, path))
     ipcMain.handle("obsidian:readImage", (_event, root, documentPath, reference) => readObsidianImage(root, documentPath, reference))
     ipcMain.handle("workspace:mutateFile", (_event, root, path, name) => mutateWorkspaceFile(root, path, name))

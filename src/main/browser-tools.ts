@@ -34,11 +34,18 @@ export function registerBrowserTools(host: WebContents) {
   host.on("did-attach-webview", (_event, view) => {
     if (view.session !== session.fromPartition("persist:vessel-browser")) return
     let visit: number | undefined
-    const record = (_event: unknown, url: string) => { visit = store().add(url, view.getTitle() || url) }
-    view.on("did-navigate", record)
-    view.on("did-navigate-in-page", (event, url, main) => { if (main) record(event, url) })
+    // Commit after navigation settles so redirects do not become separate visits.
+    let pending: ReturnType<typeof setTimeout> | undefined
+    const record = () => {
+      clearTimeout(pending)
+      pending = setTimeout(() => { if (!view.isDestroyed()) { visit = store().add(view.getURL(), view.getTitle() || view.getURL()); if (visit && favicon) store().favicon(visit, favicon) } }, 500)
+    }
+    view.on("did-start-navigation", (_event, _url, _inPlace, main) => { if (main) { clearTimeout(pending); visit = undefined; favicon = "" } })
+    view.on("did-stop-loading", record)
+    view.on("did-navigate-in-page", (_event, _url, main) => { if (main) record() })
+    let favicon = ""
     view.on("page-title-updated", (_event, title) => { if (visit) store().title(visit, title) })
-    view.on("page-favicon-updated", (_event, urls) => { if (visit && urls[0]) store().favicon(visit, urls[0]) })
-    view.once("destroyed", () => agents.delete(view.id))
+    view.on("page-favicon-updated", (_event, urls) => { favicon = urls[0] || ""; if (visit && favicon) store().favicon(visit, favicon) })
+    view.once("destroyed", () => { clearTimeout(pending); agents.delete(view.id) })
   })
 }

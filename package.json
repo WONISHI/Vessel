@@ -40,7 +40,7 @@
           "markdown"
         ],
         "name": "Markdown Document",
-        "description": "Markdown \u6587\u6863",
+        "description": "Markdown 文档",
         "role": "Editor"
       }
     ],
@@ -92,6 +92,7 @@
     "@fontsource/plus-jakarta-sans": "^5.3.0",
     "@monaco-editor/loader": "^1.7.0",
     "@monaco-editor/react": "^4.7.0",
+    "@oovz/esearch-ocr": "8.4.4",
     "@parcel/watcher": "^2.6.0",
     "@radix-ui/react-alert-dialog": "^1.1.23",
     "@radix-ui/react-avatar": "^1.2.6",
@@ -129,6 +130,7 @@
     "node": "^25.5.0",
     "node-pty": "^1.1.0",
     "nodemon": "^3.1.11",
+    "onnxruntime-web": "1.22.0",
     "react-dczs-image-preview": "^1.0.29",
     "react-diff-viewer-continued": "^3.4.0",
     "react-hook-form": "^7.88.0",

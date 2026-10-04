@@ -23,6 +23,7 @@ app.whenReady().then(async () => {
   await host.loadURL('data:text/html,' + encodeURIComponent(`<webview partition="persist:vessel-browser" src="http://127.0.0.1:${server.address().port}" style="width:1000px;height:600px"></webview>`))
   const guest = await attached
   if (guest.isLoading()) await new Promise(resolve => guest.once('did-stop-loading', resolve))
+  await new Promise(resolve => setTimeout(resolve, 700))
   assert.equal(handlers['browser:history:list']().length, 1)
   handlers['browser:devtools']({}, guest.id, { x: 0, y: 600, width: 1000, height: 250 }, { font: 'Menlo', size: 13 })
   let devices

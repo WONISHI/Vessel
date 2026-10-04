@@ -23,6 +23,21 @@ function localVditorAssets() {
   }
 }
 
+function localOcrAssets() {
+  return {
+    name: "vessel-local-ocr-assets",
+    configResolved() {
+      const require = createRequire(import.meta.url)
+      const source = resolve(require.resolve("onnxruntime-web"), "..")
+      const destination = resolve("src/renderer/public/ocr/runtime")
+      mkdirSync(destination, { recursive: true })
+      for (const file of ["ort-wasm-simd-threaded.mjs", "ort-wasm-simd-threaded.wasm"]) {
+        cpSync(resolve(source, file), resolve(destination, file))
+      }
+    }
+  }
+}
+
 export default defineConfig({
   main: {
     // Workspace 包导出 TS 源码，必须编译进产物，不能留给 Electron require。
@@ -43,6 +58,7 @@ export default defineConfig({
     }
   },
   renderer: {
+    worker: { format: "es" },
     optimizeDeps: { exclude: ["wasm-onlyoffice-sdk"] },
     build: { rollupOptions: { input: { index: resolve("src/renderer/index.html"), office: resolve("src/renderer/office.html") } } },
     resolve: {
@@ -52,6 +68,6 @@ export default defineConfig({
         "@": resolve("src/renderer/src")
       }
     },
-    plugins: [localVditorAssets(), react(), svgr()]
+    plugins: [localOcrAssets(), localVditorAssets(), react(), svgr()]
   }
 })

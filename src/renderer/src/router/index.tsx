@@ -1,3 +1,4 @@
+import { OCRTool, JsonTool, ColorTool, Base64Tool, URLTool } from "@/pages/debug/utility-tools"
 import SettingsPage from "@/pages/settings"
 import { OfficeRoute } from "@/pages/office"
 import { BrowserRoute } from "@/pages/browser/keep-alive"
@@ -139,9 +140,10 @@ export const routes: AppRouteRecordRaw[] = [
       hidden: true
     },
     children: [
+      ...[{ path: 'ocr', component: OCRTool, title: '图片 OCR' }, { path: 'json', component: JsonTool, title: 'JSON 格式化' }, { path: 'color', component: ColorTool, title: '颜色转换' }, { path: 'base64', component: Base64Tool, title: 'Base64' }, { path: 'url', component: URLTool, title: 'URL 编解码' }].map(tool => ({ path: tool.path, name: `devtools-${tool.path}`, component: tool.component, meta: { title: tool.title } })),
       {
         index: true,
-        redirect: { name: "devtools-console" }
+        redirect: { name: "devtools-ocr" }
       },
       {
         path: "console",

@@ -145,6 +145,7 @@ export interface VesselAPI extends BrowserToolsAPI, SettingsAPI, BrowserExtensio
   getStorageInfo: () => Promise<StorageInfo>
 
   revealWorkspaceFile: (root: string, path: string) => Promise<void>
+  readClipboardImage: () => Promise<string | null>
   readImageFile: (root: string, path: string) => Promise<ImageFile>
   readWikiLink: (root: string, target: string) => Promise<{ path: string; content: string }>
   readObsidianImage: (root: string, documentPath: string, reference: string) => Promise<string>

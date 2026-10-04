@@ -1,6 +1,7 @@
+import { ImageEditorSheet } from "./editor-sheet"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useCallback, useState } from "react"
-import { RotateCcw, RotateCw, Crop, FlipHorizontal, Undo2, Download } from "lucide-react"
+import { RotateCcw, RotateCw, Pencil, FlipHorizontal, Undo2, Download } from "lucide-react"
 import { Image } from "@/components/ui/image"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -18,6 +19,7 @@ export default function ImagePreviewPage({ activeFilePath }: { activeFilePath: s
   const [display, setDisplay] = useState(480)
   const [busy, setBusy] = useState(false),
     [error, setError] = useState("")
+  const [editorOpen, setEditorOpen] = useState(false)
   const [cropping, setCropping] = useState(false)
   const [crop, setCrop] = useState({ x: 0, y: 0, width: 1, height: 1 })
   const [ready, setReady] = useState(false)
@@ -51,11 +53,10 @@ export default function ImagePreviewPage({ activeFilePath }: { activeFilePath: s
     { label: "向右旋转 90°", Icon: RotateCw, run: () => void apply("right") },
     { label: "水平翻转", Icon: FlipHorizontal, run: () => void apply("flip") },
     {
-      label: "裁剪",
-      Icon: Crop,
+      label: "编辑",
+      Icon: Pencil,
       run: () => {
-        setCrop({ x: 0, y: 0, ...dimensions })
-        setCropping(!cropping)
+        setEditorOpen(true)
       }
     },
     {
@@ -201,6 +202,7 @@ export default function ImagePreviewPage({ activeFilePath }: { activeFilePath: s
           </Button>
         </form>
       )}
+      {editorOpen && file && <ImageEditorSheet open={editorOpen} onOpenChange={setEditorOpen} source={edited || file.src} onCrop={() => { setCrop({ x: 0, y: 0, ...dimensions }); setCropping(true) }} />}
       <TooltipProvider>
         <div
           role="toolbar"
@@ -214,7 +216,7 @@ export default function ImagePreviewPage({ activeFilePath }: { activeFilePath: s
                   variant="outline"
                   size="icon"
                   aria-label={label}
-                  aria-pressed={label === "裁剪" ? cropping : undefined}
+                  aria-pressed={label === "编辑" ? editorOpen : undefined}
                   className="hover:bg-emerald-700 hover:!text-white active:bg-emerald-800 active:!text-white aria-pressed:bg-emerald-700 aria-pressed:!text-white [&:hover_svg]:!text-white [&:active_svg]:!text-white [&[aria-pressed=true]_svg]:!text-white"
                   disabled={busy || !ready}
                   onClick={run}

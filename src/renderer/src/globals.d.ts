@@ -156,6 +156,7 @@ interface VesselAPI extends BrowserToolsAPI, SettingsAPI, BrowserExtensionsAPI, 
 
   /** 读取文件内容。 */
   revealWorkspaceFile: (root: string, path: string) => Promise<void>
+  readClipboardImage: () => Promise<string | null>
   readImageFile: (root: string, path: string) => Promise<ImageFile>
   readWikiLink: (root: string, target: string) => Promise<{ path: string; content: string }>
   readObsidianImage: (root: string, documentPath: string, reference: string) => Promise<string>

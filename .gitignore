@@ -10,3 +10,5 @@ out
 
 # Downloaded ONLYOFFICE runtime (see resources/office-README.md)
 resources/office/
+
+src/renderer/public/ocr/runtime/

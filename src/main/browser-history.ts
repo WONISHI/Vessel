@@ -1,3 +1,4 @@
+import { historyURLKey, isHistoryRedirect } from "../shared/browser-history-url"
 import Database from "better-sqlite3"
 import type { HistoryEntry } from "../shared/browser-tools"
 export class BrowserHistory {
@@ -9,11 +10,27 @@ export class BrowserHistory {
     const columns = this.db.pragma("table_info(visits)") as { name: string }[]
     if (!columns.some(column => column.name === "favicon")) this.db.exec("ALTER TABLE visits ADD COLUMN favicon TEXT")
     this.prune()
+    this.compact()
+  }
+  private compact() {
+    const rows = this.db.prepare("SELECT * FROM visits ORDER BY visitedAt DESC, id DESC").all() as HistoryEntry[]
+    const latest = new Map<string, HistoryEntry>()
+    this.db.transaction(() => {
+      for (const row of rows) {
+        const key = historyURLKey(row.url), next = latest.get(key)
+        if (isHistoryRedirect(row.url) || (next && next.visitedAt - row.visitedAt < 60_000)) this.delete(row.id)
+        else latest.set(key, row)
+      }
+    })()
   }
   prune(now = Date.now()) { this.db.prepare("DELETE FROM visits WHERE visitedAt < ?").run(now - 30 * 86400000) }
   add(url: string, title: string, now = Date.now()) {
+    if (isHistoryRedirect(url)) return
     if (!/^https?:\/\//i.test(url)) return
     this.prune(now)
+    const recent = this.db.prepare("SELECT * FROM visits WHERE visitedAt >= ? ORDER BY visitedAt DESC, id DESC").all(now - 60_000) as HistoryEntry[]
+    const existing = recent.find(entry => historyURLKey(entry.url) === historyURLKey(url))
+    if (existing) { this.db.prepare("UPDATE visits SET url=?, title=?, visitedAt=? WHERE id=?").run(url, title.slice(0, 1000), now, existing.id); return existing.id }
     return Number(this.db.prepare("INSERT INTO visits (url,title,visitedAt) VALUES (?,?,?)").run(url, title.slice(0, 1000), now).lastInsertRowid)
   }
   title(id: number, title: string) { this.db.prepare("UPDATE visits SET title=? WHERE id=?").run(title.slice(0, 1000), id) }

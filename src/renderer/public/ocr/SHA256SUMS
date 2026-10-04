@@ -1,0 +1,3 @@
+5e7b06f5391ceda129ae89b3e2f878bd4e39c3a124146d8bbf7ca18ae9aa1ab8  src/renderer/public/ocr/ppocr_det.onnx
+8a3ea65009fd529688f316bf29b1b517b33b1dd23facae6e3270f509895b1600  src/renderer/public/ocr/ppocr_rec.onnx
+28b2362ad4ab2dc38769aa72feb535e3a9ddb3fd2a7585a05920e6393b1dc7f7  src/renderer/public/ocr/ppocr_keys_v1.txt
