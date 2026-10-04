@@ -1,9 +1,0 @@
-import { useRef, useState } from "react"
-/** Accessible edge resize handle, with pointer capture across embedded webviews. */
-export function ResizeEdge({ width, min, max, side = "right", label, onChange }: { width: number; min: number; max: number; side?: "left" | "right" | "top"; label: string; onChange: (width: number) => void }) {
-  const vertical = side === "top"
-  const start = useRef<{ x: number; width: number } | null>(null)
-  const [dragging, setDragging] = useState(false)
-  const change = (value: number) => onChange(Math.round(Math.max(min, Math.min(max, value))))
-  return <>{dragging && <div className={`fixed inset-0 z-[90] ${vertical ? "cursor-row-resize" : "cursor-col-resize"}`} />}<div role="separator" aria-label={label} aria-orientation={vertical ? "horizontal" : "vertical"} aria-valuemin={min} aria-valuemax={max} aria-valuenow={width} tabIndex={0} className={`absolute z-[100] touch-none ${vertical ? "inset-x-0 -top-0.5 h-1.5 cursor-row-resize" : "inset-y-0 w-1.5 cursor-col-resize"} hover:bg-green-600/25 focus:bg-green-600/25 focus:outline-none ${vertical ? "" : side === "right" ? "-right-0.5" : "-left-0.5"}`} onPointerDown={e => { e.preventDefault(); start.current = { x: vertical ? e.clientY : e.clientX, width }; setDragging(true); e.currentTarget.setPointerCapture(e.pointerId) }} onPointerMove={e => { if (start.current) change(start.current.width + ((vertical ? e.clientY : e.clientX) - start.current.x) * (side === "right" ? 1 : -1)) }} onPointerUp={e => { start.current = null; setDragging(false); e.currentTarget.releasePointerCapture(e.pointerId) }} onPointerCancel={() => { start.current = null; setDragging(false) }} onKeyDown={e => { if ((vertical ? ["ArrowUp", "ArrowDown"] : ["ArrowLeft", "ArrowRight"]).includes(e.key)) { e.preventDefault(); change(width + ((e.key === "ArrowRight" || e.key === "ArrowDown") ? 10 : -10) * (side === "right" ? 1 : -1)) } }} /></>
-}

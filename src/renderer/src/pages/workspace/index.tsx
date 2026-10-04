@@ -10,8 +10,8 @@ export default function WorkspacePage({ workspace, initialFile, scope = "workspa
   const workspaceController = useWorkspaceController(workspace, initialFile, scope)
   return (
     <WorkspaceProvider value={workspaceController}>
-      <Layout aside={<LayoutAside resources={scope === "resources"} />}>
-        <LayoutMain />
+      <Layout aside={null}>
+        <LayoutAside resources={scope === "resources"}><LayoutMain /></LayoutAside>
       </Layout>
     </WorkspaceProvider>
   )

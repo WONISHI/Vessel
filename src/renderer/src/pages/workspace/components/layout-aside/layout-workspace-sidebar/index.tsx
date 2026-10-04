@@ -50,7 +50,7 @@ export default function LayoutWorkspaceSidebar({ activity }: LayoutWorkspaceSide
   return (
     <section
       aria-label="工作区侧边栏"
-      className="flex h-full w-full min-h-0 flex-col border-r border-[#f0efed]"
+      className="flex h-full w-full min-h-0 flex-col"
     >
       <header className="flex items-center justify-between px-3.5 pb-2 pt-3 text-xs font-semibold text-stone-500">
         <Tooltip>

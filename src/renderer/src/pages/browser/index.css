@@ -194,7 +194,7 @@
 .browser-tab > button[title="关闭标签页"] { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); }
 .browser-content { display: flex; flex: 1; min-height: 0; min-width: 0; }
 .browser-content.dock-bottom { flex-direction: column; }
-.browser-devtools { display: flex; flex-direction: column; flex-shrink: 0; background: white; border: 1px solid #e7e5e4; }
+.browser-devtools { display: flex; flex-direction: column; flex-shrink: 0; background: white; border: 0; }
 .dock-bottom > .browser-devtools { height: 35vh; min-height: 180px; }
 .dock-left > .browser-devtools, .dock-right > .browser-devtools { width: 40%; min-width: 280px; }
 .dock-left > .browser-devtools { order: -1; }

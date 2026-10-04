@@ -1,7 +1,7 @@
 import { TabSwitcher } from "@/components/tab-switcher"
 import { publishBrowserTabs } from "./tab-state"
 import { BrowserMore, DeviceToolbar } from "./tools"
-import { ResizeEdge } from "@/components/ui/resize-edge"
+import { ResizableSplit } from "@/components/ui/resizable-split"
 import Clock from "react-live-clock"
 import { addTransit } from "@/components/transit/state"
 import browserLoading from "@/assets/vessel-browser-loading/loading.svg"
@@ -89,6 +89,7 @@ export default function BrowserPage({ visible = true }: { visible?: boolean }) {
   const [findText, setFindText] = useState("")
   const [findResult, setFindResult] = useState({ activeMatchOrdinal: 0, matches: 0, tabId: "", text: "" })
   const findInput = useRef<HTMLInputElement>(null)
+  const [consoleWidth, setConsoleWidth] = useState(() => Number(localStorage.getItem("browser-console-width")) || 440)
   const [consoleHeight, setConsoleHeight] = useState(() => Number(localStorage.getItem("browser-console-height")) || 300)
   const [devtoolsOpen, setDevtoolsOpen] = useState(false)
   const [dock, setDock] = useState(() => localStorage.getItem("browser-devtools-dock") || "bottom")
@@ -382,7 +383,24 @@ export default function BrowserPage({ visible = true }: { visible?: boolean }) {
         </div></div>
         {deviceMode && <DeviceToolbar onViewport={setDeviceViewport} guest={() => views.current.get(tab.id)} tabId={tab.id} onClose={() => setDeviceMode(false)} />}
         <div className={`browser-content dock-${dock}`}>
-        <div className="relative min-h-0 min-w-0 flex-1 bg-white">
+        <ResizableSplit side={dock === 'detached' ? 'detached' : dock === 'left' ? 'left' : dock === 'right' ? 'right' : 'bottom'} size={dock === 'bottom' ? consoleHeight : consoleWidth} min={dock === 'bottom' ? 180 : 280} max={dock === 'bottom' ? window.innerHeight * .7 : window.innerWidth * .7} label={dock === 'bottom' ? '调整控制台高度' : '调整网页控制台宽度'} onResize={value => { if(dock === 'bottom') { setConsoleHeight(value); localStorage.setItem('browser-console-height', String(value)) } else { setConsoleWidth(value); localStorage.setItem('browser-console-width', String(value)) } }} pane={devtoolsOpen && tab.url ? (<section className="browser-devtools" style={{ height: dock === "detached" ? "auto" : "100%", width: "100%", minHeight: 0 }} aria-label="当前网页控制台">
+          <header className="flex shrink-0 flex-wrap items-center gap-2 border-b px-2 py-1 text-xs text-stone-500">
+            <span className="mr-auto">网页控制台</span>
+            <select aria-label="控制台停靠位置" value={dock} onChange={event => setDock(event.target.value)}>
+              <option value="bottom">底部停靠</option><option value="left">左侧停靠</option><option value="right">右侧停靠</option><option value="detached">独立窗口</option>
+            </select>
+            <select aria-label="控制台字体" value={consoleFont} onChange={event => setConsoleFont(event.target.value)}>
+              {["Plus Jakarta Sans", "Menlo", "Consolas", "Courier New", "monospace", "system-ui"].map(font => <option key={font}>{font}</option>)}
+            </select>
+            <select aria-label="控制台字号（整体缩放）" title="字号（整体缩放）" value={consoleSize} onChange={event => setConsoleSize(Number(event.target.value))}>
+              {[11, 12, 13, 14, 16, 18, 20].map(size => <option key={size} value={size}>{size}px</option>)}
+            </select>
+            <button aria-label="关闭网页控制台" onClick={() => setDevtoolsOpen(false)}><X size={14} /></button>
+          </header>
+          <div ref={devtoolsHost} className="min-h-0 flex-1" />
+        </section>) : undefined}>
+
+        <div className="relative h-full min-h-0 min-w-0 flex-1 bg-white">
           {findOpen && <form className="browser-find" aria-label="网页查找" onSubmit={event => { event.preventDefault(); searchPage(true, true) }}>
             <Search size={15} className="text-stone-400" />
             <input ref={findInput} aria-label="在网页中查找" placeholder="在网页中查找" spellCheck={false} value={findText} onChange={event => setFindText(event.target.value)} onKeyDown={event => { if (event.key === "Escape") setFindOpen(false); if (event.key === "Enter" && event.shiftKey) { event.preventDefault(); searchPage(false, true) } }} />
@@ -469,24 +487,8 @@ export default function BrowserPage({ visible = true }: { visible?: boolean }) {
             </div>
           )}
         </div>
-        {devtoolsOpen && tab.url && <section className="browser-devtools" style={dock === "bottom" ? { position: "relative", height: Math.min(consoleHeight, window.innerHeight * 0.7) } : undefined} aria-label="当前网页控制台">
-          {dock === "bottom" && <ResizeEdge width={consoleHeight} min={180} max={window.innerHeight * 0.7} side="top" label="调整控制台高度" onChange={value => { setConsoleHeight(value); localStorage.setItem("browser-console-height", String(value)) }} />}
-          <header className="flex shrink-0 flex-wrap items-center gap-2 border-b px-2 py-1 text-xs text-stone-500">
-            <span className="mr-auto">网页控制台</span>
-            <select aria-label="控制台停靠位置" value={dock} onChange={event => setDock(event.target.value)}>
-              <option value="bottom">底部停靠</option><option value="left">左侧停靠</option><option value="right">右侧停靠</option><option value="detached">独立窗口</option>
-            </select>
-            <select aria-label="控制台字体" value={consoleFont} onChange={event => setConsoleFont(event.target.value)}>
-              {["Plus Jakarta Sans", "Menlo", "Consolas", "Courier New", "monospace", "system-ui"].map(font => <option key={font}>{font}</option>)}
-            </select>
-            <select aria-label="控制台字号（整体缩放）" title="字号（整体缩放）" value={consoleSize} onChange={event => setConsoleSize(Number(event.target.value))}>
-              {[11, 12, 13, 14, 16, 18, 20].map(size => <option key={size} value={size}>{size}px</option>)}
-            </select>
-            <button aria-label="关闭网页控制台" onClick={() => setDevtoolsOpen(false)}><X size={14} /></button>
-          </header>
-          <div ref={devtoolsHost} className="min-h-0 flex-1" />
-        </section>}
-        </div>
+
+        </ResizableSplit></div>
       <footer className="browser-status">
         <button aria-label={toolbarCollapsed ? "展开浏览器工具栏" : "折叠浏览器工具栏"} aria-expanded={!toolbarCollapsed} onClick={() => setToolbarCollapsed(value => !value)} className="flex size-5 shrink-0 items-center justify-center text-stone-400 hover:text-stone-700">{toolbarCollapsed ? <ChevronUp size={13} /> : <ChevronRight size={13} />}</button>
           <span>{tab.loading ? "正在加载…" : tab.url || "就绪"}</span>

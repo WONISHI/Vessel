@@ -40,7 +40,7 @@ export function TerminalPanel({ root, file }: { root: string; file?: string }) {
       if (id) void window.electronAPI.terminalClose(id).catch(() => {})
     }
   }, [root, file])
-  return <section aria-label="命令终端" className="flex h-full min-h-0 flex-col border-t bg-[#faf9f7]">
+  return <section aria-label="命令终端" className="flex h-full min-h-0 flex-col bg-[#faf9f7]">
     <header className="flex items-center gap-3 border-b px-3 py-1 text-xs text-stone-500">
       <strong className="text-green-700">终端</strong><span className="min-w-0 flex-1 truncate" title={cwd}>{cwd || "正在启动…"}</span>
     </header>

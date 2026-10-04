@@ -1,5 +1,5 @@
 import Clock from "react-live-clock"
-import { ResizeEdge } from "@/components/ui/resize-edge"
+import { ResizableSplit } from "@/components/ui/resizable-split"
 import { FilePreview } from "./file-preview"
 import { useEffect, useRef, useState } from "react"
 import { Globe, FileText, Maximize, Minimize, ExternalLink, PanelRight, ChevronLeft, ChevronRight, RotateCw, X } from "lucide-react"
@@ -38,9 +38,7 @@ export function TransitPanel() {
   const [dock, setDock] = useState<"left" | "right" | "floating">("right")
   const left = dock === "left"
   const [full, setFull] = useState(false)
-  return <Sheet modal={false} open={!!item} onOpenChange={open => { if (!open) selectTransit(null) }}><SheetContent showOverlay={false} showCloseButton={false} style={full ? undefined : { width: `min(${width}px, calc(100vw - 52px))`, ...(dock === "floating" ? { left: "50%", right: "auto", top: "10vh", bottom: "auto", height: "80vh", transform: "translateX(-50%)" } : {}) }} side={left ? "left" : "right"} onInteractOutside={e => e.preventDefault()} onOpenAutoFocus={e => e.preventDefault()} className={`flex flex-col gap-0 bg-white p-0 ${dock === "floating" && !full ? "rounded-xl border" : ""} ${full ? "!w-[calc(100vw-52px)] !max-w-none !left-[52px]" : "!max-w-none"} ${left ? "!left-[52px]" : ""}`}>
-    {!full && <ResizeEdge width={width} min={320} max={Math.min(900, window.innerWidth - 52)} side={left ? "right" : "left"} label="调整中转站宽度" onChange={value => { setWidth(value); localStorage.setItem("vessel-transit-width", String(value)) }} />}
-    {item && <><header className="flex items-center gap-2 border-b p-3"><span className="rounded-lg bg-emerald-50 p-2 text-green-600">{item.kind === "url" ? <Globe className="size-4" /> : <FileText className="size-4" />}</span><div className="min-w-0 flex-1"><SheetTitle className="truncate text-sm">{item.title}</SheetTitle><SheetDescription className="truncate text-[11px] text-stone-400">{item.kind === "text" ? "剪贴板文本" : item.content}</SheetDescription></div>
+  const content = item && <><header className="flex items-center gap-2 border-b p-3"><span className="rounded-lg bg-emerald-50 p-2 text-green-600">{item.kind === "url" ? <Globe className="size-4" /> : <FileText className="size-4" />}</span><div className="min-w-0 flex-1"><SheetTitle className="truncate text-sm">{item.title}</SheetTitle><SheetDescription className="truncate text-[11px] text-stone-400">{item.kind === "text" ? "剪贴板文本" : item.content}</SheetDescription></div>
       <button title={full ? "还原" : "展开"} aria-label={full ? "还原" : "展开"} onClick={() => setFull(!full)} className="rounded p-1.5 text-stone-500 hover:bg-stone-100">{full ? <Minimize className="size-4" /> : <Maximize className="size-4" />}</button>
       <button title="独立窗口" aria-label="独立窗口" onClick={() => void window.electronAPI.openTransitWindow(item).catch(error => toast.error(String(error)))} className="rounded p-1.5 text-stone-500 hover:bg-stone-100"><ExternalLink className="size-4" /></button>
       <div className="group relative self-center">
@@ -52,6 +50,10 @@ export function TransitPanel() {
         </div>
       </div>
       <button aria-label="关闭中转站" title="关闭" onClick={() => selectTransit(null)} className="rounded p-1.5 text-stone-500 hover:bg-stone-100"><X className="size-4" /></button>
-    </header>{item.kind === "file" ? <FilePreview key={item.id} item={item} /> : item.kind === "url" ? <WebPreview key={item.id} item={item} /> : <pre className="min-h-0 flex-1 overflow-auto whitespace-pre-wrap break-words p-5 font-sans text-sm leading-7 text-stone-700">{item.content}</pre>}<footer className="border-t bg-stone-50 px-3 py-2 text-right text-[11px] text-stone-400"><Clock format="YYYY年MM月DD日 HH:mm" ticking interval={1000} /></footer></>}
+    </header>{item.kind === "file" ? <FilePreview key={item.id} item={item} /> : item.kind === "url" ? <WebPreview key={item.id} item={item} /> : <pre className="min-h-0 flex-1 overflow-auto whitespace-pre-wrap break-words p-5 font-sans text-sm leading-7 text-stone-700">{item.content}</pre>}<footer className="border-t bg-stone-50 px-3 py-2 text-right text-[11px] text-stone-400"><Clock format="YYYY年MM月DD日 HH:mm" ticking interval={1000} /></footer></>
+  return <Sheet modal={false} open={!!item} onOpenChange={open => { if (!open) selectTransit(null) }}><SheetContent showOverlay={false} showCloseButton={false} side="right" onInteractOutside={e => e.preventDefault()} onOpenAutoFocus={e => e.preventDefault()} style={dock === 'floating' && !full ? { left: `max(52px, calc(50% - ${width/2}px))`, top: '10vh', bottom: 'auto', height: '80vh', width: `calc(50% + ${width/2}px)` } : { left: 52, width: 'calc(100vw - 52px)' }} className="pointer-events-none !max-w-none border-0 bg-transparent p-0 shadow-none">
+    <ResizableSplit side={left || dock === 'floating' ? 'left' : 'right'} size={width} min={320} max={Math.min(900, window.innerWidth - 52)} label="调整中转站宽度" onResize={value => { setWidth(value); localStorage.setItem('vessel-transit-width', String(value)) }} pane={!full ? <div className="transit-resizable-content pointer-events-auto flex h-full min-w-0 flex-col bg-white shadow-lg">
+    {content}
+    </div> : undefined}>{full ? <div className="pointer-events-auto flex h-full flex-col bg-white">{content}</div> : <div className="h-full" />}</ResizableSplit>
   </SheetContent></Sheet>
 }

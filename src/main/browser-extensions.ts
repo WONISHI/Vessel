@@ -2,7 +2,7 @@ import { registerBrowserSiteCompatibility } from "./browser-site-compatibility"
 import { loadExtensionPage, handleExtensionWindows } from "./extension-navigation"
 import { extensionMetadata, extensionFile } from "./extension-metadata"
 import { importExtensionArchive } from "./extension-archive"
-import { app, BrowserWindow, WebContentsView, dialog, session, type WebContents } from "electron"
+import { app, BrowserWindow, dialog, session, type WebContents } from "electron"
 import { readFile, writeFile, rename, realpath, rm } from "node:fs/promises"
 import { join, dirname, basename } from "node:path"
 import { randomUUID } from "node:crypto"
@@ -61,33 +61,22 @@ export function registerBrowserExtensions(host: WebContents) {
     if (!parent) throw new Error("窗口已关闭")
     closePopup(key)
     closeOwned()
-    const popup = new WebContentsView({ webPreferences: { partition: "persist:vessel-browser", sandbox: true, contextIsolation: true, nodeIntegration: false } })
-    const resize = () => {
-      const [width, height] = parent.getContentSize()
-      const panelWidth = Math.min(400, width - 24), panelHeight = Math.min(560, height - 140)
-      popup.setBounds({ x: Math.max(12, width - panelWidth - 16), y: 112, width: Math.max(1, panelWidth), height: Math.max(1, panelHeight) })
-    }
+    const popup = new BrowserWindow({ parent, title: record.name, width: 440, height: 520, minWidth: 320, minHeight: 240, show: false, autoHideMenuBar: true, minimizable: false, webPreferences: { partition: "persist:vessel-browser", sandbox: true, contextIsolation: true, nodeIntegration: false } })
     let closed = false
     const close = () => {
       if (closed) return
       closed = true
-      parent.removeListener("resize", resize)
-      parent.removeListener("blur", closeOnBlur)
       owned.delete(close)
       if (popups.get(key)?.close === close) popups.delete(key)
-      if (!parent.isDestroyed()) parent.contentView.removeChildView(popup)
-      if (!popup.webContents.isDestroyed()) popup.webContents.close()
+      if (!popup.isDestroyed()) popup.destroy()
     }
-    const closeOnBlur = () => { if (mode !== "inspect" && !popup.webContents.isDevToolsOpened()) close() }
+    popup.on("closed", close)
     owned.add(close)
     popups.set(key, { close })
-    parent.on("resize", resize)
-    parent.on("blur", closeOnBlur)
     popup.webContents.on("before-input-event", (event, input) => { if (input.key === "Escape") { event.preventDefault(); close() } })
-    resize()
     handleExtensionWindows(popup.webContents, record.extensionId, target => host.send("browser:new-tab", target))
     popup.webContents.on("will-navigate", (event, target) => { if (!target.startsWith(`chrome-extension://${record.extensionId}/`)) { event.preventDefault(); if (/^https?:\/\//.test(target)) host.send("browser:new-tab", target) } })
-    try { await loadExtensionPage(popup.webContents, url); if (popup.webContents.isDestroyed()) return { kind: "background" }; parent.contentView.addChildView(popup); if (mode === "inspect") popup.webContents.openDevTools({ mode: "detach" }) }
+    try { await loadExtensionPage(popup.webContents, url); if (popup.webContents.isDestroyed()) return { kind: "background" }; popup.show(); if (mode === "inspect") popup.webContents.openDevTools({ mode: "detach" }) }
     catch (error) { if (closed) return { kind: "background" }; close(); throw error }
     return { kind: "window" }
   })

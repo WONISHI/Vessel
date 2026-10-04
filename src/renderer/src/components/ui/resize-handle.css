@@ -1,0 +1,14 @@
+.vessel-resize-handle { background: transparent; outline: none; touch-action: none; }
+.vessel-resize-handle::before, .vessel-resize-handle::after { content: ''; position: absolute; pointer-events: none; background: #e7e5e4; transition: background .15s, width .15s, height .15s; }
+.vessel-resize-handle[aria-orientation=vertical]::before { inset: 0 auto 0 50%; width: 1px; transform: translateX(-50%); }
+.vessel-resize-handle[aria-orientation=horizontal]::before { inset: 50% 0 auto; height: 1px; transform: translateY(-50%); }
+.vessel-resize-handle::after { left: 50%; top: 50%; transform: translate(-50%,-50%); border-radius: 2px; }
+.vessel-resize-handle[aria-orientation=vertical]::after { width: 3px; height: 20px; }
+.vessel-resize-handle[aria-orientation=horizontal]::after { width: 20px; height: 3px; }
+.vessel-resize-handle:is(:hover,:focus-visible,[data-dragging=true])::before { background: #d6d3d1; }
+.vessel-resize-handle:is(:hover,:focus-visible,[data-dragging=true])::after { background: #a8a29e; }
+.vessel-panel-separator { position: relative; flex-shrink: 0; }
+.vessel-panel-separator[aria-orientation=horizontal] { height: 4px; width: 100%; cursor: row-resize; }
+.vessel-panel-separator[aria-orientation=vertical] { width: 4px; height: 100%; cursor: col-resize; }
+
+.vessel-panel-separator { pointer-events: auto; }
