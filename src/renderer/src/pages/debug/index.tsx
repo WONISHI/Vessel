@@ -1,7 +1,7 @@
 import "./tools.css"
 import Layout from "@/layout"
 import ActivityBar from "@/layout/activity-bar"
-import { ImageIcon, Code, Palette, Binary, Link } from 'lucide-react'
+import { Code, Palette, Binary, Link } from 'lucide-react'
 import { RouterView } from '@vessel/react-router/components'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
@@ -9,7 +9,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable-panels'
 import { useSidebar } from "@/components/ui/sidebar"
 const groups = [
-  { title: '图像', items: [{ id: 'ocr', title: '图片', icon: ImageIcon }, { id: 'json', title: 'JSON 格式化', icon: Code }, { id: 'color', title: '颜色转换', icon: Palette }] },
+  { title: '图像', items: [{ id: 'json', title: 'JSON 格式化', icon: Code }, { id: 'color', title: '颜色转换', icon: Palette }] },
   { title: '编码', items: [{ id: 'base64', title: 'Base64', icon: Binary }, { id: 'url', title: 'URL 编解码', icon: Link }] }
 ]
 export default function DevToolsIndex() {

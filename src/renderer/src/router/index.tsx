@@ -1,9 +1,10 @@
-import { OCRTool, JsonTool, ColorTool, Base64Tool, URLTool } from "@/pages/debug/utility-tools"
+import { JsonTool, ColorTool, Base64Tool, URLTool } from "@/pages/debug/utility-tools"
 import SettingsPage from "@/pages/settings"
 import { OfficeRoute } from "@/pages/office"
 import { BrowserRoute } from "@/pages/browser/keep-alive"
 import { useLocation } from "react-router-dom"
 import TodosPage from "@/pages/todos"
+import ImageRoute from "@/pages/image"
 import { useEffect, useState } from "react"
 
 import App, { type WorkspaceData } from "../App"
@@ -109,7 +110,8 @@ export const routes: AppRouteRecordRaw[] = [
   ] },
   { path: "/settings", name: "settings", component: SettingsPage, meta: { title: "设置" } },
   { path: "/browser", name: "browser", component: BrowserRoute, meta: { title: "浏览器" } },
-  {path: "/todos", name: "todos", component: TodosPage, meta: {title: "待办"}},
+  { path: "/todos", name: "todos", component: TodosPage, meta: { title: "待办" } },
+  { path: "/image", name: "image", component: ImageRoute, meta: { title: "图片" } },
   {
     path: "/",
     name: "welcome",
@@ -140,10 +142,10 @@ export const routes: AppRouteRecordRaw[] = [
       hidden: true
     },
     children: [
-      ...[{ path: 'ocr', component: OCRTool, title: '图片工具箱' }, { path: 'json', component: JsonTool, title: 'JSON 格式化' }, { path: 'color', component: ColorTool, title: '颜色转换' }, { path: 'base64', component: Base64Tool, title: 'Base64' }, { path: 'url', component: URLTool, title: 'URL 编解码' }].map(tool => ({ path: tool.path, name: `devtools-${tool.path}`, component: tool.component, meta: { title: tool.title } })),
+      ...[{ path: 'json', component: JsonTool, title: 'JSON 格式化' }, { path: 'color', component: ColorTool, title: '颜色转换' }, { path: 'base64', component: Base64Tool, title: 'Base64' }, { path: 'url', component: URLTool, title: 'URL 编解码' }].map(tool => ({ path: tool.path, name: `devtools-${tool.path}`, component: tool.component, meta: { title: tool.title } })),
       {
         index: true,
-        redirect: { name: "devtools-ocr" }
+        redirect: { name: "devtools-json" }
       },
       {
         path: "console",

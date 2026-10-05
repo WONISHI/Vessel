@@ -189,8 +189,8 @@ export default function LayoutMain() {
             </TooltipTrigger>
             <TooltipContent>标签页操作</TooltipContent>
           </Tooltip>
-          <DropdownMenuContent align="end" className="w-44 rounded-lg p-1 [&_[role=menuitem]]:px-2 [&_[role=menuitem]]:py-1.5 [&_[role=menuitem]]:text-xs [&_[role=menuitem]]:font-normal [&_[role=menuitem]:focus]:!bg-[#f0efed] [&_[role=menuitem]:focus]:!text-stone-700 [&_[data-state=open]]:!bg-[#f0efed]">
-            <DropdownMenuSub><DropdownMenuSubTrigger>标签页（{openFiles.length}）</DropdownMenuSubTrigger><DropdownMenuSubContent className="max-h-72 max-w-72 overflow-auto [&_[role=menuitem]]:py-1.5 [&_[role=menuitem]]:text-xs [&_[role=menuitem]:focus]:!bg-[#f0efed] [&_[role=menuitem]:focus]:!text-stone-700">{openFiles.map(file => <DropdownMenuItem key={file.path} className={file.path === activeFilePath ? "bg-emerald-50 text-green-700" : ""} onSelect={() => openWorkspaceFile(file)}><span className="truncate">{file.name}</span></DropdownMenuItem>)}</DropdownMenuSubContent></DropdownMenuSub>
+          <DropdownMenuContent align="end" className="w-44 rounded-lg !bg-white p-1 [&_[role=menuitem]]:px-2 [&_[role=menuitem]]:py-1.5 [&_[role=menuitem]]:text-xs [&_[role=menuitem]]:font-normal [&_[role=menuitem]:focus]:!bg-[#f0efed] [&_[role=menuitem]:focus]:!text-stone-700 [&_[role=menuitem][data-state=open]]:!bg-[#f0efed]">
+            <DropdownMenuSub><DropdownMenuSubTrigger>标签页（{openFiles.length}）</DropdownMenuSubTrigger><DropdownMenuSubContent className="max-h-72 max-w-72 overflow-auto !bg-white [&_[role=menuitem]]:py-1.5 [&_[role=menuitem]]:text-xs [&_[role=menuitem]:focus]:!bg-[#f0efed] [&_[role=menuitem]:focus]:!text-stone-700">{openFiles.map(file => <DropdownMenuItem key={file.path} className={file.path === activeFilePath ? "bg-emerald-50 text-green-700" : ""} onSelect={() => openWorkspaceFile(file)}><span className="truncate">{file.name}</span></DropdownMenuItem>)}</DropdownMenuSubContent></DropdownMenuSub>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               disabled={!activeFilePath}

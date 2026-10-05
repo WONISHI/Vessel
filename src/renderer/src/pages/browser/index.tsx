@@ -238,7 +238,7 @@ export default function BrowserPage({ visible = true }: { visible?: boolean }) {
         <ActivityBar
           activity="browser"
           onActivityChange={(item) => {
-            if (item !== "browser") void router.push(item === "resources" ? "/resources" : item === "todos" ? "/todos" : item === "tools" ? "/devtools" : "/editor")
+            if (item !== "browser") void router.push(item === "tools" ? "/devtools" : item === "files" ? "/editor" : `/${item}`)
           }}
         />
       }

@@ -5,10 +5,8 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Slider } from '@/components/ui/slider'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { ImageToolbox } from '@/pages/image-preview/image-toolbox'
 import { toast } from 'sonner'
 const copy = (text: string) => void navigator.clipboard.writeText(text).then(() => toast.success('已复制')).catch(e => toast.error(String(e)))
-export function OCRTool() { return <ImageToolbox /> }
 function TextTool({ mode }: { mode: 'base64' | 'url' }) {
   const [input,setInput] = useState(''), [output,setOutput] = useState(''), [error,setError] = useState('')
   const run = (reverse = false) => {

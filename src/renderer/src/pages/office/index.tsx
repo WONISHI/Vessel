@@ -28,7 +28,7 @@ function OfficePage() {
     window.addEventListener("message", listener)
     return () => { clearTimeout(timeout); window.removeEventListener("message", listener) }
   }, [url])
-  return <Layout aside={<ActivityBar activity="office" onActivityChange={item => void router.push(item === "resources" ? "/resources" : item === "browser" ? "/browser" : item === "todos" ? "/todos" : item === "tools" ? "/devtools" : "/editor")} />}>
+  return <Layout aside={<ActivityBar activity="office" onActivityChange={item => void router.push(item === "tools" ? "/devtools" : item === "files" ? "/editor" : `/${item}`)} />}>
     <main className="relative h-full min-w-0 flex-1">
       {url && <iframe ref={frame} title="ONLYOFFICE 本地编辑器" src={url} className="h-full w-full border-0" />}
       {!ready && !error && <div className="absolute inset-0"><EditorLoading kind="office" /></div>}

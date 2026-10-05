@@ -70,7 +70,7 @@ export function BrowserProxy() {
       <SheetContent
         showOverlay={false}
         aria-describedby={undefined}
-        className="flex w-[360px] max-w-full flex-col gap-0 p-0 sm:max-w-[360px] [&>button]:right-5 [&>button]:top-6 [&>button]:text-stone-400"
+        className="z-[250] flex w-[360px] max-w-full flex-col gap-0 p-0 sm:max-w-[360px] [&>button]:right-5 [&>button]:top-6 [&>button]:text-stone-400"
       >
         <SheetHeader className="shrink-0 px-4 pb-3 pt-4 text-left">
           <SheetTitle className="flex items-center gap-3 pr-5 text-base font-bold text-stone-900">

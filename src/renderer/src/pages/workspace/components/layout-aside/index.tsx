@@ -27,6 +27,7 @@ export default function LayoutAside({ resources = false, children }: { resources
     setPreview(false)
     if (next === "browser") { void router.push("/browser"); return }
     if (next === "todos") { void router.push("/todos"); return }
+    if (next === "image") { void router.push("/image"); return }
     if (next === "tools") { void router.push("/devtools"); return }
     setActivity(next)
     if (isMobile) setOpenMobile(true)
