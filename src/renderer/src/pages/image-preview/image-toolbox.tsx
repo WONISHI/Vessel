@@ -47,9 +47,26 @@ function ShapeSvg({ s }: { s: Shape }) {
   if (s.kind === 'arrow') { const [h1, h2] = arrowHead(a, b, s.width); return <path d={`M${a.x},${a.y} L${b.x},${b.y} M${h1.x},${h1.y} L${b.x},${b.y} L${h2.x},${h2.y}`} {...stroke} /> }
   return <text x={a.x} y={a.y} fontSize={s.size} fill={s.color} dominantBaseline="hanging" fontFamily="sans-serif">{s.text}</text>
 }
+function formatDate(date: Date) {
+  const weekDays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六']
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  const hh = String(date.getHours()).padStart(2, '0')
+  const mm = String(date.getMinutes()).padStart(2, '0')
+  return `${y}年${m}月${d}日 ${hh}:${mm} ${weekDays[date.getDay()]}`
+}
+function formatBytes(bytes: number) {
+  if (!bytes || bytes <= 0) return '0 B'
+  const k = 1024
+  const sizes = ['B', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+}
 function Action({ children, onClick, disabled }: { children: ReactNode; onClick: () => void; disabled?: boolean }) { return <button className="image-button image-primary" disabled={disabled} onClick={onClick}>{children}</button> }
 export function ImageToolbox({ initialImage, embedded = false }: { initialImage?: string; embedded?: boolean } = {}) {
   const [image, setImage] = useState(''), [history, setHistory] = useState<string[]>([]), [tool, setTool] = useState('ocr')
+  const [meta, setMeta] = useState<{ name: string; size: number; updatedAt: Date }>({ name: 'vessel-image.png', size: 0, updatedAt: new Date() })
   const [size, setSize] = useState({ width: 1, height: 1 }), [resize, setResize] = useState({ width: 1, height: 1 })
   const [region, setRegion] = useState<ImageRegion>({ x: 0, y: 0, width: 1, height: 1 }), [regionOCR, setRegionOCR] = useState(false)
   const [busy, setBusy] = useState(false), [result, setResult] = useState(''), [elapsed, setElapsed] = useState(0)
@@ -71,12 +88,22 @@ export function ImageToolbox({ initialImage, embedded = false }: { initialImage?
     viewport.addEventListener('wheel', wheel, { passive: false }); return () => viewport.removeEventListener('wheel', wheel)
   }, [viewport])
   useEffect(() => { setShapes([]); setDraft(null) }, [tool])
-  useEffect(() => { if (initialImage) void run(() => accept(initialImage, true)) }, [initialImage])
+  useEffect(() => {
+    if (initialImage) {
+      setMeta({ name: '当前图片.png', size: Math.round((initialImage.length * 3) / 4), updatedAt: new Date() })
+      void run(() => accept(initialImage, true))
+    }
+  }, [initialImage])
   useEffect(() => {
     if (!viewport) return
     const observer = new ResizeObserver(([entry]) => setBounds({ width: entry.contentRect.width, height: entry.contentRect.height }))
     observer.observe(viewport); return () => observer.disconnect()
   }, [viewport])
+  const [now, setNow] = useState(new Date())
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 1000)
+    return () => clearInterval(timer)
+  }, [])
   const fit = Math.min(1, Math.max(1, bounds.width - 48) / size.width, Math.max(1, bounds.height - 48) / size.height)
   const scale = fit * zoom, selection = !!image && (tool === 'crop' || (tool === 'ocr' && regionOCR))
   const active = allTools.find(t => t.id === tool)!, Icon = active.icon
@@ -85,14 +112,16 @@ export function ImageToolbox({ initialImage, embedded = false }: { initialImage?
     const img = await loadImage(src), next = { width: img.naturalWidth, height: img.naturalHeight }
     setHistory(previous => reset ? [] : [...previous.slice(-2), image].filter(Boolean)); setImage(src); setSize(next); setResize(next); setRegion({ x: 0, y: 0, ...next }); setZoom(1); setResult(''); setElapsed(0); setColors([])
     if (reset) { setLayer(''); setFormat('image/png') }
+    else { setMeta(m => ({ ...m, size: Math.round((src.length * 3) / 4), updatedAt: new Date() })) }
   }
   const apply = (operation: () => Promise<HTMLCanvasElement>, mime = 'image/png') => void run(async () => { const canvas = await operation(); await accept(canvas.toDataURL(mime, quality / 100)) })
   const readFile = async (file: File, isLayer: boolean) => {
     if (!/^image\/(png|jpeg|webp)$/.test(file.type) || file.size > 30_000_000) throw new Error('请选择 30 MB 以内的 PNG、JPEG 或 WebP 图片')
     const src = await new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result)); reader.onerror = () => reject(new Error('读取图片失败')); reader.readAsDataURL(file) })
-    if (isLayer) { const img = await loadImage(src); setLayer(src); setLayerWidth(Math.min(size.width, img.naturalWidth)) } else await accept(src, true)
+    if (isLayer) { const img = await loadImage(src); setLayer(src); setLayerWidth(Math.min(size.width, img.naturalWidth)) }
+    else { setMeta({ name: file.name, size: file.size, updatedAt: new Date(file.lastModified || Date.now()) }); await accept(src, true) }
   }
-  const paste = () => void run(async () => { const src = await window.electronAPI.readClipboardImage(); if (!src) throw new Error('剪贴板中没有图片'); await accept(src, true) })
+  const paste = () => void run(async () => { const src = await window.electronAPI.readClipboardImage(); if (!src) throw new Error('剪贴板中没有图片'); setMeta({ name: '剪贴板图片.png', size: Math.round((src.length * 3) / 4), updatedAt: new Date() }); await accept(src, true) })
   const exportCurrent = () => void run(async () => { const canvas = await imageCanvas(image); if (format === 'image/jpeg') { const ctx = canvas.getContext('2d')!; ctx.globalCompositeOperation = 'destination-over'; ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height) } downloadImage(canvas.toDataURL(format, quality / 100), `vessel-image.${format.split('/')[1]}`) })
   const rotate = (degrees: number, flip?: 'x' | 'y') => apply(async () => {
     const img = await loadImage(image), radians = degrees * Math.PI / 180
@@ -143,7 +172,6 @@ export function ImageToolbox({ initialImage, embedded = false }: { initialImage?
         <div ref={setViewport} className="image-viewport"><ScrollArea className="image-preview-scroll"><div className="image-stage" style={{ width: Math.max(bounds.width, size.width * scale + 48), height: Math.max(bounds.height, size.height * scale + 48) }}>
           {image ? <div className={'image-picture' + (selection ? ' selecting' : '') + (annotating ? ' annotating' : '')} style={{ width: size.width * scale, height: size.height * scale }} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={cancel}><img src={image} alt="待处理图片" draggable={false} />{annotating && <svg className="image-annotations" viewBox={`0 0 ${size.width} ${size.height}`}>{[...shapes, ...(draft ? [draft] : [])].map((s, i) => <ShapeSvg key={i} s={s} />)}</svg>}{selection && <div className="image-crop" data-handle="move" style={{ left: region.x * scale, top: region.y * scale, width: region.width * scale, height: region.height * scale }}>{['nw', 'ne', 'sw', 'se'].map(h => <i key={h} data-handle={h} className={'handle-' + h} />)}</div>}</div> : <button className="image-empty" onClick={() => fileInput.current?.click()}><ImageIcon /><strong>导入图片开始编辑</strong><span>PNG、JPEG、WebP · 本地处理</span></button>}
         </div><ScrollBar orientation="horizontal" /></ScrollArea>{busy && <div className="image-processing" role="status"><LoaderCircle className="animate-spin" />{tool === 'ocr' ? '正在识别，请稍候…' : '正在处理图片…'}</div>}</div>
-        {image && <div className="image-size">{size.width} × {size.height} px{selection && <span>拖动框选区域 · {region.width} × {region.height} px</span>}</div>}
       </section>
       {settings && <aside className="image-settings"><div className="image-settings-heading"><span><Icon /></span><div><h2>{active.title}</h2><p>{tool === 'ocr' ? '图片文字提取，本地离线识别' : '调整参数后应用到图片'}</p></div></div><ScrollArea className="image-settings-scroll"><div className="image-settings-content"><fieldset disabled={busy}>
         {tool === 'ocr' && <><div className="image-control-row"><span className="image-language">中文 + 英文</span><Action disabled={disabled} onClick={recognize}><Sparkles />开始识别</Action></div><label className="image-switch">框选区域识别<Switch checked={regionOCR} onCheckedChange={setRegionOCR} /></label><div className="image-result-label">识别结果<div><button aria-label="复制识别文字" disabled={!result} onClick={() => copy(result)}><Copy /></button><button aria-label="下载识别文字" disabled={!result} onClick={() => downloadText(result, 'ocr-result.txt')}><Download /></button></div></div><textarea aria-label="识别结果" value={result} onChange={e => setResult(e.target.value)} placeholder="点击开始识别，结果将显示在这里" className="image-result" /><div className="image-result-stats">{result ? result.split('\n').length : 0} 行 · {result.length} 字 <span>耗时 {elapsed.toFixed(1)}s</span> · 本地离线</div></>}
@@ -158,5 +186,31 @@ export function ImageToolbox({ initialImage, embedded = false }: { initialImage?
         {tool === 'composite' && <><button className="image-button" disabled={disabled} onClick={() => layerInput.current?.click()}><Upload />添加图片图层</button>{layer && <img src={layer} alt="待合成图层" className="image-layer-thumbnail" />}<div className="image-control-row"><NumberField label="X" min={-8192} value={layerX} onChange={setLayerX} /><NumberField label="Y" min={-8192} value={layerY} onChange={setLayerY} /></div><NumberField label="图层宽度 (px)" min={1} value={layerWidth} onChange={setLayerWidth} /><RangeField label="不透明度 (%)" value={opacity} onChange={setOpacity} /><label className="image-field">混合模式<select value={blend} onChange={e => setBlend(e.target.value as GlobalCompositeOperation)}><option value="source-over">正常</option><option value="multiply">正片叠底</option><option value="screen">滤色</option><option value="overlay">叠加</option></select></label><Action disabled={disabled || !layer} onClick={() => apply(async () => { const canvas = await imageCanvas(image), img = await loadImage(layer), ctx = canvas.getContext('2d')!; if (layerWidth < 1 || layerWidth > 8192) throw new Error('图层宽度须在 1–8192 像素内'); ctx.globalAlpha = opacity / 100; ctx.globalCompositeOperation = blend; ctx.drawImage(img, layerX, layerY, layerWidth, layerWidth * img.naturalHeight / img.naturalWidth); return canvas })}>合并图层</Action></>}
       </fieldset></div></ScrollArea>{tool === 'ocr' && <footer className="image-settings-footer"><button className="image-button" disabled={busy || !result} onClick={() => { setResult(''); setElapsed(0) }}>清空</button><Action disabled={!result} onClick={() => copy(result)}>复制全部</Action></footer>}</aside>}
     </div>
+    <footer className="image-footer-statusbar">
+      <div className="image-statusbar-left">
+        {image ? (
+          <>
+            <span className="font-medium text-stone-700">{meta.name}</span>
+            <span>·</span>
+            <span>{size.width} × {size.height} px</span>
+            <span>·</span>
+            <span>{Math.round(scale * 100)}%</span>
+            <span>·</span>
+            <span>{formatBytes(meta.size)}</span>
+            {selection && (
+              <>
+                <span>·</span>
+                <span className="text-emerald-600 font-medium">框选: {region.width} × {region.height} px</span>
+              </>
+            )}
+          </>
+        ) : (
+          <span className="text-stone-400">未导入图片</span>
+        )}
+      </div>
+      <div className="image-statusbar-right">
+        <span>{formatDate(now)}</span>
+      </div>
+    </footer>
   </div>
 }
