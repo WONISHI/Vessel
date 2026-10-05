@@ -1,0 +1,36 @@
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: system-ui, sans-serif;
+}
+.pin-toolbar {
+  height: 28px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 8px;
+  box-sizing: border-box;
+  background: #fafaf9;
+  color: #78716c;
+  font-size: 11px;
+  -webkit-app-region: drag;
+}
+.pin-toolbar button {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  -webkit-app-region: no-drag;
+}
+.pin-toolbar button:first-child {
+  margin-left: auto;
+}
+.pin-image {
+  width: 100%;
+  height: calc(100% - 28px);
+  object-fit: contain;
+  -webkit-app-region: drag;
+}

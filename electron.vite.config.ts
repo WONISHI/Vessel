@@ -49,7 +49,7 @@ export default defineConfig({
     }
   },
   preload: {
-    build: { externalizeDeps: { exclude: ["@vessel/obsidian", "@vessel/utils", "@vessel/react-router"] } },
+    build: { rollupOptions: { input: {index: resolve("src/preload/index.ts"), screenshot: resolve("src/preload/screenshot.ts")} }, externalizeDeps: { exclude: ["@vessel/obsidian", "@vessel/utils", "@vessel/react-router"] } },
     resolve: {
       alias: {
         "@main": resolve("src/main"),
@@ -60,7 +60,7 @@ export default defineConfig({
   renderer: {
     worker: { format: "es" },
     optimizeDeps: { exclude: ["wasm-onlyoffice-sdk"] },
-    build: { rollupOptions: { input: { index: resolve("src/renderer/index.html"), office: resolve("src/renderer/office.html") } } },
+    build: { rollupOptions: { input: { index: resolve("src/renderer/index.html"), office: resolve("src/renderer/office.html"), screenshot: resolve("src/renderer/screenshot.html") } } },
     resolve: {
       alias: {
         "moment": momentCommonJS,

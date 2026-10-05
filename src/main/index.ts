@@ -1,3 +1,4 @@
+import { registerScreenshotShortcut } from "./screenshot"
 import { registerSettings } from "./settings"
 import { registerTransit } from "./transit"
 import { registerOffice } from "./office"
@@ -98,6 +99,7 @@ app.whenReady().then(() => {
   ipcMain.on("ping", () => console.log("pong"))
 
   createWindow()
+  registerScreenshotShortcut()
 
   app.on("activate", function () {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()

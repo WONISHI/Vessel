@@ -75,8 +75,6 @@ async function disconnect() {
   await browser().closeAllConnections()
   running?.kill()
   state.connected = false
-  state.nodes = []
-  state.selected = ""
   state.stage = "未连接"
 }
 async function savedURL() {
@@ -150,7 +148,18 @@ async function connect(input?: string) {
   return { ...state }
 }
 app.once("before-quit", () => child?.kill())
+let saving = Promise.resolve()
 export function registerBrowserProxy(host: WebContents) {
+  host.ipc.handle("browser:proxy:subscription", () => savedURL())
+  host.ipc.handle("browser:proxy:save", (_event, value: string) => {
+    if (typeof value !== 'string' || value.length > 8192) throw new Error('订阅链接无效')
+    memoryURL = value
+    saving = saving.catch(() => {}).then(async () => {
+      await mkdir(directory(), {recursive: true, mode: 0o700})
+      if (safeStorage.isEncryptionAvailable()) await writeFile(join(directory(), 'subscription.enc'), safeStorage.encryptString(value), {mode: 0o600})
+    })
+    return saving
+  })
   host.ipc.handle("browser:proxy:status", async () => ({ ...state, hasSubscription: !!(await savedURL()) }))
   host.ipc.handle("browser:proxy:connect", (_event, url?: string) => connect(url))
   host.ipc.handle("browser:proxy:disconnect", async () => {

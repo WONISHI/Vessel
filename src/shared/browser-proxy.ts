@@ -8,6 +8,8 @@ export interface BrowserProxyStatus {
   error?: string
 }
 export interface BrowserProxyAPI {
+  browserProxySubscription(): Promise<string>
+  saveBrowserProxySubscription(url: string): Promise<void>
   browserProxyStatus(): Promise<BrowserProxyStatus>
   connectBrowserProxy(subscription?: string): Promise<BrowserProxyStatus>
   disconnectBrowserProxy(): Promise<BrowserProxyStatus>
