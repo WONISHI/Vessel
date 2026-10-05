@@ -42,6 +42,15 @@ export function registerBrowserExtensions(host: WebContents) {
   registerBrowserSiteCompatibility(session.fromPartition("persist:vessel-browser"))
   void initialize()
   const owned = new Set<() => void>()
+  let activePopup: WebContents | undefined
+  host.ipc.handle('browser:extensions:scroll', async (_event, top?: number) => {
+    const target = activePopup
+    if (!target || target.isDestroyed()) return {height:0,top:0}
+    const scale = host.getZoomFactor()
+    const scroll = typeof top === 'number' && Number.isFinite(top) ? `window.scrollTo(0,${Math.max(0,top)*scale});` : ''
+    const result = await target.executeJavaScript(`(() => {${scroll} const el=document.scrollingElement;return {height:el?.scrollHeight||0,top:el?.scrollTop||0}})()`)
+    return {height:result.height/scale,top:result.top/scale}
+  })
   let resizePopup: ((bounds: { x: number; y: number; width: number; height: number }) => void) | undefined
   host.ipc.handle("browser:extensions:bounds", (_event, bounds) => {
     if (!bounds || ![bounds.x,bounds.y,bounds.width,bounds.height].every(Number.isFinite)) return
@@ -86,7 +95,9 @@ export function registerBrowserExtensions(host: WebContents) {
     closePopup(key)
     closeOwned()
     const popup = new WebContentsView({ webPreferences: { partition: "persist:vessel-browser", sandbox: true, contextIsolation: true, nodeIntegration: false } })
+    activePopup = popup.webContents
     popup.webContents.on('dom-ready', () => {
+      void popup.webContents.insertCSS('::-webkit-scrollbar { display: none !important; } html { scrollbar-width: none !important; }')
       if (/iguge|igg/i.test(record.name) && new URL(popup.webContents.getURL()).pathname === '/welcome.html') void popup.webContents.insertCSS(igugeWelcomeStyle)
     })
     popup.setVisible(false)
@@ -104,6 +115,7 @@ export function registerBrowserExtensions(host: WebContents) {
       if (closed) return
       closed = true
       resizePopup = undefined
+      activePopup = undefined
       owned.delete(close)
       if (popups.get(key)?.close === close) popups.delete(key)
       if (!parent.isDestroyed()) parent.contentView.removeChildView(popup)

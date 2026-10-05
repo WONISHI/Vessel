@@ -7,7 +7,7 @@ import Editor from "@monaco-editor/react"
 import { useEffect, useRef, useState, useMemo, useDeferredValue } from "react"
 import { monaco } from "./monaco"
 import { codeLanguage } from "./language"
-import { PageLoading } from "@/components/ui/page-loading"
+import { EditorLoading } from "@/components/ui/editor-loading"
 
 export default function CodeCanvas({ activeFilePath }: { activeFilePath: string }) {
   const [content, setContent] = useState<string>()
@@ -41,11 +41,11 @@ export default function CodeCanvas({ activeFilePath }: { activeFilePath: string 
     })
   }
   if (error) return <p role="alert" className="p-4 text-red-500">读取失败：{error}</p>
-  if (content === undefined) return <PageLoading label="正在读取代码…" />
+  if (content === undefined) return <EditorLoading label="正在读取代码…" />
   return <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
     <div className="vessel-code-editor min-h-0 flex-1">
       <Editor height="100%" path={monaco.Uri.file(activeFilePath).toString()} language={codeLanguage(activeFilePath)} value={content}
-        loading={<PageLoading label="正在加载代码编辑器…" />}
+        loading={<EditorLoading label="正在加载代码编辑器…" />}
         onChange={value => { if (value !== undefined && value !== content) { setContent(value); save(value) } }}
         onMount={editor => { codeEditors.set(activeFilePath, editor); editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => save(editor.getValue())) }}
         options={{ automaticLayout: true, scrollbar: { verticalScrollbarSize: 10, horizontalScrollbarSize: 10, useShadows: false }, overviewRulerLanes: 0, hideCursorInOverviewRuler: true, minimap: { enabled: false }, fontSize: 14, scrollBeyondLastLine: false, tabSize: 2, renderWhitespace: "selection" }} />

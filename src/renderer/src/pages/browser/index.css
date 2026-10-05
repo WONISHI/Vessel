@@ -31,6 +31,7 @@
   flex-shrink: 0;
 }
 .browser-tab.selected {
+  flex-grow: 1.5;
   background: white;
   border-color: #e7e5e4;
 }
@@ -250,3 +251,5 @@
 
 .browser-tab-select { overflow: hidden; padding-left: 8px; padding-right: 22px; gap: 4px; }
 .browser-tab > button[title="关闭标签页"] { right: 4px; }
+
+.browser-tab.selected { max-width: 260px; }

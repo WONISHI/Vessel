@@ -49,3 +49,6 @@
 .dev-tools .color-controls [aria-label] > .grow { height: 4px; background: linear-gradient(to right,var(--channel),var(--channel-light)); }
 .dev-tools .color-controls [aria-label] > .grow > span { background: transparent; }
 .dev-tools .color-controls [role=slider] { width: 14px; height: 14px; border-color: #16a34a; background: white; box-shadow: 0 1px 3px #00000026; }
+
+.dev-tools main header button:not(:disabled):is(:hover, :active) { color: white !important; }
+.dev-tools main header button:not(:disabled):is(:hover, :active) svg { color: white !important; stroke: currentColor; }

@@ -1,3 +1,4 @@
+import { EditorLoading } from "./components/ui/editor-loading"
 import { useEffect, useLayoutEffect, useRef, useState } from "react"
 import { OnlyOfficeEditor } from "wasm-onlyoffice-sdk/react"
 import { FileText, FileSpreadsheet, Presentation, Plus, X, FolderOpen, Save } from "lucide-react"
@@ -13,13 +14,15 @@ function requestHost<T>(data: object): Promise<T> {
 }
 const kinds = [{ type: "docx", label: "Word 文档", Icon: FileText, color: "#2563eb" }, { type: "xlsx", label: "Excel 表格", Icon: FileSpreadsheet, color: "#16a34a" }, { type: "pptx", label: "PPT 演示文稿", Icon: Presentation, color: "#d97706" }] as const
 export function Editor() {
+  const [ready, setReady] = useState(false)
+  const [loadError, setLoadError] = useState("")
   const [doc, setDoc] = useState<Doc>()
   const preview = new URLSearchParams(location.search).has("preview")
   const report = (data: object) => parent.postMessage({ type: "office:state", ...data }, preview ? "*" : location.origin)
   useEffect(() => {
     const init = (event: MessageEvent) => {
       if (event.source !== parent || (!preview && event.origin !== location.origin)) return
-      if (event.data?.type === "office:init") setDoc(event.data.doc)
+      if (event.data?.type === "office:init") { setReady(false); setLoadError(""); setDoc(event.data.doc) }
       if (event.data?.type === "office:export") {
         const runtime = (document.querySelector<HTMLIFrameElement>('iframe[name="frameEditor"]')?.contentWindow as (Window & { Asc?: { editor?: { asc_DownloadAs(options: unknown): void }; asc_CDownloadOptions: new (format: number) => unknown; c_oAscFileType: Record<string, number> } }) | null)?.Asc
         if (!runtime?.editor) { report({ status: "编辑器尚未就绪，请稍后重试" }); return }
@@ -31,14 +34,15 @@ export function Editor() {
     parent.postMessage({ type: "office:ready" }, preview ? "*" : location.origin)
     return () => window.removeEventListener("message", init)
   }, [preview])
-  return doc ? <OnlyOfficeEditor assetsPath="/office/v9.3.0.24-1" x2tPath="/office/x2t" file={doc.file} newDocument={doc.newDocument} language="zh" theme="theme-classic-light" user={{ id: "local", name: "本地用户" }} style={{ height: "100vh" }} onReady={() => {
+  return <div className="relative h-screen">{doc && <OnlyOfficeEditor assetsPath="/office/v9.3.0.24-1" x2tPath="/office/x2t" file={doc.file} newDocument={doc.newDocument} language="zh" theme="theme-classic-light" user={{ id: "local", name: "本地用户" }} style={{ height: "100vh" }} onReady={() => {
+    setReady(true)
     if (preview) { const runtime = (document.querySelector<HTMLIFrameElement>('iframe[name="frameEditor"]')?.contentWindow as (Window & { Asc?: { editor?: { asc_setViewMode?: (view: boolean) => void } } }) | null)?.Asc; runtime?.editor?.asc_setViewMode?.(true) }
     report({ status: "本地编辑" })
-  }} onDocumentStateChange={dirty => { if (dirty) report({ dirty: true }) }} onError={error => report({ status: `加载失败：${error.message}` })} onSave={async (blob, name) => {
+  }} onDocumentStateChange={dirty => { if (dirty) report({ dirty: true }) }} onError={error => { setLoadError(error.message); report({ status: `加载失败：${error.message}` }) }} onSave={async (blob, name) => {
     const channel = new MessageChannel()
     channel.port1.onmessage = event => { report(event.data.saved ? { dirty: false, status: "已保存" } : { status: event.data.error || "已取消保存" }); channel.port1.close() }
     parent.postMessage({ type: "office:save", name, bytes: new Uint8Array(await blob.arrayBuffer()) }, preview ? "*" : location.origin, [channel.port2])
-  }} /> : <p style={{ padding: 24 }}>正在加载本地编辑器…</p>
+  }} />}{!ready && !loadError && <div className="absolute inset-0"><EditorLoading kind="office" /></div>}{loadError && <div role="alert" className="absolute inset-0 flex items-center justify-center bg-white p-6 text-red-600">加载失败：{loadError}</div>}</div>
 }
 export function Office() {
   const [docs, setDocs] = useState<Doc[]>([])

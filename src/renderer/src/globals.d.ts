@@ -1,3 +1,4 @@
+import type { BrowserProxyAPI } from "../../shared/browser-proxy"
 import type { BrowserToolsAPI } from "../../shared/browser-tools"
 import type { SettingsAPI } from "../../shared/settings"
 import type { TransitFile } from "../../shared/transit"
@@ -96,7 +97,7 @@ interface StorageInfo {
 }
 
 /** preload 暴露给 React 渲染进程的完整 API。 */
-interface VesselAPI extends BrowserToolsAPI, SettingsAPI, BrowserExtensionsAPI, TodosAPI, TerminalAPI, FileWatchAPI {
+interface VesselAPI extends BrowserProxyAPI, BrowserToolsAPI, SettingsAPI, BrowserExtensionsAPI, TodosAPI, TerminalAPI, FileWatchAPI {
   readTransitClipboard(): Promise<string>
   openTransitWindow(item: { kind: string; content: string; title: string; root?: string }): Promise<void>
   pickOfficeFile(): Promise<{ token: string; name: string; bytes: Uint8Array } | null>

@@ -1,3 +1,4 @@
+import { BrowserProxy } from "./proxy"
 import { BookmarkBar } from './bookmark-bar'
 import { TabSwitcher } from "@/components/tab-switcher"
 import { publishBrowserTabs } from "./tab-state"
@@ -485,7 +486,8 @@ export default function BrowserPage({ visible = true }: { visible?: boolean }) {
       <footer className="browser-status">
         <button aria-label={toolbarCollapsed ? "展开浏览器工具栏" : "折叠浏览器工具栏"} aria-expanded={!toolbarCollapsed} onClick={() => setToolbarCollapsed(value => !value)} className="flex size-5 shrink-0 items-center justify-center text-stone-400 hover:text-stone-700">{toolbarCollapsed ? <ChevronUp size={13} /> : <ChevronRight size={13} />}</button>
           <span>{tab.loading ? "正在加载…" : tab.url || "就绪"}</span>
-          <span className="ml-auto shrink-0"><Clock ticking interval={1000} format="YYYY年MM月DD日 HH:mm" /></span>
+          <div className="ml-auto"><BrowserProxy /></div>
+          <span className="shrink-0"><Clock ticking interval={1000} format="YYYY年MM月DD日 HH:mm" /></span>
           <span>{Math.round(tab.zoom * 100)}%</span>
         </footer>
       </main>

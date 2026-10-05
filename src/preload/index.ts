@@ -1,3 +1,4 @@
+import { browserProxyAPI } from "./apis/browser-proxy.api"
 import type { AppSettings, BackupStatus } from "../shared/settings"
 import type { TransitFile } from "../shared/transit"
 import { browserExtensionsAPI } from "./apis/browser-extensions.api"
@@ -36,6 +37,7 @@ const vesselAPI = {
   openOffice: (): Promise<string> => ipcRenderer.invoke("office:open"),
   ...terminalAPI,
   ...browserExtensionsAPI,
+  ...browserProxyAPI,
   ...fileWatchAPI,
   onBrowserDevtoolsClosed: (callback: () => void) => {
     ipcRenderer.on("browser:devtools-closed", callback)

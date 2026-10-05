@@ -1,6 +1,7 @@
 import { ipcRenderer } from "electron"
 import type { BrowserExtensionsAPI } from "../../shared/browser-extensions"
 export const browserExtensionsAPI: BrowserExtensionsAPI = {
+  extensionScroll: top => ipcRenderer.invoke("browser:extensions:scroll", top),
   resizeBrowserExtension: bounds => ipcRenderer.invoke("browser:extensions:bounds", bounds),
   onBrowserExtensionClosed: callback => { const listener = () => callback(); ipcRenderer.on("browser:extensions:closed", listener); return () => ipcRenderer.removeListener("browser:extensions:closed", listener) },
   pinBrowserExtension: (key, pinned) => ipcRenderer.invoke("browser:extensions:pin", key, pinned),

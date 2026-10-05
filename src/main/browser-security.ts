@@ -1,3 +1,4 @@
+import { registerBrowserProxy } from "./browser-proxy"
 import { registerBrowserTools } from "./browser-tools"
 import { registerBrowserExtensions } from "./browser-extensions"
 import { registerBrowserDevtools } from "./browser-devtools"
@@ -11,6 +12,7 @@ const allowed = (url: string) => {
 }
 export function secureBrowserGuests(contents: WebContents) {
   registerBrowserExtensions(contents)
+  registerBrowserProxy(contents)
   registerBrowserDevtools(contents)
   registerBrowserTools(contents)
   contents.on("will-attach-webview", (event, preferences, params) => {

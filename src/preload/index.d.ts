@@ -1,3 +1,4 @@
+import type { BrowserProxyAPI } from "../shared/browser-proxy"
 import type { BrowserToolsAPI } from "../shared/browser-tools"
 import type { SettingsAPI } from "../shared/settings"
 import type { TransitFile } from "../shared/transit"
@@ -94,7 +95,7 @@ export interface StorageInfo {
   sessionId: string
 }
 
-export interface VesselAPI extends BrowserToolsAPI, SettingsAPI, BrowserExtensionsAPI, TodosAPI, TerminalAPI, FileWatchAPI {
+export interface VesselAPI extends BrowserProxyAPI, BrowserToolsAPI, SettingsAPI, BrowserExtensionsAPI, TodosAPI, TerminalAPI, FileWatchAPI {
   readTransitClipboard(): Promise<string>
   openTransitWindow(item: { kind: string; content: string; title: string; root?: string }): Promise<void>
   pickOfficeFile(): Promise<{ token: string; name: string; bytes: Uint8Array } | null>

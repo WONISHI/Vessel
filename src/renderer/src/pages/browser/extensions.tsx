@@ -1,3 +1,4 @@
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { useEffect, useState, useRef } from "react"
 import { Puzzle, Upload, Folder, Trash2, Box, TriangleAlert, Pin, Shield } from "lucide-react"
@@ -10,6 +11,8 @@ const Icon = ({ item }: { item: BrowserExtension }) => item.icon ? <img src={ite
 export function BrowserExtensions({ onOpenDevtools }: { onOpenDevtools?: () => void }) {
   const [popup, setPopup] = useState<BrowserExtension | null>(null)
   const popupArea = useRef<HTMLDivElement>(null)
+  const scrollViewport = useRef<HTMLDivElement>(null)
+  const [scrollHeight, setScrollHeight] = useState(0)
   const [items, setItems] = useState<BrowserExtension[]>([])
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -34,9 +37,19 @@ export function BrowserExtensions({ onOpenDevtools }: { onOpenDevtools?: () => v
     if (!popup) return
     const resize = () => { const rect = popupArea.current?.getBoundingClientRect(); if (rect) void window.electronAPI.resizeBrowserExtension({x:rect.x,y:rect.y,width:rect.width,height:rect.height}) }
     const observer = new ResizeObserver(resize)
-    const frame = requestAnimationFrame(() => { if(popupArea.current) observer.observe(popupArea.current); resize() })
+    const frame = requestAnimationFrame(() => { if(popupArea.current) observer.observe(popupArea.current); viewport = scrollViewport.current; viewport?.addEventListener('scroll',onScroll); resize() })
+    let alive = true
+    let syncing = false
+    const updateScroll = async () => {
+      if(syncing) return
+      syncing = true
+      try { const metrics = await window.electronAPI.extensionScroll(); if (alive) { setScrollHeight(metrics.height); if(scrollViewport.current && Math.abs(scrollViewport.current.scrollTop-metrics.top)>1) scrollViewport.current.scrollTop=metrics.top } } finally { syncing=false }
+    }
+    const timer = setInterval(() => void updateScroll().catch(() => {}), 150)
+    let viewport: HTMLDivElement | null = null
+    const onScroll = () => { if(viewport) void window.electronAPI.extensionScroll(viewport.scrollTop).catch(() => {}) }
     window.addEventListener('resize',resize)
-    return () => { cancelAnimationFrame(frame); observer.disconnect(); window.removeEventListener('resize',resize) }
+    return () => { alive=false; clearInterval(timer); viewport?.removeEventListener('scroll',onScroll); cancelAnimationFrame(frame); observer.disconnect(); window.removeEventListener('resize',resize) }
   }, [popup])
   const launch = async (item: BrowserExtension, mode: "open" | "options" | "inspect" = "open") => {
     setError("")
@@ -52,7 +65,10 @@ export function BrowserExtensions({ onOpenDevtools }: { onOpenDevtools?: () => v
     <Dialog open={!!popup} onOpenChange={value => { if(!value) { setPopup(null); void window.electronAPI.closeBrowserExtension() } }}>
       <DialogContent overlayClassName="bg-transparent" className="gap-0 overflow-hidden rounded-xl border-stone-200 p-0 !animate-none shadow-[0_8px_30px_rgba(0,0,0,0.12),0_2px_8px_rgba(0,0,0,0.06)] sm:max-w-[440px] [&>button]:right-[18px] [&>button]:top-[14px] [&>button]:flex [&>button]:size-7 [&>button]:items-center [&>button]:justify-center [&>button]:rounded-md [&>button]:text-stone-400 [&>button:hover]:bg-stone-100" aria-describedby={undefined}>
         <DialogTitle className="flex h-14 items-center gap-2 border-b border-[#f0efed] px-[18px] text-[15px] font-bold text-stone-900"><span className="flex size-[22px] items-center justify-center rounded-md bg-green-50"><Shield className="size-[13px] text-green-600" /></span>{popup?.name}</DialogTitle>
-        <div ref={popupArea} className="h-[220px] max-h-[65vh] w-full" />
+        <div className="relative h-[360px] max-h-[70vh] w-full">
+          <ScrollArea type="auto" viewportRef={scrollViewport} className="h-full w-full"><div style={{height:scrollHeight}} /></ScrollArea>
+          <div ref={popupArea} className="pointer-events-none absolute inset-y-0 left-0 right-3" />
+        </div>
       </DialogContent>
     </Dialog>
     {items.filter(item => item.pinned && item.enabled).map(item => <Button key={item.key} className="browser-extension-button" variant="ghost" size="icon" title={item.name} aria-label={`打开 ${item.name}`} onClick={() => void launch(item)} onContextMenu={event => context(event, item)}><Icon item={item} /></Button>)}

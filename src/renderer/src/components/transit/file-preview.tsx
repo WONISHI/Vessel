@@ -1,3 +1,4 @@
+import { EditorLoading } from "@/components/ui/editor-loading"
 import { PdfDocument } from '@/components/core/canvas/variants/pdf'
 import { useEffect, useRef, useState } from "react"
 import type { TransitFile } from "../../../../shared/transit"
@@ -17,7 +18,7 @@ function OfficePreview({ file }: { file: Extract<TransitFile, { bytes: Uint8Arra
     }
     window.addEventListener("message", listener); return () => window.removeEventListener("message", listener)
   }, [url, file])
-  return error ? <p role="alert" className="p-4 text-xs text-red-600">{error}</p> : url ? <iframe ref={frame} title={`预览 ${file.name}`} src={url} className="h-full w-full border-0" /> : <p className="p-4 text-xs">正在打开文档…</p>
+  return error ? <p role="alert" className="p-4 text-xs text-red-600">{error}</p> : url ? <iframe ref={frame} title={`预览 ${file.name}`} src={url} className="h-full w-full border-0" /> : <EditorLoading kind="office" />
 }
 export function FilePreview({ item }: { item: TransitItem }) {
   const [file, setFile] = useState<TransitFile>()

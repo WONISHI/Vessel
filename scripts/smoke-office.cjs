@@ -30,6 +30,8 @@ app.whenReady().then(async () => {
  }
  const state = await win.webContents.executeJavaScript(`Array.from(document.querySelectorAll('iframe')).map(f => { const inner = f.contentDocument?.querySelector('iframe'); return { name:f.title, text:inner?.contentDocument?.body?.innerText.slice(-500), canvas:inner?.contentDocument?.querySelectorAll('canvas').length, api:!!inner?.contentWindow?.Asc?.editor?.asc_DownloadAs } })`)
  console.log('Office editors:', state)
+ const loading = await win.webContents.executeJavaScript(`Array.from(document.querySelectorAll('iframe')).some(f => f.contentDocument?.querySelector('.editor-loading-office'))`)
+ if (loading) throw new Error('Office loading did not dismiss on ready')
  if (state.length !== 3 || state.some(s => !s.canvas)) throw new Error('One or more editors did not render')
  await win.webContents.executeJavaScript(`window.addEventListener('message', event => { if (event.data?.type === 'office:save' && event.source === window && event.ports[0]) { window.savedOffice = { name: event.data.name, bytes: Array.from(event.data.bytes) }; event.ports[0].postMessage({result:{saved:true,name:event.data.name,token:'smoke'}}) } })`)
  await win.webContents.executeJavaScript("Array.from(document.querySelectorAll('button')).find(b => b.textContent==='保存').click()")

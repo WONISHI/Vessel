@@ -1,3 +1,4 @@
+import { EditorLoading } from "@/components/ui/editor-loading"
 import { useEffect, useRef, useState } from "react"
 import { useLocation } from "react-router-dom"
 import { useRouter } from "@vessel/react-router"
@@ -30,7 +31,8 @@ function OfficePage() {
   return <Layout aside={<ActivityBar activity="office" onActivityChange={item => void router.push(item === "resources" ? "/resources" : item === "browser" ? "/browser" : item === "todos" ? "/todos" : item === "tools" ? "/devtools" : "/editor")} />}>
     <main className="relative h-full min-w-0 flex-1">
       {url && <iframe ref={frame} title="ONLYOFFICE 本地编辑器" src={url} className="h-full w-full border-0" />}
-      {(!ready || error) && <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-white"><p role={error ? "alert" : "status"}>{error || "正在打开 ONLYOFFICE…"}</p>{error && <button className="rounded border px-3 py-1 text-sm" onClick={() => { setError(""); setReady(false); setUrl(""); void window.electronAPI.openOffice().then(setUrl).catch(reason => setError(String(reason))) }}>重新加载</button>}</div>}
+      {!ready && !error && <div className="absolute inset-0"><EditorLoading kind="office" /></div>}
+      {error && <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-white"><p role={error ? "alert" : "status"}>{error || "正在打开 ONLYOFFICE…"}</p>{error && <button className="rounded border px-3 py-1 text-sm" onClick={() => { setError(""); setReady(false); setUrl(""); void window.electronAPI.openOffice().then(setUrl).catch(reason => setError(String(reason))) }}>重新加载</button>}</div>}
     </main>
   </Layout>
 }
