@@ -200,7 +200,7 @@ export default function BrowserPage({ visible = true }: { visible?: boolean }) {
     setInput(null)
   }
   useEffect(() => window.electronAPI.onBrowserNewTab(url => {
-    if (!/^https?:\/\//i.test(url)) return
+    if (!/^(https?|chrome-extension|file):\/\//i.test(url)) return
     const item = { ...newTab(), url, loading: true }
     setTabs(current => [...current, item])
     setActive(item.id)

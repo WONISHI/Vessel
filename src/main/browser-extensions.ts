@@ -1,8 +1,10 @@
+import { prepareExtensionLogin } from "./extension-login-compatibility"
+import { igugeWelcomeStyle } from "./extension-popup-style"
 import { registerBrowserSiteCompatibility } from "./browser-site-compatibility"
 import { loadExtensionPage, handleExtensionWindows } from "./extension-navigation"
 import { extensionMetadata, extensionFile } from "./extension-metadata"
 import { importExtensionArchive } from "./extension-archive"
-import { app, BrowserWindow, dialog, session, type WebContents } from "electron"
+import { app, BrowserWindow, WebContentsView, webContents, dialog, session, type WebContents } from "electron"
 import { readFile, writeFile, rename, realpath, rm } from "node:fs/promises"
 import { join, dirname, basename } from "node:path"
 import { randomUUID } from "node:crypto"
@@ -40,8 +42,25 @@ export function registerBrowserExtensions(host: WebContents) {
   registerBrowserSiteCompatibility(session.fromPartition("persist:vessel-browser"))
   void initialize()
   const owned = new Set<() => void>()
+  let resizePopup: ((bounds: { x: number; y: number; width: number; height: number }) => void) | undefined
+  host.ipc.handle("browser:extensions:bounds", (_event, bounds) => {
+    if (!bounds || ![bounds.x,bounds.y,bounds.width,bounds.height].every(Number.isFinite)) return
+    resizePopup?.(bounds)
+  })
   const closeOwned = () => { for (const close of [...owned]) close() }
-  host.once("destroyed", closeOwned)
+  const configureBackground = (background: WebContents) => {
+    if (background.isDestroyed() || background.getType() !== 'backgroundPage') return
+    const record = records.find(item => item.extensionId && background.getURL().startsWith(`chrome-extension://${item.extensionId}/`))
+    if (!record?.extensionId) return
+    handleExtensionWindows(background, record.extensionId, target => { if (!host.isDestroyed()) host.send('browser:new-tab',target); closeOwned() })
+    if (/iguge|igg/i.test(record.name)) void prepareExtensionLogin(background).catch(error => console.error('扩展登录兼容配置失败',error))
+  }
+  const onCreated = (_event: Electron.Event, background: WebContents) => {
+    if (background.getType() === 'backgroundPage') background.on('dom-ready', () => configureBackground(background))
+  }
+  app.on('web-contents-created',onCreated)
+  void initialize().then(() => webContents.getAllWebContents().forEach(configureBackground))
+  host.once("destroyed", () => { app.removeListener('web-contents-created',onCreated); closeOwned() })
   host.ipc.handle("browser:extensions:close", closeOwned)
   host.ipc.handle("browser:extensions:open", async (_event, key: string, mode = "open") => {
     await initialize(); await queue
@@ -49,6 +68,11 @@ export function registerBrowserExtensions(host: WebContents) {
     const record = records.find(item => item.key === key)
     if (!record?.enabled || !record.extensionId) throw new Error("请先启用扩展并确认加载成功")
     await extensionMetadata(record)
+    for (const background of webContents.getAllWebContents()) {
+      if (background.getType() !== 'backgroundPage' || !background.getURL().startsWith(`chrome-extension://${record.extensionId}/`)) continue
+      handleExtensionWindows(background, record.extensionId, target => { host.send('browser:new-tab', target); closeOwned() })
+      if (/iguge|igg/i.test(record.name)) await prepareExtensionLogin(background).catch(error => console.error('扩展登录兼容配置失败',error))
+    }
     const page = mode === "options" ? record.optionsPage : record.popup || record.optionsPage
     if (!page) {
       if (record.devtoolsPage && mode !== "inspect") return { kind: "devtools" }
@@ -61,24 +85,41 @@ export function registerBrowserExtensions(host: WebContents) {
     if (!parent) throw new Error("窗口已关闭")
     closePopup(key)
     closeOwned()
-    const popup = new BrowserWindow({ parent, title: record.name, width: 440, height: 520, minWidth: 320, minHeight: 240, show: false, autoHideMenuBar: true, minimizable: false, webPreferences: { partition: "persist:vessel-browser", sandbox: true, contextIsolation: true, nodeIntegration: false } })
+    const popup = new WebContentsView({ webPreferences: { partition: "persist:vessel-browser", sandbox: true, contextIsolation: true, nodeIntegration: false } })
+    popup.webContents.on('dom-ready', () => {
+      if (/iguge|igg/i.test(record.name) && new URL(popup.webContents.getURL()).pathname === '/welcome.html') void popup.webContents.insertCSS(igugeWelcomeStyle)
+    })
+    popup.setVisible(false)
+    parent.contentView.addChildView(popup)
+    resizePopup = bounds => {
+      const scale = host.getZoomFactor()
+      const [width,height] = parent.getContentSize()
+      const x = Math.max(0,Math.min(width,Math.round(bounds.x*scale)))
+      const y = Math.max(0,Math.min(height,Math.round(bounds.y*scale)))
+      popup.setBounds({x,y,width:Math.max(0,Math.min(width-x,Math.round(bounds.width*scale))),height:Math.max(0,Math.min(height-y,Math.round(bounds.height*scale)))})
+      popup.setVisible(true)
+    }
     let closed = false
     const close = () => {
       if (closed) return
       closed = true
+      resizePopup = undefined
       owned.delete(close)
       if (popups.get(key)?.close === close) popups.delete(key)
-      if (!popup.isDestroyed()) popup.destroy()
+      if (!parent.isDestroyed()) parent.contentView.removeChildView(popup)
+      if (!popup.webContents.isDestroyed()) popup.webContents.close()
+      if (!host.isDestroyed()) host.send("browser:extensions:closed")
     }
-    popup.on("closed", close)
     owned.add(close)
     popups.set(key, { close })
+    const openTab = (target: string) => { host.send("browser:new-tab", target); close() }
     popup.webContents.on("before-input-event", (event, input) => { if (input.key === "Escape") { event.preventDefault(); close() } })
-    handleExtensionWindows(popup.webContents, record.extensionId, target => host.send("browser:new-tab", target))
-    popup.webContents.on("will-navigate", (event, target) => { if (!target.startsWith(`chrome-extension://${record.extensionId}/`)) { event.preventDefault(); if (/^https?:\/\//.test(target)) host.send("browser:new-tab", target) } })
-    try { await loadExtensionPage(popup.webContents, url); if (popup.webContents.isDestroyed()) return { kind: "background" }; popup.show(); if (mode === "inspect") popup.webContents.openDevTools({ mode: "detach" }) }
+    handleExtensionWindows(popup.webContents, record.extensionId, openTab)
+    popup.webContents.on("will-navigate", (event, target) => { if (!target.startsWith(`chrome-extension://${record.extensionId}/`)) { event.preventDefault(); if (/^(https?|file):\/\//.test(target)) openTab(target) } })
+    try { await loadExtensionPage(popup.webContents, url); if (closed) return { kind: "background" }; if (mode === "inspect") popup.webContents.openDevTools({ mode: "detach" }) }
     catch (error) { if (closed) return { kind: "background" }; close(); throw error }
-    return { kind: "window" }
+    return { kind: "dialog" }
+
   })
   const mutate = (action: () => Promise<void>) => {
     const operation = queue.then(async () => { await initialize(); await action(); await persist(); return records.map(record => ({ ...record })) })

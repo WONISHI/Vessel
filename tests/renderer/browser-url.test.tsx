@@ -6,7 +6,8 @@ it("recognizes URLs, localhost ports and Chinese search terms", () => {
   expect(browserURL("localhost:3000")).toBe("http://localhost:3000/")
   expect(browserURL("https://example.com/a?q=1#b")).toBe("https://example.com/a?q=1#b")
   expect(browserURL("中文 搜索")).toBe("https://www.bing.com/search?q=%E4%B8%AD%E6%96%87%20%E6%90%9C%E7%B4%A2")
-  expect(() => browserURL("file:///tmp/test.md")).toThrow()
+  expect(browserURL("file:///tmp/test.md")).toBe("file:///tmp/test.md")
+  expect(browserURL("chrome-extension://test/login.html?/muser/login")).toBe("chrome-extension://test/login.html?/muser/login")
   expect(() => browserURL("javascript:alert(1)")).toThrow()
 })
 it("renders Markdown outline labels as readable text without executing HTML", () => {

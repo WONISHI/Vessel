@@ -19,16 +19,22 @@ app.whenReady().then(async () => {
   host.webContents.ipc.handle = (name, handler) => { handlers[name] = handler }
   require('../src/main/browser-extensions.ts').registerBrowserExtensions(host.webContents)
   await handlers['browser:extensions:open']({}, 'fixture')
-  assert.equal(BrowserWindow.getAllWindows().length, 2)
-  assert.equal(host.contentView.children.length, 0)
-  const panel = BrowserWindow.getAllWindows().find(window => window !== host)
-  assert.equal(panel.getParentWindow(), host)
+  assert.equal(BrowserWindow.getAllWindows().length, 1)
+  assert.equal(host.contentView.children.length, 1)
+  const panel = host.contentView.children[0]
+  handlers['browser:extensions:bounds']({}, {x:100,y:120,width:440,height:220})
+  assert.equal(panel.getBounds().width,440)
   assert(await panel.webContents.executeJavaScript('Boolean(document.body.dataset.extension)'))
   assert.equal(panel.webContents.session, require('electron').session.fromPartition('persist:vessel-browser'))
+  let opened
+  host.webContents.send = (channel,url) => {if(channel === 'browser:new-tab') opened=url}
+  await panel.webContents.executeJavaScript(`window.open(chrome.runtime.getURL('login.html?/muser/login'))`)
+  await new Promise(resolve=>setTimeout(resolve,200))
+  assert(opened.endsWith('/login.html?/muser/login'))
   handlers['browser:extensions:close']()
   assert.equal(host.contentView.children.length, 0)
   assert.equal(BrowserWindow.getAllWindows().length, 1)
-  console.log('PASS: extension opens in child popup window, shares browser session, closes cleanly')
+  console.log('PASS: extension view stays inside host Dialog, shares session and opens login in a browser tab')
   host.destroy(); app.exit(0)
 }).catch(error => { console.error(error); app.exit(1) })
 setTimeout(() => app.exit(1), 20000).unref()

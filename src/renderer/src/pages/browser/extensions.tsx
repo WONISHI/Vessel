@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react"
-import { Puzzle, Upload, Folder, Trash2, Box, TriangleAlert, Pin } from "lucide-react"
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
+import { useEffect, useState, useRef } from "react"
+import { Puzzle, Upload, Folder, Trash2, Box, TriangleAlert, Pin, Shield } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet"
@@ -7,6 +8,8 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 import type { BrowserExtension } from "../../../../shared/browser-extensions"
 const Icon = ({ item }: { item: BrowserExtension }) => item.icon ? <img src={item.icon} alt="" className="size-4 object-contain" /> : <Puzzle className="size-4" />
 export function BrowserExtensions({ onOpenDevtools }: { onOpenDevtools?: () => void }) {
+  const [popup, setPopup] = useState<BrowserExtension | null>(null)
+  const popupArea = useRef<HTMLDivElement>(null)
   const [items, setItems] = useState<BrowserExtension[]>([])
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -24,22 +27,34 @@ export function BrowserExtensions({ onOpenDevtools }: { onOpenDevtools?: () => v
     return () => { active = false }
   }, [])
   useEffect(() => {
-    const close = () => { void window.electronAPI.closeBrowserExtension().catch(() => {}) }
-    const key = (event: KeyboardEvent) => { if (event.key === "Escape") close() }
-    document.addEventListener("pointerdown", close, true)
-    document.addEventListener("keydown", key)
-    return () => { document.removeEventListener("pointerdown", close, true); document.removeEventListener("keydown", key); close() }
+    const stop = window.electronAPI.onBrowserExtensionClosed(() => setPopup(null))
+    return () => { stop(); void window.electronAPI.closeBrowserExtension() }
   }, [])
+  useEffect(() => {
+    if (!popup) return
+    const resize = () => { const rect = popupArea.current?.getBoundingClientRect(); if (rect) void window.electronAPI.resizeBrowserExtension({x:rect.x,y:rect.y,width:rect.width,height:rect.height}) }
+    const observer = new ResizeObserver(resize)
+    const frame = requestAnimationFrame(() => { if(popupArea.current) observer.observe(popupArea.current); resize() })
+    window.addEventListener('resize',resize)
+    return () => { cancelAnimationFrame(frame); observer.disconnect(); window.removeEventListener('resize',resize) }
+  }, [popup])
   const launch = async (item: BrowserExtension, mode: "open" | "options" | "inspect" = "open") => {
     setError("")
     try {
       const result = await window.electronAPI.openBrowserExtension(item.key, mode)
+      if (result.kind === "dialog") { setOpen(false); setPopup(item) }
       if (result.kind === "devtools") { onOpenDevtools?.(); setOpen(false) }
       if (result.message) { setError(result.message); setOpen(true) }
     } catch (reason) { setError(String(reason)); setOpen(true) }
   }
   const context = (event: React.MouseEvent, item: BrowserExtension) => { event.preventDefault(); setPosition({ x: event.clientX, y: event.clientY }); setMenu(item) }
   return <>
+    <Dialog open={!!popup} onOpenChange={value => { if(!value) { setPopup(null); void window.electronAPI.closeBrowserExtension() } }}>
+      <DialogContent overlayClassName="bg-transparent" className="gap-0 overflow-hidden rounded-xl border-stone-200 p-0 !animate-none shadow-[0_8px_30px_rgba(0,0,0,0.12),0_2px_8px_rgba(0,0,0,0.06)] sm:max-w-[440px] [&>button]:right-[18px] [&>button]:top-[14px] [&>button]:flex [&>button]:size-7 [&>button]:items-center [&>button]:justify-center [&>button]:rounded-md [&>button]:text-stone-400 [&>button:hover]:bg-stone-100" aria-describedby={undefined}>
+        <DialogTitle className="flex h-14 items-center gap-2 border-b border-[#f0efed] px-[18px] text-[15px] font-bold text-stone-900"><span className="flex size-[22px] items-center justify-center rounded-md bg-green-50"><Shield className="size-[13px] text-green-600" /></span>{popup?.name}</DialogTitle>
+        <div ref={popupArea} className="h-[220px] max-h-[65vh] w-full" />
+      </DialogContent>
+    </Dialog>
     {items.filter(item => item.pinned && item.enabled).map(item => <Button key={item.key} className="browser-extension-button" variant="ghost" size="icon" title={item.name} aria-label={`打开 ${item.name}`} onClick={() => void launch(item)} onContextMenu={event => context(event, item)}><Icon item={item} /></Button>)}
     <Button variant="ghost" size="icon" aria-label="管理浏览器扩展" title="管理浏览器扩展" onClick={() => { setOpen(!open); void run(() => window.electronAPI.listBrowserExtensions()) }}><Puzzle /></Button>
     <Sheet modal={false} open={open} onOpenChange={setOpen}>

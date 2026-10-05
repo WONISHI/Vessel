@@ -32,11 +32,9 @@ export function loadExtensionPage(contents: WebContents, url: string): Promise<v
 
 export function handleExtensionWindows(contents: WebContents, id: string, openExternal: (url: string) => void) {
   contents.setWindowOpenHandler(({ url }) => {
-    if (url.startsWith(`chrome-extension://${id}/`)) {
-      setImmediate(() => {
-        if (!contents.isDestroyed()) void loadExtensionPage(contents, url).catch(error => console.error("扩展页面跳转失败", error))
-      })
-    } else if (/^https?:\/\//.test(url)) openExternal(url)
+    if (url.startsWith(`chrome-extension://${id}/`) || /^(https?|file):\/\//.test(url)) {
+      setImmediate(() => openExternal(url))
+    }
     return { action: "deny" }
   })
 }

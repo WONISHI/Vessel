@@ -2,7 +2,13 @@ import { registerBrowserTools } from "./browser-tools"
 import { registerBrowserExtensions } from "./browser-extensions"
 import { registerBrowserDevtools } from "./browser-devtools"
 import { session, type WebContents } from "electron"
-const allowed = (url: string) => /^https?:\/\//i.test(url)
+const allowed = (url: string) => {
+  try {
+    const parsed = new URL(url)
+    if (['http:', 'https:', 'file:'].includes(parsed.protocol)) return true
+    return parsed.protocol === 'chrome-extension:' && !!session.fromPartition('persist:vessel-browser').extensions.getExtension(parsed.host)
+  } catch { return false }
+}
 export function secureBrowserGuests(contents: WebContents) {
   registerBrowserExtensions(contents)
   registerBrowserDevtools(contents)
