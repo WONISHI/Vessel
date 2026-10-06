@@ -20,30 +20,33 @@ function create(bounds: Electron.Rectangle) {
   win.webContents.setWindowOpenHandler(() => ({ action: "deny" }))
   win.webContents.on("will-navigate", (e) => e.preventDefault())
   win.webContents.ipc.handle("shot:close", () => win.close())
+  win.webContents.ipc.handle("shot:copy-text", (_event, text: string) => {
+    if (typeof text !== "string" || text.length > 1024 * 1024) throw new Error("文字数据无效")
+    clipboard.writeText(text)
+  })
   return win
 }
 async function captureDisplay(display: Electron.Display): Promise<string> {
   // Do not attempt a second capture backend when macOS has denied consent.
   if (process.platform === "darwin" && ["denied", "restricted"].includes(systemPreferences.getMediaAccessStatus("screen"))) throw new Error("屏幕录制权限未开启")
-  try {
-    const sources = await desktopCapturer.getSources({ types: ["screen"], thumbnailSize: { width: Math.round(display.size.width * display.scaleFactor), height: Math.round(display.size.height * display.scaleFactor) } })
-    const source = sources.find(s => s.display_id === String(display.id)) || (sources.length === 1 ? sources[0] : undefined)
-    if (!source || source.thumbnail.isEmpty()) throw new Error("没有可用的屏幕画面")
-    return source.thumbnail.toDataURL()
-  } catch (error) {
-    if (process.platform !== "darwin" || systemPreferences.getMediaAccessStatus("screen") !== "granted") throw error
-    // ScreenCaptureKit can fail even with permission. The native still-image backend
-    // captures the selected display rectangle and remains subject to macOS consent.
+  if (process.platform === "darwin" && systemPreferences.getMediaAccessStatus("screen") === "granted") {
     const directory = await mkdtemp(join(tmpdir(), "vessel-capture-"))
     try {
       const file = join(directory, "screen.png")
       const { x, y, width, height } = display.bounds
+      // Capture the composed desktop, including window shadows and rounded corners.
       await promisify(execFile)("/usr/sbin/screencapture", ["-x", "-R", `${x},${y},${width},${height}`, file], { timeout: 10000 })
       const image = nativeImage.createFromPath(file)
       if (image.isEmpty()) throw new Error("系统未返回有效截图")
       return image.toDataURL()
+    } catch (error) {
+      console.warn("[screenshot] Native capture unavailable, falling back to Electron", error)
     } finally { await rm(directory, { recursive: true, force: true }) }
   }
+  const sources = await desktopCapturer.getSources({ types: ["screen"], thumbnailSize: { width: Math.round(display.size.width * display.scaleFactor), height: Math.round(display.size.height * display.scaleFactor) } })
+  const source = sources.find(s => s.display_id === String(display.id)) || (sources.length === 1 ? sources[0] : undefined)
+  if (!source || source.thumbnail.isEmpty()) throw new Error("没有可用的屏幕画面")
+  return source.thumbnail.toDataURL()
 }
 export async function startScreenshot() {
   if (capturing) return

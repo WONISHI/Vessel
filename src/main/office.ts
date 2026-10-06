@@ -40,7 +40,7 @@ export function registerOffice(host: WebContents) {
   const owner = () => { const window = BrowserWindow.fromWebContents(host); if (!window) throw new Error("窗口已关闭"); return window }
   const validateName = (name: string) => { if (typeof name !== "string" || !name.trim() || /[\\/:]/.test(name) || name === "." || name === "..") throw new Error("文件名称无效") }
   host.ipc.handle("office:pick", async () => {
-    const result = await dialog.showOpenDialog(owner(), { title: "打开 Office 文档", properties: ["openFile"], filters: [{ name: "Office 文档", extensions: ["docx", "xlsx", "pptx", "doc", "xls", "ppt", "odt", "ods", "odp", "csv"] }] })
+    const result = await dialog.showOpenDialog(owner(), { title: "打开文档", properties: ["openFile"], filters: [{ name: "Office / PDF 文档", extensions: ["pdf", "docx", "xlsx", "pptx", "doc", "xls", "ppt", "odt", "ods", "odp", "csv"] }] })
     if (result.canceled || !result.filePaths[0]) return null
     const path = result.filePaths[0]
     if ((await stat(path)).size > 256 * 1024 * 1024) throw new Error("文件超过 256 MB")
