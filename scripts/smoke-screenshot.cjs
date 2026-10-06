@@ -36,7 +36,7 @@ app.whenReady().then(async()=>{
  win.webContents.sendInputEvent({type:'mouseUp',button:'left',clickCount:1,x:420,y:320});await wait(400)
  fs.writeFileSync('/tmp/vessel-shot-selection.png',(await win.webContents.capturePage()).toPNG())
  console.log(await js(`Array.from(document.querySelectorAll('[title]')).map(e=>({title:e.title,id:e.id}))`))
- win.webContents.sendInputEvent({type:'keyDown',keyCode:'Return'});win.webContents.sendInputEvent({type:'keyUp',keyCode:'Return'});await wait(800)
+ await js(`document.querySelector('.shot-pin').click()`);await wait(800)
  const pin=BrowserWindow.getAllWindows().find(w=>w!==win)
  assert(pin,'Confirmation creates pinned image window')
  assert(pin.isAlwaysOnTop())

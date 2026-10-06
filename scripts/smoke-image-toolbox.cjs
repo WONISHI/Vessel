@@ -8,8 +8,8 @@ app.whenReady().then(async()=>{
  for(const [name,value] of Object.entries(handlers))ipcMain.handle(name,()=>value)
  const win=new BrowserWindow({show:true,width:1450,height:950,webPreferences:{preload:path.resolve('out/preload/index.js'),sandbox:false}})
  const errors=[];win.webContents.on('console-message',(_e,level,message)=>{if(level>=3&&!message.includes('No handler registered'))errors.push(message)})
- await win.loadFile(path.resolve('out/renderer/index.html'),{hash:'/devtools/ocr'});await wait(1200)
- const js=code=>win.webContents.executeJavaScript(code)
+ await win.loadFile(path.resolve('out/renderer/index.html'),{hash:'/image'});await wait(1200)
+ const js=async code=>{try{return await win.webContents.executeJavaScript(code)}catch(e){console.error("Failed code:",code,errors);throw e}}
  const fixture=await js(`(()=>{const c=document.createElement('canvas');c.width=640;c.height=400;const x=c.getContext('2d');x.fillStyle='#ffffff';x.fillRect(0,0,640,400);x.fillStyle='#16a34a';x.fillRect(0,0,80,400);x.fillStyle='#1c1917';x.font='36px sans-serif';x.fillText('图片 OCR 识别测试',100,140);x.fillText('Vessel Image Tools',100,210);return c.toDataURL()})()`)
  ipcMain.handle('image:clipboard',()=>fixture)
  const click=async text=>{await js(`[...document.querySelectorAll('button')].find(b=>b.textContent.trim()===${JSON.stringify(text)}).click()`);await wait(200)}
@@ -17,9 +17,9 @@ app.whenReady().then(async()=>{
  const dims=()=>js(`(()=>{const i=document.querySelector('img[alt="待处理图片"]');return [i.naturalWidth,i.naturalHeight]})()`)
  await click('剪贴板');assert.deepEqual(await dims(),[640,400])
  await js(`document.querySelector('button[aria-label="收起侧边栏"]').click()`);await wait(200)
- assert.equal(await js(`!!document.querySelector('.dev-sidebar-title')`),false)
+ assert.equal(await js(`!!document.querySelector('.image-tool-nav')`),false)
  await js(`document.querySelector('button[aria-label="展开侧边栏"]').click()`);await wait(200)
- assert.equal(await js(`!!document.querySelector('.dev-sidebar-title')`),true)
+ assert.equal(await js(`!!document.querySelector('.image-tool-nav')`),true)
  await tool('缩放');await click('50%');await click('应用缩放');assert.deepEqual(await dims(),[320,200])
  await tool('旋转');await click('右转 90°');assert.deepEqual(await dims(),[200,320])
  await tool('裁剪');await click('1:1');await click('应用裁剪');assert.deepEqual(await dims(),[200,200])

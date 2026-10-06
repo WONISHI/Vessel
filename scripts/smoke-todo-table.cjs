@@ -1,0 +1,73 @@
+const {app,BrowserWindow,ipcMain}=require('electron')
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict')
+app.setPath('userData',fs.mkdtempSync(path.join(require('node:os').tmpdir(),'vessel-todo-table-')))
+const wait=ms=>new Promise(r=>setTimeout(r,ms))
+app.whenReady().then(async()=>{
+ for(const [name,value] of Object.entries({'settings:get':{theme:'light',fontSize:14,accent:'#16a34a'},'markdown:pending':[],'todos:list':[]}))ipcMain.handle(name,()=>value)
+ const Database=require('better-sqlite3'), Module=require('node:module'), ts=require('typescript')
+ const db=new Database(path.join(app.getPath('userData'),'vessel.db'))
+ db.exec('CREATE TABLE app_state (key TEXT PRIMARY KEY,value_json TEXT NOT NULL,created_at TEXT NOT NULL,updated_at TEXT NOT NULL)')
+ const mod=new Module(path.resolve('state-test.cjs'),module);mod.filename=path.resolve('state-test.cjs');mod.paths=module.paths
+ mod._compile(ts.transpileModule(fs.readFileSync('src/main/database/repositories/app-state.repository.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,mod.filename)
+ const state=new mod.exports.AppStateRepository(db)
+ let failSave=false
+ ipcMain.handle('app-state:get',(_e,key)=>state.get(key)??null)
+ ipcMain.handle('app-state:set',(_e,key,value)=>{if(failSave)throw new Error('Simulated disk failure');state.set(key,value)})
+ const win=new BrowserWindow({show:true,width:1450,height:1050,webPreferences:{preload:path.resolve('out/preload/index.js'),sandbox:false}})
+ await win.loadFile(path.resolve('out/renderer/index.html'),{hash:'/todos'});await wait(1500)
+ const js=async code=>{try{return await win.webContents.executeJavaScript(code)}catch(e){console.error(code);throw e}}
+ const key=async keyCode=>{win.webContents.sendInputEvent({type:'keyDown',keyCode});win.webContents.sendInputEvent({type:'keyUp',keyCode});await wait(100)}
+ const click=async selector=>{await js(`document.querySelector(${JSON.stringify(selector)}).click()`);await wait(150)}
+ const fill=async(selector,value)=>{await js(`(()=>{const el=document.querySelector(${JSON.stringify(selector)});el.focus();el.select()})()`);await win.webContents.insertText(value);await wait(100)}
+ const byText=async text=>{await js(`[...document.querySelectorAll('button')].find(b=>b.textContent.trim()===${JSON.stringify(text)}).click()`);await wait(150)}
+ assert(await js(`!!document.querySelector('table')`))
+ // Migrate the prior localStorage data, keeping it intact if SQLite cannot commit.
+ const old=state.get('todo-tables-v1');old[0].title='旧数据迁移'
+ await js(`localStorage.setItem('vessel-todo-tables-v1',${JSON.stringify(JSON.stringify(old))})`)
+ state.delete('todo-tables-v1');failSave=true;await win.reload();await wait(700)
+ assert(await js(`!!localStorage.getItem('vessel-todo-tables-v1')`));assert.equal(state.get('todo-tables-v1'),undefined)
+ failSave=false;await byText('重试');assert.equal(state.get('todo-tables-v1')[0].title,'旧数据迁移');assert.equal(await js(`localStorage.getItem('vessel-todo-tables-v1')`),null)
+ await byText('添加列');assert.equal(await js(`document.body.innerText.includes('操作属性')`),false);await key('Escape')
+ await js(`document.querySelector('span[title="双击修改列标题"]').dispatchEvent(new MouseEvent('dblclick',{bubbles:true}))`);await wait(100)
+ await fill('[aria-label="列标题"]','任务名称');await key('Return');assert.equal(await js(`document.querySelector('thead').textContent.includes('任务名称')`),true)
+ await js(`document.querySelector('div[title="双击修改标题名称"]').dispatchEvent(new MouseEvent('dblclick',{bubbles:true}))`);await wait(100)
+ await fill('[aria-label="待办表格名称"]','本周计划');await key('Return');assert(await js(`document.querySelector('[role="tab"]').textContent.includes('本周计划')`))
+ await click('[aria-label="添加标签"]');assert.equal(await js(`document.querySelectorAll('[role="option"]').length`),0);await fill('[aria-label="搜索或新增标签"]','前端');assert.equal(await js(`document.querySelectorAll('[role="option"]').length`),1);await key('Return');assert(await js(`document.querySelector('tbody').textContent.includes('前端')`))
+ await click('[aria-label="添加标签"]');await fill('[aria-label="搜索或新增标签"]','新标签');await key('Return');assert(await js(`document.querySelector('tbody').textContent.includes('新标签')`))
+ await click('[aria-label="添加标签"]');await fill('[aria-label="搜索或新增标签"]','新标签');assert.equal(await js(`document.querySelectorAll('[role="option"]').length`),0);await key('Escape')
+ await byText('添加列');await js(`[...document.querySelectorAll('button')].find(b=>b.textContent.includes('人物属性')).click()`);await wait(150)
+ await click('[aria-label="添加负责人"]');assert.equal(await js(`document.querySelectorAll('[role="option"]').length`),0)
+ await fill('[aria-label="搜索或新增负责人"]','小林');await key('Return');assert(await js(`document.querySelector('tbody').textContent.includes('小林')`))
+ await byText('新增行');await key('Return');await click('[aria-label="添加负责人"]');assert.equal(await js(`document.querySelector('[role="option"]').textContent.trim()`), '小林');await key('Return')
+ assert.equal(state.get('todo-tables-v1')[0].rows.filter(r=>r.person?.name==='小林').length,2)
+ await js(`document.querySelector('tbody tr td:nth-child(3) [data-state]').click()`);await wait(150)
+ await click('[title="整列改为紫色"]')
+ const colors=await js(`(()=>{const p=document.querySelector('.todo-progress-picker');return [getComputedStyle(p.querySelector('div')).color,getComputedStyle(p.querySelector('[data-slot="slider-range"]')).backgroundColor,getComputedStyle(p.querySelector('[data-slot="slider-thumb"]')).borderTopColor]})()`)
+ assert(colors.every(c=>c==='rgb(147, 51, 234)'),colors.join(','))
+ await js(`document.querySelector('[role="slider"]').focus()`);await key('Right');assert.equal(await js(`document.querySelector('[role="slider"]').getAttribute('aria-valuenow')`),'72');await key('Escape')
+ assert(await js(`document.querySelector('tbody tr td:nth-child(4)').textContent.includes('${new Date().getFullYear()}年')`))
+ await js(`document.querySelector('tbody tr td:nth-child(4) [data-state]').click()`);await wait(100);await byText('明天');assert(await js(`document.querySelector('tbody tr td:nth-child(4)').textContent.includes('年')`))
+ await click('[title="编辑标题"]');assert(['rgb(23, 163, 74)'].includes(await js(`getComputedStyle(document.querySelector('[aria-label="编辑文本属性"]')).borderTopColor`)));await fill('[aria-label="编辑文本属性"]','第一行已编辑');await key('Return')
+ await byText('新增行');await fill('[aria-label="编辑文本属性"]','保留第二行');await key('Return')
+ await click('[title="删除行"]');fs.writeFileSync('/tmp/vessel-confirm-dialog.png',(await win.webContents.capturePage()).toPNG());await byText('取消');assert(await js(`document.querySelector('tbody').textContent.includes('第一行已编辑')`));await click('[title="删除行"]');await byText('确认删除');assert(await js(`document.querySelector('tbody').textContent.includes('保留第二行')`));assert.equal(await js(`document.querySelector('tbody').textContent.includes('第一行已编辑')`),false)
+ await js(`document.querySelector('table').scrollIntoView({block:'center'})`);await wait(100);fs.writeFileSync('/tmp/vessel-todo-table.png',(await win.webContents.capturePage()).toPNG())
+ await win.reload();await wait(1000)
+ assert(await js(`document.querySelector('tbody').textContent.includes('保留第二行')`));assert.equal(await js(`document.querySelector('tbody').textContent.includes('第一行已编辑')`),false)
+ assert(await js(`getComputedStyle(document.querySelector('.todo-sticky-action')).position==='sticky'`))
+ for(let i=0;i<12;i++){await byText('新增行');await key('Return')}
+ assert(await js(`(()=>{const sc=document.querySelector('.todo-table-scroll>div');return sc.scrollHeight>sc.clientHeight&&getComputedStyle(sc).overflowY==='auto'})()`))
+ await js(`(()=>{const sc=document.querySelector('.todo-table-scroll>div');sc.scrollLeft=sc.scrollWidth;sc.scrollTop=100})()`)
+ assert(await js(`(()=>{const sc=document.querySelector('.todo-table-scroll>div').getBoundingClientRect(),a=document.querySelector('tbody .todo-sticky-action').getBoundingClientRect();return a.right<=sc.right && a.left>sc.left})()`))
+ // Persist a completely empty table as well; it must not regenerate the default row.
+ let count=await js(`document.querySelectorAll('button[title="删除行"]').length`)
+ while(count--){await click('[title="删除行"]');await byText('确认删除')}
+ await win.reload();await wait(1000)
+ assert.equal(await js(`document.querySelectorAll('button[title="删除行"]').length`),0)
+ assert.equal(await js(`document.querySelectorAll('[data-sonner-toast]').length`),0)
+ assert.equal(state.get('todo-tables-v1')[0].rows.length,0)
+ console.log('PASS actual SQLite repository, legacy migration with failed-write preservation, #17A34A input borders, no add-action-column option')
+ console.log('PASS persistence across reload including empty rows, delete confirmation/cancel, overflow scrolling, fixed action column')
+ console.log('PASS column/title rename, tag autocomplete/create/dedup, slider colors and keyboard, year date, inline edit and row-only deletion')
+ win.destroy();db.close();app.quit()
+}).catch(e=>{console.error(e);app.exit(1)})
+setTimeout(()=>app.exit(1),60000).unref()

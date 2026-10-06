@@ -1,3 +1,4 @@
+import { useSidebar } from "@/components/ui/sidebar"
 import Layout from "@/layout"
 import ActivityBar from "@/layout/activity-bar"
 import { useNavigate } from "react-router-dom"
@@ -17,8 +18,13 @@ export default function ImageRoute() {
       }
     >
       <div className="h-full min-w-0 flex-1 overflow-hidden">
-        <ImageToolbox />
+        <ImageContent />
       </div>
     </Layout>
   )
+}
+
+function ImageContent() {
+  const { open, openMobile, isMobile, setOpen, setOpenMobile } = useSidebar()
+  return <ImageToolbox navigationOpen={isMobile ? openMobile : open} onNavigationChange={isMobile ? setOpenMobile : setOpen} />
 }

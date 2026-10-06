@@ -8,6 +8,7 @@ import type { Todo } from "../../../../../shared/todos"
 import { dateKey, fromKey, lunarLabel, monthDays, festivalLabel } from "../calendar"
 import "../todo-calendar.css"
 import { cn } from "@/lib/utils"
+import TodoTableSection from "./todo-table-section"
 export default function TodoMain({
   todos,
   selected,
@@ -205,6 +206,7 @@ export default function TodoMain({
           </div>
         </section>
       </div>
+      <TodoTableSection />
     </main>
   )
 }
