@@ -173,8 +173,6 @@ interface VesselAPI extends BrowserProxyAPI, BrowserToolsAPI, SettingsAPI, Brows
   openDevTool: () => Promise<void>
 }
 
-declare module "react-dczs-image-preview"
-
 declare global {
   interface Window {
     electron: ElectronAPI
