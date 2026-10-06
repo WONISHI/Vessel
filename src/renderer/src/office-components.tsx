@@ -3,6 +3,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react"
 import { OnlyOfficeEditor } from "wasm-onlyoffice-sdk/react"
 import { FileText, FileSpreadsheet, Presentation, Plus, X, FolderOpen, Save } from "lucide-react"
 import { Popover, PopoverContent, PopoverTrigger } from "./components/ui/popover"
+import { PdfDocument } from "./components/pdf-document"
 type Doc = { id: string; token?: string; file?: File; newDocument?: "docx" | "xlsx" | "pptx"; name: string; dirty?: boolean; status?: string }
 function requestHost<T>(data: object): Promise<T> {
   return new Promise((resolve, reject) => {
@@ -13,6 +14,15 @@ function requestHost<T>(data: object): Promise<T> {
   })
 }
 const kinds = [{ type: "docx", label: "Word 文档", Icon: FileText, color: "#2563eb" }, { type: "xlsx", label: "Excel 表格", Icon: FileSpreadsheet, color: "#16a34a" }, { type: "pptx", label: "PPT 演示文稿", Icon: Presentation, color: "#d97706" }] as const
+const pdfKind = { type: "pdf", Icon: FileText, color: "#dc2626" } as const
+const isPdf = (name: string) => /\.pdf$/i.test(name)
+/** PDF 使用 react-pdf 只读预览，不进入 ONLYOFFICE 编辑器。 */
+function PdfPane({ doc, hidden }: { doc: Doc; hidden: boolean }) {
+  const [bytes, setBytes] = useState<Uint8Array>()
+  const [error, setError] = useState("")
+  useEffect(() => { void doc.file?.arrayBuffer().then(buffer => setBytes(new Uint8Array(buffer)), reason => setError(String(reason))) }, [doc.file])
+  return <div hidden={hidden} className="absolute inset-0 flex bg-white">{bytes ? <PdfDocument bytes={bytes} name={doc.name} /> : <p role={error ? "alert" : undefined} className={`p-4 text-sm ${error ? "text-red-500" : "text-stone-500"}`}>{error || "正在读取 PDF…"}</p>}</div>
+}
 export function Editor() {
   const [ready, setReady] = useState(false)
   const [loadError, setLoadError] = useState("")

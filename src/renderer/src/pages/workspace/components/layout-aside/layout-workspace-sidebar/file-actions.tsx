@@ -1,6 +1,6 @@
 import { ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem } from '@/components/ui/context-menu'
 import { addTransitFile } from "@/components/transit/state"
-import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { Copy, FolderOpen, FilePlus2, FolderPlus, Pencil, Trash2, Pin, File } from "lucide-react"
 import { useState, type ReactNode } from "react"
 import { useWorkspace } from "@/pages/workspace/hooks/useWorkspace"
@@ -69,28 +69,27 @@ export function FileActions({ node, children, onChanged, onCreate }: { node: Wor
         <ContextMenuItem disabled={busy} className="text-red-600 data-[highlighted]:bg-red-600" onSelect={() => {setError('');setConfirmTrash(true)}}><Trash2 />移到废纸篓</ContextMenuItem>
       </ContextMenuContent>
     </ContextMenu>
-    <AlertDialog open={confirmRename} onOpenChange={setConfirmRename}>
-      <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>确认重命名？</AlertDialogTitle><AlertDialogDescription>将“{node.name}”重命名为“{name.trim() + extension}”？</AlertDialogDescription></AlertDialogHeader>
-      {error && <p role="alert" className="text-sm text-red-500">{error}</p>}
-      <AlertDialogFooter><AlertDialogCancel disabled={busy} onClick={() => setRenaming(false)}>取消</AlertDialogCancel><AlertDialogAction disabled={busy} onClick={event => { event.preventDefault(); void mutate(name.trim() + extension) }}>确认重命名</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
-    </AlertDialog>
-    <AlertDialog open={confirmTrash} onOpenChange={open => { if (!busy) setConfirmTrash(open) }}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>移到废纸篓？</AlertDialogTitle>
-          <AlertDialogDescription className="break-all">
-            确定将“{node.name}”{node.type === "directory" ? "及其全部内容" : ""}移到系统废纸篓吗？之后可在废纸篓中恢复。
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        {error && <p role="alert" className="break-all text-sm text-red-500">移动失败：{error}</p>}
-        <AlertDialogFooter>
-          <AlertDialogCancel disabled={busy}>取消</AlertDialogCancel>
-          <AlertDialogAction disabled={busy} className="bg-red-600 text-white hover:bg-red-700" onClick={event => { event.preventDefault(); void mutate() }}>
-            {busy ? "正在移动…" : "确认移到废纸篓"}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+    <ConfirmDialog
+      open={confirmRename}
+      onOpenChange={open => { setConfirmRename(open); if (!open) setRenaming(false) }}
+      tone="primary"
+      title="确认重命名？"
+      description={<>将“{node.name}”重命名为“{name.trim() + extension}”？</>}
+      confirmText={busy ? "正在重命名…" : "确认重命名"}
+      busy={busy}
+      error={error}
+      onConfirm={() => void mutate(name.trim() + extension)}
+    />
+    <ConfirmDialog
+      open={confirmTrash}
+      onOpenChange={setConfirmTrash}
+      title="移到废纸篓？"
+      description={<>确定将“{node.name}”{node.type === "directory" ? "及其全部内容" : ""}移到系统废纸篓吗？之后可在废纸篓中恢复。</>}
+      confirmText={busy ? "正在移动…" : "确认移到废纸篓"}
+      busy={busy}
+      error={error ? `移动失败：${error}` : undefined}
+      onConfirm={() => void mutate()}
+    />
     </>
   )
 }

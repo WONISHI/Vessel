@@ -12,7 +12,9 @@ function load(win: BrowserWindow) {
   return url ? win.loadURL(`${url}/screenshot.html`) : win.loadFile(join(__dirname, "../renderer/screenshot.html"))
 }
 function create(bounds: Electron.Rectangle) {
-  const win = new BrowserWindow({ ...bounds, show: false, frame: false, alwaysOnTop: true, skipTaskbar: true, backgroundColor: "#ffffff", webPreferences: { preload: join(__dirname, "../preload/screenshot.js"), contextIsolation: true, nodeIntegration: false, sandbox: true } })
+  const win = new BrowserWindow({ ...bounds, show: false, frame: false, hasShadow: false, enableLargerThanScreen: true, alwaysOnTop: true, skipTaskbar: true, backgroundColor: "#ffffff", webPreferences: { preload: join(__dirname, "../preload/screenshot.js"), contextIsolation: true, nodeIntegration: false, sandbox: true } })
+  // macOS 会把普通窗口约束在菜单栏下方，导致截图窗口整体下移、露出系统菜单栏；放开约束后强制贴合屏幕边界。
+  win.setBounds(bounds)
   win.setAlwaysOnTop(true, "screen-saver")
   win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
   win.webContents.setWindowOpenHandler(() => ({ action: "deny" }))

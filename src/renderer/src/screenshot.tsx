@@ -1,12 +1,29 @@
 import ScreenShot from "js-web-screen-shot"
 import { createElement } from "react"
 import { renderToStaticMarkup } from "react-dom/server"
-import { Copy, Pin } from "lucide-react"
+import { Circle, Copy, Download, Grid3x3, MoveUpRight, Pencil, Pin, Square, Type, Undo2, X } from "lucide-react"
 import "./screenshot.css"
 type ScreenshotAPI = { data(): Promise<{ mode: "capture" | "pin"; image: string }>; finish(image: string, pin: boolean): Promise<void>; close(): Promise<void>; copy(): Promise<void> }
 const api = (window as unknown as { screenshotAPI: ScreenshotAPI }).screenshotAPI
 const root = document.getElementById("root")!
-const icon = (Icon: typeof Copy) => `url("data:image/svg+xml;utf8,${encodeURIComponent(renderToStaticMarkup(createElement(Icon, { size: 20, color: "#44403c", strokeWidth: 1.8 })))}")`
+const icon = (Icon: typeof Copy, color = "#44403c") => `url("data:image/svg+xml;utf8,${encodeURIComponent(renderToStaticMarkup(createElement(Icon, { size: 20, color, strokeWidth: 1.8 })))}")`
+/** 用 lucide-react 图标覆盖 js-web-screen-shot 自带的位图工具栏图标（普通 / 悬停·选中 / 禁用三态）。 */
+function installToolbarIcons() {
+  const tools: [string, typeof Copy][] = [["square", Square], ["round", Circle], ["right-top", MoveUpRight], ["brush", Pencil], ["mosaicPen", Grid3x3], ["text", Type], ["save", Download], ["close", X]]
+  const base = "background-size:20px 20px !important;background-position:center !important;background-repeat:no-repeat !important;"
+  const rules = tools.map(([name, Icon]) =>
+    `#toolPanel .${name}{background-image:${icon(Icon)} !important;${base}}` +
+    `#toolPanel .${name}:hover,#toolPanel .${name}-active,#toolPanel .${name}:active{background-image:${icon(Icon, "#16a34a")} !important;${base}}`
+  )
+  rules.push(
+    `#toolPanel .undo{background-image:${icon(Undo2)} !important;${base}}`,
+    `#toolPanel .undo:hover,#toolPanel .undo:active{background-image:${icon(Undo2, "#16a34a")} !important;${base}}`,
+    `#toolPanel .undo-disabled{background-image:${icon(Undo2, "#d6d3d1")} !important;${base}}`
+  )
+  const style = document.createElement("style")
+  style.textContent = rules.join("\n")
+  document.head.append(style)
+}
 window.addEventListener("keydown", (event) => {
   if (event.key === "Escape") void api.close()
 })
@@ -20,6 +37,7 @@ void api
       document.body.classList.add("shot-idle")
       window.addEventListener("mousedown", () => document.body.classList.remove("shot-idle"), { capture: true, once: true })
       document.documentElement.style.setProperty("--shot-copy-icon", icon(Copy))
+      installToolbarIcons()
       document.documentElement.style.setProperty("--shot-pin-icon", icon(Pin))
       // 在截图工具栏里追加「固定到屏幕」按钮；对勾（confirm）仅复制到剪贴板。
       new MutationObserver(() => {
