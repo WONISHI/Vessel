@@ -28,3 +28,4 @@
 .todo-confirm-actions>.todo-confirm-delete{background:#dc2626!important;color:#fff!important}
 .todo-confirm-actions>.todo-confirm-delete:hover{background:#b91c1c!important}
 @media(prefers-reduced-motion:reduce){.todo-confirm-dialog{animation:none!important}}
+.todo-confirm-actions>button:focus-visible{outline:2px solid #d6d3d1!important;outline-offset:2px;box-shadow:none!important;--tw-ring-color:transparent!important}
