@@ -41,7 +41,7 @@ function localOcrAssets() {
 export default defineConfig({
   main: {
     // Workspace 包导出 TS 源码，必须编译进产物，不能留给 Electron require。
-    build: { externalizeDeps: { exclude: ["@vessel/obsidian", "@vessel/utils", "@vessel/react-router"] } },
+    build: { rollupOptions: { input: { index: resolve("src/main/index.ts"), "code-diagnostics-worker": resolve("src/main/code-diagnostics-worker.ts") } }, externalizeDeps: { exclude: ["@vessel/obsidian", "@vessel/utils", "@vessel/react-router"] } },
     resolve: {
       alias: {
         "@main": resolve("src/main")

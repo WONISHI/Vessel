@@ -30,7 +30,7 @@ function validate(value: AppSettings): AppSettings {
   if (avatar && !/^data:image\/(png|jpeg);base64,[A-Za-z0-9+/=]+$/.test(avatar)) throw new Error("头像格式无效")
   return { name: text(value.name, 80) || "本地用户", email: text(value.email, 254), avatar, theme: value.theme, font: value.font, fontSize: value.fontSize, accent: value.accent, backup: { endpoint: text(value.backup.endpoint), accessKey: text(value.backup.accessKey), bucket: text(value.backup.bucket), region: text(value.backup.region), prefix: text(value.backup.prefix), automatic: value.backup.automatic === true, minutes: value.backup.minutes, hasSecret: false } }
 }
-function publicSettings() { const state = load(); return { ...state.settings, backup: { ...state.settings.backup, hasSecret: !!state.secret } } }
+function publicSettings() { const state = load(); return { ...state.settings, backup: { ...state.settings.backup, hasSecret: !!state.secret, secretLength: state.secret ? decrypt().length : 0 } } }
 const decrypt = () => load().secret ? safeStorage.decryptString(Buffer.from(load().secret, "base64")) : ""
 async function persist(next: NonNullable<typeof stored>) { const path = file() + ".tmp"; await writeFile(path, JSON.stringify(next), { mode: 0o600 }); await rename(path, file()); stored = next }
 async function snapshot(): Promise<Uint8Array> {

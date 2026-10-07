@@ -6,6 +6,10 @@ import { Globe, FileText, Maximize, Minimize, ExternalLink, PanelRight, ChevronL
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from "@/components/ui/sheet"
 import { toast } from "sonner"
 import { selectTransit, useTransit, type TransitItem } from "./state"
+export function formatTransitDate(date: Date) {
+  const pad = (value: number) => String(value).padStart(2, "0")
+  return `${date.getFullYear()}年${pad(date.getMonth() + 1)}月${pad(date.getDate())}日 ${pad(date.getHours())}:${pad(date.getMinutes())} 星期${"日一二三四五六"[date.getDay()]}`
+}
 function WebPreview({ item }: { item: TransitItem }) {
   const ref = useRef<Electron.WebviewTag>(null)
   const [ready, setReady] = useState(false)
@@ -65,7 +69,7 @@ export function TransitPanel() {
         </div>
       </div>
       <button aria-label="关闭中转站" title="关闭" onClick={() => selectTransit(null)} className="rounded p-1.5 text-stone-500 hover:bg-stone-100"><X className="size-4" /></button>
-    </header>{item.kind === "file" ? <FilePreview key={item.id} item={item} /> : item.kind === "url" ? <WebPreview key={item.id} item={item} /> : <pre className="min-h-0 flex-1 overflow-auto whitespace-pre-wrap break-words p-5 font-sans text-sm leading-7 text-stone-700">{item.content}</pre>}<footer className="border-t bg-stone-50 px-3 py-2 text-right text-[11px] text-stone-400"><Clock format="YYYY年MM月DD日 HH:mm" ticking interval={1000} filter={() => new Date().toLocaleString("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", weekday: "long", hour12: false })} /></footer></>
+    </header>{item.kind === "file" ? <FilePreview key={item.id} item={item} /> : item.kind === "url" ? <WebPreview key={item.id} item={item} /> : <pre className="min-h-0 flex-1 overflow-auto whitespace-pre-wrap break-words p-5 font-sans text-sm leading-7 text-stone-700">{item.content}</pre>}<footer className="border-t bg-stone-50 px-3 py-2 text-right text-[11px] text-stone-400"><Clock format="YYYY年MM月DD日 HH:mm" ticking interval={1000} filter={() => formatTransitDate(new Date())} /></footer></>
   return <Sheet modal={false} open={!!item} onOpenChange={open => { if (!open) selectTransit(null) }}><SheetContent showOverlay={false} showCloseButton={false} side="right" onInteractOutside={e => e.preventDefault()} onOpenAutoFocus={e => e.preventDefault()} style={dock === 'floating' && !full ? { left: position.x, right: 'auto', top: position.y, bottom: 'auto', height: '80vh', width: Math.min(width, window.innerWidth) } : { left: 52, width: 'calc(100vw - 52px)' }} className="pointer-events-none [&_.vessel-panel-separator]:pointer-events-auto !max-w-none border-0 bg-transparent p-0 shadow-none">
     {dock === 'floating' && !full ? <div className="pointer-events-auto relative flex h-full flex-col overflow-hidden rounded-xl border bg-white shadow-xl">{content}<div role="separator" aria-label="调整悬浮面板宽度" aria-orientation="vertical" className="absolute inset-y-0 right-0 w-2 cursor-col-resize touch-none" onPointerDown={event => { event.preventDefault(); event.currentTarget.setPointerCapture(event.pointerId); gesture.current = { x: event.clientX, y: event.clientY, left: position.x, top: position.y, width, resize: true } }} onPointerMove={move} onPointerUp={stop} onPointerCancel={stop} /></div> : <ResizableSplit side={left ? 'left' : 'right'} size={width} min={320} max={Math.min(900, window.innerWidth - 52)} label="调整中转站宽度" onResize={saveWidth} pane={!full ? <div className="transit-resizable-content pointer-events-auto flex h-full min-w-0 flex-col bg-white shadow-lg">
     {content}

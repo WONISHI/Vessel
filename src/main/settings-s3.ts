@@ -10,7 +10,12 @@ export function signedS3Request(config: AppSettings["backup"], secret: string, m
   try { url = new URL(/^[a-z][a-z0-9+.-]*:\/\//i.test(endpoint) ? endpoint : `https://${endpoint}`) } catch { throw new Error("请输入有效的 S3 Endpoint，例如 https://s3.amazonaws.com") }
   if (!["http:", "https:"].includes(url.protocol) || url.username || url.password || url.search || url.hash) throw new Error("请输入不含凭据和查询参数的 HTTP(S) Endpoint")
   if (!config.bucket || !config.accessKey || !secret || !config.region) throw new Error("请填写完整的 S3 存储配置")
-  const segments = [...url.pathname.split("/").filter(Boolean).map(decodeURIComponent), config.bucket, ...key.split("/").filter(Boolean)]
+  // COS requires virtual-hosted bucket URLs for newer buckets.
+  const cosService = /^cos\.[a-z0-9-]+\.myqcloud\.com$/i.test(url.hostname)
+  const cosBucket = /^[a-z0-9.-]+\.cos\.[a-z0-9-]+\.myqcloud\.com$/i.test(url.hostname)
+  if (cosService) url.hostname = `${config.bucket}.${url.hostname}`
+  if (cosBucket && !url.hostname.startsWith(`${config.bucket}.`)) throw new Error("Endpoint 中的存储桶与 Bucket 名称不一致")
+  const segments = [...url.pathname.split("/").filter(Boolean).map(decodeURIComponent), ...(!cosService && !cosBucket ? [config.bucket] : []), ...key.split("/").filter(Boolean)]
   if (segments.some(part => part === "." || part === "..")) throw new Error("路径不能包含 . 或 ..")
   url.pathname = "/" + segments.map(encode).join("/")
   const date = now.toISOString().replace(/[:-]|\.\d{3}/g, "")
@@ -27,6 +32,10 @@ export function signedS3Request(config: AppSettings["backup"], secret: string, m
 export async function requestS3(config: AppSettings["backup"], secret: string, method: "HEAD" | "PUT", key = "", body: Uint8Array = new Uint8Array()) {
   const request = signedS3Request(config, secret, method, key, body)
   const response = await fetch(request.url, { method, headers: request.headers, body: method === "PUT" ? new Uint8Array(body) : undefined, redirect: "error", signal: AbortSignal.timeout(60000) })
-  if (!response.ok) throw new Error(`S3 请求失败（HTTP ${response.status}），请检查服务端点、区域及存储桶权限`)
+  if (!response.ok) {
+    await response.body?.cancel()
+    const reason = response.status === 404 ? "未找到存储桶，请确认 Bucket 名称包含 APPID 且区域与存储桶一致" : response.status === 403 ? "访问被拒绝，请检查密钥和存储桶访问权限" : "请检查服务端点、区域及存储桶权限"
+    throw new Error(`S3 请求失败（HTTP ${response.status}）：${reason}`)
+  }
   await response.body?.cancel()
 }

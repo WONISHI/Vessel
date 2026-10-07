@@ -1,3 +1,4 @@
+import { getCodeDiagnostics, disposeCodeDiagnostics } from "../../code-diagnostics"
 import { readWikiLink } from "./wiki-link"
 import { readImageFile } from "./image-file"
 import { readObsidianImage } from "./obsidian-image"
@@ -48,8 +49,13 @@ export async function createWorkspaceEntry(root: string, parent: string, name: s
   const offset = relative(base, directory)
   if (offset === ".." || offset.startsWith(".." + sep) || isAbsolute(offset)) throw new Error("只能在当前工作区创建")
   const path = join(directory, name)
-  if (kind === "directory") await mkdir(path)
-  else await writeFile(path, "", { flag: "wx" })
+  try {
+    if (kind === "directory") await mkdir(path)
+    else await writeFile(path, "", { flag: "wx" })
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "EEXIST") throw new Error(`“${name}”已存在，请使用其他名称`)
+    throw error
+  }
   return { name, path, type: kind }
 }
 
@@ -91,6 +97,7 @@ export async function mutateWorkspaceFile(root: string, path: string, name?: str
 /** 将文件读取能力接入主进程生命周期，避免窗口重建时重复注册 IPC。 */
 export class FilesModule extends BaseModule {
   protected onActivate(): void {
+    ipcMain.handle("code:diagnostics", (_event, path, content) => getCodeDiagnostics(path, content))
     ipcMain.handle("workspace:revealFile", async (_event, root: string, path: string) => {
       const base = await realpath(root),
         source = await realpath(path),
@@ -114,6 +121,8 @@ export class FilesModule extends BaseModule {
   }
 
   protected onDispose(): void {
+    ipcMain.removeHandler("code:diagnostics")
+    disposeCodeDiagnostics()
     ipcMain.removeHandler("workspace:revealFile")
     ipcMain.removeHandler("obsidian:readWikiLink")
     ipcMain.removeHandler("image:readFile")

@@ -15,5 +15,9 @@ self.MonacoEnvironment = {
     return new EditorWorker()
   }
 }
+// Project diagnostics run in a Node worker with tsconfig and actual dependency resolution.
+for (const defaults of [monaco.typescript.typescriptDefaults, monaco.typescript.javascriptDefaults]) {
+  defaults.setDiagnosticsOptions({ noSemanticValidation: true, noSyntaxValidation: true })
+}
 loader.config({ monaco })
 export { monaco }

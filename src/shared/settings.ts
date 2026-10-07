@@ -6,7 +6,7 @@ export interface AppSettings {
   font: string
   fontSize: number
   accent: string
-  backup: { endpoint: string; accessKey: string; bucket: string; region: string; prefix: string; automatic: boolean; minutes: 5 | 10 | 30; hasSecret: boolean }
+  backup: { endpoint: string; accessKey: string; bucket: string; region: string; prefix: string; automatic: boolean; minutes: 5 | 10 | 30; hasSecret: boolean; secretLength?: number }
 }
 export const defaultSettings: AppSettings = {
   name: "本地用户", email: "", avatar: "", theme: "light", font: "Plus Jakarta Sans", fontSize: 14, accent: "#16a34a",

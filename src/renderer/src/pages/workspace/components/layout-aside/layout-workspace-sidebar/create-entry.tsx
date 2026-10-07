@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { FilePlus2, FolderPlus, FileCode2, FileText } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
@@ -48,7 +48,7 @@ export function CreateEntry({ kind, onStart }: { kind: EntryDraft["kind"]; onSta
           onCloseAutoFocus={(event) => event.preventDefault()}
           onOpenAutoFocus={(event) => event.preventDefault()}
         >
-          {["md", "js", "ts", "json", "jsx", "html", "css", "vue"].map((extension) => (
+          {["md", "js", "ts", "json", "jsx", "html", "css", "vue", ""].map((extension) => (
             <Button
               key={extension}
               variant="ghost"
@@ -59,7 +59,7 @@ export function CreateEntry({ kind, onStart }: { kind: EntryDraft["kind"]; onSta
               }}
             >
               {extension === "md" ? <FileText className="!size-3.5" /> : <FileCode2 className="!size-3.5" />}
-              新建 {extension.toUpperCase()} 文件
+              {extension ? `新建 ${extension.toUpperCase()} 文件` : "新建自定义文件"}
             </Button>
           ))}
         </PopoverContent>
@@ -68,55 +68,58 @@ export function CreateEntry({ kind, onStart }: { kind: EntryDraft["kind"]; onSta
   )
 }
 
-/** Enter 提交、Escape 取消；后缀固定显示，文件名允许重试。 */
+/** Enter 提交、Escape 取消；完整文件名和后缀均可修改，失败允许重试。 */
 export function InlineEntryEditor({ draft, onFinish }: { draft: EntryDraft; onFinish: (created: boolean) => void }) {
   const { workspace, openWorkspaceFile } = useWorkspace()
-  const [name, setName] = useState("")
+  const [name, setName] = useState(draft.kind === "file" && draft.extension ? `未命名.${draft.extension}` : "")
   const [error, setError] = useState("")
   const [busy, setBusy] = useState(false)
+  const submitting = useRef(false)
+  const cancelled = useRef(false)
+  const submit = async () => {
+    if (submitting.current || cancelled.current) return
+    if (!name.trim()) { cancelled.current = true; onFinish(false); return }
+    submitting.current = true
+    setBusy(true)
+    setError("")
+    try {
+      const node = await window.electronAPI.createWorkspaceEntry(workspace.path, draft.parent, name.trim(), draft.kind)
+      onFinish(true)
+      if (draft.kind === "file") openWorkspaceFile(node)
+    } catch (reason) {
+      setError(String(reason).replace(/^Error: Error invoking remote method '[^']+': (?:Error: )?/, ""))
+      submitting.current = false
+      setBusy(false)
+    }
+  }
   return (
     <form
-      className="flex min-w-0 flex-1 items-center gap-1"
-      onSubmit={async (event) => {
-        event.preventDefault()
-        if (!name.trim() || busy) return
-        setBusy(true)
-        try {
-          const filename = name.trim() + (draft.kind === "file" ? "." + draft.extension : "")
-          const node = await window.electronAPI.createWorkspaceEntry(workspace.path, draft.parent, filename, draft.kind)
-          onFinish(true)
-          if (draft.kind === "file") openWorkspaceFile(node)
-        } catch (reason) {
-          setError(String(reason))
-          setBusy(false)
-        }
-      }}
-    >
-      <div className="flex min-w-0 flex-1 items-center rounded-md border border-green-600 bg-transparent px-1.5 shadow-[0_0_0_3px_rgba(22,163,74,0.1)]"><input
+      className="flex w-full min-w-0 flex-1 flex-wrap items-center gap-1 pr-2"
+      onSubmit={event => { event.preventDefault(); void submit() }}    >
+      <div className="flex min-w-0 flex-1 items-center rounded-sm border border-green-600 bg-transparent px-1.5 "><input
         placeholder="未命名"
         autoFocus
+        onFocus={event => event.target.select()}
         aria-label={draft.kind === "file" ? "新文件名称" : "新文件夹名称"}
         className="h-6 min-w-0 flex-1 !rounded-none !border-0 !bg-transparent p-0 text-xs !shadow-none !outline-none !ring-0"
-        onBlur={() => {
-          if (!busy) onFinish(false)
-        }}
+        onBlur={() => void submit()}
         value={name}
         disabled={busy}
         onChange={(event) => setName(event.target.value)}
         onKeyDown={(event) => {
-          if (event.key === "Escape" && !busy) onFinish(false)
+          if (event.key === "Escape" && !busy) { cancelled.current = true; onFinish(false) }
         }}
         title={error || undefined}
         aria-invalid={!!error}
       />
-      {draft.kind === "file" && <span className="text-xs text-stone-400">.{draft.extension}</span>}</div>
+      </div>
       {error && (
         <span
           role="alert"
           title={error}
-          className="text-xs text-red-500"
+          className="w-full break-all text-[11px] text-red-500"
         >
-          失败
+          {error}
         </span>
       )}
     </form>

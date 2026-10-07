@@ -96,7 +96,14 @@ function ResourceRoute() {
     window.addEventListener("vessel:resource-changed", update)
     return () => window.removeEventListener("vessel:resource-changed", update)
   }, [])
-  return project ? <WorkspacePage key={`${project.path}:${project.initialFile || ""}`} workspace={project} initialFile={project.initialFile} scope="resources" /> : <Welcome onEnter={data => localStorage.setItem("resource_current_project", JSON.stringify(data))} />
+  const [visited, setVisited] = useState<Record<string, WorkspaceData>>({})
+  if (project && !visited[project.path]) setVisited(previous => ({ ...previous, [project.path]: project }))
+  return <>
+    {Object.values(visited).map(entry => <div key={entry.path} hidden={entry.path !== project?.path} style={{ display: entry.path === project?.path ? "contents" : "none" }}>
+      <WorkspacePage workspace={entry} initialFile={entry.path === project?.path ? project.initialFile : undefined} scope="resources" active={entry.path === project?.path} />
+    </div>)}
+    {!project && <Welcome onEnter={data => { localStorage.setItem("resource_current_project", JSON.stringify(data)); setProject(data) }} />}
+  </>
 }
 
 /**

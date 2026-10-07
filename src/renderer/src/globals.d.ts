@@ -162,6 +162,7 @@ interface VesselAPI extends BrowserProxyAPI, BrowserToolsAPI, SettingsAPI, Brows
   readWikiLink: (root: string, target: string) => Promise<{ path: string; content: string }>
   readObsidianImage: (root: string, documentPath: string, reference: string) => Promise<string>
   mutateWorkspaceFile: (root: string, path: string, name?: string) => Promise<string>
+  getCodeDiagnostics: (path: string, content: string) => Promise<import("../../shared/code-diagnostics").CodeDiagnostic[]>
   createWorkspaceEntry: (root: string, parent: string, name: string, kind: "file" | "directory") => Promise<{name: string; path: string; type: "file" | "directory"}>
   openExternal: (href: string) => Promise<void>
   readContent: (path: string) => Promise<string>

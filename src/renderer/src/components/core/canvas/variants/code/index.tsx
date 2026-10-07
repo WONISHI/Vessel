@@ -30,6 +30,23 @@ export default function CodeCanvas({ activeFilePath }: { activeFilePath: string 
     }).catch(error => { if (!cancelled) setError(String(error)) })
     return () => { cancelled = true; mounted.current = false; codeEditors.delete(activeFilePath) }
   }, [activeFilePath])
+  const [diagnosticError, setDiagnosticError] = useState("")
+  useEffect(() => {
+    if (content === undefined || !/\.[cm]?[jt]sx?$/i.test(activeFilePath)) return
+    let cancelled = false
+    const timer = window.setTimeout(() => {
+      void window.electronAPI.getCodeDiagnostics(activeFilePath, content).then(diagnostics => {
+        if (cancelled) return
+        setDiagnosticError("")
+        const model = monaco.editor.getModel(monaco.Uri.file(activeFilePath))
+        if (model) monaco.editor.setModelMarkers(model, "vessel-project", diagnostics.map(diagnostic => ({
+          ...diagnostic, code: String(diagnostic.code), source: "TypeScript",
+          severity: diagnostic.severity === "error" ? monaco.MarkerSeverity.Error : diagnostic.severity === "warning" ? monaco.MarkerSeverity.Warning : monaco.MarkerSeverity.Info
+        })))
+      }).catch(error => { if (!cancelled) setDiagnosticError(`代码检查失败：${String(error)}`) })
+    }, 600)
+    return () => { cancelled = true; window.clearTimeout(timer) }
+  }, [activeFilePath, content])
   const save = (value: string) => {
     const request = ++revision.current
     setStatus("正在保存…")
@@ -52,6 +69,7 @@ export default function CodeCanvas({ activeFilePath }: { activeFilePath: string 
     </div>
     <StatusSlot><footer className="flex shrink-0 flex-wrap items-center gap-5 bg-transparent px-2 py-1 text-xs text-stone-500">
       <span role={saveError ? "alert" : "status"} className={`mr-auto ${saveError ? "text-red-500" : ""}`}>{status}</span>
+      {diagnosticError && <span role="alert" className="text-amber-600">{diagnosticError}</span>}
       <span>{stats.words.toLocaleString()} 词</span>
       <span>{stats.characters.toLocaleString()} 字符</span>
       <span>{stats.lines.toLocaleString()} 行</span>

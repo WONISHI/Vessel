@@ -1,3 +1,5 @@
+import Canvas from "./canvas"
+import WorkspaceHome from "./workspace-home"
 import { TabSwitcher } from "@/components/tab-switcher"
 import { List } from "lucide-react"
 import Clock from "react-live-clock"
@@ -16,13 +18,13 @@ import { cn } from "@/lib/utils"
 import { useWorkspace } from "@/pages/workspace/hooks/useWorkspace"
 
 /** 主区只负责标签导航和当前子路由出口。 */
-export default function LayoutMain() {
+export default function LayoutMain({ resources = false }: { resources?: boolean }) {
   const { workspace, openFiles, activeFilePath, openWorkspaceFile, closeWorkspaceFile, closeWorkspaceFiles, navigateToWorkspaceHome } = useWorkspace()
   const [weekday, setWeekday] = useState(() => new Date().getDay())
   const [statusTarget, setStatusTarget] = useState<HTMLDivElement | null>(null)
   const [terminal, setTerminal] = useState<{ file?: string } | null>(null)
   const location = useLocation()
-  const home = ["/editor", "/resources"].includes(location.pathname)
+  const home = resources ? !activeFilePath : ["/editor", "/resources"].includes(location.pathname)
   const [edges, setEdges] = useState({ left: false, right: false })
   const tabList = useRef<HTMLDivElement>(null)
   const contentHost = useRef<HTMLDivElement>(null)
@@ -223,7 +225,7 @@ export default function LayoutMain() {
       </nav>
       <ResizablePanelGroup orientation="vertical">
         <ResizablePanel id="editor" defaultSize="70%" minSize="20%" className="flex min-h-0 flex-col">
-          <div ref={contentHost} className="flex min-h-0 min-w-0 flex-1 flex-col overflow-auto"><RouterView /></div>
+          <div ref={contentHost} className="flex min-h-0 min-w-0 flex-1 flex-col overflow-auto">{resources ? (home ? <WorkspaceHome /> : <Canvas />) : <RouterView />}</div>
           <footer className="shrink-0 border-t bg-stone-50 px-3 py-1 text-xs text-stone-500">
             <div className="flex flex-wrap items-center gap-2">
               <Button variant="ghost" aria-pressed={!!terminal} className={`h-6 gap-1 px-2 text-xs hover:bg-emerald-700 hover:!text-white active:!text-white ${terminal ? "bg-emerald-700 !text-white" : "text-stone-500"}`} aria-label={terminal ? "关闭控制台" : "打开控制台"} onClick={() => setTerminal(current => current ? null : { file: home ? undefined : activeFilePath || undefined })}>

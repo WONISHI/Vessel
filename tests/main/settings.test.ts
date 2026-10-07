@@ -13,6 +13,9 @@ it("signs S3 paths deterministically and rejects credentials embedded in endpoin
   const config = { ...defaultSettings.backup, endpoint: "https://storage.example.com", bucket: "notes", accessKey: "AKID", region: "us-east-1" }
   const request = signedS3Request(config, "secret", "PUT", "中文/my file.json", new Uint8Array([1, 2]), new Date("2026-10-03T00:00:00Z"))
   expect(signedS3Request({ ...config, endpoint: "storage.example.com" }, "secret", "HEAD").url).toBe("https://storage.example.com/notes")
+  const cos = { ...config, endpoint: "cos.ap-guangzhou.myqcloud.com", bucket: "notes-123456", region: "ap-guangzhou" }
+  expect(signedS3Request(cos, "secret", "HEAD").url).toBe("https://notes-123456.cos.ap-guangzhou.myqcloud.com/")
+  expect(signedS3Request({ ...cos, endpoint: "https://notes-123456.cos.ap-guangzhou.myqcloud.com" }, "secret", "PUT", "backup.json").url).toBe("https://notes-123456.cos.ap-guangzhou.myqcloud.com/backup.json")
   expect(request.url).toBe("https://storage.example.com/notes/%E4%B8%AD%E6%96%87/my%20file.json")
   expect(request.headers.Authorization).toMatch(/^AWS4-HMAC-SHA256 Credential=AKID\/20261003\/us-east-1\/s3\/aws4_request, SignedHeaders=host;x-amz-content-sha256;x-amz-date, Signature=[a-f0-9]{64}$/)
   expect(request.headers["x-amz-date"]).toBe("20261003T000000Z")
@@ -30,7 +33,7 @@ it("persists encrypted credentials, validates intervals, and snapshots SQLite pl
     registerSettings({ ipc: { handle: (name: string, callback: (...args: unknown[]) => Promise<unknown>) => handlers.set(name, callback) } } as never)
     const settings = { ...defaultSettings, name: "Test User", backup: { ...defaultSettings.backup, endpoint: "https://storage.example.com", bucket: "notes", accessKey: "AKID" } }
     const saved = await handlers.get("settings:save")!(null, settings, mocks.secret)
-    expect(saved).toMatchObject({ name: "Test User", backup: { hasSecret: true } })
+    expect(saved).toMatchObject({ name: "Test User", backup: { hasSecret: true, secretLength: mocks.secret.length } })
     expect(await readFile(join(mocks.path, "settings.json"), "utf8")).not.toContain(mocks.secret)
     await expect(handlers.get("settings:save")!(null, { ...settings, backup: { ...settings.backup, minutes: 15 } })).rejects.toThrow("选项")
     const status = await handlers.get("settings:backup")!()

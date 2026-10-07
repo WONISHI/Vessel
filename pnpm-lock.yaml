@@ -29,6 +29,9 @@ importers:
       yauzl:
         specifier: ^3.4.0
         version: 3.4.0
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
     devDependencies:
       '@codemirror/lang-markdown':
         specifier: ^6.5.0
@@ -273,9 +276,6 @@ importers:
       tailwindcss-animate:
         specifier: ^1.0.7
         version: 1.0.7(tailwindcss@3.4.19(yaml@2.9.1))
-      typescript:
-        specifier: ^5.9.3
-        version: 5.9.3
       vditor:
         specifier: ^3.11.2
         version: 3.11.3

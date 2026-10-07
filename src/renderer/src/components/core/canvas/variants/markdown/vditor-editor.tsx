@@ -1,3 +1,4 @@
+import { bindTableActions } from "./table-actions"
 import { bindWikiLinkEditing, decorateWikiLinks } from "./decorate-wiki-links"
 import { decorateInlineHTML } from "./inline-html"
 import { decorateCodeBlocks } from "./code-blocks"
@@ -34,6 +35,7 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
     if (!host.current) return
     const element = host.current
     const unbindWikiEditing = bindWikiLinkEditing(element)
+    const unbindTableActions = readOnly ? () => {} : bindTableActions(element)
     const decorate = () => {
       decorateCodeBlocks(element)
       const content = element.querySelector<HTMLElement>(".vditor-ir .vditor-reset")
@@ -195,6 +197,7 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
       imageRoots.forEach((root) => queueMicrotask(() => root.unmount()))
       observer.disconnect()
       unbindWikiEditing()
+      unbindTableActions()
       element.removeEventListener("focusout", decorate)
       disposed = true
       if (ready) editor.destroy()

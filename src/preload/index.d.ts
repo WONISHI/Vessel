@@ -153,6 +153,7 @@ export interface VesselAPI extends BrowserProxyAPI, BrowserToolsAPI, SettingsAPI
   mutateWorkspaceFile: (root: string, path: string, name?: string) => Promise<string>
   createWorkspaceEntry: (root: string, parent: string, name: string, kind: "file" | "directory") => Promise<{name: string; path: string; type: "file" | "directory"}>
   openExternal: (href: string) => Promise<void>
+  getCodeDiagnostics: (path: string, content: string) => Promise<import("../shared/code-diagnostics").CodeDiagnostic[]>
   readContent: (path: string) => Promise<string>
 
   saveContent: (path: string, content: string) => Promise<void>
