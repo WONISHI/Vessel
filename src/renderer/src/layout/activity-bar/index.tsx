@@ -2,6 +2,7 @@ import { TabSwitcher } from "@/components/tab-switcher"
 import { useBrowserTabs, selectBrowserTab, browserTabAction } from "@/pages/browser/tab-state"
 import { TransitButton } from "@/components/transit/button"
 import { useRouter } from "@vessel/react-router"
+import { useLocation } from "react-router-dom"
 import { Fragment, useEffect } from "react"
 import { useLibraryMeta, updateLibraryMeta, selectLastPinned } from "@/pages/resources/library-state"
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
@@ -15,6 +16,10 @@ import { ACTIVITY_ITEMS } from "@/layout/activity-bar/constants"
 
 /** 左侧窄活动栏：应用入口、活动切换和外观标识。 */
 export default function LayoutActivityBar({ activity, onActivityChange, onResourceEnter, onResourceLeave }: LayoutActivityBarProps) {
+  const location = useLocation()
+  useEffect(() => {
+    if (location.pathname === "/editor" || location.pathname.startsWith("/editor/")) sessionStorage.setItem("vessel-last-editor-route", location.pathname + location.search)
+  }, [location.pathname, location.search])
   const browserTabs = useBrowserTabs()
   const router = useRouter()
   const library = useLibraryMeta()
@@ -62,7 +67,7 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
                 size="icon"
                 aria-label={label}
                 aria-pressed={activity === id}
-                onClick={() => { if (id === "resources") { selectLastPinned(); onActivityChange(id); void router.push("/resources"); return } if (id === "office") { void router.push("/office"); return } onActivityChange(id) }}
+                onClick={() => { if (id === "tools") { void router.push("/devtools"); return } if (id === "files") { const last = sessionStorage.getItem("vessel-last-editor-route"); void router.push(last?.startsWith("/editor") ? last : "/editor"); return } if (id === "resources") { selectLastPinned(); onActivityChange(id); void router.push("/resources"); return } if (id === "office") { void router.push("/office"); return } onActivityChange(id) }}
                 onMouseEnter={id === "resources" ? onResourceEnter : undefined}
                 onMouseLeave={id === "resources" ? onResourceLeave : undefined}
                 className={cn("relative h-[38px] w-[38px] rounded-[10px] text-stone-500 hover:!bg-[#f0efed] hover:!text-stone-500", activity === id && "!bg-emerald-50 !text-green-700 hover:!bg-emerald-50 hover:!text-green-700")}

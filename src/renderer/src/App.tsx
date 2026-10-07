@@ -7,7 +7,7 @@ import { useRouter } from "@vessel/react-router"
 import { Toaster } from "sonner"
 
 import DevTool from "@/components/core/devtool"
-import { RouterView } from "@vessel/react-router/components"
+import { WorkspaceRouteCache } from "./router/workspace-route-cache"
 
 export interface WorkspaceData {
   name: string
@@ -53,7 +53,7 @@ function App() {
 
       <BrowserKeepAlive />
       <OfficeKeepAlive />
-      <RouterView />
+      <WorkspaceRouteCache />
       <TransitPanel />
     </>
   )

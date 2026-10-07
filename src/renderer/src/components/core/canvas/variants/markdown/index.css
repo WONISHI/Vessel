@@ -267,3 +267,5 @@
 .vessel-hover-preview .vessel-vditor .vditor-reset {
   padding-inline: clamp(16px, 2vw, 32px) !important;
 }
+
+.vessel-code-frame, .vessel-code-frame code, .vessel-code-frame code * { user-select: text !important; -webkit-user-select: text !important; cursor: text; }

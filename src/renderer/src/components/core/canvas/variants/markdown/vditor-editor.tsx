@@ -96,6 +96,12 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
                 element.closest("[data-type=code-block]")?.classList.add("vessel-image-block")
                 const container = document.createElement("div")
                 container.contentEditable = "false"
+                container.addEventListener("mousedown", event => {
+                  event.stopPropagation()
+                  if ((event.target as HTMLElement).closest("img")) event.preventDefault()
+                })
+                container.addEventListener("click", event => event.stopPropagation())
+                container.addEventListener("mouseup", event => event.stopPropagation())
                 element.replaceChildren(container)
                 for (const [node, root] of imageRoots) {
                   if (!node.isConnected) {

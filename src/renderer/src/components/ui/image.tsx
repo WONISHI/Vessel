@@ -1,3 +1,5 @@
+import { ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem } from "./context-menu"
+import { ImageEditorSheet } from "@/pages/image-preview/editor-sheet"
 import { useEffect, useRef, useState, type ComponentPropsWithoutRef } from "react"
 import { Dialog, DialogContent, DialogTitle } from "./dialog"
 import { Resizable } from "./resizable"
@@ -42,6 +44,7 @@ function ImageContent({ src, srcSet, alt = "", width = 480, resizable = true, cl
   const [failed, setFailed] = useState(false)
   const [loaded, setLoaded] = useState(false)
   const [zoomed, setZoomed] = useState(false)
+  const [tool, setTool] = useState<string | null>(null)
   useEffect(() => {
     if (!host.current) return
     let active = true
@@ -128,7 +131,7 @@ function ImageContent({ src, srcSet, alt = "", width = 480, resizable = true, cl
   )
   return (
     <>
-      {resizable ? (
+      <ContextMenu><ContextMenuTrigger asChild><span className="block">{resizable ? (
         <Resizable
           defaultWidth={width}
           onResizeEnd={onResizeEnd}
@@ -138,6 +141,10 @@ function ImageContent({ src, srcSet, alt = "", width = 480, resizable = true, cl
       ) : (
         content
       )}
+      </span></ContextMenuTrigger><ContextMenuContent className="z-[260]">
+        {[["crop", "截图"], ["ocr", "OCR 识别"], ["annotate", "标注"], ["convert", "格式转换"], ["compress", "压缩"], ["watermark", "加水印"], ["color", "取主色调"]].map(([id, title]) => <ContextMenuItem key={id} disabled={!loaded || !resolved || failed} onSelect={() => setTool(id)}>{title}</ContextMenuItem>)}
+      </ContextMenuContent></ContextMenu>
+      {resolved && <ImageEditorSheet open={tool !== null} onOpenChange={open => { if (!open) setTool(null) }} source={resolved} tool={tool || "ocr"} />}
       <Dialog
         open={zoomed && loaded && !failed}
         onOpenChange={setZoomed}
@@ -145,6 +152,7 @@ function ImageContent({ src, srcSet, alt = "", width = 480, resizable = true, cl
         <DialogContent
           className="max-w-[95vw] w-fit max-h-[95vh] p-6"
           aria-describedby={undefined}
+          onCloseAutoFocus={event => event.preventDefault()}
         >
           <DialogTitle className="sr-only">{alt || "图片预览"}</DialogTitle>
           <img

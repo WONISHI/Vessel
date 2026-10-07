@@ -19,6 +19,7 @@ export function FileSearch({ path, contentHost }: { path: string; contentHost: R
   const searchInput = useRef<HTMLInputElement>(null)
   useEffect(() => {
     const handleShortcut = (event: KeyboardEvent) => {
+      if (!contentHost.current?.getClientRects().length) return
       if (!(event.ctrlKey || event.metaKey) || event.altKey || event.shiftKey || event.isComposing || event.key.toLowerCase() !== "f") return
       event.preventDefault()
       event.stopPropagation()

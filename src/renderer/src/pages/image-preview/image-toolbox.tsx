@@ -64,11 +64,11 @@ function formatBytes(bytes: number) {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
 }
 function Action({ children, onClick, disabled }: { children: ReactNode; onClick: () => void; disabled?: boolean }) { return <button className="image-button image-primary" disabled={disabled} onClick={onClick}>{children}</button> }
-export function ImageToolbox({ initialImage, embedded = false, navigationOpen, onNavigationChange }: { initialImage?: string; embedded?: boolean; navigationOpen?: boolean; onNavigationChange?: (open: boolean) => void } = {}) {
+export function ImageToolbox({ initialImage, initialTool = "ocr", embedded = false, navigationOpen, onNavigationChange }: { initialImage?: string; initialTool?: string; embedded?: boolean; navigationOpen?: boolean; onNavigationChange?: (open: boolean) => void } = {}) {
   const [localNav, setLocalNav] = useState(true)
   const nav = navigationOpen ?? localNav
   const setNav = onNavigationChange ?? setLocalNav
-  const [image, setImage] = useState(''), [history, setHistory] = useState<string[]>([]), [tool, setTool] = useState('ocr')
+  const [image, setImage] = useState(''), [history, setHistory] = useState<string[]>([]), [tool, setTool] = useState(initialTool)
   const [meta, setMeta] = useState<{ name: string; size: number; updatedAt: Date }>({ name: 'vessel-image.png', size: 0, updatedAt: new Date() })
   const [size, setSize] = useState({ width: 1, height: 1 }), [resize, setResize] = useState({ width: 1, height: 1 })
   const [region, setRegion] = useState<ImageRegion>({ x: 0, y: 0, width: 1, height: 1 }), [regionOCR, setRegionOCR] = useState(false)

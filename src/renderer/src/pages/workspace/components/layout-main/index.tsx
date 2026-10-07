@@ -29,6 +29,7 @@ export default function LayoutMain() {
   const activeIndex = home ? -1 : openFiles.findIndex((file) => file.path === activeFilePath)
   useEffect(() => {
     const handleShortcut = (event: KeyboardEvent) => {
+      if (!contentHost.current?.getClientRects().length) return
       if (!event.ctrlKey || event.altKey || event.shiftKey || event.metaKey || event.isComposing) return
       const key = event.key.toLowerCase()
       if (key !== "l" && key !== "r") return
