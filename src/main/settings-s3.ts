@@ -5,7 +5,9 @@ const hmac = (key: string | Buffer, data: string) => createHmac("sha256", key).u
 const encode = (value: string) => encodeURIComponent(value).replace(/[!'()*]/g, c => `%${c.charCodeAt(0).toString(16).toUpperCase()}`)
 // AWS S3 Signature V4, single payload: docs.aws.amazon.com/AmazonS3/latest/API/sig-v4-header-based-auth.html
 export function signedS3Request(config: AppSettings["backup"], secret: string, method: "HEAD" | "PUT", key = "", body: Uint8Array = new Uint8Array(), now = new Date()) {
-  const url = new URL(config.endpoint)
+  const endpoint = config.endpoint.trim()
+  let url: URL
+  try { url = new URL(/^[a-z][a-z0-9+.-]*:\/\//i.test(endpoint) ? endpoint : `https://${endpoint}`) } catch { throw new Error("请输入有效的 S3 Endpoint，例如 https://s3.amazonaws.com") }
   if (!["http:", "https:"].includes(url.protocol) || url.username || url.password || url.search || url.hash) throw new Error("请输入不含凭据和查询参数的 HTTP(S) Endpoint")
   if (!config.bucket || !config.accessKey || !secret || !config.region) throw new Error("请填写完整的 S3 存储配置")
   const segments = [...url.pathname.split("/").filter(Boolean).map(decodeURIComponent), config.bucket, ...key.split("/").filter(Boolean)]

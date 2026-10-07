@@ -1,3 +1,4 @@
+import { HistoryInput } from "./history-input"
 import { BrowserProxy } from "./proxy"
 import { BookmarkBar } from './bookmark-bar'
 import { TabSwitcher } from "@/components/tab-switcher"
@@ -331,7 +332,7 @@ export default function BrowserPage({ visible = true }: { visible?: boolean }) {
             }}
           >
             {tab.url.startsWith("https:") ? <LockKeyhole size={14} /> : <Search size={14} />}
-            <input
+            <HistoryInput onNavigate={(value, newWindow) => { if (newWindow) { const next = { ...newTab(), url: browserURL(value), loading: true }; setTabs(current => [...current, next]); setActive(next.id); setInput(null) } else navigate(value) }}
               spellCheck={false}
               autoCorrect="off"
               autoCapitalize="none"
@@ -443,7 +444,7 @@ export default function BrowserPage({ visible = true }: { visible?: boolean }) {
                 }}
               >
                 <Search size={20} />
-                <input
+                <HistoryInput onNavigate={(value, newWindow) => { if (newWindow) { const next = { ...newTab(), url: browserURL(value), loading: true }; setTabs(current => [...current, next]); setActive(next.id); setInput(null) } else navigate(value) }}
               spellCheck={false}
               autoCorrect="off"
               autoCapitalize="none"
@@ -487,7 +488,7 @@ export default function BrowserPage({ visible = true }: { visible?: boolean }) {
         <button aria-label={toolbarCollapsed ? "展开浏览器工具栏" : "折叠浏览器工具栏"} aria-expanded={!toolbarCollapsed} onClick={() => setToolbarCollapsed(value => !value)} className="flex size-5 shrink-0 items-center justify-center text-stone-400 hover:text-stone-700">{toolbarCollapsed ? <ChevronUp size={13} /> : <ChevronRight size={13} />}</button>
           <span>{tab.loading ? "正在加载…" : tab.url || "就绪"}</span>
           <div className="ml-auto"><BrowserProxy /></div>
-          <span className="shrink-0"><Clock ticking interval={1000} format="YYYY年MM月DD日 HH:mm" /></span>
+          <span className="shrink-0"><Clock ticking interval={1000} format="YYYY年MM月DD日 HH:mm" filter={() => new Date().toLocaleString("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", weekday: "long", hour12: false })} /></span>
           <span>{Math.round(tab.zoom * 100)}%</span>
         </footer>
       </main>

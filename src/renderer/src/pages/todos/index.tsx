@@ -46,15 +46,8 @@ export default function TodosPage() {
     }
   }
   return (
-    <Layout
-      aside={
-        <TodoAside
-          todos={todos}
-          selected={selected}
-          onSelect={select}
-        />
-      }
-    >
+    <Layout aside={null}>
+      <TodoAside todos={todos} selected={selected} onSelect={select}>
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         {error && (
           <p
@@ -84,6 +77,7 @@ export default function TodosPage() {
           onDelete={(id) => void mutate(() => window.electronAPI.deleteTodo(id))}
         />
       </div>
+      </TodoAside>
     </Layout>
   )
 }

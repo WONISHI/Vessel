@@ -12,6 +12,7 @@ vi.mock("../../src/main/settings-s3", async original => ({ ...await original<obj
 it("signs S3 paths deterministically and rejects credentials embedded in endpoint URLs", () => {
   const config = { ...defaultSettings.backup, endpoint: "https://storage.example.com", bucket: "notes", accessKey: "AKID", region: "us-east-1" }
   const request = signedS3Request(config, "secret", "PUT", "中文/my file.json", new Uint8Array([1, 2]), new Date("2026-10-03T00:00:00Z"))
+  expect(signedS3Request({ ...config, endpoint: "storage.example.com" }, "secret", "HEAD").url).toBe("https://storage.example.com/notes")
   expect(request.url).toBe("https://storage.example.com/notes/%E4%B8%AD%E6%96%87/my%20file.json")
   expect(request.headers.Authorization).toMatch(/^AWS4-HMAC-SHA256 Credential=AKID\/20261003\/us-east-1\/s3\/aws4_request, SignedHeaders=host;x-amz-content-sha256;x-amz-date, Signature=[a-f0-9]{64}$/)
   expect(request.headers["x-amz-date"]).toBe("20261003T000000Z")

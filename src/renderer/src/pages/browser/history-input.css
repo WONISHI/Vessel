@@ -1,0 +1,15 @@
+.history-completion { position: fixed; z-index: 300; overflow: hidden; border: 1px solid #e7e5e4; border-radius: 10px; background: white; color: #44403c; box-shadow: 0 12px 40px #0002, 0 4px 12px #0001; }
+.history-completion-heading { display: flex; justify-content: space-between; padding: 8px 14px; background: #faf9f7; border-bottom: 1px solid #f0efed; color: #a8a29e; font-size: 11px; font-weight: 600; }
+.history-completion-item { position: relative; display: flex; align-items: center; gap: 10px; padding: 9px 14px; cursor: pointer; font-size: 13px; }
+.history-completion-item[aria-selected=true] { background: #ecfdf5; color: #15803d; }
+.history-completion-item[aria-selected=true]::before { content: ''; position: absolute; left: 0; top: 6px; bottom: 6px; width: 3px; border-radius: 0 2px 2px 0; background: #16a34a; }
+.history-completion-copy { flex: 1; min-width: 0; }
+.history-completion-copy strong, .history-completion-copy small { display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.history-completion-copy small { margin-top: 2px; color: #a8a29e; font-size: 11px; font-family: monospace; }
+.history-completion mark { background: #bbf7d0; color: #15803d; border-radius: 2px; }
+.history-site-icon { display: flex; width: 20px; height: 20px; align-items: center; justify-content: center; flex-shrink: 0; }
+.history-badge { background: #f5f5f4; color: #78716c; border-radius: 4px; padding: 2px 6px; font-size: 10px; }
+.history-badge.bookmark { background: #fef9c3; color: #a16207; }
+.history-search-label { color: #a8a29e; font-size: 11px; }
+.history-completion footer { display: flex; justify-content: space-between; padding: 8px 14px; border-top: 1px solid #e7e5e4; background: #faf9f7; font-size: 10px; color: #a8a29e; }
+.browser-address:focus-within { border-color: #17a34a; box-shadow: 0 0 0 3px #17a34a18; }

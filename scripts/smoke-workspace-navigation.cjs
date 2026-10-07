@@ -10,7 +10,7 @@ app.whenReady().then(async()=>{
  'settings:get':()=>({theme:'light',fontSize:14,accent:'#16a34a'}),'markdown:pending':()=>[],
  'app-state:get':(_e,key)=>key.startsWith('workspace-tabs:')?{files:[file],active:file.path}:state.get(key)||null,
  'app-state:set':(_e,key,value)=>state.set(key,value),'workspace:readDirectory':()=>[file],
- 'files:watch':()=> 'watch','files:unwatch':()=>{},'file:readContent':()=>{reads++;return source},'file:saveContent':()=>{},
+ 'files:watch':()=> 'watch','files:unwatch':()=>{},'file:readContent':()=>{reads++;return process.env.VESSEL_EMPTY_TEST ? "" : source},'file:saveContent':(_e,...args)=>{state.set("saved",args)},
  'obsidian:readImage':()=>image,'browser:extensions:list':()=>[],'browser:proxy:state':()=>({connected:false,nodes:[]})
  }))ipcMain.handle(name,fn)
  const win=new BrowserWindow({show:true,width:1300,height:850,webPreferences:{preload:path.resolve('out/preload/index.js'),sandbox:false,webviewTag:true}})
@@ -18,6 +18,19 @@ app.whenReady().then(async()=>{
  const js=code=>win.webContents.executeJavaScript(code)
  await win.loadFile(path.resolve('out/renderer/index.html'),{hash:'/image'})
  await js(`localStorage.setItem('app_current_workspace',${JSON.stringify(JSON.stringify({name:'fixture',path:'/fixture',files:[file]}))});location.hash='/editor'`)
+ if(process.env.VESSEL_EMPTY_TEST){
+  for(let i=0;i<40;i++){await wait(250);if(await js(`!!document.querySelector('.vditor-ir [contenteditable=true]')`))break}
+  await wait(500)
+  const point=await js(`(()=>{const e=document.querySelector('.vditor-ir [contenteditable=true]');const r=e.getBoundingClientRect();return {x:Math.round(r.x+100),y:Math.round(r.y+100),height:r.height}})()`)
+  assert(point.height>200)
+  win.webContents.sendInputEvent({type:'mouseDown',button:'left',clickCount:1,x:point.x,y:point.y})
+  win.webContents.sendInputEvent({type:'mouseUp',button:'left',clickCount:1,x:point.x,y:point.y})
+  await win.webContents.insertText('New document edit')
+  await wait(1200)
+  assert(await js(`document.querySelector('.vditor-ir').textContent.includes('New document edit')`))
+  assert(JSON.stringify(state.get('saved')).includes('New document edit'))
+  console.log('PASS empty Markdown click, type and save');app.exit(0);return
+ }
  for(let i=0;i<40;i++){await wait(250);if(await js(`!!document.querySelector('.vessel-code-frame')`))break}
  assert(await js(`!!document.querySelector('.vessel-code-frame')`))
  await js(`window.fixtureEditor=document.querySelector('.vditor');window.fixtureFrame=document.querySelector('.vessel-code-frame')`)

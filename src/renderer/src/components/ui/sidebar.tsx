@@ -49,7 +49,7 @@ const SidebarProvider = React.forwardRef<
     onOpenChange?: (open: boolean) => void
   }
 >(({ defaultOpen = true, open: openProp, onOpenChange: setOpenProp, className, style, children, ...props }, ref) => {
-  const [width, updateWidth] = React.useState(() => Math.max(232, Math.min(600, Number(localStorage.getItem("vessel-sidebar-width")) || 240)))
+  const [width, updateWidth] = React.useState(() => Math.max(232, Math.min(600, Number(localStorage.getItem("vessel-sidebar-width")) || 232)))
   const setWidth = React.useCallback((value: number) => { updateWidth(value); localStorage.setItem("vessel-sidebar-width", String(value)) }, [])
   const isMobile = useIsMobile()
   const [openMobile, setOpenMobile] = React.useState(false)

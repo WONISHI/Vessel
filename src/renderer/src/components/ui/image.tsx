@@ -141,10 +141,10 @@ function ImageContent({ src, srcSet, alt = "", width = 480, resizable = true, cl
       ) : (
         content
       )}
-      </span></ContextMenuTrigger><ContextMenuContent className="z-[260]">
+      </span></ContextMenuTrigger><ContextMenuContent onCloseAutoFocus={event => event.preventDefault()} className="z-[260]">
         {[["crop", "截图"], ["ocr", "OCR 识别"], ["annotate", "标注"], ["convert", "格式转换"], ["compress", "压缩"], ["watermark", "加水印"], ["color", "取主色调"]].map(([id, title]) => <ContextMenuItem key={id} disabled={!loaded || !resolved || failed} onSelect={() => setTool(id)}>{title}</ContextMenuItem>)}
       </ContextMenuContent></ContextMenu>
-      {resolved && <ImageEditorSheet open={tool !== null} onOpenChange={open => { if (!open) setTool(null) }} source={resolved} tool={tool || "ocr"} />}
+      {resolved && tool && <ImageEditorSheet open={tool !== null} onOpenChange={open => { if (!open) setTool(null) }} source={resolved} tool={tool || "ocr"} />}
       <Dialog
         open={zoomed && loaded && !failed}
         onOpenChange={setZoomed}

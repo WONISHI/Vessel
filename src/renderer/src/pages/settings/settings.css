@@ -9,3 +9,8 @@
 .vessel-settings input[type=range] { width: 130px; accent-color: var(--settings-accent, #16a34a); }
 .vessel-settings button:focus-visible { outline: 2px solid var(--settings-accent, #16a34a); outline-offset: 2px; }
 @media(max-width:700px) { .settings-row { align-items: stretch; flex-direction: column; } .vessel-settings input:not([type=file]):not([type=range]),.vessel-settings select { width:100%; } }
+
+.vessel-settings button[data-variant="outline"]:hover { color: white; }
+.vessel-settings nav[aria-label="设置分类"] button { min-height: 32px; padding-block: 7px; font-size: 12px; }
+
+.vessel-settings .settings-card button:hover { color: white; background: #17A34A; }

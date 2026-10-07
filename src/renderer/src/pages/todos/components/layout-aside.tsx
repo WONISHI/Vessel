@@ -1,25 +1,25 @@
+import type { ReactNode } from "react"
+import { ResizableSplit } from "@/components/ui/resizable-split"
 import { useRouter } from "@vessel/react-router"
-import { Sidebar } from "@/components/ui/sidebar"
+import { Sidebar, useSidebar } from "@/components/ui/sidebar"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import ActivityBar from "@/layout/activity-bar"
 import type { Todo } from "../../../../../shared/todos"
 import { fromKey } from "../calendar"
 import { cn } from "@/lib/utils"
-export default function TodoAside({ todos, selected, onSelect }: { todos: Todo[]; selected: string; onSelect: (date: string) => void }) {
+export default function TodoAside({ todos, selected, onSelect, children }: { children: ReactNode; todos: Todo[]; selected: string; onSelect: (date: string) => void }) {
   const router = useRouter()
+  const { width, setWidth, open } = useSidebar()
   const dates = [...new Set(todos.map((todo) => todo.date))].sort()
   return (
-    <aside className="flex h-full shrink-0 bg-white">
+    <div className="flex h-full min-w-0 flex-1 bg-white">
       <ActivityBar
         activity="todos"
         onActivityChange={(activity) => {
           if (activity !== "todos") void router.push(activity === "tools" ? "/devtools" : activity === "files" ? "/editor" : `/${activity}`)
         }}
       />
-      <Sidebar
-        collapsible="offcanvas"
-        className="left-[52px] [&_[data-sidebar=sidebar]]:bg-stone-50"
-      >
+      <ResizableSplit side="left" size={width} min={160} max={600} label="调整待办侧栏宽度" onResize={setWidth} pane={open ? <Sidebar collapsible="none" className="!w-full bg-stone-50">
         <header className="flex justify-between p-4 text-xs font-semibold text-stone-500">
           <span>待办日期</span>
           <span>{dates.length} 天</span>
@@ -59,7 +59,7 @@ export default function TodoAside({ todos, selected, onSelect }: { todos: Todo[]
             )
           })}
         </ScrollArea>
-      </Sidebar>
-    </aside>
+      </Sidebar> : undefined}>{children}</ResizableSplit>
+    </div>
   )
 }

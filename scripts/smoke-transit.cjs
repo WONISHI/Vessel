@@ -11,7 +11,7 @@ const watchdog = setTimeout(() => { console.error('Transit smoke timed out'); ap
 app.whenReady().then(async () => {
   const handlers = { 'settings:get': {theme:'light'}, 'browser:extensions:list': [], 'markdown:pending': [], 'workspace:readDirectory': [], 'app-state:get': null, 'app-state:set': undefined, 'files:watch': 'test', 'files:unwatch': undefined }
   for (const [name, value] of Object.entries(handlers)) ipcMain.handle(name, () => value)
-  const win = new BrowserWindow({ show: false, width: 1200, height: 800, webPreferences: { preload: path.resolve('out/preload/index.js'), sandbox: false, webviewTag: true } })
+  const win = new BrowserWindow({ show: true, width: 1200, height: 800, webPreferences: { preload: path.resolve('out/preload/index.js'), sandbox: false, webviewTag: true } })
   const Module = require('node:module')
   const compiled = new Module(path.resolve('out/main/transit-test.cjs'), module)
   compiled.filename = path.resolve('out/main/transit-test.cjs'); compiled.paths = module.paths
@@ -36,13 +36,28 @@ app.whenReady().then(async () => {
   await assert(`document.querySelector('[role="dialog"]').textContent.includes('Second line')`, 'clipboard text opens side panel')
   await assert(`getComputedStyle(document.body).pointerEvents !== 'none'`, 'non-modal panel leaves workspace interactive')
   await js(`[...document.querySelectorAll('button')].find(b => b.textContent === '左侧边停靠').click()`)
+  await delay(550)
   await assert(`Math.round(document.querySelector('[role="dialog"]').getBoundingClientRect().left) === 52`, 'left docking preserves activity bar')
   await js(`document.querySelector('button[aria-label="展开"]').click()`)
   await assert(`document.querySelector('[role="dialog"]').getBoundingClientRect().width > 1000`, 'expand panel')
   await js(`document.querySelector('button[aria-label="还原"]').click(); [...document.querySelectorAll('button')].find(b => b.textContent === '右侧边停靠').click()`)
+  const drag = async (selector, dx, dy) => {
+    const box = await js(`(()=>{const r=document.querySelector(${JSON.stringify(selector)}).getBoundingClientRect();return {x:Math.round(r.x+r.width/2),y:Math.round(r.y+Math.min(25,r.height/2))}})()`)
+    win.webContents.sendInputEvent({type:'mouseDown',button:'left',clickCount:1,x:box.x,y:box.y})
+    win.webContents.sendInputEvent({type:'mouseMove',modifiers:['leftButtonDown'],x:box.x+dx,y:box.y+dy})
+    win.webContents.sendInputEvent({type:'mouseUp',button:'left',clickCount:1,x:box.x+dx,y:box.y+dy});await delay(250)
+  }
+  const oldWidth=await js(`document.querySelector('.transit-resizable-content').getBoundingClientRect().width`)
+  await drag('[aria-label="调整中转站宽度"]',-100,0)
+  await assert(`document.querySelector('.transit-resizable-content').getBoundingClientRect().width > ${oldWidth+50}`, 'docked panel can grow by dragging')
   await js(`[...document.querySelectorAll('button')].find(b => b.textContent === '悬浮停靠').click()`)
+  await delay(550)
+  const oldPosition=await js(`(()=>{const r=document.querySelector('[role="dialog"]').getBoundingClientRect();return {x:r.x,y:r.y}})()`)
+  await drag('[role="dialog"] header',80,60)
+  await assert(`document.querySelector('[role="dialog"]').getBoundingClientRect().x > ${oldPosition.x+40} && document.querySelector('[role="dialog"]').getBoundingClientRect().y > ${oldPosition.y+30}`, 'floating panel moves by header drag')
+
   await assert(`document.querySelector('[role="dialog"]').getBoundingClientRect().top > 0 && document.querySelector('[role="dialog"]').getBoundingClientRect().height < innerHeight`, 'floating docking leaves space around panel')
-  await assert(`/\\d{4}年\\d{2}月\\d{2}日/.test(document.querySelector('[role="dialog"] footer').textContent) && !document.querySelector('[role="dialog"] footer').textContent.includes('已保存')`, 'footer shows date instead of saved label')
+  await assert(`/\\d{4}年\\d{2}月\\d{2}日/.test(document.querySelector('[role="dialog"] footer').textContent) && document.querySelector('[role="dialog"] footer').textContent.includes('星期')`, 'footer shows date instead of saved label')
   await js(`[...document.querySelectorAll('button')].find(b => b.textContent === '右侧边停靠').click()`)
   await open(); await read()
   await assert(`JSON.parse(localStorage.getItem('vessel-transit-v1')).length === 1`, 'duplicate clipboard content is not added twice')
