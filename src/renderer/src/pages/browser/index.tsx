@@ -22,7 +22,7 @@ import { Button } from "@/components/ui/button"
 import { browserURL } from "./url"
 import "./index.css"
 
-type Tab = { favicon?: string; id: string; url: string; title: string; loading: boolean; back: boolean; forward: boolean; error: string; zoom: number }
+type Tab = { openerId?: string; favicon?: string; id: string; url: string; title: string; loading: boolean; back: boolean; forward: boolean; error: string; zoom: number }
 const newTab = (): Tab => ({ id: crypto.randomUUID(), url: "", title: "新标签页", loading: false, back: false, forward: false, error: "", zoom: 1 })
 const shortcuts = [
   { title: "GitHub", url: "https://github.com" },
@@ -54,6 +54,10 @@ function Guest({ tab, visible, register, update }: { tab: Tab; visible: boolean;
     const fail = (event: Electron.DidFailLoadEvent) => {
       if (event.isMainFrame && event.errorCode !== -3) updateRef.current(tab.id, { loading: false, error: `页面加载失败：${event.errorDescription}` })
     }
+    const message = (event: Electron.IpcMessageEvent) => {
+      if (event.channel === "vessel-find") window.dispatchEvent(new CustomEvent("vessel-browser-find", { detail: view.getWebContentsId() }))
+    }
+    view.addEventListener("ipc-message", message)
     view.addEventListener("page-favicon-updated", favicon)
     view.addEventListener("dom-ready", onReady)
     view.addEventListener("did-navigate", sync)
@@ -63,6 +67,7 @@ function Guest({ tab, visible, register, update }: { tab: Tab; visible: boolean;
     view.addEventListener("did-stop-loading", stop)
     view.addEventListener("did-fail-load", fail)
     return () => {
+      view.removeEventListener("ipc-message", message)
       markGuestReady(view, false)
       view.removeEventListener("page-favicon-updated", favicon)
       view.removeEventListener("dom-ready", onReady)
@@ -92,6 +97,8 @@ export default function BrowserPage({ visible = true }: { visible?: boolean }) {
   const [findText, setFindText] = useState("")
   const [findResult, setFindResult] = useState({ activeMatchOrdinal: 0, matches: 0, tabId: "", text: "" })
   const findInput = useRef<HTMLInputElement>(null)
+  const [findPosition, setFindPosition] = useState<{ x: number; y: number } | null>(null)
+  const findDrag = useRef<{ x: number; y: number; left: number; top: number } | null>(null)
   const [consoleWidth, setConsoleWidth] = useState(() => Number(localStorage.getItem("browser-console-width")) || 440)
   const [consoleHeight, setConsoleHeight] = useState(() => Number(localStorage.getItem("browser-console-height")) || 300)
   const [devtoolsOpen, setDevtoolsOpen] = useState(false)
@@ -133,13 +140,17 @@ export default function BrowserPage({ visible = true }: { visible?: boolean }) {
     if (!visible) return
     const show = () => { setFindOpen(true); requestAnimationFrame(() => { findInput.current?.focus(); findInput.current?.select() }) }
     const keydown = (event: KeyboardEvent) => {
-      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "f") { event.preventDefault(); show() }
+      if (!event.defaultPrevented && (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "f") { event.preventDefault(); show() }
+      if (event.key === "F12") { event.preventDefault(); setDevtoolsOpen(open => !open) }
     }
     window.addEventListener("keydown", keydown)
+    const pageFind = (event: Event) => { if (withGuest(views.current.get(tab.id), guest => guest.getWebContentsId()) === (event as CustomEvent<number>).detail) show() }
+    window.addEventListener("vessel-browser-find", pageFind)
+    const stopDevtools = window.electronAPI.onBrowserToggleDevtools?.(id => { if (withGuest(views.current.get(tab.id), guest => guest.getWebContentsId()) === id) setDevtoolsOpen(open => !open) })
     const unsubscribe = window.electronAPI.onBrowserFind(id => {
       if (withGuest(views.current.get(tab.id), guest => guest.getWebContentsId()) === id) show()
     })
-    return () => { window.removeEventListener("keydown", keydown); unsubscribe() }
+    return () => { window.removeEventListener("keydown", keydown); window.removeEventListener("vessel-browser-find", pageFind); stopDevtools?.(); unsubscribe() }
   }, [visible, tab.id])
   useEffect(() => {
     const view = views.current.get(tab.id)
@@ -201,9 +212,9 @@ export default function BrowserPage({ visible = true }: { visible?: boolean }) {
     setActive(item.id)
     setInput(null)
   }
-  useEffect(() => window.electronAPI.onBrowserNewTab(url => {
+  useEffect(() => window.electronAPI.onBrowserNewTab((url, opener) => {
     if (!/^(https?|chrome-extension|file):\/\//i.test(url)) return
-    const item = { ...newTab(), url, loading: true }
+    const item = { ...newTab(), url, loading: true, openerId: [...views.current.entries()].find(([, view]) => withGuest(view, guest => guest.getWebContentsId()) === opener)?.[0] }
     setTabs(current => [...current, item])
     setActive(item.id)
     setInput(null)
@@ -213,7 +224,7 @@ export default function BrowserPage({ visible = true }: { visible?: boolean }) {
     if (!remaining.length) remaining.push(newTab())
     setTabs(remaining)
     if (tab.id === id) {
-      setActive(remaining[0].id)
+      setActive(remaining.find(item => item.id === tab.openerId)?.id || remaining[Math.max(0, tabs.findIndex(item => item.id === id) - 1)].id)
       setInput(null)
     }
   }
@@ -396,7 +407,16 @@ export default function BrowserPage({ visible = true }: { visible?: boolean }) {
         </section>) : undefined}>
 
         <div className="relative h-full min-h-0 min-w-0 flex-1 bg-white">
-          {findOpen && <form className="browser-find" aria-label="网页查找" onSubmit={event => { event.preventDefault(); searchPage(true, true) }}>
+          {findOpen && <form className="browser-find" style={findPosition ? { position: "fixed", left: findPosition.x, top: findPosition.y, right: "auto" } : undefined} onPointerDown={event => {
+            if ((event.target as HTMLElement).closest("input, button") || event.button !== 0) return
+            event.preventDefault(); event.currentTarget.setPointerCapture(event.pointerId)
+            const rect = event.currentTarget.getBoundingClientRect()
+            findDrag.current = { x: event.clientX, y: event.clientY, left: rect.left, top: rect.top }
+          }} onPointerMove={event => {
+            const start = findDrag.current; if (!start) return
+            const rect = event.currentTarget.getBoundingClientRect()
+            setFindPosition({ x: Math.max(0, Math.min(innerWidth - rect.width, start.left + event.clientX - start.x)), y: Math.max(0, Math.min(innerHeight - rect.height, start.top + event.clientY - start.y)) })
+          }} onPointerUp={() => { findDrag.current = null }} onPointerCancel={() => { findDrag.current = null }} aria-label="网页查找" onSubmit={event => { event.preventDefault(); searchPage(true, true) }}>
             <Search size={15} className="text-stone-400" />
             <input ref={findInput} aria-label="在网页中查找" placeholder="在网页中查找" spellCheck={false} value={findText} onChange={event => setFindText(event.target.value)} onKeyDown={event => { if (event.key === "Escape") setFindOpen(false); if (event.key === "Enter" && event.shiftKey) { event.preventDefault(); searchPage(false, true) } }} />
             <span className="browser-find-count">{findResult.tabId === tab.id && findResult.text === findText ? `${findResult.activeMatchOrdinal}/${findResult.matches}` : "0/0"}</span>

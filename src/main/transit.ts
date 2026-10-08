@@ -1,8 +1,8 @@
 import { serveOffice } from "./office"
-import { readFile, realpath, stat } from "node:fs/promises"
-import { relative, isAbsolute, extname, basename } from "node:path"
+import { readFile, realpath, stat, mkdir, writeFile } from "node:fs/promises"
+import { relative, isAbsolute, extname, basename, join } from "node:path"
 import type { TransitFile } from "../shared/transit"
-import { BrowserWindow, clipboard, type WebContents } from "electron"
+import { app, BrowserWindow, clipboard, type WebContents } from "electron"
 
 async function readTransitFile(root: string, file: string): Promise<TransitFile> {
     const base = await realpath(root); const path = await realpath(file); const rel = relative(base, path)
@@ -18,7 +18,16 @@ async function readTransitFile(root: string, file: string): Promise<TransitFile>
 }
 export function registerTransit(host: WebContents) {
   host.ipc.handle("transit:read-file", (_event, root: string, file: string) => readTransitFile(root, file))
-  host.ipc.handle("transit:clipboard", () => clipboard.readText())
+  host.ipc.handle("transit:clipboard", async () => {
+    const image = clipboard.readImage()
+    if (image.isEmpty()) return clipboard.readText()
+    const root = join(app.getPath("userData"), "transit-images")
+    await mkdir(root, { recursive: true })
+    const title = `剪贴板截图-${Date.now()}.png`
+    const path = join(root, title)
+    await writeFile(path, image.toPNG())
+    return { root, path, title }
+  })
   host.ipc.handle("transit:window", async (_event, item: { kind: string; content: string; title: string; root?: string }) => {
     if (!item || typeof item.content !== "string" || item.content.length > 1_000_000) throw new Error("中转站内容无效")
     const file = item.kind === "file" && item.root ? await readTransitFile(item.root, item.content) : undefined

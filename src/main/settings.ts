@@ -1,9 +1,10 @@
 import { app, safeStorage, type WebContents } from "electron"
 import { readFileSync, existsSync } from "node:fs"
-import { readFile, writeFile, rename, mkdtemp, rm, readdir, stat } from "node:fs/promises"
+import { readFile, writeFile, rename, mkdtemp, rm, readdir } from "node:fs/promises"
 import { join, relative } from "node:path"
 import { tmpdir } from "node:os"
-import { gzipSync } from "node:zlib"
+import { createHash } from "node:crypto"
+import { syncBackup, excludedBackupName, type BackupFile } from "./settings-backup"
 import Database from "better-sqlite3"
 import { defaultSettings, type AppSettings, type BackupStatus } from "../shared/settings"
 import { requestS3 } from "./settings-s3"
@@ -33,13 +34,12 @@ function validate(value: AppSettings): AppSettings {
 function publicSettings() { const state = load(); return { ...state.settings, backup: { ...state.settings.backup, hasSecret: !!state.secret, secretLength: state.secret ? decrypt().length : 0 } } }
 const decrypt = () => load().secret ? safeStorage.decryptString(Buffer.from(load().secret, "base64")) : ""
 async function persist(next: NonNullable<typeof stored>) { const path = file() + ".tmp"; await writeFile(path, JSON.stringify(next), { mode: 0o600 }); await rename(path, file()); stored = next }
-async function snapshot(): Promise<Uint8Array> {
+async function snapshot(config: AppSettings["backup"], secret: string) {
   const state = load()
   const directory = await mkdtemp(join(tmpdir(), "vessel-backup-"))
-  const entries: Array<{ path: string; data: string }> = []
+  const entries: BackupFile[] = []
   const roots = new Set<string>()
-  let size = 0
-  const add = async (path: string, name: string) => { const info = await stat(path); size += info.size; if (size > 256 * 1024 * 1024) throw new Error("备份数据超过 256 MB，请缩小工作区范围后重试"); entries.push({ path: name, data: (await readFile(path)).toString("base64") }) }
+  const add = async (path: string, name: string, stable = true) => { entries.push({ path: name, source: path, stable }) }
   try {
     for (const name of ["vessel.db", "todos.sqlite"]) {
       const source = join(app.getPath("userData"), name)
@@ -53,16 +53,15 @@ async function snapshot(): Promise<Uint8Array> {
         }
         await db.backup(join(directory, name))
       } finally { db.close() }
-      await add(join(directory, name), `database/${name}`)
+      await add(join(directory, name), `database/${name}`, false)
     }
-    let index = 0
     const manifest: Array<{ folder: string; source: string }> = []
     for (const root of roots) {
       if (!existsSync(root)) throw new Error("有工作区不可访问，请连接磁盘后重试")
-      const folder = `workspaces/${++index}`; manifest.push({ folder, source: root })
+      const folder = `workspaces/${createHash("sha256").update(root).digest("hex").slice(0, 24)}`; manifest.push({ folder, source: root })
       const walk = async (dir: string) => {
         for (const entry of await readdir(dir, { withFileTypes: true })) {
-          if ([".git", "node_modules", ".cache", ".DS_Store"].includes(entry.name) || entry.isSymbolicLink()) continue
+          if (excludedBackupName(entry.name) || entry.isSymbolicLink()) continue
           const path = join(dir, entry.name)
           if (entry.isDirectory()) await walk(path)
           else if (entry.isFile()) await add(path, `${folder}/${relative(root, path).replaceAll("\\", "/")}`)
@@ -71,7 +70,7 @@ async function snapshot(): Promise<Uint8Array> {
       await walk(root)
     }
     const rendererState = activeHost && !activeHost.isDestroyed?.() && activeHost.executeJavaScript ? await activeHost.executeJavaScript(`Object.fromEntries(["app_current_workspace","resource_current_project","vessel-transit-v1","vessel-sidebar-width","vessel-transit-width"].map(key => [key, localStorage.getItem(key)]))`) : {}
-    return new Uint8Array(gzipSync(JSON.stringify({ rendererState, format: "vessel-backup-v1", time: new Date().toISOString(), settings: { ...state.settings, backup: undefined }, workspaces: manifest, files: entries })))
+    return await syncBackup(app.getPath("userData"), config, secret, entries, { rendererState, settings: { ...state.settings, backup: undefined }, workspaces: manifest })
   } finally { await rm(directory, { recursive: true, force: true }) }
 }
 async function backup() {
@@ -81,10 +80,8 @@ async function backup() {
   try {
     const secret = decrypt(); const config = state.settings.backup
     if (!secret || !config.endpoint || !config.bucket || !config.accessKey) throw new Error("请先保存完整的 S3 配置")
-    const bytes = await snapshot()
-    const time = new Date().toISOString()
-    await requestS3(config, secret, "PUT", `${config.prefix.replace(/\/+$/, "")}/vessel-${time.replace(/[:.]/g, "-")}.json.gz`, bytes)
-    await persist({ ...load(), status: { time, size: bytes.byteLength, running: false } })
+    const status = await snapshot(config, secret)
+    await persist({ ...load(), status })
   } catch (error) {
     await persist({ ...load(), status: { ...load().status, running: false, error: error instanceof Error ? error.message : "备份失败" } })
     throw error

@@ -94,7 +94,7 @@ export class WelcomeModule extends BaseModule {
         if (childPath === ".." || childPath.startsWith("../") || childPath.startsWith("..\\") || isAbsolute(childPath)) throw new Error("目录不属于当前工作区")
         const entries = await readdir(directoryPath, { withFileTypes: true })
         return entries
-          .filter((entry) => entry.isDirectory() || (entry.isFile() && SUPPORTED_EXTENSIONS.has(extname(entry.name).toLowerCase())))
+          .filter((entry) => entry.isDirectory() || entry.isFile())
           .map((entry) => ({ name: entry.name, path: join(directoryPath, entry.name), type: entry.isDirectory() ? "directory" : "file" }))
           .sort((a, b) => Number(b.type === "directory") - Number(a.type === "directory") || a.name.localeCompare(b.name, "zh-CN", { numeric: true }))
       })

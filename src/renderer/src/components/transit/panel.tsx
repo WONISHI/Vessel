@@ -37,7 +37,8 @@ function WebPreview({ item }: { item: TransitItem }) {
 }
 export function TransitPanel() {
   const { items, selected } = useTransit()
-  const item = items.find(i => i.id === selected)
+  const index = items.findIndex(i => i.id === selected)
+  const item = items[index]
   const [width, setWidth] = useState(() => Math.max(320, Math.min(900, Number(localStorage.getItem("vessel-transit-width")) || 480)))
   const [dock, setDock] = useState<"left" | "right" | "floating">("right")
   const left = dock === "left"
@@ -69,7 +70,11 @@ export function TransitPanel() {
         </div>
       </div>
       <button aria-label="关闭中转站" title="关闭" onClick={() => selectTransit(null)} className="rounded p-1.5 text-stone-500 hover:bg-stone-100"><X className="size-4" /></button>
-    </header>{item.kind === "file" ? <FilePreview key={item.id} item={item} /> : item.kind === "url" ? <WebPreview key={item.id} item={item} /> : <pre className="min-h-0 flex-1 overflow-auto whitespace-pre-wrap break-words p-5 font-sans text-sm leading-7 text-stone-700">{item.content}</pre>}<footer className="border-t bg-stone-50 px-3 py-2 text-right text-[11px] text-stone-400"><Clock format="YYYY年MM月DD日 HH:mm" ticking interval={1000} filter={() => formatTransitDate(new Date())} /></footer></>
+    </header>{items.length > 1 && <nav aria-label="中转项轮播" className="flex shrink-0 items-center justify-center gap-3 border-b bg-stone-50/70 px-3 py-1">
+      <button aria-label="上一个中转项" disabled={index <= 0} onClick={() => selectTransit(items[index - 1].id)} className="rounded p-1 text-stone-500 hover:bg-stone-200 disabled:opacity-30"><ChevronLeft className="size-4" /></button>
+      <span aria-live="polite" className="text-[11px] text-stone-400">{index + 1} / {items.length}</span>
+      <button aria-label="下一个中转项" disabled={index >= items.length - 1} onClick={() => selectTransit(items[index + 1].id)} className="rounded p-1 text-stone-500 hover:bg-stone-200 disabled:opacity-30"><ChevronRight className="size-4" /></button>
+    </nav>}{item.kind === "file" ? <FilePreview key={item.id} item={item} /> : item.kind === "url" ? <WebPreview key={item.id} item={item} /> : <pre className="min-h-0 flex-1 overflow-auto whitespace-pre-wrap break-words p-5 font-sans text-sm leading-7 text-stone-700">{item.content}</pre>}<footer className="border-t bg-stone-50 px-3 py-2 text-right text-[11px] text-stone-400"><Clock format="YYYY年MM月DD日 HH:mm" ticking interval={1000} filter={() => formatTransitDate(new Date())} /></footer></>
   return <Sheet modal={false} open={!!item} onOpenChange={open => { if (!open) selectTransit(null) }}><SheetContent showOverlay={false} showCloseButton={false} side="right" onInteractOutside={e => e.preventDefault()} onOpenAutoFocus={e => e.preventDefault()} style={dock === 'floating' && !full ? { left: position.x, right: 'auto', top: position.y, bottom: 'auto', height: '80vh', width: Math.min(width, window.innerWidth) } : { left: 52, width: 'calc(100vw - 52px)' }} className="pointer-events-none [&_.vessel-panel-separator]:pointer-events-auto !max-w-none border-0 bg-transparent p-0 shadow-none">
     {dock === 'floating' && !full ? <div className="pointer-events-auto relative flex h-full flex-col overflow-hidden rounded-xl border bg-white shadow-xl">{content}<div role="separator" aria-label="调整悬浮面板宽度" aria-orientation="vertical" className="absolute inset-y-0 right-0 w-2 cursor-col-resize touch-none" onPointerDown={event => { event.preventDefault(); event.currentTarget.setPointerCapture(event.pointerId); gesture.current = { x: event.clientX, y: event.clientY, left: position.x, top: position.y, width, resize: true } }} onPointerMove={move} onPointerUp={stop} onPointerCancel={stop} /></div> : <ResizableSplit side={left ? 'left' : 'right'} size={width} min={320} max={Math.min(900, window.innerWidth - 52)} label="调整中转站宽度" onResize={saveWidth} pane={!full ? <div className="transit-resizable-content pointer-events-auto flex h-full min-w-0 flex-col bg-white shadow-lg">
     {content}

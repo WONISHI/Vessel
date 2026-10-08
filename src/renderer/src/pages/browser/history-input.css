@@ -16,3 +16,7 @@
 
 .history-completion-copy strong { font-size: 12px; font-weight: 500; line-height: 17px; }
 .history-completion-copy small { line-height: 15px; margin-top: 0; }
+
+.history-completion-item { width: 100%; min-width: 0; box-sizing: border-box; }
+.history-completion-copy { overflow: hidden; }
+.history-badge, .history-search-label, .history-completion-item > svg { flex-shrink: 0; }

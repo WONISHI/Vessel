@@ -31,7 +31,7 @@ const vesselAPI = {
   pickOfficeFile: (): Promise<{ token: string; name: string; bytes: Uint8Array } | null> => ipcRenderer.invoke("office:pick"),
   commitOffice: (name: string, bytes: Uint8Array, token?: string): Promise<{ saved: boolean; name?: string; token?: string }> => ipcRenderer.invoke("office:commit", name, bytes, token),
   renameOffice: (token: string | undefined, name: string): Promise<string> => ipcRenderer.invoke("office:rename", token, name),
-  readTransitClipboard: (): Promise<string> => ipcRenderer.invoke("transit:clipboard"),
+  readTransitClipboard: (): Promise<string | { root: string; path: string; title: string }> => ipcRenderer.invoke("transit:clipboard"),
   openTransitWindow: (item: { kind: string; content: string; title: string; root?: string }): Promise<void> => ipcRenderer.invoke("transit:window", item),
   saveOffice: (name: string, bytes: Uint8Array): Promise<boolean> => ipcRenderer.invoke("office:save", name, bytes),
   openOffice: (): Promise<string> => ipcRenderer.invoke("office:open"),
@@ -43,14 +43,24 @@ const vesselAPI = {
     ipcRenderer.on("browser:devtools-closed", callback)
     return () => ipcRenderer.removeListener("browser:devtools-closed", callback)
   },
+  onCommandPalette: (callback: () => void) => {
+    const listener = () => callback()
+    ipcRenderer.on("app:command", listener)
+    return () => ipcRenderer.removeListener("app:command", listener)
+  },
+  onBrowserToggleDevtools: (callback: (id: number) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, id: number) => callback(id)
+    ipcRenderer.on("browser:toggle-devtools", listener)
+    return () => ipcRenderer.removeListener("browser:toggle-devtools", listener)
+  },
   onBrowserFind: (callback: (id: number) => void) => {
     const listener = (_event: Electron.IpcRendererEvent, id: number) => callback(id)
     ipcRenderer.on("browser:find", listener)
     return () => ipcRenderer.removeListener("browser:find", listener)
   },
   setBrowserDevtools: (id: number | null, bounds?: Electron.Rectangle, appearance?: { font: string; size: number; detached?: boolean }): Promise<void> => ipcRenderer.invoke("browser:devtools", id, bounds, appearance),
-  onBrowserNewTab: (callback: (url: string) => void) => {
-    const handler = (_event: Electron.IpcRendererEvent, url: string) => callback(url)
+  onBrowserNewTab: (callback: (url: string, opener?: number) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, url: string, opener?: number) => callback(url, opener)
     ipcRenderer.on("browser:new-tab", handler)
     return () => { ipcRenderer.removeListener("browser:new-tab", handler) }
   },

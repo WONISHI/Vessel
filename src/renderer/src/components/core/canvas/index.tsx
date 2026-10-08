@@ -20,7 +20,7 @@ const EditorCanvas = ({ fileType, activeFilePath }: EditorTabsProps) => {
   } else if (["png", "jpg", "jpeg", "bmp", "gif", "webp", "avif", "svg"].includes(fileType!)) {
     return <MediaCanvas key={activeFilePath} activeFilePath={activeFilePath} />
   }
-  return <div className="flex items-center justify-center h-full text-zinc-300 text-sm">暂不支持此文件类型：{fileType || "未知"}</div>
+  return <Suspense fallback={<EditorLoading />}><CodeCanvas key={activeFilePath} activeFilePath={activeFilePath} /></Suspense>
 }
 
 export default memo(EditorCanvas)

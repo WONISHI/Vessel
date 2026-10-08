@@ -1,3 +1,4 @@
+import { CommandPalette } from "@/components/command-palette"
 import { applyAppearance } from "@/pages/settings/appearance"
 import { TransitPanel } from "@/components/transit/panel"
 import { OfficeKeepAlive } from "@/pages/office"
@@ -50,6 +51,7 @@ function App() {
       />
 
       <DevTool />
+      <CommandPalette />
 
       <BrowserKeepAlive />
       <OfficeKeepAlive />

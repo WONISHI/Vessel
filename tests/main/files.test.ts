@@ -23,8 +23,9 @@ it("reads UTF-8 content and rejects invalid, missing and directory paths", async
 it("registers the reader once and removes it on disposal", () => {
   const module = new FilesModule()
   module.activate()
+  const registrations = vi.mocked(ipcMain.handle).mock.calls.length
   module.activate()
-  expect(ipcMain.handle).toHaveBeenCalledTimes(9)
+  expect(ipcMain.handle).toHaveBeenCalledTimes(registrations)
   expect(ipcMain.handle).toHaveBeenCalledWith("file:readContent", expect.any(Function))
   module.dispose()
   expect(ipcMain.removeHandler).toHaveBeenCalledWith("file:readContent")
@@ -36,6 +37,11 @@ it("creates entries within the workspace without overwriting existing files", as
   const folder = await createWorkspaceEntry(directory, directory, "notes", "directory")
   const file = await createWorkspaceEntry(directory, folder.path, "note.md", "file")
   expect(await readTextFileContent(file.path)).toBe("")
+  const hidden = await createWorkspaceEntry(directory, directory, ".env", "file")
+  expect(hidden.name).toBe(".env")
+  await writeFile(hidden.path, "fixture")
+  await expect(createWorkspaceEntry(directory, directory, ".env", "file")).rejects.toThrow("已存在")
+  expect(await readTextFileContent(hidden.path)).toBe("fixture")
   await expect(createWorkspaceEntry(directory, folder.path, "note.md", "file")).rejects.toThrow()
   await expect(createWorkspaceEntry(directory, directory, "../escape", "file")).rejects.toThrow()
   await expect(createWorkspaceEntry(folder.path, directory, "escape.md", "file")).rejects.toThrow()

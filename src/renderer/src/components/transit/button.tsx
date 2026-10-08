@@ -3,7 +3,7 @@ import { Pin, Globe, FileText, Trash2, ClipboardPaste } from "lucide-react"
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
-import { addTransit, deleteTransit, selectTransit, useTransit } from "./state"
+import { addTransit, addTransitFile, deleteTransit, selectTransit, useTransit } from "./state"
 export function TransitButton() {
   const { items, selected } = useTransit()
   const [open, setOpen] = useState(false)
@@ -25,7 +25,7 @@ export function TransitButton() {
           <button aria-label={`删除 ${item.title}`} title="删除" className="rounded p-1 text-stone-400 opacity-0 hover:bg-stone-200 hover:text-red-600 focus:opacity-100 group-hover:opacity-100 group-focus-within:opacity-100" onClick={() => { try { deleteTransit(item.id) } catch { toast.error("删除失败，无法保存列表") } }}><Trash2 className="size-3.5" /></button>
         </div>)}
       </div>
-      <button className="flex w-full items-center gap-2 border-t px-3 py-2.5 text-xs text-stone-500 hover:bg-stone-50 hover:text-green-600" onClick={() => { void window.electronAPI.readTransitClipboard().then(value => { addTransit(value); setOpen(false) }).catch(error => toast.error(String(error))) }}><ClipboardPaste className="size-4" />读取剪贴板</button>
+      <button className="flex w-full items-center gap-2 border-t px-3 py-2.5 text-xs text-stone-500 hover:bg-stone-50 hover:text-green-600" onClick={() => { void window.electronAPI.readTransitClipboard().then(value => { if (typeof value === "string") addTransit(value); else addTransitFile(value.root, value.path, value.title); setOpen(false) }).catch(error => toast.error(String(error))) }}><ClipboardPaste className="size-4" />读取剪贴板</button>
     </PopoverContent>
   </Popover>
 }

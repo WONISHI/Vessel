@@ -96,7 +96,7 @@ export interface StorageInfo {
 }
 
 export interface VesselAPI extends BrowserProxyAPI, BrowserToolsAPI, SettingsAPI, BrowserExtensionsAPI, TodosAPI, TerminalAPI, FileWatchAPI {
-  readTransitClipboard(): Promise<string>
+  readTransitClipboard(): Promise<string | { root: string; path: string; title: string }>
   openTransitWindow(item: { kind: string; content: string; title: string; root?: string }): Promise<void>
   pickOfficeFile(): Promise<{ token: string; name: string; bytes: Uint8Array } | null>
   commitOffice(name: string, bytes: Uint8Array, token?: string): Promise<{ saved: boolean; name?: string; token?: string }>
@@ -106,9 +106,11 @@ export interface VesselAPI extends BrowserProxyAPI, BrowserToolsAPI, SettingsAPI
   saveOffice(name: string, bytes: Uint8Array): Promise<boolean>
 
   onBrowserDevtoolsClosed: (callback: () => void) => () => void
+  onCommandPalette: (callback: () => void) => () => void
+  onBrowserToggleDevtools: (callback: (id: number) => void) => () => void
   onBrowserFind: (callback: (id: number) => void) => () => void
   setBrowserDevtools: (id: number | null, bounds?: { x: number; y: number; width: number; height: number }, appearance?: { font: string; size: number; detached?: boolean }) => Promise<void>
-  onBrowserNewTab: (callback: (url: string) => void) => () => void
+  onBrowserNewTab: (callback: (url: string, opener?: number) => void) => () => void
   takePendingMarkdownFiles: () => Promise<string[]>
   onOpenMarkdown: (callback: (path: string) => void) => () => void
   readWorkspaceDirectory: (root: string, directory: string) => Promise<Array<{ name: string; path: string; type: "file" | "directory" }>>

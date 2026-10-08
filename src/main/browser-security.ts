@@ -1,3 +1,4 @@
+import { join } from "node:path"
 import { registerBrowserProxy } from "./browser-proxy"
 import { registerBrowserTools } from "./browser-tools"
 import { registerBrowserExtensions } from "./browser-extensions"
@@ -20,7 +21,7 @@ export function secureBrowserGuests(contents: WebContents) {
       event.preventDefault()
       return
     }
-    delete preferences.preload
+    preferences.preload = join(__dirname, "../preload/browser-guest.js")
     preferences.nodeIntegration = false
     preferences.nodeIntegrationInSubFrames = false
     preferences.contextIsolation = true
@@ -30,10 +31,9 @@ export function secureBrowserGuests(contents: WebContents) {
   })
   contents.on("did-attach-webview", (_event, guest) => {
     guest.on("before-input-event", (event, input) => {
-      if (input.type === "keyDown" && (input.control || input.meta) && input.key.toLowerCase() === "f") {
-        event.preventDefault()
-        contents.send("browser:find", guest.id)
-      }
+      if (input.type !== "keyDown") return
+      if (input.key === "F12") { event.preventDefault(); contents.send("browser:toggle-devtools", guest.id) }
+      if ((input.control || input.meta) && input.key.toLowerCase() === "p") { event.preventDefault(); contents.send("app:command") }
     })
     guest.on("will-navigate", (event, url) => {
       if (!allowed(url)) event.preventDefault()
@@ -45,7 +45,7 @@ export function secureBrowserGuests(contents: WebContents) {
     guest.setWindowOpenHandler(({ url }) => {
       if (allowed(url)) {
         if (guest.session === session.fromPartition("persist:vessel-transit")) void guest.loadURL(url).catch(() => {})
-        else contents.send("browser:new-tab", url)
+        else contents.send("browser:new-tab", url, guest.id)
       }
       return { action: "deny" }
     })

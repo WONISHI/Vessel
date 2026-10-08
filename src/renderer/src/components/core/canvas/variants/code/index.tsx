@@ -61,7 +61,7 @@ export default function CodeCanvas({ activeFilePath }: { activeFilePath: string 
   if (content === undefined) return <EditorLoading label="正在读取代码…" />
   return <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
     <div className="vessel-code-editor min-h-0 flex-1">
-      <Editor height="100%" path={monaco.Uri.file(activeFilePath).toString()} language={codeLanguage(activeFilePath)} value={content}
+      <Editor height="100%" path={monaco.Uri.file(activeFilePath).toString()} language={codeLanguage(activeFilePath) || "plaintext"} value={content}
         loading={<EditorLoading label="正在加载代码编辑器…" />}
         onChange={value => { if (value !== undefined && value !== content) { setContent(value); save(value) } }}
         onMount={editor => { codeEditors.set(activeFilePath, editor); editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => save(editor.getValue())) }}
@@ -73,7 +73,7 @@ export default function CodeCanvas({ activeFilePath }: { activeFilePath: string 
       <span>{stats.words.toLocaleString()} 词</span>
       <span>{stats.characters.toLocaleString()} 字符</span>
       <span>{stats.lines.toLocaleString()} 行</span>
-      <span>{codeLanguage(activeFilePath)} · UTF-8</span>
+      <span>{codeLanguage(activeFilePath) || "plaintext"} · UTF-8</span>
     </footer></StatusSlot>
   </div>
 }

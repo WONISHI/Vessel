@@ -37,7 +37,7 @@ export function HistoryInput({ onNavigate, ...props }: ComponentProps<'input'> &
       props.onKeyDown?.(event)
     }} />{show && createPortal(<div className="history-completion" style={{ left: rect.left, top: rect.top, width: rect.width }} onMouseDown={event => event.preventDefault()}>
       <div className="history-completion-heading">历史记录<span>{matches.length} 条</span></div>
-      <ScrollArea className="max-h-[min(340px,45vh)] [&_[data-radix-scroll-area-viewport]]:max-h-[min(340px,45vh)]"><div role="listbox" id={id}>
+      <ScrollArea className="[&_[data-radix-scroll-area-viewport]>div]:!block max-h-[min(340px,45vh)] [&_[data-radix-scroll-area-viewport]]:max-h-[min(340px,45vh)]"><div role="listbox" id={id}>
         {matches.map((entry, index) => <div role="option" aria-selected={index === active} id={`${id}-${index}`} key={entry.url} className="history-completion-item" onMouseEnter={() => setActive(index)} onClick={event => choose(index, event.metaKey || event.ctrlKey)}>
           <span className="history-site-icon"><Globe size={17} /></span><span className="history-completion-copy"><strong><Highlight text={entry.title || entry.url} query={query} /></strong><small><Highlight text={entry.url.replace(/^https?:\/\//, '')} query={query} /></small></span><span className={entry.bookmarked ? 'history-badge bookmark' : 'history-badge'}>{entry.bookmarked ? '书签' : '历史'}</span>{index === active && <CornerDownLeft size={12} />}
         </div>)}

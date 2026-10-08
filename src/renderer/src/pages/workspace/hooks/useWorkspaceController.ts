@@ -1,5 +1,5 @@
 import { useDirectoryWatch, useFileChanges } from "./file-changes"
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useLayoutEffect, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { getFileExtension } from "@vessel/utils"
 import type { WorkspaceData, WorkspaceNode, WorkspaceContextType } from "../types/workspace"
@@ -11,7 +11,7 @@ import type { WorkspaceData, WorkspaceNode, WorkspaceContextType } from "../type
  */
 export function useWorkspaceController(workspace: WorkspaceData, initialFile?: string, scope: "workspace" | "resources" = "workspace", preview = false, active = true): WorkspaceContextType {
   const activeRef = useRef(active)
-  activeRef.current = active
+  useLayoutEffect(() => { activeRef.current = active }, [active])
   const initialFileRef = useRef(initialFile)
   const base = scope === "resources" ? "/resources" : "/editor"
   useDirectoryWatch(workspace.path)
@@ -50,8 +50,10 @@ export function useWorkspaceController(workspace: WorkspaceData, initialFile?: s
     void window.electronAPI.setAppState(sessionKey, { files: openFiles.map(({ name, path }) => ({ name, path })), active: activeFilePath, expanded: expandedFolders })
       .catch(error => console.error("保存工作区标签失败", error))
   }, [sessionKey, openFiles, activeFilePath, expandedFolders])
+  const lastRequestedFile = useRef<string | undefined>(undefined)
   useEffect(() => {
-    if (!initialFile || !active) return
+    if (!initialFile || !active || lastRequestedFile.current === initialFile) return
+    lastRequestedFile.current = initialFile
     setOpenFiles(files => files.some(file => file.path === initialFile) ? files : [...files, { path: initialFile, name: initialFile.split(/[\\/]/).pop() || initialFile }])
     setActiveFilePath(initialFile)
   }, [initialFile, active])

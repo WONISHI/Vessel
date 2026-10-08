@@ -43,6 +43,12 @@ function readEnabledTypes(): Record<LogType, boolean> {
  */
 export default function DevTool() {
   const navigate = useNavigate()
+  const [controlVisible, setControlVisible] = useState(() => localStorage.getItem("vessel-control-visible") !== "false")
+  useEffect(() => {
+    const update = () => setControlVisible(localStorage.getItem("vessel-control-visible") !== "false")
+    window.addEventListener("vessel-control-visibility", update)
+    return () => window.removeEventListener("vessel-control-visibility", update)
+  }, [])
   const [isConsoleOpen, setIsConsoleOpen] = useState(false)
   const [isSpyEnabled, setIsSpyEnabled] = useState(() => {
     return localStorage.getItem("vessel-dev-spy") === "true"
@@ -298,6 +304,8 @@ export default function DevTool() {
   return (
     <>
       <div
+        hidden={!controlVisible}
+        data-vessel-control="true"
         className={cn("fixed z-50 transition-shadow", !position && "bottom-4 right-4", position && "!bottom-auto !right-auto")}
         style={
           position
