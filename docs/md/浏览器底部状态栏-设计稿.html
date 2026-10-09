@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>浏览器底部状态栏 - 设计稿</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    background: #faf9f7;
+    color: #1c1917;
+    min-height: 100vh;
+    padding: 40px 24px;
+  }
+
+  .page-title {
+    text-align: center;
+    font-size: 15px;
+    font-weight: 700;
+    color: #78716c;
+    margin-bottom: 6px;
+  }
+  .page-subtitle {
+    text-align: center;
+    font-size: 12px;
+    color: #a8a29e;
+    margin-bottom: 32px;
+  }
+
+  /* 模拟浏览器区域 */
+  .mock-browser {
+    max-width: 1100px;
+    margin: 0 auto;
+    background: #fff;
+    border: 1px solid #e7e5e4;
+    border-radius: 10px 10px 0 0;
+    border-bottom: none;
+    min-height: 220px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #faf9f7;
+  }
+  .mock-browser-content {
+    font-size: 13px;
+    color: #a8a29e;
+  }
+
+  /* ===== 状态栏通用样式 ===== */
+  .status-bar {
+    max-width: 1100px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 32px;
+    background: #f5f5f4;
+    border: 1px solid #e7e5e4;
+    border-radius: 0 0 10px 10px;
+    padding: 0 8px;
+    font-size: 12px;
+    color: #57534e;
+    user-select: none;
+  }
+
+  .status-left,
+  .status-right {
+    display: flex;
+    align-items: center;
+    height: 100%;
+    gap: 0;
+  }
+
+  /* 状态栏项 */
+  .status-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    height: 24px;
+    padding: 0 7px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.12s;
+    color: #57534e;
+    white-space: nowrap;
+    font-size: 12px;
+    font-weight: 500;
+  }
+  .status-item:hover {
+    background: #e7e5e4;
+    color: #1c1917;
+  }
+  .status-item .status-icon {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  .status-divider {
+    width: 1px;
+    height: 16px;
+    background: #d6d3d1;
+    margin: 0 2px;
+  }
+
+  /* 时间固有 */
+  .status-item.fixed {
+    cursor: default;
+    font-variant-numeric: tabular-nums;
+  }
+  .status-item.fixed:hover {
+    background: transparent;
+    color: #57534e;
+  }
+
+  /* 左侧 URL 项 */
+  .status-item.url {
+    max-width: 560px;
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 11.5px;
+    font-weight: 400;
+    color: #78716c;
+  }
+  .status-item.url:hover {
+    color: #1c1917;
+  }
+  .status-item.url .url-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* 代理状态 */
+  .status-item.proxy-connected {
+    color: #16a34a;
+  }
+  .status-item.proxy-connected:hover {
+    background: #dcfce7;
+    color: #15803d;
+  }
+  .status-item.proxy-disconnected {
+    color: #a8a29e;
+  }
+  .status-item.proxy-disconnected:hover {
+    color: #57534e;
+  }
+
+  /* 缩放项 */
+  .status-item.zoom {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ===== 深色变体 ===== */
+  .status-bar.dark {
+    background: #1c1917;
+    border-color: #292524;
+  }
+  .status-bar.dark .status-item {
+    color: #d6d3d1;
+  }
+  .status-bar.dark .status-item:hover {
+    background: #292524;
+    color: #fff;
+  }
+  .status-bar.dark .status-item.fixed:hover {
+    color: #d6d3d1;
+    background: transparent;
+  }
+  .status-bar.dark .status-divider {
+    background: #44403c;
+  }
+  .status-bar.dark .status-item.url {
+    color: #a8a29e;
+  }
+  .status-bar.dark .status-item.proxy-connected {
+    color: #4ade80;
+  }
+  .status-bar.dark .status-item.proxy-connected:hover {
+    background: #14532d;
+    color: #4ade80;
+  }
+
+  .demo-section {
+    max-width: 1100px;
+    margin: 36px auto 0;
+  }
+  .demo-section-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: #a8a29e;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 10px;
+  }
+
+  .design-note {
+    max-width: 700px;
+    margin: 28px auto 0;
+    font-size: 11.5px;
+    color: #a8a29e;
+    text-align: center;
+    line-height: 1.8;
+  }
+</style>
+</head>
+<body>
+
+<div class="page-title">Browser Status Bar 浏览器底部状态栏</div>
+<div class="page-subtitle">复用状态栏组件 · 左侧显示链接 URL · 右侧代理状态 + 时间 + 缩放</div>
+
+<!-- ===== 代理已连接（浅色）===== -->
+<div class="demo-section">
+  <div class="demo-section-title">代理已连接（浅色）</div>
+  <div class="mock-browser">
+    <span class="mock-browser-content">浏览器页面内容区域</span>
+  </div>
+  <div class="status-bar">
+    <div class="status-left">
+      <div class="status-item url">
+        <span class="status-icon">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 17H7A5 5 0 0 1 7 7h2"/><path d="M15 7h2a5 5 0 0 1 0 10h-2"/><line x1="8" x2="16" y1="12" y2="12"/></svg>
+        </span>
+        <span class="url-text">http://localhost:8848/#/awb/waybill-query/detail?type=view&awbId=44</span>
+      </div>
+    </div>
+    <div class="status-right">
+      <div class="status-item proxy-connected" title="点击配置代理">
+        <span class="status-icon">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" x2="15.42" y1="13.51" y2="17.49"/><line x1="15.41" x2="8.59" y1="6.51" y2="10.49"/></svg>
+        </span>
+        已连接
+      </div>
+
+      <div class="status-divider"></div>
+
+      <div class="status-item fixed">
+        <span class="status-icon">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </span>
+        <span id="statusTime">2026年10月09日 14:52</span>
+      </div>
+
+      <div class="status-item fixed">
+        <span class="status-icon">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+        </span>
+        <span id="statusWeekday">星期五</span>
+      </div>
+
+      <div class="status-divider"></div>
+
+      <div class="status-item zoom">
+        <span class="status-icon">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/><line x1="11" x2="11" y1="8" y2="14"/><line x1="8" x2="14" y1="11" y2="11"/></svg>
+        </span>
+        100%
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 代理未连接 ===== -->
+<div class="demo-section">
+  <div class="demo-section-title">代理未连接</div>
+  <div class="mock-browser" style="border-radius:0;min-height:0;height:0;"></div>
+  <div class="status-bar" style="border-radius:0 0 10px 10px;">
+    <div class="status-left">
+      <div class="status-item url">
+        <span class="status-icon">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 17H7A5 5 0 0 1 7 7h2"/><path d="M15 7h2a5 5 0 0 1 0 10h-2"/><line x1="8" x2="16" y1="12" y2="12"/></svg>
+        </span>
+        <span class="url-text">https://www.google.com/search?q=vessel</span>
+      </div>
+    </div>
+    <div class="status-right">
+      <div class="status-item proxy-disconnected">
+        <span class="status-icon">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" x2="15.42" y1="13.51" y2="17.49"/><line x1="15.41" x2="8.59" y1="6.51" y2="10.49"/></svg>
+        </span>
+        未连接
+      </div>
+      <div class="status-divider"></div>
+      <div class="status-item fixed">
+        <span class="status-icon">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </span>
+        <span id="statusTime2">2026年10月09日 14:52</span>
+      </div>
+      <div class="status-item fixed">
+        <span class="status-icon">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+        </span>
+        <span id="statusWeekday2">星期五</span>
+      </div>
+      <div class="status-divider"></div>
+      <div class="status-item zoom">
+        <span class="status-icon">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/><line x1="11" x2="11" y1="8" y2="14"/><line x1="8" x2="14" y1="11" y2="11"/></svg>
+        </span>
+        100%
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 深色变体 ===== -->
+<div class="demo-section">
+  <div class="demo-section-title">深色变体（代理已连接）</div>
+  <div class="mock-browser" style="border-radius:0;min-height:0;height:0;"></div>
+  <div class="status-bar dark" style="border-radius:0 0 10px 10px;">
+    <div class="status-left">
+      <div class="status-item url">
+        <span class="status-icon">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 17H7A5 5 0 0 1 7 7h2"/><path d="M15 7h2a5 5 0 0 1 0 10h-2"/><line x1="8" x2="16" y1="12" y2="12"/></svg>
+        </span>
+        <span class="url-text">http://localhost:8848/#/awb/waybill-query/detail?type=view&awbId=44</span>
+      </div>
+    </div>
+    <div class="status-right">
+      <div class="status-item proxy-connected">
+        <span class="status-icon">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" x2="15.42" y1="13.51" y2="17.49"/><line x1="15.41" x2="8.59" y1="6.51" y2="10.49"/></svg>
+        </span>
+        已连接
+      </div>
+      <div class="status-divider"></div>
+      <div class="status-item fixed">
+        <span class="status-icon">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </span>
+        <span id="statusTime3">2026年10月09日 14:52</span>
+      </div>
+      <div class="status-item fixed">
+        <span class="status-icon">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+        </span>
+        <span id="statusWeekday3">星期五</span>
+      </div>
+      <div class="status-divider"></div>
+      <div class="status-item zoom">
+        <span class="status-icon">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/><line x1="11" x2="11" y1="8" y2="14"/><line x1="8" x2="14" y1="11" y2="11"/></svg>
+        </span>
+        100%
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="design-note">
+  复用状态栏组件 · 高度 32px · 左侧：link 图标 + 等宽 URL（超长省略） · 右侧：share-2 代理图标（已连接绿色/未连接灰色）· 时间为组件固有 · 缩放百分比带 zoom-in 图标 · 支持深浅双主题
+</div>
+
+<script>
+  function updateTime() {
+    const now = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    const weekdays = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
+    const dateStr = `${now.getFullYear()}年${pad(now.getMonth()+1)}月${pad(now.getDate())}日 ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+    const weekStr = weekdays[now.getDay()];
+    document.getElementById('statusTime').textContent = dateStr;
+    document.getElementById('statusTime2').textContent = dateStr;
+    document.getElementById('statusTime3').textContent = dateStr;
+    document.getElementById('statusWeekday').textContent = weekStr;
+    document.getElementById('statusWeekday2').textContent = weekStr;
+    document.getElementById('statusWeekday3').textContent = weekStr;
+  }
+  updateTime();
+  setInterval(updateTime, 1000);
+</script>
+
+</body>
+</html>
+<!-- （注：内容由AI生成） -->

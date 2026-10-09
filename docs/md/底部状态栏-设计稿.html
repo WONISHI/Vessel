@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>底部状态栏组件 - 设计稿</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    background: #faf9f7;
+    color: #1c1917;
+    min-height: 100vh;
+    padding: 40px 24px;
+  }
+
+  .page-title {
+    text-align: center;
+    font-size: 15px;
+    font-weight: 700;
+    color: #78716c;
+    margin-bottom: 6px;
+  }
+  .page-subtitle {
+    text-align: center;
+    font-size: 12px;
+    color: #a8a29e;
+    margin-bottom: 32px;
+  }
+
+  /* 模拟文档区域 */
+  .mock-doc-area {
+    max-width: 1000px;
+    margin: 0 auto;
+    background: #fff;
+    border: 1px solid #e7e5e4;
+    border-radius: 8px 8px 0 0;
+    border-bottom: none;
+    min-height: 200px;
+    padding: 32px;
+  }
+  .mock-doc-title {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 16px;
+  }
+  .mock-doc-line {
+    height: 10px;
+    background: #f0efed;
+    border-radius: 3px;
+    margin-bottom: 10px;
+  }
+  .mock-doc-line.short { width: 60%; }
+  .mock-doc-line.mid { width: 80%; }
+
+  /* ===== 状态栏核心样式 ===== */
+  .status-bar {
+    max-width: 1000px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 32px;
+    background: #f5f5f4;
+    border: 1px solid #e7e5e4;
+    border-radius: 0 0 8px 8px;
+    padding: 0 8px;
+    font-size: 12px;
+    color: #57534e;
+    user-select: none;
+    flex-shrink: 0;
+  }
+
+  .status-left,
+  .status-right {
+    display: flex;
+    align-items: center;
+    height: 100%;
+  }
+
+  /* 状态栏项 */
+  .status-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    height: 24px;
+    padding: 0 7px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.12s;
+    color: #57534e;
+    white-space: nowrap;
+    font-size: 12px;
+    font-weight: 500;
+  }
+  .status-item:hover {
+    background: #e7e5e4;
+    color: #1c1917;
+  }
+  .status-item.active {
+    background: #dcfce7;
+    color: #15803d;
+  }
+  .status-item.active:hover {
+    background: #bbf7d0;
+  }
+
+  .status-item .status-icon {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    color: currentColor;
+  }
+
+  .status-divider {
+    width: 1px;
+    height: 16px;
+    background: #d6d3d1;
+    margin: 0 2px;
+    flex-shrink: 0;
+  }
+
+  /* 时间项不响应点击 */
+  .status-item.time {
+    cursor: default;
+    font-variant-numeric: tabular-nums;
+  }
+  .status-item.time:hover {
+    background: transparent;
+  }
+
+  /* ===== 变体展示 ===== */
+  .demo-section {
+    max-width: 1000px;
+    margin: 36px auto 0;
+  }
+  .demo-section-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: #a8a29e;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 12px;
+  }
+
+  .demo-card {
+    background: #fff;
+    border: 1px solid #e7e5e4;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+  .demo-label {
+    font-size: 11px;
+    color: #a8a29e;
+    margin-bottom: 10px;
+    font-weight: 600;
+  }
+
+  /* 深色状态栏变体 */
+  .status-bar.dark {
+    background: #1c1917;
+    border-color: #292524;
+  }
+  .status-bar.dark .status-item {
+    color: #d6d3d1;
+  }
+  .status-bar.dark .status-item:hover {
+    background: #292524;
+    color: #fff;
+  }
+  .status-bar.dark .status-divider {
+    background: #44403c;
+  }
+  .status-bar.dark .status-item.active {
+    background: #14532d;
+    color: #bbf7d0;
+  }
+
+  .design-note {
+    max-width: 700px;
+    margin: 28px auto 0;
+    font-size: 11.5px;
+    color: #a8a29e;
+    text-align: center;
+    line-height: 1.8;
+  }
+</style>
+</head>
+<body>
+
+<div class="page-title">Status Bar 底部状态栏组件</div>
+<div class="page-subtitle">可复用组件 · 每项带 Lucide 图标 · 时间为组件固有 · 支持 hover / active 态</div>
+
+<!-- ===== 标准状态栏（浅色）===== -->
+<div class="demo-section">
+  <div class="demo-section-title">标准状态（浅色）</div>
+
+  <div class="mock-doc-area">
+    <div class="mock-doc-title">交接文档</div>
+    <div class="mock-doc-line mid"></div>
+    <div class="mock-doc-line"></div>
+    <div class="mock-doc-line short"></div>
+  </div>
+
+  <div class="status-bar">
+    <!-- 左侧 -->
+    <div class="status-left">
+      <div class="status-item active">
+        <span class="status-icon">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m4 17 6-6-6-6"/><path d="M12 19h8"/></svg>
+        </span>
+        控制台
+      </div>
+    </div>
+
+    <!-- 右侧 -->
+    <div class="status-right">
+      <div class="status-item">
+        <span class="status-icon">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+        </span>
+        0 条反向链接
+      </div>
+
+      <div class="status-divider"></div>
+
+      <div class="status-item">
+        <span class="status-icon">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/></svg>
+        </span>
+        178 词
+      </div>
+
+      <div class="status-item">
+        <span class="status-icon">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6"/><path d="M9 17h4"/></svg>
+        </span>
+        1,170 字符
+      </div>
+
+      <div class="status-item">
+        <span class="status-icon">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" x2="21" y1="6" y2="6"/><line x1="8" x2="21" y1="12" y2="12"/><line x1="8" x2="21" y1="18" y2="18"/><line x1="3" x2="3.01" y1="6" y2="6"/><line x1="3" x2="3.01" y1="12" y2="12"/><line x1="3" x2="3.01" y1="18" y2="18"/></svg>
+        </span>
+        52 行
+      </div>
+
+      <div class="status-divider"></div>
+
+      <div class="status-item">
+        <span class="status-icon">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+        </span>
+        Markdown · UTF-8
+      </div>
+
+      <div class="status-divider"></div>
+
+      <div class="status-item time">
+        <span class="status-icon">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </span>
+        <span id="statusTime">2026年10月09日 14:52</span>
+      </div>
+
+      <div class="status-item time">
+        <span class="status-icon">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+        </span>
+        <span id="statusWeekday">星期五</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 深色变体 ===== -->
+<div class="demo-section">
+  <div class="demo-section-title">深色变体</div>
+  <div class="demo-card" style="padding:8px;border-radius:0 0 8px 8px;">
+    <div class="status-bar dark" style="border-radius:0 0 8px 8px;">
+      <div class="status-left">
+        <div class="status-item">
+          <span class="status-icon">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m4 17 6-6-6-6"/><path d="M12 19h8"/></svg>
+          </span>
+          控制台
+        </div>
+      </div>
+      <div class="status-right">
+        <div class="status-item">
+          <span class="status-icon">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+          </span>
+          0 条反向链接
+        </div>
+        <div class="status-divider"></div>
+        <div class="status-item">
+          <span class="status-icon">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/></svg>
+          </span>
+          178 词
+        </div>
+        <div class="status-item">
+          <span class="status-icon">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" x2="21" y1="6" y2="6"/><line x1="8" x2="21" y1="12" y2="12"/><line x1="8" x2="21" y1="18" y2="18"/><line x1="3" x2="3.01" y1="6" y2="6"/><line x1="3" x2="3.01" y1="12" y2="12"/><line x1="3" x2="3.01" y1="18" y2="18"/></svg>
+          </span>
+          52 行
+        </div>
+        <div class="status-divider"></div>
+        <div class="status-item time">
+          <span class="status-icon">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </span>
+          <span id="statusTimeDark">2026年10月09日 14:52</span>
+        </div>
+        <div class="status-item time">
+          <span class="status-icon">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+          </span>
+          <span id="statusWeekdayDark">星期五</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="design-note">
+  组件规范：高度 32px · 背景 #f5f5f4 · 每项 24px 高 + 4px 圆角 + Lucide 图标(13px) · 分组用 1px 竖线分隔 · 时间/星期为组件固有（不响应点击）· 其余项可点击并有 hover 态 · active 态浅绿底 · 深色变体 #1c1917 底
+</div>
+
+<script>
+  // 时间组件固有：实时更新
+  function updateTime() {
+    const now = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    const dateStr = `${now.getFullYear()}年${pad(now.getMonth()+1)}月${pad(now.getDate())}日 ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+    const weekdays = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
+    const weekStr = weekdays[now.getDay()];
+
+    document.getElementById('statusTime').textContent = dateStr;
+    document.getElementById('statusWeekday').textContent = weekStr;
+    document.getElementById('statusTimeDark').textContent = dateStr;
+    document.getElementById('statusWeekdayDark').textContent = weekStr;
+  }
+  updateTime();
+  setInterval(updateTime, 1000);
+</script>
+
+</body>
+</html>
+<!-- （注：内容由AI生成） -->
