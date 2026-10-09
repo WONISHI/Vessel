@@ -66,3 +66,5 @@ body { margin: 0; }
 .shot-ocr textarea { width: 100%; box-sizing: border-box; height: min(45vh, 350px); resize: vertical; border: 1px solid #17a34a; border-radius: 6px; padding: 10px; font: 14px/1.6 system-ui; }
 .shot-ocr button { margin: 12px 8px 0 0; border: 1px solid #ddd; background: white; border-radius: 6px; padding: 7px 16px; cursor: pointer; }
 .shot-ocr button:disabled { opacity: .5; cursor: default; }
+
+html,body,#root,.shot-color-inspector div,.shot-ocr textarea{font-family:"Plus Jakarta Sans","PingFang SC",sans-serif}.shot-color-inspector{width:132px;border:1px solid #d6d3d1;border-radius:10px;box-shadow:0 8px 28px #0002}.shot-color-inspector canvas{width:132px;height:132px}.shot-color-inspector div{font-size:11px;line-height:1.7;padding:8px 10px}

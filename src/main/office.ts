@@ -39,6 +39,16 @@ export function registerOffice(host: WebContents) {
   const documents = new Map<string, string>()
   const owner = () => { const window = BrowserWindow.fromWebContents(host); if (!window) throw new Error("窗口已关闭"); return window }
   const validateName = (name: string) => { if (typeof name !== "string" || !name.trim() || /[\\/:]/.test(name) || name === "." || name === "..") throw new Error("文件名称无效") }
+  const readDocument = async (path: string) => {
+    if (!isAbsolute(path) || !/\.(pdf|docx?|docs|xlsx?|pptx?|odt|ods|odp|csv)$/i.test(path)) throw new Error("不支持的 Office 文档")
+    const info = await stat(path)
+    if (!info.isFile() || info.size > 256 * 1024 * 1024) throw new Error("文档无效或超过 256 MB")
+    const token = crypto.randomUUID()
+    const bytes = new Uint8Array(await readFile(path))
+    documents.set(token, path)
+    return { token, name: basename(path).replace(/\.docs$/i, ".docx"), bytes }
+  }
+  host.ipc.handle("office:read-path", (_event, path: string) => readDocument(path))
   host.ipc.handle("office:pick", async () => {
     const result = await dialog.showOpenDialog(owner(), { title: "打开文档", properties: ["openFile"], filters: [{ name: "Office / PDF 文档", extensions: ["pdf", "docx", "xlsx", "pptx", "doc", "xls", "ppt", "odt", "ods", "odp", "csv"] }] })
     if (result.canceled || !result.filePaths[0]) return null

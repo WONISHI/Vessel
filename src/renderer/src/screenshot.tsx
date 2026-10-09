@@ -1,3 +1,5 @@
+import "@fontsource/plus-jakarta-sans/400.css"
+import "@fontsource/plus-jakarta-sans/600.css"
 import ScreenShot from "js-web-screen-shot"
 import { createElement } from "react"
 import { renderToStaticMarkup } from "react-dom/server"
@@ -5,9 +7,16 @@ import { Circle, ListOrdered, ScanText, Copy, Download, Grid3x3, MoveUpRight, Pe
 import "./screenshot.css"
 import { installSteps, installColorInspector, mergeSteps, type CutBox } from "./screenshot-tools"
 import { recognizeImage } from "./lib/image-ocr"
-type ScreenshotAPI = { data(): Promise<{ mode: "capture" | "pin"; image: string }>; finish(image: string, pin: boolean): Promise<void>; close(): Promise<void>; copy(): Promise<void>; copyText(text: string): Promise<void> }
+type ScreenshotAPI = { ready(): Promise<void>; data(): Promise<{ mode: "capture" | "pin"; image: string }>; finish(image: string, pin: boolean): Promise<void>; close(): Promise<void>; copy(): Promise<void>; copyText(text: string): Promise<void> }
 const api = (window as unknown as { screenshotAPI: ScreenshotAPI }).screenshotAPI
 const root = document.getElementById("root")!
+// The annotation library uses "none" as its canvas font family. Keep its size
+// and weight while supplying the same bundled font as the screenshot UI.
+const canvasFont = Object.getOwnPropertyDescriptor(CanvasRenderingContext2D.prototype, "font")!
+Object.defineProperty(CanvasRenderingContext2D.prototype, "font", {
+  ...canvasFont,
+  set(value: string) { canvasFont.set!.call(this, value.replace(/\bnone$/, '"Plus Jakarta Sans", "PingFang SC", sans-serif')) }
+})
 const icon = (Icon: typeof Copy, color = "#44403c") => `url("data:image/svg+xml;utf8,${encodeURIComponent(renderToStaticMarkup(createElement(Icon, { size: 20, color, strokeWidth: 1.8 })))}")`
 /** 用 lucide-react 图标覆盖 js-web-screen-shot 自带的位图工具栏图标（普通 / 悬停·选中 / 禁用三态）。 */
 function installToolbarIcons() {
@@ -31,7 +40,8 @@ window.addEventListener("keydown", (event) => {
 })
 void api
   .data()
-  .then(({ mode, image }) => {
+  .then(async ({ mode, image }) => {
+    const bitmap = new Image(); bitmap.src = image; await bitmap.decode(); await document.fonts.ready
     if (mode === "capture") {
       let action: "copy" | "pin" | "ocr" | "save" = "copy"
       let stepTools: ReturnType<typeof installSteps> | undefined
@@ -68,7 +78,9 @@ void api
       const plugin = new ScreenShot({
         capture: { source: "image", imageSrc: image },
         level: 100,
-        showScreenData: true,
+        showScreenData: false,
+        useRatioArrow: true,
+        triggerCallback: ({ code }) => { if (code === 0) requestAnimationFrame(() => requestAnimationFrame(() => { void api.ready() })) },
         completeCallback: ({ base64, cutInfo }: { base64: string; cutInfo: CutBox }) => {
           observer.disconnect(); stopInspector?.(); stepTools?.hide()
           void mergeSteps(base64, cutInfo, stepTools?.steps || []).then(async result => {
@@ -81,6 +93,7 @@ void api
         },
         closeCallback: () => { void api.close() }
       })
+      window.addEventListener("keydown", event => { if (event.key === "F3") { event.preventDefault(); action = "pin"; plugin.completeScreenshot() } })
       void installColorInspector(image, value => api.copyText(value)).then(dispose => { stopInspector = dispose }).catch(showError)
 
     } else {

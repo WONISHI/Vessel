@@ -10,7 +10,7 @@ export function drawStep(context: CanvasRenderingContext2D, step: Step) {
   context.beginPath(); context.moveTo(x - 7, y + 10); context.lineTo(x - 19, y + 25); context.lineTo(x + 7, y + 13); context.closePath(); context.fill()
   context.beginPath(); context.arc(x, y, 17, 0, Math.PI * 2)
   context.fillStyle = "white"; context.fill(); context.lineWidth = 4; context.strokeStyle = "#ef4444"; context.stroke()
-  context.fillStyle = "#ef4444"; context.font = "bold 20px system-ui"; context.textAlign = "center"; context.textBaseline = "middle"; context.fillText(String(number), x, y + 1)
+  context.fillStyle = "#ef4444"; context.font = '600 18px "Plus Jakarta Sans", sans-serif'; context.textAlign = "center"; context.textBaseline = "middle"; context.fillText(String(number), x, y + 1)
   context.restore()
 }
 
@@ -42,20 +42,28 @@ export function installSteps(plugin: ScreenShot, button: HTMLButtonElement) {
     context.save(); context.beginPath(); context.rect(box.startX, box.startY, box.width, box.height); context.clip()
     steps.forEach(step => drawStep(context, step)); context.restore()
   }
+  let moving: Step | undefined
+  const history: Step[][] = []
+  const undo = () => { const previous = history.pop(); if (previous) steps.splice(0, steps.length, ...previous); redraw() }
   layer.onpointerdown = event => {
     const box = plugin.getCutBoxInfo()
     if (event.clientX < box.startX || event.clientY < box.startY || event.clientX > box.startX + box.width || event.clientY > box.startY + box.height) return
-    steps.push({ x: event.clientX, y: event.clientY, number: steps.length + 1 }); redraw()
+    history.push(steps.map(step => ({ ...step })))
+    moving = [...steps].reverse().find(step => Math.hypot(step.x - event.clientX, step.y - event.clientY) <= 22)
+    if (!moving) { moving = { x: event.clientX, y: event.clientY, number: steps.length + 1 }; steps.push(moving) }
+    layer.setPointerCapture(event.pointerId); redraw()
   }
+  layer.onpointermove = event => { if (moving) { const box = plugin.getCutBoxInfo(); moving.x = Math.max(box.startX, Math.min(box.startX + box.width, event.clientX)); moving.y = Math.max(box.startY, Math.min(box.startY + box.height, event.clientY)); redraw() } }
+  layer.onpointerup = layer.onpointercancel = () => { moving = undefined }
   document.addEventListener("click", event => {
     const target = event.target as HTMLElement
     if (target.closest("#toolPanel") && !button.contains(target)) setActive(false)
   })
   document.addEventListener("pointerup", redraw)
   window.addEventListener("keydown", event => {
-    if (active && (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z") { event.preventDefault(); event.stopImmediatePropagation(); steps.pop(); redraw() }
+    if (active && (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z") { event.preventDefault(); event.stopImmediatePropagation(); undo() }
   }, true)
-  return { steps, undo: () => { steps.pop(); redraw() }, hide: () => { layer.remove(); setActive(false) } }
+  return { steps, undo, hide: () => { layer.remove(); setActive(false) } }
 }
 
 /** Sample the original bitmap, never the dark mask or annotation overlay. */
@@ -76,7 +84,7 @@ export async function installColorInspector(src: string, copy: (value: string) =
     hex = "#" + [...pixel.slice(0, 3)].map(value => value.toString(16).padStart(2, "0")).join("").toUpperCase()
     const view = zoom.getContext("2d")!; view.imageSmoothingEnabled = false; view.clearRect(0, 0, 110, 110)
     view.drawImage(source, x - 5, y - 5, 11, 11, 0, 0, 110, 110)
-    view.strokeStyle = "#3b82f6"; view.lineWidth = 1; view.strokeRect(50, 50, 10, 10)
+    view.strokeStyle = "#16a34a"; view.lineWidth = 1; view.strokeRect(50, 50, 10, 10)
     text.textContent = `坐标 ${x}, ${y}\n色值 ${hex}\n按 C 复制色值`
     panel.style.left = `${Math.max(0, Math.min(event.clientX + 22, innerWidth - 160))}px`
     panel.style.top = `${Math.max(0, Math.min(event.clientY + 22, innerHeight - 190))}px`

@@ -1,3 +1,4 @@
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { useState } from "react"
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, CircleCheck, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -37,7 +38,7 @@ export default function TodoMain({
   const days = monthDays(month)
   const move = (delta: number) => onMonth(new Date(month.getFullYear(), month.getMonth() + delta, 1, 12))
   return (
-    <main className="todo-calendar min-h-0 min-w-0 flex-1 overflow-auto bg-[#faf9f7] p-5">
+    <ScrollArea className="min-h-0 min-w-0 flex-1 [&_[data-radix-scroll-area-viewport]>div]:!block"><main className="todo-calendar bg-[#faf9f7] p-5">
       <Breadcrumb>
         <BreadcrumbList className="text-xs">
           <BreadcrumbItem>首页</BreadcrumbItem>
@@ -207,6 +208,6 @@ export default function TodoMain({
         </section>
       </div>
       <TodoTableSection />
-    </main>
+    </main></ScrollArea>
   )
 }

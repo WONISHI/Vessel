@@ -1,3 +1,4 @@
+import { formatTransitDate } from "@/components/transit/panel"
 import { HistoryInput } from "./history-input"
 import { BrowserProxy } from "./proxy"
 import { BookmarkBar } from './bookmark-bar'
@@ -99,6 +100,11 @@ export default function BrowserPage({ visible = true }: { visible?: boolean }) {
   const findInput = useRef<HTMLInputElement>(null)
   const [findPosition, setFindPosition] = useState<{ x: number; y: number } | null>(null)
   const findDrag = useRef<{ x: number; y: number; left: number; top: number } | null>(null)
+  useEffect(() => {
+    const stop = () => { findDrag.current = null; document.body.classList.remove("vessel-find-dragging") }
+    window.addEventListener("pointerup", stop); window.addEventListener("pointercancel", stop); window.addEventListener("blur", stop)
+    return () => { stop(); window.removeEventListener("pointerup", stop); window.removeEventListener("pointercancel", stop); window.removeEventListener("blur", stop) }
+  }, [])
   const [consoleWidth, setConsoleWidth] = useState(() => Number(localStorage.getItem("browser-console-width")) || 440)
   const [consoleHeight, setConsoleHeight] = useState(() => Number(localStorage.getItem("browser-console-height")) || 300)
   const [devtoolsOpen, setDevtoolsOpen] = useState(false)
@@ -411,12 +417,13 @@ export default function BrowserPage({ visible = true }: { visible?: boolean }) {
             if ((event.target as HTMLElement).closest("input, button") || event.button !== 0) return
             event.preventDefault(); event.currentTarget.setPointerCapture(event.pointerId)
             const rect = event.currentTarget.getBoundingClientRect()
+            document.body.classList.add("vessel-find-dragging")
             findDrag.current = { x: event.clientX, y: event.clientY, left: rect.left, top: rect.top }
           }} onPointerMove={event => {
             const start = findDrag.current; if (!start) return
             const rect = event.currentTarget.getBoundingClientRect()
             setFindPosition({ x: Math.max(0, Math.min(innerWidth - rect.width, start.left + event.clientX - start.x)), y: Math.max(0, Math.min(innerHeight - rect.height, start.top + event.clientY - start.y)) })
-          }} onPointerUp={() => { findDrag.current = null }} onPointerCancel={() => { findDrag.current = null }} aria-label="网页查找" onSubmit={event => { event.preventDefault(); searchPage(true, true) }}>
+          }} onPointerUp={() => { findDrag.current = null; document.body.classList.remove("vessel-find-dragging") }} onPointerCancel={() => { findDrag.current = null; document.body.classList.remove("vessel-find-dragging") }} aria-label="网页查找" onSubmit={event => { event.preventDefault(); searchPage(true, true) }}>
             <Search size={15} className="text-stone-400" />
             <input ref={findInput} aria-label="在网页中查找" placeholder="在网页中查找" spellCheck={false} value={findText} onChange={event => setFindText(event.target.value)} onKeyDown={event => { if (event.key === "Escape") setFindOpen(false); if (event.key === "Enter" && event.shiftKey) { event.preventDefault(); searchPage(false, true) } }} />
             <span className="browser-find-count">{findResult.tabId === tab.id && findResult.text === findText ? `${findResult.activeMatchOrdinal}/${findResult.matches}` : "0/0"}</span>
@@ -508,7 +515,7 @@ export default function BrowserPage({ visible = true }: { visible?: boolean }) {
         <button aria-label={toolbarCollapsed ? "展开浏览器工具栏" : "折叠浏览器工具栏"} aria-expanded={!toolbarCollapsed} onClick={() => setToolbarCollapsed(value => !value)} className="flex size-5 shrink-0 items-center justify-center text-stone-400 hover:text-stone-700">{toolbarCollapsed ? <ChevronUp size={13} /> : <ChevronRight size={13} />}</button>
           <span>{tab.loading ? "正在加载…" : tab.url || "就绪"}</span>
           <div className="ml-auto"><BrowserProxy /></div>
-          <span className="shrink-0"><Clock ticking interval={1000} format="YYYY年MM月DD日 HH:mm" filter={() => new Date().toLocaleString("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", weekday: "long", hour12: false })} /></span>
+          <span className="shrink-0"><Clock ticking interval={1000} format="YYYY年MM月DD日 HH:mm" filter={() => formatTransitDate(new Date())} /></span>
           <span>{Math.round(tab.zoom * 100)}%</span>
         </footer>
       </main>

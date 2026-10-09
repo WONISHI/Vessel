@@ -2,8 +2,10 @@ import { app, BrowserWindow, ipcMain } from "electron"
 import { resolve, extname } from "node:path"
 import { stat } from "node:fs/promises"
 
+const supported = new Set([".md", ".markdown", ".txt", ".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs", ".mts", ".cts", ".json", ".html", ".htm", ".css", ".scss", ".less", ".vue", ".svelte", ".yaml", ".yml", ".xml", ".py", ".rs", ".go", ".java", ".c", ".cpp", ".h", ".sh", ".sql", ".env", ".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".bmp", ".ico", ".avif", ".pdf", ".doc", ".docx", ".docs", ".xls", ".xlsx", ".ppt", ".pptx", ".odt", ".ods", ".odp", ".csv"])
+
 export function markdownArguments(argv: string[], cwd = process.cwd()): string[] {
-  return argv.filter((value) => !value.startsWith("-") && /^(\.md|\.markdown)$/i.test(extname(value))).map((value) => resolve(cwd, value))
+  return argv.filter((value) => !value.startsWith("-") && supported.has(extname(value).toLowerCase())).map((value) => resolve(cwd, value))
 }
 /** 保留启动期间的文件，直到渲染进程注册监听后主动取走。 */
 export function registerMarkdownOpening() {
@@ -11,7 +13,7 @@ export function registerMarkdownOpening() {
   let ready = false
   const enqueue = async (path: string) => {
     try {
-      if (!/\.(md|markdown)$/i.test(path) || !(await stat(path)).isFile()) return
+      if (!supported.has(extname(path).toLowerCase()) || !(await stat(path)).isFile()) return
       const window = BrowserWindow.getAllWindows()[0]
       if (window) {
         if (window.isMinimized()) window.restore()
@@ -29,7 +31,7 @@ export function registerMarkdownOpening() {
     void enqueue(path)
   })
   app.on("second-instance", (_event, argv, cwd) => {
-    for (const path of markdownArguments(argv, cwd)) void enqueue(path)
+    for (const path of markdownArguments(argv.slice(app.isPackaged ? 1 : 2), cwd)) void enqueue(path)
     const window = BrowserWindow.getAllWindows()[0]
     if (window) {
       if (window.isMinimized()) window.restore()
@@ -49,5 +51,5 @@ export function registerMarkdownOpening() {
       ready = false
     })
   })
-  for (const path of markdownArguments(process.argv)) void enqueue(path)
+  for (const path of markdownArguments(process.argv.slice(app.isPackaged ? 1 : 2))) void enqueue(path)
 }

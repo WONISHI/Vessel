@@ -66,6 +66,11 @@ export function Office() {
   useEffect(() => {
     parent.postMessage({ type: "office:loaded" }, "*")
     const listener = (event: MessageEvent) => {
+      if (event.source === parent && event.data?.type === "office:external") {
+        const doc = event.data.document
+        add(new File([doc.bytes], doc.name), undefined, doc.token)
+        return
+      }
       if (event.origin !== location.origin) return
       const id = [...frames.current].find(([, frame]) => frame.contentWindow === event.source)?.[0]
       if (!id) return

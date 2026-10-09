@@ -5,7 +5,7 @@ import { browserExtensionsAPI } from "./apis/browser-extensions.api"
 import { fileWatchAPI } from "./apis/file-watch.api"
 import { terminalAPI } from "./apis/terminal.api"
 import { todosAPI } from "./apis/todos.api"
-import { contextBridge, ipcRenderer } from "electron"
+import { contextBridge, ipcRenderer, webUtils } from "electron"
 import { electronAPI } from "@electron-toolkit/preload"
 import { welcomeAPI } from "./apis/welcome.api"
 import { developerAPI } from "./apis/developer.api"
@@ -34,6 +34,8 @@ const vesselAPI = {
   readTransitClipboard: (): Promise<string | { root: string; path: string; title: string }> => ipcRenderer.invoke("transit:clipboard"),
   openTransitWindow: (item: { kind: string; content: string; title: string; root?: string }): Promise<void> => ipcRenderer.invoke("transit:window", item),
   saveOffice: (name: string, bytes: Uint8Array): Promise<boolean> => ipcRenderer.invoke("office:save", name, bytes),
+  getDroppedFilePath: (file: File): string => webUtils.getPathForFile(file),
+  readOfficePath: (path: string) => ipcRenderer.invoke("office:read-path", path),
   openOffice: (): Promise<string> => ipcRenderer.invoke("office:open"),
   ...terminalAPI,
   ...browserExtensionsAPI,

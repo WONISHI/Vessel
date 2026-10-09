@@ -28,6 +28,20 @@ function OfficePage() {
     window.addEventListener("message", listener)
     return () => { clearTimeout(timeout); window.removeEventListener("message", listener) }
   }, [url])
+  useEffect(() => {
+    if (!ready || !url) return
+    let queue = Promise.resolve()
+    const flush = () => {
+      const paths = JSON.parse(sessionStorage.getItem("office-pending-paths") || "[]") as string[]
+      sessionStorage.removeItem("office-pending-paths")
+      for (const path of paths) queue = queue.then(async () => {
+        const document = await window.electronAPI.readOfficePath(path)
+        frame.current?.contentWindow?.postMessage({ type: "office:external", document }, new URL(url).origin)
+      }).catch(reason => setError(String(reason)))
+    }
+    window.addEventListener("vessel:office-open", flush); flush()
+    return () => window.removeEventListener("vessel:office-open", flush)
+  }, [ready, url])
   return <Layout aside={<ActivityBar activity="office" onActivityChange={item => void router.push(item === "tools" ? "/devtools" : item === "files" ? "/editor" : `/${item}`)} />}>
     <main className="relative h-full min-w-0 flex-1">
       {url && <iframe ref={frame} title="ONLYOFFICE 本地编辑器" src={url} className="h-full w-full border-0" />}

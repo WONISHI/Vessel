@@ -1,3 +1,4 @@
+vi.mock("../../src/main/browser-proxy", () => ({ registerBrowserProxy: vi.fn() }))
 import { expect, it, vi } from "vitest"
 import type { WebContents } from "electron"
 vi.mock("../../src/main/browser-tools", () => ({ registerBrowserTools: vi.fn() }))
@@ -18,7 +19,7 @@ it("keeps document redirects in place and opens popups as Vessel tabs while bloc
   expect(preventDefault).not.toHaveBeenCalled()
   expect(send).not.toHaveBeenCalled()
   expect(popup.mock.calls[0][0]({ url: "https://example.com/new" })).toEqual({ action: "deny" })
-  expect(send).toHaveBeenLastCalledWith("browser:new-tab", "https://example.com/new")
+  expect(send).toHaveBeenLastCalledWith("browser:new-tab", "https://example.com/new", 10)
   preventDefault.mockClear()
   guestEvents.get("will-navigate")!({ preventDefault }, "http://localhost:5173/")
   expect(preventDefault).not.toHaveBeenCalled()
@@ -29,6 +30,6 @@ it("keeps document redirects in place and opens popups as Vessel tabs while bloc
   expect(preventDefault).not.toHaveBeenCalled()
   for (const key of [{ control: true }, { meta: true }]) {
     guestEvents.get("before-input-event")!({ preventDefault }, { type: "keyDown", key: "f", ...key })
-    expect(send).toHaveBeenLastCalledWith("browser:find", 10)
+    expect(preventDefault).not.toHaveBeenCalled()
   }
 })

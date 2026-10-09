@@ -27,3 +27,5 @@
 .image-statusbar-left{display:flex;align-items:center;gap:8px;min-width:0;overflow:hidden;white-space:nowrap}
 .image-statusbar-right{display:flex;align-items:center;gap:8px;flex-shrink:0;margin-left:auto;font-variant-numeric:tabular-nums;color:#57534e;font-weight:500}
 
+
+.image-viewport{overflow:hidden;touch-action:none;cursor:grab}.image-viewport:active{cursor:grabbing}

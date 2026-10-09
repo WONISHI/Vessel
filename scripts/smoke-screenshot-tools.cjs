@@ -10,6 +10,7 @@ app.whenReady().then(async () => {
  async function capture() {
   const win = new BrowserWindow({show:true,width:900,height:600,frame:false,webPreferences:{preload:path.resolve('out/preload/screenshot.js'),sandbox:true}})
   let result
+  win.webContents.ipc.handle('shot:ready',()=>{})
   win.webContents.ipc.handle('shot:data',()=>({mode:'capture',image}))
   win.webContents.ipc.handle('shot:copy-text',(_e,text)=>clipboard.writeText(text))
   win.webContents.ipc.handle('shot:finish',(_e,data,pin)=>{ result={data,pin} })
@@ -30,7 +31,13 @@ app.whenReady().then(async () => {
  shot.win.webContents.sendInputEvent({type:'mouseDown',button:'left',clickCount:1,x:500,y:240})
  shot.win.webContents.sendInputEvent({type:'mouseUp',button:'left',clickCount:1,x:500,y:240}); await wait(100)
  assert(await shot.js(`document.querySelector('.shot-steps').getContext('2d').getImageData(500,240,1,1).data[3]>0`))
- await shot.js(`document.querySelector('.shot-pin').click()`); await wait(300)
+ shot.win.webContents.sendInputEvent({type:'mouseDown',button:'left',clickCount:1,x:500,y:240})
+ shot.win.webContents.sendInputEvent({type:'mouseMove',modifiers:['leftButtonDown'],x:560,y:240})
+ shot.win.webContents.sendInputEvent({type:'mouseUp',button:'left',clickCount:1,x:560,y:240});await wait(100)
+ assert(await shot.js(`document.querySelector('.shot-steps').getContext('2d').getImageData(560,240,1,1).data[3]>0`))
+ await shot.js(`document.querySelector('.shot-step-undo').click()`);await wait(100)
+ assert(await shot.js(`document.querySelector('.shot-steps').getContext('2d').getImageData(500,240,1,1).data[3]>0`))
+ shot.win.webContents.sendInputEvent({type:'keyDown',keyCode:'F3'});await wait(300)
  assert(shot.result()?.pin)
  const red = await shot.js(`(async()=>{const image=new Image();image.src=${JSON.stringify(shot.result().data)};await image.decode();const c=document.createElement('canvas');c.width=image.width;c.height=image.height;const ctx=c.getContext('2d');ctx.drawImage(image,0,0);const data=ctx.getImageData(0,0,c.width,c.height).data;let n=0;for(let i=0;i<data.length;i+=4)if(data[i]>180&&data[i+1]<110&&data[i+2]<110)n++;return n})()`)
  assert(red>50,'step annotation is included in exported pixels'); shot.win.destroy()

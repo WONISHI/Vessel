@@ -1,6 +1,6 @@
 import { app, safeStorage, type WebContents } from "electron"
 import { readFileSync, existsSync } from "node:fs"
-import { readFile, writeFile, rename, mkdtemp, rm, readdir } from "node:fs/promises"
+import { writeFile, rename, mkdtemp, rm, readdir } from "node:fs/promises"
 import { join, relative } from "node:path"
 import { tmpdir } from "node:os"
 import { createHash } from "node:crypto"

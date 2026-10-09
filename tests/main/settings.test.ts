@@ -2,7 +2,6 @@ import { expect, it, vi } from "vitest"
 import { mkdtemp, readFile, writeFile, mkdir, rm } from "node:fs/promises"
 import { join } from "node:path"
 import { tmpdir } from "node:os"
-import { gunzipSync } from "node:zlib"
 import Database from "better-sqlite3"
 import { defaultSettings } from "../../src/shared/settings"
 import { signedS3Request } from "../../src/main/settings-s3"
@@ -40,10 +39,11 @@ it("persists encrypted credentials, validates intervals, and snapshots SQLite pl
     expect(status).toMatchObject({ running: false })
     const args = mocks.request.mock.calls.at(-1) as unknown as unknown[]
     expect(args[2]).toBe("PUT")
-    const archive = JSON.parse(gunzipSync(args[4] as Uint8Array).toString())
-    expect(archive.files.some((entry: { path: string }) => entry.path === "database/vessel.db")).toBe(true)
-    const note = archive.files.find((entry: { path: string }) => entry.path.endsWith("/note.md"))
-    expect(Buffer.from(note.data, "base64").toString()).toBe("# Saved note")
+    const archive = JSON.parse(Buffer.from(args[4] as Uint8Array).toString())
+    expect(Object.keys(archive.files).includes("database/vessel.db")).toBe(true)
+    const note = archive.files[Object.keys(archive.files).find(path => path.endsWith("/note.md"))!]
+    const blob = (mocks.request.mock.calls as unknown as unknown[][]).find(call => String(call[3]).endsWith(note.chunks[0]))!
+    expect(Buffer.from(blob[4] as Uint8Array).toString()).toBe("# Saved note")
     expect(JSON.stringify(archive)).not.toContain(mocks.secret)
     mocks.request.mockRejectedValueOnce(new Error("storage unavailable"))
     await expect(handlers.get("settings:backup")!()).rejects.toThrow("storage unavailable")

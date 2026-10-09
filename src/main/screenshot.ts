@@ -61,6 +61,7 @@ export async function startScreenshot() {
     const win = create(display.bounds)
     captureWindow = win
     win.setResizable(false)
+    win.webContents.ipc.handle("shot:ready", () => { if (!win.isDestroyed()) { win.show(); win.focus() } })
     win.webContents.ipc.handle("shot:data", () => ({ mode: "capture", image }))
     let finishing = false
     win.webContents.ipc.handle("shot:finish", async (_event, data: string, pinned?: boolean) => {
@@ -89,8 +90,6 @@ export async function startScreenshot() {
       captureWindow = undefined
     })
     await load(win)
-    win.show()
-    win.focus()
   } catch (error) {
     captureWindow?.close()
     const permission = process.platform === "darwin" ? systemPreferences.getMediaAccessStatus("screen") : undefined

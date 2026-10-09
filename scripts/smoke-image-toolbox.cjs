@@ -16,6 +16,13 @@ app.whenReady().then(async()=>{
  const tool=async title=>{await js(`[...document.querySelectorAll('nav[aria-label="图片操作"] button')].find(b=>b.textContent===${JSON.stringify(title)}).click()`);await wait(100)}
  const dims=()=>js(`(()=>{const i=document.querySelector('img[alt="待处理图片"]');return [i.naturalWidth,i.naturalHeight]})()`)
  await click('剪贴板');assert.deepEqual(await dims(),[640,400])
+ const canvasPoint=await js(`(()=>{const e=document.querySelector('.image-viewport'),r=e.getBoundingClientRect();return {x:Math.round(r.x+40),y:Math.round(r.y+40),overflow:getComputedStyle(e).overflow}})()`)
+ assert.equal(canvasPoint.overflow,'hidden')
+ win.webContents.sendInputEvent({type:'mouseDown',button:'left',clickCount:1,x:canvasPoint.x,y:canvasPoint.y})
+ win.webContents.sendInputEvent({type:'mouseMove',modifiers:['leftButtonDown'],x:canvasPoint.x+70,y:canvasPoint.y+45})
+ win.webContents.sendInputEvent({type:'mouseUp',button:'left',clickCount:1,x:canvasPoint.x+70,y:canvasPoint.y+45});await wait(100)
+ assert.match(await js(`document.querySelector('.image-stage').style.transform`),/70px, 45px/)
+
  await js(`document.querySelector('button[aria-label="收起侧边栏"]').click()`);await wait(200)
  assert.equal(await js(`!!document.querySelector('.image-tool-nav')`),false)
  await js(`document.querySelector('button[aria-label="展开侧边栏"]').click()`);await wait(200)

@@ -1,3 +1,4 @@
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
 import { useLibraryMeta, updateLibraryMeta, readLibraryMeta } from "@/pages/resources/library-state"
 import { useEffect, useRef, useState } from "react"
 import { FolderOpen, HardDriveUpload, HardDrive, Plus, X, RefreshCw } from "lucide-react"
@@ -73,10 +74,13 @@ function ProjectLibraryContent({ pinned, onPin, onSelect }: { pinned: boolean; o
       activate(project)
     } catch (reason) { setError(String(reason)) }
   }
+  const visible = projects.slice(0, 3)
+  if (!visible.some(p => p.path === workspace.path)) { const current = projects.find(p => p.path === workspace.path); if (current) visible.splice(2, 1, current) }
+  const overflow = projects.filter(p => !visible.includes(p))
   return <section aria-label="项目资源库" className="flex h-full min-h-0 flex-col bg-white">
     <header className="flex items-center gap-1 border-b px-2 py-2">
       <div className="flex min-w-0 flex-1 gap-1 overflow-hidden">
-        {projects.map(project => <div key={project.path} className={`group relative flex min-w-0 items-center rounded-md ${project.path === workspace.path ? "max-w-[160px] flex-[1.5_1_0%] bg-green-50 text-green-700" : "max-w-[128px] flex-[1_1_0%] text-stone-500"}`}>
+        {visible.map(project => <div key={project.path} className={`group relative flex min-w-0 items-center rounded-md ${project.path === workspace.path ? "max-w-[160px] flex-[1.5_1_0%] bg-green-50 text-green-700" : "max-w-[128px] flex-[1_1_0%] text-stone-500"}`}>
           <button title={project.path} className="min-w-0 flex-1 truncate px-2 py-1 text-xs" onClick={() => activate(project)}>{project.name}</button>
           {project.path !== workspace.path && <button aria-label={`关闭项目 ${project.name}`} className="absolute right-0 rounded bg-white px-1 opacity-0 group-hover:opacity-100 focus:opacity-100" onClick={() => {
             setProjects(list => list.filter(p => p.path !== project.path))
@@ -86,6 +90,7 @@ function ProjectLibraryContent({ pinned, onPin, onSelect }: { pinned: boolean; o
           }}><X size={12} /></button>}
         </div>)}
       </div>
+      {!!overflow.length && <Popover><PopoverTrigger asChild><Button variant="ghost" size="sm" className="h-6 px-1 text-xs">更多</Button></PopoverTrigger><PopoverContent className="w-64 p-1"><ScrollArea className="max-h-72 [&_[data-radix-scroll-area-viewport]>div]:!block">{overflow.map(project => <button key={project.path} title={project.path} className="block w-full truncate rounded px-2 py-2 text-left text-xs hover:bg-green-50" onClick={() => activate(project)}>{project.name}</button>)}</ScrollArea></PopoverContent></Popover>}
       <Button variant="ghost" size="icon" className="size-6 hover:bg-emerald-700 hover:!text-white active:bg-emerald-700 active:!text-white" aria-label="添加项目或附件目录" disabled={!ready} onClick={() => void add()}><Plus className="!size-3.5" /></Button>
       <Button variant="ghost" size="icon" className={`size-6 hover:bg-emerald-700 hover:!text-white active:bg-emerald-700 active:!text-white ${pinned ? "bg-emerald-700 !text-white" : ""}`} aria-label={pinned ? "取消固定资源库" : "固定资源库"} onClick={onPin}>{pinned ? <HardDrive className="!size-3.5" /> : <HardDriveUpload className="!size-3.5" />}</Button>
     </header>

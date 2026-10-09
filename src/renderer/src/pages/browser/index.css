@@ -253,3 +253,5 @@
 .browser-tab > button[title="关闭标签页"] { right: 4px; }
 
 .browser-tab.selected { max-width: 156px; }
+
+.vessel-find-dragging webview,.vessel-find-dragging iframe{pointer-events:none!important}.browser-find{cursor:move}.browser-find input,.browser-find button{cursor:auto}

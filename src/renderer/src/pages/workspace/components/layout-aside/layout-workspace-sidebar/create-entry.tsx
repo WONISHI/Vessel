@@ -1,3 +1,4 @@
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogAction } from "@/components/ui/alert-dialog"
 import { useRef, useState } from "react"
 import { FilePlus2, FolderPlus, FileCode2, FileText } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -102,7 +103,7 @@ export function InlineEntryEditor({ draft, onFinish }: { draft: EntryDraft; onFi
         onFocus={event => event.target.select()}
         aria-label={draft.kind === "file" ? "新文件名称" : "新文件夹名称"}
         className="h-6 min-w-0 flex-1 !rounded-none !border-0 !bg-transparent p-0 text-xs !shadow-none !outline-none !ring-0"
-        onBlur={() => void submit()}
+        onBlur={() => { if (!error) void submit() }}
         value={name}
         disabled={busy}
         onChange={(event) => setName(event.target.value)}
@@ -113,15 +114,9 @@ export function InlineEntryEditor({ draft, onFinish }: { draft: EntryDraft; onFi
         aria-invalid={!!error}
       />
       </div>
-      {error && (
-        <span
-          role="alert"
-          title={error}
-          className="w-full break-all text-[11px] text-red-500"
-        >
-          {error}
-        </span>
-      )}
+      <AlertDialog open={!!error} onOpenChange={open => { if (!open) setError("") }}>
+        <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>无法创建</AlertDialogTitle><AlertDialogDescription>{error}</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogAction>知道了</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
+      </AlertDialog>
     </form>
   )
 }
