@@ -11,10 +11,11 @@ export function markdownArguments(argv: string[], cwd = process.cwd()): string[]
 export function registerMarkdownOpening() {
   const pending: string[] = []
   let ready = false
+  let receiver: Electron.WebContents | undefined
   const enqueue = async (path: string) => {
     try {
       if (!supported.has(extname(path).toLowerCase()) || !(await stat(path)).isFile()) return
-      const window = BrowserWindow.getAllWindows()[0]
+      const window = receiver && !receiver.isDestroyed() ? BrowserWindow.fromWebContents(receiver) : BrowserWindow.getAllWindows()[0]
       if (window) {
         if (window.isMinimized()) window.restore()
         window.show()
@@ -32,24 +33,25 @@ export function registerMarkdownOpening() {
   })
   app.on("second-instance", (_event, argv, cwd) => {
     for (const path of markdownArguments(argv.slice(app.isPackaged ? 1 : 2), cwd)) void enqueue(path)
-    const window = BrowserWindow.getAllWindows()[0]
+    const window = receiver && !receiver.isDestroyed() ? BrowserWindow.fromWebContents(receiver) : BrowserWindow.getAllWindows()[0]
     if (window) {
       if (window.isMinimized()) window.restore()
       window.show()
       window.focus()
     }
   })
-  ipcMain.handle("markdown:pending", () => {
+  ipcMain.handle("markdown:pending", event => {
+    const sender = event?.sender
+    if (sender && receiver !== sender) {
+      receiver = sender
+      // Subframe loads (including Office) and auxiliary windows must not pause delivery.
+      sender.on("did-start-navigation", (_event, _url, inPlace, isMainFrame) => {
+        if (receiver === sender && isMainFrame && !inPlace) ready = false
+      })
+      sender.once("destroyed", () => { if (receiver === sender) { ready = false; receiver = undefined } })
+    }
     ready = true
     return pending.splice(0)
-  })
-  app.on("browser-window-created", (_event, window) => {
-    window.webContents.on("did-start-loading", () => {
-      ready = false
-    })
-    window.on("closed", () => {
-      ready = false
-    })
   })
   for (const path of markdownArguments(process.argv.slice(app.isPackaged ? 1 : 2))) void enqueue(path)
 }

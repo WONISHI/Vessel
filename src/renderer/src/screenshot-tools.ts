@@ -44,7 +44,7 @@ export function installSteps(plugin: ScreenShot, button: HTMLButtonElement) {
   }
   let moving: Step | undefined
   const history: Step[][] = []
-  const undo = () => { const previous = history.pop(); if (previous) steps.splice(0, steps.length, ...previous); redraw() }
+  const undo = () => { const previous = history.pop(); if (!previous) return false; steps.splice(0, steps.length, ...previous); redraw(); return true }
   layer.onpointerdown = event => {
     const box = plugin.getCutBoxInfo()
     if (event.clientX < box.startX || event.clientY < box.startY || event.clientX > box.startX + box.width || event.clientY > box.startY + box.height) return
@@ -67,7 +67,7 @@ export function installSteps(plugin: ScreenShot, button: HTMLButtonElement) {
 }
 
 /** Sample the original bitmap, never the dark mask or annotation overlay. */
-export async function installColorInspector(src: string, copy: (value: string) => Promise<void>) {
+export async function installColorInspector(src: string, copy: (value: string) => Promise<void>, selected: () => boolean = () => false) {
   const image = new Image(); image.src = src; await image.decode()
   const source = document.createElement("canvas"); source.width = image.naturalWidth; source.height = image.naturalHeight
   const context = source.getContext("2d", { willReadFrequently: true })!; context.drawImage(image, 0, 0)
@@ -77,15 +77,17 @@ export async function installColorInspector(src: string, copy: (value: string) =
   let hex = "", disposed = false
   const move = (event: MouseEvent) => {
     if (disposed) return
-    panel.hidden = !!(event.target as HTMLElement).closest("#toolPanel, #optionPanel, input, textarea, button, .shot-ocr")
+    panel.hidden = selected() || !!(event.target as HTMLElement).closest("#toolPanel, #optionPanel, input, textarea, button, .shot-ocr")
     const x = Math.min(source.width - 1, Math.max(0, Math.floor(event.clientX * source.width / innerWidth)))
     const y = Math.min(source.height - 1, Math.max(0, Math.floor(event.clientY * source.height / innerHeight)))
     const pixel = context.getImageData(x, y, 1, 1).data
     hex = "#" + [...pixel.slice(0, 3)].map(value => value.toString(16).padStart(2, "0")).join("").toUpperCase()
     const view = zoom.getContext("2d")!; view.imageSmoothingEnabled = false; view.clearRect(0, 0, 110, 110)
     view.drawImage(source, x - 5, y - 5, 11, 11, 0, 0, 110, 110)
-    view.strokeStyle = "#16a34a"; view.lineWidth = 1; view.strokeRect(50, 50, 10, 10)
-    text.textContent = `坐标 ${x}, ${y}\n色值 ${hex}\n按 C 复制色值`
+    view.strokeStyle = "#60a5fa"; view.lineWidth = 1; view.beginPath(); view.moveTo(55, 0); view.lineTo(55, 49); view.moveTo(55, 61); view.lineTo(55, 110); view.moveTo(0, 55); view.lineTo(49, 55); view.moveTo(61, 55); view.lineTo(110, 55); view.stroke()
+    text.replaceChildren()
+    for (const [label, value] of [["坐标", `${x}, ${y}`], ["色值", hex]]) { const row = document.createElement("div"), title = document.createElement("span"), content = document.createElement("strong"); title.textContent = label; content.textContent = value; row.append(title, content); text.append(row) }
+    const hint = document.createElement("small"); hint.textContent = "按 C 复制色值"; text.append(hint)
     panel.style.left = `${Math.max(0, Math.min(event.clientX + 22, innerWidth - 160))}px`
     panel.style.top = `${Math.max(0, Math.min(event.clientY + 22, innerHeight - 190))}px`
   }

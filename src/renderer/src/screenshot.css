@@ -68,3 +68,5 @@ body { margin: 0; }
 .shot-ocr button:disabled { opacity: .5; cursor: default; }
 
 html,body,#root,.shot-color-inspector div,.shot-ocr textarea{font-family:"Plus Jakarta Sans","PingFang SC",sans-serif}.shot-color-inspector{width:132px;border:1px solid #d6d3d1;border-radius:10px;box-shadow:0 8px 28px #0002}.shot-color-inspector canvas{width:132px;height:132px}.shot-color-inspector div{font-size:11px;line-height:1.7;padding:8px 10px}
+
+.shot-color-inspector{width:156px;border-color:#60a5fa}.shot-color-inspector canvas{width:156px;height:156px}.shot-color-inspector>div>div{display:flex;justify-content:space-between;padding:0}.shot-color-inspector strong{font-weight:600;color:#292524}.shot-color-inspector small{display:block;color:#a8a29e;margin-top:5px}

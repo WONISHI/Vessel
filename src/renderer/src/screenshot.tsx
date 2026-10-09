@@ -66,7 +66,9 @@ void api
         }
         const steps = tool("shot-step", "步骤标注", ListOrdered)
         stepTools = installSteps(plugin, steps)
-        tool("shot-step-undo", "撤销步骤", Undo2, () => stepTools?.undo())
+        document.querySelector("#toolPanel .undo, #toolPanel .undo-disabled")?.parentElement?.addEventListener("click", event => {
+          if (stepTools?.undo()) { event.preventDefault(); event.stopImmediatePropagation() }
+        }, true)
         tool("shot-recognize", "截图 OCR", ScanText, () => { action = "ocr"; confirm.click() })
         const pin = tool("shot-pin", "固定到屏幕", Pin, () => { action = "pin"; confirm.click() })
         copy.after(pin)
@@ -94,7 +96,7 @@ void api
         closeCallback: () => { void api.close() }
       })
       window.addEventListener("keydown", event => { if (event.key === "F3") { event.preventDefault(); action = "pin"; plugin.completeScreenshot() } })
-      void installColorInspector(image, value => api.copyText(value)).then(dispose => { stopInspector = dispose }).catch(showError)
+      void installColorInspector(image, value => api.copyText(value), () => plugin.getCutBoxInfo().width > 0).then(dispose => { stopInspector = dispose }).catch(showError)
 
     } else {
       const toolbar = document.createElement("div")

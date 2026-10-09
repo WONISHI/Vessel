@@ -29,7 +29,7 @@ export function bindTableActions(root: HTMLElement) {
     if (!root.getClientRects().length) { hide(); return }
     const viewport = root.closest('[data-radix-scroll-area-viewport]')?.getBoundingClientRect()
     if (viewport && (event.clientY < viewport.top || event.clientY > viewport.bottom)) { hide(); return }
-    const candidate = Array.from(root.querySelectorAll<HTMLTableElement>('.vditor-ir table')).find(element => {
+    const candidate = Array.from(root.querySelectorAll<HTMLTableElement>('.vditor-ir table, .vditor-wysiwyg table')).find(element => {
       const bounds = element.getBoundingClientRect()
       return event.clientX >= bounds.left - 5 && event.clientX <= bounds.right + 26 && event.clientY >= bounds.top - 5 && event.clientY <= bounds.bottom + 26
     })
@@ -37,11 +37,15 @@ export function bindTableActions(root: HTMLElement) {
     table = candidate
     const bounds = table.getBoundingClientRect()
     row.hidden = event.clientY < bounds.bottom - 10
-    column.hidden = event.clientX < bounds.right - 10
-    row.style.left = `${Math.min(bounds.right - 20, Math.max(bounds.left, event.clientX - 10))}px`
+    column.hidden = event.clientX < Math.min(bounds.right, root.getBoundingClientRect().right, innerWidth) - 24
+    const hoveredCell = Array.from(table.rows[table.rows.length - 1]?.cells || []).find(cell => { const r = cell.getBoundingClientRect(); return event.clientX >= r.left && event.clientX <= r.right })
+    const cellBounds = hoveredCell?.getBoundingClientRect() || bounds
+    const hoveredRow = Array.from(table.rows).find(row => { const r = row.getBoundingClientRect(); return event.clientY >= r.top && event.clientY <= r.bottom })
+    const rowBounds = hoveredRow?.getBoundingClientRect() || bounds
+    row.style.left = `${(cellBounds.left + cellBounds.right) / 2 - 10}px`
     row.style.top = `${bounds.bottom + 3}px`
-    column.style.left = `${bounds.right + 3}px`
-    column.style.top = `${Math.min(bounds.bottom - 20, Math.max(bounds.top, event.clientY - 10))}px`
+    column.style.left = `${Math.min(innerWidth - 24, bounds.right + 3)}px`
+    column.style.top = `${(rowBounds.top + rowBounds.bottom) / 2 - 10}px`
   }
   document.addEventListener('pointermove', move)
   window.addEventListener('scroll', hide, true)

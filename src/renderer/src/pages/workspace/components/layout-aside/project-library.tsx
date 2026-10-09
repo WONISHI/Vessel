@@ -1,7 +1,7 @@
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
 import { useLibraryMeta, updateLibraryMeta, readLibraryMeta } from "@/pages/resources/library-state"
 import { useEffect, useRef, useState } from "react"
-import { FolderOpen, HardDriveUpload, HardDrive, Plus, X, RefreshCw } from "lucide-react"
+import { Ellipsis, FolderOpen, HardDriveUpload, HardDrive, Plus, X, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useWorkspace } from "../../hooks/useWorkspace"
@@ -90,7 +90,7 @@ function ProjectLibraryContent({ pinned, onPin, onSelect }: { pinned: boolean; o
           }}><X size={12} /></button>}
         </div>)}
       </div>
-      {!!overflow.length && <Popover><PopoverTrigger asChild><Button variant="ghost" size="sm" className="h-6 px-1 text-xs">更多</Button></PopoverTrigger><PopoverContent className="w-64 p-1"><ScrollArea className="max-h-72 [&_[data-radix-scroll-area-viewport]>div]:!block">{overflow.map(project => <button key={project.path} title={project.path} className="block w-full truncate rounded px-2 py-2 text-left text-xs hover:bg-green-50" onClick={() => activate(project)}>{project.name}</button>)}</ScrollArea></PopoverContent></Popover>}
+      {!!overflow.length && <Popover><PopoverTrigger asChild><Button variant="ghost" size="sm" aria-label="更多项目" className="size-6 p-0 hover:bg-green-600 hover:!text-white data-[state=open]:bg-green-600 data-[state=open]:!text-white"><Ellipsis className="!size-4" /></Button></PopoverTrigger><PopoverContent className="w-48 p-1"><ScrollArea className="max-h-72 [&_[data-radix-scroll-area-viewport]>div]:!block">{overflow.map(project => <button key={project.path} title={project.path} className="block w-full truncate rounded px-2 py-2 text-left text-xs hover:bg-green-50" onClick={() => activate(project)}>{project.name}</button>)}</ScrollArea></PopoverContent></Popover>}
       <Button variant="ghost" size="icon" className="size-6 hover:bg-emerald-700 hover:!text-white active:bg-emerald-700 active:!text-white" aria-label="添加项目或附件目录" disabled={!ready} onClick={() => void add()}><Plus className="!size-3.5" /></Button>
       <Button variant="ghost" size="icon" className={`size-6 hover:bg-emerald-700 hover:!text-white active:bg-emerald-700 active:!text-white ${pinned ? "bg-emerald-700 !text-white" : ""}`} aria-label={pinned ? "取消固定资源库" : "固定资源库"} onClick={onPin}>{pinned ? <HardDrive className="!size-3.5" /> : <HardDriveUpload className="!size-3.5" />}</Button>
     </header>
