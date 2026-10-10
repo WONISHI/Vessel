@@ -29,6 +29,7 @@ function installToolbarIcons() {
   rules.push(
     `#toolPanel .undo{background-image:${icon(Undo2)} !important;${base}}`,
     `#toolPanel .undo:hover,#toolPanel .undo:active{background-image:${icon(Undo2, "#16a34a")} !important;${base}}`,
+    `#toolPanel .undo-disabled.shot-can-undo{background-image:${icon(Undo2)} !important;${base}}`,
     `#toolPanel .undo-disabled{background-image:${icon(Undo2, "#d6d3d1")} !important;${base}}`
   )
   const style = document.createElement("style")
@@ -67,6 +68,7 @@ void api
         const steps = tool("shot-step", "步骤标注", ListOrdered)
         stepTools = installSteps(plugin, steps)
         document.querySelector("#toolPanel .undo, #toolPanel .undo-disabled")?.parentElement?.addEventListener("click", event => {
+          if (!(event.target instanceof Element) || !event.target.closest(".undo, .undo-disabled")) return
           if (stepTools?.undo()) { event.preventDefault(); event.stopImmediatePropagation() }
         }, true)
         tool("shot-recognize", "截图 OCR", ScanText, () => { action = "ocr"; confirm.click() })

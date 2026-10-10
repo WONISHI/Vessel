@@ -12,6 +12,7 @@ interface EditorTabsProps {
 }
 
 const EditorCanvas = ({ fileType, activeFilePath }: EditorTabsProps) => {
+  fileType = fileType?.toLowerCase()
   if (fileType?.toLowerCase() === "pdf") return <Suspense fallback={<div>正在加载 PDF…</div>}><PdfCanvas key={activeFilePath} activeFilePath={activeFilePath} /></Suspense>
   if (fileType === "md" || fileType === "markdown") {
     return <MarkdownCanvas activeFilePath={activeFilePath} />

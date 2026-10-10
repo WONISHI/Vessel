@@ -41,6 +41,7 @@ export function installSteps(plugin: ScreenShot, button: HTMLButtonElement) {
     const box = plugin.getCutBoxInfo()
     context.save(); context.beginPath(); context.rect(box.startX, box.startY, box.width, box.height); context.clip()
     steps.forEach(step => drawStep(context, step)); context.restore()
+    document.querySelector("#toolPanel .undo, #toolPanel .undo-disabled")?.classList.toggle("shot-can-undo", history.length > 0)
   }
   let moving: Step | undefined
   const history: Step[][] = []

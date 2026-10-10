@@ -1,3 +1,4 @@
+import { copyImage } from "./copy-image"
 import { getCodeDiagnostics, disposeCodeDiagnostics } from "../../code-diagnostics"
 import { readWikiLink } from "./wiki-link"
 import { readImageFile } from "./image-file"
@@ -107,6 +108,7 @@ export class FilesModule extends BaseModule {
     })
     ipcMain.handle("obsidian:readWikiLink", (_event, root, target) => readWikiLink(root, target))
     ipcMain.handle("image:clipboard", () => { const image = clipboard.readImage(); if (image.isEmpty()) return null; const data = image.toPNG(); if (data.length > 30_000_000) throw new Error("剪贴板图片超过 30 MB"); return `data:image/png;base64,${data.toString("base64")}` })
+    ipcMain.handle("image:copy", (_event, source) => copyImage(source))
     ipcMain.handle("image:readFile", (_event, root, path) => readImageFile(root, path))
     ipcMain.handle("obsidian:readImage", (_event, root, documentPath, reference) => readObsidianImage(root, documentPath, reference))
     ipcMain.handle("workspace:mutateFile", (_event, root, path, name) => mutateWorkspaceFile(root, path, name))
@@ -125,6 +127,7 @@ export class FilesModule extends BaseModule {
     disposeCodeDiagnostics()
     ipcMain.removeHandler("workspace:revealFile")
     ipcMain.removeHandler("obsidian:readWikiLink")
+    ipcMain.removeHandler("image:copy")
     ipcMain.removeHandler("image:readFile")
     ipcMain.removeHandler("obsidian:readImage")
     ipcMain.removeHandler("workspace:mutateFile")

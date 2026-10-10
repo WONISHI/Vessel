@@ -162,6 +162,7 @@ interface VesselAPI extends BrowserProxyAPI, BrowserToolsAPI, SettingsAPI, Brows
   /** 读取文件内容。 */
   revealWorkspaceFile: (root: string, path: string) => Promise<void>
   readClipboardImage: () => Promise<string | null>
+  copyImage: (source: string) => Promise<void>
   readImageFile: (root: string, path: string) => Promise<ImageFile>
   readWikiLink: (root: string, target: string) => Promise<{ path: string; content: string }>
   readObsidianImage: (root: string, documentPath: string, reference: string) => Promise<string>

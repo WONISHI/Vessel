@@ -1,3 +1,6 @@
+import Editor from "@monaco-editor/react"
+import "@/components/core/canvas/variants/code/monaco"
+import { codeLanguage } from "@/components/core/canvas/variants/code/language"
 import { EditorLoading } from "@/components/ui/editor-loading"
 import { PdfDocument } from '@/components/core/canvas/variants/pdf'
 import { useEffect, useRef, useState } from "react"
@@ -30,5 +33,5 @@ export function FilePreview({ item }: { item: TransitItem }) {
   if (file.kind === "office") return <div className="min-h-0 flex-1"><OfficePreview file={file} /></div>
   if (file.kind === "markdown") return <div className="min-h-0 flex-1 overflow-auto [&_.vditor-reset]:!opacity-100 [&_.vditor-reset]:!cursor-text"><VditorEditor value={file.content} workspacePath={item.root!} documentPath={item.content} readOnly onChange={() => {}} /></div>
   if (file.kind === "image") return <div className="flex min-h-0 flex-1 items-start justify-center overflow-auto p-4"><img src={file.content} alt={item.title} className="max-w-full object-contain" /></div>
-  return <pre className="min-h-0 flex-1 overflow-auto whitespace-pre-wrap break-words p-5 text-xs leading-6">{file.content}</pre>
+  return <div className="min-h-0 flex-1"><Editor height="100%" language={codeLanguage(item.content) || "plaintext"} value={file.content} options={{ readOnly: true, domReadOnly: true, automaticLayout: true, minimap: { enabled: false }, fontSize: 13, scrollBeyondLastLine: false, wordWrap: "on" }} /></div>
 }

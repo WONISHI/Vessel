@@ -115,6 +115,25 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
                 imageRoots.set(container, root)
                 root.render(
                   <ObsidianImageLine
+                    onFocusBelow={() => {
+                      const block = element.closest<HTMLElement>("[data-type=code-block]")
+                      const editable = block?.closest<HTMLElement>('[contenteditable="true"]')
+                      if (!block || !editable || readOnly) return
+                      let next = block.nextElementSibling as HTMLElement | null
+                      if (!next || next.tagName !== "P") {
+                        next = document.createElement("p")
+                        next.dataset.block = "0"
+                        next.innerHTML = "<br>"
+                        block.after(next)
+                      }
+                      editable.focus({ preventScroll: true })
+                      const range = document.createRange()
+                      range.selectNodeContents(next); range.collapse(true)
+                      const selection = window.getSelection()
+                      selection?.removeAllRanges(); selection?.addRange(range)
+                      editable.dispatchEvent(new InputEvent("input", { bubbles: true, inputType: "insertParagraph" }))
+                      next.scrollIntoView({ block: "nearest" })
+                    }}
                     readOnly={readOnly}
                     source={source}
                     onChange={(updated) => {

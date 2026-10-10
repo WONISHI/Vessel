@@ -1,3 +1,4 @@
+import { toast } from "sonner"
 import { ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem } from "./context-menu"
 import { ImageEditorSheet } from "@/pages/image-preview/editor-sheet"
 import { useEffect, useRef, useState, type ComponentPropsWithoutRef } from "react"
@@ -15,6 +16,7 @@ import errorWide from "@/assets/vessel-image-placeholder/error-16x9.svg"
 import error from "@/assets/vessel-image-placeholder/error-4x3.svg"
 
 export interface ImageProps extends Omit<ComponentPropsWithoutRef<"img">, "width"> {
+  onFocusBelow?: () => void
   width?: number
   resizable?: boolean
   onResizeEnd?: (width: number) => void
@@ -37,7 +39,7 @@ export function Image(props: ImageProps) {
     />
   )
 }
-function ImageContent({ src, srcSet, alt = "", width = 480, resizable = true, className, onError, onLoad, onResizeEnd, loadSource, sourceKey: _sourceKey, placeholderRatio = "4x3", loading: _loading, ...props }: ImageProps) {
+function ImageContent({ src, srcSet, alt = "", width = 480, resizable = true, className, onError, onLoad, onResizeEnd, loadSource, onFocusBelow, sourceKey: _sourceKey, placeholderRatio = "4x3", loading: _loading, ...props }: ImageProps) {
   const host = useRef<HTMLSpanElement>(null)
   const [visible, setVisible] = useState(false)
   const [resolved, setResolved] = useState<string>()
@@ -78,7 +80,7 @@ function ImageContent({ src, srcSet, alt = "", width = 480, resizable = true, cl
       .then(() => (loadSource ? loadSource() : src))
       .then((value) => {
         if (active) {
-          setResolved(value)
+          setResolved(normalizeSvg(value))
           if (loadSource && !value) setFailed(true)
         }
       })
@@ -142,6 +144,8 @@ function ImageContent({ src, srcSet, alt = "", width = 480, resizable = true, cl
         content
       )}
       </span></ContextMenuTrigger><ContextMenuContent onCloseAutoFocus={event => event.preventDefault()} className="z-[260]">
+        <ContextMenuItem disabled={!loaded || !resolved} onSelect={() => { if (resolved) void imageClipboardSource(resolved).then(source => window.electronAPI.copyImage(source)).catch(error => toast.error(String(error))) }}>复制</ContextMenuItem>
+        {onFocusBelow && <ContextMenuItem onSelect={() => requestAnimationFrame(onFocusBelow)}>在下方聚焦</ContextMenuItem>}
         {[["crop", "截图"], ["ocr", "OCR 识别"], ["annotate", "标注"], ["convert", "格式转换"], ["compress", "压缩"], ["watermark", "加水印"], ["color", "取主色调"]].map(([id, title]) => <ContextMenuItem key={id} disabled={!loaded || !resolved || failed} onSelect={() => setTool(id)}>{title}</ContextMenuItem>)}
       </ContextMenuContent></ContextMenu>
       {resolved && tool && <ImageEditorSheet open={tool !== null} onOpenChange={open => { if (!open) setTool(null) }} source={resolved} tool={tool || "ocr"} />}
@@ -165,4 +169,37 @@ function ImageContent({ src, srcSet, alt = "", width = 480, resizable = true, cl
       </Dialog>
     </>
   )
+}
+
+// SVG exports without an XML namespace are valid inline markup but fail as img sources.
+function normalizeSvg(source?: string): string | undefined {
+  if (!source?.startsWith("data:image/svg+xml")) return source
+  try {
+    const comma = source.indexOf(",")
+    const raw = source.slice(0, comma).includes(";base64") ? new TextDecoder().decode(Uint8Array.from(atob(source.slice(comma + 1)), c => c.charCodeAt(0))) : decodeURIComponent(source.slice(comma + 1))
+    const svg = new DOMParser().parseFromString(raw, "image/svg+xml")
+    if (svg.documentElement.localName !== "svg") return source
+    svg.documentElement.setAttribute("xmlns", "http://www.w3.org/2000/svg")
+    return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(new XMLSerializer().serializeToString(svg))
+  } catch { return source }
+}
+
+async function imageClipboardSource(source: string): Promise<string> {
+  if (source.startsWith("data:image/")) {
+    const comma = source.indexOf(",")
+    if (source.slice(0, comma).includes(";base64")) return source
+    const bytes = new TextEncoder().encode(decodeURIComponent(source.slice(comma + 1)))
+    let binary = ""
+    for (const byte of bytes) binary += String.fromCharCode(byte)
+    return source.slice(0, comma) + ";base64," + btoa(binary)
+  }
+  const response = await fetch(source)
+  if (!response.ok) throw new Error("无法读取图片")
+  const blob = await response.blob()
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(String(reader.result))
+    reader.onerror = reject
+    reader.readAsDataURL(blob)
+  })
 }

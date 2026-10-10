@@ -2,7 +2,7 @@ import { useCallback, useState, Fragment } from "react"
 import { parseImageReference, resizeImageReference } from "@vessel/obsidian"
 import { Image } from "@/components/ui/image"
 
-function ObsidianImage({ reference, root, documentPath, onChange, readOnly = false }: { readOnly?: boolean; reference: string; root: string; documentPath: string; onChange: (reference: string) => void }) {
+function ObsidianImage({ reference, root, documentPath, onChange, onFocusBelow, readOnly = false }: { onFocusBelow?: () => void; readOnly?: boolean; reference: string; root: string; documentPath: string; onChange: (reference: string) => void }) {
   const embed = parseImageReference(reference)!
   const [selected, setSelected] = useState(false)
   const loadSource = useCallback(() => (/^(https?:|data:image\/)/.test(embed.target) ? Promise.resolve(embed.target) : window.electronAPI.readObsidianImage(root, documentPath, reference)), [embed.target, root, documentPath, reference])
@@ -17,6 +17,7 @@ function ObsidianImage({ reference, root, documentPath, onChange, readOnly = fal
     >
       {selected && <span className="block break-all text-sm text-slate-500">{reference}</span>}
       <Image
+        onFocusBelow={readOnly ? undefined : onFocusBelow}
         sourceKey={`${root}:${documentPath}:${reference}`}
         loadSource={loadSource}
         alt={embed.alt}
@@ -26,7 +27,7 @@ function ObsidianImage({ reference, root, documentPath, onChange, readOnly = fal
     </span>
   )
 }
-export function ObsidianImageLine({ source, root, documentPath, onChange, readOnly = false }: { readOnly?: boolean; source: string; root: string; documentPath: string; onChange: (source: string) => void }) {
+export function ObsidianImageLine({ source, root, documentPath, onChange, onFocusBelow, readOnly = false }: { onFocusBelow?: () => void; readOnly?: boolean; source: string; root: string; documentPath: string; onChange: (source: string) => void }) {
   return (
     <span className="block py-2">
       {source.split(/(!\[\[[^\]\n]+\]\]|!\[[^\]\n]*\]\([^\n]+?\))/g).map((part, index) => (
@@ -34,6 +35,7 @@ export function ObsidianImageLine({ source, root, documentPath, onChange, readOn
           {parseImageReference(part) ? (
             <ObsidianImage
               readOnly={readOnly}
+              onFocusBelow={onFocusBelow}
               reference={part}
               onChange={(updated) =>
                 onChange(

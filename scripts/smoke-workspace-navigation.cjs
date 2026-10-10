@@ -5,7 +5,8 @@ const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms))
 app.whenReady().then(async()=>{
  const file={name:'test.md',path:'/fixture/test.md'},state=new Map();let reads=0
  const source='# Workspace fixture\n\n'+Array.from({length:12},(_,i)=>`Paragraph ${i}\n\n`).join('')+'```js\nconst selected = 123;\nconsole.log(selected);\n```\n\n![[fixture.png]]\n\nEnd\n\n| Name | Value |\n| --- | --- |\n| First | One |\n'
- const image=nativeImage.createFromBitmap(Buffer.alloc(320*180*4,240),{width:320,height:180}).toDataURL()
+ const rasterImage=nativeImage.createFromBitmap(Buffer.alloc(320*180*4,240),{width:320,height:180}).toDataURL()
+ const image=process.env.VESSEL_IMAGE_MENU_TEST ? 'data:image/svg+xml;base64,'+Buffer.from('<svg width="320" height="180"><rect width="320" height="180" fill="red"/></svg>').toString('base64') : rasterImage
  for(const [name,fn] of Object.entries({
  'settings:get':()=>({theme:'light',fontSize:14,accent:'#16a34a'}),'markdown:pending':()=>[],
  'app-state:get':(_e,key)=>(key.startsWith('workspace-tabs:') || key.startsWith('resources-tabs:'))?{files:[file],active:file.path}:state.get(key)||null,
@@ -13,7 +14,7 @@ app.whenReady().then(async()=>{
  'workspace:mutateFile':(_e,root,file,name)=>{state.set('renamed',name);state.set('renameCount',(state.get('renameCount')||0)+1);return root+'/'+name},
  'workspace:createEntry':(_e,root,parent,name,kind)=>{state.set('createCount',(state.get('createCount')||0)+1);state.set('created',{name,kind});return {name,path:parent+'/'+name,type:kind}},
  'files:watch':()=> 'watch','files:unwatch':()=>{},'file:readContent':()=>{reads++;return process.env.VESSEL_EMPTY_TEST ? "" : source},'file:saveContent':(_e,...args)=>{state.set("saved",args)},
- 'obsidian:readImage':()=>image,'browser:extensions:list':()=>[],'browser:proxy:state':()=>({connected:false,nodes:[]})
+ 'image:copy':(_e,value)=>state.set('copiedImage',value),'obsidian:readImage':()=>image,'browser:extensions:list':()=>[],'browser:proxy:state':()=>({connected:false,nodes:[]})
  }))ipcMain.handle(name,fn)
  const win=new BrowserWindow({show:true,width:1300,height:850,webPreferences:{preload:path.resolve('out/preload/index.js'),sandbox:false,webviewTag:true}})
  win.webContents.on("console-message",(_e,level,message)=>{if(level>=2)console.log(message)})
@@ -35,6 +36,30 @@ app.whenReady().then(async()=>{
  }
  for(let i=0;i<40;i++){await wait(250);if(await js(`!!document.querySelector('.vessel-code-frame')`))break}
  assert(await js(`!!document.querySelector('.vessel-code-frame')`))
+ if(process.env.VESSEL_OUTLINE_TEST){
+  await js(`document.querySelector('aside[aria-label="文档大纲"]').dispatchEvent(new MouseEvent('mouseover',{bubbles:true}))`);await wait(500)
+  await js(`document.querySelector('button[aria-label="固定大纲"]').click()`);await wait(500)
+  const point=await js(`(()=>{const b=[...document.querySelectorAll('aside[aria-label="文档大纲"] button')].find(e=>e.textContent==='Workspace fixture');const r=b.getBoundingClientRect();return {x:Math.round(r.x+r.width/2),y:Math.round(r.y+r.height/2)}})()`)
+  win.focus();win.webContents.focus();win.webContents.sendInputEvent({type:'mouseMove',x:400,y:400});await wait(100);win.webContents.sendInputEvent({type:'mouseMove',...point});await wait(500)
+  assert(!await js(`!!document.querySelector('.vessel-hover-preview')`),'No immediate preview')
+  await wait(2000)
+  assert(await js(`!!document.querySelector('.vessel-hover-preview')`),'Visible pinned heading opens delayed preview')
+  assert(await js(`Number(getComputedStyle(document.querySelector('aside[aria-label="文档大纲"]')).zIndex)>45`),'Outline above table controls')
+  win.webContents.sendInputEvent({type:'mouseMove',x:400,y:400});await wait(500)
+  console.log('PASS visible outline delayed preview and layer');app.exit(0);return
+ }
+ if(process.env.VESSEL_IMAGE_MENU_TEST){
+  await js(`document.querySelector('.vessel-image-block').scrollIntoView({block:'center'})`);await wait(700)
+  assert(await js(`(()=>{const i=document.querySelector('.vessel-image-block img[src^="data:image/svg"]');return i?.complete && i.naturalWidth===320})()`),'SVG without namespace renders')
+  const menu=async()=>{await js(`document.querySelector('.vessel-image-block img[src^="data:image/svg"]').dispatchEvent(new MouseEvent('contextmenu',{bubbles:true,clientX:500,clientY:400}))`);await wait(200)}
+  await menu();await js(`Array.from(document.querySelectorAll('[role="menuitem"]')).find(e=>e.textContent==='复制').click()`);await wait(300)
+  assert(state.get('copiedImage')?.startsWith('data:image/svg+xml'),'SVG copy preserves vector MIME')
+  await menu();await js(`Array.from(document.querySelectorAll('[role="menuitem"]')).find(e=>e.textContent==='在下方聚焦').click()`);await wait(300)
+  await win.webContents.insertText('Below image text');await wait(1200)
+  assert(JSON.stringify(state.get('saved')).includes('Below image text'),'Focus below image edits and saves')
+  assert(JSON.stringify(state.get('saved')).includes('fixture.png'),'Original image preserved')
+  console.log('PASS SVG preview, vector copy, focus below image and save');app.exit(0);return
+ }
  if(process.env.VESSEL_CREATE_TEST){
   await js(`document.querySelector('button[aria-label="新建文件"]').click()`);await wait(200)
   await js(`Array.from(document.querySelectorAll('button')).find(e=>e.textContent==='新建自定义文件').click()`);await wait(200)
@@ -77,8 +102,9 @@ app.whenReady().then(async()=>{
  await js(`window.fixtureEditor=document.querySelector('.vditor');window.fixtureFrame=document.querySelector('.vessel-code-frame')`)
  await js(`document.querySelector('.vditor-ir table').scrollIntoView({block:'center'})`);await wait(200)
  const tableHover = async edge => {
-   const point=await js(`(()=>{const r=document.querySelector('.vditor-ir table').getBoundingClientRect();return {x:Math.round(${edge == 'row' ? 'r.left+50' : 'r.right+8'}),y:Math.round(${edge == 'row' ? 'r.bottom+8' : 'r.top+20'})}})()`)
-   win.webContents.sendInputEvent({type:'mouseMove',...point});await wait(100)
+   const point=await js(`(()=>{const t=document.querySelector('.vditor-ir table');const cells=[...t.querySelectorAll('th,td')].map(c=>c.getBoundingClientRect());const r={left:Math.min(...cells.map(c=>c.left)),right:Math.max(...cells.map(c=>c.right)),top:Math.min(...cells.map(c=>c.top)),bottom:Math.max(...cells.map(c=>c.bottom))};return {x:Math.round(${edge == 'row' ? 'r.left+50' : 'r.right+8'}),y:Math.round(${edge == 'row' ? 'r.bottom+8' : 'r.top+20'})}})()`)
+   win.focus();win.webContents.focus();win.webContents.sendInputEvent({type:'mouseMove',x:400,y:100});await wait(100);win.webContents.sendInputEvent({type:'mouseMove',...point});await wait(300);win.webContents.sendInputEvent({type:'mouseMove',x:point.x+1,y:point.y});await wait(100)
+   assert(await js(`(()=>{const b=document.querySelector('[aria-label="${edge == 'row' ? '在下方新增行' : '在右侧新增列'}"]');return !b.hidden&&b.getBoundingClientRect().width>0})()`),'edge add control is visible')
    await js(`document.querySelector('[aria-label="${edge == 'row' ? '在下方新增行' : '在右侧新增列'}"]').click()`);await wait(200)
  }
  await tableHover('row');assert.equal(await js(`document.querySelector('.vditor-ir table').rows.length`),3)
@@ -104,7 +130,7 @@ app.whenReady().then(async()=>{
  win.webContents.sendInputEvent({type:'mouseDown',button:'left',clickCount:1,x:Math.round(imageRect.x),y:Math.round(imageRect.y)});win.webContents.sendInputEvent({type:'mouseUp',button:'left',clickCount:1,x:Math.round(imageRect.x),y:Math.round(imageRect.y)});await wait(200)
  assert(await js(`Math.abs(scrollHost.scrollTop-oldScroll)<50`),'image click preserves scroll')
  await js(`document.querySelector('.vessel-image-block img[decoding]').dispatchEvent(new MouseEvent('contextmenu',{bubbles:true,clientX:600,clientY:400}))`);await wait(150)
- assert.equal(await js(`document.querySelectorAll('[role=menuitem]').length`),7)
+ assert.equal(await js(`document.querySelectorAll('[role=menuitem]').length`),9)
  await js(`Array.from(document.querySelectorAll('[role=menuitem]')).find(e=>e.textContent==='压缩').click()`);await wait(300)
  assert(await js(`Array.from(document.querySelectorAll('.image-tool-nav button[aria-pressed=true]')).some(e=>e.getClientRects().length && e.textContent.trim()==='压缩')`))
  console.log('PASS workspace retained/no reread, image→tools route/sidebar, code drag/copy, image scroll/context toolbox')

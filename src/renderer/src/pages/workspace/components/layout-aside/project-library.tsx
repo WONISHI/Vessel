@@ -80,7 +80,7 @@ function ProjectLibraryContent({ pinned, onPin, onSelect }: { pinned: boolean; o
   return <section aria-label="项目资源库" className="flex h-full min-h-0 flex-col bg-white">
     <header className="flex items-center gap-1 border-b px-2 py-2">
       <div className="flex min-w-0 flex-1 gap-1 overflow-hidden">
-        {visible.map(project => <div key={project.path} className={`group relative flex min-w-0 items-center rounded-md ${project.path === workspace.path ? "max-w-[160px] flex-[1.5_1_0%] bg-green-50 text-green-700" : "max-w-[128px] flex-[1_1_0%] text-stone-500"}`}>
+        {visible.map(project => <div key={project.path} className={`group relative flex min-w-0 items-center rounded-md ${project.path === workspace.path ? "max-w-[128px] shrink bg-green-50 text-green-700" : "max-w-[128px] shrink text-stone-500"}`}>
           <button title={project.path} className="min-w-0 flex-1 truncate px-2 py-1 text-xs" onClick={() => activate(project)}>{project.name}</button>
           {project.path !== workspace.path && <button aria-label={`关闭项目 ${project.name}`} className="absolute right-0 rounded bg-white px-1 opacity-0 group-hover:opacity-100 focus:opacity-100" onClick={() => {
             setProjects(list => list.filter(p => p.path !== project.path))

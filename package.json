@@ -132,7 +132,7 @@
     "postinstall": "electron-builder install-app-deps && node scripts/prepare-pty.cjs && node scripts/prepare-monaco-locale.cjs",
     "rebuild:deps": "electron-builder install-app-deps",
     "build:unpack": "npm run build && electron-builder --dir",
-    "build:win": "npm run build && electron-builder --win",
+    "build:win": "npm run build && node scripts/build-win.cjs",
     "build:mac": "electron-vite build && electron-builder --mac",
     "build:linux": "electron-vite build && electron-builder --linux",
     "typecheck:router": "npm run typecheck --workspace=@vessel/react-router",
@@ -140,7 +140,8 @@
     "typecheck:obsidian": "npm run typecheck --workspace=@vessel/obsidian",
     "predev": "node scripts/prepare-dev-icon.cjs",
     "predev:main": "node scripts/prepare-dev-icon.cjs",
-    "prestart": "node scripts/prepare-dev-icon.cjs"
+    "prestart": "node scripts/prepare-dev-icon.cjs",
+    "build:win:arm64": "npm run build && node scripts/build-win.cjs --arm64"
   },
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.2",

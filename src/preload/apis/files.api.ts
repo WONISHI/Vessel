@@ -3,6 +3,7 @@ import { ipcRenderer } from "electron"
 
 /** 向渲染进程提供受控的文件 IPC 接口，不暴露 Node 文件系统对象。 */
 export const filesAPI = {
+  copyImage: (source: string): Promise<void> => ipcRenderer.invoke("image:copy", source),
   getCodeDiagnostics: (path: string, content: string): Promise<import("../../shared/code-diagnostics").CodeDiagnostic[]> => ipcRenderer.invoke("code:diagnostics", path, content),
   readClipboardImage: (): Promise<string | null> => ipcRenderer.invoke("image:clipboard"),
   saveContent: (path: string, content: string): Promise<void> => ipcRenderer.invoke("file:saveContent", path, content),

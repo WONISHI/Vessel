@@ -27,6 +27,9 @@ app.whenReady().then(async () => {
   return {win,js,result:()=>result}
  }
  const shot = await capture()
+ assert.equal(await shot.js(`!!document.querySelector('.shot-step-undo')`),false)
+ shot.win.webContents.sendInputEvent({type:'mouseMove',x:800,y:400});await wait(100)
+ assert.equal(await shot.js(`document.querySelector('.shot-color-inspector').hidden`),true)
  await shot.js(`document.querySelector('.shot-step').click()`)
  shot.win.webContents.sendInputEvent({type:'mouseDown',button:'left',clickCount:1,x:500,y:240})
  shot.win.webContents.sendInputEvent({type:'mouseUp',button:'left',clickCount:1,x:500,y:240}); await wait(100)
@@ -35,9 +38,9 @@ app.whenReady().then(async () => {
  shot.win.webContents.sendInputEvent({type:'mouseMove',modifiers:['leftButtonDown'],x:560,y:240})
  shot.win.webContents.sendInputEvent({type:'mouseUp',button:'left',clickCount:1,x:560,y:240});await wait(100)
  assert(await shot.js(`document.querySelector('.shot-steps').getContext('2d').getImageData(560,240,1,1).data[3]>0`))
- await shot.js(`document.querySelector('.shot-step-undo').click()`);await wait(100)
+ await shot.js(`document.querySelector('#toolPanel .undo, #toolPanel .undo-disabled').click()`);await wait(100)
  assert(await shot.js(`document.querySelector('.shot-steps').getContext('2d').getImageData(500,240,1,1).data[3]>0`))
- shot.win.webContents.sendInputEvent({type:'keyDown',keyCode:'F3'});await wait(300)
+ shot.win.focus();shot.win.webContents.sendInputEvent({type:'keyDown',keyCode:'F3'});await wait(1000)
  assert(shot.result()?.pin)
  const red = await shot.js(`(async()=>{const image=new Image();image.src=${JSON.stringify(shot.result().data)};await image.decode();const c=document.createElement('canvas');c.width=image.width;c.height=image.height;const ctx=c.getContext('2d');ctx.drawImage(image,0,0);const data=ctx.getImageData(0,0,c.width,c.height).data;let n=0;for(let i=0;i<data.length;i+=4)if(data[i]>180&&data[i+1]<110&&data[i+2]<110)n++;return n})()`)
  assert(red>50,'step annotation is included in exported pixels'); shot.win.destroy()

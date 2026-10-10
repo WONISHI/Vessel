@@ -17,6 +17,7 @@ const primaryInstance = app.requestSingleInstanceLock()
 if (!primaryInstance) app.quit()
 else registerMarkdownOpening()
 
+let applicationWindow: BrowserWindow | undefined
 function createWindow(): void {
   const mainWindow = new BrowserWindow({
     width: 1174,
@@ -32,6 +33,9 @@ function createWindow(): void {
       nodeIntegration: true
     }
   })
+
+  applicationWindow = mainWindow
+  mainWindow.on("closed", () => { if (applicationWindow === mainWindow) applicationWindow = undefined })
 
   if (process.platform === "win32") {
     mainWindow.setOverlayIcon(null, "")
@@ -102,7 +106,8 @@ app.whenReady().then(() => {
   registerScreenshotShortcut()
 
   app.on("activate", function () {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow()
+    if (!applicationWindow || applicationWindow.isDestroyed()) createWindow()
+    else { if (applicationWindow.isMinimized()) applicationWindow.restore(); applicationWindow.show(); applicationWindow.focus() }
   })
 })
 
