@@ -28,7 +28,7 @@ export function serveOffice() {
         const data = await readFile(path)
         res.setHeader("Content-Type", types[extname(path)] || "application/octet-stream")
         res.end(req.method === "HEAD" ? undefined : data)
-      } catch { res.writeHead(404).end("Not found") }
+      } catch (error) { console.error("ONLYOFFICE resource unavailable", req.url, error); res.writeHead(404).end("Office resource not found") }
     })
     server.once("error", reject)
     server.listen(0, "127.0.0.1", () => { const address = server.address(); if (address && typeof address !== "string") done(`http://127.0.0.1:${address.port}`) })

@@ -13,7 +13,9 @@
       "**/node_modules/@parcel/watcher*/**/*"
     ],
     "nsis": {
-      "artifactName": "${productName}-Setup-${version}.${ext}"
+      "artifactName": "${productName}-Setup-${version}.${ext}",
+      "installerIcon": "build/vessel.ico",
+      "uninstallerIcon": "build/vessel.ico"
     },
     "electronDownload": {
       "mirror": "https://npmmirror.com/mirrors/electron/"
@@ -31,7 +33,7 @@
       ]
     },
     "win": {
-      "icon": "resources/icon"
+      "icon": "build/vessel.ico"
     },
     "fileAssociations": [
       {
@@ -106,7 +108,8 @@
       "package.json",
       "!**/*.map"
     ],
-    "compression": "maximum"
+    "compression": "maximum",
+    "afterPack": "scripts/verify-office-package.cjs"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

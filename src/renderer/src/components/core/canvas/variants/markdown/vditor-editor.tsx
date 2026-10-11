@@ -1,7 +1,9 @@
+import { TextColors } from "./text-colors"
+import { bindTablePaste } from "./table-paste"
 import { bindTableActions } from "./table-actions"
 import { bindWikiLinkEditing, decorateWikiLinks } from "./decorate-wiki-links"
 import { decorateInlineHTML } from "./inline-html"
-import { decorateCodeBlocks } from "./code-blocks"
+import { decorateCodeBlocks, clearCodeHighlights } from "./code-blocks"
 import { parseFrontmatter } from "@vessel/obsidian/frontmatter"
 import { DocumentProperties } from "./document-properties"
 import { PageLoading } from "@/components/ui/page-loading"
@@ -13,7 +15,7 @@ import { decorateMarkdownTags } from "./decorate-tags"
 import { LinkInteractionArea } from "@/components/ui/link"
 import { Fragment, useEffect, useRef, useState } from "react"
 import { renderToStaticMarkup } from "react-dom/server"
-import { ImagePlus, Smile, Minus, Heading, Bold, Italic, Strikethrough, Link, List, ListOrdered, ListChecks, Quote, Code, CodeXml, Table2, Undo2, Redo2 } from "lucide-react"
+import { Palette, ImagePlus, Smile, Minus, Heading, Bold, Italic, Strikethrough, Link, List, ListOrdered, ListChecks, Quote, Code, CodeXml, Table2, Undo2, Redo2 } from "lucide-react"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Typography } from "@/components/ui/typography"
 import Vditor from "vditor"
@@ -21,6 +23,9 @@ import "vditor/dist/index.css"
 
 /** 保留 Vditor 编辑能力，文档显示和大纲由外层 React 组件负责。 */
 export function VditorEditor({ value, onChange, workspacePath, documentPath, readOnly = false }: { readOnly?: boolean; workspacePath: string; documentPath: string; value: string; onChange: (value: string) => void }) {
+  const [colorAnchor, setColorAnchor] = useState<{ left: number; top: number } | null>(null)
+  const colorRange = useRef<Range | null>(null)
+  const instance = useRef<Vditor | null>(null)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState("")
   const host = useRef<HTMLDivElement>(null)
@@ -34,10 +39,17 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
   useEffect(() => {
     if (!host.current) return
     const element = host.current
+    const rememberSelection = () => {
+      const selection = window.getSelection()
+      if (selection?.rangeCount && !selection.isCollapsed && element.contains(selection.anchorNode) && element.contains(selection.focusNode)) colorRange.current = selection.getRangeAt(0).cloneRange()
+    }
+    const toolbarContainer = toolbarHost.current
+    toolbarContainer?.addEventListener("pointerdown", rememberSelection, true)
+    const unbindTablePaste = readOnly ? () => {} : bindTablePaste(element)
     const unbindWikiEditing = bindWikiLinkEditing(element)
     const unbindTableActions = readOnly ? () => {} : bindTableActions(element)
     const decorate = () => {
-      decorateCodeBlocks(element)
+      decorateCodeBlocks(element, readOnly)
       const content = element.querySelector<HTMLElement>(".vditor-ir .vditor-reset")
       if (content) {
         decorateWikiLinks(content)
@@ -163,6 +175,11 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
             { name: "bold", icon: renderToStaticMarkup(<Bold />) },
             { name: "italic", icon: renderToStaticMarkup(<Italic />) },
             { name: "strike", icon: renderToStaticMarkup(<Strikethrough />) },
+            { name: "text-colors", tip: "文字颜色与背景色", icon: renderToStaticMarkup(<Palette />), click: () => {
+              if (!colorRange.current || colorRange.current.collapsed) return
+              const rect = toolbarHost.current?.querySelector('[data-type="text-colors"]')?.getBoundingClientRect()
+              if (rect) setColorAnchor({ left: rect.left, top: rect.bottom + 8 })
+            } },
             "|",
             { name: "link", icon: renderToStaticMarkup(<Link />) },
             { name: "insert-image", tip: "插入图片", icon: renderToStaticMarkup(<ImagePlus />), click: () => imagePicker.click() },
@@ -184,6 +201,7 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
             if (!disposed && !readOnly) changeHandler.current((properties?.raw ?? "") + restoreObsidianImages(content))
           },
           after: () => {
+            instance.current = editor
             const toolbar = host.current?.querySelector<HTMLElement>(".vditor-toolbar")
             if (!disposed && toolbar && toolbarHost.current) toolbarHost.current.appendChild(toolbar)
             if (readOnly && !disposed) editor.disabled()
@@ -215,8 +233,12 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
       cancelAnimationFrame(paintFrame)
       imageRoots.forEach((root) => queueMicrotask(() => root.unmount()))
       observer.disconnect()
+      clearCodeHighlights(element)
+      instance.current = null
+      toolbarContainer?.removeEventListener("pointerdown", rememberSelection, true)
       unbindWikiEditing()
       unbindTableActions()
+      unbindTablePaste()
       element.removeEventListener("focusout", decorate)
       disposed = true
       if (ready) editor.destroy()
@@ -225,6 +247,16 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
   }, [properties, readOnly])
   return (
     <LinkInteractionArea className="relative flex h-full min-h-0 min-w-0 flex-col">
+      {colorAnchor && <TextColors anchor={colorAnchor} onClose={() => setColorAnchor(null)} onApply={(color, background) => {
+        const range = colorRange.current
+        if (!range || !host.current?.contains(range.commonAncestorContainer) || !instance.current) { setColorAnchor(null); return }
+        const text = range.toString().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+        const selection = window.getSelection()
+        host.current.querySelector<HTMLElement>('.vditor-ir [contenteditable="true"]')?.focus({ preventScroll: true })
+        selection?.removeAllRanges(); selection?.addRange(range)
+        instance.current.insertMD(background ? `<mark style="background:${color}">${text}</mark>` : `<font color="${color}">${text}</font>`)
+        setColorAnchor(null)
+      }} />}
       {(loading || loadError) && (
         <div className="absolute inset-0 z-30 bg-white">
           {loadError ? (

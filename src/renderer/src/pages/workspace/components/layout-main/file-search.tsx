@@ -101,6 +101,7 @@ export function FileSearch({ path, contentHost }: { path: string; contentHost: R
       <PopoverContent
         onCloseAutoFocus={(event) => event.preventDefault()}
         align="end"
+        style={{ fontFamily: '"Plus Jakarta Sans", sans-serif' }}
         className="w-[372px] max-w-[calc(100vw-24px)] overflow-hidden rounded-xl border-stone-200 p-0 shadow-[0_18px_50px_#1c19172e]"
       >
         <div className="flex items-center gap-1 px-3 pb-1 pt-2">
@@ -132,16 +133,16 @@ export function FileSearch({ path, contentHost }: { path: string; contentHost: R
             {keyword ? `找到 ${matches.length} 处匹配内容` : "输入关键词搜索"}
           </p>
         )}
-        <ScrollArea className="max-h-64 [&_[data-radix-scroll-area-viewport]]:max-h-64">
+        <ScrollArea className="max-h-64 [&_[data-radix-scroll-area-viewport]]:max-h-64 [&_[data-radix-scroll-area-viewport]>div]:!block">
           {matches.slice(0, 200).map((item, index) => (
             <button
               type="button"
               key={item.line}
-              className={`flex w-full gap-2 break-all border-l-2 px-3 py-2 text-left font-mono text-xs hover:bg-stone-50 ${active === index ? "border-green-600 bg-green-50" : "border-transparent"}`}
+              className={`flex w-full items-start gap-2 border-l-2 px-3 py-2 text-left text-xs hover:bg-stone-50 ${active === index ? "border-green-600 bg-green-50" : "border-transparent"}`}
               onClick={() => selectMatch(index)}
             >
-              <span className="mr-2 text-stone-400">{item.line}</span>
-              {highlight(item.text)}
+              <span className="min-w-6 shrink-0 whitespace-nowrap tabular-nums text-stone-400">{item.line}</span>
+              <span className="min-w-0 flex-1 whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{highlight(item.text)}</span>
             </button>
           ))}
           {matches.length > 200 && <p className="text-xs text-stone-400">仅显示前 200 行，请缩小搜索范围。</p>}

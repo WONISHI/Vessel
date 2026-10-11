@@ -1,3 +1,4 @@
+import { Link2, Type, FileText, List, Code2, Check, Loader2 } from "lucide-react"
 import { StatusSlot } from "@/pages/workspace/components/layout-main/status-slot"
 import { parseWikiLinks } from "@vessel/obsidian"
 import { useDeferredValue, useMemo } from "react"
@@ -12,14 +13,14 @@ export function DocumentStats({ source, saveStatus }: { source: string; saveStat
     <StatusSlot><footer
       aria-label="文档统计"
       title="统计 Markdown 源文；字符数包含空格与换行"
-      className="flex shrink-0 flex-wrap items-center justify-end gap-5 bg-transparent px-2 py-1 text-[11px] text-stone-500"
+      className="flex min-w-0 items-center justify-end gap-1 overflow-hidden whitespace-nowrap bg-transparent text-xs text-stone-600 [&>span]:flex [&>span]:h-6 [&>span]:shrink-0 [&>span]:items-center [&>span]:gap-1 [&>span]:rounded [&>span]:px-1.5 [&>span:hover]:bg-stone-200 [&_svg]:size-3.5"
     >
-      {saveStatus && <span role={saveStatus.failed ? "alert" : "status"} className={`mr-auto ${saveStatus.failed ? "text-red-500" : ""}`}>{saveStatus.message}</span>}
-      <span>{links} 条反向链接</span>
-      <span>{stats.words.toLocaleString()} 词</span>
-      <span>{stats.characters.toLocaleString()} 字符</span>
-      <span>{stats.lines.toLocaleString()} 行</span>
-      <span>Markdown · UTF-8</span>
+      {saveStatus && <span role={saveStatus.failed ? "alert" : "status"} className={`mr-auto ${saveStatus.failed ? "text-red-500" : ""}`}>{saveStatus.message === "正在保存…" ? <Loader2 className="animate-spin" /> : <Check />}{saveStatus.message}</span>}
+      <span><Link2 />{links} 条反向链接</span>
+      <span className="border-l border-stone-300"><Type />{stats.words.toLocaleString()} 词</span>
+      <span><FileText />{stats.characters.toLocaleString()} 字符</span>
+      <span><List />{stats.lines.toLocaleString()} 行</span>
+      <span className="border-l border-stone-300"><Code2 />Markdown · UTF-8</span>
     </footer></StatusSlot>
   )
 }

@@ -29,7 +29,7 @@ export function DocumentOutline({ headings, activeIndex, onSelect, fileName, sec
       onBlur={(event) => {
         if (!event.currentTarget.contains(event.relatedTarget)) setHovered(false)
       }}
-      className={cn("relative z-[60] flex min-h-0 shrink-0 flex-col py-2 transition-[width]", pinned ? "w-48 px-2" : "relative w-12 px-1")}
+      className={cn("relative z-20 flex min-h-0 shrink-0 flex-col py-2 transition-[width]", pinned ? "w-48 px-2" : "relative w-12 px-1")}
     >
       {!pinned && (
         <div aria-hidden={expanded} inert={expanded} className="flex min-h-0 flex-1 flex-col bg-transparent">

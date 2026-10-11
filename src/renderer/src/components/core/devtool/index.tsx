@@ -56,7 +56,8 @@ export default function DevTool() {
   const [enabledTypes, setEnabledTypes] = useState<Record<LogType, boolean>>(() => readEnabledTypes())
   const [logs, setLogs] = useState<DevToolLog[]>([])
   const { showToast, dismissByType, dismissAll, showEnabledHistory } = useDevToolToast()
-  const { position } = useDraggable()
+  const { position, dragging, handlePointerDown, consumeDragClick } = useDraggable()
+  const [menuOpen, setMenuOpen] = useState(false)
 
   /**
    * 是否存在 Error
@@ -320,9 +321,14 @@ export default function DevTool() {
         }}
       >
         {hasError && <span className={cn("pointer-events-none", "absolute", "bottom-0", "right-0", "h-12", "w-12", "animate-ping", "rounded-full", "bg-red-600/30")} />}
-        <DropdownMenu>
+        <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
           <DropdownMenuTrigger asChild>
             <Button
+              aria-label="控制台菜单"
+              title="单击打开菜单，长按拖动"
+              onPointerDown={handlePointerDown}
+              onClick={event => { if (consumeDragClick()) { event.preventDefault(); return }; setMenuOpen(value => !value) }}
+              style={{ touchAction: "none", cursor: dragging ? "grabbing" : "pointer" }}
               variant="outline"
               size="icon"
               className={cn(

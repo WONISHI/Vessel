@@ -1,3 +1,4 @@
+import { addTransitFile } from "@/components/transit/state"
 import { CommandPalette } from "@/components/command-palette"
 import { applyAppearance } from "@/pages/settings/appearance"
 import { TransitPanel } from "@/components/transit/panel"
@@ -32,22 +33,24 @@ function App() {
     let queue = Promise.resolve()
     const open = (path: string) => {
       queue = queue.then(async () => {
-        if (/\.(pdf|docx?|docs|xlsx?|pptx?|odt|ods|odp|csv)$/i.test(path)) {
+        const entry = await window.electronAPI.getExternalPathInfo(path)
+        if (entry.kind === "file" && /\.(pdf|docx?|docs|xlsx?|pptx?|odt|ods|odp|csv)$/i.test(entry.name)) {
           const pending = JSON.parse(sessionStorage.getItem("office-pending-paths") || "[]") as string[]
-          sessionStorage.setItem("office-pending-paths", JSON.stringify([...pending, path]))
+          sessionStorage.setItem("office-pending-paths", JSON.stringify([...pending, entry.path]))
           window.dispatchEvent(new Event("vessel:office-open"))
           await router.push("/office")
           return
         }
-        const name = path.split(/[\\/]/).pop() || path
-        const parent = path.slice(0, -name.length)
-        const root = /^[A-Za-z]:[\\/]$/.test(parent) ? parent : parent.replace(/[\\/]$/, "") || "/"
-        const project = { name: root.split(/[\\/]/).pop() || root, path: root }
+        if (entry.kind === "file") {
+          addTransitFile(entry.root, entry.path, entry.name)
+          return
+        }
+        const project = { name: entry.name, path: entry.path }
         const projects = await window.electronAPI.getAppState<Array<typeof project>>("project-library") || []
-        if (!projects.some(item => item.path === root)) await window.electronAPI.setAppState("project-library", [...projects, project])
-        localStorage.setItem("resource_current_project", JSON.stringify({ ...project, files: [], initialFile: path }))
+        if (!projects.some(item => item.path === entry.path)) await window.electronAPI.setAppState("project-library", [...projects, project])
+        localStorage.setItem("resource_current_project", JSON.stringify({ ...project, files: [] }))
         window.dispatchEvent(new Event("vessel:resource-changed"))
-        await router.push("/resources/file")
+        await router.push("/resources")
         await new Promise(resolve => setTimeout(resolve, 30))
       }).catch(error => { toast.error(String(error)) })
     }

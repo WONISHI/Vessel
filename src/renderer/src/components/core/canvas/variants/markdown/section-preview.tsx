@@ -15,6 +15,6 @@ export function SectionPreview({ children, source, workspacePath, documentPath, 
   const [open, setOpen] = useState(false)
   return <HoverCard openDelay={1500} closeDelay={300} open={enabled && open} onOpenChange={(value) => { setOpen(enabled && value); onOpenChange?.(enabled && value) }}>
     <HoverCardTrigger asChild>{children}</HoverCardTrigger>
-    <HoverCardPortal><HoverCardContent side="left" className="z-[80] w-[min(480px,80vw)]">{open && <PreviewBody source={source} workspacePath={workspacePath} documentPath={documentPath} />}</HoverCardContent></HoverCardPortal>
+    <HoverCardPortal><HoverCardContent side="left" className="z-30 w-[min(480px,80vw)]">{open && <PreviewBody source={source} workspacePath={workspacePath} documentPath={documentPath} />}</HoverCardContent></HoverCardPortal>
   </HoverCard>
 }

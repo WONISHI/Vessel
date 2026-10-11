@@ -277,3 +277,9 @@
 .vessel-table-add:hover { background: #17a34a; color: white; }
 
 .vessel-table-add:not([hidden]){display:flex;align-items:center;justify-content:center;line-height:1;font-family:Arial,sans-serif}.vessel-table-add[hidden]{display:none}
+
+/* Keep the single source node editable, in the same styled card as the preview. */
+.vessel-vditor .vessel-direct-code > :not(pre.vditor-ir__marker) { display: none !important; }
+.vessel-vditor .vessel-direct-code > pre.vditor-ir__marker { display: block !important; width: auto !important; height: auto !important; visibility: visible !important; transition: none; }
+.vessel-vditor .vessel-direct-code::before, .vessel-vditor .vessel-direct-code::after { display: none !important; }
+.vessel-vditor .vessel-direct-code > pre > code { min-height: 3em; white-space: pre-wrap; outline: none; }

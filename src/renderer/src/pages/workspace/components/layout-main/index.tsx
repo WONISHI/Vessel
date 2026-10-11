@@ -1,8 +1,10 @@
+import { ScrollArea } from "@/components/ui/scroll-area"
 import Canvas from "./canvas"
 import WorkspaceHome from "./workspace-home"
 import { TabSwitcher } from "@/components/tab-switcher"
 import { List } from "lucide-react"
-import Clock from "react-live-clock"
+import { StatusBar } from "@/components/ui/status-bar"
+import { BackupStatus } from "@/components/backup-status"
 import { StatusTarget } from "./status-context"
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable-panels"
 import { TerminalPanel } from "./terminal-panel"
@@ -20,7 +22,6 @@ import { useWorkspace } from "@/pages/workspace/hooks/useWorkspace"
 /** 主区只负责标签导航和当前子路由出口。 */
 export default function LayoutMain({ resources = false }: { resources?: boolean }) {
   const { workspace, openFiles, activeFilePath, openWorkspaceFile, closeWorkspaceFile, closeWorkspaceFiles, navigateToWorkspaceHome } = useWorkspace()
-  const [weekday, setWeekday] = useState(() => new Date().getDay())
   const [statusTarget, setStatusTarget] = useState<HTMLDivElement | null>(null)
   const [terminal, setTerminal] = useState<{ file?: string } | null>(null)
   const location = useLocation()
@@ -193,7 +194,7 @@ export default function LayoutMain({ resources = false }: { resources?: boolean 
             <TooltipContent>标签页操作</TooltipContent>
           </Tooltip>
           <DropdownMenuContent align="end" className="w-44 rounded-lg !bg-white p-1 [&_[role=menuitem]]:px-2 [&_[role=menuitem]]:py-1.5 [&_[role=menuitem]]:text-xs [&_[role=menuitem]]:font-normal [&_[role=menuitem]:focus]:!bg-[#f0efed] [&_[role=menuitem]:focus]:!text-stone-700 [&_[role=menuitem][data-state=open]]:!bg-[#f0efed]">
-            <DropdownMenuSub><DropdownMenuSubTrigger>标签页（{openFiles.length}）</DropdownMenuSubTrigger><DropdownMenuSubContent className="max-h-72 max-w-72 overflow-auto !bg-white [&_[role=menuitem]]:py-1.5 [&_[role=menuitem]]:text-xs [&_[role=menuitem]:focus]:!bg-[#f0efed] [&_[role=menuitem]:focus]:!text-stone-700">{openFiles.map(file => <DropdownMenuItem key={file.path} className={file.path === activeFilePath ? "bg-emerald-50 text-green-700" : ""} onSelect={() => openWorkspaceFile(file)}><span className="truncate">{file.name}</span></DropdownMenuItem>)}</DropdownMenuSubContent></DropdownMenuSub>
+            <DropdownMenuSub><DropdownMenuSubTrigger>标签页（{openFiles.length}）</DropdownMenuSubTrigger><DropdownMenuSubContent className="w-72 overflow-hidden !bg-white [&_[role=menuitem]]:py-1.5 [&_[role=menuitem]]:text-xs [&_[role=menuitem]:focus]:!bg-[#f0efed] [&_[role=menuitem]:focus]:!text-stone-700"><ScrollArea className="[&_[data-radix-scroll-area-viewport]]:max-h-72 [&_[data-radix-scroll-area-viewport]>div]:!block">{openFiles.map(file => <DropdownMenuItem key={file.path} className={file.path === activeFilePath ? "bg-emerald-50 text-green-700" : ""} onSelect={() => openWorkspaceFile(file)}><span className="truncate">{file.name}</span></DropdownMenuItem>)}</ScrollArea></DropdownMenuSubContent></DropdownMenuSub>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               disabled={!activeFilePath}
@@ -226,16 +227,12 @@ export default function LayoutMain({ resources = false }: { resources?: boolean 
       <ResizablePanelGroup orientation="vertical">
         <ResizablePanel id="editor" defaultSize="70%" minSize="20%" className="flex min-h-0 flex-col">
           <div ref={contentHost} className="flex min-h-0 min-w-0 flex-1 flex-col overflow-auto">{resources ? (home ? <WorkspaceHome /> : <Canvas />) : <RouterView />}</div>
-          <footer className="shrink-0 border-t bg-stone-50 px-3 py-1 text-xs text-stone-500">
-            <div className="flex flex-wrap items-center gap-2">
-              <Button variant="ghost" aria-pressed={!!terminal} className={`h-6 gap-1 px-2 text-xs hover:bg-emerald-700 hover:!text-white active:!text-white ${terminal ? "bg-emerald-700 !text-white" : "text-stone-500"}`} aria-label={terminal ? "关闭控制台" : "打开控制台"} onClick={() => setTerminal(current => current ? null : { file: home ? undefined : activeFilePath || undefined })}>
-                {terminal ? <SquareChevronDown className="!size-4" /> : <SquareChevronRight className="!size-4" />}控制台
-              </Button>
-              <div ref={setStatusTarget} className="min-w-0 flex-1" />
-              <Clock ticking interval={1000} format="YYYY年MM月DD日 HH:mm" onChange={() => setWeekday(new Date().getDay())} />
-              <span>{["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"][weekday]}</span>
-            </div>
-          </footer>
+          <StatusBar left={<>
+            <Button variant="ghost" aria-pressed={!!terminal} className={`h-6 gap-1 rounded px-2 text-xs ${terminal ? "bg-green-100 text-green-700 hover:bg-green-200" : "text-stone-600 hover:bg-stone-200"}`} aria-label={terminal ? "关闭控制台" : "打开控制台"} onClick={() => setTerminal(current => current ? null : { file: home ? undefined : activeFilePath || undefined })}>
+              {terminal ? <SquareChevronDown className="!size-3.5" /> : <SquareChevronRight className="!size-3.5" />}控制台
+            </Button>
+            <span className="mx-1 h-4 w-px bg-stone-300" /><BackupStatus />
+          </>}><div ref={setStatusTarget} className="min-w-0 flex-1" /></StatusBar>
         </ResizablePanel>
         {terminal && <><ResizableHandle aria-label="调整终端高度" /><ResizablePanel id="terminal" defaultSize="30%" minSize="15%"><TerminalPanel key={`${workspace.path}:${terminal.file || ""}`} root={workspace.path} file={terminal.file} /></ResizablePanel></>}
       </ResizablePanelGroup>

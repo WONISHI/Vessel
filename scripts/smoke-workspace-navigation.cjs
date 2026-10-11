@@ -8,7 +8,7 @@ app.whenReady().then(async()=>{
  const rasterImage=nativeImage.createFromBitmap(Buffer.alloc(320*180*4,240),{width:320,height:180}).toDataURL()
  const image=process.env.VESSEL_IMAGE_MENU_TEST ? 'data:image/svg+xml;base64,'+Buffer.from('<svg width="320" height="180"><rect width="320" height="180" fill="red"/></svg>').toString('base64') : rasterImage
  for(const [name,fn] of Object.entries({
- 'settings:get':()=>({theme:'light',fontSize:14,accent:'#16a34a'}),'markdown:pending':()=>[],
+ 'settings:status':()=>({running:false}),'settings:get':()=>({theme:'light',fontSize:14,accent:'#16a34a'}),'markdown:pending':()=>[],
  'app-state:get':(_e,key)=>(key.startsWith('workspace-tabs:') || key.startsWith('resources-tabs:'))?{files:[file],active:file.path}:state.get(key)||null,
  'app-state:set':(_e,key,value)=>state.set(key,value),'workspace:readDirectory':()=>[file],
  'workspace:mutateFile':(_e,root,file,name)=>{state.set('renamed',name);state.set('renameCount',(state.get('renameCount')||0)+1);return root+'/'+name},
@@ -36,6 +36,36 @@ app.whenReady().then(async()=>{
  }
  for(let i=0;i<40;i++){await wait(250);if(await js(`!!document.querySelector('.vessel-code-frame')`))break}
  assert(await js(`!!document.querySelector('.vessel-code-frame')`))
+ if(process.env.VESSEL_MARKDOWN_EDIT_TEST || process.argv.includes('--markdown-edit')){
+  await js(`(()=>{const c=document.querySelector('.vessel-code-frame code');c.closest('[contenteditable=true]').focus();const r=document.createRange();r.setStart(c.firstChild,c.firstChild.textContent.length);r.collapse(true);getSelection().removeAllRanges();getSelection().addRange(r)})()`)
+  await win.webContents.insertText('const inlineEdit = true;');await wait(1200)
+  assert(JSON.stringify(state.get('saved')).includes('inlineEdit'),'Direct code edit saves')
+  win.webContents.sendInputEvent({type:'keyDown',keyCode:'Enter'});win.webContents.sendInputEvent({type:'keyUp',keyCode:'Enter'});await win.webContents.insertText('const nextLine = 2;');await wait(1200)
+  assert(JSON.stringify(state.get('saved')).includes('nextLine'),'Enter and next code line save')
+  await js(`document.querySelector('[data-type="undo"]').click()`);await wait(400)
+  assert(!await js(`document.querySelector('.vessel-code-frame code').textContent.includes('nextLine')`),'Code edit undo works')
+  await js(`(()=>{const c=document.querySelector('.vditor-ir td:last-child');c.closest('[contenteditable=true]').focus();const r=document.createRange();r.selectNodeContents(c);r.collapse(false);getSelection().removeAllRanges();getSelection().addRange(r)})()`)
+  clipboard.write({text:'{remote: string;\nerror: unknown;}[]',html:'<pre><code>{remote: string;\nerror: unknown;}[]</code></pre>'});win.webContents.paste();await wait(1200)
+  assert(await js(`document.querySelector('.vditor-ir td:last-child').textContent.includes('error: unknown;')`),'Code paste stays in cell')
+  assert(state.get('saved')[1].split('\n').some(line=>line.startsWith('|')&&line.includes('remote: string;')&&line.includes('error: unknown;')),'Saved table preserves pasted multiline content')
+  assert.equal(await js(`document.querySelectorAll('.vessel-direct-code').length`),1,'Paste does not create code block')
+  for(const background of [false,true]){
+   await js(`(()=>{const p=[...document.querySelectorAll('.vditor-ir p')].find(e=>e.textContent.trim()==='Paragraph ${background?1:0}');p.closest('[contenteditable=true]').focus();const r=document.createRange();r.selectNodeContents(p);getSelection().removeAllRanges();getSelection().addRange(r);const b=document.querySelector('[data-type="text-colors"]');b.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true}));b.click()})()`);await wait(200)
+   if(background)await js(`Array.from(document.querySelectorAll('[role="dialog"] button')).find(e=>e.textContent==='背景颜色').click()`)
+   await js(`document.querySelector('[aria-label="${background?'背景':'文字'} #ff4d4f"]').click()`);await wait(1200)
+   assert(JSON.stringify(state.get('saved')).includes(background?'background:#ff4d4f':'color=\\"#ff4d4f'),'Selected color markup saves')
+  }
+  await js(`document.querySelector('.vessel-code-frame').scrollIntoView({block:'center'});document.activeElement.blur()`);await wait(300)
+  assert(await js(`[...CSS.highlights.values()].some(h=>h.size>0)`),'Syntax highlights registered without modifying source')
+  assert(await js(`document.querySelector('.vessel-code-frame').getBoundingClientRect().height>80`),'Code card remains visible after blur')
+  fs.writeFileSync('/tmp/vessel-markdown-edit.png',(await win.webContents.capturePage()).toPNG())
+  await js(`window.dispatchEvent(new KeyboardEvent('keydown',{key:'p',metaKey:true,bubbles:true}))`);await wait(200)
+  assert(await js(`!!document.querySelector('[cmdk-root] [cmdk-input]')`),'Command uses shadcn/cmdk')
+  await js(`Array.from(document.querySelectorAll('[cmdk-item]')).find(e=>e.textContent==='关闭控制按钮').click()`);await wait(100)
+  assert.equal(await js(`localStorage.getItem('vessel-control-visible')`),'false')
+  assert(await js(`!!document.querySelector('footer[aria-label="底部状态栏"] time')`),'Shared status bar renders clock')
+  console.log('PASS code edit/save/undo/highlight, table paste/save, colors, command and status bar');app.exit(0);return
+ }
  if(process.env.VESSEL_OUTLINE_TEST){
   await js(`document.querySelector('aside[aria-label="文档大纲"]').dispatchEvent(new MouseEvent('mouseover',{bubbles:true}))`);await wait(500)
   await js(`document.querySelector('button[aria-label="固定大纲"]').click()`);await wait(500)

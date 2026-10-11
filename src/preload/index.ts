@@ -34,6 +34,7 @@ const vesselAPI = {
   readTransitClipboard: (): Promise<string | { root: string; path: string; title: string }> => ipcRenderer.invoke("transit:clipboard"),
   openTransitWindow: (item: { kind: string; content: string; title: string; root?: string }): Promise<void> => ipcRenderer.invoke("transit:window", item),
   saveOffice: (name: string, bytes: Uint8Array): Promise<boolean> => ipcRenderer.invoke("office:save", name, bytes),
+  getExternalPathInfo: (path: string): Promise<{ path: string; name: string; root: string; kind: "file" | "directory" }> => ipcRenderer.invoke("external:path-info", path),
   getDroppedFilePath: (file: File): string => webUtils.getPathForFile(file),
   readOfficePath: (path: string) => ipcRenderer.invoke("office:read-path", path),
   openOffice: (): Promise<string> => ipcRenderer.invoke("office:open"),

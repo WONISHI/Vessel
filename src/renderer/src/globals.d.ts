@@ -104,6 +104,7 @@ interface VesselAPI extends BrowserProxyAPI, BrowserToolsAPI, SettingsAPI, Brows
   commitOffice(name: string, bytes: Uint8Array, token?: string): Promise<{ saved: boolean; name?: string; token?: string }>
   renameOffice(token: string | undefined, name: string): Promise<string>
   readTransitFile(root: string, path: string): Promise<TransitFile>
+  getExternalPathInfo(path: string): Promise<{ path: string; name: string; root: string; kind: "file" | "directory" }>
   getDroppedFilePath(file: File): string
   readOfficePath(path: string): Promise<{ token: string; name: string; bytes: Uint8Array }>
   openOffice(): Promise<string>

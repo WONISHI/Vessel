@@ -2,6 +2,7 @@ import { EditorLoading } from "@/components/ui/editor-loading"
 import { lazy, Suspense, memo } from "react"
 import MarkdownCanvas from "./variants/markdown"
 import { codeLanguage } from "./variants/code/language"
+const OfficeCanvas = lazy(() => import("./variants/office"))
 const CodeCanvas = lazy(() => import("./variants/code"))
 import MediaCanvas from "./variants/media"
 const PdfCanvas = lazy(() => import("./variants/pdf"))
@@ -13,6 +14,7 @@ interface EditorTabsProps {
 
 const EditorCanvas = ({ fileType, activeFilePath }: EditorTabsProps) => {
   fileType = fileType?.toLowerCase()
+  if (["doc", "docx", "docs", "xls", "xlsx", "ppt", "pptx", "odt", "ods", "odp"].includes(fileType || "")) return <Suspense fallback={<EditorLoading kind="office" />}><OfficeCanvas key={activeFilePath} activeFilePath={activeFilePath} /></Suspense>
   if (fileType?.toLowerCase() === "pdf") return <Suspense fallback={<div>正在加载 PDF…</div>}><PdfCanvas key={activeFilePath} activeFilePath={activeFilePath} /></Suspense>
   if (fileType === "md" || fileType === "markdown") {
     return <MarkdownCanvas activeFilePath={activeFilePath} />

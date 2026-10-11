@@ -24,8 +24,8 @@ it("scrolls to the chosen match rather than the first repeated keyword", async (
       </div>
     </TooltipProvider>
   )
-  fireEvent.keyDown(window, { key: "f", ctrlKey: true })
-  fireEvent.change(await screen.findByRole("searchbox"), { target: { value: "两网" } })
+  fireEvent.click(screen.getByRole("button", { name: "搜索当前文件" }))
+  fireEvent.change(await screen.findByRole("textbox", { name: "文件内容关键词" }), { target: { value: "两网" } })
   const result = await screen.findByRole("button", { name: /两网第二处/ })
   fireEvent.click(result)
   await waitFor(() => expect(scroll).toHaveBeenCalledWith({ behavior: "smooth", block: "center" }))
