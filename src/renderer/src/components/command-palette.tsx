@@ -1,3 +1,4 @@
+import { matchesShortcut } from "../../../shared/shortcuts"
 import { useEffect, useState } from "react"
 import { CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command"
 import { Eye, EyeOff } from "lucide-react"
@@ -7,7 +8,7 @@ export function CommandPalette() {
   useEffect(() => {
     const show = () => setOpen(value => !value)
     const key = (event: KeyboardEvent) => {
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "p") { event.preventDefault(); event.stopPropagation(); show() }
+      if (matchesShortcut(event, "command")) { event.preventDefault(); event.stopPropagation(); show() }
     }
     window.addEventListener("keydown", key, true)
     const off = window.electronAPI.onCommandPalette?.(show)

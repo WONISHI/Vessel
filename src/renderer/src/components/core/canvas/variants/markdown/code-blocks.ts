@@ -50,6 +50,11 @@ export function decorateCodeBlocks(root: HTMLElement, readOnly = false) {
     if (pre.dataset.language !== language) pre.dataset.language = language
     // Vditor/Lute requires a plain text node here; nested highlight spans corrupt serialization.
     if (!readOnly && code.children.length) { const text = code.textContent; code.replaceChildren(document.createTextNode(text || "")) }
+    if (!readOnly) pre.onmousedown = event => {
+      if (event.clientY - pre.getBoundingClientRect().top > 40) return
+      event.preventDefault(); event.stopPropagation()
+      root.dispatchEvent(new CustomEvent('vessel-code-language', { detail: block }))
+    }
     if (readOnly) {
       pre.onmousedown = event => event.stopPropagation()
       pre.onmouseup = event => event.stopPropagation()

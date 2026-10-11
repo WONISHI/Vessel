@@ -1,3 +1,4 @@
+import { matchesShortcut } from "../shared/shortcuts"
 import { join } from "node:path"
 import { registerBrowserProxy } from "./browser-proxy"
 import { registerBrowserTools } from "./browser-tools"
@@ -32,8 +33,8 @@ export function secureBrowserGuests(contents: WebContents) {
   contents.on("did-attach-webview", (_event, guest) => {
     guest.on("before-input-event", (event, input) => {
       if (input.type !== "keyDown") return
-      if (input.key === "F12") { event.preventDefault(); contents.send("browser:toggle-devtools", guest.id) }
-      if ((input.control || input.meta) && input.key.toLowerCase() === "p") { event.preventDefault(); contents.send("app:command") }
+      if (matchesShortcut(input, "devtools")) { event.preventDefault(); contents.send("browser:toggle-devtools", guest.id) }
+      if (matchesShortcut(input, "command")) { event.preventDefault(); contents.send("app:command") }
     })
     guest.on("will-navigate", (event, url) => {
       if (!allowed(url)) event.preventDefault()

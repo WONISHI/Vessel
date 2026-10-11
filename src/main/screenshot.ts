@@ -1,3 +1,4 @@
+import { screenshotShortcut } from "../shared/shortcuts"
 import { app, BrowserWindow, clipboard, desktopCapturer, dialog, globalShortcut, nativeImage, screen, systemPreferences, shell } from "electron"
 import { execFile } from "node:child_process"
 import { promisify } from "node:util"
@@ -105,7 +106,7 @@ export async function startScreenshot() {
   }
 }
 export function registerScreenshotShortcut() {
-  const key = process.platform === "darwin" ? "Control+X" : "F1"
+  const key = process.platform === "darwin" ? screenshotShortcut.mac : screenshotShortcut.windows
   if (!globalShortcut.register(key, () => void startScreenshot())) dialog.showErrorBox("截图快捷键不可用", `${key} 已被占用，请关闭占用快捷键的程序后重新启动 Vessel。`)
   app.once("will-quit", () => globalShortcut.unregister(key))
 }

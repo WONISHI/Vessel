@@ -20,6 +20,7 @@ export function decorateInlineHTML(root: HTMLElement) {
     const original = template.content.firstElementChild as HTMLElement | null
     const preview = document.createElement("span")
     preview.dataset.vesselInlineHtml = "true"
+    preview.dataset.vesselInlineTag = tag
     for (const property of ["color", "backgroundColor", "fontWeight", "fontStyle", "textDecoration"] as const) preview.style[property] = original?.style[property] || ""
     if (tag === "font") preview.style.color = original?.getAttribute("color") || ""
     if (["b", "strong"].includes(tag)) preview.style.fontWeight = "bold"

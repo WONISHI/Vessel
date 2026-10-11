@@ -1,0 +1,46 @@
+/** One registry for shortcut handlers and the settings reference. Editor-native keys are scoped explicitly. */
+export const shortcuts = {
+  command: { label: '命令菜单', key: 'p', mod: true, scope: '全局' },
+  find: { label: '页面 / 文档查找', key: 'f', mod: true, scope: '浏览器、编辑器' },
+  sidebar: { label: '切换侧边栏', key: 'b', mod: true, scope: '工作区' },
+  devtools: { label: '切换网页开发者工具', key: 'F12', scope: '浏览器' },
+  previousTab: { label: '上一个文档标签', key: 'l', ctrl: true, scope: '工作区、项目资源库' },
+  nextTab: { label: '下一个文档标签', key: 'r', ctrl: true, scope: '工作区、项目资源库' },
+  save: { label: '保存', key: 's', mod: true, scope: '编辑器' },
+  undo: { label: '撤销', key: 'z', mod: true, scope: '编辑器、截图' },
+  redo: { label: '重做', key: 'y', mod: true, scope: '编辑器' },
+  bold: { label: '加粗', key: 'b', mod: true, scope: 'Markdown 编辑器' },
+  italic: { label: '斜体', key: 'i', mod: true, scope: 'Markdown 编辑器' },
+  'headings': { label: '标题', key: 'h', mod: true, shift: false, scope: 'Markdown 编辑器' },
+  'strike': { label: '删除线', key: 'd', mod: true, shift: false, scope: 'Markdown 编辑器' },
+  'link': { label: '插入链接', key: 'k', mod: true, shift: false, scope: 'Markdown 编辑器' },
+  'emoji': { label: '表情', key: 'e', mod: true, shift: false, scope: 'Markdown 编辑器' },
+  'list': { label: '无序列表', key: 'l', mod: true, shift: false, scope: 'Markdown 编辑器' },
+  'ordered-list': { label: '有序列表', key: 'o', mod: true, shift: false, scope: 'Markdown 编辑器' },
+  'check': { label: '任务列表', key: 'j', mod: true, shift: false, scope: 'Markdown 编辑器' },
+  'quote': { label: '引用', key: ';', mod: true, shift: false, scope: 'Markdown 编辑器' },
+  'line': { label: '分隔线', key: 'h', mod: true, shift: true, scope: 'Markdown 编辑器' },
+  'code': { label: '代码块', key: 'u', mod: true, shift: false, scope: 'Markdown 编辑器' },
+  'inline-code': { label: '行内代码', key: 'g', mod: true, shift: false, scope: 'Markdown 编辑器' },
+  table: { label: '表格', key: 'm', mod: true, scope: 'Markdown 编辑器' },
+  pinScreenshot: { label: '截图钉到桌面', key: 'F3', scope: '截图' },
+  copyColor: { label: '复制色值', key: 'c', scope: '截图取色' },
+} satisfies Record<string, { label: string; key: string; scope: string; mod?: boolean; ctrl?: boolean; shift?: boolean }>
+export type ShortcutId = keyof typeof shortcuts
+interface KeyInput { key: string; metaKey?: boolean; ctrlKey?: boolean; shiftKey?: boolean; altKey?: boolean; meta?: boolean; control?: boolean; shift?: boolean; alt?: boolean; isComposing?: boolean }
+export function matchesShortcut(event: KeyInput, id: ShortcutId) {
+  const item: { key: string; mod?: boolean; ctrl?: boolean; shift?: boolean } = shortcuts[id]
+  const ctrl = !!(event.ctrlKey || event.control), meta = !!(event.metaKey || event.meta)
+  return !event.isComposing && !(event.altKey || event.alt) && !!(event.shiftKey || event.shift) === !!item.shift && event.key.toLowerCase() === item.key.toLowerCase() && (item.mod ? ctrl || meta : item.ctrl ? ctrl && !meta : !ctrl && !meta)
+}
+export function shortcutLabel(id: ShortcutId, mac: boolean) {
+  const item: { key: string; mod?: boolean; ctrl?: boolean; shift?: boolean } = shortcuts[id]
+  return [item.mod ? mac ? '⌘' : 'Ctrl' : item.ctrl ? 'Ctrl' : '', item.shift ? 'Shift' : '', item.key.toUpperCase()].filter(Boolean).join(' + ')
+}
+
+export const screenshotShortcut = { label: '截图', mac: 'Control+X', windows: 'F1', scope: '全局' }
+
+export function markdownHotkey(id: ShortcutId) {
+  const item: { key: string; mod?: boolean; shift?: boolean } = shortcuts[id]
+  return `${item.shift ? '⇧' : ''}${item.mod ? '⌘' : ''}${item.key.toUpperCase()}`
+}

@@ -1,3 +1,4 @@
+import { matchesShortcut } from "../../../../../../shared/shortcuts"
 import { codeEditors } from "@/components/core/canvas/variants/code/search-bridge"
 import { useEffect, useRef, useState, type RefObject } from "react"
 import { Search, ChevronUp, ChevronDown, X } from "lucide-react"
@@ -20,7 +21,7 @@ export function FileSearch({ path, contentHost }: { path: string; contentHost: R
   useEffect(() => {
     const handleShortcut = (event: KeyboardEvent) => {
       if (!contentHost.current?.getClientRects().length) return
-      if (!(event.ctrlKey || event.metaKey) || event.altKey || event.shiftKey || event.isComposing || event.key.toLowerCase() !== "f") return
+      if (!matchesShortcut(event, "find")) return
       event.preventDefault()
       event.stopPropagation()
       setOpen(true)

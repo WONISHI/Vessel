@@ -1,3 +1,4 @@
+import { matchesShortcut } from "../../../../shared/shortcuts"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useRef, useState } from "react"
 import { Bookmark, Globe, History, Search, Trash2, X } from "lucide-react"
@@ -27,7 +28,7 @@ export function HistorySheet({ open, onOpenChange, entries, error, onDelete, onN
   const input = useRef<HTMLInputElement>(null)
   const groups = groupHistory(entries, query)
   const actionClass = "flex size-7 shrink-0 items-center justify-center rounded-md text-stone-400 hover:bg-stone-100 hover:text-stone-700 disabled:opacity-30"
-  return <Sheet open={open} onOpenChange={onOpenChange} modal={false}><SheetContent showOverlay={false} showCloseButton={false} onInteractOutside={event => event.preventDefault()} onKeyDown={event => { if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'f') { event.preventDefault(); input.current?.focus() } }} className="z-[250] inset-y-3 right-3 flex h-auto w-[360px] max-w-[calc(100vw-24px)] flex-col gap-0 overflow-hidden rounded-xl border border-stone-200 bg-white p-0 shadow-xl sm:max-w-[360px]">
+  return <Sheet open={open} onOpenChange={onOpenChange} modal={false}><SheetContent showOverlay={false} showCloseButton={false} onInteractOutside={event => event.preventDefault()} onKeyDown={event => { if (matchesShortcut(event, "find")) { event.preventDefault(); input.current?.focus() } }} className="z-[250] inset-y-3 right-3 flex h-auto w-[360px] max-w-[calc(100vw-24px)] flex-col gap-0 overflow-hidden rounded-xl border border-stone-200 bg-white p-0 shadow-xl sm:max-w-[360px]">
     <div className="shrink-0 border-b border-stone-100 px-3.5 pb-2.5 pt-3.5">
       <div className="mb-3 flex items-center gap-2"><History size={16} className="text-green-600" /><SheetTitle className="text-sm font-semibold">浏览历史</SheetTitle><span className="rounded-full bg-stone-100 px-1.5 text-[11px] font-semibold text-stone-500">{entries.length}</span><div className="ml-auto flex gap-1"><button className={actionClass} aria-label="清空历史记录" disabled={!entries.length} onClick={() => onDelete(null)}><Trash2 size={14} /></button><button className={actionClass} aria-label="关闭浏览历史" onClick={() => onOpenChange(false)}><X size={16} /></button></div></div>
       <SheetDescription className="sr-only">仅保留最近 30 天的浏览记录，支持搜索和删除。</SheetDescription>

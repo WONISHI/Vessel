@@ -1,7 +1,7 @@
 import { app, safeStorage, type WebContents } from "electron"
 import { readFileSync, existsSync } from "node:fs"
 import { writeFile, rename, mkdtemp, rm, readdir } from "node:fs/promises"
-import { join, relative } from "node:path"
+import { basename, join, relative } from "node:path"
 import { tmpdir } from "node:os"
 import { createHash } from "node:crypto"
 import { syncBackup, excludedBackupName, type BackupFile } from "./settings-backup"
@@ -58,7 +58,7 @@ async function snapshot(config: AppSettings["backup"], secret: string) {
     const manifest: Array<{ folder: string; source: string }> = []
     for (const root of roots) {
       if (!existsSync(root)) throw new Error("有工作区不可访问，请连接磁盘后重试")
-      const folder = `workspaces/${createHash("sha256").update(root).digest("hex").slice(0, 24)}`; manifest.push({ folder, source: root })
+      const folder = `workspaces/${basename(root)}-${createHash("sha256").update(root).digest("hex").slice(0, 8)}`; manifest.push({ folder, source: root })
       const walk = async (dir: string) => {
         for (const entry of await readdir(dir, { withFileTypes: true })) {
           if (excludedBackupName(entry.name) || entry.isSymbolicLink()) continue

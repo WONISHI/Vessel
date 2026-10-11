@@ -4,7 +4,7 @@ app.setPath('userData',fs.mkdtempSync(path.join(require('node:os').tmpdir(),'ves
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms))
 app.whenReady().then(async()=>{
  const file={name:'test.md',path:'/fixture/test.md'},state=new Map();let reads=0
- const source='# Workspace fixture\n\n'+Array.from({length:12},(_,i)=>`Paragraph ${i}\n\n`).join('')+'```js\nconst selected = 123;\nconsole.log(selected);\n```\n\n![[fixture.png]]\n\nEnd\n\n| Name | Value |\n| --- | --- |\n| First | One |\n'
+ const source='# Workspace fixture\n\n'+Array.from({length:12},(_,i)=>`${(process.argv.includes('--markdown-edit') && i<2) ? '1. ' : ''}Paragraph ${i}\n\n`).join('')+'```js\nconst selected = 123;\nconsole.log(selected);\n```\n\n![[fixture.png]]\n\nEnd\n\n| Name | Value |\n| --- | --- |\n| First | One |\n'
  const rasterImage=nativeImage.createFromBitmap(Buffer.alloc(320*180*4,240),{width:320,height:180}).toDataURL()
  const image=process.env.VESSEL_IMAGE_MENU_TEST ? 'data:image/svg+xml;base64,'+Buffer.from('<svg width="320" height="180"><rect width="320" height="180" fill="red"/></svg>').toString('base64') : rasterImage
  for(const [name,fn] of Object.entries({
@@ -54,11 +54,23 @@ app.whenReady().then(async()=>{
    if(background)await js(`Array.from(document.querySelectorAll('[role="dialog"] button')).find(e=>e.textContent==='背景颜色').click()`)
    await js(`document.querySelector('[aria-label="${background?'背景':'文字'} #ff4d4f"]').click()`);await wait(1200)
    assert(JSON.stringify(state.get('saved')).includes(background?'background:#ff4d4f':'color=\\"#ff4d4f'),'Selected color markup saves')
+   assert(await js(`(()=>{const e=document.querySelector('[data-vessel-inline-tag="${background?'mark':'font'}"]');return e && getComputedStyle(e).${background?'backgroundColor':'color'}==='rgb(255, 77, 79)'})()`),'Color immediately visible without reload')
+   await js(`(()=>{const p=document.querySelector('[data-vessel-inline-tag="${background?'mark':'font'}"]');p.closest('[contenteditable=true]').focus();const r=document.createRange();r.selectNodeContents(p);getSelection().removeAllRanges();getSelection().addRange(r);const b=document.querySelector('[data-type="text-colors"]');b.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true}));b.click()})()`);await wait(100)
+   if(background)await js(`Array.from(document.querySelectorAll('[role="dialog"] button')).find(e=>e.textContent==='背景颜色').click()`)
+   await js(`document.querySelector('[aria-label="取消${background?'背景':'文字'}颜色"]').click()`);await wait(1200)
+   assert(!state.get('saved')[1].includes(background?'<mark':'<font'),'Clear color removes only markup')
+   assert(state.get('saved')[1].includes('Paragraph '+(background?1:0)),'Clear preserves selected text')
+
   }
   await js(`document.querySelector('.vessel-code-frame').scrollIntoView({block:'center'});document.activeElement.blur()`);await wait(300)
   assert(await js(`[...CSS.highlights.values()].some(h=>h.size>0)`),'Syntax highlights registered without modifying source')
   assert(await js(`document.querySelector('.vessel-code-frame').getBoundingClientRect().height>80`),'Code card remains visible after blur')
-  fs.writeFileSync('/tmp/vessel-markdown-edit.png',(await win.webContents.capturePage()).toPNG())
+  await js(`(()=>{const p=document.querySelector('.vessel-code-frame');const r=p.getBoundingClientRect();p.dispatchEvent(new MouseEvent('mousedown',{bubbles:true,clientX:r.left+80,clientY:r.top+16}))})()`);await wait(100)
+  await js(`(()=>{const s=document.querySelector('[aria-label="代码语言"]');s.value='ts';s.dispatchEvent(new Event('change',{bubbles:true}))})()`);await wait(1200)
+  assert(state.get('saved')[1].includes('\u0060\u0060\u0060ts'),'Language change updates saved fence')
+  assert(state.get('saved')[1].includes('inlineEdit'),'Language change preserves code')
+  assert.equal((state.get('saved')[1].match(/```/g)||[]).length,2,'Language switch does not duplicate block')
+  fs.writeFileSync('/tmp/vessel-markdown-edit.png' ,(await win.webContents.capturePage()).toPNG())
   await js(`window.dispatchEvent(new KeyboardEvent('keydown',{key:'p',metaKey:true,bubbles:true}))`);await wait(200)
   assert(await js(`!!document.querySelector('[cmdk-root] [cmdk-input]')`),'Command uses shadcn/cmdk')
   await js(`Array.from(document.querySelectorAll('[cmdk-item]')).find(e=>e.textContent==='关闭控制按钮').click()`);await wait(100)

@@ -5,9 +5,9 @@ import { tmpdir } from "node:os"
 import Database from "better-sqlite3"
 import { defaultSettings } from "../../src/shared/settings"
 import { signedS3Request } from "../../src/main/settings-s3"
-const mocks = vi.hoisted(() => ({ path: "", request: vi.fn(async () => {}), secret: "test-secret" }))
+const mocks = vi.hoisted(() => ({ path: "", request: vi.fn(async () => {}), head: vi.fn(async () => undefined), upload: vi.fn(), secret: "test-secret" }))
 vi.mock("electron", () => ({ app: { getPath: () => mocks.path, getVersion: () => "1.0-test", once: () => {} }, safeStorage: { isEncryptionAvailable: () => true, encryptString: () => Buffer.from("ciphertext"), decryptString: () => mocks.secret } }))
-vi.mock("../../src/main/settings-s3", async original => ({ ...await original<object>(), requestS3: mocks.request }))
+vi.mock("../../src/main/settings-s3", async original => ({ ...await original<object>(), requestS3: mocks.request, headS3File: mocks.head, uploadS3File: mocks.upload }))
 it("signs S3 paths deterministically and rejects credentials embedded in endpoint URLs", () => {
   const config = { ...defaultSettings.backup, endpoint: "https://storage.example.com", bucket: "notes", accessKey: "AKID", region: "us-east-1" }
   const request = signedS3Request(config, "secret", "PUT", "中文/my file.json", new Uint8Array([1, 2]), new Date("2026-10-03T00:00:00Z"))
@@ -35,17 +35,15 @@ it("persists encrypted credentials, validates intervals, and snapshots SQLite pl
     expect(saved).toMatchObject({ name: "Test User", backup: { hasSecret: true, secretLength: mocks.secret.length } })
     expect(await readFile(join(mocks.path, "settings.json"), "utf8")).not.toContain(mocks.secret)
     await expect(handlers.get("settings:save")!(null, { ...settings, backup: { ...settings.backup, minutes: 15 } })).rejects.toThrow("选项")
+    mocks.upload.mockImplementation(async (...args: unknown[]) => { args[3] = await readFile(args[3] as string); return args })
     const status = await handlers.get("settings:backup")!()
     expect(status).toMatchObject({ running: false })
-    const args = mocks.request.mock.calls.at(-1) as unknown as unknown[]
-    expect(args[2]).toBe("PUT")
-    const archive = JSON.parse(Buffer.from(args[4] as Uint8Array).toString())
-    expect(Object.keys(archive.files).includes("database/vessel.db")).toBe(true)
-    const note = archive.files[Object.keys(archive.files).find(path => path.endsWith("/note.md"))!]
-    const blob = (mocks.request.mock.calls as unknown as unknown[][]).find(call => String(call[3]).endsWith(note.chunks[0]))!
-    expect(Buffer.from(blob[4] as Uint8Array).toString()).toBe("# Saved note")
-    expect(JSON.stringify(archive)).not.toContain(mocks.secret)
-    mocks.request.mockRejectedValueOnce(new Error("storage unavailable"))
+    const uploads = await Promise.all(mocks.upload.mock.results.map(result => result.value)) as unknown[][]
+    expect(uploads.some(args => String(args[2]).endsWith("database/vessel.db"))).toBe(true)
+    expect((uploads.find(args => String(args[2]).endsWith("/note.md"))![3] as Buffer).toString()).toBe("# Saved note")
+    const metadata = uploads.find(args => String(args[2]).endsWith(".vessel/backup.json"))![3] as Buffer
+    expect(metadata.toString()).not.toContain(mocks.secret)
+    mocks.head.mockRejectedValueOnce(new Error("storage unavailable"))
     await expect(handlers.get("settings:backup")!()).rejects.toThrow("storage unavailable")
     expect(await handlers.get("settings:status")!()).toMatchObject({ running: false, error: "storage unavailable" })
   } finally { await rm(mocks.path, { recursive: true, force: true }) }

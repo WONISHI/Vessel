@@ -1,4 +1,5 @@
-import { formatTransitDate } from "@/components/transit/panel"
+import { matchesShortcut } from "../../../../shared/shortcuts"
+import { StatusBar } from "@/components/ui/status-bar"
 import { HistoryInput } from "./history-input"
 import { BrowserProxy } from "./proxy"
 import { BookmarkBar } from './bookmark-bar'
@@ -6,7 +7,6 @@ import { TabSwitcher } from "@/components/tab-switcher"
 import { publishBrowserTabs } from "./tab-state"
 import { BrowserMore, DeviceToolbar } from "./tools"
 import { ResizableSplit } from "@/components/ui/resizable-split"
-import Clock from "react-live-clock"
 import { addTransit } from "@/components/transit/state"
 import browserLoading from "@/assets/vessel-browser-loading/loading.svg"
 import { BrowserExtensions } from "./extensions"
@@ -15,7 +15,7 @@ import { elementPickerScript } from "./element-picker"
 import { webviewAttributes } from "./webview-attributes"
 import { useEffect, useRef, useState } from "react"
 import type { WebviewTag } from "electron"
-import { ChevronUp, ChevronDown, ChevronRight, ArrowLeft, ArrowRight, RotateCw, Home, Globe, Plus, X, Search, LockKeyhole, Bookmark, Bug, SquareDashedMousePointer, Pin } from "lucide-react"
+import { ChevronUp, ChevronDown, ChevronRight, ArrowLeft, ArrowRight, RotateCw, Home, Globe, Plus, X, Search, LockKeyhole, Bookmark, Bug, SquareDashedMousePointer, Pin, Link2, ZoomIn } from "lucide-react"
 import { useRouter } from "@vessel/react-router"
 import Layout from "@/layout"
 import ActivityBar from "@/layout/activity-bar"
@@ -146,8 +146,8 @@ export default function BrowserPage({ visible = true }: { visible?: boolean }) {
     if (!visible) return
     const show = () => { setFindOpen(true); requestAnimationFrame(() => { findInput.current?.focus(); findInput.current?.select() }) }
     const keydown = (event: KeyboardEvent) => {
-      if (!event.defaultPrevented && (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "f") { event.preventDefault(); show() }
-      if (event.key === "F12") { event.preventDefault(); setDevtoolsOpen(open => !open) }
+      if (!event.defaultPrevented && matchesShortcut(event, "find")) { event.preventDefault(); show() }
+      if (matchesShortcut(event, "devtools")) { event.preventDefault(); setDevtoolsOpen(open => !open) }
     }
     window.addEventListener("keydown", keydown)
     const pageFind = (event: Event) => { if (withGuest(views.current.get(tab.id), guest => guest.getWebContentsId()) === (event as CustomEvent<number>).detail) show() }
@@ -413,7 +413,7 @@ export default function BrowserPage({ visible = true }: { visible?: boolean }) {
         </section>) : undefined}>
 
         <div className="relative h-full min-h-0 min-w-0 flex-1 bg-white">
-          {findOpen && <form className="browser-find" style={findPosition ? { position: "fixed", left: findPosition.x, top: findPosition.y, right: "auto" } : undefined} onPointerDown={event => {
+          {findOpen && <form className="browser-find browser-find-bottom" style={findPosition ? { position: "fixed", left: findPosition.x, top: findPosition.y, right: "auto", bottom: "auto" } : undefined} onPointerDown={event => {
             if ((event.target as HTMLElement).closest("input, button") || event.button !== 0) return
             event.preventDefault(); event.currentTarget.setPointerCapture(event.pointerId)
             const rect = event.currentTarget.getBoundingClientRect()
@@ -511,13 +511,12 @@ export default function BrowserPage({ visible = true }: { visible?: boolean }) {
         </div>
 
         </ResizableSplit></div>
-      <footer className="browser-status">
-        <button aria-label={toolbarCollapsed ? "展开浏览器工具栏" : "折叠浏览器工具栏"} aria-expanded={!toolbarCollapsed} onClick={() => setToolbarCollapsed(value => !value)} className="flex size-5 shrink-0 items-center justify-center text-stone-400 hover:text-stone-700">{toolbarCollapsed ? <ChevronUp size={13} /> : <ChevronRight size={13} />}</button>
-          <span>{tab.loading ? "正在加载…" : tab.url || "就绪"}</span>
-          <div className="ml-auto"><BrowserProxy /></div>
-          <span className="shrink-0"><Clock ticking interval={1000} format="YYYY年MM月DD日 HH:mm" filter={() => formatTransitDate(new Date())} /></span>
-          <span>{Math.round(tab.zoom * 100)}%</span>
-        </footer>
+      <StatusBar className="browser-shared-status" left={<>
+        <button aria-label={toolbarCollapsed ? "展开浏览器工具栏" : "折叠浏览器工具栏"} aria-expanded={!toolbarCollapsed} onClick={() => setToolbarCollapsed(value => !value)} className="shrink-0 rounded p-1 hover:bg-stone-200">{toolbarCollapsed ? <ChevronUp size={13} /> : <ChevronRight size={13} />}</button>
+        <button className="flex shrink-0 items-center gap-1 rounded px-2 py-1 hover:bg-stone-200" onClick={() => { setFindPosition(null); setFindOpen(true); requestAnimationFrame(() => findInput.current?.focus()) }}><Search size={13} />搜索</button>
+        <span className="mx-1 h-4 border-l border-stone-300" />
+        <span title={tab.url} className="flex min-w-0 max-w-[560px] items-center gap-1.5 px-1 font-mono text-[11.5px] text-stone-500"><Link2 size={13} className="shrink-0" /><span className="truncate">{tab.loading ? "正在加载…" : tab.url || "就绪"}</span></span>
+      </>} right={<BrowserProxy showLabel />} after={<button title="恢复 100% 缩放" aria-label="恢复页面缩放" className="ml-2 flex shrink-0 items-center gap-1 border-l border-stone-300 px-2 py-1 hover:bg-stone-200" onClick={() => zoom(1-tab.zoom)}><ZoomIn size={13} />{Math.round(tab.zoom*100)}%</button>} />
       </main>
     </Layout>
   )

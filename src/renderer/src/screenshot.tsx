@@ -1,3 +1,4 @@
+import { matchesShortcut } from "../../shared/shortcuts"
 import "@fontsource/plus-jakarta-sans/400.css"
 import "@fontsource/plus-jakarta-sans/600.css"
 import ScreenShot from "js-web-screen-shot"
@@ -97,7 +98,7 @@ void api
         },
         closeCallback: () => { void api.close() }
       })
-      window.addEventListener("keydown", event => { if (event.key === "F3") { event.preventDefault(); action = "pin"; plugin.completeScreenshot() } })
+      window.addEventListener("keydown", event => { if (matchesShortcut(event, "pinScreenshot")) { event.preventDefault(); action = "pin"; plugin.completeScreenshot() } })
       void installColorInspector(image, value => api.copyText(value), () => plugin.getCutBoxInfo().width > 0).then(dispose => { stopInspector = dispose }).catch(showError)
 
     } else {

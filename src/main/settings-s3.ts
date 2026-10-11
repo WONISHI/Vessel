@@ -1,10 +1,11 @@
 import { createHash, createHmac } from "node:crypto"
+import { createReadStream } from "node:fs"
 import type { AppSettings } from "../shared/settings"
 const hash = (data: string | Uint8Array) => createHash("sha256").update(data).digest("hex")
 const hmac = (key: string | Buffer, data: string) => createHmac("sha256", key).update(data).digest()
 const encode = (value: string) => encodeURIComponent(value).replace(/[!'()*]/g, c => `%${c.charCodeAt(0).toString(16).toUpperCase()}`)
 // AWS S3 Signature V4, single payload: docs.aws.amazon.com/AmazonS3/latest/API/sig-v4-header-based-auth.html
-export function signedS3Request(config: AppSettings["backup"], secret: string, method: "HEAD" | "PUT", key = "", body: Uint8Array = new Uint8Array(), now = new Date()) {
+export function signedS3Request(config: AppSettings["backup"], secret: string, method: "HEAD" | "PUT", key = "", body: Uint8Array = new Uint8Array(), now = new Date(), options: { digest?: string; headers?: Record<string, string> } = {}) {
   const endpoint = config.endpoint.trim()
   let url: URL
   try { url = new URL(/^[a-z][a-z0-9+.-]*:\/\//i.test(endpoint) ? endpoint : `https://${endpoint}`) } catch { throw new Error("请输入有效的 S3 Endpoint，例如 https://s3.amazonaws.com") }
@@ -20,10 +21,12 @@ export function signedS3Request(config: AppSettings["backup"], secret: string, m
   url.pathname = "/" + segments.map(encode).join("/")
   const date = now.toISOString().replace(/[:-]|\.\d{3}/g, "")
   const day = date.slice(0, 8)
-  const digest = hash(body)
-  const headers = { "x-amz-content-sha256": digest, "x-amz-date": date }
-  const signed = "host;x-amz-content-sha256;x-amz-date"
-  const canonical = [method, url.pathname, "", `host:${url.host}\nx-amz-content-sha256:${digest}\nx-amz-date:${date}\n`, signed, digest].join("\n")
+  const digest = options.digest ?? hash(body)
+  const headers: Record<string, string> = { ...options.headers, "x-amz-content-sha256": digest, "x-amz-date": date }
+  const canonicalHeaders = { ...headers, host: url.host }
+  const names = Object.keys(canonicalHeaders).sort()
+  const signed = names.join(";")
+  const canonical = [method, url.pathname, "", names.map(name => `${name}:${canonicalHeaders[name].trim()}\n`).join(""), signed, digest].join("\n")
   const scope = `${day}/${config.region}/s3/aws4_request`
   const signingKey = hmac(hmac(hmac(hmac("AWS4" + secret, day), config.region), "s3"), "aws4_request")
   const signature = hmac(signingKey, `AWS4-HMAC-SHA256\n${date}\n${scope}\n${hash(canonical)}`).toString("hex")
@@ -38,4 +41,26 @@ export async function requestS3(config: AppSettings["backup"], secret: string, m
     throw new Error(`S3 请求失败（HTTP ${response.status}）：${reason}`)
   }
   await response.body?.cancel()
+}
+
+/** Compare remote content metadata; a missing key can be recreated by the following PUT. */
+export async function headS3File(config: AppSettings["backup"], secret: string, key: string) {
+  const request = signedS3Request(config, secret, "HEAD", key)
+  const response = await fetch(request.url, { method: "HEAD", headers: request.headers, redirect: "error", signal: AbortSignal.timeout(60000) })
+  await response.body?.cancel()
+  if (response.status === 404) return undefined
+  if (!response.ok) throw new Error(`无法比较远端文件（HTTP ${response.status}）：${key}`)
+  return { digest: response.headers.get("x-amz-meta-sha256"), etag: response.headers.get("etag") }
+}
+/** Stream a whole object without buffering the entire file or creating visible chunk objects. */
+export async function uploadS3File(config: AppSettings["backup"], secret: string, key: string, source: string, digest: string, size: number, etag?: string) {
+  const headers = { "content-length": String(size), "x-amz-meta-sha256": digest, ...(etag ? { "if-match": etag } : { "if-none-match": "*" }) }
+  const request = signedS3Request(config, secret, "PUT", key, undefined, new Date(), { digest, headers })
+  const stream = createReadStream(source)
+  try {
+    const response = await fetch(request.url, { method: "PUT", headers: request.headers, body: stream, duplex: "half", redirect: "error", signal: AbortSignal.timeout(30 * 60000) } as unknown as RequestInit)
+    await response.body?.cancel()
+    if (response.status === 412 || response.status === 409) throw new Error(`远端文件在同步期间发生变化，未覆盖：${key}`)
+    if (!response.ok) throw new Error(`上传文件失败（HTTP ${response.status}）：${key}`)
+  } finally { stream.destroy() }
 }

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import type { BrowserProxyStatus } from "../../../../shared/browser-proxy"
-export function BrowserProxy() {
+export function BrowserProxy({ showLabel = false }: { showLabel?: boolean }) {
   const { pathname } = useLocation()
   const [search, setSearch] = useState("")
   const [reveal, setReveal] = useState(false)
@@ -62,9 +62,9 @@ export function BrowserProxy() {
         <button
           title="Clash 浏览器代理"
           aria-label="Clash 浏览器代理"
-          className={`p-1 ${status?.connected ? "text-green-600" : ""}`}
+          className={`flex shrink-0 items-center gap-1 rounded px-2 py-1 hover:bg-stone-200 ${status?.connected ? "text-green-600" : "text-stone-400"}`}
         >
-          <Waypoints className="size-4" />
+          <Waypoints className="size-3.5" />{showLabel && <span className="whitespace-nowrap">{status?.connected ? "已连接" : "未连接"}</span>}
         </button>
       </SheetTrigger>
       <SheetContent

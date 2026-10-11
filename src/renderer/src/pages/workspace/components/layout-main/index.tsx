@@ -1,3 +1,4 @@
+import { matchesShortcut } from "../../../../../../shared/shortcuts"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import Canvas from "./canvas"
 import WorkspaceHome from "./workspace-home"
@@ -33,12 +34,11 @@ export default function LayoutMain({ resources = false }: { resources?: boolean 
   useEffect(() => {
     const handleShortcut = (event: KeyboardEvent) => {
       if (!contentHost.current?.getClientRects().length) return
-      if (!event.ctrlKey || event.altKey || event.shiftKey || event.metaKey || event.isComposing) return
-      const key = event.key.toLowerCase()
-      if (key !== "l" && key !== "r") return
+      const previous = matchesShortcut(event, "previousTab")
+      if (!previous && !matchesShortcut(event, "nextTab")) return
       event.preventDefault()
       event.stopPropagation()
-      const target = activeIndex + (key === "l" ? -1 : 1)
+      const target = activeIndex + (previous ? -1 : 1)
       if (activeIndex >= 0 && target >= 0 && target < openFiles.length) openWorkspaceFile(openFiles[target])
     }
     window.addEventListener("keydown", handleShortcut, true)

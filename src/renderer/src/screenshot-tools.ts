@@ -1,3 +1,4 @@
+import { matchesShortcut } from "../../shared/shortcuts"
 import type ScreenShot from "js-web-screen-shot"
 
 export type Step = { x: number; y: number; number: number }
@@ -62,7 +63,7 @@ export function installSteps(plugin: ScreenShot, button: HTMLButtonElement) {
   })
   document.addEventListener("pointerup", redraw)
   window.addEventListener("keydown", event => {
-    if (active && (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z") { event.preventDefault(); event.stopImmediatePropagation(); undo() }
+    if (active && matchesShortcut(event, "undo")) { event.preventDefault(); event.stopImmediatePropagation(); undo() }
   }, true)
   return { steps, undo, hide: () => { layer.remove(); setActive(false) } }
 }
@@ -93,7 +94,7 @@ export async function installColorInspector(src: string, copy: (value: string) =
     panel.style.top = `${Math.max(0, Math.min(event.clientY + 22, innerHeight - 190))}px`
   }
   const key = (event: KeyboardEvent) => {
-    if (!panel.hidden && hex && event.key.toLowerCase() === "c" && !event.ctrlKey && !event.metaKey && !event.altKey && !(event.target as HTMLElement).closest("input, textarea, [contenteditable=true]")) { event.preventDefault(); void copy(hex).then(() => { text.textContent = `${hex}\n已复制色值` }) }
+    if (!panel.hidden && hex && matchesShortcut(event, "copyColor") && !(event.target as HTMLElement).closest("input, textarea, [contenteditable=true]")) { event.preventDefault(); void copy(hex).then(() => { text.textContent = `${hex}\n已复制色值` }) }
   }
   window.addEventListener("mousemove", move); window.addEventListener("keydown", key)
   return () => { disposed = true; panel.remove(); window.removeEventListener("mousemove", move); window.removeEventListener("keydown", key) }
