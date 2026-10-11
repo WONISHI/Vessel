@@ -1,3 +1,4 @@
+import { fetchRemoteImage } from "./save-obsidian-image"
 import { readdir, realpath, readFile, stat } from "node:fs/promises"
 import { relative, resolve, join, extname, isAbsolute, sep } from "node:path"
 import { parseImageReference, resolveObsidianImagePath } from "@vessel/obsidian"
@@ -12,6 +13,10 @@ export async function readObsidianImage(root: string, documentPath: string, refe
     return offset !== ".." && !offset.startsWith(".." + sep) && !isAbsolute(offset)
   }
   if (!within(await realpath(documentPath))) throw new Error("文档不在工作区")
+  if (/^https?:/.test(embed.target)) {
+    const { bytes, extension } = await fetchRemoteImage(embed.target)
+    return `data:image/${extension === "svg" ? "svg+xml" : extension === "jpg" ? "jpeg" : extension};base64,${bytes.toString("base64")}`
+  }
   const candidates: string[] = []
   const scan = async (directory: string) => {
     for (const entry of await readdir(directory, { withFileTypes: true })) {

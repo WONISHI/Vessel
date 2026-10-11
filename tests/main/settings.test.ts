@@ -1,8 +1,7 @@
 import { expect, it, vi } from "vitest"
-import { mkdtemp, readFile, writeFile, mkdir, rm } from "node:fs/promises"
+import { mkdtemp, readFile, writeFile, mkdir, rm, symlink } from "node:fs/promises"
 import { join } from "node:path"
 import { tmpdir } from "node:os"
-import Database from "better-sqlite3"
 import { defaultSettings } from "../../src/shared/settings"
 import { signedS3Request } from "../../src/main/settings-s3"
 const mocks = vi.hoisted(() => ({ path: "", request: vi.fn(async () => {}), head: vi.fn(async () => undefined), upload: vi.fn(), secret: "test-secret" }))
@@ -20,31 +19,50 @@ it("signs S3 paths deterministically and rejects credentials embedded in endpoin
   expect(request.headers["x-amz-date"]).toBe("20261003T000000Z")
   expect(() => signedS3Request({ ...config, endpoint: "https://secret@example.com" }, "secret", "HEAD")).toThrow("Endpoint")
 })
-it("persists encrypted credentials, validates intervals, and snapshots SQLite plus workspace notes without the secret", async () => {
+it("isolates workspace credentials, blocks resources, and only uploads the selected allowed file", async () => {
   mocks.path = await mkdtemp(join(tmpdir(), "vessel-settings-test-"))
-  const notes = join(mocks.path, "notes"); await mkdir(notes); await writeFile(join(notes, "note.md"), "# Saved note")
-  const db = new Database(join(mocks.path, "vessel.db"))
-  db.exec("CREATE TABLE workspaces(path TEXT); CREATE TABLE app_state(key TEXT, value_json TEXT)")
-  db.prepare("INSERT INTO workspaces VALUES (?)").run(notes); db.close()
-  const handlers = new Map<string, (...args: unknown[]) => Promise<unknown>>()
+  const notes = join(mocks.path, "notes"), other = join(mocks.path, "other")
+  await mkdir(notes); await mkdir(other)
+  await writeFile(join(notes, "note.md"), "# Saved note")
+  await writeFile(join(notes, "second.md"), "second")
+  await writeFile(join(notes, ".env"), "private")
+  await writeFile(join(other, "outside.md"), "outside")
+  await symlink(join(other, "outside.md"), join(notes, "link.md"))
+  const handlers = new Map<string, (...args: unknown[]) => Promise<any>>()
+  const call = (name: string, ...args: unknown[]) => handlers.get(`settings:${name}`)!(null, ...args)
   try {
     const { registerSettings } = await import("../../src/main/settings")
     registerSettings({ ipc: { handle: (name: string, callback: (...args: unknown[]) => Promise<unknown>) => handlers.set(name, callback) } } as never)
-    const settings = { ...defaultSettings, name: "Test User", backup: { ...defaultSettings.backup, endpoint: "https://storage.example.com", bucket: "notes", accessKey: "AKID" } }
-    const saved = await handlers.get("settings:save")!(null, settings, mocks.secret)
-    expect(saved).toMatchObject({ name: "Test User", backup: { hasSecret: true, secretLength: mocks.secret.length } })
+    await call("workspace", notes)
+    const settings = { ...defaultSettings, name: "Test User", backup: { ...defaultSettings.backup, workspacePath: notes, enabled: true, endpoint: "https://storage.example.com", bucket: "notes", accessKey: "AKID" } }
+    const saved = await call("save", settings, mocks.secret)
+    expect(saved.monitorNavigation).toBe(false)
+    const general = await call("save", { ...settings, monitorNavigation: true })
+    expect(general.monitorNavigation).toBe(true)
+    expect(JSON.parse(await readFile(join(mocks.path, "settings.json"), "utf8")).settings.monitorNavigation).toBe(true)
+    expect(saved).toMatchObject({ backup: { enabled: true, workspacePath: notes, hasSecret: true } })
     expect(await readFile(join(mocks.path, "settings.json"), "utf8")).not.toContain(mocks.secret)
-    await expect(handlers.get("settings:save")!(null, { ...settings, backup: { ...settings.backup, minutes: 15 } })).rejects.toThrow("选项")
     mocks.upload.mockImplementation(async (...args: unknown[]) => { args[3] = await readFile(args[3] as string); return args })
-    const status = await handlers.get("settings:backup")!()
-    expect(status).toMatchObject({ running: false })
-    const uploads = await Promise.all(mocks.upload.mock.results.map(result => result.value)) as unknown[][]
-    expect(uploads.some(args => String(args[2]).endsWith("database/vessel.db"))).toBe(true)
-    expect((uploads.find(args => String(args[2]).endsWith("/note.md"))![3] as Buffer).toString()).toBe("# Saved note")
-    const metadata = uploads.find(args => String(args[2]).endsWith(".vessel/backup.json"))![3] as Buffer
-    expect(metadata.toString()).not.toContain(mocks.secret)
-    mocks.head.mockRejectedValueOnce(new Error("storage unavailable"))
-    await expect(handlers.get("settings:backup")!()).rejects.toThrow("storage unavailable")
-    expect(await handlers.get("settings:status")!()).toMatchObject({ running: false, error: "storage unavailable" })
+    expect(await call("backup", join(notes, "note.md"), notes)).toMatchObject({ running: false, changed: 1 })
+    expect(mocks.upload).toHaveBeenCalledTimes(1)
+    expect(mocks.upload.mock.calls[0][2]).toBe("backups/note.md")
+    await expect(call("backup", join(other, "outside.md"), notes)).rejects.toThrow("当前工作区")
+    await expect(call("backup", join(notes, "link.md"), notes)).rejects.toThrow("当前工作区")
+    await expect(call("backup", join(notes, ".env"), notes)).rejects.toThrow("排除规则")
+    await call("workspace", other)
+    expect(await call("get")).toMatchObject({ backup: { enabled: false, endpoint: "", hasSecret: false, workspacePath: other } })
+    await expect(call("save", settings)).rejects.toThrow("工作区已切换")
+    await expect(call("backup", join(notes, "note.md"), notes)).rejects.toThrow("当前页面")
+    await expect(call("backup")).rejects.toThrow("开启")
+    await call("workspace", notes)
+    expect(await call("get")).toMatchObject({ backup: { enabled: true, endpoint: settings.backup.endpoint, hasSecret: true } })
+    mocks.upload.mockClear()
+    await call("backup")
+    expect(mocks.upload.mock.calls.map(args => args[2]).sort()).toEqual(["backups/note.md", "backups/second.md"])
+    await call("save", { ...settings, backup: { ...settings.backup, enabled: false } })
+    await expect(call("backup", join(notes, "note.md"), notes)).rejects.toThrow("开启")
+    await call("workspace", null)
+    expect(await call("get")).toMatchObject({ backup: { enabled: false, hasSecret: false } })
+    await expect(call("backup")).rejects.toThrow("当前页面")
   } finally { await rm(mocks.path, { recursive: true, force: true }) }
 })

@@ -1,10 +1,11 @@
+import { shouldMonitorNavigation } from "./settings"
 import { matchesShortcut } from "../shared/shortcuts"
 import { join } from "node:path"
 import { registerBrowserProxy } from "./browser-proxy"
 import { registerBrowserTools } from "./browser-tools"
 import { registerBrowserExtensions } from "./browser-extensions"
 import { registerBrowserDevtools } from "./browser-devtools"
-import { session, type WebContents } from "electron"
+import { BrowserWindow, dialog, session, type WebContents } from "electron"
 const allowed = (url: string) => {
   try {
     const parsed = new URL(url)
@@ -31,23 +32,48 @@ export function secureBrowserGuests(contents: WebContents) {
     preferences.allowRunningInsecureContent = false
   })
   contents.on("did-attach-webview", (_event, guest) => {
+    let asking = false
+    let anchor: { url: string; expires: number } | undefined
+    const bypassPrompt = (url: string) => !shouldMonitorNavigation() || (anchor?.url === url && anchor.expires >= Date.now())
+    guest.ipc.on("vessel:anchor-navigation", (event, url: unknown) => {
+      if (typeof url === "string" && url.length < 16384 && allowed(url)) anchor = { url, expires: Date.now() + 1000 }
+      event.returnValue = true
+    })
+    const chooseNavigation = (url: string): boolean => {
+      if (!allowed(url)) return false
+      if (bypassPrompt(url)) return true
+      if (guest.session === session.fromPartition("persist:vessel-transit")) return true
+      const owner = BrowserWindow.fromWebContents(contents)
+      if (!owner || asking || guest.isDestroyed()) return false
+      asking = true
+      try {
+        // A synchronous decision preserves the original request, including form bodies.
+        const choice = dialog.showMessageBoxSync(owner, { type: "question", title: "打开页面", message: "在哪里打开此页面？", detail: url, buttons: ["当前页面", "新标签页", "取消"], defaultId: 0, cancelId: 2, noLink: true })
+        if (choice === 1 && !contents.isDestroyed()) contents.send("browser:new-tab", url, guest.id)
+        return choice === 0
+      } finally { asking = false }
+    }
+    guest.ipc.on("vessel:navigation-choice", (event, url: unknown) => {
+      event.returnValue = typeof url === "string" && url.length < 16384 && chooseNavigation(url)
+    })
     guest.on("before-input-event", (event, input) => {
       if (input.type !== "keyDown") return
       if (matchesShortcut(input, "devtools")) { event.preventDefault(); contents.send("browser:toggle-devtools", guest.id) }
       if (matchesShortcut(input, "command")) { event.preventDefault(); contents.send("app:command") }
     })
     guest.on("will-navigate", (event, url) => {
-      if (!allowed(url)) event.preventDefault()
-      // Keep document and script redirects in their existing tab; only popups create tabs.
+      if (!chooseNavigation(url)) event.preventDefault()
     })
     guest.on("will-redirect", (event, url) => {
       if (!allowed(url)) event.preventDefault()
     })
-    guest.setWindowOpenHandler(({ url }) => {
-      if (allowed(url)) {
-        if (guest.session === session.fromPartition("persist:vessel-transit")) void guest.loadURL(url).catch(() => {})
-        else contents.send("browser:new-tab", url, guest.id)
+    guest.setWindowOpenHandler(({ url, postBody, referrer }) => {
+      if (!allowed(url)) return { action: "deny" }
+      if (bypassPrompt(url) && guest.session !== session.fromPartition("persist:vessel-transit")) {
+        contents.send("browser:new-tab", url, guest.id)
+        return { action: "deny" }
       }
+      if (chooseNavigation(url)) void guest.loadURL(url, { httpReferrer: referrer, ...(postBody ? { postData: postBody.data, extraHeaders: `Content-Type: ${postBody.contentType}` } : {}) }).catch(() => {})
       return { action: "deny" }
     })
     guest.on("dom-ready", () => {

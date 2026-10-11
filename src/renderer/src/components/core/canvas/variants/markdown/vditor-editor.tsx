@@ -1,3 +1,4 @@
+import { toast } from "sonner"
 import { markdownHotkey } from "../../../../../../../shared/shortcuts"
 import { createPortal } from "react-dom"
 import { TextColors } from "./text-colors"
@@ -85,6 +86,40 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
       imagePicker.value = ""
     })
     let editor: Vditor
+    let imageFrame = 0
+    const refreshImages = () => {
+      cancelAnimationFrame(imageFrame)
+      imageFrame = requestAnimationFrame(() => {
+        if (disposed) return
+        const value = editor.getValue()
+        editor.setValue(prepareObsidianImages(value))
+        changeHandler.current((properties?.raw ?? "") + restoreObsidianImages(value))
+      })
+    }
+    const pasteImage = (event: ClipboardEvent) => {
+      if (readOnly || !ready || !event.clipboardData) return
+      const selection = getSelection()
+      const anchor = selection?.anchorNode
+      const parent = anchor instanceof Element ? anchor : anchor?.parentElement
+      if (parent?.closest('[data-type="code-block"], code')) return
+      const file = Array.from(event.clipboardData.files).find(file => file.type.startsWith('image/'))
+      if (file) {
+        event.preventDefault(); event.stopImmediatePropagation()
+        const range = selection?.rangeCount ? selection.getRangeAt(0).cloneRange() : null
+        void file.arrayBuffer().then(bytes => window.electronAPI.saveObsidianImage(workspacePath, documentPath, { bytes: new Uint8Array(bytes) })).then(saved => {
+          if (disposed) return
+          element.querySelector<HTMLElement>('[contenteditable="true"]')?.focus()
+          if (range && element.contains(range.commonAncestorContainer)) { selection?.removeAllRanges(); selection?.addRange(range) }
+          editor.insertMD(prepareObsidianImages(saved.reference))
+          refreshImages()
+        }).catch(error => toast.error(String(error)))
+      } else {
+        const text = event.clipboardData.getData('text/plain')
+        const prepared = prepareObsidianImages(text)
+        if (prepared !== text) { event.preventDefault(); event.stopImmediatePropagation(); editor.insertMD(prepared); refreshImages() }
+      }
+    }
+    element.addEventListener('paste', pasteImage, true)
     let initFrame = 0
     let paintFrame = 0
     const timeout = setTimeout(() => {
@@ -97,6 +132,7 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
           cdn: new URL("./vendor/vditor", document.baseURI).href,
           lang: "zh_CN",
           theme: "classic",
+          image: { isPreview: false },
           preview: { hljs: { style: "atom-one-light" }, math: { engine: "KaTeX" } },
           icon: "ant",
           height: "auto",
@@ -204,7 +240,17 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
             { name: "redo", hotkey: markdownHotkey("redo"), icon: renderToStaticMarkup(<Redo2 />) }
           ].map((item) => (typeof item === "string" ? item : { ...item, tipPosition: "s" })),
           input: (content) => {
-            if (!disposed && !readOnly) changeHandler.current((properties?.raw ?? "") + restoreObsidianImages(content))
+            if (!disposed && !readOnly) {
+              changeHandler.current((properties?.raw ?? "") + restoreObsidianImages(content))
+              const prepared = prepareObsidianImages(content)
+              cancelAnimationFrame(imageFrame)
+              if (prepared !== content) imageFrame = requestAnimationFrame(() => {
+                if (disposed) return
+                const scroller = element.querySelector('.vditor-ir'), top = scroller?.scrollTop || 0
+                editor.setValue(prepareObsidianImages(editor.getValue()))
+                if (scroller) scroller.scrollTop = top
+              })
+            }
           },
           after: () => {
             instance.current = editor
@@ -247,6 +293,8 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
       unbindTablePaste()
       element.removeEventListener("focusout", decorate)
       element.removeEventListener("vessel-code-language", chooseLanguage)
+      element.removeEventListener("paste", pasteImage, true)
+      cancelAnimationFrame(imageFrame)
       disposed = true
       if (ready) editor.destroy()
       toolbarHost.current?.replaceChildren()
@@ -256,12 +304,15 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
     <LinkInteractionArea className="relative flex h-full min-h-0 min-w-0 flex-col">
       {languageBlock && createPortal(<div className="fixed inset-0 z-[280]" onMouseDown={() => setLanguageBlock(null)}><div className="absolute w-56 rounded-lg border bg-white p-3 shadow-lg" style={{ left: Math.min(innerWidth-240, languageBlock.getBoundingClientRect().left+50), top: Math.min(innerHeight-150, languageBlock.getBoundingClientRect().top+40), fontFamily: '"Plus Jakarta Sans", sans-serif' }} onMouseDown={event => event.stopPropagation()}>
         <label className="text-xs text-stone-500">代码语言<select autoFocus aria-label="代码语言" className="mt-2 w-full rounded border bg-white p-2 text-sm" value={languageBlock.querySelector('pre code')?.className.replace('language-', '') || 'text'} onChange={event => {
-          const code = languageBlock.querySelector('pre.vditor-ir__marker code')?.textContent || ''
-          host.current?.querySelector<HTMLElement>('[contenteditable="true"]')?.focus()
-          const range = document.createRange(); range.selectNode(languageBlock)
-          const selection = getSelection(); selection?.removeAllRanges(); selection?.addRange(range)
-          const fence = '`'.repeat(Math.max(3, ...Array.from(code.matchAll(/`+/g), match => match[0].length+1)))
-          instance.current?.insertMD(`${fence}${event.target.value}\n${code.replace(/\n$/, '')}\n${fence}\n`)
+          const info = languageBlock.querySelector('[data-type="code-block-info"]')
+          const code = languageBlock.querySelector('pre.vditor-ir__marker code')
+          if (info && code && instance.current) {
+            info.textContent = '\u200b'+event.target.value
+            code.className = 'language-'+event.target.value
+            const next = instance.current.getValue()
+            instance.current.setValue(next)
+            changeHandler.current((properties?.raw ?? '') + restoreObsidianImages(next))
+          }
           setLanguageBlock(null)
         }}>{['text','js','ts','jsx','tsx','json','html','css','scss','vue','python','java','go','rust','c','cpp','csharp','sql','bash','yaml','xml','markdown'].map(language => <option key={language} value={language}>{language}</option>)}</select></label>
       </div></div>, document.body)}

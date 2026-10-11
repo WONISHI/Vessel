@@ -1,3 +1,5 @@
+import { transferWorkspaceFiles } from "./transfer-workspace-files"
+import { saveObsidianImage } from "./save-obsidian-image"
 import { copyImage } from "./copy-image"
 import { getCodeDiagnostics, disposeCodeDiagnostics } from "../../code-diagnostics"
 import { readWikiLink } from "./wiki-link"
@@ -110,7 +112,9 @@ export class FilesModule extends BaseModule {
     ipcMain.handle("image:clipboard", () => { const image = clipboard.readImage(); if (image.isEmpty()) return null; const data = image.toPNG(); if (data.length > 30_000_000) throw new Error("剪贴板图片超过 30 MB"); return `data:image/png;base64,${data.toString("base64")}` })
     ipcMain.handle("image:copy", (_event, source) => copyImage(source))
     ipcMain.handle("image:readFile", (_event, root, path) => readImageFile(root, path))
+    ipcMain.handle("obsidian:saveImage", (_event, root, documentPath, source) => saveObsidianImage(root, documentPath, source))
     ipcMain.handle("obsidian:readImage", (_event, root, documentPath, reference) => readObsidianImage(root, documentPath, reference))
+    ipcMain.handle("workspace:transferFiles", (_event, root, paths, destination, external) => transferWorkspaceFiles(root, paths, destination, external))
     ipcMain.handle("workspace:mutateFile", (_event, root, path, name) => mutateWorkspaceFile(root, path, name))
     ipcMain.handle("workspace:createEntry", (_event, root, parent, name, kind) => createWorkspaceEntry(root, parent, name, kind))
     ipcMain.handle("link:openExternal", async (_event, href: string) => {
@@ -130,6 +134,8 @@ export class FilesModule extends BaseModule {
     ipcMain.removeHandler("image:copy")
     ipcMain.removeHandler("image:readFile")
     ipcMain.removeHandler("obsidian:readImage")
+    ipcMain.removeHandler("obsidian:saveImage")
+    ipcMain.removeHandler("workspace:transferFiles")
     ipcMain.removeHandler("workspace:mutateFile")
     ipcMain.removeHandler("file:readContent")
     ipcMain.removeHandler("file:saveContent")

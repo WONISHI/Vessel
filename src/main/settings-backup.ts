@@ -22,9 +22,9 @@ export async function syncBackup(directory: string, config: AppSettings["backup"
   const next: Index = { target, files: { ...previous.files } }
   let transferred = 0, changed = 0
   const metadataPath = join(directory, "backup-metadata.tmp")
-  await writeFile(metadataPath, JSON.stringify({ format: "vessel-files-v1", metadata }), { mode: 0o600 })
+  if (metadata !== undefined) await writeFile(metadataPath, JSON.stringify({ format: "vessel-files-v1", metadata }), { mode: 0o600 })
   try {
-    for (const file of [...files, { path: ".vessel/backup.json", source: metadataPath }]) {
+    for (const file of [...files, ...(metadata === undefined ? [] : [{ path: ".vessel/backup.json", source: metadataPath }])]) {
       if (file.path.split("/").some(part => !part || part === "." || part === "..")) throw new Error("同步文件路径无效")
       const before = await stat(file.source)
       if (before.size > 5 * 1024 ** 3) throw new Error(`单个文件超过 S3 普通上传的 5 GB 限制：${file.path}`)

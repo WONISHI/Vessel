@@ -1,3 +1,4 @@
+import type { MouseEvent } from "react"
 import { ChevronRight, File, Folder, LoaderCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -10,7 +11,7 @@ interface FileTreeItemProps {
   expanded: boolean
   loading?: boolean
   error?: string
-  onActivate: () => void
+  onActivate: (event: MouseEvent<HTMLButtonElement>) => void
 }
 /** 虚拟树中的单行；不递归挂载子节点。 */
 export default function FileTreeItem({ node, selected, expanded, loading, error, onActivate }: FileTreeItemProps) {

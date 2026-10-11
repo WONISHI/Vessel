@@ -1,3 +1,5 @@
+import { toast } from "sonner"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { useFileChanges } from "../../../hooks/file-changes"
 import { FileActions } from "./file-actions"
 import { InlineEntryEditor, type EntryDraft } from "./create-entry"
@@ -29,7 +31,14 @@ export default function WorkspaceTree({
   draft?: EntryDraft | null
   onDraftFinish?: (created: boolean) => void
 }) {
-  const { workspace, openFiles, activeFilePath, openWorkspaceFile, expandedFolders, setDirectoryExpanded } = useWorkspace()
+  const { workspace, openFiles, activeFilePath, openWorkspaceFile, renameWorkspaceTab, expandedFolders, setDirectoryExpanded } = useWorkspace()
+  const [selection, setSelection] = useState<string[]>([])
+  const anchor = useRef<string | undefined>(undefined)
+  const [dropTarget, setDropTarget] = useState<string>()
+  const [move, setMove] = useState<{ paths: string[]; destination: string }>()
+  const [moving, setMoving] = useState(false)
+  const [moveError, setMoveError] = useState('')
+  const parentPath = (path: string) => path.replace(/[\\/][^\\/]+$/, '')
   const [directories, setDirectories] = useState<Record<string, DirectoryState>>({})
   useFileChanges(changes => {
     const parents = new Set(changes.filter(change => change.type !== "update").map(change => change.path.replace(/[\\/][^\\/]+$/, "")))
@@ -54,6 +63,18 @@ export default function WorkspaceTree({
       .finally(() => pending.current.delete(path))
     pending.current.set(path, request)
     return request
+  }
+  const transfer = async (paths: string[], destination: string, external: boolean) => {
+    setMoving(true); setMoveError('')
+    try {
+      const moved = await window.electronAPI.transferWorkspaceFiles(workspace.path, paths, destination, external)
+      if (!external) for (const entry of moved) for (const file of openFiles) {
+        if (file.path === entry.source || file.path.startsWith(entry.source + (entry.source.includes('\\') ? '\\' : '/'))) renameWorkspaceTab(file.path, entry.target + file.path.slice(entry.source.length), file.name)
+      }
+      await Promise.all([...new Set([destination, ...paths.map(parentPath)])].filter(path => path === workspace.path || directories[path]).map(loadDirectoryChildren))
+      setSelection([]); setMove(undefined)
+    } catch (error) { if (external) toast.error(String(error)); else setMoveError(String(error)) }
+    finally { setMoving(false) }
   }
   useEffect(() => {
     mounted.current = true
@@ -90,7 +111,7 @@ export default function WorkspaceTree({
   appendVisibleTreeRows(recent ? openFiles : (root?.nodes ?? []))
   const draftIndex = rows.findIndex((row) => row.id === "__draft__")
   useEffect(() => {
-    if (viewport && draftIndex >= 0) viewport.scrollTo({ top: Math.max(0, draftIndex * 32 - 32) })
+    if (viewport && draftIndex >= 0) viewport.scrollTo({ top: draftIndex * 32 < viewport.scrollTop ? draftIndex * 32 : draftIndex * 32 + 32 > viewport.scrollTop + viewport.clientHeight ? draftIndex * 32 + 32 - viewport.clientHeight : viewport.scrollTop })
   }, [viewport, draftIndex, draft])
   const revealIndex = rows.findIndex((row) => row.id === revealPath)
   useEffect(() => {
@@ -121,6 +142,7 @@ export default function WorkspaceTree({
     )
   if (!rows.length) return <p className="p-2 text-xs text-stone-400">暂无文件</p>
   return (
+    <>
     <VirtualTree
       rows={rows}
       indent={16}
@@ -133,6 +155,20 @@ export default function WorkspaceTree({
             onFinish={onDraftFinish ?? (() => {})}
           />
         ) : (
+          <div draggable onDragStart={event => {
+            const paths = selection.includes(node.path) ? selection : [node.path]
+            setSelection(paths); event.dataTransfer.setData('application/x-vessel-files', JSON.stringify(paths)); event.dataTransfer.effectAllowed = 'move'
+          }} onDragEnd={() => setDropTarget(undefined)} onDragOver={event => {
+            if (!event.dataTransfer.types.includes('application/x-vessel-files') && !event.dataTransfer.types.includes('Files')) return
+            event.preventDefault(); event.dataTransfer.dropEffect = event.dataTransfer.types.includes('application/x-vessel-files') ? 'move' : 'copy'
+            setDropTarget(node.path)
+          }} onDragLeave={() => setDropTarget(undefined)} onDrop={event => {
+            event.preventDefault(); event.stopPropagation(); setDropTarget(undefined)
+            const destination = node.type === 'directory' ? node.path : parentPath(node.path)
+            const internal = event.dataTransfer.getData('application/x-vessel-files')
+            if (internal) { try { const paths = JSON.parse(internal); if (Array.isArray(paths) && paths.every(path => typeof path === 'string')) { setMoveError(''); setMove({ paths, destination }) } } catch { /* Ignore unrelated drag payloads. */ } }
+            else { const paths = Array.from(event.dataTransfer.files).map(file => window.electronAPI.getDroppedFilePath(file)).filter(Boolean); if (paths.length) void transfer(paths, destination, true) }
+          }} className={dropTarget === node.path ? 'rounded-md ring-2 ring-green-500' : undefined}>
           <FileActions
             node={node}
             onCreate={(kind) => {
@@ -147,11 +183,18 @@ export default function WorkspaceTree({
           >
             <FileTreeItem
               node={node}
-              selected={node.path === activeFilePath}
+              selected={selection.includes(node.path) || (!selection.length && node.path === activeFilePath)}
               expanded={Boolean(expanded)}
               loading={Boolean(expanded && !directories[node.path])}
               error={directories[node.path]?.error}
-              onActivate={() => {
+              onActivate={(event) => {
+                if (event.shiftKey && anchor.current) {
+                  const a = rows.findIndex(row => row.id === anchor.current), b = rows.findIndex(row => row.id === node.path)
+                  setSelection(rows.slice(Math.min(a,b), Math.max(a,b)+1).map(row => row.id).filter(id => id !== '__draft__')); return
+                }
+                anchor.current = node.path
+                if (event.metaKey || event.ctrlKey) { setSelection(value => value.includes(node.path) ? value.filter(path => path !== node.path) : [...value, node.path]); return }
+                setSelection([node.path])
                 if (node.type !== "directory") {
                   openWorkspaceFile(node)
                   return
@@ -165,8 +208,11 @@ export default function WorkspaceTree({
               }}
             />
           </FileActions>
+          </div>
         )
       }
     />
+    <ConfirmDialog tone="primary" open={!!move} onOpenChange={open => { if (!open && !moving) setMove(undefined) }} title="移动文件？" description={move ? `将${move.paths.length === 1 ? '“' + move.paths[0].split(/[\\/]/).pop() + '”' : move.paths.length + ' 个项目'}移动到“${move.destination.split(/[\\/]/).pop()}”文件夹？` : ''} confirmText="确认移动" busy={moving} error={moveError} onConfirm={() => { if (move) void transfer(move.paths, move.destination, false) }} />
+    </>
   )
 }

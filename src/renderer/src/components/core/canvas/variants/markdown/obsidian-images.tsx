@@ -5,7 +5,7 @@ import { Image } from "@/components/ui/image"
 function ObsidianImage({ reference, root, documentPath, onChange, onFocusBelow, readOnly = false }: { onFocusBelow?: () => void; readOnly?: boolean; reference: string; root: string; documentPath: string; onChange: (reference: string) => void }) {
   const embed = parseImageReference(reference)!
   const [selected, setSelected] = useState(false)
-  const loadSource = useCallback(() => (/^(https?:|data:image\/)/.test(embed.target) ? Promise.resolve(embed.target) : window.electronAPI.readObsidianImage(root, documentPath, reference)), [embed.target, root, documentPath, reference])
+  const loadSource = useCallback(() => (/^data:image\//.test(embed.target) ? Promise.resolve(embed.target) : window.electronAPI.readObsidianImage(root, documentPath, reference)), [embed.target, root, documentPath, reference])
   return (
     <span
       className="block bg-white"
@@ -17,6 +17,11 @@ function ObsidianImage({ reference, root, documentPath, onChange, onFocusBelow, 
     >
       {selected && <span className="block break-all text-sm text-slate-500">{reference}</span>}
       <Image
+        remote={/^https?:/.test(embed.target)}
+        onDownloadLocal={!readOnly && /^https?:/.test(embed.target) ? async () => {
+          const saved = await window.electronAPI.saveObsidianImage(root, documentPath, { url: embed.target })
+          onChange(embed.width ? resizeImageReference(saved.reference, embed.width) : saved.reference)
+        } : undefined}
         onFocusBelow={readOnly ? undefined : onFocusBelow}
         sourceKey={`${root}:${documentPath}:${reference}`}
         loadSource={loadSource}

@@ -140,7 +140,7 @@ export const routes: AppRouteRecordRaw[] = [
       requiresWorkspace: true
     }
   },
-  {
+  { 
     path: "/devtools",
     name: "devtools",
     component: DebugPage,

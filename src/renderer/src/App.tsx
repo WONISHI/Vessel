@@ -5,6 +5,7 @@ import { TransitPanel } from "@/components/transit/panel"
 import { OfficeKeepAlive } from "@/pages/office"
 import { BrowserKeepAlive } from "@/pages/browser/keep-alive"
 import { useEffect } from "react"
+import { useLocation } from "react-router-dom"
 import { useRouter } from "@vessel/react-router"
 import { Toaster, toast } from "sonner"
 
@@ -22,6 +23,19 @@ export interface WorkspaceData {
 
 function App() {
   const router = useRouter()
+  const location = useLocation()
+  useEffect(() => {
+    if (location.pathname === "/settings") return
+    const update = () => {
+      let root: string | null = null
+      try { root = JSON.parse(localStorage.getItem("app_current_workspace") || "null")?.path || null } catch {}
+      if (location.pathname.startsWith("/resources")) root = null
+      void window.electronAPI.setBackupWorkspace(root).then(() => window.dispatchEvent(new Event("vessel:sync-context"))).catch(console.error)
+    }
+    update()
+    window.addEventListener("vessel:workspace-changed", update)
+    return () => window.removeEventListener("vessel:workspace-changed", update)
+  }, [location.pathname])
   useEffect(() => {
     const apply = () => { void window.electronAPI.getSettings().then(applyAppearance).catch(console.error) }
     apply()

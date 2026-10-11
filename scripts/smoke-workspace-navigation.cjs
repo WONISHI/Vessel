@@ -8,12 +8,14 @@ app.whenReady().then(async()=>{
  const rasterImage=nativeImage.createFromBitmap(Buffer.alloc(320*180*4,240),{width:320,height:180}).toDataURL()
  const image=process.env.VESSEL_IMAGE_MENU_TEST ? 'data:image/svg+xml;base64,'+Buffer.from('<svg width="320" height="180"><rect width="320" height="180" fill="red"/></svg>').toString('base64') : rasterImage
  for(const [name,fn] of Object.entries({
- 'settings:status':()=>({running:false}),'settings:get':()=>({theme:'light',fontSize:14,accent:'#16a34a'}),'markdown:pending':()=>[],
+ 'settings:workspace':()=>({running:false}),'settings:status':()=>({running:false}),'settings:get':()=>({theme:'light',fontSize:14,accent:'#16a34a'}),'markdown:pending':()=>[],
  'app-state:get':(_e,key)=>(key.startsWith('workspace-tabs:') || key.startsWith('resources-tabs:'))?{files:[file],active:file.path}:state.get(key)||null,
- 'app-state:set':(_e,key,value)=>state.set(key,value),'workspace:readDirectory':()=>[file],
+ 'app-state:set':(_e,key,value)=>state.set(key,value),'workspace:readDirectory':(_e,_root,parent)=>process.argv.includes('--tree-drop') ? (parent==='/fixture/target' ? [{name:'inside.md',path:'/fixture/target/inside.md'}] : [file,{name:'other.md',path:'/fixture/other.md'},{name:'target',path:'/fixture/target',type:'directory'}]) : [file],
+ 'workspace:transferFiles':(_e,root,paths,destination,external)=>{state.set('transfer',{paths,destination,external});return paths.map(source=>({source,target:destination+'/'+source.split('/').pop()}))},
  'workspace:mutateFile':(_e,root,file,name)=>{state.set('renamed',name);state.set('renameCount',(state.get('renameCount')||0)+1);return root+'/'+name},
  'workspace:createEntry':(_e,root,parent,name,kind)=>{state.set('createCount',(state.get('createCount')||0)+1);state.set('created',{name,kind});return {name,path:parent+'/'+name,type:kind}},
  'files:watch':()=> 'watch','files:unwatch':()=>{},'file:readContent':()=>{reads++;return process.env.VESSEL_EMPTY_TEST ? "" : source},'file:saveContent':(_e,...args)=>{state.set("saved",args)},
+ 'obsidian:saveImage':(_e,root,doc,source)=>{state.set('imageImport',source);const name='Pasted image 20261010145524.png';return {name,path:root+'/'+name,reference:'![['+name+']]'}},
  'image:copy':(_e,value)=>state.set('copiedImage',value),'obsidian:readImage':()=>image,'browser:extensions:list':()=>[],'browser:proxy:state':()=>({connected:false,nodes:[]})
  }))ipcMain.handle(name,fn)
  const win=new BrowserWindow({show:true,width:1300,height:850,webPreferences:{preload:path.resolve('out/preload/index.js'),sandbox:false,webviewTag:true}})
@@ -36,6 +38,50 @@ app.whenReady().then(async()=>{
  }
  for(let i=0;i<40;i++){await wait(250);if(await js(`!!document.querySelector('.vessel-code-frame')`))break}
  assert(await js(`!!document.querySelector('.vessel-code-frame')`))
+ if(process.argv.includes('--tree-drop')){
+  const click=async(path,mod='')=>js(`document.querySelector('button[title="${path}"]').dispatchEvent(new MouseEvent('click',{bubbles:true,${mod||'detail:1'}}))`)
+  await click('/fixture/test.md');await click('/fixture/other.md','metaKey:true');await wait(100)
+  await js(`(()=>{const d=new DataTransfer();document.querySelector('button[title="/fixture/test.md"]').closest('[draggable]').dispatchEvent(new DragEvent('dragstart',{bubbles:true,dataTransfer:d}));document.querySelector('button[title="/fixture/target"]').closest('[draggable]').dispatchEvent(new DragEvent('drop',{bubbles:true,dataTransfer:d}))})()`);await wait(200)
+  assert(!state.has('transfer'),'Internal move waits for confirmation')
+  assert(await js(`document.querySelector('[role=alertdialog]').textContent.includes('2 个项目')`),'Modifier selection includes both files')
+  await js(`Array.from(document.querySelectorAll('[role=alertdialog] button')).find(b=>b.textContent==='确认移动').click()`);await wait(200)
+  assert.deepEqual(state.get('transfer'),{paths:['/fixture/test.md','/fixture/other.md'],destination:'/fixture/target',external:false})
+  await click('/fixture/target');await wait(200)
+  await js(`(()=>{const d=new DataTransfer();d.setData('application/x-vessel-files',JSON.stringify(['/fixture/other.md']));document.querySelector('button[title="/fixture/target/inside.md"]').closest('[draggable]').dispatchEvent(new DragEvent('drop',{bubbles:true,dataTransfer:d}))})()`);await wait(100)
+  await js(`Array.from(document.querySelectorAll('[role=alertdialog] button')).find(b=>b.textContent==='确认移动').click()`);await wait(100)
+  assert.equal(state.get('transfer').destination,'/fixture/target','Dropping on file uses its parent folder')
+  console.log('PASS multi-select, confirmed move and file-row destination');app.exit(0);return
+ }
+ if(process.argv.includes('--image-import')){
+  const caret=async()=>js(`(()=>{const p=[...document.querySelectorAll('.vditor-ir p')].find(p=>p.textContent.trim()==='Paragraph 3');p.closest('[contenteditable=true]').focus();const r=document.createRange();r.selectNodeContents(p);r.collapse(false);getSelection().removeAllRanges();getSelection().addRange(r)})()`)
+  await caret();clipboard.writeImage(nativeImage.createFromDataURL(rasterImage));win.webContents.paste();await wait(1500)
+  assert(state.get('imageImport')?.bytes?.length,'Clipboard image sent to root importer')
+  assert(state.get('saved')[1].includes('![[Pasted image 20261010145524.png]]'),'Saved document links root attachment')
+  assert(!state.get('saved')[1].includes('data:image'),'No embedded clipboard image')
+  const server=require('node:http').createServer((_req,res)=>{res.setHeader('content-type','image/png');res.end(nativeImage.createFromDataURL(rasterImage).toPNG())})
+  await new Promise(r=>server.listen(0,'127.0.0.1',r));const url='http://127.0.0.1:'+server.address().port+'/image.awebp?x=1#width=300'
+  await caret();clipboard.writeText('![]('+url+')');win.webContents.paste();await wait(1500)
+  const selector='.vessel-image-block:has([title="远程图片"]) img[src^="data:image/png"]'
+  await js(`Array.from(document.querySelectorAll('.vessel-image-block')).find(b=>b.querySelector('pre.vditor-ir__marker code')?.textContent.includes('127.0.0.1'))?.scrollIntoView({block:'center'})`)
+  for(let i=0;i<20;i++){await wait(100);if(await js(`!!document.querySelector('${selector}')`))break}
+  assert(await js(`!!document.querySelector('${selector}')`),'Remote paste immediately uses image component')
+  await js(`document.querySelector('${selector}').dispatchEvent(new MouseEvent('dblclick',{bubbles:true}))`);await wait(200)
+  assert(await js(`!!document.querySelector('[aria-label="关闭图片预览"]')`),'Own preview has icon close control')
+  await js(`document.querySelector('[aria-label="旋转图片"]').click();document.querySelector('[aria-label="关闭图片预览"]').click()`);await wait(250)
+  assert(!await js(`!!document.querySelector('[aria-label="关闭图片预览"]') || !!document.querySelector('.vditor-img')`),'Close works without inline handlers')
+  await js(`document.querySelector('${selector}').dispatchEvent(new MouseEvent('contextmenu',{bubbles:true,clientX:600,clientY:400}))`);await wait(150)
+  await js(`Array.from(document.querySelectorAll('[role="menuitem"]')).find(e=>e.textContent==='下载并替换为本地图片').click()`);await wait(1300)
+  assert.equal(state.get('imageImport')?.url,url,'Download receives original remote URL')
+  assert(!state.get('saved')[1].includes(url),'Download replaces remote reference')
+  await js(`(()=>{const p=[...document.querySelectorAll('.vditor-ir p')].find(p=>p.textContent.trim()==='Paragraph 5');p.closest('[contenteditable=true]').focus();const r=document.createRange();r.selectNodeContents(p);r.collapse(false);getSelection().removeAllRanges();getSelection().addRange(r)})()`)
+  await win.webContents.insertText(' ![]('+url+')');await wait(1500)
+  assert(await js(`Array.from(document.querySelectorAll('.vessel-image-block')).some(b=>b.textContent.includes('127.0.0.1'))`),'Typed remote reference becomes component immediately')
+  await js(`document.querySelector('.vessel-image-block:has([title="远程图片"])')?.scrollIntoView({block:'center'})`);await wait(300)
+  await js(`document.querySelector('.vessel-image-block:has([title="远程图片"]) img[decoding]')?.dispatchEvent(new Event('error'))`);await wait(100)
+  await js(`document.querySelector('.vessel-image-block:has([title="远程图片"]) img')?.dispatchEvent(new MouseEvent('dblclick',{bubbles:true}))`);await wait(100)
+  assert(!await js(`!!document.querySelector('[aria-label="关闭图片预览"]') || !!document.querySelector('.vditor-img')`),'Failed placeholder never opens oversized preview')
+  server.close();console.log('PASS clipboard attachment, immediate pasted/typed remote image, preview controls, failed placeholder and download replacement');app.exit(0);return
+ }
  if(process.env.VESSEL_MARKDOWN_EDIT_TEST || process.argv.includes('--markdown-edit')){
   await js(`(()=>{const c=document.querySelector('.vessel-code-frame code');c.closest('[contenteditable=true]').focus();const r=document.createRange();r.setStart(c.firstChild,c.firstChild.textContent.length);r.collapse(true);getSelection().removeAllRanges();getSelection().addRange(r)})()`)
   await win.webContents.insertText('const inlineEdit = true;');await wait(1200)
@@ -122,6 +168,8 @@ app.whenReady().then(async()=>{
   }
   await rename();await win.webContents.insertText('renamed');await wait(100)
   await js(`document.querySelector('[aria-label="文件新名称"]').blur()`);await wait(250)
+  assert.equal(state.get('renameCount'),undefined,'Rename waits for confirmation')
+  await js(`Array.from(document.querySelectorAll('[role=alertdialog] button')).find(e=>e.textContent==='确认重命名').click()`);await wait(250)
   assert.equal(state.get('renamed'),'renamed.md');assert.equal(state.get('renameCount'),1)
   await rename();await win.webContents.insertText('');
   await js(`(()=>{const i=document.querySelector('[aria-label="文件新名称"]');Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(i,'');i.dispatchEvent(new Event('input',{bubbles:true}))})()`);await wait(100)

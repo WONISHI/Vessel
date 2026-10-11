@@ -11,7 +11,9 @@ export const filesAPI = {
   revealWorkspaceFile: (root: string, path: string): Promise<void> => ipcRenderer.invoke("workspace:revealFile", root, path),
   readImageFile: (root: string, path: string): Promise<ImageFile> => ipcRenderer.invoke("image:readFile", root, path),
   /** 读取指定绝对路径的 UTF-8 文本，读取失败时 Promise 拒绝。 */
+  saveObsidianImage: (root: string, documentPath: string, source: { bytes?: Uint8Array; url?: string }): Promise<{ name: string; path: string; reference: string }> => ipcRenderer.invoke("obsidian:saveImage", root, documentPath, source),
   readObsidianImage: (root: string, documentPath: string, reference: string): Promise<string> => ipcRenderer.invoke("obsidian:readImage", root, documentPath, reference),
+  transferWorkspaceFiles: (root: string, paths: string[], destination: string, external: boolean): Promise<{ source: string; target: string }[]> => ipcRenderer.invoke("workspace:transferFiles", root, paths, destination, external),
   mutateWorkspaceFile: (root: string, path: string, name?: string): Promise<string> => ipcRenderer.invoke("workspace:mutateFile", root, path, name),
   createWorkspaceEntry: (root: string, parent: string, name: string, kind: "file" | "directory") => ipcRenderer.invoke("workspace:createEntry", root, parent, name, kind),
   openExternal: (href: string): Promise<void> => ipcRenderer.invoke("link:openExternal", href),

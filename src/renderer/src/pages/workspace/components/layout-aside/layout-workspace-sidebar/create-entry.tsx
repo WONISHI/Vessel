@@ -1,5 +1,5 @@
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogAction } from "@/components/ui/alert-dialog"
-import { useRef, useState } from "react"
+import { useCallback, useRef, useState } from "react"
 import { FilePlus2, FolderPlus, FileCode2, FileText } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
@@ -75,11 +75,13 @@ export function InlineEntryEditor({ draft, onFinish }: { draft: EntryDraft; onFi
   const [name, setName] = useState(draft.kind === "file" && draft.extension ? `未命名.${draft.extension}` : "")
   const [error, setError] = useState("")
   const [busy, setBusy] = useState(false)
+  const touched = useRef(false)
+  const focusInput = useCallback((input: HTMLInputElement | null) => { if (input) { input.focus({ preventScroll: true }); input.select() } }, [])
   const submitting = useRef(false)
   const cancelled = useRef(false)
   const submit = async () => {
     if (submitting.current || cancelled.current) return
-    if (!name.trim()) { cancelled.current = true; onFinish(false); return }
+    if (!touched.current || !name.trim()) { cancelled.current = true; onFinish(false); return }
     submitting.current = true
     setBusy(true)
     setError("")
@@ -99,14 +101,14 @@ export function InlineEntryEditor({ draft, onFinish }: { draft: EntryDraft; onFi
       onSubmit={event => { event.preventDefault(); void submit() }}    >
       <div className="flex min-w-0 flex-1 items-center rounded-sm border border-green-600 bg-transparent px-1.5 "><input
         placeholder="未命名"
-        autoFocus
+        ref={focusInput}
         onFocus={event => event.target.select()}
         aria-label={draft.kind === "file" ? "新文件名称" : "新文件夹名称"}
         className="h-6 min-w-0 flex-1 !rounded-none !border-0 !bg-transparent p-0 text-xs !shadow-none !outline-none !ring-0"
         onBlur={() => { if (!error) void submit() }}
         value={name}
         disabled={busy}
-        onChange={(event) => setName(event.target.value)}
+        onChange={(event) => { touched.current = true; setName(event.target.value) }}
         onKeyDown={(event) => {
           if (event.key === "Escape" && !busy) { cancelled.current = true; onFinish(false) }
         }}

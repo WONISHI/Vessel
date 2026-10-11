@@ -231,7 +231,7 @@ export default function LayoutMain({ resources = false }: { resources?: boolean 
             <Button variant="ghost" aria-pressed={!!terminal} className={`h-6 gap-1 rounded px-2 text-xs ${terminal ? "bg-green-100 text-green-700 hover:bg-green-200" : "text-stone-600 hover:bg-stone-200"}`} aria-label={terminal ? "关闭控制台" : "打开控制台"} onClick={() => setTerminal(current => current ? null : { file: home ? undefined : activeFilePath || undefined })}>
               {terminal ? <SquareChevronDown className="!size-3.5" /> : <SquareChevronRight className="!size-3.5" />}控制台
             </Button>
-            <span className="mx-1 h-4 w-px bg-stone-300" /><BackupStatus />
+            {!resources && <BackupStatus workspace={workspace.path} file={activeFilePath} />}
           </>}><div ref={setStatusTarget} className="min-w-0 flex-1" /></StatusBar>
         </ResizablePanel>
         {terminal && <><ResizableHandle aria-label="调整终端高度" /><ResizablePanel id="terminal" defaultSize="30%" minSize="15%"><TerminalPanel key={`${workspace.path}:${terminal.file || ""}`} root={workspace.path} file={terminal.file} /></ResizablePanel></>}

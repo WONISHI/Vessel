@@ -1,3 +1,4 @@
+import { ImageDown, RotateCw, X } from "lucide-react"
 import { toast } from "sonner"
 import { ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem } from "./context-menu"
 import { ImageEditorSheet } from "@/pages/image-preview/editor-sheet"
@@ -16,6 +17,8 @@ import errorWide from "@/assets/vessel-image-placeholder/error-16x9.svg"
 import error from "@/assets/vessel-image-placeholder/error-4x3.svg"
 
 export interface ImageProps extends Omit<ComponentPropsWithoutRef<"img">, "width"> {
+  remote?: boolean
+  onDownloadLocal?: () => Promise<void>
   onFocusBelow?: () => void
   width?: number
   resizable?: boolean
@@ -39,13 +42,15 @@ export function Image(props: ImageProps) {
     />
   )
 }
-function ImageContent({ src, srcSet, alt = "", width = 480, resizable = true, className, onError, onLoad, onResizeEnd, loadSource, onFocusBelow, sourceKey: _sourceKey, placeholderRatio = "4x3", loading: _loading, ...props }: ImageProps) {
+function ImageContent({ remote = false, src, srcSet, alt = "", width = 480, resizable = true, className, onError, onLoad, onResizeEnd, loadSource, onFocusBelow, onDownloadLocal, sourceKey: _sourceKey, placeholderRatio = "4x3", loading: _loading, ...props }: ImageProps) {
   const host = useRef<HTMLSpanElement>(null)
   const [visible, setVisible] = useState(false)
   const [resolved, setResolved] = useState<string>()
   const [failed, setFailed] = useState(false)
   const [loaded, setLoaded] = useState(false)
+  const [rotation, setRotation] = useState(0)
   const [zoomed, setZoomed] = useState(false)
+  const [downloading, setDownloading] = useState(false)
   const [tool, setTool] = useState<string | null>(null)
   useEffect(() => {
     if (!host.current) return
@@ -96,8 +101,11 @@ function ImageContent({ src, srcSet, alt = "", width = 480, resizable = true, cl
     <span
       ref={host}
       className="relative block w-full"
+      onClick={event => event.stopPropagation()}
+      onDoubleClick={event => { event.stopPropagation(); if (loaded) setZoomed(true) }}
       aria-busy={phase === "loading" && !loaded}
     >
+      {remote && <span title="远程图片" className="pointer-events-none absolute left-2 top-2 z-10 rounded bg-white/90 p-1 text-stone-500 shadow-sm"><ImageDown className="size-4" /></span>}
       {!loaded && (
         <img
           src={artwork[placeholderRatio][phase]}
@@ -145,6 +153,7 @@ function ImageContent({ src, srcSet, alt = "", width = 480, resizable = true, cl
       )}
       </span></ContextMenuTrigger><ContextMenuContent onCloseAutoFocus={event => event.preventDefault()} className="z-[260]">
         <ContextMenuItem disabled={!loaded || !resolved} onSelect={() => { if (resolved) void imageClipboardSource(resolved).then(source => window.electronAPI.copyImage(source)).catch(error => toast.error(String(error))) }}>复制</ContextMenuItem>
+        {onDownloadLocal && <ContextMenuItem disabled={downloading} onSelect={() => { setDownloading(true); void onDownloadLocal().catch(error => toast.error(String(error))).finally(() => setDownloading(false)) }}>{downloading ? '正在下载…' : '下载并替换为本地图片'}</ContextMenuItem>}
         {onFocusBelow && <ContextMenuItem onSelect={() => requestAnimationFrame(onFocusBelow)}>在下方聚焦</ContextMenuItem>}
         {[["crop", "截图"], ["ocr", "OCR 识别"], ["annotate", "标注"], ["convert", "格式转换"], ["compress", "压缩"], ["watermark", "加水印"], ["color", "取主色调"]].map(([id, title]) => <ContextMenuItem key={id} disabled={!loaded || !resolved || failed} onSelect={() => setTool(id)}>{title}</ContextMenuItem>)}
       </ContextMenuContent></ContextMenu>
@@ -154,12 +163,15 @@ function ImageContent({ src, srcSet, alt = "", width = 480, resizable = true, cl
         onOpenChange={setZoomed}
       >
         <DialogContent
+          showCloseButton={false}
           className="max-w-[95vw] w-fit max-h-[95vh] p-6"
           aria-describedby={undefined}
           onCloseAutoFocus={event => event.preventDefault()}
         >
           <DialogTitle className="sr-only">{alt || "图片预览"}</DialogTitle>
+          <div className="flex justify-end gap-2"><button aria-label="旋转图片" onClick={() => setRotation(value => value + 90)}><RotateCw className="size-4" /></button><button aria-label="关闭图片预览" onClick={() => setZoomed(false)}><X className="size-4" /></button></div>
           <img
+            style={{ transform: `rotate(${rotation}deg)` }}
             src={resolved}
             srcSet={srcSet}
             alt={alt}

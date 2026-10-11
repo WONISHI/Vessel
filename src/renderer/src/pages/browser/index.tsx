@@ -11,6 +11,7 @@ import { addTransit } from "@/components/transit/state"
 import browserLoading from "@/assets/vessel-browser-loading/loading.svg"
 import { BrowserExtensions } from "./extensions"
 import { markGuestReady, withGuest } from "./guest-lifecycle"
+import { pageObserverScript } from "./page-observer"
 import { elementPickerScript } from "./element-picker"
 import { webviewAttributes } from "./webview-attributes"
 import { useEffect, useRef, useState } from "react"
@@ -42,7 +43,7 @@ function Guest({ tab, visible, register, update }: { tab: Tab; visible: boolean;
     const view = ref.current
     if (!view) return
     const sync = () => withGuest(view, guest => updateRef.current(tab.id, { url: guest.getURL(), title: guest.getTitle() || "正在加载…", back: guest.canGoBack(), forward: guest.canGoForward() }))
-    const onReady = () => { markGuestReady(view, true); sync(); updateRef.current(tab.id, { loading: false }) }
+    const onReady = () => { void view.executeJavaScript(pageObserverScript).catch(error => console.warn("页面监听注入失败", error)); markGuestReady(view, true); sync(); updateRef.current(tab.id, { loading: false }) }
     const start = (event: Electron.DidStartNavigationEvent) => { if (event.isMainFrame && !event.isInPlace) updateRef.current(tab.id, { loading: true, error: "" }) }
     const stop = () => {
       sync()
@@ -56,6 +57,11 @@ function Guest({ tab, visible, register, update }: { tab: Tab; visible: boolean;
       if (event.isMainFrame && event.errorCode !== -3) updateRef.current(tab.id, { loading: false, error: `页面加载失败：${event.errorDescription}` })
     }
     const message = (event: Electron.IpcMessageEvent) => {
+      if (event.channel === "vessel-focus" || event.channel === "vessel-search-handled") {
+        const value = event.args[0]
+        if (typeof value === "boolean") view.dataset[event.channel === "vessel-focus" ? "inputFocused" : "pageHandlesSearch"] = String(value)
+      }
+      if (event.channel === "vessel-navigation") sync()
       if (event.channel === "vessel-find") window.dispatchEvent(new CustomEvent("vessel-browser-find", { detail: view.getWebContentsId() }))
     }
     view.addEventListener("ipc-message", message)
