@@ -4,7 +4,7 @@ import "@fontsource/plus-jakarta-sans/600.css"
 import ScreenShot from "js-web-screen-shot"
 import { createElement } from "react"
 import { renderToStaticMarkup } from "react-dom/server"
-import { Circle, ListOrdered, ScanText, Copy, Download, Grid3x3, MoveUpRight, Pencil, Pin, Square, Type, Undo2, X } from "lucide-react"
+import { Check, Circle, ListOrdered, ScanText, Copy, Download, Grid3x3, MoveUpRight, Pencil, Pin, Square, Type, Undo2, X } from "lucide-react"
 import "./screenshot.css"
 import { installSteps, installColorInspector, mergeSteps, type CutBox } from "./screenshot-tools"
 import { recognizeImage } from "./lib/image-ocr"
@@ -18,16 +18,18 @@ Object.defineProperty(CanvasRenderingContext2D.prototype, "font", {
   ...canvasFont,
   set(value: string) { canvasFont.set!.call(this, value.replace(/\bnone$/, '"Plus Jakarta Sans", "PingFang SC", sans-serif')) }
 })
-const icon = (Icon: typeof Copy, color = "#44403c") => `url("data:image/svg+xml;utf8,${encodeURIComponent(renderToStaticMarkup(createElement(Icon, { size: 20, color, strokeWidth: 1.8 })))}")`
+const icon = (Icon: typeof Copy, color = "#181f1c") => `url("data:image/svg+xml;utf8,${encodeURIComponent(renderToStaticMarkup(createElement(Icon, { size: 22, color, strokeWidth: 1.8 })))}")`
 /** 用 lucide-react 图标覆盖 js-web-screen-shot 自带的位图工具栏图标（普通 / 悬停·选中 / 禁用三态）。 */
 function installToolbarIcons() {
   const tools: [string, typeof Copy][] = [["square", Square], ["round", Circle], ["right-top", MoveUpRight], ["brush", Pencil], ["mosaicPen", Grid3x3], ["text", Type], ["save", Download], ["close", X]]
-  const base = "background-size:20px 20px !important;background-position:center !important;background-repeat:no-repeat !important;"
+  const base = "background-size:22px 22px !important;background-position:center !important;background-repeat:no-repeat !important;"
   const rules = tools.map(([name, Icon]) =>
     `#toolPanel .${name}{background-image:${icon(Icon)} !important;${base}}` +
     `#toolPanel .${name}:hover,#toolPanel .${name}-active,#toolPanel .${name}:active{background-image:${icon(Icon, "#16a34a")} !important;${base}}`
   )
   rules.push(
+    `#toolPanel .close{background-image:${icon(X, "#ef4444")} !important;${base}}`,
+    `#toolPanel .save{background-image:${icon(Download, "#168bfa")} !important;${base}}`,
     `#toolPanel .shot-step[aria-pressed=true]{background-image:${icon(ListOrdered, "#16a34a")} !important;${base}}`,
     `#toolPanel .undo{background-image:${icon(Undo2)} !important;${base}}`,
     `#toolPanel .undo:hover,#toolPanel .undo:active{background-image:${icon(Undo2, "#16a34a")} !important;${base}}`,
@@ -52,13 +54,24 @@ void api
       document.body.style.background = `url("${image}") center / 100% 100% no-repeat`
       document.body.classList.add("shot-idle")
       window.addEventListener("mousedown", () => document.body.classList.remove("shot-idle"), { capture: true, once: true })
-      document.documentElement.style.setProperty("--shot-copy-icon", icon(Copy))
+      document.documentElement.style.setProperty("--shot-copy-icon", icon(Check, "#16a34a"))
       installToolbarIcons()
       const observer = new MutationObserver(() => {
         const confirm = document.querySelector<HTMLElement>("#toolPanel .confirm")
         if (!confirm || document.querySelector("#toolPanel .shot-pin")) return
         const copy = confirm.parentElement?.classList.contains("item-panel") ? confirm.parentElement : confirm
-        copy.title = "复制"
+        copy.title = "完成并复制"
+        const heading = document.createElement("div")
+        heading.className = "shot-toolbar-heading"
+        const grip = document.createElement("span")
+        grip.className = "shot-toolbar-grip"
+        grip.setAttribute("aria-hidden", "true")
+        const dot = document.createElement("span")
+        dot.className = "shot-toolbar-dot"
+        const label = document.createElement("span")
+        label.textContent = "截图"
+        heading.append(grip, dot, label)
+        copy.closest("#toolPanel")?.prepend(heading)
         const tool = (className: string, title: string, Icon: typeof Copy, callback?: () => void) => {
           const button = document.createElement("button")
           button.type = "button"; button.className = `item-panel ${className}`; button.title = title; button.setAttribute("aria-label", title)
@@ -75,7 +88,7 @@ void api
         }, true)
         tool("shot-recognize", "截图 OCR", ScanText, () => { action = "ocr"; confirm.click() })
         const pin = tool("shot-pin", "固定到屏幕", Pin, () => { action = "pin"; confirm.click() })
-        copy.after(pin)
+        copy.before(pin)
         // Route downloads through the same compositor so numbered steps are included.
         const save = document.querySelector<HTMLElement>("#toolPanel .save")
         save?.addEventListener("click", event => { event.preventDefault(); event.stopImmediatePropagation(); action = "save"; confirm.click() }, true)
