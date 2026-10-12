@@ -129,6 +129,24 @@
     background: transparent;
   }
 
+  /* ===== 同步状态项 ===== */
+  .sync-item.syncing { color: #2563eb; }
+  .sync-item.syncing:hover { color: #1d4ed8; }
+  .sync-item.success { color: #15803d; }
+  .sync-item.success:hover { color: #166534; }
+  .sync-item.last { color: #78716c; }
+  .sync-item.last:hover { color: #57534e; }
+  .sync-item .spin { animation: sync-spin 0.9s linear infinite; }
+  @keyframes sync-spin { to { transform: rotate(360deg); } }
+
+  /* 深色同步项 */
+  .status-bar.dark .sync-item.syncing { color: #60a5fa; }
+  .status-bar.dark .sync-item.syncing:hover { color: #93c5fd; }
+  .status-bar.dark .sync-item.success { color: #4ade80; }
+  .status-bar.dark .sync-item.success:hover { color: #86efac; }
+  .status-bar.dark .sync-item.last { color: #a8a29e; }
+  .status-bar.dark .sync-item.last:hover { color: #d6d3d1; }
+
   /* ===== 变体展示 ===== */
   .demo-section {
     max-width: 1000px;
@@ -212,6 +230,11 @@
         </span>
         控制台
       </div>
+      <div class="status-divider"></div>
+      <div class="status-item sync-item syncing" id="syncItem" title="点击立即同步">
+        <span class="status-icon" id="syncIcon"></span>
+        <span id="syncText">同步中</span>
+      </div>
     </div>
 
     <!-- 右侧 -->
@@ -286,6 +309,11 @@
           </span>
           控制台
         </div>
+        <div class="status-divider"></div>
+        <div class="status-item sync-item syncing" id="syncItemDark" title="点击立即同步">
+          <span class="status-icon" id="syncIconDark"></span>
+          <span id="syncTextDark">同步中</span>
+        </div>
       </div>
       <div class="status-right">
         <div class="status-item">
@@ -325,11 +353,100 @@
   </div>
 </div>
 
+<!-- ===== 同步状态三态展示 ===== -->
+<div class="demo-section">
+  <div class="demo-section-title">同步状态三态 · 浅色</div>
+  <div class="demo-card" style="padding:8px;">
+    <div class="status-bar" style="border-radius:8px;max-width:none;">
+      <div class="status-left">
+        <div class="status-item sync-item syncing">
+          <span class="status-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="spin"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg></span>同步中
+        </div>
+        <div class="status-item sync-item success">
+          <span class="status-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.801 10A10 10 0 1 1 17 3.335"/><path d="m9 11 3 3L22 4"/></svg></span>同步成功
+        </div>
+        <div class="status-item sync-item last">
+          <span class="status-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>上次同步 2026-10-10 17:33
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="demo-section">
+  <div class="demo-section-title">同步状态三态 · 深色</div>
+  <div class="demo-card" style="padding:8px;background:#141311;border-color:#292524;">
+    <div class="status-bar dark" style="border-radius:8px;max-width:none;">
+      <div class="status-left">
+        <div class="status-item sync-item syncing">
+          <span class="status-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="spin"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg></span>同步中
+        </div>
+        <div class="status-item sync-item success">
+          <span class="status-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.801 10A10 10 0 1 1 17 3.335"/><path d="m9 11 3 3L22 4"/></svg></span>同步成功
+        </div>
+        <div class="status-item sync-item last">
+          <span class="status-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>上次同步 2026-10-10 17:33
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="design-note">
   组件规范：高度 32px · 背景 #f5f5f4 · 每项 24px 高 + 4px 圆角 + Lucide 图标(13px) · 分组用 1px 竖线分隔 · 时间/星期为组件固有（不响应点击）· 其余项可点击并有 hover 态 · active 态浅绿底 · 深色变体 #1c1917 底
 </div>
 
 <script>
+  // ===== 同步状态机：同步中 → 同步成功 → 1分钟后显示上次同步时间 =====
+  const SYNC_DURATION = 2500;     // 同步中演示时长（真实项目里=实际同步耗时）
+  const SUCCESS_DURATION = 60000; // “同步成功”显示1分钟后改为上次同步时间
+  const SYNC_ICONS = {
+    syncing: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="spin"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>',
+    success: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.801 10A10 10 0 1 1 17 3.335"/><path d="m9 11 3 3L22 4"/></svg>',
+    last: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>'
+  };
+
+  function createSyncController(itemId, iconId, textId) {
+    const item = document.getElementById(itemId);
+    const icon = document.getElementById(iconId);
+    const text = document.getElementById(textId);
+    let state = 'syncing';
+    let syncedAt = null;
+    let timers = [];
+    const pad = n => String(n).padStart(2, '0');
+
+    function render() {
+      item.classList.remove('syncing', 'success', 'last');
+      item.classList.add(state);
+      icon.innerHTML = SYNC_ICONS[state];
+      if (state === 'syncing') text.textContent = '同步中';
+      else if (state === 'success') text.textContent = '同步成功';
+      else text.textContent = `上次同步 ${syncedAt.getFullYear()}-${pad(syncedAt.getMonth()+1)}-${pad(syncedAt.getDate())} ${pad(syncedAt.getHours())}:${pad(syncedAt.getMinutes())}`;
+    }
+
+    function startSync() {
+      timers.forEach(clearTimeout);
+      timers = [];
+      state = 'syncing';
+      render();
+      timers.push(setTimeout(() => {
+        state = 'success';
+        syncedAt = new Date();
+        render();
+        timers.push(setTimeout(() => {
+          state = 'last';
+          render();
+        }, SUCCESS_DURATION));
+      }, SYNC_DURATION));
+    }
+
+    item.addEventListener('click', startSync);
+    startSync();
+  }
+
+  createSyncController('syncItem', 'syncIcon', 'syncText');
+  createSyncController('syncItemDark', 'syncIconDark', 'syncTextDark');
+
   // 时间组件固有：实时更新
   function updateTime() {
     const now = new Date();
