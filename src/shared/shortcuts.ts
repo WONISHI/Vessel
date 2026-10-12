@@ -38,7 +38,7 @@ export function shortcutLabel(id: ShortcutId, mac: boolean) {
   return [item.mod ? mac ? '⌘' : 'Ctrl' : item.ctrl ? 'Ctrl' : '', item.shift ? 'Shift' : '', item.key.toUpperCase()].filter(Boolean).join(' + ')
 }
 
-export const screenshotShortcut = { label: '截图', mac: 'Control+X', windows: 'F1', scope: '全局' }
+export const screenshotShortcut = { mac: "Control+X", windows: "Control+X" }
 
 export function markdownHotkey(id: ShortcutId) {
   const item: { key: string; mod?: boolean; shift?: boolean } = shortcuts[id]

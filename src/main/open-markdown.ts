@@ -1,3 +1,4 @@
+import { generalSettings } from "./settings"
 import { statSync } from "node:fs"
 import { app, BrowserWindow, ipcMain } from "electron"
 import { resolve, extname, basename, dirname, isAbsolute } from "node:path"
@@ -24,6 +25,7 @@ export function registerMarkdownOpening() {
   let ready = false
   let receiver: Electron.WebContents | undefined
   const enqueue = async (path: string) => {
+    if (generalSettings().externalPreview === false) return
     try {
       const info = await externalPathInfo(path)
       if (info.kind === "file" && !supported.has(extname(path).toLowerCase())) return
@@ -63,7 +65,8 @@ export function registerMarkdownOpening() {
       sender.once("destroyed", () => { if (receiver === sender) { ready = false; receiver = undefined } })
     }
     ready = true
-    return pending.splice(0)
+    const files = pending.splice(0)
+    return generalSettings().externalPreview === false ? [] : files
   })
   for (const path of markdownArguments(process.argv.slice(app.isPackaged ? 1 : 2))) void enqueue(path)
 }

@@ -1,3 +1,4 @@
+import { generalSettings, settingsEvents } from "./settings"
 import { app, net, safeStorage, session, type WebContents } from "electron"
 import { spawn, type ChildProcess } from "node:child_process"
 import { mkdir, readFile, writeFile, chmod, rename } from "node:fs/promises"
@@ -87,6 +88,7 @@ async function savedURL() {
   return ""
 }
 async function connect(input?: string) {
+  if (!generalSettings().proxyEnabled) throw new Error("请先在通用配置开启代理")
   if (state.busy) throw new Error("正在处理，请稍候")
   state.busy = true
   state.error = undefined
@@ -145,8 +147,10 @@ async function connect(input?: string) {
   } finally {
     state.busy = false
   }
+  if (!generalSettings().proxyEnabled) await disconnect()
   return { ...state }
 }
+settingsEvents.on("changed", () => { if (!generalSettings().proxyEnabled) void disconnect().catch(() => {}) })
 app.once("before-quit", () => child?.kill())
 let saving = Promise.resolve()
 export function registerBrowserProxy(host: WebContents) {

@@ -1,3 +1,4 @@
+import { setSearchEngine } from "@/pages/browser/url"
 import { addTransitFile } from "@/components/transit/state"
 import { CommandPalette } from "@/components/command-palette"
 import { applyAppearance } from "@/pages/settings/appearance"
@@ -37,11 +38,12 @@ function App() {
     return () => window.removeEventListener("vessel:workspace-changed", update)
   }, [location.pathname])
   useEffect(() => {
-    const apply = () => { void window.electronAPI.getSettings().then(applyAppearance).catch(console.error) }
+    const apply = () => { void window.electronAPI.getSettings().then(settings => { applyAppearance(settings); setSearchEngine(settings.searchEngine || "bing") }).catch(console.error) }
     apply()
+    window.addEventListener("vessel:settings-saved", apply)
     const media = matchMedia("(prefers-color-scheme: dark)")
     media.addEventListener("change", apply)
-    return () => media.removeEventListener("change", apply)
+    return () => { media.removeEventListener("change", apply); window.removeEventListener("vessel:settings-saved", apply) }
   }, [])
   useEffect(() => {
     let queue = Promise.resolve()

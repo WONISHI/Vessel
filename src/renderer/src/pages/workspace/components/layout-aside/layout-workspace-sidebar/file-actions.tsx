@@ -1,3 +1,4 @@
+import { toast } from "sonner"
 import { ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem } from '@/components/ui/context-menu'
 import { addTransitFile } from "@/components/transit/state"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
@@ -5,6 +6,8 @@ import { Copy, FolderOpen, FilePlus2, FolderPlus, Pencil, Trash2, Pin, File } fr
 import { useCallback, useRef, useState, type ReactNode } from "react"
 import { useWorkspace } from "@/pages/workspace/hooks/useWorkspace"
 import type { WorkspaceNode } from "@/pages/workspace/types/workspace"
+
+let copiedFile: string | null = null
 
 /** 普通文件右键菜单，成功后更新标签与目录缓存。删除使用系统废纸篓。 */
 export function FileActions({ node, children, onChanged, onCreate }: { node: WorkspaceNode; children: ReactNode; onChanged: () => void; onCreate?: (kind: "file" | "directory") => void }) {
@@ -17,11 +20,11 @@ export function FileActions({ node, children, onChanged, onCreate }: { node: Wor
   const validating = useRef(false)
   const requestRename = async () => {
     if (submitting.current || cancelled.current || validating.current || confirmRename) return
-    if (name.trim() + extension === node.name) { setRenaming(false); return }
+    if (name.trim() === node.name) { setRenaming(false); return }
     if (!name.trim()) { setRenaming(false); return }
     validating.current = true
     try {
-      const next = name.trim() + extension
+      const next = name.trim()
       if (/[\\/\0]/.test(next) || next === '.' || next === '..') throw new Error('名称无效')
       const siblings = await window.electronAPI.readWorkspaceDirectory(workspace.path, node.path.replace(/[\\/][^\\/]+$/, ''))
       if (siblings.some(item => item.path !== node.path && item.name.toLocaleLowerCase() === next.toLocaleLowerCase())) throw new Error('目标名称已存在，请使用其他名称')
@@ -31,8 +34,7 @@ export function FileActions({ node, children, onChanged, onCreate }: { node: Wor
   }
   const [confirmTrash, setConfirmTrash] = useState(false)
   const [renaming, setRenaming] = useState(false)
-  const extension = node.type === "directory" || node.name.lastIndexOf(".") <= 0 ? "" : node.name.slice(node.name.lastIndexOf("."))
-  const [name, setName] = useState(node.name.slice(0, node.name.length - extension.length))
+  const [name, setName] = useState(node.name)
   const [error, setError] = useState("")
   const [busy, setBusy] = useState(false)
   const mutate = async (next?: string) => {
@@ -60,12 +62,11 @@ export function FileActions({ node, children, onChanged, onCreate }: { node: Wor
   return (
     <>
     <ContextMenu onOpenChange={setMenuOpen}>
-      <ContextMenuTrigger asChild><div className={`w-full min-w-0 rounded-md ${menuOpen ? "[&>button]:!bg-[#f0efed]" : ""}`} onContextMenu={() => { setError(''); setName(node.name.slice(0,node.name.length-extension.length)) }}>
+      <ContextMenuTrigger asChild><div className={`w-full min-w-0 rounded-md ${menuOpen ? "[&>button]:!bg-[#f0efed]" : ""}`} onContextMenu={() => { setError(''); setName(node.name) }}>
         {renaming ? <form className="flex min-w-0 items-center gap-2 rounded-md bg-stone-50 px-2 py-1" onClick={event => event.stopPropagation()} onSubmit={event => { event.preventDefault(); requestRename() }}>
           {node.type === "directory" ? <FolderOpen className="size-4 shrink-0 text-amber-600" /> : <File className="size-4 shrink-0 text-violet-500" />}
           <div className="flex min-w-0 flex-1 items-center rounded-md border border-green-600 bg-white px-1.5 py-0.5 shadow-[0_0_0_3px_rgba(22,163,74,0.1)]">
             <input ref={focusInput} onBlur={() => { if (renaming) requestRename() }} aria-label="文件新名称" value={name} disabled={busy} onFocus={event => event.target.select()} onChange={event => setName(event.target.value)} onKeyDown={event => { if (event.key === "Escape") { event.preventDefault(); cancelled.current = true; setRenaming(false) } }} className="min-w-0 flex-1 bg-transparent text-xs outline-none" />
-            <span className="text-xs text-stone-400">{extension}</span>
           </div>
           {error && <span role="alert" title={error} className="text-xs text-red-500">{error}</span>}
         </form> : children}
@@ -73,6 +74,13 @@ export function FileActions({ node, children, onChanged, onCreate }: { node: Wor
       </div></ContextMenuTrigger>
       <ContextMenuContent onCloseAutoFocus={event => event.preventDefault()} className="w-48">
         {node.type === 'directory' && ([['file','新建文件',FilePlus2],['directory','新建文件夹',FolderPlus]] as const).map(([kind,label,Icon]) => <ContextMenuItem key={kind} onSelect={() => onCreate?.(kind)}><Icon />{label}</ContextMenuItem>)}
+        <ContextMenuItem onSelect={() => { copiedFile = node.path }}><Copy />复制</ContextMenuItem>
+        {copiedFile && <ContextMenuItem disabled={busy} onSelect={() => {
+          const source = copiedFile!
+          const destination = node.type === "directory" ? node.path : node.path.replace(/[\\/][^\\/]+$/, "")
+          setBusy(true)
+          void window.electronAPI.transferWorkspaceFiles(workspace.path, [source], destination, true, true).then(() => { if (copiedFile === source) copiedFile = null; onChanged() }).catch(error => toast.error(String(error))).finally(() => setBusy(false))
+        }}><Copy />粘贴</ContextMenuItem>}
         {[
           {label:'复制文件名',Icon:Copy,run:()=>navigator.clipboard.writeText(node.name)},
           {label:'复制路径',Icon:Copy,run:()=>navigator.clipboard.writeText(node.path)},
@@ -83,7 +91,7 @@ export function FileActions({ node, children, onChanged, onCreate }: { node: Wor
         <ContextMenuItem disabled={busy} className="text-red-600 data-[highlighted]:bg-red-600" onSelect={() => {setError('');setConfirmTrash(true)}}><Trash2 />移到废纸篓</ContextMenuItem>
       </ContextMenuContent>
     </ContextMenu>
-    <ConfirmDialog tone="primary" open={confirmRename} onOpenChange={open => { setConfirmRename(open); if (!open && !busy) setRenaming(false) }} title="确认重命名？" description={`将“${node.name}”重命名为“${name.trim() + extension}”？`} confirmText="确认重命名" busy={busy} error={error} onConfirm={() => void mutate(name.trim() + extension)} />
+    <ConfirmDialog tone="primary" open={confirmRename} onOpenChange={open => { setConfirmRename(open); if (!open && !busy) setRenaming(false) }} title="确认重命名？" description={`将“${node.name}”重命名为“${name.trim()}”？`} confirmText="确认重命名" busy={busy} error={error} onConfirm={() => void mutate(name.trim())} />
     <ConfirmDialog
       open={confirmTrash}
       onOpenChange={setConfirmTrash}

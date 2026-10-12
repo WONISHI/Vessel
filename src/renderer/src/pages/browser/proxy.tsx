@@ -8,9 +8,15 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import type { BrowserProxyStatus } from "../../../../shared/browser-proxy"
 export function BrowserProxy({ showLabel = false }: { showLabel?: boolean }) {
   const { pathname } = useLocation()
+  const [enabled, setEnabled] = useState(false)
   const [search, setSearch] = useState("")
   const [reveal, setReveal] = useState(false)
   const [open, setOpen] = useState(false)
+  useEffect(() => {
+    const update = () => { void window.electronAPI.getSettings().then(settings => { setEnabled(!!settings.proxyEnabled); if (!settings.proxyEnabled) setOpen(false) }) }
+    update(); window.addEventListener("vessel:settings-saved", update)
+    return () => window.removeEventListener("vessel:settings-saved", update)
+  }, [])
   const [url, setURL] = useState("")
   const [status, setStatus] = useState<BrowserProxyStatus>()
   const [error, setError] = useState("")
@@ -52,6 +58,7 @@ export function BrowserProxy({ showLabel = false }: { showLabel?: boolean }) {
   }
   const nodes = (status?.nodes || []).filter((node) => node.toLowerCase().includes(search.toLowerCase()))
   const disabled = pending || status?.busy
+  if (!enabled) return null
   return (
     <Sheet
       modal={false}

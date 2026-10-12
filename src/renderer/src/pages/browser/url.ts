@@ -1,3 +1,5 @@
+let searchEngine = "bing"
+export const setSearchEngine = (engine: string) => { searchEngine = engine }
 /** 将地址或搜索词转换为浏览器可加载的 HTTP(S)、扩展或本地文件地址。 */
 export function browserURL(input: string): string {
   const value = input.trim()
@@ -7,5 +9,6 @@ export function browserURL(input: string): string {
   if (!/\s/.test(value) && /^(localhost|[\w-]+(?:\.[\w-]+)+)(:\d+)?(?:[/?#]|$)/i.test(value)) {
     return new URL(`${/^(localhost|127\.)/.test(value) ? "http" : "https"}://${value}`).href
   }
-  return `https://www.bing.com/search?q=${encodeURIComponent(value)}`
+  const engines = { bing: "https://www.bing.com/search?q=", google: "https://www.google.com/search?q=", baidu: "https://www.baidu.com/s?wd=", duckduckgo: "https://duckduckgo.com/?q=" }
+  return (engines[searchEngine as keyof typeof engines] || engines.bing) + encodeURIComponent(value)
 }

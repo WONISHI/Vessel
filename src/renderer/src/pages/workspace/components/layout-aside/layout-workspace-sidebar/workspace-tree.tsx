@@ -40,10 +40,6 @@ export default function WorkspaceTree({
   const [moveError, setMoveError] = useState('')
   const parentPath = (path: string) => path.replace(/[\\/][^\\/]+$/, '')
   const [directories, setDirectories] = useState<Record<string, DirectoryState>>({})
-  useFileChanges(changes => {
-    const parents = new Set(changes.filter(change => change.type !== "update").map(change => change.path.replace(/[\\/][^\\/]+$/, "")))
-    for (const parent of parents) if (parent === workspace.path || directories[parent]) void loadDirectoryChildren(parent)
-  })
   const pending = useRef(new Map<string, Promise<void>>())
   const mounted = useRef(true)
   /** 按需读取直接子节点并缓存，合并同一路径的并发请求。
@@ -64,6 +60,10 @@ export default function WorkspaceTree({
     pending.current.set(path, request)
     return request
   }
+  useFileChanges(changes => {
+    const parents = new Set(changes.filter(change => change.type !== "update").map(change => change.path.replace(/[\\/][^\\/]+$/, "")))
+    for (const parent of parents) if (parent === workspace.path || directories[parent]) void loadDirectoryChildren(parent)
+  })
   const transfer = async (paths: string[], destination: string, external: boolean) => {
     setMoving(true); setMoveError('')
     try {

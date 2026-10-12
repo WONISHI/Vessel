@@ -60,7 +60,28 @@ async function main() {
   if (!verified) throw new Error('Electron download failed. Partial data is preserved; rerun this command to resume.')
   if (args.includes('--download-only')) return
   const cli = require.resolve('electron-builder/cli.js')
-  await run(process.execPath, [cli, '--win', `--${arch}`, `--config.electronDist=${archive}`, ...args.filter(arg => !['--arm64', '--x64', '--download-only'].includes(arg))])
+  let staged
+  try {
+    const forwarded = args.filter(arg => !['--arm64', '--x64', '--download-only'].includes(arg))
+    if (process.platform === 'win32') await run(process.execPath, [cli, '--win', `--${arch}`, `--config.electronDist=${archive}`, ...forwarded])
+    else {
+      staged = await require('./prepare-win-app.cjs').prepareWinApp(arch, version)
+      const root = path.resolve(__dirname, '..')
+      const configuration = {
+        ...require('../package.json').build,
+        electronVersion: version,
+        electronDist: archive,
+        directories: { app: staged, output: path.join(root,'dist'), buildResources: path.join(root,'build') },
+        beforeBuild: path.join(__dirname,'use-prepared-dependencies.cjs'),
+        files: ['out/**/*','package.json','!**/*.map', { from: path.join(staged,'node_modules'), to:'node_modules', filter:['**/*','!**/*.map','!**/*.pdb'] }],
+        extraResources: [{ from: path.join(root,'resources/office'), to:'office' }],
+        afterPack: path.join(__dirname,'verify-office-package.cjs')
+      }
+      const configurationPath = path.join(staged,'builder-config.json')
+      await fs.writeFile(configurationPath,JSON.stringify(configuration,null,2))
+      await run(process.execPath,[cli,'--win',`--${arch}`,'--config',configurationPath,...forwarded])
+    }
+  } finally { if (staged) await fs.rm(staged,{recursive:true,force:true}) }
   } finally { await fs.unlink(lock).catch(() => {}) }
 }
 main().catch(error => { console.error(error.message); process.exitCode = 1 })

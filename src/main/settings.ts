@@ -1,3 +1,5 @@
+import { EventEmitter } from "node:events"
+export const settingsEvents = new EventEmitter()
 import { app, safeStorage, type WebContents } from "electron"
 import { readFileSync, existsSync } from "node:fs"
 import { writeFile, rename, readdir, realpath, stat, mkdir } from "node:fs/promises"
@@ -32,7 +34,7 @@ function validate(value: AppSettings): AppSettings {
   const text = (v: string, max = 2048) => { if (typeof v !== "string" || v.length > max) throw new Error("设置文本过长或无效"); return v.trim() }
   const avatar = text(value.avatar, 3_000_000)
   if (avatar && !/^data:image\/(png|jpeg);base64,[A-Za-z0-9+/=]+$/.test(avatar)) throw new Error("头像格式无效")
-  return { monitorNavigation: value.monitorNavigation === true, name: text(value.name, 80) || "本地用户", email: text(value.email, 254), avatar, theme: value.theme, font: value.font, fontSize: value.fontSize, accent: value.accent, backup: { enabled: value.backup.enabled === true, endpoint: text(value.backup.endpoint), accessKey: text(value.backup.accessKey), bucket: text(value.backup.bucket), region: text(value.backup.region), prefix: text(value.backup.prefix), automatic: value.backup.automatic === true, minutes: value.backup.minutes, hasSecret: false } }
+  return { searchEngine: ["bing", "google", "baidu", "duckduckgo"].includes(value.searchEngine || "") ? value.searchEngine : "bing", proxyEnabled: value.proxyEnabled === true, externalScreenshot: value.externalScreenshot !== false, externalPreview: value.externalPreview !== false, monitorNavigation: value.monitorNavigation === true, name: text(value.name, 80) || "本地用户", email: text(value.email, 254), avatar, theme: value.theme, font: value.font, fontSize: value.fontSize, accent: value.accent, backup: { enabled: value.backup.enabled === true, endpoint: text(value.backup.endpoint), accessKey: text(value.backup.accessKey), bucket: text(value.backup.bucket), region: text(value.backup.region), prefix: text(value.backup.prefix), automatic: value.backup.automatic === true, minutes: value.backup.minutes, hasSecret: false } }
 }
 function publicSettings() { const p = profile(); return { ...load().settings, backup: { ...p.config, workspacePath: currentWorkspace ?? undefined, hasSecret: !!p.secret, secretLength: p.secret ? decrypt(p).length : 0 } } }
 const decrypt = (p = profile()) => p.secret ? safeStorage.decryptString(Buffer.from(p.secret, "base64")) : ""
@@ -111,7 +113,7 @@ export function registerSettings(host: WebContents) {
     }
     if (settings.backup.enabled && (!encrypted || !settings.backup.endpoint || !settings.backup.bucket || !settings.backup.accessKey)) throw new Error("启用自动备份前请填写完整 S3 配置")
     if (!root && settings.backup.enabled) throw new Error("请先打开工作区，项目资源库不支持同步")
-    await persist({ ...load(), settings: { ...settings, backup: structuredClone(defaultSettings.backup) }, secret: "", profiles: root ? { ...load().profiles, [root]: { config: settings.backup, secret: encrypted, status: profile().status } } : load().profiles }); schedule(); return publicSettings()
+    await persist({ ...load(), settings: { ...settings, backup: structuredClone(defaultSettings.backup) }, secret: "", profiles: root ? { ...load().profiles, [root]: { config: settings.backup, secret: encrypted, status: profile().status } } : load().profiles }); settingsEvents.emit("changed"); schedule(); return publicSettings()
   })
   host.ipc.handle("settings:test", (_event, config: AppSettings["backup"], secret?: string) => requestS3(validate({ ...load().settings, backup: config }).backup, secret || decrypt(), "HEAD"))
   host.ipc.handle("settings:backup", (_event, selected?: string, root?: string) => backup(selected, root))
@@ -119,3 +121,5 @@ export function registerSettings(host: WebContents) {
 }
 
 export const shouldMonitorNavigation = () => load().settings.monitorNavigation === true
+
+export const generalSettings = () => load().settings

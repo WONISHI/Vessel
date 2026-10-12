@@ -114,7 +114,7 @@ export class FilesModule extends BaseModule {
     ipcMain.handle("image:readFile", (_event, root, path) => readImageFile(root, path))
     ipcMain.handle("obsidian:saveImage", (_event, root, documentPath, source) => saveObsidianImage(root, documentPath, source))
     ipcMain.handle("obsidian:readImage", (_event, root, documentPath, reference) => readObsidianImage(root, documentPath, reference))
-    ipcMain.handle("workspace:transferFiles", (_event, root, paths, destination, external) => transferWorkspaceFiles(root, paths, destination, external))
+    ipcMain.handle("workspace:transferFiles", (_event, root, paths, destination, external, duplicate) => transferWorkspaceFiles(root, paths, destination, external, duplicate === true))
     ipcMain.handle("workspace:mutateFile", (_event, root, path, name) => mutateWorkspaceFile(root, path, name))
     ipcMain.handle("workspace:createEntry", (_event, root, parent, name, kind) => createWorkspaceEntry(root, parent, name, kind))
     ipcMain.handle("link:openExternal", async (_event, href: string) => {

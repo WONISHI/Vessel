@@ -1,74 +1,126 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { Document, Page, pdfjs } from "react-pdf"
+import type { PDFDocumentProxy } from "pdfjs-dist"
 import workerURL from "pdfjs-dist/build/pdf.worker.min.mjs?url"
 import "react-pdf/dist/Page/AnnotationLayer.css"
 import "react-pdf/dist/Page/TextLayer.css"
-import { ChevronLeft, ChevronRight, Minus, Plus } from "lucide-react"
-import { ScrollArea } from "@/components/ui/scroll-area"
+import { Minus, Plus, Pencil, MousePointer2, Undo2, Download, Eraser, ChevronDown, Check, FileText, CheckSquare } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { cn } from "@/lib/utils"
-
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
+import { toast } from "sonner"
 pdfjs.GlobalWorkerOptions.workerSrc = workerURL
-// 悬停 / 按下时背景变绿，文字与图标统一为白色。
-const pdfButton = "hover:!bg-green-700 active:!bg-green-800 hover:!text-white active:!text-white disabled:hover:!bg-transparent disabled:hover:!text-inherit"
+const COLORS = ['#e11d48', '#f97316', '#f59e0b', '#eab308', '#84cc16', '#16a34a', '#14b8a6', '#06b6d4', '#3b82f6', '#6366f1', '#8b5cf6', '#d946ef', '#ec4899', '#78716c', '#44403c', '#000000', '#a8a29e', '#ffffff']
 
-/** 基于 react-pdf 的 PDF 预览（工作区与 Office 页面共用，不依赖工作区上下文）。 */
-export function PdfDocument({ bytes, name }: { bytes: Uint8Array; name: string }) {
-  const file = useMemo(() => ({ data: new Uint8Array(bytes) }), [bytes])
+type Stroke = { id: string; page: number; color: string; width: number; points: [number, number][] }
+function LazyPage({ number, width, strokes, tool, color, penWidth, add, erase }: { number: number; width: number; strokes: Stroke[]; tool: string; color: string; penWidth: number; add: (stroke: Stroke) => void; erase: (id: string) => void }) {
   const host = useRef<HTMLDivElement>(null)
-  const [width, setWidth] = useState(600)
-  const [pages, setPages] = useState(0)
-  const [page, setPage] = useState(1)
-  const [zoom, setZoom] = useState(1)
+  const [visible, setVisible] = useState(false), [ratio, setRatio] = useState(1.414)
+  const [draft, setDraft] = useState<Stroke | null>(null)
+  const current = useRef<Stroke | null>(null)
   useEffect(() => {
-    const observer = new ResizeObserver((entries) => setWidth(Math.max(100, entries[0].contentRect.width - 32)))
+    const observer = new IntersectionObserver(([entry]) => setVisible(entry.isIntersecting), { root: host.current?.closest('[data-pdf-scroll]'), rootMargin: '700px' })
     if (host.current) observer.observe(host.current)
     return () => observer.disconnect()
   }, [])
-  return (
-    <div
-      ref={host}
-      className="flex h-full min-h-0 min-w-0 flex-1 flex-col"
-      aria-label={name}
-    >
-      <div className="flex shrink-0 items-center justify-center gap-2 border-b p-2">
-        <Button variant="ghost" size="sm" className={pdfButton} disabled={page <= 1} onClick={() => setPage(page - 1)}>
-          <ChevronLeft className="size-4" />
-          上一页
-        </Button>
-        <span className="text-sm">
-          {page} / {pages || "…"}
-        </span>
-        <Button variant="ghost" size="sm" className={pdfButton} disabled={page >= pages} onClick={() => setPage(page + 1)}>
-          下一页
-          <ChevronRight className="size-4" />
-        </Button>
-        <Button variant="ghost" size="icon" className={cn(pdfButton, "size-8")} aria-label="缩小" disabled={zoom <= 0.5} onClick={() => setZoom(Math.max(0.5, zoom - 0.25))}>
-          <Minus className="size-4" />
-        </Button>
-        <span className="min-w-10 text-center text-sm">{Math.round(zoom * 100)}%</span>
-        <Button variant="ghost" size="icon" className={cn(pdfButton, "size-8")} aria-label="放大" disabled={zoom >= 3} onClick={() => setZoom(Math.min(3, zoom + 0.25))}>
-          <Plus className="size-4" />
-        </Button>
-      </div>
-      <ScrollArea className="min-h-0 flex-1">
-        <Document
-          file={file}
-          onLoadSuccess={({ numPages }) => {
-            setPages(numPages)
-            setPage(1)
-          }}
-          loading="正在加载 PDF…"
-          error="PDF 加载失败，请检查文件是否完整或已加密。"
-          className="p-4"
-        >
-          <Page
-            pageNumber={page}
-            width={width * zoom}
-            loading="正在渲染…"
-          />
-        </Document>
-      </ScrollArea>
+  const path = (stroke: Stroke) => stroke.points.map(([x, y]) => `${x * width},${y * width * ratio}`).join(' ')
+  return <div ref={host} className="relative mx-auto mb-4 shrink-0 bg-white shadow" style={{ width, height: width * ratio }} aria-label={`第 ${number} 页`}>
+    {visible && <Page pageNumber={number} width={width} onLoadSuccess={page => { const viewport = page.getViewport({ scale: 1 }); setRatio(viewport.height / viewport.width) }} loading={<p className="p-4 text-sm">正在加载第 {number} 页…</p>} />}
+    <svg className="absolute inset-0" width={width} height={width * ratio} style={{ pointerEvents: tool === 'view' ? 'none' : 'auto', touchAction: tool === 'view' ? 'auto' : 'none', cursor: tool === 'pen' ? 'crosshair' : 'default' }}
+      onPointerDown={event => {
+        if (tool !== 'pen' || event.button !== 0) return
+        event.preventDefault(); event.currentTarget.setPointerCapture(event.pointerId)
+        const rect = event.currentTarget.getBoundingClientRect()
+        current.current = { id: crypto.randomUUID(), page: number, color, width: penWidth / width, points: [[(event.clientX - rect.left) / rect.width, (event.clientY - rect.top) / rect.height]] }
+        setDraft(current.current)
+      }} onPointerMove={event => {
+        if (!current.current) return
+        const rect = event.currentTarget.getBoundingClientRect()
+        const point: [number, number] = [Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width)), Math.max(0, Math.min(1, (event.clientY - rect.top) / rect.height))]
+        current.current = { ...current.current, points: [...current.current.points, point] }; setDraft(current.current)
+      }} onPointerUp={() => { if (current.current) { add(current.current); current.current = null; setDraft(null) } }} onPointerCancel={() => { current.current = null; setDraft(null) }}>
+      {[...strokes, ...(draft ? [draft] : [])].map(stroke => <polyline key={stroke.id} points={path(stroke)} fill="none" stroke={stroke.color} strokeWidth={stroke.width * width} strokeLinecap="round" strokeLinejoin="round" style={{ pointerEvents: tool === 'erase' ? 'stroke' : 'none' }} onPointerDown={event => { if (tool === 'erase') { event.stopPropagation(); erase(stroke.id) } }} />)}
+    </svg>
+  </div>
+}
+
+/** Continuous PDF preview. Offscreen pages release their canvas; ink is kept separately. */
+export function PdfDocument({ bytes, name }: { bytes: Uint8Array; name: string }) {
+  const file = useMemo(() => ({ data: new Uint8Array(bytes) }), [bytes])
+  const host = useRef<HTMLDivElement>(null)
+  const [width, setWidth] = useState(600), [zoom, setZoom] = useState(1)
+  const [document, setDocument] = useState<PDFDocumentProxy>(), [tool, setTool] = useState('view')
+  const [color, setColor] = useState('#e11d48'), [penWidth, setPenWidth] = useState(3)
+  const [strokes, setStrokes] = useState<Stroke[]>([]), [loaded, setLoaded] = useState(false), [saving, setSaving] = useState(false)
+  const undo = useRef<Stroke[][]>([]), persistence = useRef(Promise.resolve())
+  const key = document ? `pdf-ink:${document.fingerprints[0]}` : ''
+  useEffect(() => {
+    const observer = new ResizeObserver(([entry]) => setWidth(Math.max(100, entry.contentRect.width - 48)))
+    if (host.current) observer.observe(host.current)
+    return () => observer.disconnect()
+  }, [])
+  useEffect(() => {
+    setLoaded(false); setStrokes([]); undo.current = []
+    if (!key) return
+    let active = true
+    void window.electronAPI.getAppState<Stroke[]>(key).then(value => { if (active) { setStrokes(Array.isArray(value) ? value : []); setLoaded(true) } }).catch(error => toast.error(`标注读取失败：${error}`))
+    return () => { active = false }
+  }, [key])
+  const change = (next: Stroke[], remember = true) => {
+    if (remember) undo.current.push(strokes)
+    setStrokes(next)
+    persistence.current = persistence.current.catch(() => {}).then(() => window.electronAPI.setAppState(key, next)).then(() => {}).catch(error => { toast.error(`标注保存失败：${error}`) })
+  }
+  const exportPDF = async () => {
+    if (!document) return
+    setSaving(true)
+    const ids: string[] = []
+    try {
+      for (const stroke of strokes) {
+        const page = await document.getPage(stroke.page), viewport = page.getViewport({ scale: 1 })
+        const points = stroke.points.map(([x, y]) => viewport.convertToPdfPoint(x * viewport.width, y * viewport.height))
+        const id = `pdfjs_internal_editor_${stroke.id}`; ids.push(id)
+        document.annotationStorage.setValue(id, { annotationType: 15, pageIndex: stroke.page - 1, color: [1, 3, 5].map(i => parseInt(stroke.color.slice(i, i + 2), 16)), thickness: stroke.width * viewport.width, opacity: 1, rotation: 0, rect: page.view, paths: { points: [points.flat()], lines: [points.flatMap(([x, y]) => [NaN, NaN, NaN, NaN, x, y])] } })
+      }
+      const data = await document.saveDocument()
+      const url = URL.createObjectURL(new Blob([new Uint8Array(data)], { type: 'application/pdf' }))
+      const link = window.document.createElement('a'); link.href = url; link.download = name.replace(/\.pdf$/i, '') + '-标注.pdf'; link.click()
+      setTimeout(() => URL.revokeObjectURL(url), 60000)
+    } catch (error) { toast.error(`PDF 导出失败：${error}`) }
+    finally { ids.forEach(id => document.annotationStorage.remove(id)); setSaving(false) }
+  }
+  return <div ref={host} className="flex h-full min-h-0 min-w-0 flex-1 flex-col" aria-label={name}>
+    <ScrollArea className="shrink-0 border-b bg-white"><div className="flex w-max min-w-full flex-nowrap items-center gap-1 whitespace-nowrap px-3 py-2 text-sm">
+      {[['view', MousePointer2, '浏览'], ['pen', Pencil, '画笔'], ['erase', Eraser, '擦除笔迹']].map(([value, Icon, label]) => { const ToolIcon = Icon as typeof Pencil; return <button key={String(value)} disabled={!loaded} aria-pressed={tool === value} className={`flex h-8 shrink-0 items-center gap-1.5 rounded-md px-2.5 disabled:opacity-50 ${tool === value ? 'bg-green-50 font-medium text-green-700 ring-1 ring-green-200' : 'text-stone-700 hover:bg-stone-100 hover:text-stone-900'}`} onClick={() => setTool(String(value))}><ToolIcon className="size-4" />{String(label)}</button> })}
+      <span className="mx-2 h-5 w-px shrink-0 bg-stone-200" />
+      <Popover>
+        <PopoverTrigger asChild><button aria-label="笔迹颜色" className="flex size-8 shrink-0 items-center justify-center rounded-md border border-transparent hover:bg-stone-100 data-[state=open]:border-green-500"><span className="size-5 rounded-full ring-1 ring-black/10" style={{ background: color }} /></button></PopoverTrigger>
+        <PopoverContent align="start" className="w-64 p-3">
+          <p className="mb-2 text-xs font-medium text-stone-500">笔迹颜色</p>
+          <div className="grid grid-cols-6 gap-2">{COLORS.map(value => <button key={value} aria-label={value} onClick={() => setColor(value)} className="flex size-8 items-center justify-center rounded-md ring-1 ring-black/5 hover:scale-105" style={{ background: value }}>{color.toLowerCase() === value && <span className={`size-2 rounded-full ${value === '#ffffff' ? 'bg-stone-700' : 'bg-white'}`} />}</button>)}</div>
+          <div className="my-3 h-px bg-stone-100" />
+          <label className="flex cursor-pointer items-center justify-between text-sm text-stone-700">自定义颜色<span className="relative size-7 overflow-hidden rounded-md ring-1 ring-black/10" style={{ background: color }}><input type="color" value={color} onChange={event => setColor(event.target.value)} className="absolute inset-0 cursor-pointer opacity-0" /></span></label>
+        </PopoverContent>
+      </Popover>
+      <Popover>
+        <PopoverTrigger asChild><button aria-label="笔迹粗细" className="flex h-8 shrink-0 items-center gap-1.5 rounded-md border border-transparent px-2 text-stone-700 hover:bg-stone-100 data-[state=open]:border-green-500"><span className="w-4 rounded-full bg-stone-700" style={{ height: Math.min(penWidth, 4) }} />{penWidth}px<ChevronDown className="size-3.5 text-stone-400" /></button></PopoverTrigger>
+        <PopoverContent align="start" className="w-48 p-2">
+          <p className="mb-1 px-2 text-xs font-medium text-stone-500">笔迹粗细</p>
+          {[1, 2, 3, 5, 8].map(size => <button key={size} onClick={() => setPenWidth(size)} className={`flex w-full items-center gap-3 rounded-md px-2 py-2 text-sm ${penWidth === size ? 'bg-green-50 text-green-700' : 'text-stone-700 hover:bg-stone-100'}`}><span className={`w-16 rounded-full ${penWidth === size ? 'bg-green-600' : 'bg-stone-700'}`} style={{ height: size }} /><span className="flex-1 text-left">{size}px</span>{penWidth === size && <Check className="size-4" />}</button>)}
+        </PopoverContent>
+      </Popover>
+      <span className="mx-2 h-5 w-px shrink-0 bg-stone-200" />
+      <button disabled={!undo.current.length} onClick={() => change(undo.current.pop()!, false)} className="flex h-8 shrink-0 items-center gap-1.5 rounded-md px-2.5 text-stone-700 hover:bg-stone-100 hover:text-stone-900 disabled:opacity-40"><Undo2 className="size-4" />撤销</button>
+      <span className="mx-2 h-5 w-px shrink-0 bg-stone-200" />
+      <span className="flex shrink-0 items-center gap-1 text-xs text-stone-500"><FileText className="size-3.5" />共 {document?.numPages || '…'} 页 · <CheckSquare className="size-3.5" />标注自动保存在本机</span>
+      <span className="ml-auto" />
+      <Button variant="ghost" size="icon" className="size-8 shrink-0" aria-label="缩小" disabled={zoom <= .5} onClick={() => setZoom(v => v - .25)}><Minus className="size-4" /></Button><span className="w-11 shrink-0 text-center text-sm">{Math.round(zoom * 100)}%</span><Button variant="ghost" size="icon" className="size-8 shrink-0" aria-label="放大" disabled={zoom >= 3} onClick={() => setZoom(v => v + .25)}><Plus className="size-4" /></Button>
+      <Button size="sm" className="ml-2 shrink-0 bg-green-600 text-white hover:bg-green-700" disabled={!loaded || saving} onClick={() => void exportPDF()}><Download className="size-4" />导出标注 PDF</Button>
+    </div><ScrollBar orientation="horizontal" className="h-1.5" /></ScrollArea>
+    <div data-pdf-scroll className="min-h-0 flex-1 overflow-auto bg-stone-100 p-4">
+      <Document file={file} onLoadSuccess={setDocument} loading="正在加载 PDF…" error="PDF 加载失败，请检查文件是否完整或已加密。">
+        {Array.from({ length: document?.numPages || 0 }, (_, index) => <LazyPage key={`${key}:${index}`} number={index + 1} width={width * zoom} strokes={strokes.filter(stroke => stroke.page === index + 1)} tool={loaded ? tool : 'view'} color={color} penWidth={penWidth} add={stroke => change([...strokes, stroke])} erase={id => change(strokes.filter(stroke => stroke.id !== id))} />)}
+      </Document>
     </div>
-  )
+  </div>
 }
