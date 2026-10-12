@@ -136,7 +136,7 @@
     "rebuild:deps": "electron-builder install-app-deps",
     "build:unpack": "npm run build && electron-builder --dir",
     "build:win": "npm run build && node scripts/build-win.cjs",
-    "build:mac": "electron-vite build && electron-builder --mac",
+    "build:mac": "electron-vite build && node scripts/build-mac.cjs",
     "build:linux": "electron-vite build && electron-builder --linux",
     "typecheck:router": "npm run typecheck --workspace=@vessel/react-router",
     "typecheck:utils": "npm run typecheck --workspace=@vessel/utils",
