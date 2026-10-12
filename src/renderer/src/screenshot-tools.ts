@@ -8,7 +8,12 @@ export function drawStep(context: CanvasRenderingContext2D, step: Step) {
   const { x, y, number } = step
   context.save()
   context.fillStyle = "#ef4444"
-  context.beginPath(); context.moveTo(x - 7, y + 10); context.lineTo(x - 19, y + 25); context.lineTo(x + 7, y + 13); context.closePath(); context.fill()
+  // A curved teardrop joins the round badge to its lower-right pointer.
+  context.beginPath()
+  context.moveTo(x + 14, y + 2)
+  context.quadraticCurveTo(x + 15, y + 17, x + 23, y + 34)
+  context.quadraticCurveTo(x + 9, y + 21, x - 4, y + 17)
+  context.closePath(); context.fill()
   context.beginPath(); context.arc(x, y, 17, 0, Math.PI * 2)
   context.fillStyle = "white"; context.fill(); context.lineWidth = 4; context.strokeStyle = "#ef4444"; context.stroke()
   context.fillStyle = "#ef4444"; context.font = '600 18px "Plus Jakarta Sans", sans-serif'; context.textAlign = "center"; context.textBaseline = "middle"; context.fillText(String(number), x, y + 1)

@@ -28,6 +28,7 @@ function installToolbarIcons() {
     `#toolPanel .${name}:hover,#toolPanel .${name}-active,#toolPanel .${name}:active{background-image:${icon(Icon, "#16a34a")} !important;${base}}`
   )
   rules.push(
+    `#toolPanel .shot-step[aria-pressed=true]{background-image:${icon(ListOrdered, "#16a34a")} !important;${base}}`,
     `#toolPanel .undo{background-image:${icon(Undo2)} !important;${base}}`,
     `#toolPanel .undo:hover,#toolPanel .undo:active{background-image:${icon(Undo2, "#16a34a")} !important;${base}}`,
     `#toolPanel .undo-disabled.shot-can-undo{background-image:${icon(Undo2)} !important;${base}}`,
