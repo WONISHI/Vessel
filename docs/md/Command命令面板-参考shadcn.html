@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Command · 命令面板</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2318181b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M18 3a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3H6a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3V6a3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3h12a3 3 0 0 0 3-3 3 3 0 0 0-3-3z'/></svg>">
+<style>
+  :root{
+    --bg:#ededec;
+    --card:#ffffff;
+    --border:#e3e3e2;
+    --input-bg:#f4f4f3;
+    --hover:#f4f4f3;
+    --text:#1a1a18;
+    --muted:#8a8a85;
+    --divider:#ececea;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    -webkit-font-smoothing:antialiased;
+    overflow:hidden;
+  }
+
+  /* ===== 背景模拟页面（模糊，外层裁剪防止溢出） ===== */
+  .stage{position:fixed;inset:0;overflow:hidden}
+  .mock{position:absolute;inset:0;filter:blur(3px);transform:scale(1.02);user-select:none}
+  .mock .top{height:60px;background:#fff;display:flex;align-items:center;gap:18px;padding:0 28px;border-bottom:1px solid #e2e2e0}
+  .mock .top .logo{width:26px;height:26px;border-radius:7px;background:#1a1a18}
+  .mock .top .m{height:10px;border-radius:5px;background:#d8d8d5}
+  .mock .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;padding:30px;max-width:1100px;margin:0 auto}
+  .mock .card{background:#fff;border:1px solid #e6e6e3;border-radius:14px;height:130px;padding:18px}
+  .mock .card .l{height:12px;border-radius:6px;background:#e0e0dd;margin-bottom:12px}
+  .mock .card .s{height:9px;border-radius:5px;background:#eaeae7}
+  .mock .pageh{position:absolute;top:110px;left:50%;transform:translateX(-50%);font-size:15px;font-weight:600;color:#a9a9a4}
+
+  /* ===== 遮罩 ===== */
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.04);display:none;align-items:flex-start;justify-content:center;padding-top:14vh}
+  .overlay.open{display:flex}
+
+  /* ===== Command 卡片 ===== */
+  .command{
+    width:560px;max-width:92vw;max-height:70vh;
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:16px;
+    box-shadow:0 24px 70px -12px rgba(0,0,0,.22),0 8px 24px -8px rgba(0,0,0,.12);
+    overflow:hidden;
+    display:flex;flex-direction:column;
+    animation:pop .14s ease-out;
+  }
+  @keyframes pop{from{opacity:0;transform:translateY(-6px) scale(.99)}to{opacity:1;transform:none}}
+
+  /* 搜索区 */
+  .cmd-search{padding:12px 12px 4px;display:flex;align-items:center;gap:10px}
+  .cmd-input-wrap{
+    flex:1;display:flex;align-items:center;gap:10px;
+    height:44px;padding:0 14px;
+    background:var(--input-bg);
+    border-radius:11px;
+    border:1px solid transparent;
+  }
+  .cmd-input-wrap:focus-within{border-color:#d8d8d5;background:#f7f7f6}
+  .cmd-input-wrap svg{flex:none;color:#9a9a94}
+  .cmd-input{
+    flex:1;border:0;outline:0;background:transparent;
+    font-size:16px;color:var(--text);font-family:inherit;
+  }
+  .cmd-input::placeholder{color:#a3a39e}
+
+  /* 列表 */
+  .cmd-list{padding:6px 8px 10px;overflow-y:auto}
+  .cmd-list::-webkit-scrollbar{width:8px}
+  .cmd-list::-webkit-scrollbar-thumb{background:#dcdcd9;border-radius:8px}
+  .cmd-list::-webkit-scrollbar{background:transparent}
+
+  .group-label{
+    font-size:12px;font-weight:600;color:var(--muted);
+    padding:10px 10px 5px;letter-spacing:.2px;
+  }
+  .item{
+    display:flex;align-items:center;gap:11px;
+    height:40px;padding:0 10px;margin:1px 0;
+    border-radius:8px;cursor:pointer;
+    font-size:15px;color:var(--text);
+  }
+  .item .ic{flex:none;color:#2a2a27;display:flex}
+  .item .lbl{flex:1}
+  .item .kbd{
+    font-size:13px;color:#9a9a94;
+    font-family:inherit;letter-spacing:.5px;
+  }
+  .item.active{background:var(--hover)}
+  .item.active .ic{color:#111}
+  .item.hidden{display:none}
+  .divider{height:1px;background:var(--divider);margin:6px 6px}
+
+  /* 空状态 */
+  .empty{display:none;text-align:center;padding:30px 0 26px;color:#9a9a94;font-size:14px}
+  .empty svg{margin:0 auto 12px}
+
+  /* ===== 关闭态：打开按钮 ===== */
+  .closed{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px}
+  .open-btn{
+    display:flex;align-items:center;gap:10px;
+    height:46px;padding:0 20px;
+    background:#fff;border:1px solid #dededb;border-radius:12px;
+    font-size:14.5px;color:#6a6a65;font-family:inherit;cursor:pointer;
+    box-shadow:0 6px 20px -8px rgba(0,0,0,.18);
+  }
+  .open-btn kbd{
+    font-family:inherit;font-size:12px;background:#f3f3f1;border:1px solid #e0e0dd;
+    border-radius:6px;padding:2px 7px;color:#7a7a75;
+  }
+  .hint{font-size:13px;color:#a3a39e}
+
+  /* toast */
+  .toast{
+    position:fixed;bottom:30px;left:50%;transform:translateX(-50%) translateY(20px);
+    background:#1c1c1a;color:#fff;font-size:13.5px;padding:10px 18px;border-radius:10px;
+    opacity:0;pointer-events:none;transition:all .25s ease;box-shadow:0 10px 30px rgba(0,0,0,.25);
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+
+  <!-- 背景模拟页面 -->
+  <div class="stage">
+    <div class="mock">
+      <div class="top">
+        <div class="logo"></div>
+        <div class="m" style="width:70px"></div>
+        <div class="m" style="width:50px"></div>
+        <div class="m" style="width:60px"></div>
+        <div class="m" style="width:40px"></div>
+      </div>
+      <div class="pageh">Open Menu</div>
+      <div class="grid">
+        <div class="card"><div class="l" style="width:60%"></div><div class="s" style="width:90%"></div><div class="s" style="width:75%"></div></div>
+        <div class="card"><div class="l" style="width:50%"></div><div class="s" style="width:85%"></div><div class="s" style="width:70%"></div></div>
+        <div class="card"><div class="l" style="width:65%"></div><div class="s" style="width:92%"></div><div class="s" style="width:60%"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 关闭态 -->
+  <div class="closed" id="closed">
+    <button class="open-btn" id="openBtn">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      搜索命令
+      <kbd>⌘ K</kbd>
+    </button>
+    <div class="hint">或按 Ctrl / ⌘ + K 唤起命令面板</div>
+  </div>
+
+  <!-- 命令面板 -->
+  <div class="overlay" id="overlay">
+    <div class="command" role="dialog" aria-modal="true">
+      <div class="cmd-search">
+        <div class="cmd-input-wrap">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <input class="cmd-input" id="input" type="text" placeholder="Type a command or search..." autocomplete="off">
+        </div>
+      </div>
+
+      <div class="cmd-list" id="list">
+        <!-- 由 JS 渲染 -->
+      </div>
+
+      <div class="empty" id="empty">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/><path d="M8 11h6"/></svg>
+        <div>没有找到匹配的命令</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+<script>
+/* ========== 图标（Lucide，stroke 风格） ========== */
+const ICONS = {
+  home: '<path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>',
+  inbox: '<polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>',
+  fileText: '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/>',
+  folder: '<path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>',
+  plus: '<path d="M5 12h14"/><path d="M12 5v14"/>',
+  folderPlus: '<path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/><path d="M12 10v6"/><path d="M9 13h6"/>',
+  copy: '<rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>'
+};
+const svg = (name, size=18) =>
+  `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICONS[name]}</svg>`;
+
+/* ========== 命令数据 ========== */
+const GROUPS = [
+  { label:'Navigation', items:[
+    { icon:'home', label:'Home', kbd:'⌘H' },
+    { icon:'inbox', label:'Inbox', kbd:'⌘I' },
+    { icon:'fileText', label:'Documents', kbd:'⌘D' },
+    { icon:'folder', label:'Folders', kbd:'⌘F' },
+  ]},
+  { label:'Actions', items:[
+    { icon:'plus', label:'New File', kbd:'⌘N' },
+    { icon:'folderPlus', label:'New Folder', kbd:'⇧⌘N' },
+    { icon:'copy', label:'Copy', kbd:'⌘C' },
+  ]}
+];
+
+/* ========== 渲染 ========== */
+const listEl = document.getElementById('list');
+const emptyEl = document.getElementById('empty');
+const input = document.getElementById('input');
+let activeIndex = 0;
+
+function matches(it){
+  const q = input.value.trim().toLowerCase();
+  return !q || it.label.toLowerCase().includes(q);
+}
+
+function render(){
+  let html = '';
+  let flatIndex = 0;
+  GROUPS.forEach((g, gi) => {
+    const visible = g.items.filter(it => matches(it));
+    if(!visible.length) return;
+    if(html) html += '<div class="divider"></div>';
+    html += `<div class="group-label">${g.label}</div>`;
+    visible.forEach(it => {
+      const idx = flatIndex++;
+      html += `<div class="item" data-index="${idx}" data-label="${it.label}">
+        <span class="ic">${svg(it.icon)}</span>
+        <span class="lbl">${it.label}</span>
+        <span class="kbd">${it.kbd}</span>
+      </div>`;
+    });
+  });
+  listEl.innerHTML = html;
+  const count = listEl.querySelectorAll('.item').length;
+  emptyEl.style.display = count ? 'none' : 'block';
+  if(activeIndex > count - 1) activeIndex = Math.max(0, count - 1);
+  updateActive();
+  bindItems();
+}
+
+function updateActive(){
+  const items = [...listEl.querySelectorAll('.item')];
+  items.forEach((el,i) => el.classList.toggle('active', i === activeIndex));
+  const cur = items[activeIndex];
+  if(cur) cur.scrollIntoView({block:'nearest'});
+}
+
+function bindItems(){
+  listEl.querySelectorAll('.item').forEach(el => {
+    el.addEventListener('mousemove', () => {
+      const i = +el.dataset.index;
+      if(i !== activeIndex){ activeIndex = i; updateActive(); }
+    });
+    el.addEventListener('click', () => run(el.dataset.label));
+  });
+}
+
+/* ========== 行为 ========== */
+const overlay = document.getElementById('overlay');
+const closed = document.getElementById('closed');
+const toastEl = document.getElementById('toast');
+let toastTimer;
+
+function showToast(msg){
+  toastEl.textContent = msg;
+  toastEl.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>toastEl.classList.remove('show'), 1800);
+}
+
+function run(label){
+  showToast('已执行：' + label);
+  closePanel();
+}
+
+function openPanel(){
+  overlay.classList.add('open');
+  closed.style.display = 'none';
+  input.value = '';
+  activeIndex = 0;
+  render();
+  setTimeout(()=>input.focus(), 30);
+}
+function closePanel(){
+  overlay.classList.remove('open');
+  closed.style.display = 'flex';
+}
+
+document.getElementById('openBtn').addEventListener('click', openPanel);
+
+/* 键盘 */
+document.addEventListener('keydown', (e) => {
+  const isOpen = overlay.classList.contains('open');
+  if((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k'){
+    e.preventDefault();
+    isOpen ? closePanel() : openPanel();
+    return;
+  }
+  if(!isOpen) return;
+  const count = listEl.querySelectorAll('.item').length;
+  if(e.key === 'ArrowDown'){ e.preventDefault(); activeIndex = (activeIndex + 1) % count; updateActive(); }
+  else if(e.key === 'ArrowUp'){ e.preventDefault(); activeIndex = (activeIndex - 1 + count) % count; updateActive(); }
+  else if(e.key === 'Enter'){
+    e.preventDefault();
+    const cur = listEl.querySelector('.item.active');
+    if(cur) run(cur.dataset.label);
+  }
+  else if(e.key === 'Escape'){ closePanel(); }
+});
+
+input.addEventListener('input', () => { activeIndex = 0; render(); });
+
+// 初始即展示打开的面板
+openPanel();
+</script>
+</body>
+</html>
+<!-- （注：内容由AI生成） -->

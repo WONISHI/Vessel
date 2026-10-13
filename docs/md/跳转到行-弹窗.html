@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vessel · 跳转到行 弹窗</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2316a34a' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12h14'/%3E%3Cpath d='M12 5v14'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://miaoda.feishu.cn" />
+<link rel="stylesheet" href="https://miaoda.feishu.cn/fonts/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap">
+<style>
+  :root{
+    --bg:#f3f2ef; --panel:#fff; --panel2:#faf9f7;
+    --line:#e7e5e4; --line2:#f0efed;
+    --ink:#1c1917; --ink2:#44403c; --ink3:#57534e; --ink4:#78716c; --ink5:#a8a29e; --ink6:#c4c0bb;
+    --green:#16a34a; --green-d:#15803d; --green-bg:#f0fdf4; --green-bg2:#dcfce7;
+    --red:#dc2626; --red-bg:#fef2f2;
+    --sans:"Noto Sans SC",-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    --mono:"SF Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{font-family:var(--sans);background:var(--bg);color:var(--ink);
+    display:flex;align-items:center;justify-content:center;padding:26px}
+  svg{display:block}
+
+  .window{width:880px;max-width:100%;background:var(--panel);border-radius:12px;overflow:hidden;
+    border:1px solid var(--line);box-shadow:0 20px 55px rgba(28,25,23,.16)}
+  .titlebar{height:40px;display:flex;align-items:center;padding:0 14px;gap:8px;
+    background:var(--panel2);border-bottom:1px solid var(--line2)}
+  .dots{display:flex;gap:7px}
+  .dots i{width:11px;height:11px;border-radius:50%}
+  .dots i:nth-child(1){background:#ff5f57}.dots i:nth-child(2){background:#febc2e}.dots i:nth-child(3){background:#28c840}
+  .titlebar .t{font-size:12.5px;color:var(--ink4);font-weight:500;margin-left:4px}
+  .titlebar .sp{flex:1}
+  .openbtn{display:flex;align-items:center;gap:6px;height:26px;padding:0 11px;border-radius:6px;
+    border:1px solid var(--line);background:#fff;font-size:11.5px;color:var(--ink3);cursor:pointer}
+  .openbtn:hover{background:#f7f6f4;color:var(--ink2)}
+  .openbtn .kbd{font-family:var(--mono);font-size:10px;background:#f5f5f4;border:1px solid var(--line);
+    border-radius:4px;padding:1px 5px}
+
+  .editor-wrap{position:relative;height:430px;display:flex;flex-direction:column}
+  .editor{flex:1;overflow:auto;position:relative;font-family:var(--mono)}
+  .code-inner{padding:12px 0;min-width:max-content}
+  .line{display:flex;align-items:flex-start;height:19px;font-size:12.5px;line-height:19px;white-space:pre}
+  .ln{width:52px;flex:none;text-align:right;padding-right:14px;color:var(--ink6);user-select:none}
+  .tx{color:var(--ink2)}
+  .tx .cm{color:#8a8580;font-style:italic}
+  .tx .kw{color:#9333ea}
+  .tx .str{color:#15803d}
+  .tx .fn{color:#2563eb}
+  .line.active{background:var(--green-bg)}
+  .line.active .ln{color:var(--green-d)}
+  .line.flash{background:#fef9c3;animation:flash 1.4s ease}
+  .line.flash .ln{color:#b45309}
+  @keyframes flash{0%{background:#fef08a}100%{background:transparent}}
+
+  /* 跳转弹窗（无蒙层，顶部居中） */
+  .goto{position:absolute;top:14px;left:50%;transform:translateX(-50%) translateY(-8px);
+    width:360px;max-width:calc(100% - 40px);background:#fff;border:1px solid var(--line);border-radius:10px;
+    box-shadow:0 12px 34px rgba(28,25,23,.18);opacity:0;pointer-events:none;transition:.16s ease;z-index:20}
+  .goto.show{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto}
+  .goto.err{border-color:#fca5a5;box-shadow:0 0 0 3px #fef2f2,0 12px 34px rgba(28,25,23,.18)}
+  .goto-row{display:flex;align-items:center;height:42px;padding:0 12px;gap:9px}
+  .goto-ic{flex:none;color:var(--ink5)}
+  .goto input{flex:1;border:0;outline:0;font-family:var(--mono);font-size:13px;color:var(--ink);background:transparent}
+  .goto input::placeholder{color:var(--ink6)}
+  .goto .meta{font-size:11px;color:var(--ink5);font-variant-numeric:tabular-nums;white-space:nowrap}
+  .goto-hint{display:flex;align-items:center;gap:8px;padding:7px 12px;border-top:1px solid var(--line2);
+    font-size:11px;color:var(--ink5)}
+  .goto-hint .kbd{font-family:var(--mono);font-size:10px;background:#f5f5f4;border:1px solid var(--line);
+    border-radius:4px;padding:1px 5px;color:var(--ink3)}
+  .goto-hint .sp{flex:1}
+  .goto-hint .target{color:var(--green-d);font-family:var(--mono)}
+  .goto-hint .errmsg{color:var(--red)}
+
+  .statusbar{height:32px;flex:none;display:flex;align-items:center;padding:0 10px;gap:2px;
+    background:#f6f5f3;border-top:1px solid var(--line)}
+  .sb{display:flex;align-items:center;gap:6px;height:24px;padding:0 8px;border-radius:4px;font-size:12px;color:var(--ink4)}
+  .sb .sp{flex:1}
+  .sb.static{font-variant-numeric:tabular-nums}
+
+  .toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(8px);background:#1c1917;
+    color:#fff;font-size:12.5px;padding:9px 16px;border-radius:9px;opacity:0;transition:.18s;z-index:60;
+    box-shadow:0 8px 24px rgba(0,0,0,.25);display:flex;align-items:center;gap:7px}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  @media (max-width:640px){
+    body{padding:0}
+    .window{border-radius:0;border-left:0;border-right:0}
+    .goto input{font-size:16px}
+  }
+</style>
+</head>
+<body>
+
+<div class="window">
+  <div class="titlebar">
+    <span class="dots"><i></i><i></i><i></i></span>
+    <span class="t">git-service.ts — Vessel</span>
+    <span class="sp"></span>
+    <button class="openbtn" id="openBtn">
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+      跳转到行
+      <span class="kbd">Ctrl+G</span>
+    </button>
+  </div>
+
+  <div class="editor-wrap">
+    <div class="editor" id="editor">
+      <div class="code-inner" id="code"></div>
+    </div>
+
+    <div class="goto" id="goto">
+      <div class="goto-row">
+        <span class="goto-ic">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></svg>
+        </span>
+        <input id="gotoInput" placeholder="行:列，例如 12:20" autocomplete="off" spellcheck="false">
+        <span class="meta" id="gotoMeta">共 40 行</span>
+      </div>
+      <div class="goto-hint">
+        <span class="kbd">Enter</span> 跳转
+        <span class="kbd">Esc</span> 关闭
+        <span class="sp"></span>
+        <span id="gotoHint">输入行号</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="statusbar">
+    <div class="sb">
+      <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg>
+      main
+    </div>
+    <span class="sp"></span>
+    <div class="sb static" id="sbLn">行 1，列 1</div>
+    <div class="sb static">UTF-8</div>
+    <div class="sb static" id="sbTime">2026年10月13日 星期二</div>
+  </div>
+</div>
+
+<script>
+  var $ = function(s){return document.querySelector(s)};
+
+  var lines = [
+    "// Git 服务：基于 dugite 封装真实 Git 操作",
+    "import { GitProcess } from 'dugite';",
+    "import * as fs from 'fs';",
+    "import * as path from 'path';",
+    "",
+    "const GIT_PREFIX = ['--no-optional-locks'];",
+    "",
+    "async function raw(workdir, args) {",
+    "  const r = await GitProcess.exec(",
+    "    GIT_PREFIX.concat(args), workdir",
+    "  );",
+    "  return { stdout: r.stdout, stderr: r.stderr, exitCode: r.exitCode };",
+    "}",
+    "",
+    "// 解析仓库状态",
+    "export async function getStatus(workdir) {",
+    "  const r = await raw(workdir, [",
+    "    'status','--porcelain=v1','-b','-uall'",
+    "  ]);",
+    "  if (r.exitCode !== 0) throw new Error(r.stderr);",
+    "  return parseStatus(r.stdout);",
+    "}",
+    "",
+    "// 合并分支（真实 Git，支持冲突）",
+    "export async function merge(workdir, branch, noFf) {",
+    "  const args = ['merge', '--no-edit'];",
+    "  if (noFf) args.push('--no-ff');",
+    "  args.push(branch);",
+    "  const r = await raw(workdir, args);",
+    "  const op = {",
+    "    ok: r.exitCode === 0,",
+    "    hasConflicts: /CONFLICT/i.test(r.stdout),",
+    "    message: r.stdout.trim()",
+    "  };",
+    "  if (op.ok) op.message = `已合并 ${branch}`;",
+    "  return op;",
+    "}",
+    "",
+    "// 中止合并",
+    "export async function mergeAbort(workdir) {",
+    "  return raw(workdir, ['merge','--abort']);",
+    "}"
+  ];
+  var TOTAL = lines.length;
+
+  function highlight(text){
+    var esc = text.replace(/&/g,'&amp;').replace(/</g,'&lt;');
+    esc = esc
+      .replace(/(\/\/.*)$/,'<span class="cm">$1</span>')
+      .replace(/\b(import|from|const|async|await|function|export|return|if|throw|new)\b/g,'<span class="kw">$1</span>')
+      .replace(/'([^']*)'|`([^`]*)`/g,function(m){return '<span class="str">'+m+'</span>'})
+      .replace(/\b(raw|getStatus|merge|Error|parseStatus|GitProcess|exec)\b/g,'<span class="fn">$1</span>');
+    return esc;
+  }
+
+  var codeEl=$('#code');
+  var lineEls=[];
+  lines.forEach(function(txt,i){
+    var d=document.createElement('div');
+    d.className='line';
+    d.innerHTML='<span class="ln">'+(i+1)+'</span><span class="tx">'+(txt===''?'&nbsp;':highlight(txt))+'</span>';
+    codeEl.appendChild(d); lineEls.push(d);
+  });
+  $('#gotoMeta').textContent='共 '+TOTAL+' 行';
+
+  var gotoEl=$('#goto'), input=$('#gotoInput'),
+      hint=$('#gotoHint'), currentLine=1;
+
+  function setActive(n){
+    lineEls.forEach(function(l){l.classList.remove('active')});
+    if(lineEls[n-1]){lineEls[n-1].classList.add('active');}
+    currentLine=n;
+    $('#sbLn').textContent='行 '+n+'，列 1';
+  }
+
+  function openGoto(){
+    gotoEl.classList.add('show'); gotoEl.classList.remove('err');
+    input.value=String(currentLine);
+    input.focus(); input.select();
+    updateHint();
+  }
+  function closeGoto(){ gotoEl.classList.remove('show'); }
+
+  function parseVal(){
+    var m=input.value.match(/^\s*(\d+)\s*(?::\s*(\d+))?\s*$/);
+    if(!m) return null;
+    var ln=parseInt(m[1],10), col=m[2]?parseInt(m[2],10):1;
+    return {ln:ln,col:col};
+  }
+  function updateHint(){
+    var v=parseVal();
+    if(!v){
+      gotoEl.classList.add('err');
+      hint.className='errmsg';
+      hint.innerHTML='格式无效，请输入数字（如 12 或 12:20）';
+      return;
+    }
+    gotoEl.classList.remove('err');
+    hint.className='';
+    if(v.ln<1 || v.ln>TOTAL){
+      hint.className='errmsg';
+      hint.innerHTML='行号超出范围（1 – '+TOTAL+'）';
+      return;
+    }
+    hint.innerHTML='→ 跳转至 <span class="target">第 '+v.ln+' 行'+(v.col>1?'，第 '+v.col+' 列':'')+'</span>';
+  }
+  function jump(){
+    var v=parseVal();
+    if(!v || v.ln<1 || v.ln>TOTAL){ updateHint(); return; }
+    setActive(v.ln);
+    var l=lineEls[v.ln-1];
+    l.classList.add('flash');
+    l.scrollIntoView({block:'center',behavior:'smooth'});
+    setTimeout(function(){l.classList.remove('flash')},1500);
+    closeGoto();
+    toast('已跳转到第 '+v.ln+' 行');
+  }
+
+  $('#openBtn').addEventListener('click',openGoto);
+  input.addEventListener('input',updateHint);
+  input.addEventListener('keydown',function(e){
+    if(e.key==='Enter'){e.preventDefault();jump();}
+    if(e.key==='Escape'){closeGoto();}
+  });
+  document.addEventListener('keydown',function(e){
+    if((e.ctrlKey||e.metaKey)&&(e.key==='g'||e.key==='G')){e.preventDefault();openGoto();}
+  });
+  lineEls.forEach(function(l,i){
+    l.addEventListener('click',function(){setActive(i+1)});
+  });
+
+  setActive(1);
+  openGoto();
+
+  function toast(msg){
+    var t=document.createElement('div');t.className='toast';
+    t.innerHTML='<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#16a34a" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'+msg;
+    document.body.appendChild(t);
+    requestAnimationFrame(function(){t.classList.add('show')});
+    setTimeout(function(){t.classList.remove('show');setTimeout(function(){t.remove()},200)},1800);
+  }
+</script>
+</body>
+</html>
+<!-- （注：内容由AI生成） -->

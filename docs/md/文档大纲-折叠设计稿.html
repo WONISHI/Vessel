@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vessel · 文档大纲 折叠设计稿</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2316a34a' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 6h13'/%3E%3Cpath d='M8 12h13'/%3E%3Cpath d='M8 18h13'/%3E%3Cpath d='M3 6h.01'/%3E%3Cpath d='M3 12h.01'/%3E%3Cpath d='M3 18h.01'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://miaoda.feishu.cn" />
+<link rel="stylesheet" href="https://miaoda.feishu.cn/fonts/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap">
+<style>
+  :root{
+    --bg:#f3f2ef; --panel:#fff; --panel2:#faf9f7;
+    --line:#e7e5e4; --line2:#f0efed;
+    --ink:#1c1917; --ink2:#44403c; --ink3:#57534e; --ink4:#78716c; --ink5:#a8a29e; --ink6:#c4c0bb;
+    --green:#16a34a; --green-d:#15803d; --green-bg:#f0fdf4; --green-bg2:#dcfce7;
+    --sans:"Noto Sans SC",-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    --mono:"SF Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{font-family:var(--sans);background:var(--bg);color:var(--ink);
+    display:flex;align-items:center;justify-content:center;padding:26px;gap:22px;flex-wrap:wrap}
+  svg{display:block}
+
+  /* ===== 窗口 ===== */
+  .window{width:300px;background:var(--panel);border-radius:12px;overflow:hidden;
+    border:1px solid var(--line);box-shadow:0 18px 50px rgba(28,25,23,.14)}
+  .titlebar{height:40px;flex:none;display:flex;align-items:center;padding:0 14px;gap:8px;
+    background:var(--panel2);border-bottom:1px solid var(--line2)}
+  .dots{display:flex;gap:7px}
+  .dots i{width:11px;height:11px;border-radius:50%}
+  .dots i:nth-child(1){background:#ff5f57}.dots i:nth-child(2){background:#febc2e}.dots i:nth-child(3){background:#28c840}
+  .titlebar .t{font-size:12.5px;color:var(--ink4);font-weight:500;margin-left:4px}
+
+  /* 文档头 */
+  .doc-head{display:flex;align-items:center;padding:11px 12px 9px}
+  .doc-head .fn{font-size:13px;font-weight:700;color:var(--ink);flex:1;white-space:nowrap;
+    overflow:hidden;text-overflow:ellipsis}
+  .doc-head .ic{width:26px;height:26px;border-radius:6px;display:flex;align-items:center;
+    justify-content:center;color:var(--ink4);cursor:pointer}
+  .doc-head .ic:hover{background:#f0efed;color:var(--ink2)}
+  .doc-head .ic.x:hover{color:var(--ink)}
+
+  /* ===== 大纲树 ===== */
+  .tree{padding-bottom:12px}
+  .row{display:flex;align-items:center;height:27px;padding-right:10px;cursor:pointer;
+    border-radius:7px;margin:0 6px}
+  .row:hover{background:#f7f6f4}
+  .row.active{background:var(--green-bg)}
+  .fold{width:16px;flex:none;display:flex;align-items:center;justify-content:center;color:var(--ink5);
+    height:22px;border-radius:4px;cursor:pointer}
+  .fold:hover{background:#eceae7;color:var(--ink3)}
+  .fold svg{transition:transform .15s ease}
+  .fold.open svg{transform:rotate(90deg)}
+  .leaf{width:16px;flex:none;display:flex;align-items:center;justify-content:center}
+  .leaf i{width:4px;height:4px;border-radius:50%;background:var(--ink6)}
+  .hb{width:21px;height:15px;border-radius:3px;flex:none;display:flex;align-items:center;
+    justify-content:center;font-family:var(--mono);font-size:8.5px;font-weight:700;letter-spacing:.2px;
+    margin-right:7px;padding-top:1px}
+  .hb1{background:var(--green-bg2);color:var(--green-d)}
+  .hb2{background:#eceae7;color:var(--ink3)}
+  .hb3{background:#f5f5f4;color:var(--ink5)}
+  .txt{flex:1;font-size:13px;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1}
+  .row.active .txt{color:var(--green-d);font-weight:700}
+  .txt.mono{font-family:var(--mono);font-size:12px}
+  .cnt{font-size:10px;color:var(--ink5);background:#f0efed;border-radius:9px;padding:1px 7px;
+    margin-left:6px;font-variant-numeric:tabular-nums}
+  .row.active .cnt{background:#dcfce7;color:var(--green-d)}
+
+  /* ===== 说明卡 ===== */
+  .side{width:238px;display:flex;flex-direction:column;gap:14px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;
+    box-shadow:0 10px 30px rgba(28,25,23,.08)}
+  .card h4{font-size:13px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:7px}
+  .card h4 svg{color:var(--green)}
+  .demo{display:flex;align-items:center;height:27px;margin:0 -4px}
+  .demo .lb{font-size:12px;color:var(--ink4);width:70px;flex:none}
+  .demo .mini{display:flex;align-items:center;gap:6px}
+  .mini .hb{margin-right:0}
+  .mini .fold{width:16px;height:16px}
+  .legend{font-size:11.5px;color:var(--ink3);line-height:1.7}
+  .legend b{color:var(--ink2)}
+  .legend .dot{display:inline-block;width:6px;height:6px;border-radius:50%;margin:0 4px}
+  .kbd{font-family:var(--mono);font-size:10px;background:#f5f5f4;border:1px solid var(--line);
+    border-radius:4px;padding:1px 5px;color:var(--ink3)}
+
+  /* toast */
+  .toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(8px);background:#1c1917;
+    color:#fff;font-size:12.5px;padding:9px 16px;border-radius:9px;opacity:0;transition:.18s;z-index:60;
+    box-shadow:0 8px 24px rgba(0,0,0,.25);display:flex;align-items:center;gap:7px}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  @media (max-width:640px){ body{padding:14px}.window{width:100%;max-width:340px}.side{width:100%;max-width:340px} }
+</style>
+</head>
+<body>
+
+  <!-- 主大纲面板 -->
+  <div class="window">
+    <div class="titlebar">
+      <span class="dots"><i></i><i></i><i></i></span>
+      <span class="t">大纲</span>
+    </div>
+    <div class="doc-head">
+      <span class="fn">交接文档.md</span>
+      <span class="ic" id="toggleAll" title="展开全部 / 折叠全部">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+      </span>
+      <span class="ic x" title="关闭大纲">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </span>
+    </div>
+    <div class="tree" id="tree"></div>
+  </div>
+
+  <!-- 说明 + 折叠态示例 -->
+  <div class="side">
+    <div class="card">
+      <h4>
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+        折叠样式
+      </h4>
+      <div class="demo">
+        <span class="lb">展开</span>
+        <span class="mini">
+          <span class="fold open"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+          <span class="hb hb2">H2</span>
+          <span style="font-size:12.5px;color:var(--ink2)">项目</span>
+        </span>
+      </div>
+      <div class="demo">
+        <span class="lb">折叠</span>
+        <span class="mini">
+          <span class="fold"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+          <span class="hb hb2">H2</span>
+          <span style="font-size:12.5px;color:var(--ink2)">项目</span>
+          <span class="cnt">3</span>
+        </span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h4>
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+        规则
+      </h4>
+      <div class="legend">
+        · 每个标题前有 <b>H 等级标识</b>：
+        <span class="dot" style="background:#28c840"></span>H1
+        <span class="dot" style="background:#a8a29e"></span>H2
+        <span class="dot" style="background:#d6d3d1"></span>H3<br>
+        · 有子标题才显示折叠箭头；无子标题显示小圆点占位<br>
+        · 点击箭头折叠，折叠后右侧显示子标题数<br>
+        · 点击标题文字跳转并选中（绿色高亮）<br>
+        · 快捷键 <span class="kbd">←</span> / <span class="kbd">→</span> 折叠展开
+      </div>
+    </div>
+  </div>
+
+<script>
+  var $ = function(s,r){return (r||document).querySelector(s)};
+
+  // 大纲数据
+  var tree = [
+    {h:1,text:'文档',children:[
+      {h:2,text:'账号'},
+      {h:2,text:'代理地址'},
+      {h:2,text:'项目',children:[
+        {h:3,text:'反查端'},
+        {h:3,text:'综合服务平台'},
+        {h:3,text:'惠州货站系统'}
+      ]},
+      {h:2,text:'coding',mono:true},
+      {h:2,text:'远程办公'}
+    ]}
+  ];
+  var activeId = '账号';
+
+  function countDesc(n){
+    if(!n.children) return 0;
+    return n.children.reduce(function(s,c){return s+1+countDesc(c)},0);
+  }
+
+  function render(){
+    var root=$('#tree'); root.innerHTML='';
+    function walk(nodes,depth){
+      nodes.forEach(function(n){
+        var row=document.createElement('div');
+        row.className='row'+(n.text===activeId?' active':'');
+        row.style.paddingLeft=(depth===1?7:0)+'px';
+        var indent=10+(depth-1)*15;
+        row.style.paddingLeft=indent+'px';
+
+        // 折叠区
+        if(n.children){
+          var fold=document.createElement('span');
+          fold.className='fold'+(n.collapsed?'':' open');
+          fold.innerHTML='<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>';
+          fold.title=n.collapsed?'展开':'折叠';
+          fold.addEventListener('click',function(e){e.stopPropagation();n.collapsed=!n.collapsed;render();});
+          row.appendChild(fold);
+        }else{
+          var leaf=document.createElement('span');
+          leaf.className='leaf'; leaf.innerHTML='<i></i>';
+          row.appendChild(leaf);
+        }
+
+        // H 标识
+        var hb=document.createElement('span');
+        hb.className='hb hb'+n.h; hb.textContent='H'+n.h;
+        row.appendChild(hb);
+
+        // 文本
+        var tx=document.createElement('span');
+        tx.className='txt'+(n.mono?' mono':''); tx.textContent=n.text;
+        row.appendChild(tx);
+
+        // 折叠计数
+        if(n.children && n.collapsed){
+          var c=document.createElement('span');
+          c.className='cnt'; c.textContent=countDesc(n);
+          row.appendChild(c);
+        }
+
+        row.addEventListener('click',function(){activeId=n.text; toast('跳转至「'+n.text+'」');render();});
+        root.appendChild(row);
+
+        if(n.children && !n.collapsed) walk(n.children,depth+1);
+      });
+    }
+    walk(tree,1);
+  }
+
+  // 全部展开/折叠
+  $('#toggleAll').addEventListener('click',function(){
+    var anyOpen=false;
+    function chk(nodes){nodes.forEach(function(n){if(n.children){if(!n.collapsed)anyOpen=true;chk(n.children)}})}
+    chk(tree);
+    function set(nodes,v){nodes.forEach(function(n){if(n.children){n.collapsed=v;set(n.children,v)}})}
+    set(tree,anyOpen);
+    render();
+    toast(anyOpen?'已折叠全部':'已展开全部');
+  });
+  $('.doc-head .ic.x').addEventListener('click',function(){toast('关闭大纲视图')});
+
+  // toast
+  function toast(msg){
+    var t=document.createElement('div');t.className='toast';
+    t.innerHTML='<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#16a34a" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'+msg;
+    document.body.appendChild(t);
+    requestAnimationFrame(function(){t.classList.add('show')});
+    setTimeout(function(){t.classList.remove('show');setTimeout(function(){t.remove()},200)},1800);
+  }
+
+  render();
+</script>
+</body>
+</html>
+<!-- （注：内容由AI生成） -->
