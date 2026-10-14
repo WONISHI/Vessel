@@ -47,6 +47,15 @@ const vesselAPI = {
     ipcRenderer.on("browser:devtools-closed", callback)
     return () => ipcRenderer.removeListener("browser:devtools-closed", callback)
   },
+  onRequestClose: (callback: () => void) => {
+    const listener = () => callback()
+    ipcRenderer.on("app:request-close", listener)
+    return () => ipcRenderer.removeListener("app:request-close", listener)
+  },
+  confirmQuit: (): Promise<void> => ipcRenderer.invoke("app:confirm-quit"),
+  reportCrash: (crashed: boolean): Promise<void> => ipcRenderer.invoke("app:report-crash", crashed),
+  relaunchApp: (): Promise<void> => ipcRenderer.invoke("app:relaunch"),
+  reloadWindow: (): Promise<void> => ipcRenderer.invoke("app:reload"),
   onCommandPalette: (callback: () => void) => {
     const listener = () => callback()
     ipcRenderer.on("app:command", listener)

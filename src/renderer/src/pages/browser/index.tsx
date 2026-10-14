@@ -17,6 +17,7 @@ import { webviewAttributes } from "./webview-attributes"
 import { memo, useCallback, useEffect, useRef, useState } from "react"
 import type { WebviewTag } from "electron"
 import { ChevronUp, ChevronDown, ChevronRight, ArrowLeft, ArrowRight, RotateCw, Home, Globe, Plus, X, Search, LockKeyhole, Bookmark, Bug, SquareDashedMousePointer, Pin, Link2, ZoomIn } from "lucide-react"
+import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger } from "@/components/ui/context-menu"
 import { useRouter } from "@vessel/react-router"
 import Layout from "@/layout"
 import ActivityBar from "@/layout/activity-bar"
@@ -24,13 +25,15 @@ import { Button } from "@/components/ui/button"
 import { browserURL } from "./url"
 import "./index.css"
 
-type Tab = { ready?: boolean; openerId?: string; favicon?: string; id: string; url: string; title: string; loading: boolean; back: boolean; forward: boolean; error: string; zoom: number }
+type Tab = { ready?: boolean; openerId?: string; favicon?: string; id: string; url: string; title: string; loading: boolean; back: boolean; forward: boolean; error: string; zoom: number; pinned?: boolean }
 const newTab = (): Tab => ({ id: crypto.randomUUID(), url: "", title: "新标签页", loading: false, back: false, forward: false, error: "", zoom: 1 })
-const shortcuts = [
-  { title: "GitHub", url: "https://github.com" },
-  { title: "StackOverflow", url: "https://stackoverflow.com" },
-  { title: "MDN Docs", url: "https://developer.mozilla.org" },
-  { title: "React", url: "https://react.dev" }
+export type BookmarkItem = { title: string; url: string; favicon?: string }
+const shortcuts: BookmarkItem[] = [
+  { title: "GitHub", url: "https://github.com", favicon: "https://github.githubassets.com/favicons/favicon.svg" },
+  { title: "StackOverflow", url: "https://stackoverflow.com", favicon: "https://stackoverflow.com/favicon.ico" },
+  { title: "MDN Docs", url: "https://developer.mozilla.org", favicon: "https://developer.mozilla.org/favicon-48x48.png" },
+  { title: "React", url: "https://react.dev", favicon: "https://react.dev/favicon.ico" },
+  { title: "稀土掘金", url: "https://juejin.cn", favicon: "https://lf3-cdn-tos.bytescm.com/obj/static/xitu_juejin_web/static/favicons/favicon-32x32.png" }
 ]
 const Guest = memo(function Guest({ tab, visible, register, update }: { tab: Tab; visible: boolean; register: (id: string, view: WebviewTag | null) => void; update: (id: string, patch: Partial<Tab>) => void }) {
   const ref = useRef<WebviewTag | null>(null)
@@ -263,6 +266,54 @@ export default function BrowserPage({ visible = true }: { visible?: boolean }) {
       setInput(null)
     }
   }
+  const addTabRightOf = (targetId: string) => {
+    const item = newTab()
+    setTabs((current) => {
+      const index = current.findIndex((t) => t.id === targetId)
+      if (index < 0) return [...current, item]
+      const next = [...current]
+      next.splice(index + 1, 0, item)
+      return next
+    })
+    setActive(item.id)
+    setInput(null)
+  }
+  const reloadTab = (id: string) => {
+    const view = views.current.get(id)
+    withGuest(view, (guest) => guest.reload())
+  }
+  const togglePinTab = (id: string) => {
+    setTabs((current) => current.map((t) => t.id === id ? { ...t, pinned: !t.pinned } : t))
+  }
+  const closeOtherTabs = (id: string) => {
+    setTabs((current) => current.filter((t) => t.id === id || t.pinned))
+    setActive(id)
+    setInput(null)
+  }
+  const closeRightTabs = (id: string) => {
+    setTabs((current) => {
+      const index = current.findIndex((t) => t.id === id)
+      if (index < 0) return current
+      const remaining = current.filter((t, i) => i <= index || t.pinned)
+      if (!remaining.some((t) => t.id === tab.id)) {
+        setActive(id)
+        setInput(null)
+      }
+      return remaining
+    })
+  }
+  const [dragTabId, setDragTabId] = useState<string | null>(null)
+  const reorderTabs = (sourceId: string, targetId: string) => {
+    setTabs((current) => {
+      const sourceIndex = current.findIndex((item) => item.id === sourceId)
+      const targetIndex = current.findIndex((item) => item.id === targetId)
+      if (sourceIndex < 0 || targetIndex < 0) return current
+      const next = [...current]
+      const [moved] = next.splice(sourceIndex, 1)
+      next.splice(targetIndex, 0, moved)
+      return next
+    })
+  }
   useEffect(() => {
     const action = (event: Event) => { const detail = (event as CustomEvent<{ action: string; id: string }>).detail; if (detail.action === "new") add(); else if (detail.action === "close") close(detail.id) }
     window.addEventListener("vessel-browser-tab-action", action)
@@ -275,7 +326,7 @@ export default function BrowserPage({ visible = true }: { visible?: boolean }) {
   }
   const bookmark = () => {
     if (!tab.url) return
-    const next = bookmarks.some((item) => item.url === tab.url) ? bookmarks.filter((item) => item.url !== tab.url) : [...bookmarks, { url: tab.url, title: tab.title }]
+    const next = bookmarks.some((item) => item.url === tab.url) ? bookmarks.filter((item) => item.url !== tab.url) : [...bookmarks, { url: tab.url, title: tab.title, favicon: tab.favicon }]
     setBookmarks(next)
     localStorage.setItem("browser-bookmarks", JSON.stringify(next))
   }
@@ -293,36 +344,76 @@ export default function BrowserPage({ visible = true }: { visible?: boolean }) {
       <main className="vessel-browser flex min-w-0 flex-1 flex-col overflow-hidden font-sans">
         <div className="browser-tabs">
           {tabs.map((item) => (
-            <div
-              key={item.id}
-              className={`browser-tab ${item.id === tab.id ? "selected" : ""}`}
-            >
-              <button
-                onClick={() => {
-                  setActive(item.id)
-                  setInput(null)
-                }}
-                className="browser-tab-select flex min-w-0 flex-1 items-center gap-2"
-              >
-                {item.favicon ? <img src={item.favicon} alt="" className="size-4 shrink-0 object-contain" onError={() => update(item.id, { favicon: undefined })} /> : <Globe size={14} className="shrink-0 text-green-600" />}
-                <span className="truncate">{item.title}</span>
-              </button>
-              <button
-                title="关闭标签页"
-                onClick={() => close(item.id)}
-              >
-                <X size={14} />
-              </button>
-            </div>
+            <ContextMenu key={item.id}>
+              <ContextMenuTrigger asChild>
+                <div
+                  draggable
+                  onDragStart={(e) => { e.dataTransfer.setData("text/plain", item.id); setDragTabId(item.id) }}
+                  onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move" }}
+                  onDrop={(e) => { e.preventDefault(); const sourceId = e.dataTransfer.getData("text/plain") || dragTabId; if (sourceId && sourceId !== item.id) reorderTabs(sourceId, item.id) }}
+                  onDragEnd={() => setDragTabId(null)}
+                  className={`browser-tab ${item.id === tab.id ? "selected" : ""} ${item.pinned ? "pinned" : ""}`}
+                >
+                  <button
+                    onClick={() => {
+                      setActive(item.id)
+                      setInput(null)
+                    }}
+                    className="browser-tab-select flex min-w-0 flex-1 items-center gap-2"
+                    title={item.title}
+                  >
+                    {item.favicon ? <img src={item.favicon} alt="" className="size-4 shrink-0 object-contain" onError={() => update(item.id, { favicon: undefined })} /> : <Globe size={14} className="shrink-0 text-green-600" />}
+                    {!item.pinned && <span className="truncate">{item.title}</span>}
+                  </button>
+                  {!item.pinned && (
+                    <button
+                      title="关闭标签页"
+                      onClick={() => close(item.id)}
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
+              </ContextMenuTrigger>
+              <ContextMenuContent className="w-44">
+                <ContextMenuItem onSelect={() => addTabRightOf(item.id)}>
+                  <Plus />在右侧新增标签页
+                </ContextMenuItem>
+                <ContextMenuItem onSelect={() => reloadTab(item.id)}>
+                  <RotateCw />重新加载
+                </ContextMenuItem>
+                <ContextMenuItem onSelect={() => togglePinTab(item.id)}>
+                  <Pin />{item.pinned ? "取消固定" : "固定"}
+                </ContextMenuItem>
+                <ContextMenuSeparator />
+                <ContextMenuItem onSelect={() => close(item.id)}>
+                  <X />关闭
+                </ContextMenuItem>
+                <ContextMenuItem onSelect={() => closeOtherTabs(item.id)}>
+                  关闭其他标签页
+                </ContextMenuItem>
+                <ContextMenuItem onSelect={() => closeRightTabs(item.id)}>
+                  关闭右侧标签页
+                </ContextMenuItem>
+              </ContextMenuContent>
+            </ContextMenu>
           ))}
-          <TabSwitcher tabs={tabs.filter(item => Boolean(item.url)).map(item => ({ ...item, active: item.id === tab.id }))} onSelect={id => { setActive(id); setInput(null) }}><Button
-            variant="ghost"
-            size="icon"
-            title="新标签页"
-            onClick={add}
-          >
-            <Plus />
-          </Button></TabSwitcher>
+          <div className="flex h-[var(--browser-tab-height)] w-[var(--browser-tab-height)] shrink-0 items-center justify-center">
+            <TabSwitcher
+              tabs={tabs.map(item => ({ ...item, active: item.id === tab.id }))}
+              onSelect={id => { setActive(id); setInput(null) }}
+            >
+              <Button
+                variant="ghost"
+                size="icon"
+                title="新标签页"
+                className="h-[var(--browser-tab-height)] w-[var(--browser-tab-height)] rounded-t-lg rounded-b-none text-stone-500 hover:bg-stone-200"
+                onClick={add}
+              >
+                <Plus className="size-4" />
+              </Button>
+            </TabSwitcher>
+          </div>
         </div>
         <div className="relative shrink-0">
 

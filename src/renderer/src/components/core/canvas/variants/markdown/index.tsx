@@ -4,17 +4,24 @@ import { WikiLinkPreview } from "./wiki-link-preview"
 import { DocumentStats } from "./document-stats"
 import { outlineHeading } from "./outline-heading"
 import { PageLoading } from "@/components/ui/page-loading"
-import { useWorkspace } from "@/pages/workspace/hooks/useWorkspace"
+import { useContext, Suspense } from "react"
+import { WorkspaceContext } from "@/pages/workspace/types/workspace"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { DocumentOutline } from "./document-outline"
+import { highlightKeywordInVditor } from "@/pages/search/reveal-hit"
 import { VditorEditor } from "./vditor-editor"
 import "./index.css"
+import { lazyWithRetry } from "@/lib/lazy-retry"
+
+const ExcalidrawCanvas = lazyWithRetry(() => import("@/components/core/canvas/variants/excalidraw"))
 
 /** 即时编辑文档；基于实际渲染标题同步大纲和滚动位置。 */
-export default function MarkdownCanvas({ activeFilePath }: { activeFilePath: string }) {
-  const { workspace } = useWorkspace()
+export default function MarkdownCanvas({ activeFilePath, workspacePath: customWorkspacePath, highlightKeyword, revealLine }: { activeFilePath: string; workspacePath?: string; highlightKeyword?: string; revealLine?: number }) {
+  const context = useContext(WorkspaceContext)
+  const workspacePath = customWorkspacePath || context?.workspace.path || ""
   const [loaded, setLoaded] = useState<{ path: string; content: string; error?: string } | null>(null)
   const [saveState, setSaveState] = useState<{ path: string; message: string; failed?: boolean } | null>(null)
+  const [asExcalidraw, setAsExcalidraw] = useState(false)
   const saveRevision = useRef(0)
   const drafts = useRef(new Map<string, string>())
   const contentHost = useRef<HTMLDivElement>(null)
@@ -78,8 +85,55 @@ export default function MarkdownCanvas({ activeFilePath }: { activeFilePath: str
       cancelAnimationFrame(frame)
     }
   }, [activeFilePath])
+
+  useEffect(() => {
+    if (!highlightKeyword || !highlightKeyword.trim()) return
+    const host = contentHost.current
+    if (!host) return
+    let tries = 0
+    let timer: ReturnType<typeof setTimeout>
+    const attempt = () => {
+      const editor = host.querySelector<HTMLElement>(".vditor-ir .vditor-reset")
+      if (!editor) {
+        if (++tries < 30) timer = setTimeout(attempt, 100)
+        return
+      }
+      highlightKeywordInVditor(editor, highlightKeyword)
+    }
+    timer = setTimeout(attempt, 120)
+    return () => clearTimeout(timer)
+  }, [highlightKeyword, revealLine, activeFilePath, externalRevision])
+
+  const hasExcalidraw = Boolean(
+    current?.content &&
+      (current.content.includes("excalidraw-plugin: parsed") ||
+        current.content.includes("# Excalidraw Data"))
+  )
+
+  if (hasExcalidraw && asExcalidraw) {
+    return (
+      <Suspense fallback={<PageLoading label="正在载入白板…" />}>
+        <ExcalidrawCanvas activeFilePath={activeFilePath} workspacePath={workspacePath} />
+      </Suspense>
+    )
+  }
+
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-white">
+      {hasExcalidraw && (
+        <div className="flex h-8 shrink-0 items-center justify-between border-b border-emerald-100 bg-emerald-50 px-4 text-xs text-emerald-800">
+          <span className="flex items-center gap-1.5 font-medium">
+            <span>🎨</span>
+            <span>当前文档包含 Excalidraw 白板绘图</span>
+          </span>
+          <button
+            onClick={() => setAsExcalidraw(true)}
+            className="rounded bg-emerald-600 px-2.5 py-0.5 text-xs font-medium text-white hover:bg-emerald-700"
+          >
+            切换为白板视图
+          </button>
+        </div>
+      )}
       <div className="flex min-h-0 flex-1 overflow-hidden">
         <div
           ref={contentHost}
@@ -97,7 +151,7 @@ export default function MarkdownCanvas({ activeFilePath }: { activeFilePath: str
           ) : (
             <VditorEditor
               key={`${activeFilePath}:${externalRevision}`}
-              workspacePath={workspace.path}
+              workspacePath={workspacePath}
               documentPath={activeFilePath}
               value={current.content}
               onChange={(content) => {
@@ -115,7 +169,7 @@ export default function MarkdownCanvas({ activeFilePath }: { activeFilePath: str
           )}
         </div>
         <DocumentOutline
-          workspacePath={workspace.path}
+          workspacePath={workspacePath}
           documentPath={activeFilePath}
           sections={sections}
           fileName={activeFilePath.split(/[\\/]/).pop()}
@@ -127,7 +181,7 @@ export default function MarkdownCanvas({ activeFilePath }: { activeFilePath: str
           }}
         />
       </div>
-      <WikiLinkPreview key={`${activeFilePath}:${externalRevision}`} host={contentHost} workspacePath={workspace.path} />
+      <WikiLinkPreview key={`${activeFilePath}:${externalRevision}`} host={contentHost} workspacePath={workspacePath} />
       <DocumentStats source={current?.content ?? ""} saveStatus={saveState?.path === activeFilePath ? saveState : undefined} />
     </div>
   )

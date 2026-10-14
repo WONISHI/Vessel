@@ -4,7 +4,7 @@ import { useRouter } from '@vessel/react-router'
 import { localFileURL } from '../../../../../../../shared/local-file-url'
 import { addTransitFile } from "@/components/transit/state"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
-import { Copy, FolderOpen, FilePlus2, FolderPlus, Pencil, Trash2, Pin, File, Code, Globe } from "lucide-react"
+import { Copy, FolderOpen, FilePlus2, FolderPlus, Pencil, Trash2, Pin, File, Code, Globe, Search } from "lucide-react"
 import { useCallback, useRef, useState, type ReactNode } from "react"
 import { useWorkspace } from "@/pages/workspace/hooks/useWorkspace"
 import type { WorkspaceNode } from "@/pages/workspace/types/workspace"
@@ -12,7 +12,7 @@ import type { WorkspaceNode } from "@/pages/workspace/types/workspace"
 let copiedFile: string | null = null
 
 /** 普通文件右键菜单，成功后更新标签与目录缓存。删除使用系统废纸篓。 */
-export function FileActions({ node, children, onChanged, onCreate }: { node: WorkspaceNode; children: ReactNode; onChanged: () => void; onCreate?: (kind: "file" | "directory") => void }) {
+export function FileActions({ node, children, onChanged, onCreate, onSearchDirectory }: { node: WorkspaceNode; children: ReactNode; onChanged: () => void; onCreate?: (kind: "file" | "directory") => void; onSearchDirectory?: (path: string) => void }) {
   const { workspace, renameWorkspaceTab, closeWorkspaceFiles, openFiles, openWorkspaceFile } = useWorkspace()
   const router = useRouter()
   const [menuOpen, setMenuOpen] = useState(false)
@@ -88,6 +88,7 @@ export function FileActions({ node, children, onChanged, onCreate }: { node: Wor
           </ContextMenuSubContent>
         </ContextMenuSub>}
         {node.type === 'directory' && ([['file','新建文件',FilePlus2],['directory','新建文件夹',FolderPlus]] as const).map(([kind,label,Icon]) => <ContextMenuItem key={kind} onSelect={() => onCreate?.(kind)}><Icon />{label}</ContextMenuItem>)}
+        {node.type === 'directory' && onSearchDirectory && <ContextMenuItem onSelect={() => onSearchDirectory(node.path)}><Search />在文件夹中搜索</ContextMenuItem>}
         <ContextMenuItem onSelect={() => { copiedFile = node.path }}><Copy />复制</ContextMenuItem>
         {copiedFile && <ContextMenuItem disabled={busy} onSelect={() => {
           const source = copiedFile!

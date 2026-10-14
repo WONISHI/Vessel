@@ -12,9 +12,21 @@ import { createRoot } from "react-dom/client"
 
 import router from "./router"
 import { RouterProvider } from "@vessel/react-router/components"
+import { GlobalErrorBoundary } from "./components/core/error-boundary/crash-fallback"
+
+// 监听未捕获的致命运行时错误
+window.addEventListener("error", (event) => {
+  console.error("Window error caught:", event.error)
+})
+
+window.addEventListener("unhandledrejection", (event) => {
+  console.error("Unhandled promise rejection:", event.reason)
+})
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <RouterProvider router={router} />
+    <GlobalErrorBoundary>
+      <RouterProvider router={router} />
+    </GlobalErrorBoundary>
   </StrictMode>
 )

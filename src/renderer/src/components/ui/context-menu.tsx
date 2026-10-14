@@ -12,3 +12,6 @@ export const ContextMenuContent = React.forwardRef<React.ElementRef<typeof Primi
 ContextMenuContent.displayName = 'ContextMenuContent'
 export const ContextMenuItem = React.forwardRef<React.ElementRef<typeof Primitive.Item>, React.ComponentPropsWithoutRef<typeof Primitive.Item>>(({ className, ...props }, ref) => <Primitive.Item ref={ref} className={cn('relative flex cursor-default select-none items-center gap-2 rounded-md px-2 py-1.5 text-xs outline-none data-[highlighted]:bg-green-600 data-[highlighted]:text-white data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:size-3.5 [&_svg]:shrink-0', className)} {...props} />)
 ContextMenuItem.displayName = 'ContextMenuItem'
+export const ContextMenuSeparator = React.forwardRef<React.ElementRef<typeof Primitive.Separator>, React.ComponentPropsWithoutRef<typeof Primitive.Separator>>(({ className, ...props }, ref) => <Primitive.Separator ref={ref} className={cn('-mx-1 my-1 h-px bg-stone-200', className)} {...props} />)
+ContextMenuSeparator.displayName = 'ContextMenuSeparator'
+

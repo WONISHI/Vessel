@@ -2,7 +2,21 @@ import { useLayoutEffect, useRef, useState } from 'react'
 import { ChevronsRight, Globe } from 'lucide-react'
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
 import { ScrollArea } from '@/components/ui/scroll-area'
-export function BookmarkBar({ items, onNavigate }: { items: { url: string; title: string }[]; onNavigate: (url: string) => void }) {
+function BookmarkIcon({ url, favicon }: { url: string; favicon?: string }) {
+  const [failed, setFailed] = useState(false)
+  let iconUrl = favicon
+  if (!iconUrl && url && /^https?:\/\//i.test(url)) {
+    try {
+      iconUrl = `${new URL(url).origin}/favicon.ico`
+    } catch {}
+  }
+  if (!iconUrl || failed) {
+    return <Globe size={12} className="shrink-0 text-stone-400" />
+  }
+  return <img src={iconUrl} alt="" className="size-3.5 shrink-0 object-contain" onError={() => setFailed(true)} />
+}
+
+export function BookmarkBar({ items, onNavigate }: { items: { url: string; title: string; favicon?: string }[]; onNavigate: (url: string) => void }) {
   const container = useRef<HTMLDivElement>(null), measure = useRef<HTMLDivElement>(null)
   const [count, setCount] = useState(items.length), [open, setOpen] = useState(false)
   useLayoutEffect(() => {
@@ -18,7 +32,7 @@ export function BookmarkBar({ items, onNavigate }: { items: { url: string; title
     if (container.current) observer.observe(container.current)
     update(); return () => observer.disconnect()
   }, [items])
-  const button = (item: typeof items[number], hidden = false) => <button key={item.url} title={`${item.title}\n${item.url}`} tabIndex={hidden ? -1 : undefined} onClick={() => { onNavigate(item.url); setOpen(false) }} className="flex max-w-40 shrink-0 items-center gap-1.5 rounded px-1.5 py-1 text-xs hover:bg-stone-100"><Globe size={12} className="shrink-0" /><span className="truncate">{item.title}</span></button>
+  const button = (item: typeof items[number], hidden = false) => <button key={item.url} title={`${item.title}\n${item.url}`} tabIndex={hidden ? -1 : undefined} onClick={() => { onNavigate(item.url); setOpen(false) }} className="flex max-w-40 shrink-0 items-center gap-1.5 rounded px-1.5 py-1 text-xs hover:bg-stone-100"><BookmarkIcon url={item.url} favicon={item.favicon} /><span className="truncate">{item.title}</span></button>
   return <div ref={container} className="browser-bookmarks relative min-w-0 overflow-hidden">
     <div ref={measure} aria-hidden className="pointer-events-none invisible absolute flex gap-2 whitespace-nowrap">{items.map(item => button(item, true))}</div>
     {items.slice(0,count).map(item => button(item))}

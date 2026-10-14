@@ -1,16 +1,17 @@
-import { useEffect, useState } from "react"
+import { useContext, useEffect, useState } from "react"
 import { PdfDocument } from "@/components/pdf-document"
-import { useWorkspace } from "@/pages/workspace/hooks/useWorkspace"
+import { WorkspaceContext } from "@/pages/workspace/types/workspace"
 
 export { PdfDocument }
 
-export default function PdfCanvas({ activeFilePath }: { activeFilePath: string }) {
-  const { workspace } = useWorkspace()
+export default function PdfCanvas({ activeFilePath, workspacePath: customWorkspacePath }: { activeFilePath: string; workspacePath?: string }) {
+  const context = useContext(WorkspaceContext)
+  const workspacePath = customWorkspacePath || context?.workspace.path || ""
   const [result, setResult] = useState<{ path: string; bytes?: Uint8Array; error?: string }>()
   useEffect(() => {
     let active = true
     void window.electronAPI
-      .readTransitFile(workspace.path, activeFilePath)
+      .readTransitFile(workspacePath, activeFilePath)
       .then((file) => {
         if (active && file.kind === "pdf") setResult({ path: activeFilePath, bytes: file.bytes })
       })
@@ -20,7 +21,7 @@ export default function PdfCanvas({ activeFilePath }: { activeFilePath: string }
     return () => {
       active = false
     }
-  }, [workspace.path, activeFilePath])
+  }, [workspacePath, activeFilePath])
   if (result?.path !== activeFilePath) return <p className="p-4 text-sm">正在读取 PDF…</p>
   if (result.error)
     return (

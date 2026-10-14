@@ -183,6 +183,11 @@ interface VesselAPI extends BrowserProxyAPI, BrowserToolsAPI, SettingsAPI, Brows
 
   /** 打开或关闭开发者工具。 */
   openDevTool: () => Promise<void>
+  onRequestClose?: (callback: () => void) => () => void
+  confirmQuit?: () => Promise<void>
+  reportCrash?: (crashed: boolean) => Promise<void>
+  relaunchApp?: () => Promise<void>
+  reloadWindow?: () => Promise<void>
 }
 
 declare global {

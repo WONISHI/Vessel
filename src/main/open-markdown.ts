@@ -52,6 +52,12 @@ export function registerMarkdownOpening() {
       if (window.isMinimized()) window.restore()
       window.show()
       window.focus()
+      void import("./index").then(({ getAppCrashed, setAppCrashed }) => {
+        if (getAppCrashed() || window.webContents.isCrashed()) {
+          setAppCrashed(false)
+          window.webContents.reload()
+        }
+      }).catch(() => {})
     }
   })
   ipcMain.handle("markdown:pending", event => {

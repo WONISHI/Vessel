@@ -4,6 +4,7 @@ export interface AppSettings {
   externalScreenshot?: boolean
   externalPreview?: boolean
   monitorNavigation?: boolean
+  globalSearchEnabled?: boolean
   name: string
   email: string
   avatar: string
@@ -14,7 +15,7 @@ export interface AppSettings {
   backup: { enabled?: boolean; workspacePath?: string; endpoint: string; accessKey: string; bucket: string; region: string; prefix: string; automatic: boolean; minutes: 5 | 10 | 30; hasSecret: boolean; secretLength?: number }
 }
 export const defaultSettings: AppSettings = {
-  searchEngine: "bing", proxyEnabled: false, externalScreenshot: true, externalPreview: true, monitorNavigation: false, name: "本地用户", email: "", avatar: "", theme: "light", font: "Plus Jakarta Sans", fontSize: 14, accent: "#16a34a",
+  searchEngine: "bing", proxyEnabled: false, externalScreenshot: true, externalPreview: true, monitorNavigation: false, globalSearchEnabled: false, name: "本地用户", email: "", avatar: "", theme: "light", font: "Plus Jakarta Sans", fontSize: 14, accent: "#16a34a",
   backup: { enabled: false, endpoint: "", accessKey: "", bucket: "", region: "us-east-1", prefix: "backups/", automatic: false, minutes: 10, hasSecret: false }
 }
 export interface BackupStatus { changed?: number; deleted?: number; time?: string; size?: number; error?: string; running: boolean }

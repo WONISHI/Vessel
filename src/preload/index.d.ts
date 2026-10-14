@@ -170,6 +170,11 @@ export interface VesselAPI extends BrowserProxyAPI, BrowserToolsAPI, SettingsAPI
   saveContent: (path: string, content: string) => Promise<void>
 
   openDevTool: () => Promise<void>
+  onRequestClose?: (callback: () => void) => () => void
+  confirmQuit?: () => Promise<void>
+  reportCrash?: (crashed: boolean) => Promise<void>
+  relaunchApp?: () => Promise<void>
+  reloadWindow?: () => Promise<void>
 }
 
 declare global {

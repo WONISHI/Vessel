@@ -17,7 +17,7 @@ import CanvasContent from '@/components/core/canvas'
 import { ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem } from '@/components/ui/context-menu'
 import { Pin, Copy, Columns2 } from 'lucide-react'
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from "@/components/ui/dropdown-menu"
-import { File, Home, X, MoreHorizontal, ChevronLeft, ChevronRight, SquareChevronRight, SquareChevronDown } from "lucide-react"
+import { File, Home, X, MoreHorizontal, ChevronLeft, ChevronRight, SquareChevronRight, SquareChevronDown, LayoutTemplate } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { RouterView } from "@vessel/react-router/components"
 import { useLocation } from "react-router-dom"
@@ -140,7 +140,13 @@ export default function LayoutMain({ resources = false }: { resources?: boolean 
                     onClick={() => openWorkspaceFile(file)}
                     className={cn("h-[32px] min-w-0 max-w-[200px] gap-1.5 whitespace-nowrap px-2.5 text-[13px] text-inherit hover:bg-transparent hover:text-inherit", active ? "font-medium" : "font-normal")}
                   >
-                    {pinned.includes(file.path) ? <Pin className="!size-[15px] text-[#646a73]" /> : <File className={cn("!size-[15px]", active ? "text-[#646a73]" : "text-[#8f959e]")} />}
+                    {pinned.includes(file.path) ? (
+                      <Pin className="!size-[15px] text-[#646a73]" />
+                    ) : /\.(excalidraw(\.md)?|canvas)$/i.test(file.name) ? (
+                      <LayoutTemplate className={cn("!size-[15px]", active ? "text-amber-600" : "text-amber-500")} />
+                    ) : (
+                      <File className={cn("!size-[15px]", active ? "text-[#646a73]" : "text-[#8f959e]")} />
+                    )}
                     <span className="truncate">{file.name}</span>
                   </Button>
                   {!pinned.includes(file.path) && <Button
@@ -220,7 +226,7 @@ export default function LayoutMain({ resources = false }: { resources?: boolean 
             <TooltipContent>标签页操作</TooltipContent>
           </Tooltip>
           <DropdownMenuContent align="end" className="w-44 rounded-lg !bg-white p-1 [&_[role=menuitem]]:px-2 [&_[role=menuitem]]:py-1.5 [&_[role=menuitem]]:text-xs [&_[role=menuitem]]:font-normal [&_[role=menuitem]:focus]:!bg-[#f0efed] [&_[role=menuitem]:focus]:!text-stone-700 [&_[role=menuitem][data-state=open]]:!bg-[#f0efed]">
-            <DropdownMenuSub><DropdownMenuSubTrigger>标签页（{openFiles.length}）</DropdownMenuSubTrigger><DropdownMenuSubContent className="w-72 overflow-hidden !bg-white [&_[role=menuitem]]:py-1.5 [&_[role=menuitem]]:text-xs [&_[role=menuitem]:focus]:!bg-[#f0efed] [&_[role=menuitem]:focus]:!text-stone-700"><ScrollArea className="[&_[data-radix-scroll-area-viewport]]:max-h-72 [&_[data-radix-scroll-area-viewport]>div]:!block">{openFiles.map(file => <DropdownMenuItem key={file.path} className={file.path === activeFilePath ? "bg-[#f0efed] text-stone-700" : ""} onSelect={() => openWorkspaceFile(file)}><span className="truncate">{file.name}</span></DropdownMenuItem>)}</ScrollArea></DropdownMenuSubContent></DropdownMenuSub>
+            <DropdownMenuSub><DropdownMenuSubTrigger>标签页（{openFiles.length}）</DropdownMenuSubTrigger><DropdownMenuSubContent className="w-48 overflow-hidden !bg-white [&_[role=menuitem]]:py-1.5 [&_[role=menuitem]]:text-xs [&_[role=menuitem]:focus]:!bg-[#f0efed] [&_[role=menuitem]:focus]:!text-stone-700"><ScrollArea className="[&_[data-radix-scroll-area-viewport]]:max-h-72 [&_[data-radix-scroll-area-viewport]>div]:!block">{openFiles.map(file => <DropdownMenuItem key={file.path} className={file.path === activeFilePath ? "bg-[#f0efed] text-stone-700" : ""} onSelect={() => openWorkspaceFile(file)}><span className="truncate">{file.name}</span></DropdownMenuItem>)}</ScrollArea></DropdownMenuSubContent></DropdownMenuSub>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               disabled={!activeFilePath}
@@ -256,7 +262,7 @@ export default function LayoutMain({ resources = false }: { resources?: boolean 
             <ResizablePanel id="primary-document" minSize="20%" className="flex min-h-0 flex-col"><div ref={contentHost} className="flex min-h-0 min-w-0 flex-1 flex-col overflow-auto">{resources ? (home ? <WorkspaceHome /> : <Canvas />) : <RouterView />}</div></ResizablePanel>
             {splitPath && <><ResizableHandle aria-label="调整右侧编辑区宽度" /><ResizablePanel id="split-document" defaultSize="50%" minSize="20%" className="flex min-h-0 flex-col">
               <div className="flex h-9 shrink-0 items-center gap-2 border-b px-3 text-xs text-stone-600"><File className="size-3.5" /><span className="min-w-0 flex-1 truncate" title={splitPath}>{splitPath.split(/[\\/]/).pop()}</span><Button variant="ghost" size="icon" className="size-6" aria-label="关闭右侧拆分" onClick={() => setSplitPath(null)}><X className="!size-3.5" /></Button></div>
-              <StatusTarget.Provider value={null}><CanvasContent key={splitPath} activeFilePath={splitPath} fileType={splitPath.split(/[\\/]/).pop()?.split('.').slice(1).pop()} /></StatusTarget.Provider>
+              <StatusTarget.Provider value={null}><CanvasContent key={splitPath} activeFilePath={splitPath} workspacePath={workspace.path} fileType={splitPath.split(/[\\/]/).pop()?.split('.').slice(1).pop()} /></StatusTarget.Provider>
             </ResizablePanel></>}
           </ResizablePanelGroup>
           <StatusBar left={<>

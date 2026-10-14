@@ -5,6 +5,13 @@ import { getFileExtension } from "@vessel/utils"
  * @returns 显示标签、图标颜色和标签背景样式。
  */
 export function getFilePresentation(name: string) {
+  const lowerName = name.toLowerCase()
+  if (lowerName.endsWith(".excalidraw.md") || lowerName.endsWith(".excalidraw") || lowerName.endsWith(".canvas")) {
+    return { label: "DRAW", color: "text-amber-500", badge: "bg-amber-100 text-amber-700" }
+  }
+  if (lowerName.endsWith(".excalidrawlib")) {
+    return { label: "LIB", color: "text-amber-500", badge: "bg-amber-100 text-amber-700" }
+  }
   const extension = getFileExtension(name)
   if (["md", "markdown"].includes(extension)) return { label: "MD", color: "text-violet-500", badge: "bg-violet-100 text-violet-600" }
   if (["ts", "tsx"].includes(extension)) return { label: extension.toUpperCase(), color: "text-blue-500", badge: "bg-blue-100 text-blue-600" }

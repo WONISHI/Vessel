@@ -2,7 +2,7 @@ import { useCallback, useState, Fragment } from "react"
 import { parseImageReference, resizeImageReference } from "@vessel/obsidian"
 import { Image } from "@/components/ui/image"
 
-function ObsidianImage({ reference, root, documentPath, onChange, onFocusBelow, readOnly = false }: { onFocusBelow?: () => void; readOnly?: boolean; reference: string; root: string; documentPath: string; onChange: (reference: string) => void }) {
+function ObsidianImage({ reference, root, documentPath, onChange, onFocusAbove, onFocusBelow, readOnly = false }: { onFocusAbove?: () => void; onFocusBelow?: () => void; readOnly?: boolean; reference: string; root: string; documentPath: string; onChange: (reference: string) => void }) {
   const embed = parseImageReference(reference)!
   const [selected, setSelected] = useState(false)
   const loadSource = useCallback(() => (/^data:image\//.test(embed.target) ? Promise.resolve(embed.target) : window.electronAPI.readObsidianImage(root, documentPath, reference)), [embed.target, root, documentPath, reference])
@@ -22,6 +22,7 @@ function ObsidianImage({ reference, root, documentPath, onChange, onFocusBelow, 
           const saved = await window.electronAPI.saveObsidianImage(root, documentPath, { url: embed.target })
           onChange(embed.width ? resizeImageReference(saved.reference, embed.width) : saved.reference)
         } : undefined}
+        onFocusAbove={readOnly ? undefined : onFocusAbove}
         onFocusBelow={readOnly ? undefined : onFocusBelow}
         sourceKey={`${root}:${documentPath}:${reference}`}
         loadSource={loadSource}
@@ -32,7 +33,7 @@ function ObsidianImage({ reference, root, documentPath, onChange, onFocusBelow, 
     </span>
   )
 }
-export function ObsidianImageLine({ source, root, documentPath, onChange, onFocusBelow, readOnly = false }: { onFocusBelow?: () => void; readOnly?: boolean; source: string; root: string; documentPath: string; onChange: (source: string) => void }) {
+export function ObsidianImageLine({ source, root, documentPath, onChange, onFocusAbove, onFocusBelow, readOnly = false }: { onFocusAbove?: () => void; onFocusBelow?: () => void; readOnly?: boolean; source: string; root: string; documentPath: string; onChange: (source: string) => void }) {
   return (
     <span className="block py-2">
       {source.split(/(!\[\[[^\]\n]+\]\]|!\[[^\]\n]*\]\([^\n]+?\))/g).map((part, index) => (
@@ -40,6 +41,7 @@ export function ObsidianImageLine({ source, root, documentPath, onChange, onFocu
           {parseImageReference(part) ? (
             <ObsidianImage
               readOnly={readOnly}
+              onFocusAbove={onFocusAbove}
               onFocusBelow={onFocusBelow}
               reference={part}
               onChange={(updated) =>

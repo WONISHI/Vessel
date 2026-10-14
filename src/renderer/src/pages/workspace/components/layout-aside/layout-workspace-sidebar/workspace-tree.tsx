@@ -21,9 +21,11 @@ export default function WorkspaceTree({
   onDraftFinish,
   revealPath,
   onRevealed,
-  onCreate
+  onCreate,
+  onSearchDirectory
 }: {
   onCreate?: (parent: string, kind: "file" | "directory") => void
+  onSearchDirectory?: (path: string) => void
   viewport: HTMLElement | null
   recent?: boolean
   revealPath?: string
@@ -171,6 +173,7 @@ export default function WorkspaceTree({
           }} className={dropTarget === node.path ? 'rounded-md ring-2 ring-green-500' : undefined}>
           <FileActions
             node={node}
+            onSearchDirectory={onSearchDirectory}
             onCreate={(kind) => {
               setDirectoryExpanded(node.path, true)
               void loadDirectoryChildren(node.path)

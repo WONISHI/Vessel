@@ -1,10 +1,11 @@
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogAction } from "@/components/ui/alert-dialog"
 import { useCallback, useRef, useState } from "react"
-import { FilePlus2, FolderPlus, FileCode2, FileText } from "lucide-react"
+import { FilePlus2, FolderPlus, FileCode2, FileText, LayoutTemplate } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
 import { useWorkspace } from "@/pages/workspace/hooks/useWorkspace"
+import { createNewExcalidrawContent } from "@/components/core/canvas/variants/excalidraw/parser"
 
 export interface EntryDraft {
   parent: string
@@ -49,7 +50,7 @@ export function CreateEntry({ kind, onStart }: { kind: EntryDraft["kind"]; onSta
           onCloseAutoFocus={(event) => event.preventDefault()}
           onOpenAutoFocus={(event) => event.preventDefault()}
         >
-          {["md", "js", "ts", "json", "jsx", "html", "css", "vue", ""].map((extension) => (
+          {["md", "excalidraw.md", "js", "ts", "json", "jsx", "html", "css", "vue", ""].map((extension) => (
             <Button
               key={extension}
               variant="ghost"
@@ -59,8 +60,18 @@ export function CreateEntry({ kind, onStart }: { kind: EntryDraft["kind"]; onSta
                 setOpen(false)
               }}
             >
-              {extension === "md" ? <FileText className="!size-3.5" /> : <FileCode2 className="!size-3.5" />}
-              {extension ? `新建 ${extension.toUpperCase()} 文件` : "新建自定义文件"}
+              {extension === "md" ? (
+                <FileText className="!size-3.5" />
+              ) : extension === "excalidraw.md" ? (
+                <LayoutTemplate className="!size-3.5" />
+              ) : (
+                <FileCode2 className="!size-3.5" />
+              )}
+              {extension === "excalidraw.md"
+                ? "新建白板 (.excalidraw.md)"
+                : extension
+                  ? `新建 ${extension.toUpperCase()} 文件`
+                  : "新建自定义文件"}
             </Button>
           ))}
         </PopoverContent>
@@ -87,6 +98,9 @@ export function InlineEntryEditor({ draft, onFinish }: { draft: EntryDraft; onFi
     setError("")
     try {
       const node = await window.electronAPI.createWorkspaceEntry(workspace.path, draft.parent, name.trim(), draft.kind)
+      if (draft.kind === "file" && name.toLowerCase().endsWith(".excalidraw.md")) {
+        await window.electronAPI.saveContent(node.path, createNewExcalidrawContent(name))
+      }
       onFinish(true)
       if (draft.kind === "file") openWorkspaceFile(node)
     } catch (reason) {

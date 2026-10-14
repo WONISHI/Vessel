@@ -2,20 +2,26 @@ import { CreateEntry, type EntryDraft } from "./create-entry"
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
 import { useState } from "react"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Wrench, LocateFixed } from "lucide-react"
+import { Wrench, LocateFixed, Search } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { useWorkspace } from "@/pages/workspace/hooks/useWorkspace"
 import type { LayoutWorkspaceSidebarProps } from "@/pages/workspace/components/layout-aside/layout-workspace-sidebar/types"
 import WorkspaceTree from "@/pages/workspace/components/layout-aside/layout-workspace-sidebar/workspace-tree"
 import { countFileNodes } from "@vessel/utils"
+import { SearchPanel } from "@/pages/search"
+import { revealSearchHit, type ContentMatch } from "@/pages/search/reveal-hit"
+import type { WorkspaceNode } from "@/pages/workspace/types/workspace"
 
 /** 根据活动显示工作区文件树、本次打开列表或开发工具。 */
 export default function LayoutWorkspaceSidebar({ activity }: LayoutWorkspaceSidebarProps) {
   const [revealPath, setRevealPath] = useState("")
   const [revision, setRevision] = useState(0)
   const [addedFiles, setAddedFiles] = useState(0)
-  const { workspace, activeFilePath, expandDirectory } = useWorkspace()
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [searchTarget, setSearchTarget] = useState("")
+  const [searchHit, setSearchHit] = useState<ContentMatch | null>(null)
+  const { workspace, activeFilePath, expandDirectory, openWorkspaceFile } = useWorkspace()
   const [draft, setDraft] = useState<EntryDraft | null>(null)
   const startEntry = (kind: EntryDraft["kind"], extension: string) => {
     const index = Math.max(activeFilePath.lastIndexOf("/"), activeFilePath.lastIndexOf("\\"))
@@ -47,6 +53,33 @@ export default function LayoutWorkspaceSidebar({ activity }: LayoutWorkspaceSide
   const [viewport, setViewport] = useState<HTMLDivElement | null>(null)
   const navigate = useNavigate()
   const workspaceName = workspace.path.split(/[\\/]/).filter(Boolean).pop() || workspace.name
+
+  if (activity === "files" && searchOpen) {
+    return (
+      <section
+        aria-label="工作区全文搜索"
+        className="vessel-search-sheet flex h-full w-full min-h-0 flex-col bg-white"
+      >
+        <SearchPanel
+          title="全文搜索"
+          root={searchTarget || workspace.path}
+          allowChangeFolder={false}
+          selected={searchHit}
+          onClose={() => setSearchOpen(false)}
+          onSelect={(match) => {
+            setSearchHit(match)
+            openWorkspaceFile({
+              name: match.path.split(/[\\/]/).pop() || match.path,
+              path: match.path,
+              type: "file"
+            } as WorkspaceNode)
+            revealSearchHit(match)
+          }}
+        />
+      </section>
+    )
+  }
+
   return (
     <section
       aria-label="工作区侧边栏"
@@ -66,6 +99,25 @@ export default function LayoutWorkspaceSidebar({ activity }: LayoutWorkspaceSide
         </Tooltip>
         {activity === "files" && (
           <div className="flex shrink-0 items-center">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label="全文搜索"
+                    className="size-6 text-stone-500 hover:bg-green-600 hover:text-white"
+                    onClick={() => {
+                      setSearchTarget(workspace.path)
+                      setSearchOpen(true)
+                    }}
+                  >
+                    <Search className="!size-3.5" />
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">全文搜索</TooltipContent>
+            </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
                 <span>
@@ -103,6 +155,10 @@ export default function LayoutWorkspaceSidebar({ activity }: LayoutWorkspaceSide
             key={`${workspace.path}-${activity}-${revision}`}
             draft={draft}
             onCreate={(parent, kind) => setDraft({parent, kind, extension: ""})}
+            onSearchDirectory={(path) => {
+              setSearchTarget(path)
+              setSearchOpen(true)
+            }}
             revealPath={revealPath}
             onRevealed={() => setRevealPath("")}
             onDraftFinish={(created) => {

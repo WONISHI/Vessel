@@ -21,9 +21,11 @@ if (!app.isPackaged) {
   mkdirSync(developmentData, { recursive: true })
   app.setPath("userData", developmentData)
 }
-const primaryInstance = app.requestSingleInstanceLock()
-if (!primaryInstance) { console.info("Vessel 已有实例运行，本次启动已交给现有实例。"); app.quit() }
-else registerMarkdownOpening()
+registerMarkdownOpening()
+
+let isAppCrashed = false
+export function getAppCrashed(): boolean { return isAppCrashed }
+export function setAppCrashed(crashed: boolean): void { isAppCrashed = crashed }
 
 let applicationWindow: BrowserWindow | undefined
 function createWindow(): void {
@@ -44,6 +46,34 @@ function createWindow(): void {
 
   applicationWindow = mainWindow
   mainWindow.on("closed", () => { if (applicationWindow === mainWindow) applicationWindow = undefined })
+
+  mainWindow.webContents.on("render-process-gone", () => {
+    isAppCrashed = true
+  })
+
+  ipcMain.removeHandler("app:confirm-quit")
+  ipcMain.handle("app:confirm-quit", () => {
+    app.quit()
+  })
+
+  ipcMain.removeHandler("app:report-crash")
+  ipcMain.handle("app:report-crash", (_event, crashed: boolean) => {
+    isAppCrashed = Boolean(crashed)
+  })
+
+  ipcMain.removeHandler("app:relaunch")
+  ipcMain.handle("app:relaunch", () => {
+    app.relaunch()
+    app.exit(0)
+  })
+
+  ipcMain.removeHandler("app:reload")
+  ipcMain.handle("app:reload", () => {
+    isAppCrashed = false
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.reload()
+    }
+  })
 
   if (process.platform === "win32") {
     mainWindow.setOverlayIcon(null, "")
@@ -84,7 +114,6 @@ function createWindow(): void {
 }
 
 app.whenReady().then(() => {
-  if (!primaryInstance) return
   electronApp.setAppUserModelId("com.your.app")
 
   mainApps.activate()
@@ -121,9 +150,7 @@ app.whenReady().then(() => {
 })
 
 app.on("window-all-closed", () => {
-  if (process.platform !== "darwin") {
-    app.quit()
-  }
+  app.quit()
 })
 
 app.on("before-quit", () => {

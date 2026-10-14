@@ -89,7 +89,12 @@ export function secureBrowserGuests(contents: WebContents) {
         ::-webkit-scrollbar-thumb:hover { background-color: #a1a1aa; }
       `).catch(() => {})
     })
-    guest.session.setPermissionRequestHandler((_webContents, _permission, callback) => callback(false))
-    guest.session.setPermissionCheckHandler(() => false)
+    const allowedPermissions = new Set(['clipboard-read', 'clipboard-sanitized-write', 'clipboard-write', 'fullscreen'])
+    guest.session.setPermissionRequestHandler((_webContents, permission, callback) => {
+      callback(allowedPermissions.has(permission) || permission.startsWith('clipboard'))
+    })
+    guest.session.setPermissionCheckHandler((_webContents, permission) => {
+      return allowedPermissions.has(permission) || permission.startsWith('clipboard')
+    })
   })
 }

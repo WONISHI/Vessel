@@ -58,6 +58,9 @@ export default defineConfig({
     }
   },
   renderer: {
+    define: {
+      "process.env.IS_PREACT": JSON.stringify("false")
+    },
     worker: { format: "es" },
     optimizeDeps: { exclude: ["wasm-onlyoffice-sdk"] },
     build: { rollupOptions: { input: { index: resolve("src/renderer/index.html"), office: resolve("src/renderer/office.html"), screenshot: resolve("src/renderer/screenshot.html") } } },

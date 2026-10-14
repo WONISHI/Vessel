@@ -19,6 +19,7 @@ import error from "@/assets/vessel-image-placeholder/error-4x3.svg"
 export interface ImageProps extends Omit<ComponentPropsWithoutRef<"img">, "width"> {
   remote?: boolean
   onDownloadLocal?: () => Promise<void>
+  onFocusAbove?: () => void
   onFocusBelow?: () => void
   width?: number
   resizable?: boolean
@@ -42,7 +43,7 @@ export function Image(props: ImageProps) {
     />
   )
 }
-function ImageContent({ remote = false, src, srcSet, alt = "", width = 480, resizable = true, className, onError, onLoad, onResizeEnd, loadSource, onFocusBelow, onDownloadLocal, sourceKey: _sourceKey, placeholderRatio = "4x3", loading: _loading, ...props }: ImageProps) {
+function ImageContent({ remote = false, src, srcSet, alt = "", width = 480, resizable = true, className, onError, onLoad, onResizeEnd, loadSource, onFocusAbove, onFocusBelow, onDownloadLocal, sourceKey: _sourceKey, placeholderRatio = "4x3", loading: _loading, ...props }: ImageProps) {
   const host = useRef<HTMLSpanElement>(null)
   const [visible, setVisible] = useState(false)
   const [resolved, setResolved] = useState<string>()
@@ -154,6 +155,7 @@ function ImageContent({ remote = false, src, srcSet, alt = "", width = 480, resi
       </span></ContextMenuTrigger><ContextMenuContent onCloseAutoFocus={event => event.preventDefault()} className="z-[260]">
         <ContextMenuItem disabled={!loaded || !resolved} onSelect={() => { if (resolved) void imageClipboardSource(resolved).then(source => window.electronAPI.copyImage(source)).catch(error => toast.error(String(error))) }}>复制</ContextMenuItem>
         {onDownloadLocal && <ContextMenuItem disabled={downloading} onSelect={() => { setDownloading(true); void onDownloadLocal().catch(error => toast.error(String(error))).finally(() => setDownloading(false)) }}>{downloading ? '正在下载…' : '下载并替换为本地图片'}</ContextMenuItem>}
+        {onFocusAbove && <ContextMenuItem onSelect={() => requestAnimationFrame(onFocusAbove)}>在上方聚焦</ContextMenuItem>}
         {onFocusBelow && <ContextMenuItem onSelect={() => requestAnimationFrame(onFocusBelow)}>在下方聚焦</ContextMenuItem>}
         {[["crop", "截图"], ["ocr", "OCR 识别"], ["annotate", "标注"], ["convert", "格式转换"], ["compress", "压缩"], ["watermark", "加水印"], ["color", "取主色调"]].map(([id, title]) => <ContextMenuItem key={id} disabled={!loaded || !resolved || failed} onSelect={() => setTool(id)}>{title}</ContextMenuItem>)}
       </ContextMenuContent></ContextMenu>

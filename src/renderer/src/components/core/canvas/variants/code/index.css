@@ -17,3 +17,9 @@
 .vessel-code-editor .monaco-scrollable-element > .scrollbar > .slider.active {
   background-color: #a1a1aa !important;
 }
+.vessel-monaco-highlight {
+  background-color: #bbf7d0 !important;
+  color: #064e3b !important;
+  border-radius: 2px;
+  font-weight: 600;
+}

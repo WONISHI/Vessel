@@ -91,7 +91,9 @@
           "odt",
           "ods",
           "odp",
-          "csv"
+          "csv",
+          "canvas",
+          "excalidraw"
         ],
         "name": "Vessel Document",
         "description": "Vessel 支持的文档与图片",
@@ -150,9 +152,11 @@
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.2",
     "@electron-toolkit/utils": "^4.0.0",
+    "@excalidraw/excalidraw": "^0.18.1",
     "@parcel/watcher": "^2.6.0",
     "@vscode/ripgrep": "^1.18.0",
     "better-sqlite3": "^12.4.1",
+    "lz-string": "^1.5.0",
     "node-pty": "^1.1.0",
     "typescript": "^5.9.3",
     "yaml": "^2.9.1",
@@ -195,6 +199,7 @@
     "@testing-library/react": "^16.3.3",
     "@testing-library/user-event": "^14.6.6",
     "@types/better-sqlite3": "^7.6.13",
+    "@types/lz-string": "^1.5.0",
     "@types/node": "^22.19.1",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",

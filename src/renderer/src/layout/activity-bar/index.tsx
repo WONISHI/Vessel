@@ -1,7 +1,7 @@
 import { TransitButton } from "@/components/transit/button"
 import { useRouter } from "@vessel/react-router"
 import { useLocation } from "react-router-dom"
-import { Fragment, useEffect } from "react"
+import { Fragment, useEffect, useState } from "react"
 import { selectLastPinned } from "@/pages/resources/library-state"
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
 import { Sun, Settings } from "lucide-react"
@@ -21,6 +21,25 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
   const router = useRouter()
   const { open, openMobile, isMobile } = useSidebar()
   const expanded = isMobile ? openMobile : open
+  const [globalSearchEnabled, setGlobalSearchEnabled] = useState(false)
+  useEffect(() => {
+    let cancelled = false
+    const update = () => {
+      void window.electronAPI
+        .getSettings()
+        .then((s) => {
+          if (!cancelled) setGlobalSearchEnabled(!!s.globalSearchEnabled)
+        })
+        .catch(() => {})
+    }
+    update()
+    window.addEventListener("vessel:settings-saved", update)
+    return () => {
+      cancelled = true
+      window.removeEventListener("vessel:settings-saved", update)
+    }
+  }, [])
+  const visibleItems = ACTIVITY_ITEMS.filter((item) => item.id !== "search" || globalSearchEnabled)
   return (
     <TooltipProvider delayDuration={250}>
       <nav
@@ -50,7 +69,7 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
             {expanded ? "收起侧边栏" : "展开侧边栏"}
           </TooltipContent>
         </Tooltip>
-        {ACTIVITY_ITEMS.map(({ id, label, icon: Icon }) => (
+        {visibleItems.map(({ id, label, icon: Icon }) => (
           <Fragment key={id}>
           {id === "tools" && <TransitButton />}
           { <Tooltip>
@@ -60,7 +79,7 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
                 size="icon"
                 aria-label={label}
                 aria-pressed={activity === id}
-                onClick={() => { if (id === "search") { if (location.pathname.startsWith("/editor")) { onActivityChange(id); return } sessionStorage.setItem("vessel-open-search", "1"); const last = sessionStorage.getItem("vessel-last-editor-route"); void router.push(last?.startsWith("/editor") ? last : "/editor"); return } if (id === "browser") { onActivityChange(id); void router.push("/browser"); return } if (id === "tools") { void router.push("/devtools"); return } if (id === "files") { const last = sessionStorage.getItem("vessel-last-editor-route"); void router.push(last?.startsWith("/editor") ? last : "/editor"); return } if (id === "resources") { selectLastPinned(); onActivityChange(id); void router.push("/resources"); return } if (id === "office") { void router.push("/office"); return } onActivityChange(id) }}
+                onClick={() => { if (id === "search") { onActivityChange(id); void router.push("/search"); return } if (id === "browser") { onActivityChange(id); void router.push("/browser"); return } if (id === "tools") { void router.push("/devtools"); return } if (id === "files") { const last = sessionStorage.getItem("vessel-last-editor-route"); void router.push(last?.startsWith("/editor") ? last : "/editor"); return } if (id === "resources") { selectLastPinned(); onActivityChange(id); void router.push("/resources"); return } if (id === "office") { void router.push("/office"); return } onActivityChange(id) }}
                 onMouseEnter={id === "resources" ? onResourceEnter : undefined}
                 onMouseLeave={id === "resources" ? onResourceLeave : undefined}
                 className={cn("relative h-[38px] w-[38px] rounded-[10px] text-stone-500 hover:!bg-[#f0efed] hover:!text-stone-500", activity === id && "!bg-emerald-50 !text-green-700 hover:!bg-emerald-50 hover:!text-green-700")}

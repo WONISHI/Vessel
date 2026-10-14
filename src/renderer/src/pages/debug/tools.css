@@ -2,10 +2,12 @@
 .dev-tools .dev-sidebar-title { padding: 14px 14px 10px; font-size: 11px; font-weight: 700; color: #a8a29e; letter-spacing: .8px; }
 .dev-tools .dev-nav-group { margin-bottom: 10px; }
 .dev-tools .dev-nav-label { padding: 10px 10px 5px; font-size: 10.5px; letter-spacing: .5px; }
-.dev-tools .dev-nav-item { height: 34px; padding: 7px 10px; gap: 9px; border-radius: 7px; font-size: 13px; font-weight: 500; margin-bottom: 1px; }
-.dev-tools .dev-nav-item svg { width: 15px; height: 15px; color: #a8a29e; }
-.dev-tools .dev-nav-item[aria-current=page] { font-weight: 600; color: #15803d; box-shadow: 0 1px 3px #0000000f; }
-.dev-tools .dev-nav-item[aria-current=page] svg { color: #16a34a; }
+.dev-tools .dev-nav-item { height: 38px; padding: 8px 12px; gap: 10px; border-radius: 12px; font-size: 13px; font-weight: 500; margin-bottom: 3px; color: #57534e; transition: background-color .15s ease, color .15s ease; }
+.dev-tools .dev-nav-item svg { width: 16px; height: 16px; color: #78716c; }
+.dev-tools .dev-nav-item:hover:not([aria-current=page]) { background: #f5f5f4; color: #1c1917; }
+.dev-tools .dev-nav-item[aria-current=page] { font-weight: 600; color: #047857; background: #ecfdf5; box-shadow: none; }
+.dev-tools .dev-nav-item[aria-current=page]:hover { background: #ecfdf5; color: #047857; }
+.dev-tools .dev-nav-item[aria-current=page] svg { color: #059669; }
 .dev-tools main header { min-height: 44px; flex-shrink: 0; padding: 8px 16px; gap: 8px; border-color: #f0efed; }
 .dev-tools main header > span:first-child { display: flex; align-items: center; justify-content: center; width: 26px; height: 26px; padding: 0; border-radius: 6px; background: #f0fdf4; color: #16a34a; }
 .dev-tools main header > span:first-child svg { width: 14px; height: 14px; }

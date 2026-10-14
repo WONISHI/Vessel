@@ -18,6 +18,7 @@ import WorkspaceHome from "@/pages/workspace/components/layout-main/workspace-ho
 import Canvas from "@/pages/workspace/components/layout-main/canvas"
 
 import { createRouter, createWebHashHistory, type AppRouteRecordRaw } from "@vessel/react-router"
+import { RouterCrashFallback } from "@/components/core/error-boundary/crash-fallback"
 
 const STORAGE_KEY = "app_current_workspace"
 
@@ -237,6 +238,7 @@ const router = createRouter({
   routes: [
     {
       component: App,
+      errorElement: <RouterCrashFallback />,
       children: routes
     }
   ]

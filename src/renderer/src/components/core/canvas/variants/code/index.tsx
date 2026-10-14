@@ -12,7 +12,7 @@ import { matchesShortcut } from "../../../../../../../shared/shortcuts"
 import { Hash } from "lucide-react"
 import { parseLinePosition } from "./go-to-line"
 
-export default function CodeCanvas({ activeFilePath, revealPosition }: { activeFilePath: string; revealPosition?: { lineNumber: number; column: number } }) {
+export default function CodeCanvas({ activeFilePath, revealPosition, highlightKeyword }: { activeFilePath: string; revealPosition?: { lineNumber: number; column: number }; highlightKeyword?: string }) {
   const [content, setContent] = useState<string>()
   const [error, setError] = useState("")
   const [status, setStatus] = useState("")
@@ -21,14 +21,30 @@ export default function CodeCanvas({ activeFilePath, revealPosition }: { activeF
   const containerRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const [goto, setGoto] = useState(false)
+  const decorationsRef = useRef<string[]>([])
   const reveal = () => {
     const editor = editorRef.current, model = editor?.getModel()
     if (!editor || !model || !revealPosition) return
     const lineNumber = Math.max(1, Math.min(model.getLineCount(), revealPosition.lineNumber))
     editor.setPosition({ lineNumber, column: Math.max(1, Math.min(model.getLineMaxColumn(lineNumber), revealPosition.column)) })
     editor.revealLineInCenter(lineNumber)
+    if (highlightKeyword && highlightKeyword.trim()) {
+      const lineText = model.getLineContent(lineNumber)
+      const idx = lineText.toLowerCase().indexOf(highlightKeyword.trim().toLowerCase())
+      if (idx >= 0) {
+        decorationsRef.current = editor.deltaDecorations(decorationsRef.current, [
+          {
+            range: new monaco.Range(lineNumber, idx + 1, lineNumber, idx + 1 + highlightKeyword.trim().length),
+            options: {
+              inlineClassName: "vessel-monaco-highlight",
+              isWholeLine: false
+            }
+          }
+        ])
+      }
+    }
   }
-  useEffect(reveal, [revealPosition?.lineNumber, revealPosition?.column, content])
+  useEffect(reveal, [revealPosition?.lineNumber, revealPosition?.column, highlightKeyword, content])
   const [lineInput, setLineInput] = useState('1')
   const totalLines = content?.split('\n').length ?? 1
   const position = parseLinePosition(lineInput, totalLines, line => editorRef.current?.getModel()?.getLineMaxColumn(line) ?? 1)
