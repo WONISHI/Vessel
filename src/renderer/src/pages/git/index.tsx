@@ -23,7 +23,7 @@ import {
   Undo2
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { toast } from "sonner"
+import { toast } from "@/components/ui/sonner"
 import type {
   GitStatusResult,
   GitCommitItem,
@@ -71,6 +71,15 @@ function getInitialRepoPath(): string {
   } catch {}
 
   return ""
+}
+
+function cleanGitErrorMessage(e: any): string {
+  if (!e) return "未知错误"
+  const msg = typeof e === "string" ? e : e.message || String(e)
+  return msg
+    .replace(/^Error invoking remote method '[^']+':\s*/, "")
+    .replace(/^Error:\s*/, "")
+    .trim()
 }
 
 export default function SourceTreePage() {
@@ -172,7 +181,7 @@ export default function SourceTreePage() {
         setSelectedFile(null)
       }
     } catch (err: any) {
-      toast.error(`读取仓库信息失败：${err.message || String(err)}`)
+      toast.error("读取仓库信息失败", { description: cleanGitErrorMessage(err) })
     } finally {
       setLoading(false)
     }
@@ -225,7 +234,7 @@ export default function SourceTreePage() {
       await window.electronAPI.git.stage(repoPath, [path])
       await refresh()
     } catch (e: any) {
-      toast.error(`暂存失败: ${e.message}`)
+      toast.error("暂存失败", { description: cleanGitErrorMessage(e) })
     }
   }
 
@@ -234,7 +243,7 @@ export default function SourceTreePage() {
       await window.electronAPI.git.unstage(repoPath, [path])
       await refresh()
     } catch (e: any) {
-      toast.error(`取消暂存失败: ${e.message}`)
+      toast.error("取消暂存失败", { description: cleanGitErrorMessage(e) })
     }
   }
 
@@ -243,7 +252,7 @@ export default function SourceTreePage() {
       await window.electronAPI.git.stageAll(repoPath)
       await refresh()
     } catch (e: any) {
-      toast.error(`全部暂存失败: ${e.message}`)
+      toast.error("全部暂存失败", { description: cleanGitErrorMessage(e) })
     }
   }
 
@@ -252,7 +261,7 @@ export default function SourceTreePage() {
       await window.electronAPI.git.unstageAll(repoPath)
       await refresh()
     } catch (e: any) {
-      toast.error(`取消暂存失败: ${e.message}`)
+      toast.error("取消暂存失败", { description: cleanGitErrorMessage(e) })
     }
   }
 
@@ -263,7 +272,7 @@ export default function SourceTreePage() {
       await refresh()
       toast.success("已撤销修改")
     } catch (e: any) {
-      toast.error(`放弃修改失败: ${e.message}`)
+      toast.error("放弃修改失败", { description: cleanGitErrorMessage(e) })
     }
   }
 
@@ -275,7 +284,7 @@ export default function SourceTreePage() {
       await refresh()
       toast.success("已撤销修改")
     } catch (e: any) {
-      toast.error(`放弃修改失败: ${e.message}`)
+      toast.error("放弃修改失败", { description: cleanGitErrorMessage(e) })
     }
   }
 
@@ -297,7 +306,7 @@ export default function SourceTreePage() {
     try {
       await window.electronAPI.revealWorkspaceFile(repoPath, fullPath)
     } catch (e: any) {
-      toast.error(`在访达中显示失败: ${e.message || String(e)}`)
+      toast.error("在访达中显示失败", { description: cleanGitErrorMessage(e) })
     }
   }
 
@@ -308,7 +317,7 @@ export default function SourceTreePage() {
       await refresh()
       toast.success(`已检出提交: ${hash.slice(0, 7)}`)
     } catch (e: any) {
-      toast.error(`检出失败: ${e.message}`)
+      toast.error("检出失败", { description: cleanGitErrorMessage(e) })
     }
   }
 
@@ -320,7 +329,7 @@ export default function SourceTreePage() {
       await refresh()
       toast.success(`已创建标签: ${tag.trim()}`)
     } catch (e: any) {
-      toast.error(`创建标签失败: ${e.message}`)
+      toast.error("创建标签失败", { description: cleanGitErrorMessage(e) })
     }
   }
 
@@ -349,7 +358,32 @@ export default function SourceTreePage() {
       await refresh()
       toast.success(`已成功重置当前分支 (${mode})`)
     } catch (e: any) {
-      toast.error(`重置失败: ${e.message}`)
+      toast.error("重置失败", { description: cleanGitErrorMessage(e) })
+    }
+  }
+
+  const handleUndoLastCommit = async (mode: "mixed" | "soft" = "mixed") => {
+    if (!commits.length) {
+      toast.error("当前分支没有可撤销的提交")
+      return
+    }
+    const lastCommit = commits[0]
+    const modeDesc =
+      mode === "soft"
+        ? "撤销提交并将修改保留在【暂存区】"
+        : "撤销提交并将修改保留在【工作区 (未暂存)】"
+    if (
+      !confirm(
+        `确定撤销最后一次提交吗？\n\n提交：${lastCommit.shortHash} ${lastCommit.message}\n操作：${modeDesc}，代码改动不会丢失。`
+      )
+    )
+      return
+    try {
+      await window.electronAPI.git.reset(repoPath, "HEAD~1", mode)
+      await refresh()
+      toast.success(`已成功撤销提交 (${lastCommit.shortHash})`)
+    } catch (e: any) {
+      toast.error("撤销提交失败", { description: cleanGitErrorMessage(e) })
     }
   }
 
@@ -360,7 +394,7 @@ export default function SourceTreePage() {
       await refresh()
       toast.success(`已回滚提交: ${hash.slice(0, 7)}`)
     } catch (e: any) {
-      toast.error(`回滚失败: ${e.message}`)
+      toast.error("回滚失败", { description: cleanGitErrorMessage(e) })
     }
   }
 
@@ -380,7 +414,7 @@ export default function SourceTreePage() {
       await refresh()
       toast.success("提交成功")
     } catch (e: any) {
-      toast.error(`提交失败: ${e.message}`)
+      toast.error("提交失败", { description: cleanGitErrorMessage(e) })
     }
   }
 
@@ -391,7 +425,7 @@ export default function SourceTreePage() {
       await refresh()
       toast.success(`已切换至分支: ${branch}`)
     } catch (e: any) {
-      toast.error(`切换分支失败: ${e.message}`)
+      toast.error("切换分支失败", { description: cleanGitErrorMessage(e) })
     }
   }
 
@@ -402,7 +436,7 @@ export default function SourceTreePage() {
       toast.success(res.output || "拉取成功")
       await refresh()
     } catch (e: any) {
-      toast.error(`拉取失败: ${e.message}`)
+      toast.error("拉取失败", { description: cleanGitErrorMessage(e) })
     } finally {
       setLoading(false)
     }
@@ -415,7 +449,7 @@ export default function SourceTreePage() {
       toast.success(res.output || "推送成功")
       await refresh()
     } catch (e: any) {
-      toast.error(`推送失败: ${e.message}`)
+      toast.error("推送失败", { description: cleanGitErrorMessage(e) })
     } finally {
       setLoading(false)
     }
@@ -428,7 +462,7 @@ export default function SourceTreePage() {
       toast.success("已成功抓取远端更新")
       await refresh()
     } catch (e: any) {
-      toast.error(`抓取失败: ${e.message}`)
+      toast.error("抓取失败", { description: cleanGitErrorMessage(e) })
     } finally {
       setLoading(false)
     }
@@ -440,7 +474,7 @@ export default function SourceTreePage() {
       toast.success("已初始化 Git 仓库")
       await refresh()
     } catch (e: any) {
-      toast.error(`初始化失败: ${e.message}`)
+      toast.error("初始化失败", { description: cleanGitErrorMessage(e) })
     }
   }
 
@@ -589,10 +623,16 @@ export default function SourceTreePage() {
           </div>
         </header>
 
-      {/* 2. 主体区 (左右分栏) */}
-      <div className="flex flex-1 min-h-0 overflow-hidden">
-        {/* 左侧边栏导航 (SourceTree 风格) */}
-        <aside className="w-56 shrink-0 border-r border-stone-200 bg-stone-50/50 flex flex-col overflow-y-auto p-2 text-xs select-none">
+      {/* 2. 主体区 (左右分栏，1号支持 Resizable 水平拖拽) */}
+      <ResizablePanelGroup orientation="horizontal" className="flex-1 min-h-0 h-full w-full">
+        {/* 1号: 左侧边栏导航 (SourceTree 风格) */}
+        <ResizablePanel
+          id="git-sidebar-nav"
+          defaultSize="18%"
+          minSize="10%"
+          maxSize="35%"
+          className="bg-stone-50/50 flex flex-col overflow-y-auto p-2 text-xs select-none min-h-0"
+        >
           {/* 工作区区段 */}
           <div className="mb-4">
             <div className="px-2 py-1 text-[11px] font-semibold text-stone-400">工作空间</div>
@@ -682,10 +722,18 @@ export default function SourceTreePage() {
               ))}
             </div>
           )}
-        </aside>
+        </ResizablePanel>
+
+        {/* 1号: 拖拽调节左侧边栏宽度的分割线 */}
+        <ResizableHandle aria-label="调整左侧边栏宽度" />
 
         {/* 右侧主工作区 */}
-        <main className="flex-1 min-w-0 flex flex-col overflow-hidden">
+        <ResizablePanel
+          id="git-main-area"
+          defaultSize="82%"
+          minSize="65%"
+          className="flex-1 min-w-0 min-h-0 flex flex-col overflow-hidden"
+        >
           {!isRepo ? (
             <div className="flex flex-1 flex-col items-center justify-center p-6 text-center text-xs text-stone-500">
               <AlertCircle className="size-10 text-stone-300 mb-2" />
@@ -706,9 +754,17 @@ export default function SourceTreePage() {
                 maxSize="85%"
                 className="flex flex-col min-h-0 min-w-0 bg-stone-50/30"
               >
-                {/* 暂存区 */}
-                <div className="flex-1 min-h-0 flex flex-col border-b border-stone-200">
-                  <div className="flex items-center justify-between border-b border-stone-200 bg-stone-100/70 px-3 py-1.5 text-xs font-semibold text-stone-700">
+                {/* 2号: 垂直可调整面板组 (已暂存 / 未暂存，支持 Resizable 拖拽) */}
+                <ResizablePanelGroup orientation="vertical" className="flex-1 min-h-0 h-full w-full">
+                  {/* 已暂存区 */}
+                  <ResizablePanel
+                    id="git-staged-panel"
+                    defaultSize="50%"
+                    minSize="15%"
+                    maxSize="85%"
+                    className="flex flex-col min-h-0 min-w-0"
+                  >
+                    <div className="flex shrink-0 items-center justify-between border-b border-stone-200 bg-stone-100/70 px-3 py-1.5 text-xs font-semibold text-stone-700">
                     <span className="flex items-center gap-1.5">
                       <span>已暂存文件 (Staged)</span>
                       <span className="rounded-full bg-green-100 px-1.5 text-[10px] text-green-700">
@@ -798,11 +854,20 @@ export default function SourceTreePage() {
                       )}
                     </div>
                   </ScrollArea>
-                </div>
+                </ResizablePanel>
 
-                {/* 2号: 未暂存区 (滚动条使用 ScrollArea) */}
-                <div className="flex-1 min-h-0 flex flex-col">
-                  <div className="flex items-center justify-between border-b border-stone-200 bg-stone-100/70 px-3 py-1.5 text-xs font-semibold text-stone-700">
+                {/* 2号: 拖拽调整已暂存与未暂存区域高度的分割线 */}
+                <ResizableHandle aria-label="调整暂存与未暂存区域高度" />
+
+                {/* 2号: 未暂存区 */}
+                <ResizablePanel
+                  id="git-unstaged-panel"
+                  defaultSize="50%"
+                  minSize="15%"
+                  maxSize="85%"
+                  className="flex flex-col min-h-0 min-w-0"
+                >
+                  <div className="flex shrink-0 items-center justify-between border-b border-stone-200 bg-stone-100/70 px-3 py-1.5 text-xs font-semibold text-stone-700">
                     <span className="flex items-center gap-1.5">
                       <span>未暂存更改 (Unstaged)</span>
                       <span className="rounded-full bg-amber-100 px-1.5 text-[10px] text-amber-700">
@@ -911,10 +976,11 @@ export default function SourceTreePage() {
                       )}
                     </div>
                   </ScrollArea>
-                </div>
+                </ResizablePanel>
+                </ResizablePanelGroup>
 
                 {/* 底部提交输入栏 */}
-                <div className="border-t border-stone-200 p-2.5 bg-white">
+                <div className="border-t border-stone-200 p-2.5 bg-white shrink-0">
                   <textarea
                     rows={3}
                     value={commitMessage}
@@ -926,15 +992,28 @@ export default function SourceTreePage() {
                     }}
                   />
                   <div className="mt-2 flex items-center justify-between">
-                    <label className="flex items-center gap-1.5 text-[11px] text-stone-500 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={isAmend}
-                        onChange={(e) => setIsAmend(e.target.checked)}
-                        className="rounded border-stone-300"
-                      />
-                      <span>Amend 上次提交</span>
-                    </label>
+                    <div className="flex items-center gap-3">
+                      <label className="flex items-center gap-1.5 text-[11px] text-stone-500 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={isAmend}
+                          onChange={(e) => setIsAmend(e.target.checked)}
+                          className="rounded border-stone-300"
+                        />
+                        <span>修改上次提交</span>
+                      </label>
+                      {commits.length > 0 && (
+                        <button
+                          type="button"
+                          className="flex items-center gap-1 text-[11px] text-amber-600 hover:text-amber-800 hover:underline"
+                          onClick={() => void handleUndoLastCommit("mixed")}
+                          title="撤销最后一次提交并将修改保留在工作区 (git reset HEAD~1)"
+                        >
+                          <Undo2 className="size-3" />
+                          <span>撤销上次提交</span>
+                        </button>
+                      )}
+                    </div>
                     <Button
                       size="sm"
                       onClick={handleCommit}
@@ -1045,23 +1124,58 @@ export default function SourceTreePage() {
 
                               <ContextMenuSeparator />
 
+                              {idx === 0 && (
+                                <>
+                                  <ContextMenuSub>
+                                    <ContextMenuSubTrigger className="text-amber-700 focus:text-amber-800 font-medium">
+                                      <Undo2 className="size-3.5 text-amber-600" />
+                                      <span>撤销最后一次提交…</span>
+                                    </ContextMenuSubTrigger>
+                                    <ContextMenuSubContent className="w-64">
+                                      <ContextMenuItem onSelect={() => void handleUndoLastCommit("mixed")}>
+                                        <div className="flex flex-col gap-0.5">
+                                          <span className="font-medium text-stone-800">保留修改在工作区 (推荐)</span>
+                                          <span className="text-[10px] text-stone-400">git reset HEAD~1 (退回未暂存区)</span>
+                                        </div>
+                                      </ContextMenuItem>
+                                      <ContextMenuItem onSelect={() => void handleUndoLastCommit("soft")}>
+                                        <div className="flex flex-col gap-0.5">
+                                          <span className="font-medium text-stone-800">保留修改在暂存区</span>
+                                          <span className="text-[10px] text-stone-400">git reset --soft HEAD~1</span>
+                                        </div>
+                                      </ContextMenuItem>
+                                    </ContextMenuSubContent>
+                                  </ContextMenuSub>
+                                  <ContextMenuSeparator />
+                                </>
+                              )}
+
                               <ContextMenuSub>
                                 <ContextMenuSubTrigger>
                                   <RotateCcw className="size-3.5 text-orange-500" />
                                   <span>重置当前分支到此处</span>
                                 </ContextMenuSubTrigger>
-                                <ContextMenuSubContent className="w-56">
+                                <ContextMenuSubContent className="w-64">
                                   <ContextMenuItem onSelect={() => void handleResetBranch(c.hash, "mixed")}>
-                                    <span>混合重置 (--mixed, 默认)</span>
+                                    <div className="flex flex-col gap-0.5">
+                                      <span className="font-medium text-stone-800">混合重置 (--mixed, 默认)</span>
+                                      <span className="text-[10px] text-stone-400">回退到此，修改保留在工作区</span>
+                                    </div>
                                   </ContextMenuItem>
                                   <ContextMenuItem onSelect={() => void handleResetBranch(c.hash, "soft")}>
-                                    <span>软重置 (--soft, 保留修改)</span>
+                                    <div className="flex flex-col gap-0.5">
+                                      <span className="font-medium text-stone-800">软重置 (--soft, 保留暂存)</span>
+                                      <span className="text-[10px] text-stone-400">回退到此，修改保留在暂存区</span>
+                                    </div>
                                   </ContextMenuItem>
                                   <ContextMenuItem
                                     className="text-red-600 focus:text-red-600"
                                     onSelect={() => void handleResetBranch(c.hash, "hard")}
                                   >
-                                    <span>强行重置 (--hard, 丢弃修改)</span>
+                                    <div className="flex flex-col gap-0.5">
+                                      <span className="font-medium text-red-600">强行重置 (--hard, 丢弃修改)</span>
+                                      <span className="text-[10px] text-red-400">⚠️ 丢弃所有改动，强制对齐该提交</span>
+                                    </div>
                                   </ContextMenuItem>
                                 </ContextMenuSubContent>
                               </ContextMenuSub>
@@ -1207,8 +1321,8 @@ export default function SourceTreePage() {
               </ResizablePanel>
             </ResizablePanelGroup>
           )}
-        </main>
-      </div>
+        </ResizablePanel>
+      </ResizablePanelGroup>
 
       {/* 弹窗：新建分支 */}
       <CreateBranchDialog
@@ -1226,7 +1340,7 @@ export default function SourceTreePage() {
             toast.success(`成功创建分支: ${name}`)
             await refresh()
           } catch (e: any) {
-            toast.error(`创建分支失败: ${e.message}`)
+            toast.error("创建分支失败", { description: cleanGitErrorMessage(e) })
           }
         }}
       />
@@ -1247,7 +1361,7 @@ export default function SourceTreePage() {
             }
             await refresh()
           } catch (e: any) {
-            toast.error(`合并失败: ${e.message}`)
+            toast.error("合并失败", { description: cleanGitErrorMessage(e) })
           }
         }}
       />

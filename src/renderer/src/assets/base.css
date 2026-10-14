@@ -39,3 +39,46 @@ textarea,
 select {
   font-family: inherit;
 }
+
+/* 允许划选并复制 Sonner 弹窗提示内容 */
+[data-sonner-toast],
+[data-sonner-toast] [data-content],
+[data-sonner-toast] [data-title],
+[data-sonner-toast] [data-description] {
+  user-select: text !important;
+  -webkit-user-select: text !important;
+}
+
+[data-sonner-toast] [data-description] {
+  cursor: text;
+}
+
+/* 右键菜单项 hover / highlighted / open 状态下，文字与图标全部变为纯白色 */
+[data-radix-context-menu-content] [data-highlighted],
+[data-radix-context-menu-content] [data-state="open"],
+[role="menu"] [data-highlighted],
+[role="menu"] [data-state="open"],
+[role="menuitem"][data-highlighted],
+[role="menuitem"][data-state="open"] {
+  color: #ffffff !important;
+}
+
+[data-radix-context-menu-content] [data-highlighted] *,
+[data-radix-context-menu-content] [data-state="open"] *,
+[role="menu"] [data-highlighted] *,
+[role="menu"] [data-state="open"] *,
+[role="menuitem"][data-highlighted] *,
+[role="menuitem"][data-state="open"] * {
+  color: #ffffff !important;
+}
+
+[data-radix-context-menu-content] [data-highlighted] svg,
+[data-radix-context-menu-content] [data-state="open"] svg,
+[role="menu"] [data-highlighted] svg,
+[role="menu"] [data-state="open"] svg,
+[role="menuitem"][data-highlighted] svg,
+[role="menuitem"][data-state="open"] svg {
+  color: #ffffff !important;
+  stroke: currentColor !important;
+}
+

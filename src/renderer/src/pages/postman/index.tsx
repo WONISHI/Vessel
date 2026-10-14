@@ -10,7 +10,7 @@ import {
   Plus
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { toast } from "sonner"
+import { toast } from "@/components/ui/sonner"
 import type {
   ApiCollectionRecord,
   ApiRequestRecord,

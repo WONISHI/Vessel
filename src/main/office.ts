@@ -11,7 +11,7 @@ export function serveOffice() {
     const server = createServer(async (req, res) => {
       try {
         const pathname = decodeURIComponent(new URL(req.url || "/", "http://localhost").pathname)
-        res.setHeader("Content-Security-Policy", "default-src 'self' data: blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:; style-src 'self' 'unsafe-inline'; connect-src 'self' data: blob:; frame-src 'self' blob: data:")
+        res.setHeader("Content-Security-Policy", "default-src 'self' data: blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; connect-src 'self' data: blob: http://localhost:* ws://localhost:* http://127.0.0.1:* ws://127.0.0.1:*; frame-src 'self' blob: data:")
         const isOffice = pathname.startsWith("/office/")
         const developmentURL = !app.isPackaged && process.env.ELECTRON_RENDERER_URL
         if (!isOffice && developmentURL) {
@@ -21,8 +21,11 @@ export function serveOffice() {
           res.end(Buffer.from(await response.arrayBuffer()))
           return
         }
-        const root = await realpath(isOffice ? assets : renderer)
-        const path = await realpath(resolve(root, "." + (isOffice ? pathname.slice(7) : pathname)))
+        const baseRoot = resolve(isOffice ? assets : renderer)
+        let root = baseRoot
+        try { root = await realpath(baseRoot) } catch {}
+        let path = resolve(root, "." + (isOffice ? pathname.slice(7) : pathname))
+        try { path = await realpath(path) } catch {}
         const rel = relative(root, path)
         if (rel.startsWith("..") || isAbsolute(rel) || !["GET", "HEAD"].includes(req.method || "")) { res.writeHead(403).end(); return }
         const data = await readFile(path)

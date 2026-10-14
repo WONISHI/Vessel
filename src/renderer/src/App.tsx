@@ -8,7 +8,7 @@ import { BrowserKeepAlive } from "@/pages/browser/keep-alive"
 import { useEffect } from "react"
 import { useLocation } from "react-router-dom"
 import { useRouter } from "@vessel/react-router"
-import { Toaster, toast } from "sonner"
+import { Toaster, toast } from "@/components/ui/sonner"
 
 import DevTool from "@/components/core/devtool"
 import { WorkspaceRouteCache } from "./router/workspace-route-cache"
@@ -93,11 +93,7 @@ function App() {
 
   return (
     <>
-      <Toaster
-        position="top-center"
-        richColors
-        closeButton
-      />
+      <Toaster position="bottom-right" closeButton />
 
       <DevTool />
       <CommandPalette />

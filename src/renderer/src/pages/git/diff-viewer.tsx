@@ -1,6 +1,6 @@
-import { useState } from "react"
+import { useState, Fragment } from "react"
 import { Columns, AlignJustify, Copy, Check } from "lucide-react"
-import { toast } from "sonner"
+import { toast } from "@/components/ui/sonner"
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 
 export interface DiffViewerProps {
@@ -90,16 +90,18 @@ export function DiffViewer({ diffText, filePath, isStaged, onToggleStage }: Diff
   return (
     <div className="flex h-full w-full flex-col overflow-hidden bg-white text-xs">
       {/* 顶部操作条 */}
-      <div className="flex h-9 shrink-0 items-center justify-between border-b border-stone-200 bg-stone-50/80 px-3">
-        <span className="truncate font-mono font-medium text-stone-700" title={filePath}>
+      <div className="flex h-9 shrink-0 items-center justify-between gap-3 border-b border-stone-200 bg-stone-50/80 px-3">
+        {/* 3号: 宽度是 flex: 1，超出显示省略号 */}
+        <span className="flex-1 min-w-0 truncate font-mono font-medium text-stone-700" title={filePath}>
           {filePath || "Diff 视图"}
         </span>
-        <div className="flex items-center gap-1.5">
+        {/* 4号及工具组: 与 3 号存在间隙，文字不要换行 */}
+        <div className="flex shrink-0 items-center gap-2">
           {onToggleStage && (
             <button
               type="button"
               onClick={onToggleStage}
-              className={`rounded px-2 py-1 text-[11px] font-medium transition-colors ${
+              className={`shrink-0 whitespace-nowrap rounded px-2.5 py-1 text-[11px] font-medium transition-colors ${
                 isStaged
                   ? "border border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100"
                   : "border border-green-300 bg-green-50 text-green-700 hover:bg-green-100"
@@ -150,7 +152,7 @@ export function DiffViewer({ diffText, filePath, isStaged, onToggleStage }: Diff
           <table className="w-full border-collapse">
             <tbody>
               {hunks.map((hunk, hIdx) => (
-                <div key={hIdx} style={{ display: "contents" }}>
+                <Fragment key={hIdx}>
                   <tr className="bg-blue-50 text-blue-600">
                     <td colSpan={3} className="px-3 py-1 font-semibold select-none">
                       {hunk.header}
@@ -185,7 +187,7 @@ export function DiffViewer({ diffText, filePath, isStaged, onToggleStage }: Diff
                       </tr>
                     )
                   })}
-                </div>
+                </Fragment>
               ))}
             </tbody>
           </table>
@@ -196,7 +198,7 @@ export function DiffViewer({ diffText, filePath, isStaged, onToggleStage }: Diff
               <table className="w-full border-collapse">
                 <tbody>
                   {hunks.map((hunk, hIdx) => (
-                    <div key={hIdx} style={{ display: "contents" }}>
+                    <Fragment key={hIdx}>
                       <tr className="bg-blue-50 text-blue-600">
                         <td colSpan={2} className="px-2 py-0.5 font-semibold select-none truncate">
                           {hunk.header}
@@ -224,7 +226,7 @@ export function DiffViewer({ diffText, filePath, isStaged, onToggleStage }: Diff
                             </td>
                           </tr>
                         ))}
-                    </div>
+                    </Fragment>
                   ))}
                 </tbody>
               </table>
@@ -233,7 +235,7 @@ export function DiffViewer({ diffText, filePath, isStaged, onToggleStage }: Diff
               <table className="w-full border-collapse">
                 <tbody>
                   {hunks.map((hunk, hIdx) => (
-                    <div key={hIdx} style={{ display: "contents" }}>
+                    <Fragment key={hIdx}>
                       <tr className="bg-blue-50 text-blue-600">
                         <td colSpan={2} className="px-2 py-0.5 font-semibold select-none truncate">
                           {hunk.header}
@@ -261,7 +263,7 @@ export function DiffViewer({ diffText, filePath, isStaged, onToggleStage }: Diff
                             </td>
                           </tr>
                         ))}
-                    </div>
+                    </Fragment>
                   ))}
                 </tbody>
               </table>

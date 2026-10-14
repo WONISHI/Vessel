@@ -44,6 +44,42 @@ function LazyPage({ number, width, strokes, tool, color, penWidth, add, erase }:
   </div>
 }
 
+async function readInkStrokes(key: string): Promise<Stroke[]> {
+  try {
+    if (typeof window !== "undefined" && window.electronAPI?.getAppState) {
+      const value = await window.electronAPI.getAppState<Stroke[]>(key)
+      return Array.isArray(value) ? value : []
+    }
+  } catch {}
+  try {
+    const raw = localStorage.getItem(key)
+    const parsed = raw ? JSON.parse(raw) : null
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
+
+async function writeInkStrokes(key: string, next: Stroke[]): Promise<void> {
+  try {
+    if (typeof window !== "undefined" && window.electronAPI?.setAppState) {
+      await window.electronAPI.setAppState(key, next)
+      return
+    }
+  } catch {}
+  try {
+    localStorage.setItem(key, JSON.stringify(next))
+  } catch {}
+}
+
+function notifyError(msg: string) {
+  try {
+    toast.error(msg)
+  } catch {
+    console.error(msg)
+  }
+}
+
 /** Continuous PDF preview. Offscreen pages release their canvas; ink is kept separately. */
 export function PdfDocument({ bytes, name }: { bytes: Uint8Array; name: string }) {
   const file = useMemo(() => ({ data: new Uint8Array(bytes) }), [bytes])
@@ -63,13 +99,18 @@ export function PdfDocument({ bytes, name }: { bytes: Uint8Array; name: string }
     setLoaded(false); setStrokes([]); undo.current = []
     if (!key) return
     let active = true
-    void window.electronAPI.getAppState<Stroke[]>(key).then(value => { if (active) { setStrokes(Array.isArray(value) ? value : []); setLoaded(true) } }).catch(error => toast.error(`标注读取失败：${error}`))
+    void readInkStrokes(key).then(value => {
+      if (active) {
+        setStrokes(value)
+        setLoaded(true)
+      }
+    }).catch(error => notifyError(`标注读取失败：${error}`))
     return () => { active = false }
   }, [key])
   const change = (next: Stroke[], remember = true) => {
     if (remember) undo.current.push(strokes)
     setStrokes(next)
-    persistence.current = persistence.current.catch(() => {}).then(() => window.electronAPI.setAppState(key, next)).then(() => {}).catch(error => { toast.error(`标注保存失败：${error}`) })
+    persistence.current = persistence.current.catch(() => {}).then(() => writeInkStrokes(key, next)).catch(error => { notifyError(`标注保存失败：${error}`) })
   }
   const exportPDF = async () => {
     if (!document) return
@@ -86,7 +127,7 @@ export function PdfDocument({ bytes, name }: { bytes: Uint8Array; name: string }
       const url = URL.createObjectURL(new Blob([new Uint8Array(data)], { type: 'application/pdf' }))
       const link = window.document.createElement('a'); link.href = url; link.download = name.replace(/\.pdf$/i, '') + '-标注.pdf'; link.click()
       setTimeout(() => URL.revokeObjectURL(url), 60000)
-    } catch (error) { toast.error(`PDF 导出失败：${error}`) }
+    } catch (error) { notifyError(`PDF 导出失败：${error}`) }
     finally { ids.forEach(id => document.annotationStorage.remove(id)); setSaving(false) }
   }
   return <div ref={host} className="flex h-full min-h-0 min-w-0 flex-1 flex-col" aria-label={name}>

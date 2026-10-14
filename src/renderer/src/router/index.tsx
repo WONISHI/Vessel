@@ -114,8 +114,8 @@ function ResourceRoute() {
  * 路由配置
  */
 export const routes: AppRouteRecordRaw[] = [
-  { path: "/git", name: "git", component: SourceTreePage, meta: { title: "SourceTree" } },
-  { path: "/api-client", name: "api-client", component: PostmanPage, meta: { title: "Postman" } },
+  { path: "/git", name: "git", component: SourceTreePage, meta: { title: "Git" } },
+  { path: "/api-client", name: "api-client", component: PostmanPage, meta: { title: "API" } },
   { path: "/search", name: "search", component: SearchPage, meta: { title: "全局搜索" } },
   { path: "/office", name: "office", component: OfficeRoute, meta: { title: "ONLYOFFICE" } },
   { path: "/resources", name: "resources", component: ResourceRoute, meta: { title: "项目资源库" }, children: [

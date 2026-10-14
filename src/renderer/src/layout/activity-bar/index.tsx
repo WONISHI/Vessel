@@ -4,7 +4,7 @@ import { useLocation } from "react-router-dom"
 import { Fragment, useEffect, useState, useRef } from "react"
 import { selectLastPinned } from "@/pages/resources/library-state"
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
-import { Sun, Settings, EllipsisVertical, GitBranch, Send, Wrench } from "lucide-react"
+import { Sun, Settings, Ellipsis, GitBranch, Send, Wrench } from "lucide-react"
 import Logo from "@/assets/logo.png"
 import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar"
 import { Button } from "@/components/ui/button"
@@ -115,9 +115,11 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
           </Fragment>
         ))}
 
+        <TransitButton />
+
         {/* 合并工具入口按钮：ellipsis-vertical (SourceTree, Postman, 开发者工具) */}
         <div
-          className="relative"
+          className="relative flex size-[38px] items-center justify-center"
           onMouseEnter={() => {
             if (closeTimer.current) clearTimeout(closeTimer.current)
             setMoreToolsOpen(true)
@@ -126,7 +128,6 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
             closeTimer.current = setTimeout(() => setMoreToolsOpen(false), 250)
           }}
         >
-          <TransitButton />
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
@@ -140,7 +141,7 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
                   (isMoreToolsActive || moreToolsOpen) && "!bg-emerald-50 !text-green-700 hover:!bg-emerald-50 hover:!text-green-700"
                 )}
               >
-                <EllipsisVertical className="!size-5" />
+                <Ellipsis className="!size-5" />
               </Button>
             </TooltipTrigger>
             {!moreToolsOpen && (
@@ -163,7 +164,7 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
             >
               <div className="px-2 py-1 text-[11px] font-semibold text-stone-400">开发与接口工具</div>
 
-              {/* 1. SourceTree (Git 图形化) */}
+              {/* 1. Git (代码版本管理) */}
               <button
                 type="button"
                 className={cn(
@@ -180,12 +181,12 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
                   <GitBranch className="size-4" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="text-xs font-medium text-stone-800">SourceTree</div>
-                  <div className="truncate text-[10px] text-stone-400">Git 图形化版本管理</div>
+                  <div className="text-xs font-medium text-stone-800">Git</div>
+                  <div className="truncate text-[10px] text-stone-400">代码版本管理与分支</div>
                 </div>
               </button>
 
-              {/* 2. Postman (API 客户端) */}
+              {/* 2. API (接口调试与管理) */}
               <button
                 type="button"
                 className={cn(
@@ -202,8 +203,8 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
                   <Send className="size-4" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="text-xs font-medium text-stone-800">Postman</div>
-                  <div className="truncate text-[10px] text-stone-400">API 接口调试与管理</div>
+                  <div className="text-xs font-medium text-stone-800">API</div>
+                  <div className="truncate text-[10px] text-stone-400">接口调试与请求管理</div>
                 </div>
               </button>
 
