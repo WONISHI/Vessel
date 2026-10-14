@@ -35,7 +35,8 @@ export class GitModule extends BaseModule {
         gitService.push(cwd, remote, branch, force),
       "git:merge": (_e, cwd: string, branch: string) => gitService.merge(cwd, branch),
       "git:stashes": (_e, cwd: string) => gitService.getStashes(cwd),
-      "git:stash-save": (_e, cwd: string, message?: string) => gitService.stashSave(cwd, message),
+      "git:stash-save": (_e, cwd: string, message?: string, files?: string[]) =>
+        gitService.stashSave(cwd, message, files),
       "git:stash-pop": (_e, cwd: string, index?: number) => gitService.stashPop(cwd, index),
       "git:stash-drop": (_e, cwd: string, index?: number) => gitService.stashDrop(cwd, index),
       "git:reset": (_e, cwd: string, target: string, mode?: "soft" | "mixed" | "hard") =>

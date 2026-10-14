@@ -419,21 +419,29 @@ export class GitService {
     if (res.exitCode !== 0) return []
     const stashes: { index: number; name: string; date: string }[] = []
     for (const line of res.stdout.split("\n")) {
-      const match = line.match(/^stash@\{(\d+)\}:\s*(?:WIP on\s*)?([^:]+):\s*(.+)$/)
+      const match = line.match(/^stash@\{(\d+)\}:\s*(.+)$/)
       if (match) {
+        const index = parseInt(match[1], 10)
+        const rest = match[2].trim()
+        const colonIdx = rest.indexOf(":")
+        const dateOrBranch = colonIdx > -1 ? rest.slice(0, colonIdx).trim() : ""
+        const name = colonIdx > -1 ? rest.slice(colonIdx + 1).trim() : rest
         stashes.push({
-          index: parseInt(match[1], 10),
-          name: match[3] || match[2],
-          date: match[2]
+          index,
+          name: name || rest,
+          date: dateOrBranch
         })
       }
     }
     return stashes
   }
 
-  async stashSave(cwd: string, message?: string): Promise<void> {
-    const args = ["stash", "push"]
+  async stashSave(cwd: string, message?: string, files?: string[]): Promise<void> {
+    const args = ["stash", "push", "-u"]
     if (message) args.push("-m", message)
+    if (files && files.length > 0) {
+      args.push("--", ...files)
+    }
     const res = await runGit(args, cwd)
     if (res.exitCode !== 0) throw new Error(res.stderr || "Stash save failed")
   }

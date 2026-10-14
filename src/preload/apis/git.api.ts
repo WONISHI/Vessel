@@ -40,8 +40,8 @@ export const gitAPI = {
     ipcRenderer.invoke("git:merge", cwd, branch),
   getStashes: (cwd: string): Promise<{ index: number; name: string; date: string }[]> =>
     ipcRenderer.invoke("git:stashes", cwd),
-  stashSave: (cwd: string, message?: string): Promise<void> =>
-    ipcRenderer.invoke("git:stash-save", cwd, message),
+  stashSave: (cwd: string, message?: string, files?: string[]): Promise<void> =>
+    ipcRenderer.invoke("git:stash-save", cwd, message, files),
   stashPop: (cwd: string, index?: number): Promise<void> => ipcRenderer.invoke("git:stash-pop", cwd, index),
   stashDrop: (cwd: string, index?: number): Promise<void> => ipcRenderer.invoke("git:stash-drop", cwd, index),
   reset: (cwd: string, target: string, mode?: "soft" | "mixed" | "hard"): Promise<void> =>

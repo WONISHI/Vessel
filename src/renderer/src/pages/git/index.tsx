@@ -20,7 +20,9 @@ import {
   FolderOpen,
   RotateCcw,
   Tag,
-  Undo2
+  Undo2,
+  Archive,
+  CheckSquare
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { toast } from "@/components/ui/sonner"
@@ -135,6 +137,14 @@ export default function SourceTreePage() {
   const [selectedFile, setSelectedFile] = useState<GitFileStatus | null>(null)
   const [diffText, setDiffText] = useState("")
 
+  // 多选与选区状态
+  const [selectedStagedPaths, setSelectedStagedPaths] = useState<string[]>([])
+  const [selectedUnstagedPaths, setSelectedUnstagedPaths] = useState<string[]>([])
+  const [lastStagedClickedIndex, setLastStagedClickedIndex] = useState(-1)
+  const [lastUnstagedClickedIndex, setLastUnstagedClickedIndex] = useState(-1)
+  const [activeFileSection, setActiveFileSection] = useState<"staged" | "unstaged">("unstaged")
+  const [stashes, setStashes] = useState<{ index: number; name: string; date: string }[]>([])
+
   // Commit 表单
   const [commitMessage, setCommitMessage] = useState("")
   const [isAmend, setIsAmend] = useState(false)
@@ -160,26 +170,36 @@ export default function SourceTreePage() {
         return
       }
 
-      const [statusRes, branchRes, logRes] = await Promise.all([
+      const [statusRes, branchRes, logRes, stashRes] = await Promise.all([
         git.getStatus(repoPath),
         git.getBranches(repoPath),
-        git.getLog(repoPath, 150)
+        git.getLog(repoPath, 150),
+        git.getStashes(repoPath).catch(() => [])
       ])
 
       setStatus(statusRes)
       setBranches(branchRes)
       setCommits(logRes)
+      setStashes(stashRes || [])
 
-      // 默认选择第一个修改的文件
-      if (statusRes.unstaged.length > 0) {
-        setSelectedFile(statusRes.unstaged[0])
-      } else if (statusRes.staged.length > 0) {
-        setSelectedFile(statusRes.staged[0])
-      } else if (statusRes.untracked.length > 0) {
-        setSelectedFile(statusRes.untracked[0])
-      } else {
-        setSelectedFile(null)
-      }
+      // 保持当前的多选列表中依然有效的文件
+      setSelectedStagedPaths((prev) => prev.filter((p) => statusRes.staged.some((f) => f.path === p)))
+      const allUnstaged = [...statusRes.unstaged, ...statusRes.untracked]
+      setSelectedUnstagedPaths((prev) => prev.filter((p) => allUnstaged.some((f) => f.path === p)))
+
+      // 选定文件：如果当前选中的还在，则保持；否则选第一个可用变更
+      setSelectedFile((prev) => {
+        if (prev) {
+          const stillStaged = statusRes.staged.find((f) => f.path === prev.path)
+          if (stillStaged) return stillStaged
+          const stillUnstaged = allUnstaged.find((f) => f.path === prev.path)
+          if (stillUnstaged) return stillUnstaged
+        }
+        if (statusRes.unstaged.length > 0) return statusRes.unstaged[0]
+        if (statusRes.staged.length > 0) return statusRes.staged[0]
+        if (statusRes.untracked.length > 0) return statusRes.untracked[0]
+        return null
+      })
     } catch (err: any) {
       toast.error("读取仓库信息失败", { description: cleanGitErrorMessage(err) })
     } finally {
@@ -285,6 +305,232 @@ export default function SourceTreePage() {
       toast.success("已撤销修改")
     } catch (e: any) {
       toast.error("放弃修改失败", { description: cleanGitErrorMessage(e) })
+    }
+  }
+
+  // 快捷键多选交互 (Click, Cmd/Ctrl+Click, Shift+Click)
+  const handleStagedItemClick = (e: React.MouseEvent, file: GitFileStatus, idx: number) => {
+    setActiveFileSection("staged")
+    const isMeta = e.metaKey || e.ctrlKey
+    const isShift = e.shiftKey
+    const allStaged = status?.staged || []
+
+    if (isShift && lastStagedClickedIndex >= 0 && lastStagedClickedIndex < allStaged.length) {
+      const start = Math.min(lastStagedClickedIndex, idx)
+      const end = Math.max(lastStagedClickedIndex, idx)
+      const rangePaths = allStaged.slice(start, end + 1).map((f) => f.path)
+      setSelectedStagedPaths(rangePaths)
+      setSelectedUnstagedPaths([])
+      setSelectedFile(file)
+    } else if (isMeta) {
+      setSelectedStagedPaths((prev) => {
+        const exists = prev.includes(file.path)
+        return exists ? prev.filter((p) => p !== file.path) : [...prev, file.path]
+      })
+      setSelectedUnstagedPaths([])
+      setLastStagedClickedIndex(idx)
+      setSelectedFile(file)
+    } else {
+      setSelectedStagedPaths([file.path])
+      setSelectedUnstagedPaths([])
+      setLastStagedClickedIndex(idx)
+      setSelectedFile(file)
+    }
+  }
+
+  const handleStagedContextMenu = (file: GitFileStatus, idx: number) => {
+    setActiveFileSection("staged")
+    setSelectedFile(file)
+    if (!selectedStagedPaths.includes(file.path)) {
+      setSelectedStagedPaths([file.path])
+      setSelectedUnstagedPaths([])
+      setLastStagedClickedIndex(idx)
+    }
+  }
+
+  const handleUnstagedItemClick = (e: React.MouseEvent, file: GitFileStatus, idx: number) => {
+    setActiveFileSection("unstaged")
+    const isMeta = e.metaKey || e.ctrlKey
+    const isShift = e.shiftKey
+    const allUnstaged = [...(status?.unstaged || []), ...(status?.untracked || [])]
+
+    if (isShift && lastUnstagedClickedIndex >= 0 && lastUnstagedClickedIndex < allUnstaged.length) {
+      const start = Math.min(lastUnstagedClickedIndex, idx)
+      const end = Math.max(lastUnstagedClickedIndex, idx)
+      const rangePaths = allUnstaged.slice(start, end + 1).map((f) => f.path)
+      setSelectedUnstagedPaths(rangePaths)
+      setSelectedStagedPaths([])
+      setSelectedFile(file)
+    } else if (isMeta) {
+      setSelectedUnstagedPaths((prev) => {
+        const exists = prev.includes(file.path)
+        return exists ? prev.filter((p) => p !== file.path) : [...prev, file.path]
+      })
+      setSelectedStagedPaths([])
+      setLastUnstagedClickedIndex(idx)
+      setSelectedFile(file)
+    } else {
+      setSelectedUnstagedPaths([file.path])
+      setSelectedStagedPaths([])
+      setLastUnstagedClickedIndex(idx)
+      setSelectedFile(file)
+    }
+  }
+
+  const handleUnstagedContextMenu = (file: GitFileStatus, idx: number) => {
+    setActiveFileSection("unstaged")
+    setSelectedFile(file)
+    if (!selectedUnstagedPaths.includes(file.path)) {
+      setSelectedUnstagedPaths([file.path])
+      setSelectedStagedPaths([])
+      setLastUnstagedClickedIndex(idx)
+    }
+  }
+
+  // 快捷键全选 (Cmd+A / Ctrl+A)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey) || e.key.toLowerCase() !== "a") return
+      const target = e.target as HTMLElement | null
+      if (
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        target?.isContentEditable
+      ) {
+        return
+      }
+
+      if (activeTab === "status") {
+        e.preventDefault()
+        const allUnstaged = [...(status?.unstaged || []), ...(status?.untracked || [])]
+        if (activeFileSection === "staged" && (status?.staged.length || 0) > 0) {
+          setSelectedStagedPaths(status!.staged.map((f) => f.path))
+          setSelectedUnstagedPaths([])
+        } else if (allUnstaged.length > 0) {
+          setSelectedUnstagedPaths(allUnstaged.map((f) => f.path))
+          setSelectedStagedPaths([])
+          setActiveFileSection("unstaged")
+        } else if ((status?.staged.length || 0) > 0) {
+          setSelectedStagedPaths(status!.staged.map((f) => f.path))
+          setSelectedUnstagedPaths([])
+          setActiveFileSection("staged")
+        }
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [activeTab, activeFileSection, status])
+
+  // 批量操作
+  const handleStageMultiple = async (paths: string[]) => {
+    if (!repoPath || paths.length === 0) return
+    try {
+      await window.electronAPI.git.stage(repoPath, paths)
+      await refresh()
+    } catch (e: any) {
+      toast.error("批量暂存失败", { description: cleanGitErrorMessage(e) })
+    }
+  }
+
+  const handleUnstageMultiple = async (paths: string[]) => {
+    if (!repoPath || paths.length === 0) return
+    try {
+      await window.electronAPI.git.unstage(repoPath, paths)
+      await refresh()
+    } catch (e: any) {
+      toast.error("批量取消暂存失败", { description: cleanGitErrorMessage(e) })
+    }
+  }
+
+  const handleDiscardMultiple = async (paths: string[]) => {
+    if (!repoPath || paths.length === 0) return
+    if (!confirm(`确定放弃选中的 ${paths.length} 个文件的所有修改吗？此操作无法撤销。`)) return
+    try {
+      const unstagedList = [...(status?.unstaged || []), ...(status?.untracked || [])]
+      const untrackedPaths = paths.filter((p) => unstagedList.find((f) => f.path === p)?.status === "?")
+      const trackedPaths = paths.filter((p) => !untrackedPaths.includes(p))
+      if (untrackedPaths.length > 0) {
+        await window.electronAPI.git.discard(repoPath, untrackedPaths, true)
+      }
+      if (trackedPaths.length > 0) {
+        await window.electronAPI.git.discard(repoPath, trackedPaths, false)
+      }
+      await refresh()
+      toast.success(`已撤销 ${paths.length} 个文件的修改`)
+    } catch (e: any) {
+      toast.error("放弃修改失败", { description: cleanGitErrorMessage(e) })
+    }
+  }
+
+  const handleDiscardStagedMultiple = async (paths: string[]) => {
+    if (!repoPath || paths.length === 0) return
+    if (!confirm(`确定放弃选中的 ${paths.length} 个已暂存文件的所有修改吗？此操作无法撤销。`)) return
+    try {
+      await window.electronAPI.git.unstage(repoPath, paths)
+      await window.electronAPI.git.discard(repoPath, paths, false)
+      await refresh()
+      toast.success(`已撤销 ${paths.length} 个已暂存文件的修改`)
+    } catch (e: any) {
+      toast.error("放弃修改失败", { description: cleanGitErrorMessage(e) })
+    }
+  }
+
+  // 贮藏功能 (支持单文件、多文件、全工作区)
+  const handleStashFiles = async (paths: string[]) => {
+    if (!repoPath || paths.length === 0) return
+    const defaultMsg = paths.length === 1 ? `贮藏修改: ${paths[0]}` : `贮藏选中的 ${paths.length} 个文件修改`
+    const message = window.prompt("请输入贮藏说明 (可选):", defaultMsg)
+    if (message === null) return
+    try {
+      await window.electronAPI.git.stashSave(repoPath, message.trim() || defaultMsg, paths)
+      await refresh()
+      toast.success(`已成功贮藏 ${paths.length} 个文件的修改`)
+    } catch (e: any) {
+      toast.error("贮藏失败", { description: cleanGitErrorMessage(e) })
+    }
+  }
+
+  const handleStashAll = async () => {
+    if (!repoPath) return
+    const totalChanges =
+      (status?.staged.length || 0) + (status?.unstaged.length || 0) + (status?.untracked.length || 0)
+    if (totalChanges === 0) {
+      toast.info("当前工作区干净，无未提交的修改")
+      return
+    }
+    const defaultMsg = `WIP 在 ${branches.current || "HEAD"} (${totalChanges} 个文件)`
+    const message = window.prompt("请输入贮藏说明 (可选):", defaultMsg)
+    if (message === null) return
+    try {
+      await window.electronAPI.git.stashSave(repoPath, message.trim() || defaultMsg)
+      await refresh()
+      toast.success("已成功贮藏工作区修改")
+    } catch (e: any) {
+      toast.error("贮藏失败", { description: cleanGitErrorMessage(e) })
+    }
+  }
+
+  const handleStashPop = async (index = 0) => {
+    if (!repoPath) return
+    try {
+      await window.electronAPI.git.stashPop(repoPath, index)
+      await refresh()
+      toast.success("已恢复贮藏内容")
+    } catch (e: any) {
+      toast.error("弹出贮藏失败", { description: cleanGitErrorMessage(e) })
+    }
+  }
+
+  const handleStashDrop = async (index = 0) => {
+    if (!repoPath) return
+    if (!confirm(`确定删除贮藏 stash@{${index}} 吗？此操作无法撤销。`)) return
+    try {
+      await window.electronAPI.git.stashDrop(repoPath, index)
+      await refresh()
+      toast.success("已删除贮藏")
+    } catch (e: any) {
+      toast.error("删除贮藏失败", { description: cleanGitErrorMessage(e) })
     }
   }
 
@@ -567,6 +813,21 @@ export default function SourceTreePage() {
               <span>合并</span>
             </button>
 
+            {/* Stash 贮藏 按钮 */}
+            <button
+              type="button"
+              className="flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium text-stone-700 hover:bg-stone-200/70"
+              onClick={handleStashAll}
+              disabled={loading || !isRepo}
+              title="贮藏当前工作区所有修改 (git stash)"
+            >
+              <Archive className="size-4 text-amber-600" />
+              <span>贮藏</span>
+              {stashes.length > 0 && (
+                <span className="rounded-full bg-amber-100 px-1 text-[10px] text-amber-700">{stashes.length}</span>
+              )}
+            </button>
+
             {/* Refresh 按钮 */}
             <button
               type="button"
@@ -722,6 +983,55 @@ export default function SourceTreePage() {
               ))}
             </div>
           )}
+
+          {/* 贮藏区段 (STASHES) */}
+          <div className="mb-4">
+            <div className="flex items-center justify-between px-2 py-1 text-[11px] font-semibold text-stone-400">
+              <span className="flex items-center gap-1">
+                <Archive className="size-3" />
+                <span>贮藏 (STASHES)</span>
+              </span>
+              {stashes.length > 0 && (
+                <span className="rounded-full bg-stone-200 px-1.5 text-[10px] text-stone-600 font-medium">
+                  {stashes.length}
+                </span>
+              )}
+            </div>
+            {stashes.length === 0 ? (
+              <div className="px-2 py-1 text-[11px] text-stone-400 italic">暂无贮藏记录</div>
+            ) : (
+              stashes.map((s) => (
+                <div
+                  key={s.index}
+                  className="group flex items-center justify-between rounded-md px-2 py-1 text-stone-600 hover:bg-stone-100 text-[11px]"
+                  title={`stash@{${s.index}}: ${s.name}`}
+                >
+                  <span className="truncate flex-1 mr-1">
+                    <span className="font-mono text-stone-400 mr-1">#{s.index}</span>
+                    <span className="truncate">{s.name}</span>
+                  </span>
+                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 shrink-0">
+                    <button
+                      type="button"
+                      className="rounded px-1 py-0.5 text-green-700 hover:bg-green-100 text-[10px] font-medium"
+                      title="恢复并弹出此贮藏 (git stash pop)"
+                      onClick={() => handleStashPop(s.index)}
+                    >
+                      弹出
+                    </button>
+                    <button
+                      type="button"
+                      className="rounded px-1 py-0.5 text-red-600 hover:bg-red-100 text-[10px] font-medium"
+                      title="丢弃此贮藏 (git stash drop)"
+                      onClick={() => handleStashDrop(s.index)}
+                    >
+                      删除
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </ResizablePanel>
 
         {/* 1号: 拖拽调节左侧边栏宽度的分割线 */}
@@ -765,218 +1075,391 @@ export default function SourceTreePage() {
                     className="flex flex-col min-h-0 min-w-0"
                   >
                     <div className="flex shrink-0 items-center justify-between border-b border-stone-200 bg-stone-100/70 px-3 py-1.5 text-xs font-semibold text-stone-700">
-                    <span className="flex items-center gap-1.5">
-                      <span>已暂存文件 (Staged)</span>
-                      <span className="rounded-full bg-green-100 px-1.5 text-[10px] text-green-700">
-                        {status?.staged.length || 0}
+                      <span className="flex items-center gap-1.5">
+                        <span>已暂存文件 (Staged)</span>
+                        <span className="rounded-full bg-green-100 px-1.5 text-[10px] text-green-700">
+                          {status?.staged.length || 0}
+                        </span>
+                        {selectedStagedPaths.length > 1 && (
+                          <span className="rounded bg-blue-100 px-1.5 py-0.5 text-[10px] text-blue-700 font-normal">
+                            已选 {selectedStagedPaths.length} 项
+                          </span>
+                        )}
                       </span>
-                    </span>
-                    <button
-                      type="button"
-                      className="text-[11px] font-normal text-stone-500 hover:text-stone-800"
-                      onClick={handleUnstageAll}
-                    >
-                      全部取消
-                    </button>
-                  </div>
-                  <ScrollArea className="flex-1 min-h-0 p-1">
-                    <div className="space-y-0.5">
-                      {status?.staged.map((file) => (
-                        <ContextMenu key={file.path}>
-                          <ContextMenuTrigger asChild>
-                            <div
-                              onClick={() => setSelectedFile(file)}
-                              onContextMenu={() => setSelectedFile(file)}
-                              className={`group flex items-center justify-between rounded px-2 py-1 text-xs cursor-pointer ${
-                                selectedFile?.path === file.path ? "bg-stone-200 font-medium" : "hover:bg-stone-100"
-                              }`}
+                      <div className="flex items-center gap-2">
+                        {selectedStagedPaths.length > 1 && (
+                          <>
+                            <button
+                              type="button"
+                              className="text-[11px] font-normal text-blue-700 hover:text-blue-900 hover:underline flex items-center gap-0.5"
+                              onClick={() => void handleStashFiles(selectedStagedPaths)}
+                              title="贮藏所选已暂存文件修改"
                             >
-                              <span className="flex items-center gap-1.5 truncate">
-                                <FileText className="size-3.5 shrink-0 text-stone-400 group-hover:text-stone-600" />
-                                <span className="w-3.5 text-center font-bold text-green-600">{file.status}</span>
-                                <span className="truncate" title={file.path}>
-                                  {file.path}
-                                </span>
-                              </span>
-                              <button
-                                type="button"
-                                title="取消暂存"
-                                className="opacity-0 group-hover:opacity-100 rounded p-1 text-stone-400 hover:bg-stone-200/80 hover:text-amber-700 transition-colors"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  void handleUnstageFile(file.path)
-                                }}
-                              >
-                                <Minus className="size-3.5" />
-                              </button>
-                            </div>
-                          </ContextMenuTrigger>
-                          <ContextMenuContent className="w-52">
-                            <ContextMenuItem onSelect={() => void handleUnstageFile(file.path)}>
-                              <Minus className="size-3.5 text-amber-600" />
-                              <span>取消暂存文件</span>
-                            </ContextMenuItem>
-                            <ContextMenuItem onSelect={() => void handleUnstageAll()}>
-                              <Minus className="size-3.5 text-stone-500" />
-                              <span>全部取消暂存</span>
-                            </ContextMenuItem>
-                            <ContextMenuSeparator />
-                            <ContextMenuItem onSelect={() => setSelectedFile(file)}>
-                              <FileText className="size-3.5 text-stone-500" />
-                              <span>查看文件差异</span>
-                            </ContextMenuItem>
-                            <ContextMenuItem onSelect={() => void handleRevealInFinder(file.path)}>
-                              <FolderOpen className="size-3.5 text-stone-500" />
-                              <span>在访达中显示</span>
-                            </ContextMenuItem>
-                            <ContextMenuSeparator />
-                            <ContextMenuItem onSelect={() => copyToClipboard(file.path, "相对路径")}>
-                              <Copy className="size-3.5 text-stone-500" />
-                              <span>复制相对路径</span>
-                            </ContextMenuItem>
-                            <ContextMenuItem onSelect={() => copyToClipboard(getFullPath(file.path), "绝对路径")}>
-                              <Copy className="size-3.5 text-stone-500" />
-                              <span>复制绝对路径</span>
-                            </ContextMenuItem>
-                            <ContextMenuSeparator />
-                            <ContextMenuItem
-                              className="text-red-600 focus:text-red-600"
-                              onSelect={() => void handleDiscardStaged(file)}
+                              <Archive className="size-3" />
+                              <span>贮藏所选 ({selectedStagedPaths.length})</span>
+                            </button>
+                            <button
+                              type="button"
+                              className="text-[11px] font-normal text-amber-700 hover:text-amber-900 hover:underline flex items-center gap-0.5"
+                              onClick={() => void handleUnstageMultiple(selectedStagedPaths)}
+                              title="取消暂存所选文件"
                             >
-                              <Trash2 className="size-3.5 text-red-500" />
-                              <span>放弃更改…</span>
-                            </ContextMenuItem>
-                          </ContextMenuContent>
-                        </ContextMenu>
-                      ))}
-                      {!status?.staged.length && (
-                        <p className="p-3 text-center text-xs text-stone-400">暂无已暂存文件</p>
-                      )}
+                              <Minus className="size-3" />
+                              <span>取消所选 ({selectedStagedPaths.length})</span>
+                            </button>
+                          </>
+                        )}
+                        <button
+                          type="button"
+                          className="text-[11px] font-normal text-stone-500 hover:text-stone-800"
+                          onClick={handleUnstageAll}
+                        >
+                          全部取消
+                        </button>
+                      </div>
                     </div>
-                  </ScrollArea>
-                </ResizablePanel>
+                    <ScrollArea className="flex-1 min-h-0 p-1">
+                      <div className="space-y-0.5">
+                        {status?.staged.map((file, idx) => {
+                          const isSelected = selectedStagedPaths.includes(file.path)
+                          const isPrimary = selectedFile?.path === file.path
+                          const isMulti = selectedStagedPaths.length > 1 && isSelected
 
-                {/* 2号: 拖拽调整已暂存与未暂存区域高度的分割线 */}
-                <ResizableHandle aria-label="调整暂存与未暂存区域高度" />
-
-                {/* 2号: 未暂存区 */}
-                <ResizablePanel
-                  id="git-unstaged-panel"
-                  defaultSize="50%"
-                  minSize="15%"
-                  maxSize="85%"
-                  className="flex flex-col min-h-0 min-w-0"
-                >
-                  <div className="flex shrink-0 items-center justify-between border-b border-stone-200 bg-stone-100/70 px-3 py-1.5 text-xs font-semibold text-stone-700">
-                    <span className="flex items-center gap-1.5">
-                      <span>未暂存更改 (Unstaged)</span>
-                      <span className="rounded-full bg-amber-100 px-1.5 text-[10px] text-amber-700">
-                        {(status?.unstaged.length || 0) + (status?.untracked.length || 0)}
-                      </span>
-                    </span>
-                    <button
-                      type="button"
-                      className="text-[11px] font-normal text-stone-500 hover:text-stone-800"
-                      onClick={handleStageAll}
-                    >
-                      全部暂存
-                    </button>
-                  </div>
-                  <ScrollArea className="flex-1 min-h-0 p-1">
-                    <div className="space-y-0.5">
-                      {[...(status?.unstaged || []), ...(status?.untracked || [])].map((file) => (
-                        <ContextMenu key={file.path}>
-                          <ContextMenuTrigger asChild>
-                            <div
-                              onClick={() => setSelectedFile(file)}
-                              onContextMenu={() => setSelectedFile(file)}
-                              className={`group flex items-center justify-between rounded px-2 py-1 text-xs cursor-pointer ${
-                                selectedFile?.path === file.path ? "bg-stone-200 font-medium" : "hover:bg-stone-100"
-                              }`}
-                            >
-                              <span className="flex items-center gap-1.5 truncate">
-                                <FileText className="size-3.5 shrink-0 text-stone-400 group-hover:text-stone-600" />
-                                <span
-                                  className={`w-3.5 text-center font-bold ${
-                                    file.status === "?" ? "text-blue-500" : "text-amber-600"
+                          return (
+                            <ContextMenu key={file.path}>
+                              <ContextMenuTrigger asChild>
+                                <div
+                                  onClick={(e) => handleStagedItemClick(e, file, idx)}
+                                  onContextMenu={() => handleStagedContextMenu(file, idx)}
+                                  className={`group flex items-center justify-between rounded px-2 py-1 text-xs cursor-pointer select-none transition-colors ${
+                                    isSelected
+                                      ? isPrimary
+                                        ? "bg-stone-200 font-semibold text-stone-900 shadow-xs"
+                                        : "bg-stone-200/70 text-stone-800"
+                                      : "hover:bg-stone-100 text-stone-700"
                                   }`}
                                 >
-                                  {file.status}
-                                </span>
-                                <span className="truncate" title={file.path}>
-                                  {file.path}
-                                </span>
-                              </span>
-                              <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100">
-                                <button
-                                  type="button"
-                                  title="暂存此文件"
-                                  className="rounded p-1 text-stone-400 hover:bg-stone-200/80 hover:text-green-700 transition-colors"
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    void handleStageFile(file.path)
-                                  }}
-                                >
-                                  <Plus className="size-3.5" />
-                                </button>
-                                <button
-                                  type="button"
-                                  title="放弃修改"
-                                  className="rounded p-1 text-stone-400 hover:bg-stone-200/80 hover:text-red-600 transition-colors"
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    void handleDiscard(file)
-                                  }}
-                                >
-                                  <Trash2 className="size-3.5" />
-                                </button>
-                              </div>
-                            </div>
-                          </ContextMenuTrigger>
-                          <ContextMenuContent className="w-52">
-                            <ContextMenuItem onSelect={() => void handleStageFile(file.path)}>
-                              <Plus className="size-3.5 text-green-600" />
-                              <span>暂存此文件</span>
-                            </ContextMenuItem>
-                            <ContextMenuItem onSelect={() => void handleStageAll()}>
-                              <Plus className="size-3.5 text-stone-500" />
-                              <span>全部暂存</span>
-                            </ContextMenuItem>
-                            <ContextMenuSeparator />
-                            <ContextMenuItem
-                              className="text-red-600 focus:text-red-600"
-                              onSelect={() => void handleDiscard(file)}
+                                  <span className="flex items-center gap-1.5 truncate">
+                                    <FileText className="size-3.5 shrink-0 text-stone-400 group-hover:text-stone-600" />
+                                    <span className="w-3.5 text-center font-bold text-green-600">{file.status}</span>
+                                    <span className="truncate" title={file.path}>
+                                      {file.path}
+                                    </span>
+                                  </span>
+                                  <button
+                                    type="button"
+                                    title="取消暂存"
+                                    className="opacity-0 group-hover:opacity-100 rounded p-1 text-stone-400 hover:bg-stone-200/80 hover:text-amber-700 transition-colors"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      void handleUnstageFile(file.path)
+                                    }}
+                                  >
+                                    <Minus className="size-3.5" />
+                                  </button>
+                                </div>
+                              </ContextMenuTrigger>
+                              <ContextMenuContent className="w-56">
+                                {isMulti ? (
+                                  <>
+                                    <ContextMenuItem onSelect={() => void handleUnstageMultiple(selectedStagedPaths)}>
+                                      <Minus className="size-3.5 text-amber-600" />
+                                      <span>取消暂存选中的 {selectedStagedPaths.length} 个文件</span>
+                                    </ContextMenuItem>
+                                    <ContextMenuItem onSelect={() => void handleStashFiles(selectedStagedPaths)}>
+                                      <Archive className="size-3.5 text-blue-600" />
+                                      <span>贮藏选中的 {selectedStagedPaths.length} 个文件…</span>
+                                    </ContextMenuItem>
+                                    <ContextMenuSeparator />
+                                    <ContextMenuItem onSelect={() => setSelectedStagedPaths(status?.staged.map((f) => f.path) || [])}>
+                                      <CheckSquare className="size-3.5 text-stone-500" />
+                                      <span>全选暂存文件</span>
+                                      <span className="ml-auto text-[10px] text-stone-400">⌘A</span>
+                                    </ContextMenuItem>
+                                    <ContextMenuSeparator />
+                                    <ContextMenuItem onSelect={() => copyToClipboard(selectedStagedPaths.join("\n"), "相对路径")}>
+                                      <Copy className="size-3.5 text-stone-500" />
+                                      <span>复制选中相对路径 ({selectedStagedPaths.length})</span>
+                                    </ContextMenuItem>
+                                    <ContextMenuItem onSelect={() => copyToClipboard(selectedStagedPaths.map(getFullPath).join("\n"), "绝对路径")}>
+                                      <Copy className="size-3.5 text-stone-500" />
+                                      <span>复制选中绝对路径 ({selectedStagedPaths.length})</span>
+                                    </ContextMenuItem>
+                                    <ContextMenuSeparator />
+                                    <ContextMenuItem
+                                      className="text-red-600 focus:text-red-600 data-[highlighted]:bg-red-600"
+                                      onSelect={() => void handleDiscardStagedMultiple(selectedStagedPaths)}
+                                    >
+                                      <Trash2 className="size-3.5 text-red-500" />
+                                      <span>放弃选中的 {selectedStagedPaths.length} 个文件更改…</span>
+                                    </ContextMenuItem>
+                                  </>
+                                ) : (
+                                  <>
+                                    <ContextMenuItem onSelect={() => void handleUnstageFile(file.path)}>
+                                      <Minus className="size-3.5 text-amber-600" />
+                                      <span>取消暂存文件</span>
+                                    </ContextMenuItem>
+                                    <ContextMenuItem onSelect={() => void handleStashFiles([file.path])}>
+                                      <Archive className="size-3.5 text-blue-600" />
+                                      <span>贮藏此文件修改…</span>
+                                    </ContextMenuItem>
+                                    <ContextMenuItem onSelect={() => void handleUnstageAll()}>
+                                      <Minus className="size-3.5 text-stone-500" />
+                                      <span>全部取消暂存</span>
+                                    </ContextMenuItem>
+                                    <ContextMenuSeparator />
+                                    <ContextMenuItem onSelect={() => setSelectedFile(file)}>
+                                      <FileText className="size-3.5 text-stone-500" />
+                                      <span>查看文件差异</span>
+                                    </ContextMenuItem>
+                                    <ContextMenuItem onSelect={() => void handleRevealInFinder(file.path)}>
+                                      <FolderOpen className="size-3.5 text-stone-500" />
+                                      <span>在访达中显示</span>
+                                    </ContextMenuItem>
+                                    <ContextMenuItem onSelect={() => setSelectedStagedPaths(status?.staged.map((f) => f.path) || [])}>
+                                      <CheckSquare className="size-3.5 text-stone-500" />
+                                      <span>全选暂存文件</span>
+                                      <span className="ml-auto text-[10px] text-stone-400">⌘A</span>
+                                    </ContextMenuItem>
+                                    <ContextMenuSeparator />
+                                    <ContextMenuItem onSelect={() => copyToClipboard(file.path, "相对路径")}>
+                                      <Copy className="size-3.5 text-stone-500" />
+                                      <span>复制相对路径</span>
+                                    </ContextMenuItem>
+                                    <ContextMenuItem onSelect={() => copyToClipboard(getFullPath(file.path), "绝对路径")}>
+                                      <Copy className="size-3.5 text-stone-500" />
+                                      <span>复制绝对路径</span>
+                                    </ContextMenuItem>
+                                    <ContextMenuSeparator />
+                                    <ContextMenuItem
+                                      className="text-red-600 focus:text-red-600 data-[highlighted]:bg-red-600"
+                                      onSelect={() => void handleDiscardStaged(file)}
+                                    >
+                                      <Trash2 className="size-3.5 text-red-500" />
+                                      <span>放弃更改…</span>
+                                    </ContextMenuItem>
+                                  </>
+                                )}
+                              </ContextMenuContent>
+                            </ContextMenu>
+                          )
+                        })}
+                        {!status?.staged.length && (
+                          <p className="p-3 text-center text-xs text-stone-400">暂无已暂存文件</p>
+                        )}
+                      </div>
+                    </ScrollArea>
+                  </ResizablePanel>
+
+                  {/* 2号: 拖拽调整已暂存与未暂存区域高度的分割线 */}
+                  <ResizableHandle aria-label="调整暂存与未暂存区域高度" />
+
+                  {/* 2号: 未暂存区 */}
+                  <ResizablePanel
+                    id="git-unstaged-panel"
+                    defaultSize="50%"
+                    minSize="15%"
+                    maxSize="85%"
+                    className="flex flex-col min-h-0 min-w-0"
+                  >
+                    <div className="flex shrink-0 items-center justify-between border-b border-stone-200 bg-stone-100/70 px-3 py-1.5 text-xs font-semibold text-stone-700">
+                      <span className="flex items-center gap-1.5">
+                        <span>未暂存更改 (Unstaged)</span>
+                        <span className="rounded-full bg-amber-100 px-1.5 text-[10px] text-amber-700">
+                          {(status?.unstaged.length || 0) + (status?.untracked.length || 0)}
+                        </span>
+                        {selectedUnstagedPaths.length > 1 && (
+                          <span className="rounded bg-blue-100 px-1.5 py-0.5 text-[10px] text-blue-700 font-normal">
+                            已选 {selectedUnstagedPaths.length} 项
+                          </span>
+                        )}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        {selectedUnstagedPaths.length > 1 && (
+                          <>
+                            <button
+                              type="button"
+                              className="text-[11px] font-normal text-blue-700 hover:text-blue-900 hover:underline flex items-center gap-0.5"
+                              onClick={() => void handleStashFiles(selectedUnstagedPaths)}
+                              title="贮藏所选未暂存修改"
                             >
-                              <Trash2 className="size-3.5 text-red-500" />
-                              <span>放弃更改…</span>
-                            </ContextMenuItem>
-                            <ContextMenuSeparator />
-                            <ContextMenuItem onSelect={() => setSelectedFile(file)}>
-                              <FileText className="size-3.5 text-stone-500" />
-                              <span>查看文件差异</span>
-                            </ContextMenuItem>
-                            <ContextMenuItem onSelect={() => void handleRevealInFinder(file.path)}>
-                              <FolderOpen className="size-3.5 text-stone-500" />
-                              <span>在访达中显示</span>
-                            </ContextMenuItem>
-                            <ContextMenuSeparator />
-                            <ContextMenuItem onSelect={() => copyToClipboard(file.path, "相对路径")}>
-                              <Copy className="size-3.5 text-stone-500" />
-                              <span>复制相对路径</span>
-                            </ContextMenuItem>
-                            <ContextMenuItem onSelect={() => copyToClipboard(getFullPath(file.path), "绝对路径")}>
-                              <Copy className="size-3.5 text-stone-500" />
-                              <span>复制绝对路径</span>
-                            </ContextMenuItem>
-                          </ContextMenuContent>
-                        </ContextMenu>
-                      ))}
-                      {!status?.unstaged.length && !status?.untracked.length && (
-                        <p className="p-3 text-center text-xs text-stone-400">工作区干净，无任何变更</p>
-                      )}
+                              <Archive className="size-3" />
+                              <span>贮藏所选 ({selectedUnstagedPaths.length})</span>
+                            </button>
+                            <button
+                              type="button"
+                              className="text-[11px] font-normal text-green-700 hover:text-green-900 hover:underline flex items-center gap-0.5"
+                              onClick={() => void handleStageMultiple(selectedUnstagedPaths)}
+                              title="暂存所选文件"
+                            >
+                              <Plus className="size-3" />
+                              <span>暂存所选 ({selectedUnstagedPaths.length})</span>
+                            </button>
+                          </>
+                        )}
+                        <button
+                          type="button"
+                          className="text-[11px] font-normal text-stone-500 hover:text-stone-800"
+                          onClick={handleStageAll}
+                        >
+                          全部暂存
+                        </button>
+                      </div>
                     </div>
-                  </ScrollArea>
-                </ResizablePanel>
+                    <ScrollArea className="flex-1 min-h-0 p-1">
+                      <div className="space-y-0.5">
+                        {[...(status?.unstaged || []), ...(status?.untracked || [])].map((file, idx) => {
+                          const allUnstaged = [...(status?.unstaged || []), ...(status?.untracked || [])]
+                          const isSelected = selectedUnstagedPaths.includes(file.path)
+                          const isPrimary = selectedFile?.path === file.path
+                          const isMulti = selectedUnstagedPaths.length > 1 && isSelected
+
+                          return (
+                            <ContextMenu key={file.path}>
+                              <ContextMenuTrigger asChild>
+                                <div
+                                  onClick={(e) => handleUnstagedItemClick(e, file, idx)}
+                                  onContextMenu={() => handleUnstagedContextMenu(file, idx)}
+                                  className={`group flex items-center justify-between rounded px-2 py-1 text-xs cursor-pointer select-none transition-colors ${
+                                    isSelected
+                                      ? isPrimary
+                                        ? "bg-stone-200 font-semibold text-stone-900 shadow-xs"
+                                        : "bg-stone-200/70 text-stone-800"
+                                      : "hover:bg-stone-100 text-stone-700"
+                                  }`}
+                                >
+                                  <span className="flex items-center gap-1.5 truncate">
+                                    <FileText className="size-3.5 shrink-0 text-stone-400 group-hover:text-stone-600" />
+                                    <span
+                                      className={`w-3.5 text-center font-bold ${
+                                        file.status === "?" ? "text-blue-500" : "text-amber-600"
+                                      }`}
+                                    >
+                                      {file.status}
+                                    </span>
+                                    <span className="truncate" title={file.path}>
+                                      {file.path}
+                                    </span>
+                                  </span>
+                                  <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100">
+                                    <button
+                                      type="button"
+                                      title="暂存此文件"
+                                      className="rounded p-1 text-stone-400 hover:bg-stone-200/80 hover:text-green-700 transition-colors"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        void handleStageFile(file.path)
+                                      }}
+                                    >
+                                      <Plus className="size-3.5" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      title="放弃修改"
+                                      className="rounded p-1 text-stone-400 hover:bg-stone-200/80 hover:text-red-600 transition-colors"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        void handleDiscard(file)
+                                      }}
+                                    >
+                                      <Trash2 className="size-3.5" />
+                                    </button>
+                                  </div>
+                                </div>
+                              </ContextMenuTrigger>
+                              <ContextMenuContent className="w-56">
+                                {isMulti ? (
+                                  <>
+                                    <ContextMenuItem onSelect={() => void handleStageMultiple(selectedUnstagedPaths)}>
+                                      <Plus className="size-3.5 text-green-600" />
+                                      <span>暂存选中的 {selectedUnstagedPaths.length} 个文件</span>
+                                    </ContextMenuItem>
+                                    <ContextMenuItem onSelect={() => void handleStashFiles(selectedUnstagedPaths)}>
+                                      <Archive className="size-3.5 text-blue-600" />
+                                      <span>贮藏选中的 {selectedUnstagedPaths.length} 个文件…</span>
+                                    </ContextMenuItem>
+                                    <ContextMenuSeparator />
+                                    <ContextMenuItem onSelect={() => setSelectedUnstagedPaths(allUnstaged.map((f) => f.path))}>
+                                      <CheckSquare className="size-3.5 text-stone-500" />
+                                      <span>全选未暂存更改</span>
+                                      <span className="ml-auto text-[10px] text-stone-400">⌘A</span>
+                                    </ContextMenuItem>
+                                    <ContextMenuSeparator />
+                                    <ContextMenuItem onSelect={() => copyToClipboard(selectedUnstagedPaths.join("\n"), "相对路径")}>
+                                      <Copy className="size-3.5 text-stone-500" />
+                                      <span>复制选中相对路径 ({selectedUnstagedPaths.length})</span>
+                                    </ContextMenuItem>
+                                    <ContextMenuItem onSelect={() => copyToClipboard(selectedUnstagedPaths.map(getFullPath).join("\n"), "绝对路径")}>
+                                      <Copy className="size-3.5 text-stone-500" />
+                                      <span>复制选中绝对路径 ({selectedUnstagedPaths.length})</span>
+                                    </ContextMenuItem>
+                                    <ContextMenuSeparator />
+                                    <ContextMenuItem
+                                      className="text-red-600 focus:text-red-600 data-[highlighted]:bg-red-600"
+                                      onSelect={() => void handleDiscardMultiple(selectedUnstagedPaths)}
+                                    >
+                                      <Trash2 className="size-3.5 text-red-500" />
+                                      <span>放弃选中的 {selectedUnstagedPaths.length} 个文件修改…</span>
+                                    </ContextMenuItem>
+                                  </>
+                                ) : (
+                                  <>
+                                    <ContextMenuItem onSelect={() => void handleStageFile(file.path)}>
+                                      <Plus className="size-3.5 text-green-600" />
+                                      <span>暂存此文件</span>
+                                    </ContextMenuItem>
+                                    <ContextMenuItem onSelect={() => void handleStashFiles([file.path])}>
+                                      <Archive className="size-3.5 text-blue-600" />
+                                      <span>贮藏此文件修改…</span>
+                                    </ContextMenuItem>
+                                    <ContextMenuItem onSelect={() => void handleStageAll()}>
+                                      <Plus className="size-3.5 text-stone-500" />
+                                      <span>全部暂存</span>
+                                    </ContextMenuItem>
+                                    <ContextMenuSeparator />
+                                    <ContextMenuItem onSelect={() => setSelectedFile(file)}>
+                                      <FileText className="size-3.5 text-stone-500" />
+                                      <span>查看文件差异</span>
+                                    </ContextMenuItem>
+                                    <ContextMenuItem onSelect={() => void handleRevealInFinder(file.path)}>
+                                      <FolderOpen className="size-3.5 text-stone-500" />
+                                      <span>在访达中显示</span>
+                                    </ContextMenuItem>
+                                    <ContextMenuItem onSelect={() => setSelectedUnstagedPaths(allUnstaged.map((f) => f.path))}>
+                                      <CheckSquare className="size-3.5 text-stone-500" />
+                                      <span>全选未暂存更改</span>
+                                      <span className="ml-auto text-[10px] text-stone-400">⌘A</span>
+                                    </ContextMenuItem>
+                                    <ContextMenuSeparator />
+                                    <ContextMenuItem onSelect={() => copyToClipboard(file.path, "相对路径")}>
+                                      <Copy className="size-3.5 text-stone-500" />
+                                      <span>复制相对路径</span>
+                                    </ContextMenuItem>
+                                    <ContextMenuItem onSelect={() => copyToClipboard(getFullPath(file.path), "绝对路径")}>
+                                      <Copy className="size-3.5 text-stone-500" />
+                                      <span>复制绝对路径</span>
+                                    </ContextMenuItem>
+                                    <ContextMenuSeparator />
+                                    <ContextMenuItem
+                                      className="text-red-600 focus:text-red-600 data-[highlighted]:bg-red-600"
+                                      onSelect={() => void handleDiscard(file)}
+                                    >
+                                      <Trash2 className="size-3.5 text-red-500" />
+                                      <span>放弃修改…</span>
+                                    </ContextMenuItem>
+                                  </>
+                                )}
+                              </ContextMenuContent>
+                            </ContextMenu>
+                          )
+                        })}
+                        {!status?.unstaged.length && !status?.untracked.length && (
+                          <p className="p-3 text-center text-xs text-stone-400">工作区干净，无任何变更</p>
+                        )}
+                      </div>
+                    </ScrollArea>
+                  </ResizablePanel>
                 </ResizablePanelGroup>
 
                 {/* 底部提交输入栏 */}
