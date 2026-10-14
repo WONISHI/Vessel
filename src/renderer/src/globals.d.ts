@@ -188,6 +188,8 @@ interface VesselAPI extends BrowserProxyAPI, BrowserToolsAPI, SettingsAPI, Brows
   reportCrash?: (crashed: boolean) => Promise<void>
   relaunchApp?: () => Promise<void>
   reloadWindow?: () => Promise<void>
+  git: typeof import("../../preload/apis/git.api").gitAPI
+  apiClient: typeof import("../../preload/apis/api-client.api").apiClientAPI
 }
 
 declare global {
@@ -195,6 +197,8 @@ declare global {
     electron: ElectronAPI
     api: unknown
     electronAPI: VesselAPI
+    git: typeof import("../../preload/apis/git.api").gitAPI
+    apiClient: typeof import("../../preload/apis/api-client.api").apiClientAPI
   }
 }
 

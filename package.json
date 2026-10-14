@@ -156,6 +156,7 @@
     "@parcel/watcher": "^2.6.0",
     "@vscode/ripgrep": "^1.18.0",
     "better-sqlite3": "^12.4.1",
+    "dugite": "^3.2.3",
     "lz-string": "^1.5.0",
     "node-pty": "^1.1.0",
     "typescript": "^5.9.3",

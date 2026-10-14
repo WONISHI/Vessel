@@ -1,1 +1,1 @@
-export type AsideActivity = "files" | "todos" | "tools" | "browser" | "resources" | "office" | "image" | "search"
+export type AsideActivity = "files" | "todos" | "tools" | "browser" | "resources" | "office" | "image" | "search" | "git" | "postman"

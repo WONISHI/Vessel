@@ -11,6 +11,8 @@ import { welcomeAPI } from "./apis/welcome.api"
 import { developerAPI } from "./apis/developer.api"
 
 import { filesAPI } from "./apis/files.api"
+import { gitAPI } from "./apis/git.api"
+import { apiClientAPI } from "./apis/api-client.api"
 
 const api = {}
 
@@ -86,16 +88,20 @@ const vesselAPI = {
   ...todosAPI,
   ...welcomeAPI,
   ...filesAPI,
-  ...developerAPI
+  ...developerAPI,
+  git: gitAPI,
+  apiClient: apiClientAPI,
+  ...gitAPI,
+  ...apiClientAPI
 }
 
 if (process.contextIsolated) {
   try {
     contextBridge.exposeInMainWorld("electron", electronAPI)
-
     contextBridge.exposeInMainWorld("api", api)
-
     contextBridge.exposeInMainWorld("electronAPI", vesselAPI)
+    contextBridge.exposeInMainWorld("git", gitAPI)
+    contextBridge.exposeInMainWorld("apiClient", apiClientAPI)
   } catch (error) {
     console.error(error)
   }
@@ -108,4 +114,10 @@ if (process.contextIsolated) {
 
   // @ts-ignore 已在 index.d.ts 中声明
   window.electronAPI = vesselAPI
+
+  // @ts-ignore 已在 index.d.ts 中声明
+  window.git = gitAPI
+
+  // @ts-ignore 已在 index.d.ts 中声明
+  window.apiClient = apiClientAPI
 }

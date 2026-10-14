@@ -6,6 +6,8 @@ import { BrowserRoute } from "@/pages/browser/keep-alive"
 import { useLocation } from "react-router-dom"
 import TodosPage from "@/pages/todos"
 import ImageRoute from "@/pages/image"
+import SourceTreePage from "@/pages/git"
+import PostmanPage from "@/pages/postman"
 import { useEffect, useState } from "react"
 
 import App, { type WorkspaceData } from "../App"
@@ -112,6 +114,8 @@ function ResourceRoute() {
  * 路由配置
  */
 export const routes: AppRouteRecordRaw[] = [
+  { path: "/git", name: "git", component: SourceTreePage, meta: { title: "SourceTree" } },
+  { path: "/api-client", name: "api-client", component: PostmanPage, meta: { title: "Postman" } },
   { path: "/search", name: "search", component: SearchPage, meta: { title: "全局搜索" } },
   { path: "/office", name: "office", component: OfficeRoute, meta: { title: "ONLYOFFICE" } },
   { path: "/resources", name: "resources", component: ResourceRoute, meta: { title: "项目资源库" }, children: [
