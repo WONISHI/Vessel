@@ -54,6 +54,24 @@ async function prepareWinApp(arch, electronVersion) {
     await fs.writeFile(path.join(app,'package.json'),JSON.stringify(manifest,null,2))
     await fs.cp(path.join(root,'out'),path.join(app,'out'),{recursive:true})
     for (const dependency of Object.keys(pkg.dependencies)) await copyDependency(dependency,root,path.join(app,'node_modules',dependency),arch)
+    // @vscode/ripgrep uses an optional package for the target platform.
+    const ripgrepManifest = JSON.parse(await fs.readFile(path.join(packageDirectory('@vscode/ripgrep',root),'package.json'),'utf8'))
+    const ripgrepName = `ripgrep-win32-${arch}`
+    const ripgrepVersion = ripgrepManifest.optionalDependencies[`@vscode/${ripgrepName}`]
+    if (!ripgrepVersion) throw new Error(`Ripgrep does not support Windows ${arch}`)
+    const ripgrepRegistry = (process.env.npm_config_registry || 'https://registry.npmjs.org').replace(/\/$/,'')
+    const ripgrepMetadata = path.join(cache,`${ripgrepName}-${ripgrepVersion}.json`)
+    await download(`${ripgrepRegistry}/@vscode%2f${ripgrepName}/${ripgrepVersion}`,ripgrepMetadata)
+    const ripgrepDist = JSON.parse(await fs.readFile(ripgrepMetadata,'utf8')).dist
+    const [ripgrepAlgorithm,ripgrepExpected] = ripgrepDist.integrity.split('-')
+    const ripgrepArchive = path.join(cache,`${ripgrepName}-${ripgrepVersion}.tgz`)
+    const validRipgrep = async () => createHash(ripgrepAlgorithm).update(await fs.readFile(ripgrepArchive)).digest('base64') === ripgrepExpected
+    if (!await validRipgrep().catch(() => false)) await download(ripgrepDist.tarball,ripgrepArchive)
+    if (!await validRipgrep()) throw new Error('Ripgrep package checksum mismatch')
+    const ripgrepTarget = path.join(app,'node_modules/@vscode',ripgrepName)
+    await fs.mkdir(ripgrepTarget,{recursive:true})
+    await run('tar',['-xzf',ripgrepArchive,'--strip-components=1','-C',ripgrepTarget])
+    await verifyPE(path.join(ripgrepTarget,'bin/rg.exe'),arch)
     const watcherVersion = require('@parcel/watcher/package.json').version
     const watcherName = `watcher-win32-${arch}`
     const watcherArchive = path.join(cache,`${watcherName}-${watcherVersion}.tgz`)

@@ -30,6 +30,10 @@ export function secureBrowserGuests(contents: WebContents) {
     preferences.sandbox = true
     preferences.webSecurity = true
     preferences.allowRunningInsecureContent = false
+    // Warm the connection while Chromium is creating the guest renderer.
+    if (/^https?:\/\//i.test(params.src)) {
+      try { session.fromPartition(params.partition).preconnect({ url: params.src, numSockets: 1 }) } catch { /* Navigation can proceed without preconnect. */ }
+    }
   })
   contents.on("did-attach-webview", (_event, guest) => {
     let asking = false
@@ -58,6 +62,7 @@ export function secureBrowserGuests(contents: WebContents) {
     })
     guest.on("before-input-event", (event, input) => {
       if (input.type !== "keyDown") return
+      if (matchesShortcut(input, "refreshBrowser")) { event.preventDefault(); if (!input.isAutoRepeat) guest.reload(); return }
       if (matchesShortcut(input, "devtools")) { event.preventDefault(); contents.send("browser:toggle-devtools", guest.id) }
       if (matchesShortcut(input, "command")) { event.preventDefault(); contents.send("app:command") }
     })

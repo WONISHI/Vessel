@@ -2,8 +2,12 @@
 export const shortcuts = {
   command: { label: '命令菜单', key: 'p', mod: true, scope: '全局' },
   find: { label: '页面 / 文档查找', key: 'f', mod: true, scope: '浏览器、编辑器' },
+  scrollTop: { label: '返回顶部', key: 'a', ctrl: true, shift: true, scope: '悬停 / 聚焦的滚动区域' },
+  scrollBottom: { label: '返回底部', key: 'z', ctrl: true, shift: true, scope: '悬停 / 聚焦的滚动区域' },
+  goToLine: { label: '跳转到行', key: 'g', mod: true, scope: '代码编辑器' },
   sidebar: { label: '切换侧边栏', key: 'b', mod: true, scope: '工作区' },
   devtools: { label: '切换网页开发者工具', key: 'F12', scope: '浏览器' },
+  refreshBrowser: { label: '刷新当前网页', key: 'F5', scope: '浏览器' },
   previousTab: { label: '上一个文档标签', key: 'l', ctrl: true, scope: '工作区、项目资源库' },
   nextTab: { label: '下一个文档标签', key: 'r', ctrl: true, scope: '工作区、项目资源库' },
   save: { label: '保存', key: 's', mod: true, scope: '编辑器' },
@@ -38,7 +42,7 @@ export function shortcutLabel(id: ShortcutId, mac: boolean) {
   return [item.mod ? mac ? '⌘' : 'Ctrl' : item.ctrl ? 'Ctrl' : '', item.shift ? 'Shift' : '', item.key.toUpperCase()].filter(Boolean).join(' + ')
 }
 
-export const screenshotShortcut = { label: "截图", scope: "全局", mac: "Control+X", windows: "Control+X" }
+export const screenshotShortcut = { label: "端外截图", scope: "全局", mac: "Control+X", windows: "F1" }
 
 export function markdownHotkey(id: ShortcutId) {
   const item: { key: string; mod?: boolean; shift?: boolean } = shortcuts[id]

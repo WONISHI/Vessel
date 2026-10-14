@@ -8,6 +8,7 @@ const ScrollArea = React.forwardRef<React.ElementRef<typeof ScrollAreaPrimitive.
     ref={ref}
     className={cn("relative overflow-hidden", className)}
     {...props}
+    data-vessel-scroll="area"
   >
     <ScrollAreaPrimitive.Viewport
       ref={viewportRef}

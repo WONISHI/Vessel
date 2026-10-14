@@ -106,7 +106,7 @@ export async function startScreenshot() {
   }
 }
 export function registerScreenshotShortcut() {
-  const keys = ["Control+X", "F1"]
+  const keys = [process.platform === 'darwin' ? 'Control+X' : 'F1']
   const registered = new Set<string>()
   const update = () => {
     for (const key of registered) globalShortcut.unregister(key)

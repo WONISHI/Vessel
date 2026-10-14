@@ -1,4 +1,5 @@
 import { JsonTool, ColorTool, Base64Tool, URLTool } from "@/pages/debug/utility-tools"
+import SearchPage from "@/pages/search"
 import SettingsPage from "@/pages/settings"
 import { OfficeRoute } from "@/pages/office"
 import { BrowserRoute } from "@/pages/browser/keep-alive"
@@ -110,6 +111,7 @@ function ResourceRoute() {
  * 路由配置
  */
 export const routes: AppRouteRecordRaw[] = [
+  { path: "/search", name: "search", component: SearchPage, meta: { title: "全局搜索" } },
   { path: "/office", name: "office", component: OfficeRoute, meta: { title: "ONLYOFFICE" } },
   { path: "/resources", name: "resources", component: ResourceRoute, meta: { title: "项目资源库" }, children: [
     { index: true, component: WorkspaceHome },

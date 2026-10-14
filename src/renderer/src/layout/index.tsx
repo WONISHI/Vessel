@@ -1,5 +1,6 @@
 import { SidebarProvider } from "@/components/ui/sidebar"
-import type { ReactNode } from "react"
+import { useEffect, type ReactNode } from "react"
+import { installScrollShortcuts } from "@/lib/scroll-shortcuts"
 
 export interface LayoutProps {
   /** 页面提供的侧栏区域，不包含业务状态。 */
@@ -10,6 +11,7 @@ export interface LayoutProps {
 
 /** 提供全屏左右布局及溢出边界；具体页面负责导航、数据和交互。 */
 export default function Layout({ aside, children }: LayoutProps) {
+  useEffect(installScrollShortcuts, [])
   return (
     <SidebarProvider
       className="h-dvh min-h-0 w-full overflow-hidden bg-white text-stone-800"

@@ -164,7 +164,8 @@ function ImageContent({ remote = false, src, srcSet, alt = "", width = 480, resi
       >
         <DialogContent
           showCloseButton={false}
-          className="max-w-[95vw] w-fit max-h-[95vh] p-6"
+          overlayClassName="z-[269]"
+          className="z-[270] max-w-[95vw] w-fit max-h-[95vh] p-6"
           aria-describedby={undefined}
           onCloseAutoFocus={event => event.preventDefault()}
         >

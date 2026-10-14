@@ -14,7 +14,7 @@ import { markGuestReady, withGuest } from "./guest-lifecycle"
 import { pageObserverScript } from "./page-observer"
 import { elementPickerScript } from "./element-picker"
 import { webviewAttributes } from "./webview-attributes"
-import { useEffect, useRef, useState } from "react"
+import { memo, useCallback, useEffect, useRef, useState } from "react"
 import type { WebviewTag } from "electron"
 import { ChevronUp, ChevronDown, ChevronRight, ArrowLeft, ArrowRight, RotateCw, Home, Globe, Plus, X, Search, LockKeyhole, Bookmark, Bug, SquareDashedMousePointer, Pin, Link2, ZoomIn } from "lucide-react"
 import { useRouter } from "@vessel/react-router"
@@ -24,7 +24,7 @@ import { Button } from "@/components/ui/button"
 import { browserURL } from "./url"
 import "./index.css"
 
-type Tab = { openerId?: string; favicon?: string; id: string; url: string; title: string; loading: boolean; back: boolean; forward: boolean; error: string; zoom: number }
+type Tab = { ready?: boolean; openerId?: string; favicon?: string; id: string; url: string; title: string; loading: boolean; back: boolean; forward: boolean; error: string; zoom: number }
 const newTab = (): Tab => ({ id: crypto.randomUUID(), url: "", title: "新标签页", loading: false, back: false, forward: false, error: "", zoom: 1 })
 const shortcuts = [
   { title: "GitHub", url: "https://github.com" },
@@ -32,7 +32,7 @@ const shortcuts = [
   { title: "MDN Docs", url: "https://developer.mozilla.org" },
   { title: "React", url: "https://react.dev" }
 ]
-function Guest({ tab, visible, register, update }: { tab: Tab; visible: boolean; register: (id: string, view: WebviewTag | null) => void; update: (id: string, patch: Partial<Tab>) => void }) {
+const Guest = memo(function Guest({ tab, visible, register, update }: { tab: Tab; visible: boolean; register: (id: string, view: WebviewTag | null) => void; update: (id: string, patch: Partial<Tab>) => void }) {
   const ref = useRef<WebviewTag | null>(null)
   const [initialURL] = useState(tab.url)
   const updateRef = useRef(update)
@@ -43,7 +43,7 @@ function Guest({ tab, visible, register, update }: { tab: Tab; visible: boolean;
     const view = ref.current
     if (!view) return
     const sync = () => withGuest(view, guest => updateRef.current(tab.id, { url: guest.getURL(), title: guest.getTitle() || "正在加载…", back: guest.canGoBack(), forward: guest.canGoForward() }))
-    const onReady = () => { void view.executeJavaScript(pageObserverScript).catch(error => console.warn("页面监听注入失败", error)); markGuestReady(view, true); sync(); updateRef.current(tab.id, { loading: false }) }
+    const onReady = () => { void view.executeJavaScript(pageObserverScript).catch(error => console.warn("页面监听注入失败", error)); markGuestReady(view, true); sync(); updateRef.current(tab.id, { loading: false, ready: true }) }
     const start = (event: Electron.DidStartNavigationEvent) => { if (event.isMainFrame && !event.isInPlace) updateRef.current(tab.id, { loading: true, error: "" }) }
     const stop = () => {
       sync()
@@ -87,12 +87,12 @@ function Guest({ tab, visible, register, update }: { tab: Tab; visible: boolean;
     }
   }, [tab.id])
   return <webview
-    ref={view => { ref.current = view as WebviewTag | null; register(tab.id, ref.current) }}
+    ref={useCallback((view: WebviewTag | null) => { ref.current = view; register(tab.id, view) }, [register, tab.id])}
     src={initialURL}
     {...webviewAttributes}
     style={{ width: "100%", height: "100%", display: visible ? "flex" : "none" }}
   />
-}
+})
 export default function BrowserPage({ visible = true }: { visible?: boolean }) {
   const router = useRouter()
   const [deviceViewport, setDeviceViewport] = useState({ width: 390, height: 844, scale: 1 })
@@ -125,6 +125,20 @@ export default function BrowserPage({ visible = true }: { visible?: boolean }) {
   useEffect(() => window.electronAPI.onBrowserDevtoolsClosed(() => setDevtoolsOpen(false)), [])
   const devtoolsHost = useRef<HTMLDivElement>(null)
   const [active, setActive] = useState("")
+  useEffect(() => {
+    const open = () => {
+      if (!visible) return
+      const url = sessionStorage.getItem('vessel-browser-pending-url')
+      if (!url) return
+      sessionStorage.removeItem('vessel-browser-pending-url')
+      if (!/^(file|https?):\/\//i.test(url)) return
+      const item = { ...newTab(), url, loading: true }
+      setTabs(current => [...current, item]); setActive(item.id)
+    }
+    open()
+    window.addEventListener('vessel-browser-open-url', open)
+    return () => window.removeEventListener('vessel-browser-open-url', open)
+  }, [visible])
   const [input, setInput] = useState<string | null>(null)
   const [searchInput, setSearchInput] = useState("")
   const [bookmarks, setBookmarks] = useState(() => {
@@ -136,6 +150,10 @@ export default function BrowserPage({ visible = true }: { visible?: boolean }) {
   })
   useEffect(() => { void window.electronAPI.syncBrowserBookmarks(bookmarks).catch(console.error) }, [bookmarks])
   const views = useRef(new Map<string, WebviewTag>())
+  const registerView = useCallback((id: string, view: WebviewTag | null) => {
+    if (view) views.current.set(id, view)
+    else views.current.delete(id)
+  }, [])
   const tab = tabs.find((item) => item.id === active) || tabs[0]
   useEffect(() => { publishBrowserTabs(tabs.filter(item => Boolean(item.url)).map(item => ({ id: item.id, title: item.title, url: item.url, favicon: item.favicon, active: item.id === tab.id }))) }, [tabs, tab.id])
   useEffect(() => {
@@ -154,6 +172,7 @@ export default function BrowserPage({ visible = true }: { visible?: boolean }) {
     const keydown = (event: KeyboardEvent) => {
       if (!event.defaultPrevented && matchesShortcut(event, "find")) { event.preventDefault(); show() }
       if (matchesShortcut(event, "devtools")) { event.preventDefault(); setDevtoolsOpen(open => !open) }
+      if (!event.defaultPrevented && matchesShortcut(event, "refreshBrowser")) { event.preventDefault(); if (!event.repeat) withGuest(views.current.get(tab.id), guest => guest.reload()) }
     }
     window.addEventListener("keydown", keydown)
     const pageFind = (event: Event) => { if (withGuest(views.current.get(tab.id), guest => guest.getWebContentsId()) === (event as CustomEvent<number>).detail) show() }
@@ -176,7 +195,11 @@ export default function BrowserPage({ visible = true }: { visible?: boolean }) {
     find()
     return () => { view?.removeEventListener("dom-ready", find); view?.removeEventListener("found-in-page", result); withGuest(view, guest => guest.stopFindInPage("clearSelection")) }
   }, [findText, findOpen, tab.id, matchCase])
-  const update = (id: string, patch: Partial<Tab>) => setTabs((current) => current.map((item) => (item.id === id ? { ...item, ...patch } : item)))
+  const update = useCallback((id: string, patch: Partial<Tab>) => setTabs(current => {
+    const index = current.findIndex(item => item.id === id)
+    if (index < 0 || (Object.keys(patch) as (keyof Tab)[]).every(key => current[index][key] === patch[key])) return current
+    const next = [...current]; next[index] = { ...current[index], ...patch }; return next
+  }), [])
   useEffect(() => {
     const element = devtoolsHost.current
     const view = views.current.get(tab.id)
@@ -326,7 +349,7 @@ export default function BrowserPage({ visible = true }: { visible?: boolean }) {
           <Button
             variant="ghost"
             size="icon"
-            title={tab.loading ? "停止" : "刷新"}
+            title={tab.loading ? "停止" : "刷新（F5）"}
             disabled={!tab.url}
             onClick={() => {
               const view = views.current.get(tab.id)
@@ -440,10 +463,11 @@ export default function BrowserPage({ visible = true }: { visible?: boolean }) {
             <button type="button" className="browser-find-close" aria-label="关闭查找" onClick={() => setFindOpen(false)}><X size={15} /></button>
           </form>}
 
-          {tab.loading && <div className="browser-page-loading" role="status" aria-label="正在加载页面">
+          {tab.loading && !tab.ready && <div className="browser-page-loading" role="status" aria-label="正在加载页面">
             <div className="browser-loading-bar" />
             <div className="browser-loading-card"><img src={browserLoading} alt="" /><div>正在加载页面<span className="browser-loading-dots"><span>.</span><span>.</span><span>.</span></span></div><small title={tab.url}>{tab.url}</small></div>
           </div>}
+          {tab.loading && tab.ready && <div className="pointer-events-none absolute inset-x-0 top-0 z-[150] h-1" role="status" aria-label="正在加载页面"><div className="browser-loading-bar" /></div>}
           <div className={deviceMode && tab.url ? "device-preview-surface absolute inset-0 overflow-auto p-7" : "absolute inset-0"}>
           <div style={deviceMode && tab.url ? { width: deviceViewport.width + 2, height: deviceViewport.height + 2, margin: "0 auto" } : { width: "100%", height: "100%" }}>
           <div aria-label={deviceMode ? "设备预览边框" : undefined} style={deviceMode && tab.url ? { width: deviceViewport.width, height: deviceViewport.height, boxSizing: "content-box", border: "1px solid #d6d3d1", borderRadius: 4, boxShadow: "0 8px 32px #0000001a, 0 2px 8px #0000000a", background: "white", overflow: "hidden" } : { width: "100%", height: "100%" }}>
@@ -455,10 +479,7 @@ export default function BrowserPage({ visible = true }: { visible?: boolean }) {
                 key={item.id}
                 tab={item}
                 visible={item.id === tab.id}
-                register={(id, view) => {
-                  if (view) views.current.set(id, view)
-                  else views.current.delete(id)
-                }}
+                register={registerView}
                 update={update}
               />
             ))}

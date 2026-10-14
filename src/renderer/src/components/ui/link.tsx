@@ -1,8 +1,10 @@
 import { createPortal } from "react-dom"
 import { forwardRef, useEffect, useRef, useState, type ComponentPropsWithoutRef, type ReactNode } from "react"
 import { PopoverAnchor } from "@radix-ui/react-popover"
-import { Copy, ExternalLink } from "lucide-react"
+import { Copy, ExternalLink, Globe } from "lucide-react"
 import { toast } from "sonner"
+import { useRouter } from "@vessel/react-router"
+import { openInAppBrowser } from "@/lib/app-browser"
 import { Popover, PopoverContent } from "./popover"
 import { Button } from "./button"
 import { cn } from "@/lib/utils"
@@ -19,6 +21,7 @@ export interface LinkAction {
 }
 /** 链接操作容器；兼容 React 链接和编辑器生成的 anchor，actions 可扩展应用内浏览器入口。 */
 export function LinkInteractionArea({ children, actions = [], className, inline = false }: { children: ReactNode; actions?: readonly LinkAction[]; className?: string; inline?: boolean }) {
+  const router = useRouter()
   const host = useRef<HTMLDivElement & HTMLSpanElement>(null)
   useEffect(() => {
     const element = host.current
@@ -52,10 +55,12 @@ export function LinkInteractionArea({ children, actions = [], className, inline 
           node.replaceWith(fragment)
         }
       }
-      element.querySelectorAll<HTMLElement>('a[href], [data-type="a"] .vditor-ir__link').forEach((anchor) => {
-        if (/^(https?:|mailto:)/i.test(anchor.getAttribute("href") || anchor.parentElement?.querySelector(".vditor-ir__marker--link")?.textContent || "")) {
-          anchor.classList.add(...linkClassName.split(" "))
+      element.querySelectorAll<HTMLElement>('a[href], [data-type="a"] .vditor-ir__link, [data-type="a"]:not(:has(.vditor-ir__link))').forEach((anchor) => {
+        const href = anchor.getAttribute("href") || anchor.closest('[data-type="a"]')?.querySelector(".vditor-ir__marker--link")?.textContent || anchor.textContent?.trim() || ""
+        if (/^(https?:|mailto:)/i.test(href)) {
+          anchor.classList.add(...linkClassName.split(" "), "cursor-pointer")
           anchor.dataset.vesselLink = "true"
+          if (!anchor.hasAttribute("href")) anchor.dataset.vesselHref = href
         }
       })
     }
@@ -136,6 +141,14 @@ export function LinkInteractionArea({ children, actions = [], className, inline 
           <ExternalLink className="!size-3.5" />
           在默认浏览器中打开
         </Button>
+        {target && /^https?:/i.test(target.href) && <Button
+          variant="ghost"
+          className="h-8 w-full justify-start gap-2 px-2 text-[11px] hover:bg-emerald-700 hover:!text-white [&:hover_svg]:!text-white"
+          onClick={() => { const href = target.href; void run(() => openInAppBrowser(href, path => router.push(path))) }}
+        >
+          <Globe className="!size-3.5" />
+          在内置浏览器中打开
+        </Button>}
         <Button
           variant="ghost"
           className="h-8 w-full justify-start gap-2 px-2 text-[11px] hover:bg-emerald-700 hover:!text-white [&:hover_svg]:!text-white"

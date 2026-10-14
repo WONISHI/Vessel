@@ -6,6 +6,7 @@ import { Command as CommandPrimitive } from "cmdk"
 import { Search } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import "./command.css"
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 
 const Command = React.forwardRef<
@@ -26,9 +27,9 @@ Command.displayName = CommandPrimitive.displayName
 const CommandDialog = ({ children, ...props }: DialogProps) => {
   return (
     <Dialog {...props}>
-      <DialogContent overlayClassName="bg-black/10 backdrop-blur-[3px]" className="w-[calc(100%_-_2rem)] max-w-lg gap-0 overflow-hidden rounded-[18px] border-stone-300 bg-white p-2.5 shadow-sm sm:rounded-[18px] [&>button]:hidden">
+      <DialogContent showCloseButton={false} overlayClassName="z-[279] bg-black/[.04] backdrop-blur-[3px]" className="vessel-command-dialog z-[280] top-[14vh] max-h-[70vh] w-[400px] max-w-[92vw] sm:max-w-[400px] translate-y-0 gap-0 overflow-hidden rounded-2xl border-[#e3e3e2] bg-white p-0 shadow-[0_24px_70px_-12px_#00000038,0_8px_24px_-8px_#0000001f] sm:rounded-2xl">
         <DialogTitle className="sr-only">命令菜单</DialogTitle><DialogDescription className="sr-only">搜索并执行命令</DialogDescription>
-        <Command className="rounded-none bg-white text-neutral-950 [&_[data-command-input-wrapper]]:mb-2 [&_[data-command-input-wrapper]]:rounded-xl [&_[data-command-input-wrapper]]:border [&_[data-command-input-wrapper]]:border-neutral-100 [&_[data-command-input-wrapper]]:bg-neutral-50 [&_[data-command-input-wrapper]]:px-3 [&_[data-command-input-wrapper]_svg]:size-5 [&_[data-command-input-wrapper]_svg]:text-neutral-400 [&_[data-command-input-wrapper]_svg]:opacity-100 [&_[cmdk-input]]:h-10 [&_[cmdk-input]]:py-0 [&_[cmdk-input]]:text-base [&_[cmdk-input]]:placeholder:text-neutral-500 [&_[cmdk-group]]:p-0 [&_[cmdk-group-heading]]:px-2.5 [&_[cmdk-group-heading]]:py-2 [&_[cmdk-group-heading]]:text-sm [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-neutral-500 [&_[cmdk-item]]:min-h-11 [&_[cmdk-item]]:gap-3 [&_[cmdk-item]]:rounded-xl [&_[cmdk-item]]:px-2.5 [&_[cmdk-item]]:py-2 [&_[cmdk-item]]:text-base [&_[cmdk-item]]:text-neutral-950 [&_[cmdk-item][data-selected=true]]:!bg-neutral-100 [&_[cmdk-item][data-selected=true]]:!text-neutral-950 [&_[cmdk-item]_svg]:size-5 [&_[cmdk-list]]:max-h-[min(360px,60vh)]">
+        <Command className="vessel-command rounded-none bg-white text-[#1a1a18]">
           {children}
         </Command>
       </DialogContent>

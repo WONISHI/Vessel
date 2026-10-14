@@ -1,4 +1,5 @@
 import { registerScreenshotShortcut } from "./screenshot"
+import { registerContentSearch } from './content-search'
 import { registerSettings } from "./settings"
 import { registerTransit } from "./transit"
 import { registerOffice } from "./office"
@@ -7,14 +8,21 @@ import { registerTerminal } from "./terminal"
 import { secureBrowserGuests } from "./browser-security"
 import { registerMarkdownOpening } from "./open-markdown"
 import { join } from "path"
+import { mkdirSync } from "node:fs"
 import { app, shell, BrowserWindow, ipcMain, nativeImage } from "electron"
 import { electronApp, optimizer, is } from "@electron-toolkit/utils"
 import dockIconPath from "../../resources/icon_108x108.png?asset"
 import icon from "../../resources/icon.png?asset"
 import { mainApps } from "@main/app"
 
+// Development must not contend with the installed app's lock or databases.
+if (!app.isPackaged) {
+  const developmentData = join(app.getPath("appData"), `${app.getName()}-dev`)
+  mkdirSync(developmentData, { recursive: true })
+  app.setPath("userData", developmentData)
+}
 const primaryInstance = app.requestSingleInstanceLock()
-if (!primaryInstance) app.quit()
+if (!primaryInstance) { console.info("Vessel 已有实例运行，本次启动已交给现有实例。"); app.quit() }
 else registerMarkdownOpening()
 
 let applicationWindow: BrowserWindow | undefined
@@ -45,6 +53,7 @@ function createWindow(): void {
   registerSettings(mainWindow.webContents)
   registerOffice(mainWindow.webContents)
   registerTransit(mainWindow.webContents)
+  registerContentSearch(mainWindow.webContents)
   registerTerminal(mainWindow.webContents)
   registerFileWatch(mainWindow.webContents)
 

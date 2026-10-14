@@ -7,6 +7,8 @@ import { useEffect, useRef, useState } from "react"
 import type { TransitFile } from "../../../../shared/transit"
 import { VditorEditor } from "@/components/core/canvas/variants/markdown/vditor-editor"
 import type { TransitItem } from "./state"
+import { Image } from '@/components/ui/image'
+import { ScrollArea } from '@/components/ui/scroll-area'
 function OfficePreview({ file }: { file: Extract<TransitFile, { bytes: Uint8Array }> }) {
   const frame = useRef<HTMLIFrameElement>(null)
   const [url, setUrl] = useState("")
@@ -32,6 +34,6 @@ export function FilePreview({ item }: { item: TransitItem }) {
   if (file.kind === "pdf") return <PdfDocument bytes={file.bytes} name={file.name} />
   if (file.kind === "office") return <div className="min-h-0 flex-1"><OfficePreview file={file} /></div>
   if (file.kind === "markdown") return <div className="min-h-0 flex-1 overflow-auto [&_.vditor-reset]:!opacity-100 [&_.vditor-reset]:!cursor-text"><VditorEditor value={file.content} workspacePath={item.root!} documentPath={item.content} readOnly onChange={() => {}} /></div>
-  if (file.kind === "image") return <div className="flex min-h-0 flex-1 items-start justify-center overflow-auto p-4"><img src={file.content} alt={item.title} className="max-w-full object-contain" /></div>
+  if (file.kind === "image") return <ScrollArea className="min-h-0 flex-1"><div className="p-4"><Image src={file.content} alt={item.title} resizable={false} className="max-w-full object-contain" /></div></ScrollArea>
   return <div className="min-h-0 flex-1"><Editor height="100%" language={codeLanguage(item.content) || "plaintext"} value={file.content} options={{ readOnly: true, domReadOnly: true, automaticLayout: true, minimap: { enabled: false }, fontSize: 13, scrollBeyondLastLine: false, wordWrap: "on" }} /></div>
 }

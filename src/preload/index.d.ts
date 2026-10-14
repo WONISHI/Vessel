@@ -96,6 +96,9 @@ export interface StorageInfo {
 }
 
 export interface VesselAPI extends BrowserProxyAPI, BrowserToolsAPI, SettingsAPI, BrowserExtensionsAPI, TodosAPI, TerminalAPI, FileWatchAPI {
+  searchContent(options: import('../shared/content-search').ContentSearchOptions): Promise<import('../shared/content-search').ContentSearchResult>
+  cancelContentSearch(): void
+  pickSearchFolder(): Promise<string | null>
   readTransitClipboard(): Promise<string | { root: string; path: string; title: string }>
   openTransitWindow(item: { kind: string; content: string; title: string; root?: string }): Promise<void>
   pickOfficeFile(): Promise<{ token: string; name: string; bytes: Uint8Array } | null>

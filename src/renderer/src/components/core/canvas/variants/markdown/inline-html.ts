@@ -1,4 +1,4 @@
-const supported = new Set(["font", "span", "u", "b", "strong", "i", "em", "s", "del", "mark", "small", "sub", "sup"])
+const supported = new Set(["a", "font", "span", "u", "b", "strong", "i", "em", "s", "del", "mark", "small", "sub", "sup"])
 /** 将行内 HTML 标记之间的内容加上白名单样式；保留原始标记用于 Markdown 序列化。 */
 export function decorateInlineHTML(root: HTMLElement) {
   const stacks = new Map<Node, { tag: string; node: HTMLElement; source: string }[]>()
@@ -30,6 +30,10 @@ export function decorateInlineHTML(root: HTMLElement) {
     if (tag === "mark") preview.style.backgroundColor ||= "#fef08a"
     if (["small", "sub", "sup"].includes(tag)) preview.style.fontSize = "0.8em"
     if (["sub", "sup"].includes(tag)) preview.style.verticalAlign = tag === "sub" ? "sub" : "super"
+    if (tag === "a") {
+      const href = original?.getAttribute("href") || ""
+      if (/^(https?:|mailto:)/i.test(href)) { preview.dataset.vesselHref = href; preview.dataset.vesselLink = "true"; preview.setAttribute("role", "link"); preview.title = href; preview.className = "text-primary underline underline-offset-4 cursor-pointer hover:opacity-80" }
+    }
     const range = document.createRange()
     range.setStartAfter(opening.node)
     range.setEndBefore(marker)
