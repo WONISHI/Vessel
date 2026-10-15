@@ -41,17 +41,19 @@ function localOcrAssets() {
 export default defineConfig({
   main: {
     // Workspace 包导出 TS 源码，必须编译进产物，不能留给 Electron require。
-    build: { rollupOptions: { input: { index: resolve("src/main/index.ts"), "code-diagnostics-worker": resolve("src/main/code-diagnostics-worker.ts") } }, externalizeDeps: { exclude: ["@vessel/obsidian", "@vessel/utils", "@vessel/react-router"] } },
+    build: { rollupOptions: { input: { index: resolve("src/main/index.ts"), "code-diagnostics-worker": resolve("src/main/code-diagnostics-worker.ts") } }, externalizeDeps: { exclude: ["@vessel/obsidian", "@vessel/utils", "@vessel/react-router", "@vessel/sync"] } },
     resolve: {
       alias: {
+        "@vessel/sync": resolve("packages/sync/src/index.ts"),
         "@main": resolve("src/main")
       }
     }
   },
   preload: {
-    build: { rollupOptions: { input: {index: resolve("src/preload/index.ts"), screenshot: resolve("src/preload/screenshot.ts"), "browser-guest": resolve("src/preload/browser-guest.ts")} }, externalizeDeps: { exclude: ["@vessel/obsidian", "@vessel/utils", "@vessel/react-router"] } },
+    build: { rollupOptions: { input: {index: resolve("src/preload/index.ts"), screenshot: resolve("src/preload/screenshot.ts"), "browser-guest": resolve("src/preload/browser-guest.ts")} }, externalizeDeps: { exclude: ["@vessel/obsidian", "@vessel/utils", "@vessel/react-router", "@vessel/sync"] } },
     resolve: {
       alias: {
+        "@vessel/sync": resolve("packages/sync/src/index.ts"),
         "@main": resolve("src/main"),
         "@preload": resolve("src/preload")
       }

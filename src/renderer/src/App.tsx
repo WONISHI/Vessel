@@ -26,11 +26,13 @@ function App() {
   const router = useRouter()
   const location = useLocation()
   useEffect(() => {
-    if (location.pathname === "/settings") return
     const update = () => {
       let root: string | null = null
       try { root = JSON.parse(localStorage.getItem("app_current_workspace") || "null")?.path || null } catch {}
-      if (location.pathname.startsWith("/resources")) root = null
+      const from = sessionStorage.getItem("vessel-settings-from") || ""
+      if (location.pathname.startsWith("/resources") || (location.pathname === "/settings" && from.startsWith("/resources"))) {
+        root = null
+      }
       void window.electronAPI.setBackupWorkspace(root).then(() => window.dispatchEvent(new Event("vessel:sync-context"))).catch(console.error)
     }
     update()

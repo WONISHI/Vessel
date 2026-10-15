@@ -29,6 +29,7 @@ const vesselAPI = {
   testBackup: (settings: AppSettings["backup"], secret?: string): Promise<void> => ipcRenderer.invoke("settings:test", settings, secret),
   setBackupWorkspace: (path: string | null): Promise<void> => ipcRenderer.invoke("settings:workspace", path),
   runBackup: (file?: string, workspace?: string): Promise<BackupStatus> => ipcRenderer.invoke("settings:backup", file, workspace),
+  previewBackup: (): Promise<BackupStatus> => ipcRenderer.invoke("settings:preview"),
   getBackupStatus: (): Promise<BackupStatus> => ipcRenderer.invoke("settings:status"),
   readTransitFile: (root: string, path: string): Promise<TransitFile> => ipcRenderer.invoke("transit:read-file", root, path),
   pickOfficeFile: (): Promise<{ token: string; name: string; bytes: Uint8Array } | null> => ipcRenderer.invoke("office:pick"),

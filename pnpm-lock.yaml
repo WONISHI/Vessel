@@ -20,6 +20,9 @@ importers:
       '@parcel/watcher':
         specifier: ^2.6.0
         version: 2.6.0
+      '@vessel/sync':
+        specifier: file:packages/sync
+        version: link:packages/sync
       '@vscode/ripgrep':
         specifier: ^1.18.0
         version: 1.18.0
@@ -326,6 +329,8 @@ importers:
       react-router-dom:
         specifier: ^7.12.0
         version: 7.18.2(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+
+  packages/sync: {}
 
   packages/utils: {}
 

@@ -4,6 +4,7 @@ import { isAbsolute, resolve } from 'node:path'
 import { rgPath } from '@vscode/ripgrep'
 import { BrowserWindow, dialog, type WebContents } from 'electron'
 import type { ContentMatch, ContentSearchOptions, ContentSearchResult } from '../shared/content-search'
+import { generalSettings, parseIgnoredPatterns } from './settings'
 
 export async function searchContent(options: ContentSearchOptions, signal?: AbortSignal): Promise<ContentSearchResult> {
   if (!options || typeof options.root !== 'string' || !isAbsolute(options.root) || typeof options.query !== 'string' || options.query.length > 4096) throw new Error('搜索参数无效')
@@ -12,6 +13,11 @@ export async function searchContent(options: ContentSearchOptions, signal?: Abor
   if (!(await stat(root)).isDirectory()) throw new Error('搜索范围必须是文件夹')
   if (!options.query) return { matches: [], truncated: false }
   const args = ['--json', '--hidden', '--glob', '!.git/**', '--color', 'never']
+  if (!options.includeIgnored) {
+    for (const pattern of parseIgnoredPatterns(generalSettings().ignoredFiles)) {
+      args.push('--glob', `!${pattern}/**`, '--glob', `!${pattern}`)
+    }
+  }
   if (!options.caseSensitive) args.push('--ignore-case')
   if (!options.regex) args.push('--fixed-strings')
   if (options.wholeWord) args.push('--word-regexp')

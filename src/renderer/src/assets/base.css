@@ -53,31 +53,16 @@ select {
   cursor: text;
 }
 
-/* 右键菜单项 hover / highlighted / open 状态下，文字与图标全部变为纯白色 */
+/* 右键菜单项 hover / highlighted / open 状态下，文字与图标全部变为纯白色（仅限右键上下文菜单） */
 [data-radix-context-menu-content] [data-highlighted],
-[data-radix-context-menu-content] [data-state="open"],
-[role="menu"] [data-highlighted],
-[role="menu"] [data-state="open"],
-[role="menuitem"][data-highlighted],
-[role="menuitem"][data-state="open"] {
-  color: #ffffff !important;
-}
-
 [data-radix-context-menu-content] [data-highlighted] *,
-[data-radix-context-menu-content] [data-state="open"] *,
-[role="menu"] [data-highlighted] *,
-[role="menu"] [data-state="open"] *,
-[role="menuitem"][data-highlighted] *,
-[role="menuitem"][data-state="open"] * {
+[data-radix-context-menu-content] [role="menuitem"][data-state="open"],
+[data-radix-context-menu-content] [role="menuitem"][data-state="open"] * {
   color: #ffffff !important;
 }
 
 [data-radix-context-menu-content] [data-highlighted] svg,
-[data-radix-context-menu-content] [data-state="open"] svg,
-[role="menu"] [data-highlighted] svg,
-[role="menu"] [data-state="open"] svg,
-[role="menuitem"][data-highlighted] svg,
-[role="menuitem"][data-state="open"] svg {
+[data-radix-context-menu-content] [role="menuitem"][data-state="open"] svg {
   color: #ffffff !important;
   stroke: currentColor !important;
 }

@@ -130,7 +130,7 @@
     "fix": "npm run lint -- --fix",
     "typecheck:node": "tsc --noEmit -p tsconfig.node.json --composite false",
     "typecheck:web": "tsc --noEmit -p tsconfig.web.json --composite false",
-    "typecheck": "npm run typecheck:obsidian && npm run typecheck:utils && npm run typecheck:router && npm run typecheck:node && npm run typecheck:web",
+    "typecheck": "npm run typecheck:sync && npm run typecheck:obsidian && npm run typecheck:utils && npm run typecheck:router && npm run typecheck:node && npm run typecheck:web",
     "start": "electron-vite preview",
     "dev": "electron-vite dev --watch",
     "dev:main": "electron-vite dev --watch",
@@ -147,7 +147,9 @@
     "predev": "node scripts/prepare-dev-icon.cjs",
     "predev:main": "node scripts/prepare-dev-icon.cjs",
     "prestart": "node scripts/prepare-dev-icon.cjs",
-    "build:win:arm64": "npm run build && node scripts/build-win.cjs --arm64"
+    "build:win:arm64": "npm run build && node scripts/build-win.cjs --arm64",
+    "build:sync": "npm run build --workspace=@vessel/sync",
+    "typecheck:sync": "npm run typecheck --workspace=@vessel/sync"
   },
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.2",
@@ -161,7 +163,8 @@
     "node-pty": "^1.1.0",
     "typescript": "^5.9.3",
     "yaml": "^2.9.1",
-    "yauzl": "^3.4.0"
+    "yauzl": "^3.4.0",
+    "@vessel/sync": "file:packages/sync"
   },
   "devDependencies": {
     "@codemirror/lang-markdown": "^6.5.0",

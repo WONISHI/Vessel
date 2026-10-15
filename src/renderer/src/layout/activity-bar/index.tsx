@@ -234,7 +234,7 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
         </div>
         <div className="mt-auto flex flex-col items-center gap-1">
           <span title="外观可在设置中调整" className="flex size-[38px] items-center justify-center text-stone-500"><Sun className="size-5" /></span>
-          <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" aria-label="设置" className="size-[38px] rounded-[10px] text-stone-500 hover:!bg-[#f0efed] hover:!text-stone-500" onClick={() => { sessionStorage.setItem("vessel-settings-from", location.hash.slice(1) || "/"); void router.push("/settings") }}><Settings className="!size-5" /></Button></TooltipTrigger><TooltipContent side="right">设置</TooltipContent></Tooltip>
+          <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" aria-label="设置" className="size-[38px] rounded-[10px] text-stone-500 hover:!bg-[#f0efed] hover:!text-stone-500" onClick={() => { const from = location.pathname.startsWith("/resources") ? "/resources" : (location.hash.slice(1) || location.pathname || "/"); sessionStorage.setItem("vessel-settings-from", from); void router.push("/settings") }}><Settings className="!size-5" /></Button></TooltipTrigger><TooltipContent side="right">设置</TooltipContent></Tooltip>
         </div>
       </nav>
     </TooltipProvider>

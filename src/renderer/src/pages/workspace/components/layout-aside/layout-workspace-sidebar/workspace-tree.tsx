@@ -97,6 +97,21 @@ export default function WorkspaceTree({
     })
     // Expanded folders can arrive after the initial session restore.
   }, [expandedFolders, recent])
+  useEffect(() => {
+    const handleSettingsSaved = () => {
+      setDirectories({})
+      if (!recent) {
+        void loadDirectoryChildren(workspace.path)
+        expandedFolders.forEach((path) => {
+          void loadDirectoryChildren(path)
+        })
+      }
+    }
+    window.addEventListener("vessel:settings-saved", handleSettingsSaved)
+    return () => {
+      window.removeEventListener("vessel:settings-saved", handleSettingsSaved)
+    }
+  }, [workspace.path, expandedFolders, recent])
 
   const rows: VirtualTreeRow<WorkspaceNode>[] = []
   /** 仅展开已打开目录，将已加载节点转换成虚拟列表所需的可见行。 */

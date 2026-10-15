@@ -1,9 +1,11 @@
+import { resolve } from "node:path"
 import { defineConfig } from "vitest/config"
 
 export default defineConfig({
+  resolve: { alias: { "@vessel/sync": resolve("packages/sync/src/index.ts") } },
   test: {
     environment: "node",
-    include: ["tests/**/*.test.ts", "tests/**/*.test.tsx"],
+    include: ["tests/**/*.test.ts", "tests/**/*.test.tsx", "packages/sync/tests/**/*.test.ts"],
     clearMocks: true,
     restoreMocks: true,
     coverage: {

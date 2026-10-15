@@ -6,7 +6,14 @@ import { defaultSettings } from "../../src/shared/settings"
 import { signedS3Request } from "../../src/main/settings-s3"
 const mocks = vi.hoisted(() => ({ path: "", request: vi.fn(async () => {}), head: vi.fn(async () => undefined), upload: vi.fn(), secret: "test-secret" }))
 vi.mock("electron", () => ({ app: { getPath: () => mocks.path, getVersion: () => "1.0-test", once: () => {} }, safeStorage: { isEncryptionAvailable: () => true, encryptString: () => Buffer.from("ciphertext"), decryptString: () => mocks.secret } }))
-vi.mock("../../src/main/settings-s3", async original => ({ ...await original<object>(), requestS3: mocks.request, headS3File: mocks.head, uploadS3File: mocks.upload }))
+vi.mock("../../src/main/settings-s3", async original => ({ ...await original<object>(), requestS3: mocks.request, headS3File: mocks.head, uploadS3File: mocks.upload,
+  createS3Storage: (config, secret) => ({
+    id: JSON.stringify([config.endpoint, config.bucket, config.region, config.accessKey, config.prefix]),
+    list: async () => new Map(),
+    download: async () => { throw new Error("unexpected download") },
+    head: key => mocks.head(config, secret, key),
+    upload: (key, source, input) => mocks.upload(config, secret, key, source, input.digest, input.size, input.etag)
+  }) }))
 it("signs S3 paths deterministically and rejects credentials embedded in endpoint URLs", () => {
   const config = { ...defaultSettings.backup, endpoint: "https://storage.example.com", bucket: "notes", accessKey: "AKID", region: "us-east-1" }
   const request = signedS3Request(config, "secret", "PUT", "中文/my file.json", new Uint8Array([1, 2]), new Date("2026-10-03T00:00:00Z"))
@@ -43,6 +50,10 @@ it("isolates workspace credentials, blocks resources, and only uploads the selec
     expect(saved).toMatchObject({ backup: { enabled: true, workspacePath: notes, hasSecret: true } })
     expect(await readFile(join(mocks.path, "settings.json"), "utf8")).not.toContain(mocks.secret)
     mocks.upload.mockImplementation(async (...args: unknown[]) => { args[3] = await readFile(args[3] as string); return args })
+    const preview = await call("preview")
+    expect(preview).toMatchObject({ dryRun: true, plan: expect.arrayContaining([expect.objectContaining({ path: "note.md", action: "upload" })]) })
+    expect(mocks.upload).not.toHaveBeenCalled()
+    expect(await call("status")).toMatchObject({ running: false })
     expect(await call("backup", join(notes, "note.md"), notes)).toMatchObject({ running: false, changed: 1 })
     expect(mocks.upload).toHaveBeenCalledTimes(1)
     expect(mocks.upload.mock.calls[0][2]).toBe("backups/note.md")

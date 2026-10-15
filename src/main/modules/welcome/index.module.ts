@@ -6,6 +6,7 @@ import { AppDatabase } from "@main/modules/welcome/database/index.database"
 import type { WorkspaceDataInput, WorkspaceFile } from "@main/modules/welcome/index.type"
 import { isWorkspaceData, assertStateKey } from "@main/modules/welcome/utils/index.util"
 import { SUPPORTED_EXTENSIONS } from "@main/modules/welcome/constants/index.constant"
+import { generalSettings, parseIgnoredPatterns, isIgnoredEntry } from "@main/settings"
 
 /**
  * 欢迎页主进程模块。
@@ -93,8 +94,9 @@ export class WelcomeModule extends BaseModule {
         const childPath = relative(rootPath, directoryPath)
         if (childPath === ".." || childPath.startsWith("../") || childPath.startsWith("..\\") || isAbsolute(childPath)) throw new Error("目录不属于当前工作区")
         const entries = await readdir(directoryPath, { withFileTypes: true })
+        const ignoredPatterns = parseIgnoredPatterns(generalSettings().ignoredFiles)
         return entries
-          .filter((entry) => entry.isDirectory() || entry.isFile())
+          .filter((entry) => (entry.isDirectory() || entry.isFile()) && !isIgnoredEntry(entry.name, ignoredPatterns))
           .map((entry) => ({ name: entry.name, path: join(directoryPath, entry.name), type: entry.isDirectory() ? "directory" : "file" }))
           .sort((a, b) => Number(b.type === "directory") - Number(a.type === "directory") || a.name.localeCompare(b.name, "zh-CN", { numeric: true }))
       })
@@ -164,17 +166,21 @@ export class WelcomeModule extends BaseModule {
    *
    * 只进入普通文件夹，不跟随符号链接，避免循环目录导致无限递归。
    */
-  private async scanWorkspaceFiles(directoryPath: string): Promise<WorkspaceFile[]> {
+  private async scanWorkspaceFiles(directoryPath: string, ignoredPatterns?: string[]): Promise<WorkspaceFile[]> {
+    const patterns = ignoredPatterns ?? parseIgnoredPatterns(generalSettings().ignoredFiles)
     const files: WorkspaceFile[] = []
     const entries = await readdir(directoryPath, {
       withFileTypes: true
     })
 
     for (const entry of entries) {
+      if (isIgnoredEntry(entry.name, patterns)) {
+        continue
+      }
       const entryPath = join(directoryPath, entry.name)
 
       if (entry.isDirectory()) {
-        const children = await this.scanWorkspaceFiles(entryPath)
+        const children = await this.scanWorkspaceFiles(entryPath, patterns)
         files.push(...children)
         continue
       }
