@@ -7,7 +7,7 @@ export const defaultSettings: AppSettings = {
   externalPreview: true,
   monitorNavigation: false,
   globalSearchEnabled: false,
-  ignoredFiles: ".obsidian, .gut",
+  ignoredFiles: ".obsidian, .git",
   name: "本地用户",
   email: "",
   avatar: "",
@@ -38,12 +38,12 @@ export const defaultSettings: AppSettings = {
 }
 
 export function parseIgnoredPatterns(patternStr?: string): string[] {
-  if (typeof patternStr !== "string" || !patternStr.trim()) {
-    return [".obsidian", ".gut"]
+  if (typeof patternStr !== "string" || !patternStr.trim() || patternStr.trim() === ".obsidian, .gut") {
+    return [".obsidian", ".git"]
   }
   return patternStr
     .split(/[,，\n]+/)
-    .map((s) => s.trim())
+    .map((s) => s.trim() === ".gut" ? ".git" : s.trim())
     .filter(Boolean)
 }
 

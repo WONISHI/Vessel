@@ -2,7 +2,7 @@ import { readdir, realpath, stat } from "node:fs/promises"
 import { join, relative, isAbsolute, sep } from "node:path"
 import { SyncError, type BackupFile } from "./types.js"
 export const excludedBackupName = (name: string) =>
-  [".vessel", ".git", ".obsidian", ".gut", "node_modules", ".cache", ".DS_Store", "dist", "build", "out", "coverage", ".next", ".nuxt", ".turbo", ".aws", ".ssh", "credentials", "settings.json.tmp"].includes(name) || /^\.env(?:\.|$)/i.test(name) || /\.(?:pem|key|p12|pfx|log)$/i.test(name)
+  [".vessel", ".git", ".obsidian", "node_modules", ".cache", ".DS_Store", "dist", "build", "out", "coverage", ".next", ".nuxt", ".turbo", ".aws", ".ssh", "credentials", "settings.json.tmp"].includes(name) || /^\.env(?:\.|$)/i.test(name) || /\.(?:pem|key|p12|pfx|log)$/i.test(name)
 
 export interface ScanOptions {
   root: string

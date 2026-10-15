@@ -126,7 +126,7 @@ Vessel 设置中的“同步排除规则”和“同步诊断日志”按工作�
 
 返回：`changed`（上传数）、`size`（上传字节）、`downloaded`、`downloadSize`、`deleted`、`conflicts`、`skipped`、`checked`（HEAD 数）、`hashed`、`cached`、`verified`（缺少校验元数据而进行内容验证的文件数）、`durationMs`、`time`。预览还返回 `plan` 和 `dryRun`。
 
-`collectFiles({ root, selected?, exclude?, concurrency?, signal? })` 批量扫描目录，默认跳过符号链接及 `.vessel`、`.git`、`.obsidian`、`.gut`、依赖/构建/常见敏感文件。传入自定义 `exclude` 时，可组合 `excludedBackupName`。
+`collectFiles({ root, selected?, exclude?, concurrency?, signal? })` 批量扫描目录，默认跳过符号链接及 `.vessel`、`.git`、`.obsidian`、依赖/构建/常见敏感文件。传入自定义 `exclude` 时，可组合 `excludedBackupName`。
 
 `createS3Storage(config, secret, options?)` 支持 AWS SigV4、COS 桶地址、`fetch` 注入和取消。请求选项：`retries` 默认 2；`timeoutMs` 可覆盖单次超时；`multipartThreshold` 默认 32 MiB；`partSize` 默认 8 MiB（5–64 MiB）；`partConcurrency` 默认 4（1–8）。单对象当前限制 5 GiB。默认普通请求 60 秒、上传/下载 30 分钟。408、429、500、502、503、504、网络/超时错误指数退避；认证和真实条件冲突不会无条件重试覆盖。
 
