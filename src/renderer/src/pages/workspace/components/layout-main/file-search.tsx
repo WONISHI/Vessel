@@ -1,4 +1,4 @@
-import { matchesShortcut } from "../../../../../../shared/shortcuts"
+import { matchesShortcut } from "@vessel/utils"
 import { codeEditors } from "@/components/core/canvas/variants/code/search-bridge"
 import { useEffect, useRef, useState, type RefObject } from "react"
 import { Search, ChevronUp, ChevronDown, X } from "lucide-react"

@@ -3,7 +3,7 @@ import { mkdtemp, writeFile, rm, symlink } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { extensionMetadata, extensionFile } from "../../src/main/extension-metadata"
-import type { BrowserExtension } from "../../src/shared/browser-extensions"
+import type { BrowserExtension } from "@vessel/type"
 it("reads actual action metadata and raster icons, rejecting files outside the extension", async () => {
   const root = await mkdtemp(join(tmpdir(), "extension-metadata-"))
   try {

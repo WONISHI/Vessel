@@ -4,15 +4,75 @@ import { countDocument } from "../markdown/count-document"
 import "./index.css"
 import { codeEditors } from "./search-bridge"
 import Editor from "@monaco-editor/react"
-import { useEffect, useRef, useState, useMemo, useDeferredValue } from "react"
+import { Fragment, useContext, useEffect, useRef, useState, useMemo, useDeferredValue } from "react"
 import { monaco } from "./monaco"
 import { codeLanguage } from "./language"
 import { EditorLoading } from "@/components/ui/editor-loading"
-import { matchesShortcut } from "../../../../../../../shared/shortcuts"
+import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb"
+import { WorkspaceContext } from "@/pages/workspace/types/workspace"
+import { matchesShortcut } from "@vessel/utils"
 import { Hash } from "lucide-react"
 import { parseLinePosition } from "./go-to-line"
 
-export default function CodeCanvas({ activeFilePath, revealPosition, highlightKeyword }: { activeFilePath: string; revealPosition?: { lineNumber: number; column: number }; highlightKeyword?: string }) {
+interface BreadcrumbSegment {
+  name: string
+  path: string
+}
+
+function getBreadcrumbSegments(workspacePath: string, filePath: string, workspaceName?: string): BreadcrumbSegment[] {
+  const normWorkspace = workspacePath.replace(/\\/g, "/")
+  const normFile = filePath.replace(/\\/g, "/")
+  const rootName = workspaceName || normWorkspace.split("/").filter(Boolean).pop() || "工作区"
+
+  const segments: BreadcrumbSegment[] = [{ name: rootName, path: workspacePath }]
+
+  if (!normWorkspace || !normFile.startsWith(normWorkspace)) {
+    const parts = normFile.split("/").filter(Boolean)
+    if (parts.length) {
+      let current = ""
+      return parts.map((part, i) => {
+        current += (i === 0 && filePath.startsWith("/") ? "/" : i === 0 ? "" : "/") + part
+        return { name: part, path: current }
+      })
+    }
+    return segments
+  }
+
+  const rel = normFile.slice(normWorkspace.length).replace(/^\/+/, "")
+  if (!rel) return segments
+
+  const parts = rel.split("/").filter(Boolean)
+  let accumulated = normWorkspace
+  for (const part of parts) {
+    accumulated += "/" + part
+    segments.push({ name: part, path: accumulated })
+  }
+  return segments
+}
+
+export default function CodeCanvas({
+  activeFilePath,
+  workspacePath,
+  revealPosition,
+  highlightKeyword
+}: {
+  activeFilePath: string
+  workspacePath?: string
+  revealPosition?: { lineNumber: number; column: number }
+  highlightKeyword?: string
+}) {
+  const workspaceContext = useContext(WorkspaceContext)
+  const effectiveWorkspacePath = workspacePath || workspaceContext?.workspace?.path || ""
+  const workspaceName = workspaceContext?.workspace?.name
+
+  const breadcrumbSegments = useMemo(() => {
+    return getBreadcrumbSegments(effectiveWorkspacePath, activeFilePath, workspaceName)
+  }, [effectiveWorkspacePath, activeFilePath, workspaceName])
+
+  const handleLocate = (targetPath: string) => {
+    window.dispatchEvent(new CustomEvent("vessel:reveal-file", { detail: targetPath }))
+  }
+
   const [content, setContent] = useState<string>()
   const [error, setError] = useState("")
   const [status, setStatus] = useState("")
@@ -117,11 +177,66 @@ export default function CodeCanvas({ activeFilePath, revealPosition, highlightKe
       if (mounted.current && revision.current === request) { setStatus(`保存失败：${String(error)}`); setSaveError(true) }
     })
   }
-  if (error) return <p role="alert" className="p-4 text-red-500">读取失败：{error}</p>
+
+  if (error) {
+    const isNotFound = error.includes("ENOENT") || error.includes("no such file")
+    return (
+      <div role="alert" className="flex h-full flex-col items-center justify-center gap-3 p-8 text-center text-sm">
+        <p className="font-medium text-red-500">
+          {isNotFound ? "该文件不存在或已被删除" : `读取失败：${error}`}
+        </p>
+        <p className="max-w-md break-all text-xs text-stone-400">{activeFilePath}</p>
+        {workspaceContext && (
+          <button
+            type="button"
+            className="mt-2 inline-flex items-center rounded-md bg-stone-100 px-3 py-1.5 text-xs font-medium text-stone-700 transition-colors hover:bg-stone-200 dark:bg-stone-800 dark:text-stone-300 dark:hover:bg-stone-700"
+            onClick={() => workspaceContext.closeWorkspaceFile(activeFilePath)}
+          >
+            关闭该标签页
+          </button>
+        )}
+      </div>
+    )
+  }
   if (content === undefined) return <EditorLoading label="正在读取代码…" />
-  return <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-    <div ref={containerRef} data-vessel-scroll="code" className="vessel-code-editor relative min-h-0 flex-1">
-      <Editor height="100%" path={monaco.Uri.file(activeFilePath).toString()} language={codeLanguage(activeFilePath) || "plaintext"} value={content}
+  return (
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-white">
+      <Breadcrumb
+        className="shrink-0 px-4 pt-2 pb-1.5 border-b border-[#f0efed] bg-white"
+        aria-label="当前代码文件路径"
+      >
+        <BreadcrumbList className="text-xs">
+          {breadcrumbSegments.map((segment, index) => {
+            const isLast = index === breadcrumbSegments.length - 1
+            return (
+              <Fragment key={index}>
+                {index > 0 && <BreadcrumbSeparator />}
+                <BreadcrumbItem className="min-w-0">
+                  {isLast ? (
+                    <BreadcrumbPage
+                      className="cursor-pointer truncate max-w-64 hover:text-stone-900 transition-colors"
+                      title={`定位文件: ${segment.name}`}
+                      onClick={() => handleLocate(segment.path)}
+                    >
+                      {segment.name}
+                    </BreadcrumbPage>
+                  ) : (
+                    <span
+                      className="cursor-pointer text-stone-500 hover:text-stone-800 transition-colors truncate max-w-48"
+                      title={`定位文件夹: ${segment.name}`}
+                      onClick={() => handleLocate(segment.path)}
+                    >
+                      {segment.name}
+                    </span>
+                  )}
+                </BreadcrumbItem>
+              </Fragment>
+            )
+          })}
+        </BreadcrumbList>
+      </Breadcrumb>
+      <div ref={containerRef} data-vessel-scroll="code" className="vessel-code-editor relative min-h-0 flex-1">
+        <Editor height="100%" path={monaco.Uri.file(activeFilePath).toString()} language={codeLanguage(activeFilePath) || "plaintext"} value={content}
         loading={<EditorLoading label="正在加载代码编辑器…" />}
         onChange={value => { if (value !== undefined && value !== content) { setContent(value); save(value) } }}
         onMount={editor => { editorRef.current = editor; codeEditors.set(activeFilePath, editor); reveal(); editor.onDidFocusEditorText(() => codeEditors.set(activeFilePath, editor)); editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => save(editor.getValue())) }}
@@ -149,4 +264,5 @@ export default function CodeCanvas({ activeFilePath, revealPosition, highlightKe
       <span>{codeLanguage(activeFilePath) || "plaintext"} · UTF-8</span>
     </footer></StatusSlot>
   </div>
+  )
 }

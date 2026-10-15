@@ -30,3 +30,17 @@ it('downloads through browser session and rejects non-images without creating fi
   expect(await readdir(root)).toEqual(before)
  } finally { await rm(root,{recursive:true,force:true}) }
 })
+
+it('downloads webp image with non-ASCII size bytes in RIFF header', async () => {
+ const root=await mkdtemp(join(tmpdir(),'vessel-download-webp-')); const doc=join(root,'note.md')
+ try {
+  await writeFile(doc,'')
+  // RIFF + 0xc6 0xa8 0x00 0x00 + WEBP + VP8X
+  const webpBuffer = Buffer.from([0x52, 0x49, 0x46, 0x46, 0xc6, 0xa8, 0x00, 0x00, 0x57, 0x45, 0x42, 0x50, 0x56, 0x50, 0x38, 0x58])
+  mocks.fetch.mockResolvedValueOnce(new Response(webpBuffer, { headers: { 'content-type': 'image/webp' } }))
+  const saved=await saveObsidianImage(root,doc,{url:'https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/03e58c7c4f9b47299f705ee8c13b363d~tplv-k3u1fbpfcp-jj-mark:3024:0:0:0:q75.awebp'})
+  expect(saved.name).toMatch(/\.webp$/)
+  expect(await readFile(saved.path)).toEqual(webpBuffer)
+ } finally { await rm(root,{recursive:true,force:true}) }
+})
+

@@ -1,7 +1,7 @@
 import { parentPort } from "node:worker_threads"
-import { dirname } from "node:path"
+import { dirname, resolve, join } from "node:path"
 import ts from "typescript"
-import type { CodeDiagnostic } from "../shared/code-diagnostics"
+import type { CodeDiagnostic } from "@vessel/type"
 
 /** The worker uses the real project filesystem; Monaco's browser worker cannot read node_modules. */
 export function diagnoseCode(path: string, content: string): CodeDiagnostic[] {
@@ -15,7 +15,27 @@ export function diagnoseCode(path: string, content: string): CodeDiagnostic[] {
   if (configPath) {
     const config = ts.readConfigFile(configPath, ts.sys.readFile)
     if (config.error) throw new Error(ts.flattenDiagnosticMessageText(config.error.messageText, "\n"))
-    const parsed = ts.parseJsonConfigFileContent(config.config, ts.sys, dirname(configPath), undefined, configPath)
+    let effectiveConfig = config.config
+    let effectiveConfigPath = configPath
+    if (Array.isArray(config.config?.references)) {
+      for (const ref of config.config.references) {
+        const refRaw = typeof ref === "string" ? ref : ref?.path
+        if (!refRaw) continue
+        const candidate = resolve(dirname(configPath), refRaw.endsWith(".json") ? refRaw : join(refRaw, "tsconfig.json"))
+        if (ts.sys.fileExists(candidate)) {
+          const subConfig = ts.readConfigFile(candidate, ts.sys.readFile)
+          if (!subConfig.error && subConfig.config) {
+            const parsedSub = ts.parseJsonConfigFileContent(subConfig.config, ts.sys, dirname(candidate), undefined, candidate)
+            if (parsedSub.fileNames.some(f => resolve(f) === resolve(path))) {
+              effectiveConfig = subConfig.config
+              effectiveConfigPath = candidate
+              break
+            }
+          }
+        }
+      }
+    }
+    const parsed = ts.parseJsonConfigFileContent(effectiveConfig, ts.sys, dirname(effectiveConfigPath), undefined, effectiveConfigPath)
     const errors = parsed.errors.filter(error => error.code !== 18003)
     if (errors.length) throw new Error(errors.map(error => ts.flattenDiagnosticMessageText(error.messageText, "\n")).join("\n"))
     options = { ...parsed.options, noEmit: true }

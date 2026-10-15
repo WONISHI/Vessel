@@ -40,6 +40,7 @@ export default function WorkspaceTree({
   const [move, setMove] = useState<{ paths: string[]; destination: string }>()
   const [moving, setMoving] = useState(false)
   const [moveError, setMoveError] = useState('')
+  const [renamingPath, setRenamingPath] = useState<string | null>(null)
   const parentPath = (path: string) => path.replace(/[\\/][^\\/]+$/, '')
   const [directories, setDirectories] = useState<Record<string, DirectoryState>>({})
   const pending = useRef(new Map<string, Promise<void>>())
@@ -130,13 +131,19 @@ export default function WorkspaceTree({
   useEffect(() => {
     if (viewport && draftIndex >= 0) viewport.scrollTo({ top: draftIndex * 32 < viewport.scrollTop ? draftIndex * 32 : draftIndex * 32 + 32 > viewport.scrollTop + viewport.clientHeight ? draftIndex * 32 + 32 - viewport.clientHeight : viewport.scrollTop })
   }, [viewport, draftIndex, draft])
+  const isRootReveal = revealPath === workspace.path
   const revealIndex = rows.findIndex((row) => row.id === revealPath)
   useEffect(() => {
-    if (viewport && revealIndex >= 0 && !draft) {
+    if (viewport && isRootReveal && !draft) {
+      viewport.scrollTo({ top: 0, behavior: "smooth" })
+      setSelection([])
+      onRevealed?.()
+    } else if (viewport && revealIndex >= 0 && !draft && revealPath) {
       viewport.scrollTo({ top: Math.max(0, revealIndex * 32 - viewport.clientHeight / 2 + 16), behavior: "smooth" })
+      setSelection([revealPath])
       onRevealed?.()
     }
-  }, [viewport, revealIndex, revealPath, draft, onRevealed])
+  }, [viewport, isRootReveal, revealIndex, revealPath, draft, onRevealed])
   if (!recent && !root)
     return (
       <p
@@ -172,7 +179,16 @@ export default function WorkspaceTree({
             onFinish={onDraftFinish ?? (() => {})}
           />
         ) : (
-          <div draggable onDragStart={event => {
+          <div draggable={renamingPath !== node.path} onDragStart={event => {
+            if (renamingPath) {
+              event.preventDefault()
+              return
+            }
+            const target = event.target as HTMLElement | null
+            if (target?.closest('input, textarea, form, [contenteditable="true"]')) {
+              event.preventDefault()
+              return
+            }
             const paths = selection.includes(node.path) ? selection : [node.path]
             setSelection(paths); event.dataTransfer.setData('application/x-vessel-files', JSON.stringify(paths)); event.dataTransfer.effectAllowed = 'move'
           }} onDragEnd={() => setDropTarget(undefined)} onDragOver={event => {
@@ -188,6 +204,7 @@ export default function WorkspaceTree({
           }} className={dropTarget === node.path ? 'rounded-md ring-2 ring-green-500' : undefined}>
           <FileActions
             node={node}
+            onRenamingChange={(isRenaming) => setRenamingPath(isRenaming ? node.path : null)}
             onSearchDirectory={onSearchDirectory}
             onCreate={(kind) => {
               setDirectoryExpanded(node.path, true)

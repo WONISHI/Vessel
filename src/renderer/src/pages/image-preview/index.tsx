@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
 import { useWorkspace } from "@/pages/workspace/hooks/useWorkspace"
-import type { ImageFile } from "../../../../shared/image-file"
+import type { ImageFile } from "@vessel/type"
 import { transformImage, type ImageOperation } from "./transform"
 export default function ImagePreviewPage({ activeFilePath }: { activeFilePath: string }) {
   const { workspace } = useWorkspace()

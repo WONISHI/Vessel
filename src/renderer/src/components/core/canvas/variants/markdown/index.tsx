@@ -142,12 +142,21 @@ export default function MarkdownCanvas({ activeFilePath, workspacePath: customWo
           {!current ? (
             <PageLoading label="正在读取文档…" />
           ) : current.error ? (
-            <p
-              role="alert"
-              className="p-6 text-sm text-red-500"
-            >
-              读取文件失败：{current.error}
-            </p>
+            <div role="alert" className="flex h-full flex-col items-center justify-center gap-3 p-8 text-center text-sm">
+              <p className="font-medium text-red-500">
+                {current.error.includes("ENOENT") || current.error.includes("no such file") ? "该文件不存在或已被删除" : `读取文件失败：${current.error}`}
+              </p>
+              <p className="max-w-md break-all text-xs text-stone-400">{activeFilePath}</p>
+              {context && (
+                <button
+                  type="button"
+                  className="mt-2 inline-flex items-center rounded-md bg-stone-100 px-3 py-1.5 text-xs font-medium text-stone-700 transition-colors hover:bg-stone-200 dark:bg-stone-800 dark:text-stone-300 dark:hover:bg-stone-700"
+                  onClick={() => context.closeWorkspaceFile(activeFilePath)}
+                >
+                  关闭该标签页
+                </button>
+              )}
+            </div>
           ) : (
             <VditorEditor
               key={`${activeFilePath}:${externalRevision}`}

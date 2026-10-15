@@ -206,6 +206,247 @@
   background: transparent !important;
   white-space: normal;
 }
+
+/* 图片链接浮动编辑栏样式（覆盖 Vditor reset 与外部样式污染） */
+.vessel-image-link-bar,
+.vessel-vditor .vessel-image-link-bar {
+  display: flex !important;
+  align-items: center !important;
+  height: 28px !important;
+  min-height: 28px !important;
+  max-height: 28px !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  padding: 0 10px !important;
+  margin-bottom: 8px !important;
+  gap: 8px !important;
+  background-color: #ffffff !important;
+  border: 1px solid #e7e5e4 !important;
+  border-radius: 8px !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+  font-family: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  line-height: normal !important;
+}
+
+:is(.dark, [data-theme="dark"]) .vessel-image-link-bar,
+:is(.dark, [data-theme="dark"]) .vessel-vditor .vessel-image-link-bar {
+  background-color: #1c1917 !important;
+  border-color: #292524 !important;
+}
+
+.vessel-image-link-bar svg,
+.vessel-vditor .vessel-image-link-bar svg {
+  display: inline-block !important;
+  vertical-align: middle !important;
+  fill: none !important;
+}
+
+.vessel-image-link-bar svg.vessel-image-link-icon,
+.vessel-vditor .vessel-image-link-bar svg.vessel-image-link-icon {
+  width: 13px !important;
+  height: 13px !important;
+  min-width: 13px !important;
+  min-height: 13px !important;
+  max-width: 13px !important;
+  max-height: 13px !important;
+  color: #a8a29e !important;
+  stroke: currentColor !important;
+  stroke-width: 1.75 !important;
+  flex-shrink: 0 !important;
+}
+
+:is(.dark, [data-theme="dark"]) .vessel-image-link-bar svg.vessel-image-link-icon,
+:is(.dark, [data-theme="dark"]) .vessel-vditor .vessel-image-link-bar svg.vessel-image-link-icon {
+  color: #78716c !important;
+}
+
+.vessel-image-link-bar .vessel-image-link-copy-btn,
+.vessel-vditor .vessel-image-link-bar .vessel-image-link-copy-btn {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: transparent !important;
+  border: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  cursor: pointer !important;
+  color: #a8a29e !important;
+  outline: none !important;
+  flex-shrink: 0 !important;
+  transition: color 0.15s ease, opacity 0.15s ease !important;
+}
+
+.vessel-image-link-bar .vessel-image-link-copy-btn:hover,
+.vessel-vditor .vessel-image-link-bar .vessel-image-link-copy-btn:hover {
+  color: #57534e !important;
+}
+
+.vessel-image-link-bar .vessel-image-link-copy-btn:active,
+.vessel-vditor .vessel-image-link-bar .vessel-image-link-copy-btn:active {
+  cursor: grabbing !important;
+}
+
+:is(.dark, [data-theme="dark"]) .vessel-image-link-bar .vessel-image-link-copy-btn,
+:is(.dark, [data-theme="dark"]) .vessel-vditor .vessel-image-link-bar .vessel-image-link-copy-btn {
+  color: #78716c !important;
+}
+
+:is(.dark, [data-theme="dark"]) .vessel-image-link-bar .vessel-image-link-copy-btn:hover,
+:is(.dark, [data-theme="dark"]) .vessel-vditor .vessel-image-link-bar .vessel-image-link-copy-btn:hover {
+  color: #d6d3d1 !important;
+}
+
+/* 1号图标：默认显示 Link 图标，Hover 或聚焦时切换为 Copy 图标 */
+.vessel-image-link-copy-btn svg.vessel-icon-hover,
+.vessel-vditor .vessel-image-link-copy-btn svg.vessel-icon-hover {
+  display: none !important;
+}
+
+:is(.vessel-image-link-copy-btn:hover, .vessel-image-link-copy-btn:focus-visible) svg.vessel-icon-default,
+:is(.vessel-vditor .vessel-image-link-copy-btn:hover, .vessel-vditor .vessel-image-link-copy-btn:focus-visible) svg.vessel-icon-default {
+  display: none !important;
+}
+
+:is(.vessel-image-link-copy-btn:hover, .vessel-image-link-copy-btn:focus-visible) svg.vessel-icon-hover,
+:is(.vessel-vditor .vessel-image-link-copy-btn:hover, .vessel-vditor .vessel-image-link-copy-btn:focus-visible) svg.vessel-icon-hover {
+  display: inline-block !important;
+}
+
+.vessel-image-link-bar svg.vessel-image-link-copied,
+.vessel-vditor .vessel-image-link-bar svg.vessel-image-link-copied {
+  color: #16a34a !important;
+  stroke: #16a34a !important;
+}
+
+.vessel-image-link-bar .vessel-image-link-input,
+.vessel-vditor .vessel-image-link-bar .vessel-image-link-input {
+  flex: 1 1 0% !important;
+  min-width: 0 !important;
+  height: 100% !important;
+  border: 0 !important;
+  outline: none !important;
+  background: transparent !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  font-size: 11px !important;
+  line-height: 1 !important;
+  color: #44403c !important;
+  box-shadow: none !important;
+  font-family: inherit !important;
+}
+
+:is(.dark, [data-theme="dark"]) .vessel-image-link-bar .vessel-image-link-input,
+:is(.dark, [data-theme="dark"]) .vessel-vditor .vessel-image-link-bar .vessel-image-link-input {
+  color: #e7e5e4 !important;
+}
+
+.vessel-image-link-bar .vessel-image-link-input::placeholder,
+.vessel-vditor .vessel-image-link-bar .vessel-image-link-input::placeholder {
+  color: #a8a29e !important;
+}
+
+.vessel-image-link-bar .vessel-image-link-actions,
+.vessel-vditor .vessel-image-link-bar .vessel-image-link-actions {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  flex-shrink: 0 !important;
+}
+
+.vessel-image-link-bar .vessel-image-link-divider,
+.vessel-vditor .vessel-image-link-bar .vessel-image-link-divider {
+  display: block !important;
+  width: 1px !important;
+  height: 12px !important;
+  background-color: #e7e5e4 !important;
+  flex-shrink: 0 !important;
+}
+
+:is(.dark, [data-theme="dark"]) .vessel-image-link-bar .vessel-image-link-divider,
+:is(.dark, [data-theme="dark"]) .vessel-vditor .vessel-image-link-bar .vessel-image-link-divider {
+  background-color: #44403c !important;
+}
+
+.vessel-image-link-bar .vessel-image-link-btn,
+.vessel-vditor .vessel-image-link-bar .vessel-image-link-btn {
+  display: flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  background: transparent !important;
+  border: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  cursor: pointer !important;
+  font-size: 11px !important;
+  font-weight: 400 !important;
+  line-height: 1 !important;
+  outline: none !important;
+  transition: opacity 0.15s ease, color 0.15s ease !important;
+}
+
+.vessel-image-link-bar .vessel-image-link-btn:hover,
+.vessel-vditor .vessel-image-link-bar .vessel-image-link-btn:hover {
+  opacity: 0.8 !important;
+}
+
+.vessel-image-link-bar .vessel-image-link-btn svg,
+.vessel-vditor .vessel-image-link-bar .vessel-image-link-btn svg {
+  width: 12px !important;
+  height: 12px !important;
+  min-width: 12px !important;
+  min-height: 12px !important;
+  max-width: 12px !important;
+  max-height: 12px !important;
+  stroke: currentColor !important;
+  flex-shrink: 0 !important;
+}
+
+.vessel-image-link-bar .vessel-image-link-save,
+.vessel-vditor .vessel-image-link-bar .vessel-image-link-save {
+  color: #16a34a !important;
+}
+
+.vessel-image-link-bar .vessel-image-link-save svg,
+.vessel-vditor .vessel-image-link-bar .vessel-image-link-save svg {
+  stroke-width: 2.25 !important;
+}
+
+.vessel-image-link-bar .vessel-image-link-delete,
+.vessel-vditor .vessel-image-link-bar .vessel-image-link-delete {
+  color: #dc2626 !important;
+}
+
+.vessel-image-link-bar .vessel-image-link-delete svg,
+.vessel-vditor .vessel-image-link-bar .vessel-image-link-delete svg {
+  stroke-width: 1.75 !important;
+}
+
+.vessel-image-link-bar .vessel-image-link-close,
+.vessel-vditor .vessel-image-link-bar .vessel-image-link-close {
+  color: #a8a29e !important;
+  justify-content: center !important;
+}
+
+.vessel-image-link-bar .vessel-image-link-close:hover,
+.vessel-vditor .vessel-image-link-bar .vessel-image-link-close:hover {
+  color: #57534e !important;
+}
+
+:is(.dark, [data-theme="dark"]) .vessel-image-link-bar .vessel-image-link-close,
+:is(.dark, [data-theme="dark"]) .vessel-vditor .vessel-image-link-bar .vessel-image-link-close {
+  color: #78716c !important;
+}
+
+:is(.dark, [data-theme="dark"]) .vessel-image-link-bar .vessel-image-link-close:hover,
+:is(.dark, [data-theme="dark"]) .vessel-vditor .vessel-image-link-bar .vessel-image-link-close:hover {
+  color: #d6d3d1 !important;
+}
+
+.vessel-image-link-bar .vessel-image-link-close svg,
+.vessel-vditor .vessel-image-link-bar .vessel-image-link-close svg {
+  stroke-width: 2 !important;
+}
 .vessel-vditor .vditor-ir,
 .vessel-vditor .vditor-reset,
 .vessel-vditor .vditor-reset:focus,

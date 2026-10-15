@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuShortcut } from "@/components/ui/dropdown-menu"
 import { HistorySheet } from "./history-sheet"
 import { toast } from "sonner"
-import type { HistoryEntry, BrowserDevice } from "../../../../shared/browser-tools"
+import type { HistoryEntry, BrowserDevice } from "@vessel/type"
 export function BrowserMore({ zoom, zoomFactor, onFind, onNavigate, guest, deviceMode, onDevice }: { zoomFactor: number; zoom: (delta: number) => void; onFind: () => void; onNavigate: (url: string) => void; guest: () => WebviewTag | undefined; deviceMode: boolean; onDevice: () => void }) {
   const [open, setOpen] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)

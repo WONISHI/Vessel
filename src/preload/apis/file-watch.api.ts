@@ -1,5 +1,5 @@
 import { ipcRenderer } from "electron"
-import type { FileWatchAPI, FileChange } from "../../shared/file-watch"
+import type { FileWatchAPI, FileChange } from "@vessel/type"
 export const fileWatchAPI: FileWatchAPI = {
   watchStart: root => ipcRenderer.invoke("files:watch", root),
   watchStop: id => ipcRenderer.invoke("files:unwatch", id),

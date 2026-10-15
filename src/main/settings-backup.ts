@@ -1,13 +1,13 @@
 import { writeFile, rm } from "node:fs/promises"
 import { join } from "node:path"
 import { syncFiles, type BackupFile, type SyncProgress, type SyncOptions } from "@vessel/sync"
-import type { AppSettings } from "../shared/settings"
+import type { AppSettings } from "@vessel/type"
 import { createS3Storage } from "./settings-s3"
 export { excludedBackupName } from "@vessel/sync"
 export type { BackupFile } from "@vessel/sync"
 
 /** Vessel metadata/status adapter; synchronization and transport live in @vessel/sync. */
-export async function syncBackup(directory: string, config: AppSettings["backup"], secret: string, files: BackupFile[], metadata: unknown, onProgress?: (progress: SyncProgress) => void, runtime: Pick<SyncOptions, "root" | "paths" | "exclude" | "dryRun"> = {}) {
+export async function syncBackup(directory: string, config: AppSettings["backup"], secret: string, files: BackupFile[], metadata: unknown, onProgress?: (progress: SyncProgress) => void, runtime: Pick<SyncOptions, "root" | "paths" | "exclude" | "excludePath" | "onLog" | "dryRun"> = {}) {
   const metadataPath = join(directory, "backup-metadata.tmp")
   if (metadata !== undefined) await writeFile(metadataPath, JSON.stringify({ format: "vessel-files-v1", metadata }), { mode: 0o600 })
   try {

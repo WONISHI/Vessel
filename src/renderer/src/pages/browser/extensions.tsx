@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet"
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
-import type { BrowserExtension } from "../../../../shared/browser-extensions"
+import type { BrowserExtension } from "@vessel/type"
 const Icon = ({ item }: { item: BrowserExtension }) => item.icon ? <img src={item.icon} alt="" className="size-4 object-contain" /> : <Puzzle className="size-4" />
 export function BrowserExtensions({ onOpenDevtools }: { onOpenDevtools?: () => void }) {
   const [popup, setPopup] = useState<BrowserExtension | null>(null)

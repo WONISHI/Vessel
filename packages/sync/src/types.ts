@@ -38,6 +38,13 @@ export interface SyncPlanItem {
   action: "upload" | "download" | "delete-local" | "delete-remote" | "conflict" | "equal" | "skip"
   reason: string
 }
+export interface SyncLogEvent {
+  type: "start" | "phase" | "operation" | "finish" | "error"
+  message: string
+  path?: string
+  action?: SyncPlanItem["action"]
+  code?: string
+}
 export interface SyncProgress {
   completed: number
   total: number
@@ -83,6 +90,7 @@ export interface SyncOptions {
   conflictStrategy?: ConflictStrategy
   maxFileSize?: number
   exclude?: (name: string) => boolean
+  excludePath?: (path: string, kind: "file" | "folder") => boolean
   /** Restrict remote/history processing when syncing selected files. */
   paths?: readonly string[]
   dryRun?: boolean
@@ -94,6 +102,8 @@ export interface SyncOptions {
   checkpointEvery?: number
   signal?: AbortSignal
   onProgress?: (progress: SyncProgress) => void
+  /** Diagnostics observers must not affect synchronization. No credentials are emitted. */
+  onLog?: (event: SyncLogEvent) => void
   /** Existing app-compatible receipt filename. */
   indexName?: string
 }

@@ -1,4 +1,4 @@
-import { matchesShortcut } from "../../../../shared/shortcuts"
+import { matchesShortcut } from "@vessel/utils"
 import { StatusBar } from "@/components/ui/status-bar"
 import { HistoryInput } from "./history-input"
 import { BrowserProxy } from "./proxy"
@@ -22,12 +22,61 @@ import { useRouter } from "@vessel/react-router"
 import Layout from "@/layout"
 import ActivityBar from "@/layout/activity-bar"
 import { Button } from "@/components/ui/button"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { browserURL } from "./url"
 import "./index.css"
 
 type Tab = { ready?: boolean; openerId?: string; favicon?: string; id: string; url: string; title: string; loading: boolean; back: boolean; forward: boolean; error: string; zoom: number; pinned?: boolean }
 const newTab = (): Tab => ({ id: crypto.randomUUID(), url: "", title: "新标签页", loading: false, back: false, forward: false, error: "", zoom: 1 })
 export type BookmarkItem = { title: string; url: string; favicon?: string }
+const BROWSER_TABS_KEY = "browser-tabs"
+const BROWSER_ACTIVE_TAB_KEY = "browser-active-tab"
+
+type SavedBrowserTab = {
+  id: string
+  url: string
+  title: string
+  favicon?: string
+  pinned?: boolean
+  openerId?: string
+  zoom?: number
+}
+
+function loadSavedBrowserTabs(): { tabs: Tab[]; activeId: string } {
+  try {
+    const raw = localStorage.getItem(BROWSER_TABS_KEY)
+    const savedActiveId = localStorage.getItem(BROWSER_ACTIVE_TAB_KEY) || ""
+    if (raw) {
+      const parsed = JSON.parse(raw) as SavedBrowserTab[]
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        const restored: Tab[] = parsed
+          .filter((item): item is SavedBrowserTab => Boolean(item && typeof item.id === "string" && typeof item.url === "string"))
+          .map((item) => ({
+            id: item.id,
+            url: item.url,
+            title: item.title || (item.url ? "正在加载…" : "新标签页"),
+            favicon: item.favicon,
+            pinned: Boolean(item.pinned),
+            openerId: item.openerId,
+            loading: Boolean(item.url),
+            ready: false,
+            back: false,
+            forward: false,
+            error: "",
+            zoom: typeof item.zoom === "number" ? item.zoom : 1
+          }))
+        if (restored.length > 0) {
+          const activeId = restored.some((t) => t.id === savedActiveId) ? savedActiveId : restored[0].id
+          return { tabs: restored, activeId }
+        }
+      }
+    }
+  } catch (error) {
+    console.error("Failed to restore browser tabs:", error)
+  }
+  const defaultTab = newTab()
+  return { tabs: [defaultTab], activeId: defaultTab.id }
+}
 const shortcuts: BookmarkItem[] = [
   { title: "GitHub", url: "https://github.com", favicon: "https://github.githubassets.com/favicons/favicon.svg" },
   { title: "StackOverflow", url: "https://stackoverflow.com", favicon: "https://stackoverflow.com/favicon.ico" },
@@ -46,7 +95,15 @@ const Guest = memo(function Guest({ tab, visible, register, update }: { tab: Tab
     const view = ref.current
     if (!view) return
     const sync = () => withGuest(view, guest => updateRef.current(tab.id, { url: guest.getURL(), title: guest.getTitle() || "正在加载…", back: guest.canGoBack(), forward: guest.canGoForward() }))
-    const onReady = () => { void view.executeJavaScript(pageObserverScript).catch(error => console.warn("页面监听注入失败", error)); markGuestReady(view, true); sync(); updateRef.current(tab.id, { loading: false, ready: true }) }
+    const onReady = () => {
+      void view.executeJavaScript(pageObserverScript).catch(error => console.warn("页面监听注入失败", error))
+      markGuestReady(view, true)
+      if (tab.zoom && tab.zoom !== 1) {
+        try { view.setZoomFactor(tab.zoom) } catch {}
+      }
+      sync()
+      updateRef.current(tab.id, { loading: false, ready: true })
+    }
     const start = (event: Electron.DidStartNavigationEvent) => { if (event.isMainFrame && !event.isInPlace) updateRef.current(tab.id, { loading: true, error: "" }) }
     const stop = () => {
       sync()
@@ -101,7 +158,11 @@ export default function BrowserPage({ visible = true }: { visible?: boolean }) {
   const [deviceViewport, setDeviceViewport] = useState({ width: 390, height: 844, scale: 1 })
   const [toolbarCollapsed, setToolbarCollapsed] = useState(false)
   const [deviceMode, setDeviceMode] = useState(false)
-  const [tabs, setTabs] = useState<Tab[]>(() => [newTab()])
+  const initialTabsState = useRef<ReturnType<typeof loadSavedBrowserTabs> | null>(null)
+  if (!initialTabsState.current) {
+    initialTabsState.current = loadSavedBrowserTabs()
+  }
+  const [tabs, setTabs] = useState<Tab[]>(() => initialTabsState.current!.tabs)
   const [findOpen, setFindOpen] = useState(false)
   const [matchCase, setMatchCase] = useState(false)
   const [findText, setFindText] = useState("")
@@ -127,7 +188,7 @@ export default function BrowserPage({ visible = true }: { visible?: boolean }) {
   }, [dock, consoleFont, consoleSize])
   useEffect(() => window.electronAPI.onBrowserDevtoolsClosed(() => setDevtoolsOpen(false)), [])
   const devtoolsHost = useRef<HTMLDivElement>(null)
-  const [active, setActive] = useState("")
+  const [active, setActive] = useState<string>(() => initialTabsState.current!.activeId)
   useEffect(() => {
     const open = () => {
       if (!visible) return
@@ -159,6 +220,23 @@ export default function BrowserPage({ visible = true }: { visible?: boolean }) {
   }, [])
   const tab = tabs.find((item) => item.id === active) || tabs[0]
   useEffect(() => { publishBrowserTabs(tabs.filter(item => Boolean(item.url)).map(item => ({ id: item.id, title: item.title, url: item.url, favicon: item.favicon, active: item.id === tab.id }))) }, [tabs, tab.id])
+  useEffect(() => {
+    try {
+      const savedTabs: SavedBrowserTab[] = tabs.map(t => ({
+        id: t.id,
+        url: t.url,
+        title: t.title,
+        favicon: t.favicon,
+        pinned: t.pinned,
+        openerId: t.openerId,
+        zoom: t.zoom
+      }))
+      localStorage.setItem(BROWSER_TABS_KEY, JSON.stringify(savedTabs))
+      localStorage.setItem(BROWSER_ACTIVE_TAB_KEY, tab.id)
+    } catch (error) {
+      console.error("Failed to save browser tabs:", error)
+    }
+  }, [tabs, tab.id])
   useEffect(() => {
     const select = (event: Event) => { setActive((event as CustomEvent<string>).detail); setInput(null) }
     window.addEventListener("vessel-browser-tab", select)
@@ -633,7 +711,21 @@ export default function BrowserPage({ visible = true }: { visible?: boolean }) {
         <button aria-label={toolbarCollapsed ? "展开浏览器工具栏" : "折叠浏览器工具栏"} aria-expanded={!toolbarCollapsed} onClick={() => setToolbarCollapsed(value => !value)} className="shrink-0 rounded p-1 hover:bg-stone-200">{toolbarCollapsed ? <ChevronUp size={13} /> : <ChevronRight size={13} />}</button>
         <button className="flex shrink-0 items-center gap-1 rounded px-2 py-1 hover:bg-stone-200" onClick={() => { setFindPosition(null); setFindOpen(true); requestAnimationFrame(() => findInput.current?.focus()) }}><Search size={13} />搜索</button>
         <span className="mx-1 h-4 border-l border-stone-300" />
-        <span title={tab.url} className="flex min-w-0 max-w-[560px] items-center gap-1.5 px-1 font-mono text-[11.5px] text-stone-500"><Link2 size={13} className="shrink-0" /><span className="truncate">{tab.loading ? "正在加载…" : tab.url || "就绪"}</span></span>
+        <TooltipProvider delayDuration={200}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="flex min-w-0 max-w-[360px] cursor-default items-center gap-1.5 px-1 font-['Plus_Jakarta_Sans',sans-serif] text-[11.5px] text-stone-500">
+                <Link2 size={13} className="shrink-0" />
+                <span className="truncate">{tab.loading ? "正在加载…" : tab.url || "就绪"}</span>
+              </span>
+            </TooltipTrigger>
+            {tab.url ? (
+              <TooltipContent side="top" sideOffset={6} className="max-w-[480px] break-all font-['Plus_Jakarta_Sans',sans-serif] text-xs">
+                {tab.url}
+              </TooltipContent>
+            ) : null}
+          </Tooltip>
+        </TooltipProvider>
       </>} right={<BrowserProxy showLabel />} after={<button title="恢复 100% 缩放" aria-label="恢复页面缩放" className="ml-2 flex shrink-0 items-center gap-1 border-l border-stone-300 px-2 py-1 hover:bg-stone-200" onClick={() => zoom(1-tab.zoom)}><ZoomIn size={13} />{Math.round(tab.zoom*100)}%</button>} />
       </main>
     </Layout>

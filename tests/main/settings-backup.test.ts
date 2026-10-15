@@ -2,7 +2,7 @@ import { expect, it, vi } from "vitest"
 import { mkdtemp, writeFile, readFile, rm, utimes, stat } from "node:fs/promises"
 import { join } from "node:path"
 import { tmpdir } from "node:os"
-import { defaultSettings } from "../../src/shared/settings"
+import { defaultSettings } from "@vessel/utils"
 const mocks = vi.hoisted(() => ({ head: vi.fn(), upload: vi.fn() }))
 vi.mock("../../src/main/settings-s3", () => ({ createS3Storage: (config, secret) => ({
   id: JSON.stringify([config.endpoint, config.bucket, config.region, config.accessKey, config.prefix.replace(/^\/+|\/+$/g, "")]),

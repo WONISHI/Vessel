@@ -1,7 +1,7 @@
 import { app, webContents, session, type WebContents } from "electron"
 import { join } from "node:path"
 import { BrowserHistory } from "./browser-history"
-import type { BrowserDevice } from "../shared/browser-tools"
+import type { BrowserDevice } from "@vessel/type"
 let history: BrowserHistory | undefined
 function store() {
   if (!history) {

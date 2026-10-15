@@ -4,7 +4,7 @@ import { useLocation } from "react-router-dom"
 import { Fragment, useEffect, useState, useRef } from "react"
 import { selectLastPinned } from "@/pages/resources/library-state"
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
-import { Sun, Settings, Ellipsis, GitBranch, Send, Wrench } from "lucide-react"
+import { Sun, Settings, Ellipsis, GitBranch, Send, Wrench, RefreshCcw } from "lucide-react"
 import Logo from "@/assets/logo.png"
 import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar"
 import { Button } from "@/components/ui/button"
@@ -30,6 +30,31 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
   const { open, openMobile, isMobile } = useSidebar()
   const expanded = isMobile ? openMobile : open
   const [globalSearchEnabled, setGlobalSearchEnabled] = useState(false)
+  const [syncRunning, setSyncRunning] = useState(false)
+  useEffect(() => {
+    let cancelled = false
+    const checkSync = () => {
+      void Promise.all([window.electronAPI.getSettings(), window.electronAPI.getBackupStatus()])
+        .then(([settings, status]) => {
+          if (!cancelled) {
+            setSyncRunning(Boolean(settings?.backup?.enabled && status?.running))
+          }
+        })
+        .catch(() => {})
+    }
+    checkSync()
+    window.addEventListener("vessel:sync-context", checkSync)
+    window.addEventListener("vessel:settings-saved", checkSync)
+    window.addEventListener("vessel:sync-status", checkSync)
+    const interval = setInterval(checkSync, 3000)
+    return () => {
+      cancelled = true
+      clearInterval(interval)
+      window.removeEventListener("vessel:sync-context", checkSync)
+      window.removeEventListener("vessel:settings-saved", checkSync)
+      window.removeEventListener("vessel:sync-status", checkSync)
+    }
+  }, [])
   useEffect(() => {
     let cancelled = false
     const update = () => {
@@ -97,11 +122,25 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
                   onMouseEnter={id === "resources" ? onResourceEnter : undefined}
                   onMouseLeave={id === "resources" ? onResourceLeave : undefined}
                   className={cn(
-                    "relative h-[38px] w-[38px] rounded-[10px] text-stone-500 hover:!bg-[#f0efed] hover:!text-stone-500",
-                    activity === id && "!bg-emerald-50 !text-green-700 hover:!bg-emerald-50 hover:!text-green-700"
+                    "relative h-[38px] w-[38px] rounded-[10px] text-[#a8a29e] hover:!bg-[#f0efed] hover:!text-[#a8a29e]",
+                    activity === id && "!bg-emerald-50 !text-[#16a34a] hover:!bg-emerald-50 hover:!text-[#16a34a]"
                   )}
                 >
                   <Icon className="!size-5" />
+                  {id === "files" && syncRunning && (
+                    <span
+                      title="正在同步工作区…"
+                      className="absolute bottom-0.5 right-0.5 flex size-3 origin-center scale-[0.7] items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-stone-200/90 dark:bg-stone-900 dark:ring-stone-700"
+                    >
+                      <RefreshCcw
+                        strokeWidth={2.5}
+                        className={cn(
+                          "size-2 animate-spin",
+                          activity === id ? "text-[#16a34a]" : "text-[#a8a29e]"
+                        )}
+                      />
+                    </span>
+                  )}
                 </Button>
               </TooltipTrigger>
               <TooltipContent

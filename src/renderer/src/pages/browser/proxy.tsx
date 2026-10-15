@@ -5,7 +5,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import type { BrowserProxyStatus } from "../../../../shared/browser-proxy"
+import type { BrowserProxyStatus } from "@vessel/type"
 export function BrowserProxy({ showLabel = false }: { showLabel?: boolean }) {
   const { pathname } = useLocation()
   const [enabled, setEnabled] = useState(false)

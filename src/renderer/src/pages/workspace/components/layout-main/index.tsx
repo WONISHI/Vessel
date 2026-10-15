@@ -1,4 +1,4 @@
-import { matchesShortcut } from "../../../../../../shared/shortcuts"
+import { matchesShortcut } from "@vessel/utils"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import Canvas from "./canvas"
 import WorkspaceHome from "./workspace-home"

@@ -8,7 +8,7 @@ import { ResizableSplit } from '@/components/ui/resizable-split'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import EditorCanvas from '@/components/core/canvas'
 import { Button } from '@/components/ui/button'
-import type { ContentMatch, ContentSearchResult } from '../../../../shared/content-search'
+import type { ContentMatch, ContentSearchResult } from '@vessel/type'
 import './search.css'
 
 function initialRoot() {

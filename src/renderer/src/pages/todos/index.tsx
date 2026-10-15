@@ -3,7 +3,7 @@ import Layout from "@/layout"
 import TodoAside from "./components/layout-aside"
 import TodoMain from "./components/layout-main"
 import { dateKey, fromKey } from "./calendar"
-import type { Todo } from "../../../../shared/todos"
+import type { Todo } from "@vessel/type"
 export default function TodosPage() {
   const [selected, setSelected] = useState(() => dateKey(new Date()))
   const [month, setMonth] = useState(() => fromKey(dateKey(new Date())))

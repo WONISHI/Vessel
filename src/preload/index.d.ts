@@ -1,12 +1,17 @@
-import type { BrowserProxyAPI } from "../shared/browser-proxy"
-import type { BrowserToolsAPI } from "../shared/browser-tools"
-import type { SettingsAPI } from "../shared/settings"
-import type { TransitFile } from "../shared/transit"
-import type { BrowserExtensionsAPI } from "../shared/browser-extensions"
-import type { FileWatchAPI } from "../shared/file-watch"
-import type { TerminalAPI } from "../shared/terminal"
-import type { ImageFile } from "../shared/image-file"
-import type { TodosAPI } from "../shared/todos"
+import type {
+  BrowserProxyAPI,
+  BrowserToolsAPI,
+  SettingsAPI,
+  TransitFile,
+  BrowserExtensionsAPI,
+  FileWatchAPI,
+  TerminalAPI,
+  ImageFile,
+  TodosAPI,
+  ContentSearchOptions,
+  ContentSearchResult,
+  CodeDiagnostic
+} from "@vessel/type"
 import type { ElectronAPI } from "@electron-toolkit/preload"
 
 export interface WorkspaceFile {
@@ -96,7 +101,7 @@ export interface StorageInfo {
 }
 
 export interface VesselAPI extends BrowserProxyAPI, BrowserToolsAPI, SettingsAPI, BrowserExtensionsAPI, TodosAPI, TerminalAPI, FileWatchAPI {
-  searchContent(options: import('../shared/content-search').ContentSearchOptions): Promise<import('../shared/content-search').ContentSearchResult>
+  searchContent(options: ContentSearchOptions): Promise<ContentSearchResult>
   cancelContentSearch(): void
   pickSearchFolder(): Promise<string | null>
   readTransitClipboard(): Promise<string | { root: string; path: string; title: string }>
@@ -164,7 +169,7 @@ export interface VesselAPI extends BrowserProxyAPI, BrowserToolsAPI, SettingsAPI
   mutateWorkspaceFile: (root: string, path: string, name?: string) => Promise<string>
   createWorkspaceEntry: (root: string, parent: string, name: string, kind: "file" | "directory") => Promise<{name: string; path: string; type: "file" | "directory"}>
   openExternal: (href: string) => Promise<void>
-  getCodeDiagnostics: (path: string, content: string) => Promise<import("../shared/code-diagnostics").CodeDiagnostic[]>
+  getCodeDiagnostics: (path: string, content: string) => Promise<CodeDiagnostic[]>
   readContent: (path: string) => Promise<string>
 
   saveContent: (path: string, content: string) => Promise<void>

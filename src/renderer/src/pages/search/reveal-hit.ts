@@ -1,5 +1,5 @@
 import { codeEditors } from "@/components/core/canvas/variants/code/search-bridge"
-import type { ContentMatch } from "../../../../shared/content-search"
+import type { ContentMatch } from "@vessel/type"
 export type { ContentMatch }
 
 export function highlightKeywordInVditor(container: HTMLElement, keyword: string) {

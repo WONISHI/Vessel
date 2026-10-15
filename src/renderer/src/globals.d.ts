@@ -1,12 +1,14 @@
-import type { BrowserProxyAPI } from "../../shared/browser-proxy"
-import type { BrowserToolsAPI } from "../../shared/browser-tools"
-import type { SettingsAPI } from "../../shared/settings"
-import type { TransitFile } from "../../shared/transit"
-import type { BrowserExtensionsAPI } from "../../shared/browser-extensions"
-import type { FileWatchAPI } from "../../shared/file-watch"
-import type { TerminalAPI } from "../../shared/terminal"
-import type { ImageFile } from "../../shared/image-file"
-import type { TodosAPI } from "../../shared/todos"
+import type {
+  BrowserProxyAPI,
+  BrowserToolsAPI,
+  SettingsAPI,
+  TransitFile,
+  BrowserExtensionsAPI,
+  FileWatchAPI,
+  TerminalAPI,
+  ImageFile,
+  TodosAPI
+} from "@vessel/type"
 import type { ElectronAPI } from "@electron-toolkit/preload"
 
 /** 工作区中的文件信息。 */
@@ -98,7 +100,7 @@ interface StorageInfo {
 
 /** preload 暴露给 React 渲染进程的完整 API。 */
 interface VesselAPI extends BrowserProxyAPI, BrowserToolsAPI, SettingsAPI, BrowserExtensionsAPI, TodosAPI, TerminalAPI, FileWatchAPI {
-  searchContent(options: import('../../shared/content-search').ContentSearchOptions): Promise<import('../../shared/content-search').ContentSearchResult>
+  searchContent(options: import('@vessel/type').ContentSearchOptions): Promise<import('@vessel/type').ContentSearchResult>
   cancelContentSearch(): void
   pickSearchFolder(): Promise<string | null>
   readTransitClipboard(): Promise<string | { root: string; path: string; title: string }>
@@ -173,7 +175,7 @@ interface VesselAPI extends BrowserProxyAPI, BrowserToolsAPI, SettingsAPI, Brows
   readObsidianImage: (root: string, documentPath: string, reference: string) => Promise<string>
   transferWorkspaceFiles: (root: string, paths: string[], destination: string, external: boolean, duplicate?: boolean) => Promise<{ source: string; target: string }[]>
   mutateWorkspaceFile: (root: string, path: string, name?: string) => Promise<string>
-  getCodeDiagnostics: (path: string, content: string) => Promise<import("../../shared/code-diagnostics").CodeDiagnostic[]>
+  getCodeDiagnostics: (path: string, content: string) => Promise<import("@vessel/type").CodeDiagnostic[]>
   createWorkspaceEntry: (root: string, parent: string, name: string, kind: "file" | "directory") => Promise<{name: string; path: string; type: "file" | "directory"}>
   openExternal: (href: string) => Promise<void>
   readContent: (path: string) => Promise<string>

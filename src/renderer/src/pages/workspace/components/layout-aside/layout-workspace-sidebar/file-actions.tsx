@@ -1,26 +1,67 @@
 import { toast } from "sonner"
 import { ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem, ContextMenuSub, ContextMenuSubTrigger, ContextMenuSubContent } from '@/components/ui/context-menu'
 import { useRouter } from '@vessel/react-router'
-import { localFileURL } from '../../../../../../../shared/local-file-url'
+import { localFileURL } from "@vessel/utils"
 import { addTransitFile } from "@/components/transit/state"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { Copy, FolderOpen, FilePlus2, FolderPlus, Pencil, Trash2, Pin, File, Code, Globe, Search } from "lucide-react"
-import { useCallback, useRef, useState, type ReactNode } from "react"
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { useWorkspace } from "@/pages/workspace/hooks/useWorkspace"
 import type { WorkspaceNode } from "@/pages/workspace/types/workspace"
 
 let copiedFile: string | null = null
 
 /** 普通文件右键菜单，成功后更新标签与目录缓存。删除使用系统废纸篓。 */
-export function FileActions({ node, children, onChanged, onCreate, onSearchDirectory }: { node: WorkspaceNode; children: ReactNode; onChanged: () => void; onCreate?: (kind: "file" | "directory") => void; onSearchDirectory?: (path: string) => void }) {
+export function FileActions({ node, children, onChanged, onCreate, onSearchDirectory, onRenamingChange }: { node: WorkspaceNode; children: ReactNode; onChanged: () => void; onCreate?: (kind: "file" | "directory") => void; onSearchDirectory?: (path: string) => void; onRenamingChange?: (renaming: boolean) => void }) {
   const { workspace, renameWorkspaceTab, closeWorkspaceFiles, openFiles, openWorkspaceFile } = useWorkspace()
   const router = useRouter()
   const [menuOpen, setMenuOpen] = useState(false)
-  const focusInput = useCallback((input: HTMLInputElement | null) => { if (input) { input.focus({ preventScroll: true }); input.select() } }, [])
+  const inputRef = useRef<HTMLInputElement | null>(null)
+  const focusInput = useCallback((input: HTMLInputElement | null) => {
+    inputRef.current = input
+    if (input) {
+      input.focus({ preventScroll: true })
+      input.select()
+    }
+  }, [])
   const submitting = useRef(false)
   const cancelled = useRef(false)
   const [confirmRename, setConfirmRename] = useState(false)
   const validating = useRef(false)
+  const [renaming, setRenamingState] = useState(false)
+  useEffect(() => {
+    if (!renaming) return
+    const el = inputRef.current
+    if (el) {
+      el.focus({ preventScroll: true })
+      el.select()
+    }
+    const raf = requestAnimationFrame(() => {
+      const el2 = inputRef.current
+      if (el2) {
+        el2.focus({ preventScroll: true })
+        el2.select()
+      }
+    })
+    const timer = setTimeout(() => {
+      const el3 = inputRef.current
+      if (el3) {
+        el3.focus({ preventScroll: true })
+        el3.select()
+      }
+    }, 50)
+    return () => {
+      cancelAnimationFrame(raf)
+      clearTimeout(timer)
+    }
+  }, [renaming])
+  const setRenaming = useCallback((value: boolean | ((prev: boolean) => boolean)) => {
+    setRenamingState(prev => {
+      const next = typeof value === "function" ? value(prev) : value
+      onRenamingChange?.(next)
+      return next
+    })
+  }, [onRenamingChange])
   const requestRename = async () => {
     if (submitting.current || cancelled.current || validating.current || confirmRename) return
     if (name.trim() === node.name) { setRenaming(false); return }
@@ -36,7 +77,6 @@ export function FileActions({ node, children, onChanged, onCreate, onSearchDirec
     finally { validating.current = false }
   }
   const [confirmTrash, setConfirmTrash] = useState(false)
-  const [renaming, setRenaming] = useState(false)
   const [name, setName] = useState(node.name)
   const [error, setError] = useState("")
   const [busy, setBusy] = useState(false)
@@ -66,10 +106,10 @@ export function FileActions({ node, children, onChanged, onCreate, onSearchDirec
     <>
     <ContextMenu onOpenChange={setMenuOpen}>
       <ContextMenuTrigger asChild><div className={`w-full min-w-0 rounded-md ${menuOpen ? "[&>button]:!bg-[#f0efed]" : ""}`} onContextMenu={() => { setError(''); setName(node.name) }}>
-        {renaming ? <form className="flex min-w-0 items-center gap-2 rounded-md bg-stone-50 px-2 py-1" onClick={event => event.stopPropagation()} onSubmit={event => { event.preventDefault(); requestRename() }}>
+        {renaming ? <form draggable={false} onDragStart={event => { event.preventDefault(); event.stopPropagation() }} className="flex min-w-0 items-center gap-2 rounded-md bg-stone-50 px-2 py-1" onClick={event => event.stopPropagation()} onSubmit={event => { event.preventDefault(); requestRename() }}>
           {node.type === "directory" ? <FolderOpen className="size-4 shrink-0 text-amber-600" /> : <File className="size-4 shrink-0 text-violet-500" />}
           <div className="flex min-w-0 flex-1 items-center rounded-md border border-green-600 bg-white px-1.5 py-0.5 shadow-[0_0_0_3px_rgba(22,163,74,0.1)]">
-            <input ref={focusInput} onBlur={() => { if (renaming) requestRename() }} aria-label="文件新名称" value={name} disabled={busy} onFocus={event => event.target.select()} onChange={event => setName(event.target.value)} onKeyDown={event => { if (event.key === "Escape") { event.preventDefault(); cancelled.current = true; setRenaming(false) } }} className="min-w-0 flex-1 bg-transparent text-xs outline-none" />
+            <input autoFocus ref={focusInput} draggable={false} onDragStart={event => { event.preventDefault(); event.stopPropagation() }} onBlur={() => { if (renaming) requestRename() }} aria-label="文件新名称" value={name} disabled={busy} onFocus={event => event.target.select()} onChange={event => setName(event.target.value)} onKeyDown={event => { if (event.key === "Escape") { event.preventDefault(); cancelled.current = true; setRenaming(false) } }} className="min-w-0 flex-1 bg-transparent text-xs outline-none" />
           </div>
           {error && <span role="alert" title={error} className="text-xs text-red-500">{error}</span>}
         </form> : children}

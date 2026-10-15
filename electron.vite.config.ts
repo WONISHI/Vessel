@@ -38,22 +38,70 @@ function localOcrAssets() {
   }
 }
 
+function patchScreenShotPlugin() {
+  return {
+    name: "vessel-patch-screenshot-plugin",
+    enforce: "pre" as const,
+    transform(code: string, id: string) {
+      if (!id.includes("js-web-screen-shot")) return null
+      let patched = code
+      patched = patched.replace(
+        "setToolStatus(!0);var i=o.cutOutBoxPosition;Jn(i.startX,i.startY,i.width,i.height,A,o.borderSize,e,t,!1)",
+        "setToolStatus(!0);var i=o.cutOutBoxPosition;Jn(i.startX,i.startY,i.width,i.height,A,o.borderSize,e,t,!0)"
+      )
+      patched = patched.replace(
+        "var i=Nn.cutOutBoxPosition;Jn(i.startX,i.startY,i.width,i.height,A,Nn.borderSize,r,o,!1)",
+        "var i=Nn.cutOutBoxPosition;Jn(i.startX,i.startY,i.width,i.height,A,Nn.borderSize,r,o,!0)"
+      )
+      patched = patched.replace(
+        "Gr.selectionBorderNodes.length>0&&!Jr.toolClickStatus&&!Nn.draggingTrim&&ys(A,e,i)",
+        "Gr.selectionBorderNodes.length>0&&!Nn.draggingTrim&&ys(A,e,i)"
+      )
+      patched = patched.replace(
+        "for(var r=0;r<Gr.selectionBorderNodes.length;r++){var o=Gr.selectionBorderNodes[r];if(t.rect(o.x,o.y,o.width,o.height)",
+        "for(var r=0;r<Gr.selectionBorderNodes.length;r++){var o=Gr.selectionBorderNodes[r];if(Jr.toolClickStatus&&o.option===lo.Move)continue;if(t.rect(o.x,o.y,o.width,o.height)"
+      )
+      patched = patched.replace(
+        "!Jr.toolClickStatus||Nn.dragging?Jr.toolClickStatus&&Nn.dragging?Vs(",
+        "!Jr.toolClickStatus||Nn.dragging?Jr.toolClickStatus&&Nn.dragging&&!Nn.draggingTrim?Vs("
+      )
+      patched = patched.replace(
+        "bs()&&(Is(t),Hs(t,n)||(Ss(),xs(),Ks(A)&&Ds(e)))",
+        "bs()&&(Is(t),Gr.borderOption?(Ss(),xs(),Ds(e),Gr.updateBorderOption(null)):(Hs(t,n)||(Ss(),xs(),Ks(A)&&Ds(e))))"
+      )
+      patched = patched.replace(
+        "Gr.tempGraphPosition.height),!Jr.toolClickStatus){var A=Nn.drawGraphPosition",
+        "Gr.tempGraphPosition.height)){var A=Nn.drawGraphPosition"
+      )
+      patched = patched.replace(
+        "Nn.setCutOutBoxPosition(e,t,n,r)}}",
+        "Nn.setCutOutBoxPosition(e,t,n,r);Gr.redrawCanvasElements()}}"
+      )
+      return { code: patched, map: null }
+    }
+  }
+}
+
 export default defineConfig({
   main: {
     // Workspace 包导出 TS 源码，必须编译进产物，不能留给 Electron require。
-    build: { rollupOptions: { input: { index: resolve("src/main/index.ts"), "code-diagnostics-worker": resolve("src/main/code-diagnostics-worker.ts") } }, externalizeDeps: { exclude: ["@vessel/obsidian", "@vessel/utils", "@vessel/react-router", "@vessel/sync"] } },
+    build: { rollupOptions: { input: { index: resolve("src/main/index.ts"), "code-diagnostics-worker": resolve("src/main/code-diagnostics-worker.ts") } }, externalizeDeps: { exclude: ["@vessel/obsidian", "@vessel/utils", "@vessel/react-router", "@vessel/sync", "@vessel/type"] } },
     resolve: {
       alias: {
         "@vessel/sync": resolve("packages/sync/src/index.ts"),
+        "@vessel/type": resolve("packages/type/src/index.ts"),
+        "@vessel/utils": resolve("packages/utils/src/index.ts"),
         "@main": resolve("src/main")
       }
     }
   },
   preload: {
-    build: { rollupOptions: { input: {index: resolve("src/preload/index.ts"), screenshot: resolve("src/preload/screenshot.ts"), "browser-guest": resolve("src/preload/browser-guest.ts")} }, externalizeDeps: { exclude: ["@vessel/obsidian", "@vessel/utils", "@vessel/react-router", "@vessel/sync"] } },
+    build: { rollupOptions: { input: {index: resolve("src/preload/index.ts"), screenshot: resolve("src/preload/screenshot.ts"), "browser-guest": resolve("src/preload/browser-guest.ts")} }, externalizeDeps: { exclude: ["@vessel/obsidian", "@vessel/utils", "@vessel/react-router", "@vessel/sync", "@vessel/type"] } },
     resolve: {
       alias: {
         "@vessel/sync": resolve("packages/sync/src/index.ts"),
+        "@vessel/type": resolve("packages/type/src/index.ts"),
+        "@vessel/utils": resolve("packages/utils/src/index.ts"),
         "@main": resolve("src/main"),
         "@preload": resolve("src/preload")
       }
@@ -69,10 +117,12 @@ export default defineConfig({
     resolve: {
       alias: {
         "moment": momentCommonJS,
+        "@vessel/type": resolve("packages/type/src/index.ts"),
+        "@vessel/utils": resolve("packages/utils/src/index.ts"),
         "@renderer": resolve("src/renderer/src"),
         "@": resolve("src/renderer/src")
       }
     },
-    plugins: [localOcrAssets(), localVditorAssets(), react(), svgr()]
+    plugins: [localOcrAssets(), localVditorAssets(), patchScreenShotPlugin(), react(), svgr()]
   }
 })

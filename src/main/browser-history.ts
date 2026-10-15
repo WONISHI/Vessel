@@ -1,6 +1,6 @@
-import { historyURLKey, isHistoryRedirect } from "../shared/browser-history-url"
+import { historyURLKey, isHistoryRedirect } from "@vessel/utils"
 import Database from "better-sqlite3"
-import type { HistoryEntry } from "../shared/browser-tools"
+import type { HistoryEntry } from "@vessel/type"
 export class BrowserHistory {
   private db: Database.Database
   constructor(path: string) {

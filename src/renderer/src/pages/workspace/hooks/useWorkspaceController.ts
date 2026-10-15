@@ -31,12 +31,21 @@ export function useWorkspaceController(workspace: WorkspaceData, initialFile?: s
       const saved = await window.electronAPI.getAppState<{ files: WorkspaceNode[]; active: string; expanded?: string[] }>(key)
       if (cancelled) return
       if (saved && Array.isArray(saved.files)) {
-        const files = saved.files.filter(file => typeof file.path === "string" && typeof file.name === "string")
-        setExpandedFolders(saved.expanded || [])
+        let files = saved.files.filter(file => typeof file.path === "string" && typeof file.name === "string")
+        files = files.filter(file => !file.path.replace(/\\/g, "/").includes("/src/shared/"))
+        const expanded = (saved.expanded || []).filter(folder => !folder.replace(/\\/g, "/").includes("/src/shared/"))
+        setExpandedFolders(expanded)
         setOpenFiles(current => [...files, ...current.filter(file => !files.some(item => item.path === file.path))])
-        if (!initialFileRef.current && files.some(file => file.path === saved.active)) {
-          setActiveFilePath(saved.active)
+        let activePath = saved.active
+        if (activePath && activePath.replace(/\\/g, "/").includes("/src/shared/")) {
+          activePath = files[0]?.path || ""
+        }
+        if (!initialFileRef.current && files.some(file => file.path === activePath)) {
+          setActiveFilePath(activePath)
           if (!preview && activeRef.current) navigateRef.current(`${base}/file`, { replace: true })
+        } else if (!initialFileRef.current && (!activePath || !files.length)) {
+          setActiveFilePath("")
+          if (!preview && activeRef.current) navigateRef.current(base, { replace: true })
         }
       }
       if (!preview) await window.electronAPI.setAppState(`${scope}-last`, { name: workspace.name, path: workspace.path, files: [] })

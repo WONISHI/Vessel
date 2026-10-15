@@ -39,11 +39,11 @@ const EditorCanvas = ({ fileType, activeFilePath, workspacePath, revealPosition,
   if (fileType === "md" || fileType === "markdown") {
     return <MarkdownCanvas key={activeFilePath} activeFilePath={activeFilePath} workspacePath={workspacePath} highlightKeyword={highlightKeyword} revealLine={revealLine} />
   } else if ((codeLanguage(activeFilePath) || codeLanguage(`file.${fileType}`))) {
-    return <Suspense fallback={<EditorLoading />}><CodeCanvas key={activeFilePath} activeFilePath={activeFilePath} revealPosition={revealPosition} highlightKeyword={highlightKeyword} /></Suspense>
+    return <Suspense fallback={<EditorLoading />}><CodeCanvas key={activeFilePath} activeFilePath={activeFilePath} workspacePath={workspacePath} revealPosition={revealPosition} highlightKeyword={highlightKeyword} /></Suspense>
   } else if (["png", "jpg", "jpeg", "bmp", "gif", "webp", "avif", "svg"].includes(fileType!)) {
     return <MediaCanvas key={activeFilePath} activeFilePath={activeFilePath} />
   }
-  return <Suspense fallback={<EditorLoading />}><CodeCanvas key={activeFilePath} activeFilePath={activeFilePath} revealPosition={revealPosition} highlightKeyword={highlightKeyword} /></Suspense>
+  return <Suspense fallback={<EditorLoading />}><CodeCanvas key={activeFilePath} activeFilePath={activeFilePath} workspacePath={workspacePath} revealPosition={revealPosition} highlightKeyword={highlightKeyword} /></Suspense>
 }
 
 export default memo(EditorCanvas)

@@ -1,4 +1,4 @@
-import { matchesShortcut } from '../../../shared/shortcuts'
+import { matchesShortcut } from "@vessel/utils"
 
 export function installScrollShortcuts() {
   let pointer: { x: number; y: number } | undefined

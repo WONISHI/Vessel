@@ -1,4 +1,4 @@
-import type { BrowserDevice } from "../../../../shared/browser-tools"
+import type { BrowserDevice } from "@vessel/type"
 import { useSyncExternalStore } from "react"
 export interface TransitItem { id: string; kind: "url" | "text" | "file"; root?: string; preview?: { device: BrowserDevice; scale: number }; title: string; content: string }
 const key = "vessel-transit-v1"

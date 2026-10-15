@@ -1,6 +1,6 @@
 import { readFile, realpath, stat } from "node:fs/promises"
 import { resolve, relative, isAbsolute } from "node:path"
-import type { BrowserExtension } from "../shared/browser-extensions"
+import type { BrowserExtension } from "@vessel/type"
 
 export async function extensionFile(root: string, path: string) {
   const base = await realpath(root)

@@ -2,7 +2,7 @@ import { resolve } from "node:path"
 import { defineConfig } from "vitest/config"
 
 export default defineConfig({
-  resolve: { alias: { "@vessel/sync": resolve("packages/sync/src/index.ts") } },
+  resolve: { alias: { "@vessel/sync": resolve("packages/sync/src/index.ts"), "@": resolve("src/renderer/src") } },
   test: {
     environment: "node",
     include: ["tests/**/*.test.ts", "tests/**/*.test.tsx", "packages/sync/tests/**/*.test.ts"],

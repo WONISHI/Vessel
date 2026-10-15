@@ -1,3 +1,7 @@
+import type { ShortcutId, KeyInput } from "@vessel/type"
+
+export { type ShortcutId, type KeyInput } from "@vessel/type"
+
 /** One registry for shortcut handlers and the settings reference. Editor-native keys are scoped explicitly. */
 export const shortcuts = {
   command: { label: '命令菜单', key: 'p', mod: true, scope: '全局' },
@@ -29,14 +33,14 @@ export const shortcuts = {
   table: { label: '表格', key: 'm', mod: true, scope: 'Markdown 编辑器' },
   pinScreenshot: { label: '截图钉到桌面', key: 'F3', scope: '截图' },
   copyColor: { label: '复制色值', key: 'c', scope: '截图取色' },
-} satisfies Record<string, { label: string; key: string; scope: string; mod?: boolean; ctrl?: boolean; shift?: boolean }>
-export type ShortcutId = keyof typeof shortcuts
-interface KeyInput { key: string; metaKey?: boolean; ctrlKey?: boolean; shiftKey?: boolean; altKey?: boolean; meta?: boolean; control?: boolean; shift?: boolean; alt?: boolean; isComposing?: boolean }
+} satisfies Record<ShortcutId, { label: string; key: string; scope: string; mod?: boolean; ctrl?: boolean; shift?: boolean }>
+
 export function matchesShortcut(event: KeyInput, id: ShortcutId) {
   const item: { key: string; mod?: boolean; ctrl?: boolean; shift?: boolean } = shortcuts[id]
   const ctrl = !!(event.ctrlKey || event.control), meta = !!(event.metaKey || event.meta)
   return !event.isComposing && !(event.altKey || event.alt) && !!(event.shiftKey || event.shift) === !!item.shift && event.key.toLowerCase() === item.key.toLowerCase() && (item.mod ? ctrl || meta : item.ctrl ? ctrl && !meta : !ctrl && !meta)
 }
+
 export function shortcutLabel(id: ShortcutId, mac: boolean) {
   const item: { key: string; mod?: boolean; ctrl?: boolean; shift?: boolean } = shortcuts[id]
   return [item.mod ? mac ? '⌘' : 'Ctrl' : item.ctrl ? 'Ctrl' : '', item.shift ? 'Shift' : '', item.key.toUpperCase()].filter(Boolean).join(' + ')

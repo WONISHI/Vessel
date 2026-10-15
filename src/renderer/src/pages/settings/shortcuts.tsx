@@ -1,6 +1,6 @@
 import { Fragment } from 'react'
 import { ChevronDown } from 'lucide-react'
-import { shortcuts, screenshotShortcut, shortcutLabel, type ShortcutId } from '../../../../shared/shortcuts'
+import { shortcuts, screenshotShortcut, shortcutLabel, type ShortcutId } from '@vessel/utils'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Kbd, KbdGroup } from '@/components/ui/kbd'
 

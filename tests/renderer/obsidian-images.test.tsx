@@ -1,9 +1,11 @@
+// @vitest-environment jsdom
 import React from "react"
-import { expect, it } from "vitest"
-import { fireEvent, render, screen } from "@testing-library/react"
+import { expect, it, vi, afterEach } from "vitest"
+import { fireEvent, render, screen, cleanup } from "@testing-library/react"
 import { parseObsidianImageEmbed, resolveObsidianImagePath, parseImageReference, resizeImageReference } from "@vessel/obsidian"
 import { prepareObsidianImages, restoreObsidianImages } from "../../src/renderer/src/components/core/canvas/variants/markdown/image-source"
 import { Image } from "../../src/renderer/src/components/ui/image"
+import { ObsidianImageLine } from "../../src/renderer/src/components/core/canvas/variants/markdown/obsidian-images"
 it("parses spaced attachment names, sizes and resolves nearest candidates", () => {
   expect(parseObsidianImageEmbed("![[Pasted image 20260303174838.png|300x200]]")).toMatchObject({ target: "Pasted image 20260303174838.png", width: 300, height: 200 })
   expect(parseObsidianImageEmbed("![[note.md]]")).toBeNull()
@@ -54,3 +56,104 @@ it("separates image titles from local paths and preserves titles on resize", () 
  expect(parseImageReference(source)?.target).toBe("软考/assets/image.png")
  expect(resizeImageReference(source, 640)).toBe('![image|640](软考/assets/image.png "两网、一站、十二金")')
 })
+
+afterEach(() => {
+  cleanup()
+})
+
+it("supports viewing and editing image reference link, and deleting image", async () => {
+  const onChange = vi.fn()
+  window.electronAPI = {
+    ...window.electronAPI,
+    readObsidianImage: vi.fn().mockResolvedValue("https://example.com/test.png")
+  } as any
+  render(
+    <ObsidianImageLine
+      source="![测试](https://example.com/test.png)"
+      root="/workspace"
+      documentPath="doc.md"
+      onChange={onChange}
+    />
+  )
+  const image = await screen.findByRole("img", { name: "测试" })
+  fireEvent.load(image)
+  fireEvent.contextMenu(image)
+  const viewLinkItem = await screen.findByText("查看图片链接")
+  expect(viewLinkItem).toBeTruthy()
+  fireEvent.click(viewLinkItem)
+
+  const input = screen.getByDisplayValue("https://example.com/test.png")
+  expect(input).toBeTruthy()
+
+  fireEvent.change(input, { target: { value: "https://example.com/new.png" } })
+  const saveBtn = screen.getByRole("button", { name: "保存" })
+  fireEvent.click(saveBtn)
+  expect(onChange).toHaveBeenCalledWith("![测试](https://example.com/new.png)")
+})
+
+it("supports deleting image via delete button in link bar", async () => {
+  const onChange = vi.fn()
+  window.electronAPI = {
+    ...window.electronAPI,
+    readObsidianImage: vi.fn().mockResolvedValue("https://example.com/test.png")
+  } as any
+  render(
+    <ObsidianImageLine
+      source="![测试](https://example.com/test.png)"
+      root="/workspace"
+      documentPath="doc.md"
+      onChange={onChange}
+    />
+  )
+  const image = await screen.findByRole("img", { name: "测试" })
+  fireEvent.load(image)
+  fireEvent.contextMenu(image)
+  const viewLinkItem = await screen.findByText("查看图片链接")
+  fireEvent.click(viewLinkItem)
+
+  const delBtn = screen.getByRole("button", { name: "删除" })
+  fireEvent.click(delBtn)
+  expect(onChange).toHaveBeenCalledWith("")
+})
+
+it("supports copying and dragging address via 1号图标 (copy button)", async () => {
+  const writeText = vi.fn().mockResolvedValue(undefined)
+  Object.assign(navigator, {
+    clipboard: { writeText }
+  })
+  window.electronAPI = {
+    ...window.electronAPI,
+    readObsidianImage: vi.fn().mockResolvedValue("https://example.com/test.png")
+  } as any
+  render(
+    <ObsidianImageLine
+      source="![测试](https://example.com/test.png)"
+      root="/workspace"
+      documentPath="doc.md"
+      onChange={vi.fn()}
+    />
+  )
+  const image = await screen.findByRole("img", { name: "测试" })
+  fireEvent.load(image)
+  fireEvent.contextMenu(image)
+  const viewLinkItem = await screen.findByText("查看图片链接")
+  fireEvent.click(viewLinkItem)
+
+  const copyBtn = screen.getByRole("button", { name: "复制图片地址" })
+  expect(copyBtn).toBeTruthy()
+  expect(copyBtn.getAttribute("draggable")).toBe("true")
+
+  // 点击复制地址
+  fireEvent.click(copyBtn)
+  expect(writeText).toHaveBeenCalledWith("https://example.com/test.png")
+
+  // 拖拽复制地址
+  const setData = vi.fn()
+  const dataTransfer = { setData, effectAllowed: "" }
+  fireEvent.dragStart(copyBtn, { dataTransfer })
+  expect(setData).toHaveBeenCalledWith("text/plain", "https://example.com/test.png")
+  expect(setData).toHaveBeenCalledWith("text/uri-list", "https://example.com/test.png")
+})
+
+
+

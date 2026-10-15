@@ -3,7 +3,7 @@ import { createHash } from "node:crypto"
 import { mkdtemp, writeFile, rm } from "node:fs/promises"
 import { join } from "node:path"
 import { tmpdir } from "node:os"
-import { defaultSettings } from "../../src/shared/settings"
+import { defaultSettings } from "@vessel/utils"
 import { headS3File, uploadS3File } from "../../src/main/settings-s3"
 const config = { ...defaultSettings.backup, endpoint: "https://storage.example.com", bucket: "notes", accessKey: "AKID", region: "us-east-1" }
 afterEach(() => vi.unstubAllGlobals())

@@ -1,4 +1,4 @@
-import { matchesShortcut } from "../../../shared/shortcuts"
+import { matchesShortcut } from "@vessel/utils"
 import { useEffect, useState } from "react"
 import { useRouter } from "@vessel/react-router"
 import { CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command"

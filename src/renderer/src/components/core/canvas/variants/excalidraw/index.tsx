@@ -242,16 +242,16 @@ export default function ExcalidrawCanvas({ activeFilePath, workspacePath = "" }:
 
   const handleJumpRoute = useCallback(
     (index: number) => {
-      if (!context?.expandDirectory || !effectiveWorkspacePath) return
+      if (!effectiveWorkspacePath) return
       if (index === 0) {
-        context.expandDirectory(effectiveWorkspacePath)
+        window.dispatchEvent(new CustomEvent("vessel:reveal-file", { detail: effectiveWorkspacePath }))
         return
       }
       const relativeParts = breadcrumbSegments.slice(1, index + 1)
       const targetPath = `${effectiveWorkspacePath}/${relativeParts.join("/")}`
-      context.expandDirectory(targetPath)
+      window.dispatchEvent(new CustomEvent("vessel:reveal-file", { detail: targetPath }))
     },
-    [context, effectiveWorkspacePath, breadcrumbSegments]
+    [effectiveWorkspacePath, breadcrumbSegments]
   )
 
   if (loading) {
@@ -283,7 +283,11 @@ export default function ExcalidrawCanvas({ activeFilePath, workspacePath = "" }:
                 {index > 0 && <BreadcrumbSeparator />}
                 <BreadcrumbItem className="min-w-0">
                   {isLast ? (
-                    <BreadcrumbPage className="truncate max-w-64" title={part}>
+                    <BreadcrumbPage
+                      className="cursor-pointer truncate max-w-64 hover:text-stone-900 transition-colors"
+                      title={part}
+                      onClick={() => handleJumpRoute(index)}
+                    >
                       {part}
                     </BreadcrumbPage>
                   ) : (

@@ -1,5 +1,5 @@
 import { shouldMonitorNavigation } from "./settings"
-import { matchesShortcut } from "../shared/shortcuts"
+import { matchesShortcut } from "@vessel/utils"
 import { join } from "node:path"
 import { registerBrowserProxy } from "./browser-proxy"
 import { registerBrowserTools } from "./browser-tools"

@@ -1,5 +1,5 @@
 import "./appearance.css"
-import type { AppSettings } from "../../../../shared/settings"
+import type { AppSettings } from "@vessel/type"
 export function applyAppearance(settings: AppSettings) {
   const root = document.documentElement
   const dark = settings.theme === "dark" || (settings.theme === "system" && matchMedia("(prefers-color-scheme: dark)").matches)

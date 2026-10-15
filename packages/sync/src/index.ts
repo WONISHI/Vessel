@@ -1,4 +1,6 @@
 export * from "./types.js"
+export { parseSyncExcludeRules, createSyncExcludeFilter } from "./rules.js"
+export type { SyncExcludeRules, SyncEntryKind } from "./rules.js"
 export { syncFiles } from "./engine.js"
 export { collectFiles, excludedBackupName } from "./scan.js"
 export type { ScanOptions } from "./scan.js"

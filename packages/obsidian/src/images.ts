@@ -12,7 +12,7 @@ export function parseObsidianImageEmbed(value: string): ObsidianImageEmbed | nul
   const match = /^!\[\[([^\]\r\n]+)\]\]$/.exec(value.trim())
   if (!match) return null
   const [target, ...options] = match[1].split("|")
-  if (!/\.(png|jpe?g|gif|webp|bmp|svg|avif)$/i.test(target.trim())) return null
+  if (!/\.(png|jpe?g|gif|webp|awebp|bmp|svg|avif|jfif)$/i.test(target.trim()) && !/^https?:\/\//i.test(target.trim())) return null
   const option = options.join("|").trim()
   const size = /^(\d+)(?:x(\d+))?$/.exec(option)
   return { raw: value, target: target.trim(), alt: size || !option ? target.split(/[\\/]/).pop()! : option, ...(size ? { width: Math.max(1, Number(size[1])), ...(size[2] ? { height: Math.max(1, Number(size[2])) } : {}) } : {}) }

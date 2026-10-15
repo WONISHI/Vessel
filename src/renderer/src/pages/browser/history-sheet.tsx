@@ -1,9 +1,9 @@
-import { matchesShortcut } from "../../../../shared/shortcuts"
+import { matchesShortcut } from "@vessel/utils"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { Bookmark, Globe, History, Search, Trash2, X, ChevronDown } from "lucide-react"
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from "@/components/ui/sheet"
-import type { HistoryEntry } from "../../../../shared/browser-tools"
+import type { HistoryEntry } from "@vessel/type"
 
 const PAGE_SIZE = 30
 

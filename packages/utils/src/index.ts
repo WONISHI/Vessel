@@ -1,3 +1,7 @@
 export type { FileTreeNode } from "./types"
 export { createFileTreeFromPaths } from "./file-tree"
 export { countFileNodes, getFileExtension } from "./files"
+export { isHistoryRedirect, historyURLKey } from "./browser-history-url"
+export { localFileURL } from "./local-file-url"
+export { shortcuts, matchesShortcut, shortcutLabel, screenshotShortcut, markdownHotkey, type ShortcutId, type KeyInput } from "./shortcuts"
+export { defaultSettings, parseIgnoredPatterns, isIgnoredEntry } from "./settings"

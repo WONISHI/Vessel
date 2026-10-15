@@ -1,7 +1,7 @@
 import { serveOffice } from "./office"
 import { readFile, realpath, stat, mkdir, writeFile } from "node:fs/promises"
 import { relative, isAbsolute, extname, basename, join } from "node:path"
-import type { TransitFile } from "../shared/transit"
+import type { TransitFile } from "@vessel/type"
 import { app, BrowserWindow, clipboard, type WebContents } from "electron"
 
 async function readTransitFile(root: string, file: string): Promise<TransitFile> {

@@ -1,5 +1,5 @@
 import { ipcRenderer } from "electron"
-import type { TodosAPI } from "../../shared/todos"
+import type { TodosAPI } from "@vessel/type"
 export const todosAPI: TodosAPI = {
   listTodos: () => ipcRenderer.invoke("todos:list"),
   addTodo: (date, title) => ipcRenderer.invoke("todos:add", date, title),

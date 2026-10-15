@@ -1,5 +1,5 @@
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogAction } from "@/components/ui/alert-dialog"
-import { useCallback, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { FilePlus2, FolderPlus, FileCode2, FileText, LayoutTemplate } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
@@ -46,34 +46,39 @@ export function CreateEntry({ kind, onStart }: { kind: EntryDraft["kind"]; onSta
         <PopoverContent
           side="bottom"
           align="end"
-          className="w-40 p-1"
+          className="w-48 p-1"
           onCloseAutoFocus={(event) => event.preventDefault()}
           onOpenAutoFocus={(event) => event.preventDefault()}
         >
-          {["md", "excalidraw.md", "js", "ts", "json", "jsx", "html", "css", "vue", ""].map((extension) => (
-            <Button
-              key={extension}
-              variant="ghost"
-              className="h-8 w-full justify-start text-xs hover:bg-green-600 hover:!text-white"
-              onClick={() => {
-                onStart(extension)
-                setOpen(false)
-              }}
-            >
-              {extension === "md" ? (
-                <FileText className="!size-3.5" />
-              ) : extension === "excalidraw.md" ? (
-                <LayoutTemplate className="!size-3.5" />
-              ) : (
-                <FileCode2 className="!size-3.5" />
-              )}
-              {extension === "excalidraw.md"
+          {["md", "excalidraw.md", "js", "ts", "json", "jsx", "html", "css", "vue", ""].map((extension) => {
+            const itemLabel =
+              extension === "excalidraw.md"
                 ? "新建白板 (.excalidraw.md)"
                 : extension
                   ? `新建 ${extension.toUpperCase()} 文件`
-                  : "新建自定义文件"}
-            </Button>
-          ))}
+                  : "新建自定义文件"
+            return (
+              <Button
+                key={extension}
+                variant="ghost"
+                title={itemLabel}
+                className="h-8 w-full justify-start gap-2 text-xs hover:bg-green-600 hover:!text-white min-w-0"
+                onClick={() => {
+                  onStart(extension)
+                  setOpen(false)
+                }}
+              >
+                {extension === "md" ? (
+                  <FileText className="!size-3.5 shrink-0" />
+                ) : extension === "excalidraw.md" ? (
+                  <LayoutTemplate className="!size-3.5 shrink-0" />
+                ) : (
+                  <FileCode2 className="!size-3.5 shrink-0" />
+                )}
+                <span className="truncate min-w-0 flex-1 text-left">{itemLabel}</span>
+              </Button>
+            )
+          })}
         </PopoverContent>
       )}
     </Popover>
@@ -87,7 +92,41 @@ export function InlineEntryEditor({ draft, onFinish }: { draft: EntryDraft; onFi
   const [error, setError] = useState("")
   const [busy, setBusy] = useState(false)
   const touched = useRef(false)
-  const focusInput = useCallback((input: HTMLInputElement | null) => { if (input) { input.focus({ preventScroll: true }); input.select() } }, [])
+  const inputRef = useRef<HTMLInputElement | null>(null)
+  const focusInput = useCallback((input: HTMLInputElement | null) => {
+    inputRef.current = input
+    if (input) {
+      input.focus({ preventScroll: true })
+      input.select()
+    }
+  }, [])
+
+  useEffect(() => {
+    const el = inputRef.current
+    if (el) {
+      el.focus({ preventScroll: true })
+      el.select()
+    }
+    const raf = requestAnimationFrame(() => {
+      const el2 = inputRef.current
+      if (el2) {
+        el2.focus({ preventScroll: true })
+        el2.select()
+      }
+    })
+    const timer = setTimeout(() => {
+      const el3 = inputRef.current
+      if (el3) {
+        el3.focus({ preventScroll: true })
+        el3.select()
+      }
+    }, 50)
+    return () => {
+      cancelAnimationFrame(raf)
+      clearTimeout(timer)
+    }
+  }, [])
+
   const submitting = useRef(false)
   const cancelled = useRef(false)
   const submit = async () => {
@@ -113,22 +152,24 @@ export function InlineEntryEditor({ draft, onFinish }: { draft: EntryDraft; onFi
     <form
       className="flex w-full min-w-0 flex-1 flex-wrap items-center gap-1 pr-2"
       onSubmit={event => { event.preventDefault(); void submit() }}    >
-      <div className="flex min-w-0 flex-1 items-center rounded-sm border border-green-600 bg-transparent px-1.5 "><input
-        placeholder="未命名"
-        ref={focusInput}
-        onFocus={event => event.target.select()}
-        aria-label={draft.kind === "file" ? "新文件名称" : "新文件夹名称"}
-        className="h-6 min-w-0 flex-1 !rounded-none !border-0 !bg-transparent p-0 text-xs !shadow-none !outline-none !ring-0"
-        onBlur={() => { if (!error) void submit() }}
-        value={name}
-        disabled={busy}
-        onChange={(event) => { touched.current = true; setName(event.target.value) }}
-        onKeyDown={(event) => {
-          if (event.key === "Escape" && !busy) { cancelled.current = true; onFinish(false) }
-        }}
-        title={error || undefined}
-        aria-invalid={!!error}
-      />
+      <div className="flex min-w-0 flex-1 items-center rounded-sm border border-green-600 bg-transparent px-1.5 ">
+        <input
+          autoFocus
+          placeholder="未命名"
+          ref={focusInput}
+          onFocus={event => event.target.select()}
+          aria-label={draft.kind === "file" ? "新文件名称" : "新文件夹名称"}
+          className="h-6 min-w-0 flex-1 !rounded-none !border-0 !bg-transparent p-0 text-xs !shadow-none !outline-none !ring-0"
+          onBlur={() => { if (!error) void submit() }}
+          value={name}
+          disabled={busy}
+          onChange={(event) => { touched.current = true; setName(event.target.value) }}
+          onKeyDown={(event) => {
+            if (event.key === "Escape" && !busy) { cancelled.current = true; onFinish(false) }
+          }}
+          title={error || undefined}
+          aria-invalid={!!error}
+        />
       </div>
       <AlertDialog open={!!error} onOpenChange={open => { if (!open) setError("") }}>
         <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>无法创建</AlertDialogTitle><AlertDialogDescription>{error}</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogAction>知道了</AlertDialogAction></AlertDialogFooter></AlertDialogContent>

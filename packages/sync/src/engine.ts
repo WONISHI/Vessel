@@ -5,7 +5,7 @@ import { constants } from "node:fs"
 import { randomUUID } from "node:crypto"
 import { join, posix, relative, isAbsolute, dirname, sep } from "node:path"
 import { performance } from "node:perf_hooks"
-import { SyncError, type SyncOptions, type SyncResult, type RemoteFile, type SyncPlanItem } from "./types.js"
+import { SyncError, type SyncOptions, type SyncResult, type RemoteFile, type SyncPlanItem, type SyncLogEvent } from "./types.js"
 
 type Fingerprint = { size: number; mtimeMs: number; ctimeMs: number; ino: number; dev: number }
 type Entry = { size: number; digest: string; md5?: string; fingerprint?: Fingerprint; remote?: RemoteFile }
@@ -60,7 +60,19 @@ async function acquireLock(path: string) {
   }
 }
 /** Plan from local, remote and previous state before applying bounded concurrent operations. */
+function log(options: SyncOptions, event: SyncLogEvent) { try { options.onLog?.(event) } catch { /* Diagnostics must never stop synchronization. */ } }
 export async function syncFiles(options: SyncOptions): Promise<SyncResult> {
+  log(options, { type: "start", message: `${options.dryRun ? "预览" : "同步"}开始，${options.files.length} 个本地文件` })
+  try {
+    const result = await executeSync(options)
+    log(options, { type: "finish", message: `${options.dryRun ? "预览" : "同步"}完成：上传 ${result.changed}，下载 ${result.downloaded ?? 0}，删除 ${result.deleted}，冲突 ${result.conflicts.length}，耗时 ${Math.round(result.durationMs)}ms` })
+    return result
+  } catch (error) {
+    log(options, { type: "error", message: error instanceof Error ? error.message : "同步失败", code: error instanceof SyncError ? error.code : "SYNC_FAILED", path: error instanceof SyncError ? error.details.path : undefined })
+    throw error
+  }
+}
+async function executeSync(options: SyncOptions): Promise<SyncResult> {
   options.signal?.throwIfAborted()
   if (options.verification !== undefined && !["stat", "content"].includes(options.verification)) throw new RangeError("verification must be stat or content")
   const concurrency = positive(options.concurrency ?? 8, "concurrency", 32)
@@ -145,8 +157,11 @@ async function run(options: SyncOptions, prefix: string, indexPath: string, conc
   const next: Index = { version: 2, target, files: Object.assign(Object.create(null), previous.files), hashes: Object.assign(Object.create(null), previous.hashes), copies: Object.assign(Object.create(null), previous.copies) }
   const result: SyncResult = { time: "", size: 0, changed: 0, downloaded: 0, downloadSize: 0, deleted: 0, conflicts: [], skipped: [], checked: 0, hashed: 0, cached: 0, durationMs: 0, running: false }
   const activeBytes = new Map<string, number>()
-  const phase = (phase: "remote" | "hashing" | "planning" | "transferring", completed: number, total: number, path = "", active = false) =>
+  let loggedPhase: string | undefined
+  const phase = (phase: "remote" | "hashing" | "planning" | "transferring", completed: number, total: number, path = "", active = false) => {
+    if (loggedPhase !== phase) { loggedPhase = phase; log(options, { type: "phase", message: `执行阶段：${({ remote: "读取远端列表", hashing: "检查本地文件", planning: "生成同步计划", transferring: "执行文件同步" })[phase]}` }) }
     options.onProgress?.({ phase, active, elapsedMs: performance.now() - started, completed, total, path, uploaded: result.changed, downloaded: result.downloaded, bytes: result.size + result.downloadSize! + [...activeBytes.values()].reduce((a, b) => a + b, 0), conflicts: result.conflicts.length })
+  }
   async function parallel<T>(items: readonly T[], operation: (item: T) => Promise<void>) {
     let cursor = 0,
       failure: unknown,
@@ -172,8 +187,8 @@ async function run(options: SyncOptions, prefix: string, indexPath: string, conc
   const scope = options.paths ? new Set(options.paths) : undefined
   if (scope) for (const path of scope) validateKey(path)
   const included = (path: string) => {
-    if (path === ".vessel" || path.startsWith(".vessel/")) return direction === "push" && options.files.some((file) => file.path === path)
-    return (!scope || scope.has(path)) && !path.split("/").some(options.exclude ?? (() => false))
+    if (path === ".vessel" || path.startsWith(".vessel/")) return direction === "push" && options.files.some((file) => file.path === path) && !options.excludePath?.(path, "file")
+    return (!scope || scope.has(path)) && !path.split("/").some(options.exclude ?? (() => false)) && !options.excludePath?.(path, "file")
   }
   const locals = new Map<string, { source: string; entry: Entry }>()
   const keyFor = (path: string) => [prefix, path].filter(Boolean).join("/")
@@ -577,7 +592,7 @@ async function run(options: SyncOptions, prefix: string, indexPath: string, conc
       // Adopting thousands of unchanged legacy objects changes only receipts. Persist
       // those together, rather than rewriting the whole index after each small batch.
       if (transfers && dirty >= checkpointEvery) await flush()
-      if (transfers) phase("transferring", completed, transferCount, task.path)
+      if (transfers) { log(options, { type: "operation", path: task.path, action: task.action, message: task.reason }); phase("transferring", completed, transferCount, task.path) }
     })
   } catch (error) {
     failed = true

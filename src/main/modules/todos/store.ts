@@ -1,5 +1,5 @@
 import Database from "better-sqlite3"
-import type { Todo } from "../../../shared/todos"
+import type { Todo } from "@vessel/type"
 
 export class TodoStore {
   private db: Database.Database

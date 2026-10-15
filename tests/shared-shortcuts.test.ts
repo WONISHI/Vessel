@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest'
-import { matchesShortcut, shortcutLabel, markdownHotkey } from '../src/shared/shortcuts'
+import { matchesShortcut, shortcutLabel, markdownHotkey } from '@vessel/utils'
 it('matches renderer and Electron events from the same definition', () => {
   expect(matchesShortcut({key:'p',metaKey:true},'command')).toBe(true)
   expect(matchesShortcut({key:'P',control:true},'command')).toBe(true)

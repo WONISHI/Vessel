@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef } from "react"
-import type { FileChange } from "../../../../../shared/file-watch"
+import type { FileChange } from "@vessel/type"
 const eventName = "vessel:files-changed"
 const watches = new Map<string, { users: number; close: () => void }>()
 export function useDirectoryWatch(root: string) {

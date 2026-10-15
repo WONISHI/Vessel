@@ -3,7 +3,7 @@ import { createHash } from "node:crypto"
 import { mkdtemp, mkdir, writeFile, readFile, rm, symlink } from "node:fs/promises"
 import { join } from "node:path"
 import { tmpdir } from "node:os"
-import { collectFiles, syncFiles, SyncError, excludedBackupName, type StorageAdapter, type RemoteFile } from "../src/index"
+import { collectFiles, syncFiles, SyncError, excludedBackupName, createSyncExcludeFilter, type StorageAdapter, type RemoteFile } from "../src/index"
 const roots: string[] = []
 afterEach(async () => {
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })))
@@ -202,4 +202,25 @@ it("bypasses ETag-MD5 adoption in content verification mode", async () => {
   expect(await f.run(f.a, { verification: "content" })).toMatchObject({ verified: 1, conflicts: [] })
   expect(f.storage.head).toHaveBeenCalledTimes(1)
   expect(f.storage.download).toHaveBeenCalledTimes(1)
+})
+it("applies typed rules to remote objects and history without interpreting filtering as deletion", async () => {
+  const f = await fixture()
+  await mkdir(join(f.a, "d")); await writeFile(join(f.a, "d/note.md"), "base")
+  await f.run()
+  f.put("a", "excluded remote file")
+  f.put("d/remote.md", "excluded remote child")
+  const excludePath = createSyncExcludeFilter("{file:a;folder:d}")
+  const result = await syncFiles({ root: f.a, files: await collectFiles({ root: f.a, excludePath }), stateDirectory: join(f.root, "state-a"), storage: f.storage, direction: "bidirectional", propagateDeletes: true, deleteThresholdPercent: 100, excludePath })
+  expect(result).toMatchObject({ changed: 0, downloaded: 0, deleted: 0 })
+  expect(f.objects.has("d/note.md")).toBe(true)
+  expect(f.storage.remove).not.toHaveBeenCalled()
+  await expect(readFile(join(f.a, "a"))).rejects.toMatchObject({ code: "ENOENT" })
+})
+it("emits structured diagnostics and isolates observer failures", async () => {
+  const f = await fixture(); await writeFile(join(f.a, "note.md"), "note")
+  const events: Array<{ type: string; action?: string; path?: string }> = []
+  expect(await f.run(f.a, { onLog: event => { events.push(event); if (event.type === "phase") throw new Error("diagnostics observer failed") } })).toMatchObject({ changed: 1 })
+  expect(events[0].type).toBe("start")
+  expect(events).toContainEqual(expect.objectContaining({ type: "operation", path: "note.md", action: "upload" }))
+  expect(events.at(-1)?.type).toBe("finish")
 })

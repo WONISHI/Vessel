@@ -2,7 +2,7 @@ import { expect, it, vi } from "vitest"
 import { mkdtemp, readFile, writeFile, mkdir, rm, symlink } from "node:fs/promises"
 import { join } from "node:path"
 import { tmpdir } from "node:os"
-import { defaultSettings } from "../../src/shared/settings"
+import { defaultSettings } from "@vessel/utils"
 import { signedS3Request } from "../../src/main/settings-s3"
 const mocks = vi.hoisted(() => ({ path: "", request: vi.fn(async () => {}), head: vi.fn(async () => undefined), upload: vi.fn(), secret: "test-secret" }))
 vi.mock("electron", () => ({ app: { getPath: () => mocks.path, getVersion: () => "1.0-test", once: () => {} }, safeStorage: { isEncryptionAvailable: () => true, encryptString: () => Buffer.from("ciphertext"), decryptString: () => mocks.secret } }))
@@ -38,9 +38,11 @@ it("isolates workspace credentials, blocks resources, and only uploads the selec
   const handlers = new Map<string, (...args: unknown[]) => Promise<any>>()
   const call = (name: string, ...args: unknown[]) => handlers.get(`settings:${name}`)!(null, ...args)
   try {
+    await writeFile(join(mocks.path, "settings.json"), JSON.stringify({ settings: defaultSettings, profiles: { [notes]: { config: { ...defaultSettings.backup, syncExcludeRules: "" }, secret: "", status: { running: false } } } }))
     const { registerSettings } = await import("../../src/main/settings")
     registerSettings({ ipc: { handle: (name: string, callback: (...args: unknown[]) => Promise<unknown>) => handlers.set(name, callback) } } as never)
     await call("workspace", notes)
+    expect((await call("get")).backup.syncExcludeRules).toBe("{folder:.vessel,node-modules,.git,.obsidian}")
     const settings = { ...defaultSettings, name: "Test User", backup: { ...defaultSettings.backup, workspacePath: notes, enabled: true, endpoint: "https://storage.example.com", bucket: "notes", accessKey: "AKID" } }
     const saved = await call("save", settings, mocks.secret)
     expect(saved.monitorNavigation).toBe(false)
@@ -70,6 +72,25 @@ it("isolates workspace credentials, blocks resources, and only uploads the selec
     mocks.upload.mockClear()
     await call("backup")
     expect(mocks.upload.mock.calls.map(args => args[2]).sort()).toEqual(["backups/note.md", "backups/second.md"])
+    expect(await call("logs")).toMatchObject({ enabled: false, entries: [] })
+    await mkdir(join(notes, "d")); await writeFile(join(notes, "d/extra.md"), "excluded folder")
+    const loggingSettings = { ...settings, backup: { ...settings.backup, logEnabled: true, syncExcludeRules: "{file:second.md;folder:d}" } }
+    await expect(call("save", { ...loggingSettings, backup: { ...loggingSettings.backup, syncExcludeRules: "{file:a" } })).rejects.toThrow("排除规则")
+    await call("save", loggingSettings)
+    const filtered = await call("preview")
+    expect(filtered.plan.map(item => item.path)).toEqual(["note.md"])
+    const diagnostic = await call("logs")
+    expect(diagnostic.enabled).toBe(true)
+    expect(diagnostic.entries).toContainEqual(expect.objectContaining({ type: "excluded", path: "d" }))
+    expect(diagnostic.entries).toContainEqual(expect.objectContaining({ type: "excluded", path: "second.md" }))
+    mocks.upload.mockRejectedValueOnce(new Error(`failure ${mocks.secret} AKID https://storage.example.com`))
+    await expect(call("backup", join(notes, "note.md"), notes)).rejects.toThrow("failure")
+    const encodedLogs = JSON.stringify(await call("logs"))
+    expect(encodedLogs).not.toContain(mocks.secret)
+    expect(encodedLogs).not.toContain("AKID")
+    expect(encodedLogs).not.toContain("https://storage.example.com")
+    await call("logs:clear")
+    expect(await call("logs")).toMatchObject({ entries: [] })
     await call("save", { ...settings, backup: { ...settings.backup, enabled: false } })
     await expect(call("backup", join(notes, "note.md"), notes)).rejects.toThrow("开启")
     await call("workspace", null)

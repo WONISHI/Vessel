@@ -3,7 +3,7 @@ import { realpath, stat } from 'node:fs/promises'
 import { isAbsolute, resolve } from 'node:path'
 import { rgPath } from '@vscode/ripgrep'
 import { BrowserWindow, dialog, type WebContents } from 'electron'
-import type { ContentMatch, ContentSearchOptions, ContentSearchResult } from '../shared/content-search'
+import type { ContentMatch, ContentSearchOptions, ContentSearchResult } from '@vessel/type'
 import { generalSettings, parseIgnoredPatterns } from './settings'
 
 export async function searchContent(options: ContentSearchOptions, signal?: AbortSignal): Promise<ContentSearchResult> {

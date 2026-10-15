@@ -22,7 +22,7 @@ export async function readObsidianImage(root: string, documentPath: string, refe
     for (const entry of await readdir(directory, { withFileTypes: true })) {
       const path = join(directory, entry.name)
       if (entry.isDirectory() && entry.name !== ".git" && entry.name !== "node_modules") await scan(path)
-      else if (entry.isFile() && /\.(png|jpe?g|gif|webp|bmp|svg|avif)$/i.test(entry.name)) candidates.push(relative(base, path))
+      else if (entry.isFile() && /\.(png|jpe?g|gif|webp|awebp|bmp|svg|avif|jfif)$/i.test(entry.name)) candidates.push(relative(base, path))
     }
   }
   await scan(base)
@@ -31,6 +31,6 @@ export async function readObsidianImage(root: string, documentPath: string, refe
   const path = await realpath(resolve(base, found))
   if (!within(path)) throw new Error("图片不在工作区")
   if ((await stat(path)).size > 20 * 1024 * 1024) throw new Error("图片超过 20MB")
-  const mime: Record<string, string> = { ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".gif": "image/gif", ".webp": "image/webp", ".bmp": "image/bmp", ".svg": "image/svg+xml", ".avif": "image/avif" }
+  const mime: Record<string, string> = { ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".jfif": "image/jpeg", ".gif": "image/gif", ".webp": "image/webp", ".awebp": "image/webp", ".bmp": "image/bmp", ".svg": "image/svg+xml", ".avif": "image/avif" }
   return "data:" + mime[extname(path).toLowerCase()] + ";base64," + (await readFile(path)).toString("base64")
 }

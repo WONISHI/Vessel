@@ -1,10 +1,11 @@
 import { CreateEntry, type EntryDraft } from "./create-entry"
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
-import { useState } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Wrench, LocateFixed, Search } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
+import { useSidebar } from "@/components/ui/sidebar"
 import { useWorkspace } from "@/pages/workspace/hooks/useWorkspace"
 import type { LayoutWorkspaceSidebarProps } from "@/pages/workspace/components/layout-aside/layout-workspace-sidebar/types"
 import WorkspaceTree from "@/pages/workspace/components/layout-aside/layout-workspace-sidebar/workspace-tree"
@@ -37,9 +38,12 @@ export default function LayoutWorkspaceSidebar({ activity }: LayoutWorkspaceSide
     setDraft({ parent, kind, extension })
     setRevision((value) => value + 1)
   }
-  const revealCurrentFile = () => {
-    if (!activeFilePath) return
-    let directory = activeFilePath
+  const { open: sidebarOpen, setOpen: setSidebarOpen } = useSidebar()
+  const revealCurrentFile = useCallback((targetPath?: string) => {
+    const path = targetPath || activeFilePath
+    if (!path) return
+    if (!sidebarOpen) setSidebarOpen(true)
+    let directory = path
     while (true) {
       const split = Math.max(directory.lastIndexOf("/"), directory.lastIndexOf("\\"))
       if (split < workspace.path.length) break
@@ -47,9 +51,18 @@ export default function LayoutWorkspaceSidebar({ activity }: LayoutWorkspaceSide
       expandDirectory(directory)
     }
     setDraft(null)
-    setRevealPath(activeFilePath)
+    setRevealPath(path)
     setRevision((value) => value + 1)
-  }
+  }, [activeFilePath, workspace.path, expandDirectory, sidebarOpen, setSidebarOpen])
+
+  useEffect(() => {
+    const handleReveal = (event: Event) => {
+      const customEvent = event as CustomEvent<string>
+      revealCurrentFile(customEvent.detail)
+    }
+    window.addEventListener("vessel:reveal-file", handleReveal)
+    return () => window.removeEventListener("vessel:reveal-file", handleReveal)
+  }, [revealCurrentFile])
   const [viewport, setViewport] = useState<HTMLDivElement | null>(null)
   const navigate = useNavigate()
   const workspaceName = workspace.path.split(/[\\/]/).filter(Boolean).pop() || workspace.name
@@ -127,7 +140,7 @@ export default function LayoutWorkspaceSidebar({ activity }: LayoutWorkspaceSide
                     disabled={!activeFilePath}
                     aria-label="定位当前文件"
                     className="size-6 text-stone-500 hover:bg-green-600 hover:text-white"
-                    onClick={revealCurrentFile}
+                    onClick={() => revealCurrentFile()}
                   >
                     <LocateFixed className="!size-3.5" />
                   </Button>

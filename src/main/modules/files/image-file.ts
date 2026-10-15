@@ -1,6 +1,6 @@
 import { realpath, stat, readFile } from "node:fs/promises"
 import { relative, isAbsolute, sep, extname, basename } from "node:path"
-import type { ImageFile } from "../../../shared/image-file"
+import type { ImageFile } from "@vessel/type"
 export async function readImageFile(root: string, path: string): Promise<ImageFile> {
   if (typeof root !== "string" || typeof path !== "string" || !isAbsolute(root) || !isAbsolute(path)) throw new Error("图片路径无效")
   const base = await realpath(root),

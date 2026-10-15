@@ -8,7 +8,7 @@ import { app, BrowserWindow, WebContentsView, webContents, dialog, session, type
 import { readFile, writeFile, rename, realpath, rm } from "node:fs/promises"
 import { join, dirname, basename } from "node:path"
 import { randomUUID } from "node:crypto"
-import type { BrowserExtension } from "../shared/browser-extensions"
+import type { BrowserExtension } from "@vessel/type"
 
 let records: BrowserExtension[] = []
 let initialized: Promise<void> | undefined

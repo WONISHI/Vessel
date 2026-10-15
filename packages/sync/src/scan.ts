@@ -9,6 +9,8 @@ export interface ScanOptions {
   selected?: string
   /** Called for every path segment. Defaults to excludedBackupName. */
   exclude?: (name: string) => boolean
+  excludePath?: (path: string, kind: "file" | "folder") => boolean
+  onExcluded?: (path: string, kind: "file" | "folder") => void
   concurrency?: number
   signal?: AbortSignal
 }
@@ -28,7 +30,7 @@ export async function collectFiles(options: ScanOptions): Promise<BackupFile[]> 
     options.signal?.throwIfAborted()
     const source = await realpath(options.selected)
     const path = inside(source)
-    if (path.split("/").some(exclude)) throw new SyncError("INVALID_PATH", "该文件被同步排除规则禁止")
+    if (path.split("/").some(exclude) || options.excludePath?.(path, "file")) throw new SyncError("INVALID_PATH", "该文件被同步排除规则禁止")
     if (!(await stat(source)).isFile()) throw new SyncError("INVALID_PATH", "请选择一个可以同步的文件")
     return [{ path, source }]
   }
@@ -47,8 +49,9 @@ export async function collectFiles(options: ScanOptions): Promise<BackupFile[]> 
     )
     for (const { directory, entries } of results)
       for (const entry of entries) {
-        if (exclude(entry.name) || entry.isSymbolicLink()) continue
         const source = join(directory, entry.name)
+        const path = inside(source), kind = entry.isDirectory() ? "folder" : "file"
+        if (exclude(entry.name) || entry.isSymbolicLink() || options.excludePath?.(path, kind)) { options.onExcluded?.(path, kind); continue }
         if (entry.isDirectory()) directories.push(source)
         else if (entry.isFile()) files.push({ path: inside(source), source })
       }

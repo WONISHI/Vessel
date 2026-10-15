@@ -2,7 +2,7 @@ import { useId, useRef, useState, useEffect, type ComponentProps } from 'react'
 import { createPortal } from 'react-dom'
 import { Search, CornerDownLeft, Globe } from 'lucide-react'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import type { HistoryEntry } from '../../../../shared/browser-tools'
+import type { HistoryEntry } from '@vessel/type'
 import './history-input.css'
 
 function Highlight({ text, query }: { text: string; query: string }) {

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, expect, it, vi } from 'vitest'
 import { installScrollShortcuts } from '../src/renderer/src/lib/scroll-shortcuts'
-import { matchesShortcut } from '../src/shared/shortcuts'
+import { matchesShortcut } from '@vessel/utils'
 let dispose: (() => void) | undefined
 afterEach(() => { dispose?.(); document.body.replaceChildren() })
 it('uses Control rather than Command for both scroll shortcuts', () => {

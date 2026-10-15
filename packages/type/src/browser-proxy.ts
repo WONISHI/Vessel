@@ -7,6 +7,7 @@ export interface BrowserProxyStatus {
   hasSubscription: boolean
   error?: string
 }
+
 export interface BrowserProxyAPI {
   browserProxySubscription(): Promise<string>
   saveBrowserProxySubscription(url: string): Promise<void>

@@ -4,7 +4,7 @@ import { useRouter } from "@vessel/react-router"
 import { Sidebar, useSidebar } from "@/components/ui/sidebar"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import ActivityBar from "@/layout/activity-bar"
-import type { Todo } from "../../../../../shared/todos"
+import type { Todo } from "@vessel/type"
 import { fromKey } from "../calendar"
 import { cn } from "@/lib/utils"
 export default function TodoAside({ todos, selected, onSelect, children }: { children: ReactNode; todos: Todo[]; selected: string; onSelect: (date: string) => void }) {

@@ -8,7 +8,7 @@ import { gunzipSync } from "node:zlib"
 import { createServer } from "node:net"
 import release from "./mihomo-release.json"
 import { browserProxyConfig } from "./browser-proxy-config"
-import type { BrowserProxyStatus } from "../shared/browser-proxy"
+import type { BrowserProxyStatus } from "@vessel/type"
 const state: BrowserProxyStatus = { connected: false, busy: false, stage: "未连接", nodes: [], selected: "", hasSubscription: false }
 let child: ChildProcess | undefined,
   controller = 0,

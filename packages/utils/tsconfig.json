@@ -5,7 +5,10 @@
     "moduleResolution": "Bundler",
     "strict": true,
     "skipLibCheck": true,
-    "noEmit": true
+    "noEmit": true,
+    "paths": {
+      "@vessel/type": ["../type/src/index.ts"]
+    }
   },
   "include": [
     "src"

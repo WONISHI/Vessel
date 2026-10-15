@@ -1,5 +1,5 @@
 import { ipcRenderer } from "electron"
-import type { BrowserExtensionsAPI } from "../../shared/browser-extensions"
+import type { BrowserExtensionsAPI } from "@vessel/type"
 export const browserExtensionsAPI: BrowserExtensionsAPI = {
   extensionScroll: top => ipcRenderer.invoke("browser:extensions:scroll", top),
   resizeBrowserExtension: bounds => ipcRenderer.invoke("browser:extensions:bounds", bounds),

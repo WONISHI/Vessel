@@ -1,4 +1,4 @@
-import { matchesShortcut } from "../../shared/shortcuts"
+import { matchesShortcut } from "@vessel/utils"
 import type ScreenShot from "js-web-screen-shot"
 
 export type Step = { x: number; y: number; number: number }
@@ -55,13 +55,49 @@ export function installSteps(plugin: ScreenShot, button: HTMLButtonElement) {
   layer.onpointerdown = event => {
     const box = plugin.getCutBoxInfo()
     if (event.clientX < box.startX || event.clientY < box.startY || event.clientX > box.startX + box.width || event.clientY > box.startY + box.height) return
+    const onBorder = Math.min(
+      Math.abs(event.clientX - box.startX),
+      Math.abs(event.clientX - (box.startX + box.width)),
+      Math.abs(event.clientY - box.startY),
+      Math.abs(event.clientY - (box.startY + box.height))
+    ) <= 12
+    if (onBorder && !moving) return
     history.push(steps.map(step => ({ ...step })))
     moving = [...steps].reverse().find(step => Math.hypot(step.x - event.clientX, step.y - event.clientY) <= 22)
     if (!moving) { moving = { x: event.clientX, y: event.clientY, number: steps.length + 1 }; steps.push(moving) }
     layer.setPointerCapture(event.pointerId); redraw()
   }
-  layer.onpointermove = event => { if (moving) { const box = plugin.getCutBoxInfo(); moving.x = Math.max(box.startX, Math.min(box.startX + box.width, event.clientX)); moving.y = Math.max(box.startY, Math.min(box.startY + box.height, event.clientY)); redraw() } }
+  layer.onpointermove = event => {
+    if (moving) {
+      const box = plugin.getCutBoxInfo()
+      moving.x = Math.max(box.startX, Math.min(box.startX + box.width, event.clientX))
+      moving.y = Math.max(box.startY, Math.min(box.startY + box.height, event.clientY))
+      redraw()
+      return
+    }
+    const box = plugin.getCutBoxInfo()
+    const onBorder = Math.min(
+      Math.abs(event.clientX - box.startX),
+      Math.abs(event.clientX - (box.startX + box.width)),
+      Math.abs(event.clientY - box.startY),
+      Math.abs(event.clientY - (box.startY + box.height))
+    ) <= 12
+    layer.style.pointerEvents = (active && !onBorder) ? "auto" : "none"
+  }
   layer.onpointerup = layer.onpointercancel = () => { moving = undefined }
+  const syncPointer = (event: PointerEvent) => {
+    if (active && !moving) {
+      const box = plugin.getCutBoxInfo()
+      const onBorder = Math.min(
+        Math.abs(event.clientX - box.startX),
+        Math.abs(event.clientX - (box.startX + box.width)),
+        Math.abs(event.clientY - box.startY),
+        Math.abs(event.clientY - (box.startY + box.height))
+      ) <= 12
+      layer.style.pointerEvents = onBorder ? "none" : "auto"
+    }
+  }
+  window.addEventListener("pointermove", syncPointer)
   document.addEventListener("click", event => {
     const target = event.target as HTMLElement
     if (target.closest("#toolPanel") && !button.contains(target)) setActive(false)
@@ -70,7 +106,7 @@ export function installSteps(plugin: ScreenShot, button: HTMLButtonElement) {
   window.addEventListener("keydown", event => {
     if (active && matchesShortcut(event, "undo")) { event.preventDefault(); event.stopImmediatePropagation(); undo() }
   }, true)
-  return { steps, undo, hide: () => { layer.remove(); setActive(false) } }
+  return { steps, undo, hide: () => { window.removeEventListener("pointermove", syncPointer); layer.remove(); setActive(false) } }
 }
 
 /** Sample the original bitmap, never the dark mask or annotation overlay. */

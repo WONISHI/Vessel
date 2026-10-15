@@ -4,6 +4,7 @@ export interface Todo {
   title: string
   completed: boolean
 }
+
 export interface TodosAPI {
   listTodos: () => Promise<Todo[]>
   addTodo: (date: string, title: string) => Promise<Todo[]>

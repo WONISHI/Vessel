@@ -1,5 +1,5 @@
 import { ipcRenderer } from "electron"
-import type { TerminalAPI } from "../../shared/terminal"
+import type { TerminalAPI } from "@vessel/type"
 export const terminalAPI: TerminalAPI = {
   terminalStart: (root, file) => ipcRenderer.invoke("terminal:start", root, file),
   terminalWrite: (id, data) => ipcRenderer.invoke("terminal:write", id, data),

@@ -1,4 +1,4 @@
-import { matchesShortcut } from "../../shared/shortcuts"
+import { matchesShortcut } from "@vessel/utils"
 import "@fontsource/plus-jakarta-sans/400.css"
 import "@fontsource/plus-jakarta-sans/600.css"
 import ScreenShot from "js-web-screen-shot"

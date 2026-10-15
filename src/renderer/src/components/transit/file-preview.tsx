@@ -4,7 +4,7 @@ import { codeLanguage } from "@/components/core/canvas/variants/code/language"
 import { EditorLoading } from "@/components/ui/editor-loading"
 import { PdfDocument } from '@/components/core/canvas/variants/pdf'
 import { useEffect, useRef, useState } from "react"
-import type { TransitFile } from "../../../../shared/transit"
+import type { TransitFile } from "@vessel/type"
 import { VditorEditor } from "@/components/core/canvas/variants/markdown/vditor-editor"
 import type { TransitItem } from "./state"
 import { Image } from '@/components/ui/image'

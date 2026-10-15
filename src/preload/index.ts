@@ -1,6 +1,5 @@
 import { browserProxyAPI } from "./apis/browser-proxy.api"
-import type { AppSettings, BackupStatus } from "../shared/settings"
-import type { TransitFile } from "../shared/transit"
+import type { AppSettings, BackupStatus, BackupLogs, TransitFile, BrowserDevice } from "@vessel/type"
 import { browserExtensionsAPI } from "./apis/browser-extensions.api"
 import { fileWatchAPI } from "./apis/file-watch.api"
 import { terminalAPI } from "./apis/terminal.api"
@@ -22,7 +21,7 @@ const vesselAPI = {
   deleteBrowserHistory: (id: number | null) => ipcRenderer.invoke("browser:history:delete", id),
   printBrowserPage: (id: number) => ipcRenderer.invoke("browser:print", id),
   listBrowserDevices: () => ipcRenderer.invoke("browser:devices"),
-  emulateBrowserDevice: (id: number, device: import("../shared/browser-tools").BrowserDevice | null) => ipcRenderer.invoke("browser:emulate", id, device),
+  emulateBrowserDevice: (id: number, device: BrowserDevice | null) => ipcRenderer.invoke("browser:emulate", id, device),
   getSettings: (): Promise<AppSettings> => ipcRenderer.invoke("settings:get"),
   saveSettings: (settings: AppSettings, secret?: string): Promise<AppSettings> => ipcRenderer.invoke("settings:save", settings, secret),
   getSettingsInfo: (): Promise<{ version: string; electron: string; node: string }> => ipcRenderer.invoke("settings:info"),
@@ -30,6 +29,8 @@ const vesselAPI = {
   setBackupWorkspace: (path: string | null): Promise<void> => ipcRenderer.invoke("settings:workspace", path),
   runBackup: (file?: string, workspace?: string): Promise<BackupStatus> => ipcRenderer.invoke("settings:backup", file, workspace),
   previewBackup: (): Promise<BackupStatus> => ipcRenderer.invoke("settings:preview"),
+  getBackupLogs: (): Promise<BackupLogs> => ipcRenderer.invoke("settings:logs"),
+  clearBackupLogs: (): Promise<void> => ipcRenderer.invoke("settings:logs:clear"),
   getBackupStatus: (): Promise<BackupStatus> => ipcRenderer.invoke("settings:status"),
   readTransitFile: (root: string, path: string): Promise<TransitFile> => ipcRenderer.invoke("transit:read-file", root, path),
   pickOfficeFile: (): Promise<{ token: string; name: string; bytes: Uint8Array } | null> => ipcRenderer.invoke("office:pick"),
@@ -95,6 +96,10 @@ const vesselAPI = {
   ...gitAPI,
   ...apiClientAPI
 }
+
+ipcRenderer.on("settings:status-changed", (_event, status: BackupStatus) => {
+  window.dispatchEvent(new CustomEvent("vessel:sync-status", { detail: status }))
+})
 
 if (process.contextIsolated) {
   try {

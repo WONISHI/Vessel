@@ -1,6 +1,6 @@
 import { Worker } from "node:worker_threads"
 import { isAbsolute, join } from "node:path"
-import type { CodeDiagnostic } from "../shared/code-diagnostics"
+import type { CodeDiagnostic } from "@vessel/type"
 let worker: Worker | undefined
 let sequence = 0
 const pending = new Map<number, { resolve: (value: CodeDiagnostic[]) => void; reject: (error: Error) => void }>()

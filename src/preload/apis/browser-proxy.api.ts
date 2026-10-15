@@ -1,5 +1,5 @@
 import { ipcRenderer } from "electron"
-import type { BrowserProxyAPI } from "../../shared/browser-proxy"
+import type { BrowserProxyAPI } from "@vessel/type"
 export const browserProxyAPI: BrowserProxyAPI = {
   browserProxySubscription: () => ipcRenderer.invoke("browser:proxy:subscription"),
   saveBrowserProxySubscription: url => ipcRenderer.invoke("browser:proxy:save", url),

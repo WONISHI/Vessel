@@ -63,6 +63,23 @@ console.log(result.changed, result.downloaded, result.conflicts, result.duration
 
 下载先写随机临时文件，校验内容、长度、远端 ETag，再检查本地状态，最后提交；新增文件使用原子 create-only，已有文件使用 rename。下载目录不能越出工作区或穿过符号链接。仍需调用方避免在提交的最后一个文件系统操作间隙并发改写同一路径（本地文件系统没有通用的 compare-and-swap）。
 
+## 同步排除规则与诊断日志
+
+```ts
+import { createSyncExcludeFilter, collectFiles, syncFiles } from "@vessel/sync"
+
+// 两种写法等价：{file:a,b,c},{folder:d}
+const excludePath = createSyncExcludeFilter("{file:a,b,c;folder:d}")
+const files = await collectFiles({ root, excludePath })
+await syncFiles({ ...options, files, excludePath, onLog: event => console.log(event) })
+```
+
+文件规则只匹配文件，文件夹规则排除整个目录及其内容。单个名称在任意层级匹配；含 `/` 的路径相对工作区根目录匹配；支持 `*` 和 `?`，例如 `{file:*.log;folder:images,img}`。文件名需包含扩展名。`parseSyncExcludeRules` 可单独校验语法，错误规则会抛出异常。
+
+扫描与同步须使用同一 `excludePath`，它同时过滤本地、远端和历史记录，排除项不会触发删除传播。扫描可通过 `onExcluded(path, kind)` 观察跳过的条目。`onLog` 接收开始、阶段、实际操作、完成和错误事件；回调异常不会中止同步。包不自动持久化日志，调用方负责保存与脱敏。
+
+Vessel 设置中的“同步排除规则”和“同步诊断日志”按工作区保存。启用日志并保存后开始记录，日志检查面板可查看、刷新和清空；本地最多保存 1000 条，界面显示最近 200 条。关闭日志停止新增记录，已有记录仍可查看。
+
 ## 性能
 
 - 使用完整分页 `ListObjectsV2`，每页最多 1000 对象。已有 SHA-256 基线且列表 ETag/大小未变化时直接比较，不逐文件 HEAD。

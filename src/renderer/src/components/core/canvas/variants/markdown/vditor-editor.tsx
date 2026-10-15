@@ -1,5 +1,5 @@
 import { toast } from "sonner"
-import { markdownHotkey } from "../../../../../../../shared/shortcuts"
+import { markdownHotkey } from "@vessel/utils"
 import { createPortal } from "react-dom"
 import { TextColors } from "./text-colors"
 import { bindTablePaste } from "./table-paste"
@@ -211,8 +211,16 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
                     source={source}
                     onChange={(updated) => {
                       if (readOnly) return
-                      const sourceCode = element.closest("[data-type=code-block]")?.querySelector("pre.vditor-ir__marker code")
+                      const block = element.closest<HTMLElement>("[data-type=code-block]")
+                      const sourceCode = block?.querySelector("pre.vditor-ir__marker code")
                       if (!sourceCode) return
+                      if (!updated.trim()) {
+                        block?.remove()
+                        const next = editor.getValue().replace(/\n?```vessel-obsidian-image\n[^\n]*\n```\n?/g, "")
+                        editor.setValue(next)
+                        changeHandler.current((properties?.raw ?? "") + restoreObsidianImages(next))
+                        return
+                      }
                       sourceCode.textContent = encodeURIComponent(updated) + "\n"
                       const next = editor.getValue()
                       editor.setValue(next)
@@ -382,23 +390,47 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
         aria-label="当前文件路径"
       >
         <BreadcrumbList className="text-xs">
-          {[workspacePath.split(/[\\/]/).filter(Boolean).pop() || "工作区", ...documentPath.slice(workspacePath.length).split(/[\\/]/).filter(Boolean)].map((part, index, parts) => (
-            <Fragment key={index}>
-              {index > 0 && <BreadcrumbSeparator />}
-              <BreadcrumbItem className="min-w-0">
-                {index === parts.length - 1 ? (
-                  <BreadcrumbPage
-                    className="truncate max-w-64"
-                    title={part}
-                  >
-                    {part}
-                  </BreadcrumbPage>
-                ) : (
-                  <span>{part}</span>
-                )}
-              </BreadcrumbItem>
-            </Fragment>
-          ))}
+          {(() => {
+            const normWorkspace = workspacePath.replace(/\\/g, "/")
+            const normDoc = documentPath.replace(/\\/g, "/")
+            const rootName = normWorkspace.split("/").filter(Boolean).pop() || "工作区"
+            const segments = [{ name: rootName, path: workspacePath }]
+            if (normWorkspace && normDoc.startsWith(normWorkspace)) {
+              const rel = normDoc.slice(normWorkspace.length).replace(/^\/+/, "")
+              let accumulated = normWorkspace
+              for (const part of rel.split("/").filter(Boolean)) {
+                accumulated += "/" + part
+                segments.push({ name: part, path: accumulated })
+              }
+            }
+            return segments.map((segment, index, parts) => {
+              const isLast = index === parts.length - 1
+              return (
+                <Fragment key={index}>
+                  {index > 0 && <BreadcrumbSeparator />}
+                  <BreadcrumbItem className="min-w-0">
+                    {isLast ? (
+                      <BreadcrumbPage
+                        className="cursor-pointer truncate max-w-64 hover:text-stone-900 transition-colors"
+                        title={`定位文件: ${segment.name}`}
+                        onClick={() => window.dispatchEvent(new CustomEvent("vessel:reveal-file", { detail: segment.path }))}
+                      >
+                        {segment.name}
+                      </BreadcrumbPage>
+                    ) : (
+                      <span
+                        className="cursor-pointer text-stone-500 hover:text-stone-800 transition-colors"
+                        title={`定位文件夹: ${segment.name}`}
+                        onClick={() => window.dispatchEvent(new CustomEvent("vessel:reveal-file", { detail: segment.path }))}
+                      >
+                        {segment.name}
+                      </span>
+                    )}
+                  </BreadcrumbItem>
+                </Fragment>
+              )
+            })
+          })()}
         </BreadcrumbList>
       </Breadcrumb>}
       <div
