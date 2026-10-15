@@ -1,5 +1,5 @@
 import { BrowserWindow, dialog, ipcMain } from "electron"
-import { readdir, realpath } from "fs/promises"
+import { readdir, realpath, stat } from "fs/promises"
 import { basename, extname, join, relative, isAbsolute } from "path"
 import { BaseModule } from "@main/modules/base/index"
 import { AppDatabase } from "@main/modules/welcome/database/index.database"
@@ -95,10 +95,32 @@ export class WelcomeModule extends BaseModule {
         if (childPath === ".." || childPath.startsWith("../") || childPath.startsWith("..\\") || isAbsolute(childPath)) throw new Error("目录不属于当前工作区")
         const entries = await readdir(directoryPath, { withFileTypes: true })
         const ignoredPatterns = parseIgnoredPatterns(generalSettings().ignoredFiles)
-        return entries
-          .filter((entry) => (entry.isDirectory() || entry.isFile()) && !isIgnoredEntry(entry.name, ignoredPatterns))
-          .map((entry) => ({ name: entry.name, path: join(directoryPath, entry.name), type: entry.isDirectory() ? "directory" : "file" }))
-          .sort((a, b) => Number(b.type === "directory") - Number(a.type === "directory") || a.name.localeCompare(b.name, "zh-CN", { numeric: true }))
+        const filtered = entries.filter((entry) => (entry.isDirectory() || entry.isFile()) && !isIgnoredEntry(entry.name, ignoredPatterns))
+        const nodes = await Promise.all(
+          filtered.map(async (entry) => {
+            const entryPath = join(directoryPath, entry.name)
+            try {
+              const s = await stat(entryPath)
+              const ctime = s.birthtimeMs > 0 ? s.birthtimeMs : s.ctimeMs
+              return {
+                name: entry.name,
+                path: entryPath,
+                type: entry.isDirectory() ? ("directory" as const) : ("file" as const),
+                ctime,
+                mtime: s.mtimeMs
+              }
+            } catch {
+              return {
+                name: entry.name,
+                path: entryPath,
+                type: entry.isDirectory() ? ("directory" as const) : ("file" as const),
+                ctime: 0,
+                mtime: 0
+              }
+            }
+          })
+        )
+        return nodes.sort((a, b) => Number(b.type === "directory") - Number(a.type === "directory") || (b.ctime ?? 0) - (a.ctime ?? 0) || a.name.localeCompare(b.name, "zh-CN", { numeric: true }))
       })
 
       /** 查询最近打开的工作区，默认返回 10 条。 */

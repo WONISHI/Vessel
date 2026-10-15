@@ -124,7 +124,7 @@ export interface VesselAPI extends BrowserProxyAPI, BrowserToolsAPI, SettingsAPI
   onBrowserNewTab: (callback: (url: string, opener?: number) => void) => () => void
   takePendingMarkdownFiles: () => Promise<string[]>
   onOpenMarkdown: (callback: (path: string) => void) => () => void
-  readWorkspaceDirectory: (root: string, directory: string) => Promise<Array<{ name: string; path: string; type: "file" | "directory" }>>
+  readWorkspaceDirectory: (root: string, directory: string) => Promise<Array<{ name: string; path: string; type: "file" | "directory"; ctime?: number; mtime?: number }>>
   openDirectory: () => Promise<WorkspaceData | null>
 
   getRecentWorkspaces: (limit?: number) => Promise<RecentWorkspace[]>

@@ -1,7 +1,9 @@
+// @vitest-environment jsdom
 import React from 'react'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, expect, it, vi } from 'vitest'
 import { FileActions } from '../../src/renderer/src/pages/workspace/components/layout-aside/layout-workspace-sidebar/file-actions'
+vi.mock('@vessel/react-router', () => ({ useRouter: () => ({ push: vi.fn() }) }))
 vi.mock('../../src/renderer/src/pages/workspace/hooks/useWorkspace', () => ({ useWorkspace: () => ({ workspace: {path:'/workspace'}, openFiles:[] }) }))
 afterEach(cleanup)
 it('keeps the file highlighted until its Radix context menu closes', () => {
@@ -14,3 +16,4 @@ it('keeps the file highlighted until its Radix context menu closes', () => {
   expect(screen.queryByRole('menu')).toBeNull()
   expect(row.parentElement?.className).not.toContain('!bg-[#f0efed]')
 })
+

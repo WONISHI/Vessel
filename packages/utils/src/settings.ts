@@ -21,7 +21,7 @@ export const defaultSettings: AppSettings = {
     direction: "bidirectional",
     concurrency: 8,
     conflictStrategy: "keep-both",
-    propagateDeletes: false,
+    propagateDeletes: true,
     deleteThresholdPercent: 20,
     maxFileSizeMB: 0,
     syncOnSave: false,

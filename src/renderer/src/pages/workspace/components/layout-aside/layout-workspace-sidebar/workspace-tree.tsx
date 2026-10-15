@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { useWorkspace } from "@/pages/workspace/hooks/useWorkspace"
 import type { WorkspaceNode } from "@/pages/workspace/types/workspace"
 import FileTreeItem from "@/pages/workspace/components/layout-aside/layout-workspace-sidebar/file-tree-item"
+import { sortWorkspaceNodes, type FileSortBy, type FileSortOrder } from "./utils"
 
 interface DirectoryState {
   nodes?: WorkspaceNode[]
@@ -22,7 +23,9 @@ export default function WorkspaceTree({
   revealPath,
   onRevealed,
   onCreate,
-  onSearchDirectory
+  onSearchDirectory,
+  sortBy = "auto",
+  sortOrder = "asc"
 }: {
   onCreate?: (parent: string, kind: "file" | "directory") => void
   onSearchDirectory?: (path: string) => void
@@ -32,6 +35,8 @@ export default function WorkspaceTree({
   onRevealed?: () => void
   draft?: EntryDraft | null
   onDraftFinish?: (created: boolean) => void
+  sortBy?: FileSortBy
+  sortOrder?: FileSortOrder
 }) {
   const { workspace, openFiles, activeFilePath, openWorkspaceFile, renameWorkspaceTab, expandedFolders, setDirectoryExpanded } = useWorkspace()
   const [selection, setSelection] = useState<string[]>([])
@@ -118,7 +123,8 @@ export default function WorkspaceTree({
   /** 仅展开已打开目录，将已加载节点转换成虚拟列表所需的可见行。 */
   const appendVisibleTreeRows = (nodes: WorkspaceNode[], depth = 0, parent = workspace.path) => {
     if (draft?.parent === parent) rows.push({ id: "__draft__", item: { name: "", path: "__draft__" }, depth })
-    nodes.forEach((node) => {
+    const sorted = sortWorkspaceNodes(nodes, sortBy, sortOrder)
+    sorted.forEach((node) => {
       const folder = node.type === "directory"
       const expanded = folder && expandedFolders.includes(node.path)
       rows.push({ id: node.path, item: node, depth, expanded: folder ? expanded : undefined })
@@ -176,7 +182,12 @@ export default function WorkspaceTree({
         node.path === "__draft__" && draft ? (
           <InlineEntryEditor
             draft={draft}
-            onFinish={onDraftFinish ?? (() => {})}
+            onFinish={(created) => {
+              if (created && draft) {
+                void loadDirectoryChildren(draft.parent)
+              }
+              onDraftFinish?.(created)
+            }}
           />
         ) : (
           <div draggable={renamingPath !== node.path} onDragStart={event => {

@@ -123,7 +123,7 @@ interface VesselAPI extends BrowserProxyAPI, BrowserToolsAPI, SettingsAPI, Brows
   onBrowserNewTab: (callback: (url: string, opener?: number) => void) => () => void
   takePendingMarkdownFiles: () => Promise<string[]>
   onOpenMarkdown: (callback: (path: string) => void) => () => void
-  readWorkspaceDirectory: (root: string, directory: string) => Promise<Array<{ name: string; path: string; type: "file" | "directory" }>>
+  readWorkspaceDirectory: (root: string, directory: string) => Promise<Array<{ name: string; path: string; type: "file" | "directory"; ctime?: number; mtime?: number }>>
   /** 选择文件夹并记录工作区打开信息。 */
   openDirectory: () => Promise<WorkspaceData | null>
 

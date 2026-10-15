@@ -43,7 +43,8 @@ it("isolates workspace credentials, blocks resources, and only uploads the selec
     registerSettings({ ipc: { handle: (name: string, callback: (...args: unknown[]) => Promise<unknown>) => handlers.set(name, callback) } } as never)
     await call("workspace", notes)
     expect((await call("get")).backup.syncExcludeRules).toBe("{folder:.vessel,node-modules,.git,.obsidian}")
-    const settings = { ...defaultSettings, name: "Test User", backup: { ...defaultSettings.backup, workspacePath: notes, enabled: true, endpoint: "https://storage.example.com", bucket: "notes", accessKey: "AKID" } }
+    expect(defaultSettings.backup.propagateDeletes).toBe(true)
+    const settings = { ...defaultSettings, name: "Test User", backup: { ...defaultSettings.backup, workspacePath: notes, enabled: true, propagateDeletes: false, endpoint: "https://storage.example.com", bucket: "notes", accessKey: "AKID" } }
     const saved = await call("save", settings, mocks.secret)
     expect(saved.monitorNavigation).toBe(false)
     const general = await call("save", { ...settings, monitorNavigation: true })

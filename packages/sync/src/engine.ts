@@ -378,7 +378,7 @@ async function run(options: SyncOptions, prefix: string, indexPath: string, conc
         task.reason = "本地已删除，远端未变化"
       } else if (direction !== "push") {
         task.action = "download"
-        task.reason = "远端新增或保留远端修改"
+        task.reason = old && remote.digest === old.digest && !options.propagateDeletes ? "同步删除已关闭，恢复本地已删除的文件" : old ? "本地已删除但远端有修改，保留远端修改" : "远端新增文件"
       } else {
         task.action = "skip"
         task.reason = "上传模式保留仅远端文件"

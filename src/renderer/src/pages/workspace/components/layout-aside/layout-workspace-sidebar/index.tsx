@@ -2,7 +2,8 @@ import { CreateEntry, type EntryDraft } from "./create-entry"
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
 import { useState, useEffect, useCallback } from "react"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Wrench, LocateFixed, Search } from "lucide-react"
+import { Wrench, LocateFixed, Search, ArrowUpDown, Clock, ArrowDownAZ, Calendar, ArrowDown, ArrowUp, Check, Sparkles } from "lucide-react"
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
 import { useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { useSidebar } from "@/components/ui/sidebar"
@@ -13,15 +14,36 @@ import { countFileNodes } from "@vessel/utils"
 import { SearchPanel } from "@/pages/search"
 import { revealSearchHit, type ContentMatch } from "@/pages/search/reveal-hit"
 import type { WorkspaceNode } from "@/pages/workspace/types/workspace"
+import { cn } from "@/lib/utils"
+import type { FileSortBy, FileSortOrder } from "./utils"
 
 /** 根据活动显示工作区文件树、本次打开列表或开发工具。 */
 export default function LayoutWorkspaceSidebar({ activity }: LayoutWorkspaceSidebarProps) {
   const [revealPath, setRevealPath] = useState("")
-  const [revision, setRevision] = useState(0)
   const [addedFiles, setAddedFiles] = useState(0)
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchTarget, setSearchTarget] = useState("")
   const [searchHit, setSearchHit] = useState<ContentMatch | null>(null)
+  const [sortBy, setSortBy] = useState<FileSortBy>(() => {
+    return (localStorage.getItem("vessel:file-sort-by") as FileSortBy) || "auto"
+  })
+  const [sortOrder, setSortOrder] = useState<FileSortOrder>(() => {
+    return (localStorage.getItem("vessel:file-sort-order") as FileSortOrder) || "asc"
+  })
+
+  const handleSortChange = (newSortBy: FileSortBy) => {
+    setSortBy(newSortBy)
+    localStorage.setItem("vessel:file-sort-by", newSortBy)
+    const newOrder = newSortBy === "name" || newSortBy === "auto" ? "asc" : "desc"
+    setSortOrder(newOrder)
+    localStorage.setItem("vessel:file-sort-order", newOrder)
+  }
+
+  const handleOrderChange = (newOrder: FileSortOrder) => {
+    setSortOrder(newOrder)
+    localStorage.setItem("vessel:file-sort-order", newOrder)
+  }
+
   const { workspace, activeFilePath, expandDirectory, openWorkspaceFile } = useWorkspace()
   const [draft, setDraft] = useState<EntryDraft | null>(null)
   const startEntry = (kind: EntryDraft["kind"], extension: string) => {
@@ -36,7 +58,6 @@ export default function LayoutWorkspaceSidebar({ activity }: LayoutWorkspaceSide
       directory = directory.slice(0, split)
     }
     setDraft({ parent, kind, extension })
-    setRevision((value) => value + 1)
   }
   const { open: sidebarOpen, setOpen: setSidebarOpen } = useSidebar()
   const revealCurrentFile = useCallback((targetPath?: string) => {
@@ -52,7 +73,6 @@ export default function LayoutWorkspaceSidebar({ activity }: LayoutWorkspaceSide
     }
     setDraft(null)
     setRevealPath(path)
-    setRevision((value) => value + 1)
   }, [activeFilePath, workspace.path, expandDirectory, sidebarOpen, setSidebarOpen])
 
   useEffect(() => {
@@ -112,6 +132,107 @@ export default function LayoutWorkspaceSidebar({ activity }: LayoutWorkspaceSide
         </Tooltip>
         {activity === "files" && (
           <div className="flex shrink-0 items-center">
+            <DropdownMenu>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label="排序方式"
+                      className="size-6 text-stone-500 hover:bg-green-600 hover:text-white"
+                    >
+                      <ArrowUpDown className="!size-3.5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">排序方式</TooltipContent>
+              </Tooltip>
+              <DropdownMenuContent
+                align="start"
+                className="w-44 rounded-lg !bg-white p-1 text-xs shadow-md [&_[role=menuitem]:focus]:!bg-green-600 [&_[role=menuitem]:focus]:!text-white [&_[role=menuitem][data-highlighted]]:!bg-green-600 [&_[role=menuitem][data-highlighted]]:!text-white [&_[role=menuitem]:focus_svg]:!text-white [&_[role=menuitem][data-highlighted]_svg]:!text-white"
+              >
+                <DropdownMenuItem
+                  className={cn(
+                    "group/item flex items-center justify-between py-1.5 text-xs cursor-pointer focus:!bg-green-600 focus:!text-white data-[highlighted]:!bg-green-600 data-[highlighted]:!text-white",
+                    sortBy === "auto" && "font-medium text-green-700 bg-green-50/60"
+                  )}
+                  onClick={() => handleSortChange("auto")}
+                >
+                  <span className="flex items-center gap-2">
+                    <Sparkles className="size-3.5 group-focus/item:!text-white group-data-[highlighted]/item:!text-white" />
+                    自动排序
+                  </span>
+                  {sortBy === "auto" && <Check className="size-3.5 text-green-600 group-focus/item:!text-white group-data-[highlighted]/item:!text-white" />}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className={cn(
+                    "group/item flex items-center justify-between py-1.5 text-xs cursor-pointer focus:!bg-green-600 focus:!text-white data-[highlighted]:!bg-green-600 data-[highlighted]:!text-white",
+                    sortBy === "ctime" && "font-medium text-green-700 bg-green-50/60"
+                  )}
+                  onClick={() => handleSortChange("ctime")}
+                >
+                  <span className="flex items-center gap-2">
+                    <Clock className="size-3.5 group-focus/item:!text-white group-data-[highlighted]/item:!text-white" />
+                    按创建时间排序
+                  </span>
+                  {sortBy === "ctime" && <Check className="size-3.5 text-green-600 group-focus/item:!text-white group-data-[highlighted]/item:!text-white" />}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className={cn(
+                    "group/item flex items-center justify-between py-1.5 text-xs cursor-pointer focus:!bg-green-600 focus:!text-white data-[highlighted]:!bg-green-600 data-[highlighted]:!text-white",
+                    sortBy === "name" && "font-medium text-green-700 bg-green-50/60"
+                  )}
+                  onClick={() => handleSortChange("name")}
+                >
+                  <span className="flex items-center gap-2">
+                    <ArrowDownAZ className="size-3.5 group-focus/item:!text-white group-data-[highlighted]/item:!text-white" />
+                    按名字排序
+                  </span>
+                  {sortBy === "name" && <Check className="size-3.5 text-green-600 group-focus/item:!text-white group-data-[highlighted]/item:!text-white" />}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className={cn(
+                    "group/item flex items-center justify-between py-1.5 text-xs cursor-pointer focus:!bg-green-600 focus:!text-white data-[highlighted]:!bg-green-600 data-[highlighted]:!text-white",
+                    sortBy === "mtime" && "font-medium text-green-700 bg-green-50/60"
+                  )}
+                  onClick={() => handleSortChange("mtime")}
+                >
+                  <span className="flex items-center gap-2">
+                    <Calendar className="size-3.5 group-focus/item:!text-white group-data-[highlighted]/item:!text-white" />
+                    按修改时间排序
+                  </span>
+                  {sortBy === "mtime" && <Check className="size-3.5 text-green-600 group-focus/item:!text-white group-data-[highlighted]/item:!text-white" />}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className={cn(
+                    "group/item flex items-center justify-between py-1.5 text-xs whitespace-nowrap cursor-pointer focus:!bg-green-600 focus:!text-white data-[highlighted]:!bg-green-600 data-[highlighted]:!text-white",
+                    sortOrder === "desc" && "font-medium text-green-700 bg-green-50/60"
+                  )}
+                  onClick={() => handleOrderChange("desc")}
+                >
+                  <span className="flex items-center gap-2">
+                    <ArrowDown className="size-3.5 group-focus/item:!text-white group-data-[highlighted]/item:!text-white" />
+                    降序（{sortBy === "auto" ? "从大到小" : sortBy === "name" ? "Z 到 A" : "从新到旧"}）
+                  </span>
+                  {sortOrder === "desc" && <Check className="size-3.5 text-green-600 group-focus/item:!text-white group-data-[highlighted]/item:!text-white" />}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className={cn(
+                    "group/item flex items-center justify-between py-1.5 text-xs whitespace-nowrap cursor-pointer focus:!bg-green-600 focus:!text-white data-[highlighted]:!bg-green-600 data-[highlighted]:!text-white",
+                    sortOrder === "asc" && "font-medium text-green-700 bg-green-50/60"
+                  )}
+                  onClick={() => handleOrderChange("asc")}
+                >
+                  <span className="flex items-center gap-2">
+                    <ArrowUp className="size-3.5 group-focus/item:!text-white group-data-[highlighted]/item:!text-white" />
+                    升序（{sortBy === "auto" ? "从小到大" : sortBy === "name" ? "A 到 Z" : "从旧到新"}）
+                  </span>
+                  {sortOrder === "asc" && <Check className="size-3.5 text-green-600 group-focus/item:!text-white group-data-[highlighted]/item:!text-white" />}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Tooltip>
               <TooltipTrigger asChild>
                 <span>
@@ -165,7 +286,7 @@ export default function LayoutWorkspaceSidebar({ activity }: LayoutWorkspaceSide
       >
         {activity !== "tools" ? (
           <WorkspaceTree
-            key={`${workspace.path}-${activity}-${revision}`}
+            key={`${workspace.path}-${activity}`}
             draft={draft}
             onCreate={(parent, kind) => setDraft({parent, kind, extension: ""})}
             onSearchDirectory={(path) => {
@@ -176,11 +297,20 @@ export default function LayoutWorkspaceSidebar({ activity }: LayoutWorkspaceSide
             onRevealed={() => setRevealPath("")}
             onDraftFinish={(created) => {
               if (created && draft?.kind === "file") setAddedFiles((value) => value + 1)
+              const savedScroll = viewport?.scrollTop
               setDraft(null)
-              setRevision((value) => value + 1)
+              if (savedScroll !== undefined && viewport) {
+                requestAnimationFrame(() => {
+                  if (viewport && viewport.scrollTop !== savedScroll) {
+                    viewport.scrollTop = savedScroll
+                  }
+                })
+              }
             }}
             viewport={viewport}
             recent={false}
+            sortBy={sortBy}
+            sortOrder={sortOrder}
           />
         ) : (
           <div className="space-y-1">

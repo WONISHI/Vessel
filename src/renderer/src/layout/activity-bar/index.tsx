@@ -1,7 +1,9 @@
+import { ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem } from "@/components/ui/context-menu"
+import { toast } from "sonner"
 import { TransitButton } from "@/components/transit/button"
 import { useRouter } from "@vessel/react-router"
 import { useLocation } from "react-router-dom"
-import { Fragment, useEffect, useState, useRef } from "react"
+import { useEffect, useState, useRef } from "react"
 import { selectLastPinned } from "@/pages/resources/library-state"
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
 import { Sun, Settings, Ellipsis, GitBranch, Send, Wrench, RefreshCcw } from "lucide-react"
@@ -31,13 +33,32 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
   const expanded = isMobile ? openMobile : open
   const [globalSearchEnabled, setGlobalSearchEnabled] = useState(false)
   const [syncRunning, setSyncRunning] = useState(false)
+  const [syncEnabled, setSyncEnabled] = useState(false)
+  const syncPending = useRef(false)
+  const syncWorkspace = async () => {
+    if (syncPending.current) return
+    syncPending.current = true
+    setSyncRunning(true)
+    window.dispatchEvent(new Event("vessel:sync-status"))
+    try {
+      const result = await window.electronAPI.runBackup()
+      if (result.error) toast.error(result.error)
+      else toast.success("工作区同步完成")
+    } catch (error) { toast.error(String(error)) }
+    finally {
+      syncPending.current = false
+      setSyncRunning(false)
+      window.dispatchEvent(new Event("vessel:sync-status"))
+    }
+  }
   useEffect(() => {
     let cancelled = false
     const checkSync = () => {
       void Promise.all([window.electronAPI.getSettings(), window.electronAPI.getBackupStatus()])
         .then(([settings, status]) => {
           if (!cancelled) {
-            setSyncRunning(Boolean(settings?.backup?.enabled && status?.running))
+            setSyncEnabled(Boolean(settings?.backup?.enabled && settings.backup.workspacePath))
+            setSyncRunning(syncPending.current || Boolean(settings?.backup?.enabled && status?.running))
           }
         })
         .catch(() => {})
@@ -103,9 +124,10 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
           </TooltipContent>
         </Tooltip>
         {visibleItems.map(({ id, label, icon: Icon }) => (
-          <Fragment key={id}>
+          <ContextMenu key={id}>
             <Tooltip>
               <TooltipTrigger asChild>
+                <ContextMenuTrigger asChild disabled={id !== "files"}>
                 <Button
                   variant="ghost"
                   size="icon"
@@ -130,18 +152,19 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
                   {id === "files" && syncRunning && (
                     <span
                       title="正在同步工作区…"
-                      className="absolute bottom-0.5 right-0.5 flex size-3 origin-center scale-[0.7] items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-stone-200/90 dark:bg-stone-900 dark:ring-stone-700"
+                      className="pointer-events-none absolute bottom-1 right-1 flex size-3.5 aspect-square shrink-0 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-black/5 dark:bg-stone-900 dark:ring-stone-700"
                     >
                       <RefreshCcw
                         strokeWidth={2.5}
                         className={cn(
-                          "size-2 animate-spin",
+                          "!size-2.5 animate-spin",
                           activity === id ? "text-[#16a34a]" : "text-[#a8a29e]"
                         )}
                       />
                     </span>
                   )}
                 </Button>
+                </ContextMenuTrigger>
               </TooltipTrigger>
               <TooltipContent
                 side="right"
@@ -151,7 +174,8 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
                 {label}
               </TooltipContent>
             </Tooltip>
-          </Fragment>
+            {id === "files" && <ContextMenuContent><ContextMenuItem disabled={!syncEnabled || syncRunning} onSelect={() => { void syncWorkspace() }}><RefreshCcw className={syncRunning ? "animate-spin" : ""} />{syncRunning ? "正在同步…" : "同步"}</ContextMenuItem></ContextMenuContent>}
+          </ContextMenu>
         ))}
 
         <TransitButton />

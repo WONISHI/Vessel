@@ -8,4 +8,8 @@ export interface FileTreeNode {
   type?: "file" | "directory"
   /** 已加载子节点；undefined 不代表目录为空。 */
   children?: FileTreeNode[]
+  /** 创建时间戳（毫秒）。 */
+  ctime?: number
+  /** 修改时间戳（毫秒）。 */
+  mtime?: number
 }
