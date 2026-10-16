@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react"
-import { CloudUpload, CircleCheck, AlertCircle } from "lucide-react"
-import { toast } from "sonner"
 import type { BackupStatus as State } from "@vessel/type"
+import { AlertCircle, CircleCheck, CloudUpload } from "lucide-react"
+import { useEffect, useState } from "react"
+import { toast } from "sonner"
 
+/** Formats sync time. */
 function formatSyncTime(timeStr: string): string {
   const date = new Date(timeStr)
   if (isNaN(date.getTime())) return timeStr
@@ -14,6 +15,7 @@ function formatSyncTime(timeStr: string): string {
   return `${year}年${month}月${day}日 ${hours}:${minutes}`
 }
 
+/** Renders the backup status component. */
 export function BackupStatus({ workspace, file }: { workspace: string; file?: string | null }) {
   const [enabled, setEnabled] = useState(false)
   const [status, setStatus] = useState<State>({ running: false })
@@ -26,6 +28,8 @@ export function BackupStatus({ workspace, file }: { workspace: string; file?: st
 
   useEffect(() => {
     let active = true
+
+    /** Refreshes the current state. */
     const update = () => {
       void Promise.all([window.electronAPI.getSettings(), window.electronAPI.getBackupStatus()])
         .then(([settings, value]) => {
@@ -36,6 +40,8 @@ export function BackupStatus({ workspace, file }: { workspace: string; file?: st
         })
         .catch(() => {})
     }
+
+    /** Handles sync status events. */
     const onSyncStatus = (event: Event) => {
       const customEvent = event as CustomEvent<State>
       if (active && customEvent.detail) setStatus(customEvent.detail)
@@ -60,43 +66,30 @@ export function BackupStatus({ workspace, file }: { workspace: string; file?: st
   const syncLabel = elapsed < 60_000 ? "已同步" : `上次同步 ${formatSyncTime(status.time!)}`
 
   const label = status.running
-    ? (status.progress?.phase === "remote"
+    ? status.progress?.phase === "remote"
       ? "读取远端"
       : status.progress?.phase === "hashing"
-      ? "检查本地"
-      : status.progress?.phase === "planning"
-      ? "比较文件"
-      : status.progress
-      ? `同步 ${status.progress.completed}/${status.progress.total}`
-      : "扫描文件")
+        ? "检查本地"
+        : status.progress?.phase === "planning"
+          ? "比较文件"
+          : status.progress
+            ? `同步 ${status.progress.completed}/${status.progress.total}`
+            : "扫描文件"
     : status.error
-    ? "同步失败"
-    : status.conflicts?.length
-    ? "已备份（有冲突副本）"
-    : status.time
-    ? syncLabel
-    : "未同步"
+      ? "同步失败"
+      : status.conflicts?.length
+        ? "已备份（有冲突副本）"
+        : status.time
+          ? syncLabel
+          : "未同步"
 
   const Icon = status.error ? AlertCircle : status.time && !status.running ? CircleCheck : CloudUpload
 
   return (
     <button
-      title={
-        status.error ||
-        (status.time
-          ? `上次同步：${new Date(status.time).toLocaleString()}；点击同步当前文件`
-          : "点击同步当前文件")
-      }
+      title={status.error || (status.time ? `上次同步：${new Date(status.time).toLocaleString()}；点击同步当前文件` : "点击同步当前文件")}
       disabled={status.running || !file}
-      className={`flex h-6 items-center gap-1 rounded px-2 hover:bg-stone-200 ${
-        status.running
-          ? "text-blue-600"
-          : status.error
-          ? "text-red-600"
-          : status.time
-          ? "text-green-700"
-          : "text-stone-500"
-      }`}
+      className={`flex h-6 items-center gap-1 rounded px-2 hover:bg-stone-200 ${status.running ? "text-blue-600" : status.error ? "text-red-600" : status.time ? "text-green-700" : "text-stone-500"}`}
       onClick={() => {
         setStatus((current) => ({ ...current, running: true }))
         void window.electronAPI

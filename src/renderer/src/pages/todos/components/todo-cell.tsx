@@ -2,13 +2,14 @@ import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 import { Pencil, Trash2 } from "lucide-react"
 
-import { PersonCell } from "./person-cell"
-import { ProgressCell } from "./progress-cell"
-import { StatusCell } from "./status-cell"
-import { TagCell } from "./tag-cell"
-import { TimeCell } from "./time-cell"
-import { greenInput, type ColumnDef, type TableRowData } from "./todo-table-model"
+import { PersonCell } from "@/pages/todos/components/person-cell"
+import { ProgressCell } from "@/pages/todos/components/progress-cell"
+import { StatusCell } from "@/pages/todos/components/status-cell"
+import { TagCell } from "@/pages/todos/components/tag-cell"
+import { TimeCell } from "@/pages/todos/components/time-cell"
+import { greenInput, type ColumnDef, type TableRowData } from "@/pages/todos/components/todo-table-model"
 
+/** Renders the todo cell component. */
 export function TodoCell({
   col,
   row,

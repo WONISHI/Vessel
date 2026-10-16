@@ -1,52 +1,75 @@
-const { app, BrowserWindow } = require('electron')
-const fs = require('node:fs')
-const path = require('node:path')
-const Module = require('node:module')
-const ts = require('typescript')
+const { app, BrowserWindow } = require("electron")
+const fs = require("node:fs")
+const path = require("node:path")
+const Module = require("node:module")
+const ts = require("typescript")
 app.setAppPath(process.cwd())
-app.whenReady().then(async () => {
- const mod = new Module(path.resolve('out/main/office-smoke.cjs'), module)
- mod.filename = path.resolve('out/main/office-smoke.cjs'); mod.paths = module.paths
- mod._compile(ts.transpile(fs.readFileSync('src/main/office.ts','utf8'), { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 }), mod.filename)
- let open
- mod.exports.registerOffice({ ipc: { handle: (name, callback) => { if (name === "office:open") open = callback } } })
- const url = await open()
- const win = new BrowserWindow({ show: false })
- await win.loadURL(url)
- win.webContents.on('console-message', (_e, level, message) => { if(level >= 2) console.log(message.slice(0,500)) })
- win.webContents.session.webRequest.onBeforeRequest((details, callback) => {
-   if (/^https?:/.test(details.url) && !details.url.startsWith('http://127.0.0.1:')) { console.log('BLOCKED REMOTE:', details.url); callback({cancel:true}) } else callback({})
- })
- await new Promise(r => setTimeout(r,1000))
- await win.webContents.executeJavaScript(`document.querySelector('[aria-label="新建 Office 文档"]').click()`)
- await new Promise(r => setTimeout(r,200))
- await win.webContents.executeJavaScript("Array.from(document.querySelectorAll('button')).find(b => b.textContent==='新建 Word 文档').click()")
- await new Promise(r => setTimeout(r,12000))
- for (const label of ['新建 Excel 表格', '新建 PPT 演示文稿']) {
-   await win.webContents.executeJavaScript(`document.querySelector('[aria-label="新建 Office 文档"]').click()`)
-   await new Promise(r => setTimeout(r,150))
-   await win.webContents.executeJavaScript(`Array.from(document.querySelectorAll('button')).find(b => b.textContent===${JSON.stringify(label)}).click()`)
-   await new Promise(r => setTimeout(r,8000))
- }
- const state = await win.webContents.executeJavaScript(`Array.from(document.querySelectorAll('iframe')).map(f => { const inner = f.contentDocument?.querySelector('iframe'); return { name:f.title, text:inner?.contentDocument?.body?.innerText.slice(-500), canvas:inner?.contentDocument?.querySelectorAll('canvas').length, api:!!inner?.contentWindow?.Asc?.editor?.asc_DownloadAs } })`)
- console.log('Office editors:', state)
- const loading = await win.webContents.executeJavaScript(`Array.from(document.querySelectorAll('iframe')).some(f => f.contentDocument?.querySelector('.editor-loading-office'))`)
- if (loading) throw new Error('Office loading did not dismiss on ready')
- if (state.length !== 3 || state.some(s => !s.canvas)) throw new Error('One or more editors did not render')
- await win.webContents.executeJavaScript(`window.addEventListener('message', event => { if (event.data?.type === 'office:save' && event.source === window && event.ports[0]) { window.savedOffice = { name: event.data.name, bytes: Array.from(event.data.bytes) }; event.ports[0].postMessage({result:{saved:true,name:event.data.name,token:'smoke'}}) } })`)
- await win.webContents.executeJavaScript("Array.from(document.querySelectorAll('button')).find(b => b.textContent==='保存').click()")
- await new Promise(r => setTimeout(r,10000))
- const saved = await win.webContents.executeJavaScript('window.savedOffice')
- if (!saved || saved.bytes[0] !== 80 || saved.bytes[1] !== 75) throw new Error('Office export did not produce OOXML ZIP bytes')
- fs.writeFileSync('/tmp/vessel-office-export.pptx', Buffer.from(saved.bytes))
- console.log('Office export produced', saved.name, saved.bytes.length, 'bytes')
- fs.writeFileSync('/tmp/vessel-office.png',(await win.webContents.capturePage()).toPNG())
- const preview = new BrowserWindow({ show: false })
- await preview.loadURL(url + '?editor=1&preview=1')
- await preview.webContents.executeJavaScript(`window.postMessage({type:'office:init',doc:{id:'preview',name:'preview.pptx',file:new File([new Uint8Array(${JSON.stringify(saved.bytes)})],'preview.pptx')}},location.origin)`)
- await new Promise(r => setTimeout(r,8000))
- const previewCanvas = await preview.webContents.executeJavaScript(`document.querySelector('iframe')?.contentDocument?.querySelectorAll('canvas').length`)
- if (!previewCanvas) throw new Error('Standalone Office preview did not load')
- console.log('Office file preview rendered', previewCanvas, 'canvases')
- app.exit(0)
-}).catch(e => { console.error(e); app.exit(1) })
+app
+  .whenReady()
+  .then(async () => {
+    const mod = new Module(path.resolve("out/main/office-smoke.cjs"), module)
+    mod.filename = path.resolve("out/main/office-smoke.cjs")
+    mod.paths = module.paths
+    mod._compile(ts.transpile(fs.readFileSync("src/main/office/office.ts", "utf8"), { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 }), mod.filename)
+    let open
+    mod.exports.registerOffice({
+      ipc: {
+        /** Handles handle events. */
+        handle: (name, callback) => {
+          if (name === "office:open") open = callback
+        }
+      }
+    })
+    const url = await open()
+    const win = new BrowserWindow({ show: false })
+    await win.loadURL(url)
+    win.webContents.on("console-message", (_e, level, message) => {
+      if (level >= 2) console.log(message.slice(0, 500))
+    })
+    win.webContents.session.webRequest.onBeforeRequest((details, callback) => {
+      if (/^https?:/.test(details.url) && !details.url.startsWith("http://127.0.0.1:")) {
+        console.log("BLOCKED REMOTE:", details.url)
+        callback({ cancel: true })
+      } else callback({})
+    })
+    await new Promise((r) => setTimeout(r, 1000))
+    await win.webContents.executeJavaScript(`document.querySelector('[aria-label="新建 Office 文档"]').click()`)
+    await new Promise((r) => setTimeout(r, 200))
+    await win.webContents.executeJavaScript("Array.from(document.querySelectorAll('button')).find(b => b.textContent==='新建 Word 文档').click()")
+    await new Promise((r) => setTimeout(r, 12000))
+    for (const label of ["新建 Excel 表格", "新建 PPT 演示文稿"]) {
+      await win.webContents.executeJavaScript(`document.querySelector('[aria-label="新建 Office 文档"]').click()`)
+      await new Promise((r) => setTimeout(r, 150))
+      await win.webContents.executeJavaScript(`Array.from(document.querySelectorAll('button')).find(b => b.textContent===${JSON.stringify(label)}).click()`)
+      await new Promise((r) => setTimeout(r, 8000))
+    }
+    const state = await win.webContents.executeJavaScript(
+      `Array.from(document.querySelectorAll('iframe')).map(f => { const inner = f.contentDocument?.querySelector('iframe'); return { name:f.title, text:inner?.contentDocument?.body?.innerText.slice(-500), canvas:inner?.contentDocument?.querySelectorAll('canvas').length, api:!!inner?.contentWindow?.Asc?.editor?.asc_DownloadAs } })`
+    )
+    console.log("Office editors:", state)
+    const loading = await win.webContents.executeJavaScript(`Array.from(document.querySelectorAll('iframe')).some(f => f.contentDocument?.querySelector('.editor-loading-office'))`)
+    if (loading) throw new Error("Office loading did not dismiss on ready")
+    if (state.length !== 3 || state.some((s) => !s.canvas)) throw new Error("One or more editors did not render")
+    await win.webContents.executeJavaScript(
+      `window.addEventListener('message', event => { if (event.data?.type === 'office:save' && event.source === window && event.ports[0]) { window.savedOffice = { name: event.data.name, bytes: Array.from(event.data.bytes) }; event.ports[0].postMessage({result:{saved:true,name:event.data.name,token:'smoke'}}) } })`
+    )
+    await win.webContents.executeJavaScript("Array.from(document.querySelectorAll('button')).find(b => b.textContent==='保存').click()")
+    await new Promise((r) => setTimeout(r, 10000))
+    const saved = await win.webContents.executeJavaScript("window.savedOffice")
+    if (!saved || saved.bytes[0] !== 80 || saved.bytes[1] !== 75) throw new Error("Office export did not produce OOXML ZIP bytes")
+    fs.writeFileSync("/tmp/vessel-office-export.pptx", Buffer.from(saved.bytes))
+    console.log("Office export produced", saved.name, saved.bytes.length, "bytes")
+    fs.writeFileSync("/tmp/vessel-office.png", (await win.webContents.capturePage()).toPNG())
+    const preview = new BrowserWindow({ show: false })
+    await preview.loadURL(url + "?editor=1&preview=1")
+    await preview.webContents.executeJavaScript(`window.postMessage({type:'office:init',doc:{id:'preview',name:'preview.pptx',file:new File([new Uint8Array(${JSON.stringify(saved.bytes)})],'preview.pptx')}},location.origin)`)
+    await new Promise((r) => setTimeout(r, 8000))
+    const previewCanvas = await preview.webContents.executeJavaScript(`document.querySelector('iframe')?.contentDocument?.querySelectorAll('canvas').length`)
+    if (!previewCanvas) throw new Error("Standalone Office preview did not load")
+    console.log("Office file preview rendered", previewCanvas, "canvases")
+    app.exit(0)
+  })
+  .catch((e) => {
+    console.error(e)
+    app.exit(1)
+  })

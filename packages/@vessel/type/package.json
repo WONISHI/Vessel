@@ -1,0 +1,31 @@
+{
+  "name": "@vessel/type",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./*": "./src/*.ts"
+  },
+  "types": "./src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "imports": {
+    "#vessel-type/browser-extensions": "./src/browser-extensions.ts",
+    "#vessel-type/browser-proxy": "./src/browser-proxy.ts",
+    "#vessel-type/browser-tools": "./src/browser-tools.ts",
+    "#vessel-type/code-diagnostics": "./src/code-diagnostics.ts",
+    "#vessel-type/content-search": "./src/content-search.ts",
+    "#vessel-type/file-watch": "./src/file-watch.ts",
+    "#vessel-type/image-file": "./src/image-file.ts",
+    "#vessel-type/settings": "./src/settings.ts",
+    "#vessel-type/shortcuts": "./src/shortcuts.ts",
+    "#vessel-type/terminal": "./src/terminal.ts",
+    "#vessel-type/todos": "./src/todos.ts",
+    "#vessel-type/transit": "./src/transit.ts",
+    "#vessel-type/image": "./src/image.ts",
+    "#vessel-type/file-tree": "./src/file-tree.ts",
+    "#vessel-type/image-annotation": "./src/image-annotation.ts"
+  }
+}

@@ -1,44 +1,6 @@
-import { type ApiClientStore } from "./store"
-
-export interface ApiSendOptions {
-  method: string
-  url: string
-  headers?: { key: string; value: string; enabled: boolean }[]
-  params?: { key: string; value: string; enabled: boolean }[]
-  bodyType?: "none" | "form-data" | "x-www-form-urlencoded" | "raw" | "binary"
-  bodyContent?: string
-  rawType?: "json" | "text" | "html" | "xml" | "javascript"
-  authType?: "none" | "bearer" | "basic" | "apiKey"
-  authConfig?: {
-    token?: string
-    username?: string
-    password?: string
-    apiKeyName?: string
-    apiKeyValue?: string
-    apiKeyLocation?: "header" | "query"
-  }
-  tests?: string
-  timeoutMs?: number
-  envVariables?: Record<string, string>
-}
-
-export interface ApiTestResult {
-  name: string
-  passed: boolean
-  error?: string
-}
-
-export interface ApiResponseData {
-  status: number
-  statusText: string
-  headers: Record<string, string>
-  cookies: string[]
-  durationMs: number
-  sizeBytes: number
-  body: string
-  contentType: string
-  testResults: ApiTestResult[]
-}
+import { type ApiClientStore } from "@main/modules/api-client/store"
+import type { ApiResponseData, ApiSendOptions, ApiTestResult } from "@vessel/type/api-client"
+export type { ApiResponseData, ApiSendOptions, ApiTestResult } from "@vessel/type/api-client"
 
 /** 替换字符串中的 {{variable}} 为对应的值 */
 export function interpolateVariables(template: string, vars: Record<string, string>): string {
@@ -49,8 +11,10 @@ export function interpolateVariables(template: string, vars: Record<string, stri
 }
 
 export class ApiClientService {
+  /** Initializes the instance and its required dependencies. */
   constructor(private store: ApiClientStore) {}
 
+  /** Sends request. */
   async sendRequest(options: ApiSendOptions): Promise<ApiResponseData> {
     const vars = options.envVariables || {}
     let rawUrl = interpolateVariables(options.url.trim(), vars)
@@ -64,10 +28,7 @@ export class ApiClientService {
     if (options.params && options.params.length > 0) {
       for (const p of options.params) {
         if (p.enabled && p.key) {
-          urlObj.searchParams.append(
-            interpolateVariables(p.key, vars),
-            interpolateVariables(p.value, vars)
-          )
+          urlObj.searchParams.append(interpolateVariables(p.key, vars), interpolateVariables(p.value, vars))
         }
       }
     }
@@ -247,10 +208,7 @@ export class ApiClientService {
   }
 
   /** Postman 风格测试断言运行器 */
-  private runTests(
-    testsScript: string,
-    res: { status: number; statusText: string; durationMs: number; headers: Record<string, string>; bodyText: string }
-  ): ApiTestResult[] {
+  private runTests(testsScript: string, res: { status: number; statusText: string; durationMs: number; headers: Record<string, string>; bodyText: string }): ApiTestResult[] {
     if (!testsScript || !testsScript.trim()) return []
 
     const results: ApiTestResult[] = []
@@ -266,13 +224,18 @@ export class ApiClientService {
         status: res.statusText,
         responseTime: res.durationMs,
         headers: res.headers,
+
+        /** Performs the text operation. */
         text: () => res.bodyText,
+
+        /** Performs the json operation. */
         json: () => {
           if (jsonBody === null) throw new Error("Response body is not valid JSON")
           return jsonBody
         },
         to: {
           have: {
+            /** Performs the status operation. */
             status: (expected: number) => {
               if (res.status !== expected) {
                 throw new Error(`Expected status ${expected} but got ${res.status}`)
@@ -281,6 +244,8 @@ export class ApiClientService {
           }
         }
       },
+
+      /** Tests test. */
       test: (name: string, fn: () => void) => {
         try {
           fn()
@@ -289,22 +254,32 @@ export class ApiClientService {
           results.push({ name, passed: false, error: e.message || String(e) })
         }
       },
+
+      /** Performs the expect operation. */
       expect: (val: any) => ({
         to: {
+          /** Performs the equal operation. */
           equal: (exp: any) => {
             if (val !== exp) throw new Error(`Expected ${val} to equal ${exp}`)
           },
           be: {
+            /** Performs the below operation. */
             below: (exp: number) => {
               if (!(val < exp)) throw new Error(`Expected ${val} to be below ${exp}`)
             },
+
+            /** Performs the above operation. */
             above: (exp: number) => {
               if (!(val > exp)) throw new Error(`Expected ${val} to be above ${exp}`)
             },
+
+            /** Performs the true operation. */
             true: () => {
               if (val !== true) throw new Error(`Expected true but got ${val}`)
             }
           },
+
+          /** Performs the include operation. */
           include: (exp: any) => {
             if (typeof val === "string" && !val.includes(exp)) {
               throw new Error(`Expected text to include "${exp}"`)
@@ -347,9 +322,15 @@ export class ApiClientService {
       let parsedHeaders: any[] = []
       let parsedParams: any[] = []
       let parsedAuth: any = {}
-      try { parsedHeaders = JSON.parse(req.headers) } catch {}
-      try { parsedParams = JSON.parse(req.params) } catch {}
-      try { parsedAuth = JSON.parse(req.authConfig) } catch {}
+      try {
+        parsedHeaders = JSON.parse(req.headers)
+      } catch {}
+      try {
+        parsedParams = JSON.parse(req.params)
+      } catch {}
+      try {
+        parsedAuth = JSON.parse(req.authConfig)
+      } catch {}
 
       const res = await this.sendRequest({
         method: req.method,
@@ -365,7 +346,7 @@ export class ApiClientService {
         envVariables
       })
 
-      const allTestsPassed = res.testResults.length === 0 ? res.status >= 200 && res.status < 400 : res.testResults.every(t => t.passed)
+      const allTestsPassed = res.testResults.length === 0 ? res.status >= 200 && res.status < 400 : res.testResults.every((t) => t.passed)
       if (allTestsPassed) passedCount++
       else failedCount++
 

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest"
-import { EnhancedDatabase } from "../../src/main/database/enhanced-database"
+import { EnhancedDatabase } from "@main/database/enhanced-database"
 
 class FixtureDatabase extends EnhancedDatabase {
   constructor() {

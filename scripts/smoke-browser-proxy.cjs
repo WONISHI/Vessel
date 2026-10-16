@@ -1,28 +1,50 @@
-const {app,session}=require('electron')
-const fs=require('node:fs'),path=require('node:path'),http=require('node:http'),assert=require('node:assert/strict'),ts=require('typescript')
-const profile=fs.mkdtempSync(path.join(require('node:os').tmpdir(),'vessel-proxy-'))
-app.setPath('userData',profile)
-require.extensions['.ts']=(module,file)=>module._compile(ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,esModuleInterop:true}}).outputText,file)
-app.whenReady().then(async()=>{
- const upstream=http.createServer((_req,res)=>res.end('via-test-node'))
- upstream.on('connect',(_req,socket)=>{socket.write('HTTP/1.1 200 Connection Established\r\n\r\n');socket.once('data',()=>socket.end('HTTP/1.1 200 OK\r\nContent-Length: 13\r\nConnection: close\r\n\r\nvia-test-node'))})
- await new Promise(r=>upstream.listen(0,'127.0.0.1',r))
- const subscription=http.createServer((_req,res)=>res.end(`proxies:\n  - name: Test node\n    type: http\n    server: 127.0.0.1\n    port: ${upstream.address().port}\n`))
- await new Promise(r=>subscription.listen(0,'127.0.0.1',r))
- const handlers={};require('../src/main/browser-proxy.ts').registerBrowserProxy({ipc:{handle:(k,fn)=>handlers[k]=fn}})
- const original=await session.defaultSession.resolveProxy('http://vessel-proxy-test.invalid')
- const state=await handlers['browser:proxy:connect']({},`http://127.0.0.1:${subscription.address().port}/sub`)
- assert.equal(state.connected,true)
- const browser=session.fromPartition('persist:vessel-browser')
- assert.match(await browser.resolveProxy('http://vessel-proxy-test.invalid'),/PROXY 127.0.0.1/)
- assert.equal(await (await browser.fetch('http://vessel-proxy-test.invalid')).text(),'via-test-node')
- assert.equal(await session.defaultSession.resolveProxy('http://vessel-proxy-test.invalid'),original)
- await handlers['browser:proxy:save']({},'https://example.com/saved-draft')
- assert.equal(await handlers['browser:proxy:subscription']({}),'https://example.com/saved-draft')
- await handlers['browser:proxy:disconnect']({})
- assert.deepEqual((await handlers['browser:proxy:status']({})).nodes,['Test node'])
- assert.equal((await handlers['browser:proxy:status']({})).connected,false)
- console.log('PASS: subscription, verified core download, actual browser request through node, isolated scope, disconnect')
- upstream.close();subscription.close();app.quit()
-}).catch(error=>{console.error(error);app.exit(1)})
-setTimeout(()=>app.exit(1),180000).unref()
+require("#vessel-scripts/testing/register-aliases")
+const { app, session } = require("electron")
+const fs = require("node:fs"),
+  path = require("node:path"),
+  http = require("node:http"),
+  assert = require("node:assert/strict"),
+  ts = require("typescript")
+const profile = fs.mkdtempSync(path.join(require("node:os").tmpdir(), "vessel-proxy-"))
+app.setPath("userData", profile)
+require.extensions[".ts"] = (module, file) => module._compile(ts.transpileModule(fs.readFileSync(file, "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true } }).outputText, file)
+app
+  .whenReady()
+  .then(async () => {
+    const upstream = http.createServer((_req, res) => res.end("via-test-node"))
+    upstream.on("connect", (_req, socket) => {
+      socket.write("HTTP/1.1 200 Connection Established\r\n\r\n")
+      socket.once("data", () => socket.end("HTTP/1.1 200 OK\r\nContent-Length: 13\r\nConnection: close\r\n\r\nvia-test-node"))
+    })
+    await new Promise((r) => upstream.listen(0, "127.0.0.1", r))
+    const subscription = http.createServer((_req, res) => res.end(`proxies:\n  - name: Test node\n    type: http\n    server: 127.0.0.1\n    port: ${upstream.address().port}\n`))
+    await new Promise((r) => subscription.listen(0, "127.0.0.1", r))
+    const handlers = {}
+    require("#vessel-main/browser/browser-proxy").registerBrowserProxy({
+      ipc: {
+        /** Handles handle events. */
+        handle: (k, fn) => (handlers[k] = fn)
+      }
+    })
+    const original = await session.defaultSession.resolveProxy("http://vessel-proxy-test.invalid")
+    const state = await handlers["browser:proxy:connect"]({}, `http://127.0.0.1:${subscription.address().port}/sub`)
+    assert.equal(state.connected, true)
+    const browser = session.fromPartition("persist:vessel-browser")
+    assert.match(await browser.resolveProxy("http://vessel-proxy-test.invalid"), /PROXY 127.0.0.1/)
+    assert.equal(await (await browser.fetch("http://vessel-proxy-test.invalid")).text(), "via-test-node")
+    assert.equal(await session.defaultSession.resolveProxy("http://vessel-proxy-test.invalid"), original)
+    await handlers["browser:proxy:save"]({}, "https://example.com/saved-draft")
+    assert.equal(await handlers["browser:proxy:subscription"]({}), "https://example.com/saved-draft")
+    await handlers["browser:proxy:disconnect"]({})
+    assert.deepEqual((await handlers["browser:proxy:status"]({})).nodes, ["Test node"])
+    assert.equal((await handlers["browser:proxy:status"]({})).connected, false)
+    console.log("PASS: subscription, verified core download, actual browser request through node, isolated scope, disconnect")
+    upstream.close()
+    subscription.close()
+    app.quit()
+  })
+  .catch((error) => {
+    console.error(error)
+    app.exit(1)
+  })
+setTimeout(() => app.exit(1), 180000).unref()

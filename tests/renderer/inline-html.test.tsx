@@ -1,5 +1,5 @@
 import { expect, it } from "vitest"
-import { decorateInlineHTML } from "../../src/renderer/src/components/core/canvas/variants/markdown/inline-html"
+import { decorateInlineHTML } from "@/components/core/canvas/variants/markdown/inline-html"
 it("previews font colors while retaining markers and rejecting executable attributes", () => {
   const root = document.createElement("div")
   root.innerHTML = '<strong><span data-type="html-inline"><code>&lt;font color="red" onclick="bad()"&gt;</code></span>信息的质量属性<span data-type="html-inline"><code>&lt;/font&gt;</code></span></strong>'

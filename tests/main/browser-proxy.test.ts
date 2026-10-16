@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { parse } from "yaml"
-import { browserProxyConfig } from "../../src/main/browser-proxy-config"
+import { browserProxyConfig } from "@main/browser/browser-proxy-config"
 describe("browser-only proxy config", () => {
   it("replaces remote listeners and routing with localhost browser-only routing", () => {
     const config = parse(browserProxyConfig(`mixed-port: 9999\nallow-lan: true\ntun:\n  enable: true\nexternal-controller: 0.0.0.0:9000\nproxies:\n  - name: local-test\n    type: http\n    server: 127.0.0.1\n    port: 9998\n`, 2000, 2001, "secret"))

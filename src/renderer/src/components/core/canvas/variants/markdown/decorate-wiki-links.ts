@@ -32,15 +32,16 @@ export function decorateWikiLinks(root: HTMLElement) {
 
 /** Contenteditable keeps focus on its root, so link editing follows selection. */
 export function bindWikiLinkEditing(root: HTMLElement) {
+  /** Refreshes the current state. */
   const update = () => {
     const selection = window.getSelection()
-    root.querySelectorAll<HTMLElement>("[data-wiki-target]").forEach(link => {
-      const editing = Boolean(root.contains(document.activeElement) &&
-        link.closest('[contenteditable="true"]') && selection &&
-        (link.contains(selection.anchorNode) || link.contains(selection.focusNode)))
+    root.querySelectorAll<HTMLElement>("[data-wiki-target]").forEach((link) => {
+      const editing = Boolean(root.contains(document.activeElement) && link.closest('[contenteditable="true"]') && selection && (link.contains(selection.anchorNode) || link.contains(selection.focusNode)))
       link.classList.toggle("vessel-wiki-editing", editing)
     })
   }
+
+  /** Performs the mouse down operation. */
   const mouseDown = (event: MouseEvent) => {
     const target = event.target as Element
     const link = target.closest<HTMLElement>("[data-wiki-target]")
@@ -77,7 +78,10 @@ export function bindWikiLinkEditing(root: HTMLElement) {
     // Hit-test real source text after expansion, instead of the CSS label.
     const point = (document as Document & { caretRangeFromPoint?: (x: number, y: number) => Range | null }).caretRangeFromPoint?.(event.clientX, event.clientY)
     const range = point && link.contains(point.startContainer) ? point : document.createRange()
-    if (range !== point) { range.selectNodeContents(link); range.collapse(false) }
+    if (range !== point) {
+      range.selectNodeContents(link)
+      range.collapse(false)
+    }
     const selection = window.getSelection()
     selection?.removeAllRanges()
     selection?.addRange(range)

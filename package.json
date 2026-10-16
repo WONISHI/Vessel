@@ -130,7 +130,7 @@
     "fix": "npm run lint -- --fix",
     "typecheck:node": "tsc --noEmit -p tsconfig.node.json --composite false",
     "typecheck:web": "tsc --noEmit -p tsconfig.web.json --composite false",
-    "typecheck": "npm run typecheck:sync && npm run typecheck:obsidian && npm run typecheck:utils && npm run typecheck:type && npm run typecheck:router && npm run typecheck:clipper && npm run typecheck:bookmarks && npm run typecheck:node && npm run typecheck:web",
+    "typecheck": "npm run typecheck:sync && npm run typecheck:obsidian && npm run typecheck:utils && npm run typecheck:type && npm run typecheck:router && npm run typecheck:clipper && npm run typecheck:node && npm run typecheck:web",
     "start": "electron-vite preview",
     "dev": "electron-vite dev --watch",
     "dev:main": "electron-vite dev --watch",
@@ -153,28 +153,23 @@
     "typecheck:sync": "npm run typecheck --workspace=@vessel/sync",
     "build:clipper": "npm run build --workspace=@vessel/clipper",
     "typecheck:clipper": "npm run typecheck --workspace=@vessel/clipper",
-    "assets:matting": "node scripts/prepare-matting-assets.cjs"
+    "assets:matting": "node scripts/prepare-matting-assets.cjs",
+    "check:components": "node scripts/checks/component-boundaries.cjs",
+    "check:conventions": "node scripts/checks/source-conventions.cjs && npm run check:components"
   },
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.2",
     "@electron-toolkit/utils": "^4.0.0",
-    "@excalidraw/excalidraw": "^0.18.1",
     "@parcel/watcher": "^2.6.0",
-    "@vessel/clipper": "file:packages/clipper",
-    "@vessel/sync": "file:packages/sync",
+    "@vessel/clipper": "file:packages/@vessel/clipper",
+    "@vessel/sync": "file:packages/@vessel/sync",
     "@vscode/ripgrep": "^1.18.0",
     "better-sqlite3": "^12.4.1",
     "dugite": "^3.2.3",
-    "embla-carousel-autoplay": "^8.6.0",
-    "embla-carousel-react": "^8.6.0",
-    "lz-string": "^1.5.0",
     "node-pty": "^1.1.0",
-    "react-activity-calendar": "^3.2.1",
-    "recharts": "^3.10.1",
     "typescript": "^5.9.3",
     "yaml": "^2.9.1",
-    "yauzl": "^3.4.0",
-    "@vessel/image-matting": "workspace:*"
+    "yauzl": "^3.4.0"
   },
   "devDependencies": {
     "@codemirror/lang-markdown": "^6.5.0",
@@ -213,16 +208,15 @@
     "@testing-library/react": "^16.3.3",
     "@testing-library/user-event": "^14.6.6",
     "@types/better-sqlite3": "^7.6.13",
-    "@types/lz-string": "^1.5.0",
     "@types/node": "^22.19.1",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
     "@types/yauzl": "^3.4.0",
     "@uiw/react-codemirror": "^4.25.4",
-    "@vessel/obsidian": "file:packages/obsidian",
-    "@vessel/react-router": "file:packages/react-router",
-    "@vessel/type": "file:packages/type",
-    "@vessel/utils": "file:packages/utils",
+    "@vessel/obsidian": "file:packages/@vessel/obsidian",
+    "@vessel/react-router": "file:packages/@vessel/react-router",
+    "@vessel/type": "file:packages/@vessel/type",
+    "@vessel/utils": "file:packages/@vessel/utils",
     "@vitejs/plugin-react": "^5.1.1",
     "@vitest/coverage-v8": "^4.1.11",
     "@xterm/addon-fit": "^0.11.0",
@@ -233,7 +227,6 @@
     "cmdk": "^1.1.1",
     "electron": "^39.2.6",
     "electron-builder": "^26.0.12",
-    "electron-rebuild": "^3.2.9",
     "electron-vite": "^5.0.0",
     "eslint": "^9.39.1",
     "eslint-plugin-react": "^7.37.5",
@@ -266,12 +259,24 @@
     "vite-plugin-svgr": "^5.2.0",
     "vitest": "^4.1.11",
     "wasm-onlyoffice-sdk": "^0.1.7",
-    "zustand": "^5.0.10"
+    "zustand": "^5.0.10",
+    "@excalidraw/excalidraw": "^0.18.1",
+    "embla-carousel-autoplay": "^8.6.0",
+    "embla-carousel-react": "^8.6.0",
+    "lz-string": "^1.5.0",
+    "react-activity-calendar": "^3.2.1",
+    "recharts": "^3.10.1",
+    "@vessel/image-matting": "workspace:*"
   },
   "volta": {
     "node": "20.20.0"
   },
   "workspaces": [
-    "packages/*"
-  ]
+    "packages/@vessel/*"
+  ],
+  "imports": {
+    "#vessel-scripts/*": "./scripts/*.cjs",
+    "#vessel-package": "./package.json",
+    "#vessel-main/*": "./src/main/*.ts"
+  }
 }

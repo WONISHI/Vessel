@@ -1,5 +1,9 @@
 let searchEngine = "bing"
-export const setSearchEngine = (engine: string) => { searchEngine = engine }
+
+/** Sets search engine. */
+export const setSearchEngine = (engine: string) => {
+  searchEngine = engine
+}
 /** 将地址或搜索词转换为浏览器可加载的 HTTP(S)、扩展或本地文件地址。 */
 export function browserURL(input: string): string {
   const value = input.trim()

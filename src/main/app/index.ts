@@ -1,16 +1,17 @@
-import { TodosModule } from "@main/modules/todos/index.module"
-import { FilesModule } from "@main/modules/files/index.module"
-import { WelcomeModule } from "@main/modules/welcome/index.module"
-import { GitModule } from "@main/modules/git/index.module"
 import { ApiClientModule } from "@main/modules/api-client/index.module"
-import { ExtensionBridgeModule } from "@main/modules/extension-bridge/index.module"
 import { type BaseModule, type ModuleConstructor } from "@main/modules/base/index"
+import { ExtensionBridgeModule } from "@main/modules/extension-bridge/index.module"
+import { FilesModule } from "@main/modules/files/index.module"
+import { GitModule } from "@main/modules/git/index.module"
+import { TodosModule } from "@main/modules/todos/index.module"
+import { WelcomeModule } from "@main/modules/welcome/index.module"
 
 const MODULES: ModuleConstructor[] = [WelcomeModule, FilesModule, TodosModule, GitModule, ApiClientModule, ExtensionBridgeModule]
 
 class MainApps {
   private modules: BaseModule[] = []
 
+  /** Performs the activate operation. */
   activate(): void {
     if (this.modules.length > 0) return
 
@@ -33,6 +34,7 @@ class MainApps {
     }
   }
 
+  /** Disposes dispose. */
   dispose(): void {
     for (const module of this.modules.splice(0).reverse()) {
       module.dispose()

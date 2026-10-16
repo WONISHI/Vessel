@@ -1,5 +1,0 @@
-export type TransitFile =
-  | { kind: "text" | "markdown"; content: string }
-  | { kind: "image"; content: string }
-  | { kind: "office"; bytes: Uint8Array; name: string }
-  | { kind: "pdf"; bytes: Uint8Array; name: string }

@@ -1,9 +1,10 @@
-import { useContext, useEffect, useState } from "react"
 import { PdfDocument } from "@/components/pdf-document"
-import { WorkspaceContext } from "@/pages/workspace/types/workspace"
+import { WorkspaceContext } from "@/components/workspace/types/workspace"
+import { useContext, useEffect, useState } from "react"
 
 export { PdfDocument }
 
+/** Renders the pdf canvas component. */
 export default function PdfCanvas({ activeFilePath, workspacePath: customWorkspacePath }: { activeFilePath: string; workspacePath?: string }) {
   const context = useContext(WorkspaceContext)
   const workspacePath = customWorkspacePath || context?.workspace.path || ""

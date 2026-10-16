@@ -1,5 +1,5 @@
-import { useRef, useState, type ReactNode } from "react"
 import { cn } from "@/lib/utils"
+import { useRef, useState, type ReactNode } from "react"
 
 export interface ResizableProps {
   children: ReactNode
@@ -13,6 +13,8 @@ export interface ResizableProps {
 export function Resizable({ children, className, defaultWidth = 480, minWidth = 80, maxWidth = 1600, onResizeEnd }: ResizableProps) {
   const [width, setWidth] = useState(Math.max(minWidth, Math.min(defaultWidth, maxWidth)))
   const drag = useRef<{ x: number; width: number } | null>(null)
+
+  /** Performs the change operation. */
   const change = (value: number) => setWidth(Math.max(minWidth, Math.min(value, maxWidth)))
   return (
     <span

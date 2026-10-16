@@ -1,7 +1,7 @@
 import React from "react"
 import { afterEach, expect, it, vi } from "vitest"
 import { cleanup, fireEvent, render, screen } from "@testing-library/react"
-import { VirtualTree } from "../../src/renderer/src/components/ui/tree"
+import { VirtualTree } from "@/components/ui/tree"
 
 afterEach(() => {
   cleanup()

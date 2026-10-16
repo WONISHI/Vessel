@@ -1,0 +1,7 @@
+export { DialogContent } from "@/components/ui/dialog/components/dialog-content"
+export { DialogDescription } from "@/components/ui/dialog/components/dialog-description"
+export { DialogFooter } from "@/components/ui/dialog/components/dialog-footer"
+export { DialogHeader } from "@/components/ui/dialog/components/dialog-header"
+export { DialogOverlay } from "@/components/ui/dialog/components/dialog-overlay"
+export { Dialog, DialogClose, DialogPortal, DialogTrigger } from "@/components/ui/dialog/components/dialog-shared"
+export { DialogTitle } from "@/components/ui/dialog/components/dialog-title"

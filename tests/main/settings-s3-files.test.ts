@@ -4,11 +4,17 @@ import { mkdtemp, writeFile, rm } from "node:fs/promises"
 import { join } from "node:path"
 import { tmpdir } from "node:os"
 import { defaultSettings } from "@vessel/utils"
-import { headS3File, uploadS3File } from "../../src/main/settings-s3"
+import { headS3File, uploadS3File } from "@main/sync/settings-s3"
 const config = { ...defaultSettings.backup, endpoint: "https://storage.example.com", bucket: "notes", accessKey: "AKID", region: "us-east-1" }
 afterEach(() => vi.unstubAllGlobals())
 it("distinguishes absent files from denied remote access", async () => {
-  vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(new Response(null, { status: 404 })).mockResolvedValueOnce(new Response(null, { status: 403 })))
+  vi.stubGlobal(
+    "fetch",
+    vi
+      .fn()
+      .mockResolvedValueOnce(new Response(null, { status: 404 }))
+      .mockResolvedValueOnce(new Response(null, { status: 403 }))
+  )
   expect(await headS3File(config, "secret", "a.md")).toBeUndefined()
   await expect(headS3File(config, "secret", "a.md")).rejects.toThrow("403")
 })
@@ -36,5 +42,7 @@ it("streams the exact file, signs content metadata and rejects concurrent overwr
     expect(fetcher.mock.calls[1][1].headers["if-match"]).toBe('"old-etag"')
     fetcher.mockResolvedValueOnce(new Response(null, { status: 412 }))
     await expect(uploadS3File(config, "secret", "中文/file.txt", source, digest, body.length, '"old-etag"')).rejects.toThrow("未覆盖")
-  } finally { await rm(directory, { recursive: true, force: true }) }
+  } finally {
+    await rm(directory, { recursive: true, force: true })
+  }
 })

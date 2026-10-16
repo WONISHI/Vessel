@@ -1,0 +1,8 @@
+export { SelectContent } from "@/components/ui/select/components/select-content"
+export { SelectItem } from "@/components/ui/select/components/select-item"
+export { SelectLabel } from "@/components/ui/select/components/select-label"
+export { SelectScrollDownButton } from "@/components/ui/select/components/select-scroll-down-button"
+export { SelectScrollUpButton } from "@/components/ui/select/components/select-scroll-up-button"
+export { SelectSeparator } from "@/components/ui/select/components/select-separator"
+export { Select, SelectGroup, SelectValue } from "@/components/ui/select/components/select-shared"
+export { SelectTrigger } from "@/components/ui/select/components/select-trigger"

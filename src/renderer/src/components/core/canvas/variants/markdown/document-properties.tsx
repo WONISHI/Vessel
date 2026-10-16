@@ -1,6 +1,8 @@
-import type { FrontmatterProperty } from "@vessel/obsidian/frontmatter"
-import { Table, TableBody, TableRow, TableCell, TableHead, TableHeader } from "@/components/ui/table"
 import { Link } from "@/components/ui/link"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import type { FrontmatterProperty } from "@vessel/obsidian/frontmatter"
+
+/** Renders the document properties component. */
 export function DocumentProperties({ properties }: { properties: FrontmatterProperty[] }) {
   return (
     <section

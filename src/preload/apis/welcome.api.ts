@@ -1,6 +1,7 @@
 import { ipcRenderer } from "electron"
 
 export const welcomeAPI = {
+  /** Reads workspace directory. */
   readWorkspaceDirectory: (root: string, directory: string) => ipcRenderer.invoke("workspace:readDirectory", root, directory),
   /**
    * 选择文件夹，并将工作区打开信息保存到数据库。
@@ -33,6 +34,10 @@ export const welcomeAPI = {
 
   /** 获取本地数据库信息。 */
   listStorageTables: () => ipcRenderer.invoke("storage:listTables"),
+
+  /** Reads storage table. */
   readStorageTable: (name: string, page = 1, keyword = "", pageSize = 50) => ipcRenderer.invoke("storage:readTable", name, page, keyword, pageSize),
+
+  /** Returns storage info. */
   getStorageInfo: () => ipcRenderer.invoke("storage:getInfo")
 }

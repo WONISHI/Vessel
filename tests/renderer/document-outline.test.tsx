@@ -1,7 +1,7 @@
 import React from "react"
 import { afterEach, expect, it, vi } from "vitest"
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
-import { DocumentOutline } from "../../src/renderer/src/components/core/canvas/variants/markdown/document-outline"
+import { DocumentOutline } from "@/components/core/canvas/variants/markdown/document-outline"
 afterEach(cleanup)
 
 it("expands on hover, stays open only when pinned, and marks the active heading", async () => {

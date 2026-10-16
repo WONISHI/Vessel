@@ -3,17 +3,24 @@ import { mkdtemp, readFile, writeFile, mkdir, rm, symlink } from "node:fs/promis
 import { join } from "node:path"
 import { tmpdir } from "node:os"
 import { defaultSettings } from "@vessel/utils"
-import { signedS3Request } from "../../src/main/settings-s3"
+import { signedS3Request } from "@main/sync/settings-s3"
 const mocks = vi.hoisted(() => ({ path: "", request: vi.fn(async () => {}), head: vi.fn(async () => undefined), upload: vi.fn(), secret: "test-secret" }))
 vi.mock("electron", () => ({ app: { getPath: () => mocks.path, getVersion: () => "1.0-test", once: () => {} }, safeStorage: { isEncryptionAvailable: () => true, encryptString: () => Buffer.from("ciphertext"), decryptString: () => mocks.secret } }))
-vi.mock("../../src/main/settings-s3", async original => ({ ...await original<object>(), requestS3: mocks.request, headS3File: mocks.head, uploadS3File: mocks.upload,
+vi.mock("@main/sync/settings-s3", async (original) => ({
+  ...(await original<object>()),
+  requestS3: mocks.request,
+  headS3File: mocks.head,
+  uploadS3File: mocks.upload,
   createS3Storage: (config, secret) => ({
     id: JSON.stringify([config.endpoint, config.bucket, config.region, config.accessKey, config.prefix]),
     list: async () => new Map(),
-    download: async () => { throw new Error("unexpected download") },
-    head: key => mocks.head(config, secret, key),
+    download: async () => {
+      throw new Error("unexpected download")
+    },
+    head: (key) => mocks.head(config, secret, key),
     upload: (key, source, input) => mocks.upload(config, secret, key, source, input.digest, input.size, input.etag)
-  }) }))
+  })
+}))
 it("signs S3 paths deterministically and rejects credentials embedded in endpoint URLs", () => {
   const config = { ...defaultSettings.backup, endpoint: "https://storage.example.com", bucket: "notes", accessKey: "AKID", region: "us-east-1" }
   const request = signedS3Request(config, "secret", "PUT", "中文/my file.json", new Uint8Array([1, 2]), new Date("2026-10-03T00:00:00Z"))
@@ -28,8 +35,10 @@ it("signs S3 paths deterministically and rejects credentials embedded in endpoin
 })
 it("isolates workspace credentials, blocks resources, and only uploads the selected allowed file", async () => {
   mocks.path = await mkdtemp(join(tmpdir(), "vessel-settings-test-"))
-  const notes = join(mocks.path, "notes"), other = join(mocks.path, "other")
-  await mkdir(notes); await mkdir(other)
+  const notes = join(mocks.path, "notes"),
+    other = join(mocks.path, "other")
+  await mkdir(notes)
+  await mkdir(other)
   await writeFile(join(notes, "note.md"), "# Saved note")
   await writeFile(join(notes, "second.md"), "second")
   await writeFile(join(notes, ".env"), "private")
@@ -39,7 +48,7 @@ it("isolates workspace credentials, blocks resources, and only uploads the selec
   const call = (name: string, ...args: unknown[]) => handlers.get(`settings:${name}`)!(null, ...args)
   try {
     await writeFile(join(mocks.path, "settings.json"), JSON.stringify({ settings: defaultSettings, profiles: { [notes]: { config: { ...defaultSettings.backup, syncExcludeRules: "" }, secret: "", status: { running: false } } } }))
-    const { registerSettings } = await import("../../src/main/settings")
+    const { registerSettings } = await import("@main/settings/settings")
     registerSettings({ ipc: { handle: (name: string, callback: (...args: unknown[]) => Promise<unknown>) => handlers.set(name, callback) } } as never)
     await call("workspace", notes)
     expect((await call("get")).backup.syncExcludeRules).toBe("{folder:.vessel,node-modules,.git,.obsidian}")
@@ -52,7 +61,10 @@ it("isolates workspace credentials, blocks resources, and only uploads the selec
     expect(JSON.parse(await readFile(join(mocks.path, "settings.json"), "utf8")).settings.monitorNavigation).toBe(true)
     expect(saved).toMatchObject({ backup: { enabled: true, workspacePath: notes, hasSecret: true } })
     expect(await readFile(join(mocks.path, "settings.json"), "utf8")).not.toContain(mocks.secret)
-    mocks.upload.mockImplementation(async (...args: unknown[]) => { args[3] = await readFile(args[3] as string); return args })
+    mocks.upload.mockImplementation(async (...args: unknown[]) => {
+      args[3] = await readFile(args[3] as string)
+      return args
+    })
     const preview = await call("preview")
     expect(preview).toMatchObject({ dryRun: true, plan: expect.arrayContaining([expect.objectContaining({ path: "note.md", action: "upload" })]) })
     expect(mocks.upload).not.toHaveBeenCalled()
@@ -72,14 +84,15 @@ it("isolates workspace credentials, blocks resources, and only uploads the selec
     expect(await call("get")).toMatchObject({ backup: { enabled: true, endpoint: settings.backup.endpoint, hasSecret: true } })
     mocks.upload.mockClear()
     await call("backup")
-    expect(mocks.upload.mock.calls.map(args => args[2]).sort()).toEqual(["backups/note.md", "backups/second.md"])
+    expect(mocks.upload.mock.calls.map((args) => args[2]).sort()).toEqual(["backups/note.md", "backups/second.md"])
     expect(await call("logs")).toMatchObject({ enabled: false, entries: [] })
-    await mkdir(join(notes, "d")); await writeFile(join(notes, "d/extra.md"), "excluded folder")
+    await mkdir(join(notes, "d"))
+    await writeFile(join(notes, "d/extra.md"), "excluded folder")
     const loggingSettings = { ...settings, backup: { ...settings.backup, logEnabled: true, syncExcludeRules: "{file:second.md;folder:d}" } }
     await expect(call("save", { ...loggingSettings, backup: { ...loggingSettings.backup, syncExcludeRules: "{file:a" } })).rejects.toThrow("排除规则")
     await call("save", loggingSettings)
     const filtered = await call("preview")
-    expect(filtered.plan.map(item => item.path)).toEqual(["note.md"])
+    expect(filtered.plan.map((item) => item.path)).toEqual(["note.md"])
     const diagnostic = await call("logs")
     expect(diagnostic.enabled).toBe(true)
     expect(diagnostic.entries).toContainEqual(expect.objectContaining({ type: "excluded", path: "d" }))
@@ -97,5 +110,7 @@ it("isolates workspace credentials, blocks resources, and only uploads the selec
     await call("workspace", null)
     expect(await call("get")).toMatchObject({ backup: { enabled: false, hasSecret: false } })
     await expect(call("backup")).rejects.toThrow("当前页面")
-  } finally { await rm(mocks.path, { recursive: true, force: true }) }
+  } finally {
+    await rm(mocks.path, { recursive: true, force: true })
+  }
 })

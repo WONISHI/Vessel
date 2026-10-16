@@ -1,0 +1,76 @@
+/* Match the image toolbox banner's spacing and control dimensions. */
+.tool-page-header {
+  display: flex;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 20px;
+  border-bottom: 1px solid #f0efed;
+  background: hsl(var(--card));
+}
+.tool-page-header .tool-page-brand {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 9px;
+  background: linear-gradient(135deg, #16a34a, #15803d);
+  color: white;
+}
+.tool-page-header .tool-page-brand svg {
+  width: 21px;
+  height: 21px;
+}
+.tool-page-header .tool-page-heading {
+  min-width: 0;
+}
+.tool-page-header .tool-page-heading h1,
+.tool-page-header .tool-page-heading h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 24px;
+}
+.tool-page-header .tool-page-heading p {
+  margin: 2px 0 0;
+  font-size: 11px;
+  color: #a8a29e;
+  line-height: 16.5px;
+}
+.tool-page-header .tool-page-actions {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-left: auto;
+}
+.tool-page-header button {
+  height: 34px;
+  padding: 0 14px;
+  gap: 7px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.tool-page-header button svg {
+  width: 16px;
+  height: 16px;
+}
+.tool-page-header button[aria-label] {
+  width: 34px;
+  padding: 0;
+}
+@media (max-width: 670px) {
+  .tool-page-header {
+    padding: 10px;
+  }
+  .tool-page-header .tool-page-actions {
+    gap: 4px;
+  }
+  .tool-page-header button {
+    padding: 0 8px;
+  }
+}

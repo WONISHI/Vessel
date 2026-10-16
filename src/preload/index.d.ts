@@ -1,18 +1,5 @@
-import type {
-  BrowserProxyAPI,
-  BrowserToolsAPI,
-  SettingsAPI,
-  TransitFile,
-  BrowserExtensionsAPI,
-  FileWatchAPI,
-  TerminalAPI,
-  ImageFile,
-  TodosAPI,
-  ContentSearchOptions,
-  ContentSearchResult,
-  CodeDiagnostic
-} from "@vessel/type"
 import type { ElectronAPI } from "@electron-toolkit/preload"
+import type { BrowserExtensionsAPI, BrowserProxyAPI, BrowserToolsAPI, CodeDiagnostic, ContentSearchOptions, ContentSearchResult, FileWatchAPI, ImageFile, SettingsAPI, TerminalAPI, TodosAPI, TransitFile } from "@vessel/type"
 
 export interface WorkspaceFile {
   name: string
@@ -167,7 +154,7 @@ export interface VesselAPI extends BrowserProxyAPI, BrowserToolsAPI, SettingsAPI
   readObsidianImage: (root: string, documentPath: string, reference: string) => Promise<string>
   transferWorkspaceFiles: (root: string, paths: string[], destination: string, external: boolean, duplicate?: boolean) => Promise<{ source: string; target: string }[]>
   mutateWorkspaceFile: (root: string, path: string, name?: string) => Promise<string>
-  createWorkspaceEntry: (root: string, parent: string, name: string, kind: "file" | "directory") => Promise<{name: string; path: string; type: "file" | "directory"}>
+  createWorkspaceEntry: (root: string, parent: string, name: string, kind: "file" | "directory") => Promise<{ name: string; path: string; type: "file" | "directory" }>
   openExternal: (href: string) => Promise<void>
   getCodeDiagnostics: (path: string, content: string) => Promise<CodeDiagnostic[]>
   readContent: (path: string) => Promise<string>
@@ -180,8 +167,8 @@ export interface VesselAPI extends BrowserProxyAPI, BrowserToolsAPI, SettingsAPI
   reportCrash?: (crashed: boolean) => Promise<void>
   relaunchApp?: () => Promise<void>
   reloadWindow?: () => Promise<void>
-  git: typeof import("./apis/git.api").gitAPI
-  apiClient: typeof import("./apis/api-client.api").apiClientAPI
+  git: typeof import("@preload/apis/git.api").gitAPI
+  apiClient: typeof import("@preload/apis/api-client.api").apiClientAPI
 }
 
 declare global {
@@ -189,7 +176,7 @@ declare global {
     electron: ElectronAPI
     api: unknown
     electronAPI: VesselAPI
-    git: typeof import("./apis/git.api").gitAPI
-    apiClient: typeof import("./apis/api-client.api").apiClientAPI
+    git: typeof import("@preload/apis/git.api").gitAPI
+    apiClient: typeof import("@preload/apis/api-client.api").apiClientAPI
   }
 }

@@ -1,9 +1,9 @@
-import { Sheet, SheetContent } from "@/components/ui/sheet"
-import { useEffect, useRef } from "react"
-import { Terminal, X, Ban } from "lucide-react"
+import type { ConsoleHistoryProps } from "@/components/core/devtool/src/type"
 import { Button } from "@/components/ui/button"
+import { Sheet, SheetContent } from "@/components/ui/sheet"
 import { cn } from "@/lib/utils"
-import type { ConsoleHistoryProps } from "../src/type"
+import { Ban, Terminal, X } from "lucide-react"
+import { useEffect, useRef } from "react"
 
 /**
  * 格式化 Console 参数
@@ -29,6 +29,7 @@ function formatLogValue(value: any): string {
   return String(value)
 }
 
+/** Renders the console history component. */
 export function ConsoleHistory({ logs, open, onOpenChange, onClear }: ConsoleHistoryProps) {
   const bottomRef = useRef<HTMLDivElement>(null)
 
@@ -170,15 +171,7 @@ export function ConsoleHistory({ logs, open, onOpenChange, onClear }: ConsoleHis
             return (
               <div
                 key={log.id}
-                className={cn(
-                  "mb-0.5 rounded-md",
-                  "px-2 py-[5px]",
-                  "transition-colors",
-                  "hover:bg-black/[0.03]",
-                  log.type === "error" && "bg-red-50 text-red-700 hover:bg-red-100",
-                  log.type === "warn" && "bg-amber-50 text-amber-700 hover:bg-amber-100",
-                  log.type === "info" && "text-teal-700"
-                )}
+                className={cn("mb-0.5 rounded-md", "px-2 py-[5px]", "transition-colors", "hover:bg-black/[0.03]", log.type === "error" && "bg-red-50 text-red-700 hover:bg-red-100", log.type === "warn" && "bg-amber-50 text-amber-700 hover:bg-amber-100", log.type === "info" && "text-teal-700")}
               >
                 <div className="flex items-start gap-[10px]">
                   <span

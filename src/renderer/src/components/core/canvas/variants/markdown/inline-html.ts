@@ -9,7 +9,10 @@ export function decorateInlineHTML(root: HTMLElement) {
     const tag = match[2].toLowerCase()
     const stack = stacks.get(marker.parentNode) || []
     stacks.set(marker.parentNode, stack)
-    if (!match[1]) { stack.push({ tag, node: marker, source }); continue }
+    if (!match[1]) {
+      stack.push({ tag, node: marker, source })
+      continue
+    }
     const opening = stack.pop()
     if (!opening || opening.tag !== tag) continue
     opening.node.classList.add("vessel-html-marker")
@@ -32,7 +35,13 @@ export function decorateInlineHTML(root: HTMLElement) {
     if (["sub", "sup"].includes(tag)) preview.style.verticalAlign = tag === "sub" ? "sub" : "super"
     if (tag === "a") {
       const href = original?.getAttribute("href") || ""
-      if (/^(https?:|mailto:)/i.test(href)) { preview.dataset.vesselHref = href; preview.dataset.vesselLink = "true"; preview.setAttribute("role", "link"); preview.title = href; preview.className = "text-primary underline underline-offset-4 cursor-pointer hover:opacity-80" }
+      if (/^(https?:|mailto:)/i.test(href)) {
+        preview.dataset.vesselHref = href
+        preview.dataset.vesselLink = "true"
+        preview.setAttribute("role", "link")
+        preview.title = href
+        preview.className = "text-primary underline underline-offset-4 cursor-pointer hover:opacity-80"
+      }
     }
     const range = document.createRange()
     range.setStartAfter(opening.node)

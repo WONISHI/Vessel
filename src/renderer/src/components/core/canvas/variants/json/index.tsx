@@ -1,7 +1,6 @@
-import Editor from "@monaco-editor/react"
-import { loader } from "@monaco-editor/react" // 关键：loader 可以直接从 react 包导出
+import Editor, { loader } from "@monaco-editor/react"
 import * as monaco from "monaco-editor" // 引入核心包
-import { useRef, useState, useCallback, useEffect } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 
 loader.config({ monaco })
@@ -9,10 +8,13 @@ loader.config({ monaco })
 // function customJSONParse(text: string) {
 //   return JSON.parse(text, (_, v) => (typeof v === "number" && !Number.isSafeInteger(v) ? BigInt(v) : v))
 // }
+
+/** Performs the custom jsonstringify operation. */
 function customJSONStringify(obj: any) {
   return JSON.stringify(obj, (_, v) => (typeof v === "bigint" ? v.toString() : v))
 }
 
+/** Renders the jsoncanvas component. */
 export default function JSONCanvas({ activeFilePath }: any) {
   const editorRef = useRef<any>(null)
   const monacoRef = useRef<any>(null) // 存储 monaco 实例
@@ -22,6 +24,8 @@ export default function JSONCanvas({ activeFilePath }: any) {
   const isLoadingRef = useRef(false)
 
   // Editor 加载完成回调
+
+  /** Handles editor did mount events. */
   const handleEditorDidMount = (editor: any, monaco: any) => {
     editorRef.current = editor
     monacoRef.current = monaco
@@ -35,6 +39,8 @@ export default function JSONCanvas({ activeFilePath }: any) {
   }
 
   // 读取文件
+
+  /** Loads path file. */
   const loadPathFile = useCallback(
     async (path: string) => {
       if (!path || currentFilePathRef.current === path) return

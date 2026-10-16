@@ -1,5 +1,5 @@
-import { type DevToolLog } from "../hooks/useDevToolToast"
-import { type ConsoleLevel } from "../src/console-manager"
+import { type DevToolLog } from "@/components/core/devtool/hooks/useDevToolToast"
+import { type ConsoleLevel } from "@/components/core/devtool/src/console-manager"
 import { type LucideIcon } from "lucide-react"
 /**
  *

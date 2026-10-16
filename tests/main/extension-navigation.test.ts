@@ -1,6 +1,6 @@
 import { EventEmitter } from "node:events"
 import { expect, it, vi } from "vitest"
-import { loadExtensionPage } from "../../src/main/extension-navigation"
+import { loadExtensionPage } from "@main/browser/extensions/extension-navigation"
 it("waits for extension redirect instead of rejecting ERR_ABORTED", async () => {
   const contents = Object.assign(new EventEmitter(), { getURL: () => "chrome-extension://test/welcome.html", loadURL: vi.fn().mockRejectedValue(Object.assign(new Error("ERR_ABORTED"), { code: "ERR_ABORTED" })) })
   const pending = loadExtensionPage(contents as never, "chrome-extension://test/main.html")

@@ -1,7 +1,8 @@
-import { ArrowLeft } from "lucide-react"
-import { useRouter } from "@vessel/react-router"
 import { Button } from "@/components/ui/button"
+import { useRouter } from "@vessel/react-router"
+import { ArrowLeft } from "lucide-react"
 
+/** Renders the page back button component. */
 export function PageBackButton() {
   const router = useRouter()
 

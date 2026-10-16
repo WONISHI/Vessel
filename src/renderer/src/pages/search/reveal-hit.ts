@@ -2,6 +2,7 @@ import { codeEditors } from "@/components/core/canvas/variants/code/search-bridg
 import type { ContentMatch } from "@vessel/type"
 export type { ContentMatch }
 
+/** Performs the highlight keyword in vditor operation. */
 export function highlightKeywordInVditor(container: HTMLElement, keyword: string) {
   if (!keyword || !keyword.trim()) return
   const term = keyword.trim()
@@ -15,9 +16,7 @@ export function highlightKeywordInVditor(container: HTMLElement, keyword: string
     }
   })
 
-  const blocks = Array.from(
-    container.querySelectorAll<HTMLElement>("p, h1, h2, h3, h4, h5, h6, li, td, th, pre, blockquote, div")
-  ).filter((node) => {
+  const blocks = Array.from(container.querySelectorAll<HTMLElement>("p, h1, h2, h3, h4, h5, h6, li, td, th, pre, blockquote, div")).filter((node) => {
     const hasBlockChild = Boolean(node.querySelector("p, li, pre, td, th, h1, h2, h3, h4, h5, h6"))
     return !hasBlockChild && (node.innerText || node.textContent || "").toLowerCase().includes(lower)
   })
@@ -68,18 +67,17 @@ export function highlightKeywordInVditor(container: HTMLElement, keyword: string
   if (targetToScroll) {
     targetToScroll.scrollIntoView({ behavior: "smooth", block: "center" })
     const parentBlock = (firstMark ? firstMark.closest("td, th, p, h1, h2, h3, h4, h5, h6, li") : blocks[0]) as HTMLElement | null
-    parentBlock?.animate?.([
-      { backgroundColor: "rgba(187, 247, 208, 0.45)" },
-      { backgroundColor: "rgba(187, 247, 208, 0.15)", offset: 0.8 },
-      { backgroundColor: "transparent" }
-    ], { duration: 2400 })
+    parentBlock?.animate?.([{ backgroundColor: "rgba(187, 247, 208, 0.45)" }, { backgroundColor: "rgba(187, 247, 208, 0.15)", offset: 0.8 }, { backgroundColor: "transparent" }], { duration: 2400 })
   }
 }
 
+/** Performs the reveal search hit operation. */
 export function revealSearchHit(match: ContentMatch) {
   const range = match.ranges[0]
   const keyword = range ? match.text.slice(range.start, range.end) : match.text.trim()
   let tries = 0
+
+  /** Performs the attempt operation. */
   const attempt = () => {
     const code = codeEditors.get(match.path)
     if (code) {
@@ -89,9 +87,7 @@ export function revealSearchHit(match: ContentMatch) {
       code.focus()
       return
     }
-    const editor = [...document.querySelectorAll<HTMLElement>(".vditor-ir .vditor-reset")].find(
-      node => node.getClientRects().length
-    )
+    const editor = [...document.querySelectorAll<HTMLElement>(".vditor-ir .vditor-reset")].find((node) => node.getClientRects().length)
     if (!editor) {
       if (++tries < 30) setTimeout(attempt, 100)
       return

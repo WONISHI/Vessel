@@ -18,19 +18,19 @@
         "./src/preload/*"
       ],
       "@vessel/sync": [
-        "./packages/sync/src/index.ts"
+        "./packages/@vessel/sync/src/index.ts"
       ],
       "@vessel/type": [
-        "./packages/type/src/index.ts"
+        "./packages/@vessel/type/src/index.ts"
       ],
       "@vessel/type/*": [
-        "./packages/type/src/*"
+        "./packages/@vessel/type/src/*"
       ],
       "@vessel/utils": [
-        "./packages/utils/src/index.ts"
+        "./packages/@vessel/utils/src/index.ts"
       ],
       "@vessel/utils/*": [
-        "./packages/utils/src/*"
+        "./packages/@vessel/utils/src/*"
       ]
     }
   }

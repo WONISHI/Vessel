@@ -20,6 +20,7 @@ export function isExcalidrawFile(path: string, content?: string): boolean {
   return false
 }
 
+/** Performs the chunk string operation. */
 function chunkString(str: string, size = 200): string {
   const numChunks = Math.ceil(str.length / size)
   const chunks = new Array(numChunks)
@@ -171,10 +172,7 @@ export function parseExcalidrawDocument(content: string): ParsedExcalidrawScene 
 }
 
 /** 序列化 Excalidraw 画布为目标文件格式 */
-export function serializeExcalidrawDocument(
-  scene: { elements: any[]; appState?: Record<string, any>; files?: Record<string, any> },
-  originalContent?: string
-): string {
+export function serializeExcalidrawDocument(scene: { elements: any[]; appState?: Record<string, any>; files?: Record<string, any> }, originalContent?: string): string {
   const elements = (scene.elements || []).filter((el) => !el.isDeleted)
   const appState = scene.appState || {}
   const files = scene.files || {}
@@ -214,24 +212,9 @@ export function serializeExcalidrawDocument(
   const chunked = chunkString(compressed)
 
   // 生成标准的 Obsidian Excalidraw Markdown 结构
-  return [
-    "---",
-    "",
-    "excalidraw-plugin: parsed",
-    "tags: [excalidraw]",
-    "",
-    "---",
-    "==⚠  Switch to EXCALIDRAW VIEW in the MORE OPTIONS menu of this document. ⚠==",
-    "",
-    "# Excalidraw Data",
-    "## Text Elements",
-    textElementsSection + "%%",
-    "## Drawing",
-    "```compressed-json",
-    chunked,
-    "```",
-    "%%"
-  ].join("\n")
+  return ["---", "", "excalidraw-plugin: parsed", "tags: [excalidraw]", "", "---", "==⚠  Switch to EXCALIDRAW VIEW in the MORE OPTIONS menu of this document. ⚠==", "", "# Excalidraw Data", "## Text Elements", textElementsSection + "%%", "## Drawing", "```compressed-json", chunked, "```", "%%"].join(
+    "\n"
+  )
 }
 
 /** 辅助转换 Obsidian .canvas 节点与边为 Excalidraw 元素 */
@@ -300,7 +283,10 @@ function convertCanvasNodesToExcalidraw(nodes: any[], edges: any[]): any[] {
         y: startY,
         width: endX - startX,
         height: endY - startY,
-        points: [[0, 0], [endX - startX, endY - startY]],
+        points: [
+          [0, 0],
+          [endX - startX, endY - startY]
+        ],
         strokeColor: "#1e1e1e",
         strokeWidth: 2,
         roughness: 1,

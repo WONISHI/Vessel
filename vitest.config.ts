@@ -2,10 +2,27 @@ import { resolve } from "node:path"
 import { defineConfig } from "vitest/config"
 
 export default defineConfig({
-  resolve: { alias: { "@vessel/sync": resolve("packages/sync/src/index.ts"), "@": resolve("src/renderer/src") } },
+  resolve: {
+    alias: {
+      "@resources": resolve("resources"),
+      "#vessel-clipper": resolve("packages/@vessel/clipper/src"),
+      "#vessel-obsidian": resolve("packages/@vessel/obsidian/src"),
+      "#vessel-react-router": resolve("packages/@vessel/react-router/src"),
+      "#vessel-sync": resolve("packages/@vessel/sync/src"),
+      "#vessel-type": resolve("packages/@vessel/type/src"),
+      "#vessel-utils": resolve("packages/@vessel/utils/src"),
+      "@tests": resolve("tests"),
+      "@preload": resolve("src/preload"),
+      "@vessel/sync": resolve("packages/@vessel/sync/src/index.ts"),
+      "@main": resolve("src/main"),
+      "@": resolve("src/renderer/src")
+    }
+  },
   test: {
-    environment: "node",
-    include: ["tests/**/*.test.ts", "tests/**/*.test.tsx", "packages/*/tests/**/*.test.ts"],
+    projects: [
+      { extends: true, test: { name: "main", environment: "node", include: ["tests/main/**/*.test.ts", "packages/@vessel/*/tests/**/*.test.ts"] } },
+      { extends: true, test: { name: "renderer", environment: "jsdom", include: ["tests/renderer/**/*.test.ts", "tests/renderer/**/*.test.tsx"] } }
+    ],
     clearMocks: true,
     restoreMocks: true,
     coverage: {

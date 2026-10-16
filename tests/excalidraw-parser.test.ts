@@ -1,11 +1,6 @@
 import { describe, it, expect } from "vitest"
 import LZString from "lz-string"
-import {
-  isExcalidrawFile,
-  parseExcalidrawDocument,
-  serializeExcalidrawDocument,
-  createNewExcalidrawContent
-} from "../src/renderer/src/components/core/canvas/variants/excalidraw/parser"
+import { isExcalidrawFile, parseExcalidrawDocument, serializeExcalidrawDocument, createNewExcalidrawContent } from "@/components/core/canvas/variants/excalidraw/parser"
 
 describe("Excalidraw parser and serializer", () => {
   it("identifies excalidraw files by path and content", () => {
@@ -29,24 +24,11 @@ describe("Excalidraw parser and serializer", () => {
     const testData = {
       type: "excalidraw",
       version: 2,
-      elements: [
-        { id: "e1", type: "rectangle", x: 10, y: 20, width: 100, height: 50 }
-      ],
+      elements: [{ id: "e1", type: "rectangle", x: 10, y: 20, width: 100, height: 50 }],
       appState: { viewBackgroundColor: "#f0f0f0" }
     }
     const compressed = LZString.compressToBase64(JSON.stringify(testData))
-    const md = [
-      "---",
-      "excalidraw-plugin: parsed",
-      "tags: [excalidraw]",
-      "---",
-      "# Excalidraw Data",
-      "## Compressed Drawing",
-      "```compressed-json",
-      compressed,
-      "```",
-      "%%"
-    ].join("\n")
+    const md = ["---", "excalidraw-plugin: parsed", "tags: [excalidraw]", "---", "# Excalidraw Data", "## Compressed Drawing", "```compressed-json", compressed, "```", "%%"].join("\n")
 
     const parsed = parseExcalidrawDocument(md)
     expect(parsed.isMarkdown).toBe(true)
@@ -80,9 +62,7 @@ describe("Excalidraw parser and serializer", () => {
         { id: "node1", x: 50, y: 50, width: 150, height: 80, text: "Step 1" },
         { id: "node2", x: 250, y: 50, width: 150, height: 80, text: "Step 2" }
       ],
-      edges: [
-        { id: "edge1", fromNode: "node1", toNode: "node2" }
-      ]
+      edges: [{ id: "edge1", fromNode: "node1", toNode: "node2" }]
     })
     const parsed = parseExcalidrawDocument(canvasJson)
     expect(parsed.elements.length).toBe(5) // 2 rects + 2 texts + 1 arrow

@@ -1,4 +1,4 @@
-import type { LogType } from "./type"
+import type { LogType } from "@/components/core/devtool/src/type"
 
 export const LOG_TYPES: LogType[] = ["log", "info", "warn", "error"]
 

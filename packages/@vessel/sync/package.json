@@ -1,0 +1,70 @@
+{
+  "name": "@vessel/sync",
+  "version": "0.2.1",
+  "description": "Planned bidirectional file sync with batch remote comparison and concurrent S3 multipart transfers",
+  "license": "UNLICENSED",
+  "type": "commonjs",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=20.20.0"
+  },
+  "keywords": [
+    "sync",
+    "backup",
+    "s3",
+    "incremental",
+    "conflict"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run --config vitest.config.ts",
+    "benchmark": "npm run build && node scripts/benchmark.cjs",
+    "prepack": "npm run build"
+  },
+  "imports": {
+    "#vessel-sync/types": {
+      "types": "./src/types.ts",
+      "default": "./dist/types.js"
+    },
+    "#vessel-sync/rules": {
+      "types": "./src/rules.ts",
+      "default": "./dist/rules.js"
+    },
+    "#vessel-sync/engine": {
+      "types": "./src/engine.ts",
+      "default": "./dist/engine.js"
+    },
+    "#vessel-sync/scan": {
+      "types": "./src/scan.ts",
+      "default": "./dist/scan.js"
+    },
+    "#vessel-sync/s3": {
+      "types": "./src/s3.ts",
+      "default": "./dist/s3.js"
+    },
+    "#vessel-sync/s3-list": {
+      "types": "./src/s3-list.ts",
+      "default": "./dist/s3-list.js"
+    },
+    "#vessel-sync/index": {
+      "types": "./src/index.ts",
+      "default": "./dist/index.js"
+    }
+  }
+}

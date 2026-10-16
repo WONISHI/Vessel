@@ -1,5 +1,5 @@
 import { expect, it } from "vitest"
-import { createFileTreeFromPaths } from "../../packages/utils/src/file-tree"
+import { createFileTreeFromPaths } from "#vessel-utils/file-tree"
 it("groups nested paths and preserves original file paths without changing source data", () => {
   const files = [
     { name: "readme.md", path: "/project/readme.md" },

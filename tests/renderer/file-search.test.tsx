@@ -1,8 +1,8 @@
 import React, { createRef } from "react"
 import { afterEach, expect, it, vi } from "vitest"
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
-import { FileSearch } from "../../src/renderer/src/pages/workspace/components/layout-main/file-search"
-import { TooltipProvider } from "../../src/renderer/src/components/ui/tooltip"
+import { FileSearch } from "@/components/workspace/components/layout-main/file-search"
+import { TooltipProvider } from "@/components/ui/tooltip"
 afterEach(cleanup)
 it("scrolls to the chosen match rather than the first repeated keyword", async () => {
   const contentHost = createRef<HTMLDivElement>()

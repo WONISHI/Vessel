@@ -2,7 +2,7 @@ import { expect, it } from "vitest"
 import { mkdtempSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { TodoStore } from "../../src/main/modules/todos/store"
+import { TodoStore } from "@main/modules/todos/store"
 it("starts empty and persists dated todos and completion across reopen", () => {
   const directory = mkdtempSync(join(tmpdir(), "vessel-todos-")),
     path = join(directory, "todos.sqlite")

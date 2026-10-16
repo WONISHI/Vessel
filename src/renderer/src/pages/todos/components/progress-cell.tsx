@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils"
 import { Check, MoreVertical } from "lucide-react"
 import { useState, type CSSProperties } from "react"
 
+/** Renders the progress cell component. */
 export function ProgressCell({ progress, onUpdateProgressValue, onChangeAllProgressColor }: { progress?: { value: number; colorClass?: string }; onUpdateProgressValue: (val: number) => void; onChangeAllProgressColor: (colorClass: string) => void }) {
   const [open, setOpen] = useState(false)
   const val = progress?.value ?? 0

@@ -1,6 +1,6 @@
 import { expect, it } from "vitest"
-import { browserURL } from "../../src/renderer/src/pages/browser/url"
-import { outlineHeading } from "../../src/renderer/src/components/core/canvas/variants/markdown/outline-heading"
+import { browserURL } from "@/pages/browser/url"
+import { outlineHeading } from "@/components/core/canvas/variants/markdown/outline-heading"
 it("recognizes URLs, localhost ports and Chinese search terms", () => {
   expect(browserURL("github.com/docs")).toBe("https://github.com/docs")
   expect(browserURL("localhost:3000")).toBe("http://localhost:3000/")

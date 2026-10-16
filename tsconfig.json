@@ -1,6 +1,13 @@
 {
   "files": [],
-  "references": [{ "path": "./tsconfig.node.json" }, { "path": "./tsconfig.web.json" }],
+  "references": [
+    {
+      "path": "./tsconfig.node.json"
+    },
+    {
+      "path": "./tsconfig.web.json"
+    }
+  ],
   "compilerOptions": {
     "target": "ESNext",
     "useDefineForClassFields": true,
@@ -17,13 +24,30 @@
     "skipLibCheck": true,
     "jsx": "react-jsx",
     "paths": {
-      "@/*": ["./src/renderer/src/*"],
-      "@vessel/obsidian": ["./packages/obsidian/src/index.ts"],
-      "@vessel/obsidian/*": ["./packages/obsidian/src/*"],
-      "@vessel/type": ["./packages/type/src/index.ts"],
-      "@vessel/type/*": ["./packages/type/src/*"],
-      "@vessel/utils": ["./packages/utils/src/index.ts"],
-      "@vessel/utils/*": ["./packages/utils/src/*"]
+      "@/*": [
+        "./src/renderer/src/*"
+      ],
+      "@vessel/obsidian": [
+        "./packages/@vessel/obsidian/src/index.ts"
+      ],
+      "@vessel/obsidian/*": [
+        "./packages/@vessel/obsidian/src/*"
+      ],
+      "@vessel/type": [
+        "./packages/@vessel/type/src/index.ts"
+      ],
+      "@vessel/type/*": [
+        "./packages/@vessel/type/src/*"
+      ],
+      "@vessel/utils": [
+        "./packages/@vessel/utils/src/index.ts"
+      ],
+      "@vessel/utils/*": [
+        "./packages/@vessel/utils/src/*"
+      ],
+      "@preload/*": [
+        "./src/preload/*"
+      ]
     }
   }
 }

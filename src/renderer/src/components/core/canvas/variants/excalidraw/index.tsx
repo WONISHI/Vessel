@@ -1,26 +1,22 @@
-import { useEffect, useRef, useState, useCallback, useMemo, useContext, Fragment } from "react"
-import { Excalidraw, exportToBlob, exportToSvg } from "@excalidraw/excalidraw"
-import "@excalidraw/excalidraw/index.css"
-import { toast } from "sonner"
-import {
-  parseExcalidrawDocument,
-  serializeExcalidrawDocument,
-  createNewExcalidrawContent,
-  type ParsedExcalidrawScene
-} from "./parser"
+import CodeCanvas from "@/components/core/canvas/variants/code/index"
+import { createNewExcalidrawContent, parseExcalidrawDocument, serializeExcalidrawDocument, type ParsedExcalidrawScene } from "@/components/core/canvas/variants/excalidraw/parser"
 import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb"
 import { Button } from "@/components/ui/button"
-import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu"
-import { Code, LayoutTemplate, Download, Trash2, CheckCircle2, LoaderCircle } from "lucide-react"
-import CodeCanvas from "@/components/core/canvas/variants/code"
-import { WorkspaceContext } from "@/pages/workspace/types/workspace"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { WorkspaceContext } from "@/components/workspace/types/workspace"
+import { Excalidraw, exportToBlob, exportToSvg } from "@excalidraw/excalidraw"
+import "@excalidraw/excalidraw/index.css"
+import { CheckCircle2, Code, Download, LayoutTemplate, LoaderCircle, Trash2 } from "lucide-react"
+import { Fragment, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react"
+import { toast } from "sonner"
 
 export interface ExcalidrawCanvasProps {
   activeFilePath: string
   workspacePath?: string
 }
 
+/** Computes scene content hash. */
 function computeSceneContentHash(elements: readonly any[], appState: any): string {
   let str = `bg:${appState?.viewBackgroundColor || ""};grid:${appState?.gridSize ?? ""};`
   for (const el of elements) {
@@ -31,6 +27,7 @@ function computeSceneContentHash(elements: readonly any[], appState: any): strin
   return str
 }
 
+/** Renders the excalidraw canvas component. */
 export default function ExcalidrawCanvas({ activeFilePath, workspacePath = "" }: ExcalidrawCanvasProps) {
   const [scene, setScene] = useState<ParsedExcalidrawScene | null>(null)
   const [loading, setLoading] = useState(true)
@@ -90,6 +87,8 @@ export default function ExcalidrawCanvas({ activeFilePath, workspacePath = "" }:
   }, [activeFilePath])
 
   // 2. 画布变化处理与防抖自动保存（仅在图元、版本或背景真正发生改变时保存，忽略鼠标移动与平移）
+
+  /** Handles change events. */
   const handleChange = useCallback(
     (elements: readonly any[], appState: any, files: any) => {
       latestScene.current = { elements: elements as any[], appState, files }
@@ -111,10 +110,7 @@ export default function ExcalidrawCanvas({ activeFilePath, workspacePath = "" }:
       clearTimeout(saveTimer.current)
       saveTimer.current = setTimeout(() => {
         try {
-          const serialized = serializeExcalidrawDocument(
-            { elements: latestScene.current.elements, appState: latestScene.current.appState, files: latestScene.current.files },
-            originalRawContent.current
-          )
+          const serialized = serializeExcalidrawDocument({ elements: latestScene.current.elements, appState: latestScene.current.appState, files: latestScene.current.files }, originalRawContent.current)
           originalRawContent.current = serialized
           void window.electronAPI
             .saveContent(activeFilePath, serialized)
@@ -136,6 +132,8 @@ export default function ExcalidrawCanvas({ activeFilePath, workspacePath = "" }:
   )
 
   // 4. 导出为图片 / 矢量 / JSON
+
+  /** Handles export png events. */
   const handleExportPNG = async () => {
     const api = excalidrawAPIRef.current
     if (!api) return
@@ -153,7 +151,11 @@ export default function ExcalidrawCanvas({ activeFilePath, workspacePath = "" }:
       })
       const url = URL.createObjectURL(blob)
       const a = document.createElement("a")
-      const baseName = activeFilePath.split(/[\\/]/).pop()?.replace(/\.(excalidraw(\.md)?|canvas)$/i, "") || "drawing"
+      const baseName =
+        activeFilePath
+          .split(/[\\/]/)
+          .pop()
+          ?.replace(/\.(excalidraw(\.md)?|canvas)$/i, "") || "drawing"
       a.href = url
       a.download = `${baseName}.png`
       a.click()
@@ -164,6 +166,7 @@ export default function ExcalidrawCanvas({ activeFilePath, workspacePath = "" }:
     }
   }
 
+  /** Handles export svg events. */
   const handleExportSVG = async () => {
     const api = excalidrawAPIRef.current
     if (!api) return
@@ -182,7 +185,11 @@ export default function ExcalidrawCanvas({ activeFilePath, workspacePath = "" }:
       const blob = new Blob([svgString], { type: "image/svg+xml" })
       const url = URL.createObjectURL(blob)
       const a = document.createElement("a")
-      const baseName = activeFilePath.split(/[\\/]/).pop()?.replace(/\.(excalidraw(\.md)?|canvas)$/i, "") || "drawing"
+      const baseName =
+        activeFilePath
+          .split(/[\\/]/)
+          .pop()
+          ?.replace(/\.(excalidraw(\.md)?|canvas)$/i, "") || "drawing"
       a.href = url
       a.download = `${baseName}.svg`
       a.click()
@@ -193,6 +200,7 @@ export default function ExcalidrawCanvas({ activeFilePath, workspacePath = "" }:
     }
   }
 
+  /** Handles export json events. */
   const handleExportJSON = () => {
     const api = excalidrawAPIRef.current
     if (!api) return
@@ -207,7 +215,11 @@ export default function ExcalidrawCanvas({ activeFilePath, workspacePath = "" }:
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" })
     const url = URL.createObjectURL(blob)
     const a = document.createElement("a")
-    const baseName = activeFilePath.split(/[\\/]/).pop()?.replace(/\.(excalidraw(\.md)?|canvas)$/i, "") || "drawing"
+    const baseName =
+      activeFilePath
+        .split(/[\\/]/)
+        .pop()
+        ?.replace(/\.(excalidraw(\.md)?|canvas)$/i, "") || "drawing"
     a.href = url
     a.download = `${baseName}.excalidraw`
     a.click()
@@ -215,6 +227,7 @@ export default function ExcalidrawCanvas({ activeFilePath, workspacePath = "" }:
     toast.success("已导出 Excalidraw JSON")
   }
 
+  /** Handles clear events. */
   const handleClear = () => {
     const api = excalidrawAPIRef.current
     if (!api) return
@@ -240,6 +253,7 @@ export default function ExcalidrawCanvas({ activeFilePath, workspacePath = "" }:
     return [rootName, ...subParts]
   }, [effectiveWorkspacePath, activeFilePath, context?.workspace?.name])
 
+  /** Handles jump route events. */
   const handleJumpRoute = useCallback(
     (index: number) => {
       if (!effectiveWorkspacePath) return
@@ -264,17 +278,16 @@ export default function ExcalidrawCanvas({ activeFilePath, workspacePath = "" }:
   }
 
   if (error) {
-    return (
-      <div className="flex h-full w-full items-center justify-center p-6 text-sm text-red-500">
-        加载白板失败：{error}
-      </div>
-    )
+    return <div className="flex h-full w-full items-center justify-center p-6 text-sm text-red-500">加载白板失败：{error}</div>
   }
 
   return (
     <div className="flex h-full w-full min-h-0 min-w-0 flex-col bg-white">
       {/* 1. 顶部面包屑导航（参考截图2样式） */}
-      <Breadcrumb className="shrink-0 px-4 pt-2" aria-label="当前白板路径">
+      <Breadcrumb
+        className="shrink-0 px-4 pt-2"
+        aria-label="当前白板路径"
+      >
         <BreadcrumbList className="text-xs">
           {breadcrumbSegments.map((part, index, parts) => {
             const isLast = index === parts.length - 1
@@ -361,14 +374,22 @@ export default function ExcalidrawCanvas({ activeFilePath, workspacePath = "" }:
               <Tooltip>
                 <TooltipTrigger asChild>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="size-7 text-stone-600 hover:bg-stone-100" aria-label="导出白板">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="size-7 text-stone-600 hover:bg-stone-100"
+                      aria-label="导出白板"
+                    >
                       <Download className="size-3.5" />
                     </Button>
                   </DropdownMenuTrigger>
                 </TooltipTrigger>
                 <TooltipContent side="bottom">导出白板</TooltipContent>
               </Tooltip>
-              <DropdownMenuContent align="end" className="w-36 text-xs bg-white">
+              <DropdownMenuContent
+                align="end"
+                className="w-36 text-xs bg-white"
+              >
                 <DropdownMenuItem onSelect={handleExportPNG}>导出为 PNG 图片</DropdownMenuItem>
                 <DropdownMenuItem onSelect={handleExportSVG}>导出为 SVG 矢量图</DropdownMenuItem>
                 <DropdownMenuItem onSelect={handleExportJSON}>导出为 JSON 文件</DropdownMenuItem>

@@ -1,0 +1,13 @@
+import { cn } from "@/lib/utils"
+import * as React from "react"
+
+/** Renders the table cell component. */
+export const TableCell = React.forwardRef<HTMLTableCellElement, React.TdHTMLAttributes<HTMLTableCellElement>>(({ className, ...props }, ref) => (
+  <td
+    ref={ref}
+    className={cn("p-3 align-middle [&:has([role=checkbox])]:pr-0", className)}
+    {...props}
+  />
+))
+
+TableCell.displayName = "TableCell"

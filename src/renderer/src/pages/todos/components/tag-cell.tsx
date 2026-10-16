@@ -1,12 +1,13 @@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
+import { CreatableOptions } from "@/pages/todos/components/creatable-options"
 import { MoreVertical, Plus, Trash2, X } from "lucide-react"
 import { useState } from "react"
-import { CreatableOptions } from "./creatable-options"
 
-import { COLOR_PRESETS } from "./todo-table-model"
+import { COLOR_PRESETS } from "@/pages/todos/components/todo-table-model"
 
+/** Renders the tag cell component. */
 export function TagCell({
   confirmDelete,
   tags = [],
@@ -19,6 +20,8 @@ export function TagCell({
   onUpdateTags: (tags: { id: string; label: string; colorClass?: string }[]) => void
 }) {
   const [open, setOpen] = useState(false)
+
+  /** Handles add tag events. */
   const handleAddTag = (label: string) => {
     if (!label.trim() || tags.some((tag) => tag.label.toLocaleLowerCase() === label.trim().toLocaleLowerCase())) return
     const newTag = {
@@ -30,10 +33,12 @@ export function TagCell({
     setOpen(false)
   }
 
+  /** Handles remove tag events. */
   const handleRemoveTag = (tagId: string) => {
     confirmDelete("删除这个标签？", () => onUpdateTags(tags.filter((t) => t.id !== tagId)))
   }
 
+  /** Handles change color events. */
   const handleChangeColor = (tagId: string, colorClass: string) => {
     onUpdateTags(tags.map((t) => (t.id === tagId ? { ...t, colorClass } : t)))
   }

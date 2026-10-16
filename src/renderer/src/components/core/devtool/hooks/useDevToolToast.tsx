@@ -1,6 +1,6 @@
+import type { ConsoleLevel, ConsoleSource } from "@/components/core/devtool/src/console-manager"
 import { useCallback, useEffect, useRef } from "react"
 import { toast } from "sonner"
-import type { ConsoleLevel, ConsoleSource } from "../src/console-manager"
 
 export interface DevToolLog {
   id: string
@@ -18,6 +18,7 @@ interface UseDevToolToastReturn {
   showEnabledHistory: (type: ConsoleLevel, logs: DevToolLog[]) => void
 }
 
+/** Formats value. */
 function formatValue(value: any): string {
   if (value === null || value === undefined) {
     return String(value)
@@ -34,12 +35,16 @@ function formatValue(value: any): string {
   return String(value)
 }
 
+/** Formats args. */
 function formatArgs(args: any[]): string {
   return args.map(formatValue).join(" ")
 }
 
+/** Provides the dev tool toast hook. */
 export function useDevToolToast(): UseDevToolToastReturn {
   const activeToastsRef = useRef<Record<string, string | number>>({})
+
+  /** Shows toast. */
   const showToast = useCallback((log: DevToolLog) => {
     const message = formatArgs(log.message)
     const sourceText = log.source && log.source.line ? `${log.source.fileName}:${log.source.line}:${log.source.column}` : ""
@@ -74,11 +79,15 @@ export function useDevToolToast(): UseDevToolToastReturn {
     const toastOptions = {
       id: log.id,
       duration: Infinity,
+
+      /** Handles dismiss events. */
       onDismiss: () => {
         delete activeToastsRef.current[log.id]
       },
       cancel: {
         label: "关闭",
+
+        /** Handles click events. */
         onClick: () => {}
       }
     }
@@ -105,6 +114,7 @@ export function useDevToolToast(): UseDevToolToastReturn {
     activeToastsRef.current[log.id] = toastId
   }, [])
 
+  /** Performs the dismiss by type operation. */
   const dismissByType = useCallback((type: ConsoleLevel, logs: DevToolLog[]) => {
     logs.forEach((log) => {
       if (log.type !== type) {
@@ -123,11 +133,13 @@ export function useDevToolToast(): UseDevToolToastReturn {
     })
   }, [])
 
+  /** Performs the dismiss all operation. */
   const dismissAll = useCallback(() => {
     toast.dismiss()
     activeToastsRef.current = {}
   }, [])
 
+  /** Shows enabled history. */
   const showEnabledHistory = useCallback(
     (type: ConsoleLevel, logs: DevToolLog[]) => {
       logs.forEach((log) => {

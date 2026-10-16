@@ -76,6 +76,7 @@ export class ConsoleManager {
 
   private installed = false
 
+  /** Initializes the instance and its required dependencies. */
   constructor(options: ConsoleManagerOptions = {}) {
     this.options = {
       preserveOriginal: true,
@@ -94,6 +95,7 @@ export class ConsoleManager {
     }
   }
 
+  /** Performs the install operation. */
   install(): void {
     if (this.installed) {
       return
@@ -118,6 +120,7 @@ export class ConsoleManager {
     }
   }
 
+  /** Performs the uninstall operation. */
   uninstall(): void {
     if (!this.installed) {
       return
@@ -130,10 +133,12 @@ export class ConsoleManager {
     this.installed = false
   }
 
+  /** Checks whether installed. */
   isInstalled(): boolean {
     return this.installed
   }
 
+  /** Handles handle events. */
   private handle(type: ConsoleLevel, args: any[]): void {
     const now = new Date()
 
@@ -159,6 +164,7 @@ export class ConsoleManager {
     }
   }
 
+  /** Performs the print original operation. */
   private printOriginal(record: ConsoleRecord): void {
     const original = this.originalConsole[record.type]
     const sourceText = record.source ? this.formatSource(record.source) : ""
@@ -183,9 +189,11 @@ export class ConsoleManager {
     original(meta, ...record.args)
   }
 
+  /** Returns source sync. */
   private getSourceSync(): ConsoleSource | undefined {
     try {
       const stack = StackTrace.getSync({
+        /** Filters filter. */
         filter: (frame) => !this.isIgnoredFrame(frame)
       })
       const frame = stack.find((item) => !this.isIgnoredFrame(item))
@@ -198,9 +206,11 @@ export class ConsoleManager {
     }
   }
 
+  /** Resolves source. */
   private async resolveSource(record: ConsoleRecord): Promise<void> {
     try {
       const stack = await StackTrace.get({
+        /** Filters filter. */
         filter: (frame) => !this.isIgnoredFrame(frame)
       })
       const frame = stack.find((item) => !this.isIgnoredFrame(item))
@@ -218,12 +228,14 @@ export class ConsoleManager {
     }
   }
 
+  /** Checks whether ignored frame. */
   private isIgnoredFrame(frame: StackFrame): boolean {
     const fileName = frame.fileName || ""
     const functionName = frame.functionName || ""
     return (this.options.ignorePatterns || []).some((pattern) => fileName.includes(pattern) || functionName.includes(pattern))
   }
 
+  /** Performs the to source operation. */
   private toSource(frame: StackFrame): ConsoleSource | undefined {
     const file = frame.fileName
     if (!file) {
@@ -241,11 +253,13 @@ export class ConsoleManager {
     }
   }
 
+  /** Returns file name. */
   private getFileName(file: string): string {
     const cleanFile = file.split("?")[0]
     return cleanFile.split("/").pop() || cleanFile
   }
 
+  /** Formats source. */
   private formatSource(source: ConsoleSource): string {
     if (!source.line) {
       return source.fileName
@@ -254,6 +268,7 @@ export class ConsoleManager {
     return `${source.fileName}:${source.line}:${source.column}`
   }
 
+  /** Formats time. */
   private formatTime(date: Date): string {
     const hours = String(date.getHours()).padStart(2, "0")
     const minutes = String(date.getMinutes()).padStart(2, "0")
@@ -262,6 +277,7 @@ export class ConsoleManager {
     return `${hours}:${minutes}:${seconds}.${milliseconds}`
   }
 
+  /** Formats date time. */
   private formatDateTime(date: Date): string {
     const year = date.getFullYear()
     const month = String(date.getMonth() + 1).padStart(2, "0")
@@ -269,6 +285,7 @@ export class ConsoleManager {
     return `${year}-${month}-${day} ${this.formatTime(date)}`
   }
 
+  /** Creates id. */
   private createId(): string {
     return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
   }

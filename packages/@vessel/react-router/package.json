@@ -1,0 +1,31 @@
+{
+  "name": "@vessel/react-router",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Vessel React routing adapter for workspace applications",
+  "exports": {
+    ".": "./src/index.ts",
+    "./components": "./src/components.ts"
+  },
+  "types": "./src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-router-dom": "^7.12.0"
+  },
+  "imports": {
+    "#vessel-react-router/types": "./src/types.ts",
+    "#vessel-react-router/hooks": "./src/hooks.ts",
+    "#vessel-react-router/components/components-shared": "./src/components/components-shared.ts",
+    "#vessel-react-router/router": "./src/router.ts",
+    "#vessel-react-router/components/router-link": "./src/components/router-link.tsx",
+    "#vessel-react-router/components/router-nav-link": "./src/components/router-nav-link.tsx",
+    "#vessel-react-router/components/router-provider": "./src/components/router-provider.tsx",
+    "#vessel-react-router/components/router-view": "./src/components/router-view.tsx",
+    "#vessel-react-router/history": "./src/history.ts"
+  }
+}

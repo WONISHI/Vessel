@@ -1,0 +1,7 @@
+export { Breadcrumb } from "@/components/ui/breadcrumb/components/breadcrumb"
+export { BreadcrumbEllipsis } from "@/components/ui/breadcrumb/components/breadcrumb-ellipsis"
+export { BreadcrumbItem } from "@/components/ui/breadcrumb/components/breadcrumb-item"
+export { BreadcrumbLink } from "@/components/ui/breadcrumb/components/breadcrumb-link"
+export { BreadcrumbList } from "@/components/ui/breadcrumb/components/breadcrumb-list"
+export { BreadcrumbPage } from "@/components/ui/breadcrumb/components/breadcrumb-page"
+export { BreadcrumbSeparator } from "@/components/ui/breadcrumb/components/breadcrumb-separator"

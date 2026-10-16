@@ -9,7 +9,7 @@ it("observes Markdown creation, external content updates and deletion", async ()
   const events: string[] = []
   const subscription = await subscribe(directory, (error, changes) => {
     if (error) throw error
-    events.push(...changes.filter(event => event.path === path).map(event => event.type))
+    events.push(...changes.filter((event) => event.path === path).map((event) => event.type))
   })
   try {
     await writeFile(path, "# created")
@@ -18,5 +18,8 @@ it("observes Markdown creation, external content updates and deletion", async ()
     await expect.poll(() => events.includes("update"), { timeout: 5000 }).toBe(true)
     await rm(path)
     await expect.poll(() => events.includes("delete"), { timeout: 5000 }).toBe(true)
-  } finally { await subscription.unsubscribe(); await rm(directory, { recursive: true, force: true }) }
+  } finally {
+    await subscription.unsubscribe()
+    await rm(directory, { recursive: true, force: true })
+  }
 }, 20000)

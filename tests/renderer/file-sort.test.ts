@@ -1,6 +1,6 @@
 import { expect, it } from "vitest"
-import { sortWorkspaceNodes } from "../../src/renderer/src/pages/workspace/components/layout-aside/layout-workspace-sidebar/utils"
-import type { WorkspaceNode } from "../../src/renderer/src/pages/workspace/types/workspace"
+import { sortWorkspaceNodes } from "@/components/workspace/components/layout-aside/layout-workspace-sidebar/utils"
+import type { WorkspaceNode } from "@/components/workspace/types/workspace"
 
 it("sorts files automatically ascending by default", () => {
   const nodes: WorkspaceNode[] = [
@@ -12,13 +12,7 @@ it("sorts files automatically ascending by default", () => {
   ]
 
   const sorted = sortWorkspaceNodes(nodes)
-  expect(sorted.map(n => n.name)).toEqual([
-    "folderA",
-    "folderB",
-    "1.md",
-    "2.md",
-    "10.md"
-  ])
+  expect(sorted.map((n) => n.name)).toEqual(["folderA", "folderB", "1.md", "2.md", "10.md"])
 })
 
 it("sorts files by creation time descending when specified", () => {
@@ -32,13 +26,7 @@ it("sorts files by creation time descending when specified", () => {
 
   const sorted = sortWorkspaceNodes(nodes, "ctime", "desc")
   // Folders first (newest folder first), then files (newest file first)
-  expect(sorted.map(n => n.name)).toEqual([
-    "folderB",
-    "folderA",
-    "new.md",
-    "mid.md",
-    "old.md"
-  ])
+  expect(sorted.map((n) => n.name)).toEqual(["folderB", "folderA", "new.md", "mid.md", "old.md"])
 })
 
 it("sorts files by creation time ascending", () => {
@@ -50,12 +38,7 @@ it("sorts files by creation time ascending", () => {
   ]
 
   const sorted = sortWorkspaceNodes(nodes, "ctime", "asc")
-  expect(sorted.map(n => n.name)).toEqual([
-    "folderA",
-    "folderB",
-    "old.md",
-    "new.md"
-  ])
+  expect(sorted.map((n) => n.name)).toEqual(["folderA", "folderB", "old.md", "new.md"])
 })
 
 it("sorts files by name ascending and descending", () => {
@@ -68,22 +51,10 @@ it("sorts files by name ascending and descending", () => {
   ]
 
   const asc = sortWorkspaceNodes(nodes, "name", "asc")
-  expect(asc.map(n => n.name)).toEqual([
-    "dir1",
-    "dir2",
-    "a.md",
-    "b.md",
-    "c.md"
-  ])
+  expect(asc.map((n) => n.name)).toEqual(["dir1", "dir2", "a.md", "b.md", "c.md"])
 
   const desc = sortWorkspaceNodes(nodes, "name", "desc")
-  expect(desc.map(n => n.name)).toEqual([
-    "dir2",
-    "dir1",
-    "c.md",
-    "b.md",
-    "a.md"
-  ])
+  expect(desc.map((n) => n.name)).toEqual(["dir2", "dir1", "c.md", "b.md", "a.md"])
 })
 
 it("sorts files automatically with Arabic numbers (1, 2, 3... 10...)", () => {
@@ -96,13 +67,7 @@ it("sorts files automatically with Arabic numbers (1, 2, 3... 10...)", () => {
   ]
 
   const sorted = sortWorkspaceNodes(nodes, "auto", "asc")
-  expect(sorted.map(n => n.name)).toEqual([
-    "1.md",
-    "2.md",
-    "3.md",
-    "10.md",
-    "20.md"
-  ])
+  expect(sorted.map((n) => n.name)).toEqual(["1.md", "2.md", "3.md", "10.md", "20.md"])
 })
 
 it("sorts files automatically with Chinese numbers (一、二、三... 十...)", () => {
@@ -115,13 +80,7 @@ it("sorts files automatically with Chinese numbers (一、二、三... 十...)",
   ]
 
   const sorted = sortWorkspaceNodes(nodes, "auto", "asc")
-  expect(sorted.map(n => n.name)).toEqual([
-    "第一章.md",
-    "第二章.md",
-    "第三章.md",
-    "第十章.md",
-    "第二十一章.md"
-  ])
+  expect(sorted.map((n) => n.name)).toEqual(["第一章.md", "第二章.md", "第三章.md", "第十章.md", "第二十一章.md"])
 })
 
 it("sorts files automatically with uppercase Chinese numbers (壹、贰、叁... 拾...)", () => {
@@ -134,13 +93,7 @@ it("sorts files automatically with uppercase Chinese numbers (壹、贰、叁...
   ]
 
   const sorted = sortWorkspaceNodes(nodes, "auto", "asc")
-  expect(sorted.map(n => n.name)).toEqual([
-    "壹、立项.md",
-    "贰、审批.md",
-    "叁、设计.md",
-    "肆、开发.md",
-    "拾、附录.md"
-  ])
+  expect(sorted.map((n) => n.name)).toEqual(["壹、立项.md", "贰、审批.md", "叁、设计.md", "肆、开发.md", "拾、附录.md"])
 })
 
 it("parses identical opening prefixes and sorts numbers correctly", () => {
@@ -155,26 +108,10 @@ it("parses identical opening prefixes and sorts numbers correctly", () => {
   ]
 
   const sorted = sortWorkspaceNodes(nodes, "auto", "asc")
-  expect(sorted.map(n => n.name)).toEqual([
-    "文件夹A",
-    "文件夹B",
-    "React-第1讲.md",
-    "React-第2讲.md",
-    "React-第10讲.md",
-    "Vue-第1讲.md",
-    "Vue-第2讲.md"
-  ])
+  expect(sorted.map((n) => n.name)).toEqual(["文件夹A", "文件夹B", "React-第1讲.md", "React-第2讲.md", "React-第10讲.md", "Vue-第1讲.md", "Vue-第2讲.md"])
 
   const desc = sortWorkspaceNodes(nodes, "auto", "desc")
-  expect(desc.map(n => n.name)).toEqual([
-    "文件夹B",
-    "文件夹A",
-    "Vue-第2讲.md",
-    "Vue-第1讲.md",
-    "React-第10讲.md",
-    "React-第2讲.md",
-    "React-第1讲.md"
-  ])
+  expect(desc.map((n) => n.name)).toEqual(["文件夹B", "文件夹A", "Vue-第2讲.md", "Vue-第1讲.md", "React-第10讲.md", "React-第2讲.md", "React-第1讲.md"])
 })
 
 it("handles mixed numeral formats seamlessly", () => {
@@ -188,13 +125,5 @@ it("handles mixed numeral formats seamlessly", () => {
   ]
 
   const sorted = sortWorkspaceNodes(nodes, "auto", "asc")
-  expect(sorted.map(n => n.name)).toEqual([
-    "第一章 介绍",
-    "第2章 基础",
-    "第三章 进阶",
-    "第9章 案例",
-    "第10章 总结",
-    "第拾贰章 深入"
-  ])
+  expect(sorted.map((n) => n.name)).toEqual(["第一章 介绍", "第2章 基础", "第三章 进阶", "第9章 案例", "第10章 总结", "第拾贰章 深入"])
 })
-

@@ -1,0 +1,28 @@
+{
+  "name": "@vessel/utils",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./*": "./src/*.ts"
+  },
+  "types": "./src/index.ts",
+  "dependencies": {
+    "@vessel/type": "file:../type",
+    "clsx": "2.1.1",
+    "tailwind-merge": "3.6.0"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "imports": {
+    "#vessel-utils/types": "./src/types.ts",
+    "#vessel-utils/file-tree": "./src/file-tree.ts",
+    "#vessel-utils/files": "./src/files.ts",
+    "#vessel-utils/browser-history-url": "./src/browser-history-url.ts",
+    "#vessel-utils/local-file-url": "./src/local-file-url.ts",
+    "#vessel-utils/shortcuts": "./src/shortcuts.ts",
+    "#vessel-utils/settings": "./src/settings.ts"
+  }
+}

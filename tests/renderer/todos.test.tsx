@@ -1,8 +1,8 @@
 import React from "react"
 import { expect, it, vi, afterEach } from "vitest"
 import { cleanup, render, screen, fireEvent, waitFor } from "@testing-library/react"
-import TodoMain from "../../src/renderer/src/pages/todos/components/layout-main"
-import { dateKey, fromKey, lunarLabel, monthDays, festivalLabel } from "../../src/renderer/src/pages/todos/calendar"
+import TodoMain from "@/pages/todos/components/layout-main"
+import { dateKey, fromKey, lunarLabel, monthDays, festivalLabel } from "@/pages/todos/calendar"
 afterEach(cleanup)
 it("builds Monday-first calendars and correct lunar days", () => {
   const days = monthDays(fromKey("2026-09-27"))
@@ -37,7 +37,7 @@ it("selects calendar dates and submits a todo with Enter/form submit", async () 
 })
 
 it("shows festival names without treating them as leave schedules", () => {
- expect(festivalLabel(fromKey("2026-09-25"))).toBe("中秋节")
- expect(festivalLabel(fromKey("2026-10-01"))).toBe("国庆节")
- expect(festivalLabel(fromKey("2026-02-17"))).toBe("春节")
+  expect(festivalLabel(fromKey("2026-09-25"))).toBe("中秋节")
+  expect(festivalLabel(fromKey("2026-10-01"))).toBe("国庆节")
+  expect(festivalLabel(fromKey("2026-02-17"))).toBe("春节")
 })

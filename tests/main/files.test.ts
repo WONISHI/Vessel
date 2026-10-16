@@ -4,7 +4,7 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 vi.mock("electron", () => ({ ipcMain: { handle: vi.fn(), removeHandler: vi.fn() } }))
 import { ipcMain } from "electron"
-import { FilesModule, saveTextFileContent, readTextFileContent, createWorkspaceEntry, mutateWorkspaceFile } from "../../src/main/modules/files/index.module"
+import { FilesModule, saveTextFileContent, readTextFileContent, createWorkspaceEntry, mutateWorkspaceFile } from "@main/modules/files/index.module"
 const directories: string[] = []
 afterEach(async () => {
   await Promise.all(directories.splice(0).map((path) => rm(path, { recursive: true, force: true })))
@@ -61,14 +61,15 @@ it("renames a file without overwriting a destination or escaping the workspace",
 })
 
 it("renames a directory with its contents and rejects an existing destination", async () => {
- const root = await mkdtemp(join(tmpdir(), "vessel-folder-")); directories.push(root)
- const folder = await createWorkspaceEntry(root, root, "before", "directory")
- await createWorkspaceEntry(root, folder.path, "note.md", "file")
- await createWorkspaceEntry(root, root, "exists", "directory")
- await expect(mutateWorkspaceFile(root,folder.path,"exists")).rejects.toThrow("已存在")
- const next = await mutateWorkspaceFile(root,folder.path,"after")
- expect(await readTextFileContent(join(next,"note.md"))).toBe("")
- await expect(mutateWorkspaceFile(root,root,"renamed-root")).rejects.toThrow()
+  const root = await mkdtemp(join(tmpdir(), "vessel-folder-"))
+  directories.push(root)
+  const folder = await createWorkspaceEntry(root, root, "before", "directory")
+  await createWorkspaceEntry(root, folder.path, "note.md", "file")
+  await createWorkspaceEntry(root, root, "exists", "directory")
+  await expect(mutateWorkspaceFile(root, folder.path, "exists")).rejects.toThrow("已存在")
+  const next = await mutateWorkspaceFile(root, folder.path, "after")
+  expect(await readTextFileContent(join(next, "note.md"))).toBe("")
+  await expect(mutateWorkspaceFile(root, root, "renamed-root")).rejects.toThrow()
 })
 
 it("persists Markdown edits in order and waits for pending saves before reloading", async () => {

@@ -1,0 +1,837 @@
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Slider } from "@/components/ui/slider"
+import { Switch } from "@/components/ui/switch"
+import { applyAppearance } from "@/pages/settings/appearance"
+import { fonts, sections } from "@/pages/settings/components/index-shared"
+import { Row } from "@/pages/settings/components/row"
+import { ShortcutSettings } from "@/pages/settings/components/shortcuts"
+import { SyncDiagnosticsPanel } from "@/pages/settings/components/sync-diagnostics"
+import { useRouter } from "@vessel/react-router"
+import type { AppSettings, BackupStatus } from "@vessel/type"
+import { defaultSettings } from "@vessel/utils"
+import { ArrowLeft, Camera, CheckCircle2, Clock, Cloud, Download, RotateCcw, Save, Settings } from "lucide-react"
+import { version as reactVersion, useEffect, useState } from "react"
+import { toast } from "sonner"
+
+/** Renders the settings page component. */
+export function SettingsPage() {
+  const router = useRouter()
+  const [section, setSection] = useState<(typeof sections)[number]["id"]>("about")
+  const [draft, setDraft] = useState<AppSettings>(structuredClone(defaultSettings))
+  const [saved, setSaved] = useState<AppSettings>()
+  const [secret, setSecret] = useState<string | undefined>()
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState("")
+  const [status, setStatus] = useState<BackupStatus>({ running: false })
+  const [preview, setPreview] = useState<BackupStatus>()
+  const [previewLimit, setPreviewLimit] = useState(100)
+  const [info, setInfo] = useState({ version: "…", electron: "…", node: "…" })
+  useEffect(() => {
+    /** Refreshes refresh. */
+    const refresh = () => {
+      void Promise.all([window.electronAPI.getSettings(), window.electronAPI.getSettingsInfo(), window.electronAPI.getBackupStatus()])
+        .then(([value, version, backup]) => {
+          setDraft(value)
+          setSaved(value)
+          setSecret(undefined)
+          setInfo(version)
+          setStatus(backup)
+        })
+        .catch((error) => setError(String(error)))
+    }
+    refresh()
+    window.addEventListener("vessel:sync-context", refresh)
+    return () => window.removeEventListener("vessel:sync-context", refresh)
+  }, [])
+  useEffect(() => {
+    if (section !== "sync") return
+    const timer = setInterval(() => {
+      void window.electronAPI
+        .getBackupStatus()
+        .then(setStatus)
+        .catch(() => {})
+    }, 3000)
+    return () => clearInterval(timer)
+  }, [section])
+  const dirty = !!saved && (JSON.stringify(saved) !== JSON.stringify(draft) || secret !== undefined)
+
+  /** Refreshes the current state. */
+  const update = <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => setDraft((current) => ({ ...current, [key]: value }))
+  const syncAutoSaveKeys = new Set<keyof AppSettings["backup"]>(["enabled", "automatic", "minutes", "syncOnSave", "direction", "concurrency", "conflictStrategy", "propagateDeletes", "deleteThresholdPercent", "maxFileSizeMB", "logEnabled"])
+
+  /** Backs up backup. */
+  const backup = <K extends keyof AppSettings["backup"]>(key: K, value: AppSettings["backup"][K]) => {
+    setPreview(undefined)
+    const nextDraft: AppSettings = { ...draft, backup: { ...draft.backup, [key]: value } }
+    setDraft(nextDraft)
+    if (syncAutoSaveKeys.has(key) && (secret || nextDraft.backup.hasSecret) && nextDraft.backup.endpoint && nextDraft.backup.bucket && nextDraft.backup.accessKey && nextDraft.backup.workspacePath) {
+      void window.electronAPI
+        .saveSettings(nextDraft, secret)
+        .then((next) => {
+          setDraft(next)
+          setSaved(next)
+          setSecret(undefined)
+          window.dispatchEvent(new Event("vessel:settings-saved"))
+          toast.success("同步设置已保存")
+        })
+        .catch((err) => {
+          console.error("Auto save backup failed:", err)
+        })
+    }
+  }
+
+  /** Runs run. */
+  const run = async (action: () => Promise<void>) => {
+    setBusy(true)
+    setError("")
+    try {
+      await action()
+    } catch (error) {
+      setError(String(error).replace(/^Error: Error invoking remote method '[^']+': (?:Error: )?/, ""))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  /** Performs the back operation. */
+  const back = () => {
+    if (dirty && !confirm("有未保存的设置，确定返回吗？")) return
+    void router.back()
+  }
+  return (
+    <div className="vessel-settings flex h-dvh w-full flex-col bg-background text-foreground">
+      <header className="tool-page-header">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="hover:!bg-[#17A34A] hover:!text-white hover:[&_svg]:!text-white hover:[&_svg]:!stroke-white active:!bg-green-700 active:!text-white"
+          aria-label="返回"
+          title="返回"
+          onClick={back}
+        >
+          <ArrowLeft className="size-5" />
+        </Button>
+        <div className="tool-page-brand">
+          <Settings className="size-6" />
+        </div>
+        <div className="tool-page-heading">
+          <h1 className="text-xl font-bold">设置</h1>
+          <p className="mt-1 text-xs text-muted-foreground">自定义 Vessel 的外观、行为和功能</p>
+        </div>
+        <div className="tool-page-actions">
+          <Button
+            variant="outline"
+            disabled={!saved || busy}
+            className="hover:!bg-[#17A34A] hover:!text-white hover:[&_svg]:!text-white hover:[&_svg]:!stroke-white active:!bg-green-700 active:!text-white"
+            onClick={() => {
+              setDraft({ ...structuredClone(defaultSettings), backup: { ...defaultSettings.backup, workspacePath: draft.backup.workspacePath } })
+              setSecret("")
+            }}
+          >
+            <RotateCcw className="size-4" />
+            重置
+          </Button>
+          <Button
+            disabled={!saved || busy || !dirty}
+            className="!bg-green-600 !text-white hover:!bg-green-700"
+            onClick={() =>
+              void run(async () => {
+                const next = await window.electronAPI.saveSettings(draft, secret)
+                setDraft(next)
+                setSaved(next)
+                setSecret(undefined)
+                applyAppearance(next)
+                window.dispatchEvent(new Event("vessel:settings-saved"))
+                toast.success("设置已保存")
+              })
+            }
+          >
+            <Save className="size-4" />
+            保存
+          </Button>
+        </div>
+      </header>
+      <div className="flex min-h-0 flex-1">
+        <nav
+          aria-label="设置分类"
+          className="w-48 shrink-0 border-r bg-card p-3 max-sm:w-32"
+        >
+          {sections.map(({ id, label, icon: Icon }) => (
+            <button
+              key={id}
+              aria-current={section === id ? "page" : undefined}
+              onClick={() => setSection(id)}
+              className={`mb-1 flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sm ${section === id ? "bg-green-50 font-semibold text-green-600 dark:bg-green-950" : "text-muted-foreground hover:bg-muted"}`}
+            >
+              <Icon className="size-4 shrink-0" />
+              {label}
+            </button>
+          ))}
+        </nav>
+        <ScrollArea className="min-h-0 min-w-0 flex-1 bg-muted/20 [&_[data-radix-scroll-area-viewport]>div]:!block">
+          <main className="p-6">
+            <div className="mx-auto max-w-[860px]">
+              {error && (
+                <p
+                  role="alert"
+                  className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-600"
+                >
+                  {error}
+                </p>
+              )}
+              {!saved && !error && <p role="status">正在读取设置…</p>}
+              {section === "about" && (
+                <>
+                  <h2>关于 Vessel</h2>
+                  <p className="settings-description">应用信息、个人资料和版本详情</p>
+                  <div className="settings-card flex items-center gap-4 p-6">
+                    <label className="relative cursor-pointer">
+                      <span className="flex size-16 items-center justify-center overflow-hidden rounded-2xl bg-green-100 text-2xl font-bold text-green-700">
+                        {draft.avatar ? (
+                          <img
+                            src={draft.avatar}
+                            alt="头像"
+                            className="size-full object-cover"
+                          />
+                        ) : (
+                          draft.name.slice(0, 1)
+                        )}
+                      </span>
+                      <Camera className="absolute -bottom-1 -right-1 size-6 rounded-full bg-green-600 p-1 text-white" />
+                      <Input
+                        aria-label="更换头像"
+                        type="file"
+                        accept="image/png,image/jpeg"
+                        className="sr-only"
+                        onChange={(event) => {
+                          const file = event.target.files?.[0]
+                          if (!file) return
+                          if (file.size > 2 * 1024 * 1024) {
+                            setError("头像不能超过 2 MB")
+                            return
+                          }
+                          const reader = new FileReader()
+                          reader.onload = () => update("avatar", String(reader.result))
+                          reader.readAsDataURL(file)
+                        }}
+                      />
+                    </label>
+                    <div>
+                      <h3 className="text-lg font-semibold">{draft.name || "本地用户"}</h3>
+                      <p className="text-xs text-muted-foreground">{draft.email}</p>
+                      <span className="mt-2 inline-block rounded bg-green-50 px-2 py-1 text-xs text-green-700">本地用户</span>
+                    </div>
+                    <span className="ml-auto text-sm text-muted-foreground">v{info.version}</span>
+                  </div>
+                  <div className="settings-card">
+                    <Row
+                      title="用户名"
+                      description="本地个人资料"
+                    >
+                      <Input
+                        aria-label="用户名"
+                        value={draft.name}
+                        maxLength={80}
+                        onChange={(e) => update("name", e.target.value)}
+                      />
+                    </Row>
+                    <Row
+                      title="邮箱"
+                      description="保存在本机的联系信息"
+                    >
+                      <Input
+                        aria-label="邮箱"
+                        type="email"
+                        value={draft.email}
+                        onChange={(e) => update("email", e.target.value)}
+                      />
+                    </Row>
+                  </div>
+                  <div className="settings-card">
+                    <Row
+                      title="当前版本"
+                      description={`Vessel v${info.version}`}
+                    />
+                    <Row
+                      title="Electron"
+                      description={info.electron}
+                    />
+                    <Row
+                      title="React"
+                      description={reactVersion}
+                    />
+                    <Row
+                      title="Node.js"
+                      description={info.node}
+                    />
+                  </div>
+                </>
+              )}
+              {section === "appearance" && (
+                <>
+                  <h2>外观设置</h2>
+                  <p className="settings-description">自定义应用的主题、字体和显示大小</p>
+                  <div className="settings-card">
+                    <Row
+                      title="主题模式"
+                      description="选择应用的明暗主题"
+                    >
+                      <Select
+                        value={draft.theme}
+                        onValueChange={(value) => update("theme", value as AppSettings["theme"])}
+                      >
+                        <SelectTrigger
+                          aria-label="主题模式"
+                          className="w-[200px]"
+                        >
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="light">浅色</SelectItem>
+                          <SelectItem value="dark">深色</SelectItem>
+                          <SelectItem value="system">跟随系统</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </Row>
+                    <Row
+                      title="界面字体"
+                      description="使用本机可用字体，缺失时使用系统字体"
+                    >
+                      <Select
+                        value={draft.font}
+                        onValueChange={(value) => update("font", value)}
+                      >
+                        <SelectTrigger
+                          aria-label="界面字体"
+                          className="w-[200px]"
+                        >
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {fonts.map((font) => (
+                            <SelectItem
+                              key={font}
+                              value={font}
+                            >
+                              {font}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </Row>
+                    <Row
+                      title="默认字体大小"
+                      description="调整界面大小（12px – 18px）"
+                    >
+                      <div className="flex w-[200px] items-center gap-3">
+                        <Slider
+                          aria-label="默认字体大小"
+                          min={12}
+                          max={18}
+                          step={1}
+                          value={[draft.fontSize]}
+                          onValueChange={(values) => update("fontSize", values[0])}
+                        />
+                        <span className="shrink-0 text-xs tabular-nums">{draft.fontSize}px</span>
+                      </div>
+                    </Row>
+                  </div>
+                  <div className="settings-card p-5">
+                    <h3>字体预览</h3>
+                    <div
+                      className="mt-3 rounded-lg bg-muted p-4"
+                      style={{ fontFamily: `${draft.font}, sans-serif`, fontSize: draft.fontSize }}
+                    >
+                      <strong>Vessel 笔记应用</strong>
+                      <p className="mt-2">The quick brown fox jumps over the lazy dog. 本地优先的 Markdown 编辑器。</p>
+                    </div>
+                  </div>
+                </>
+              )}
+              {section === "shortcuts" && <ShortcutSettings />}
+              {section === "general" && (
+                <>
+                  <h2>通用配置</h2>
+                  <p className="settings-description">应用通用选项与页面行为</p>
+                  <div className="settings-card">
+                    <Row title="浏览器搜索引擎">
+                      <Select
+                        value={draft.searchEngine || "bing"}
+                        onValueChange={(value) => update("searchEngine", value as AppSettings["searchEngine"])}
+                      >
+                        <SelectTrigger aria-label="浏览器搜索引擎">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {[
+                            ["bing", "Bing"],
+                            ["google", "Google"],
+                            ["baidu", "百度"],
+                            ["duckduckgo", "DuckDuckGo"]
+                          ].map(([value, label]) => (
+                            <SelectItem
+                              key={value}
+                              value={value}
+                            >
+                              {label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </Row>
+                    <Row
+                      title="开启代理"
+                      description="开启后显示浏览器底部代理入口；关闭会断开代理。"
+                    >
+                      <Switch
+                        aria-label="开启代理"
+                        checked={!!draft.proxyEnabled}
+                        onCheckedChange={(value) => update("proxyEnabled", value)}
+                      />
+                    </Row>
+                    <Row
+                      title="端外截图"
+                      description="Mac 使用 Control+X，Windows 使用 F1 在其他应用中截图。"
+                    >
+                      <Switch
+                        aria-label="端外截图"
+                        checked={draft.externalScreenshot !== false}
+                        onCheckedChange={(value) => update("externalScreenshot", value)}
+                      />
+                    </Row>
+                    <Row
+                      title="端外文件预览"
+                      description="允许通过系统“打开方式”使用 Vessel 预览文件。"
+                    >
+                      <Switch
+                        aria-label="端外文件预览"
+                        checked={draft.externalPreview !== false}
+                        onCheckedChange={(value) => update("externalPreview", value)}
+                      />
+                    </Row>
+                    <Row
+                      title="监听页面跳转"
+                      description="开启后，非链接跳转前询问在当前页面还是新标签页打开；a 标签链接直接放行。"
+                    >
+                      <Switch
+                        aria-label="监听页面跳转"
+                        checked={!!draft.monitorNavigation}
+                        onCheckedChange={(value) => update("monitorNavigation", value)}
+                      />
+                    </Row>
+                    <Row
+                      title="活动栏全局搜索"
+                      description="开启后在左侧活动栏显示全局搜索入口；关闭后仅保留侧边栏和快捷键搜索。"
+                    >
+                      <Switch
+                        aria-label="活动栏全局搜索"
+                        checked={!!draft.globalSearchEnabled}
+                        onCheckedChange={(value) => update("globalSearchEnabled", value)}
+                      />
+                    </Row>
+                    <Row
+                      title="忽略文件与文件夹"
+                      description="配置在工作区和项目资源区中需要过滤隐藏的文件或文件夹名称，多个以逗号分隔。默认：.obsidian, .git"
+                    >
+                      <Input
+                        aria-label="忽略文件与文件夹"
+                        className="!w-[280px]"
+                        value={(draft.ignoredFiles === ".obsidian, .gut" ? ".obsidian, .git" : draft.ignoredFiles) ?? ".obsidian, .git"}
+                        placeholder=".obsidian, .git"
+                        onChange={(e) => update("ignoredFiles", e.target.value)}
+                      />
+                    </Row>
+                  </div>
+                </>
+              )}
+              {section === "sync" && (
+                <>
+                  <h2>同步与备份</h2>
+                  <p className="settings-description">{draft.backup.workspacePath ? `当前工作区：${draft.backup.workspacePath}。仅同步此目录中的文件。` : "请先进入工作区。项目资源库不支持同步。"}</p>
+                  <div className="settings-card p-5">
+                    <div className="mb-4 flex gap-3 rounded-xl border border-green-500 bg-green-50 p-4 dark:bg-green-950">
+                      <Cloud className="size-8 text-blue-600" />
+                      <div>
+                        <h3>S3 兼容存储</h3>
+                        <p className="text-xs text-muted-foreground">备份到 AWS S3、MinIO、阿里云 OSS 等 S3 兼容对象存储</p>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 rounded-xl border bg-muted/30 p-4">
+                      {(
+                        [
+                          ["endpoint", "Endpoint（服务端点）", "https://s3.amazonaws.com"],
+                          ["accessKey", "Access Key", "AKIA…"],
+                          ["bucket", "Bucket 名称", "vessel-backup"],
+                          ["region", "区域", "us-east-1"],
+                          ["prefix", "路径前缀", "请输入"]
+                        ] as const
+                      ).map(([key, label, placeholder]) => (
+                        <label
+                          key={key}
+                          className={`text-xs ${["endpoint", "bucket"].includes(key) ? "col-span-2" : ""}`}
+                        >
+                          {label}
+                          <Input
+                            type={key === "accessKey" ? "password" : "text"}
+                            autoComplete="off"
+                            className="mt-2 !w-full"
+                            value={draft.backup[key]}
+                            placeholder={placeholder}
+                            onChange={(e) => backup(key, e.target.value)}
+                          />
+                        </label>
+                      ))}
+                      <label className="col-start-2 row-start-2 text-xs">
+                        Secret Key
+                        <Input
+                          className="mt-2 !w-full"
+                          type="password"
+                          autoComplete="new-password"
+                          placeholder="输入 Secret Key"
+                          value={secret ?? (draft.backup.hasSecret ? "•".repeat(draft.backup.secretLength || 0) : "")}
+                          onFocus={(event) => event.target.select()}
+                          onChange={(e) => setSecret(e.target.value)}
+                        />
+                      </label>
+                      <div className="col-span-2">
+                        <Button
+                          variant="outline"
+                          disabled={busy || !saved}
+                          onClick={() =>
+                            void run(async () => {
+                              await window.electronAPI.testBackup(draft.backup, secret)
+                              toast.success("连接成功，存储桶可访问")
+                            })
+                          }
+                        >
+                          测试连接
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="settings-card">
+                    <Row
+                      title="开启同步"
+                      description="仅对当前工作区生效；开启后显示底部同步状态"
+                    >
+                      <Switch
+                        aria-label="开启同步"
+                        disabled={!draft.backup.workspacePath}
+                        checked={!!draft.backup.enabled}
+                        onCheckedChange={(value) => backup("enabled", value)}
+                      />
+                    </Row>
+                    <Row
+                      title="同步排除规则"
+                      description="只影响同步，不隐藏工作区文件。file 匹配文件，folder 匹配文件夹及其内容；支持 * 和 ? 通配符。"
+                    >
+                      <div className="w-[360px] max-w-full">
+                        <textarea
+                          aria-label="同步排除规则"
+                          rows={3}
+                          className="w-full resize-y rounded-md border bg-background p-2 font-mono text-xs"
+                          placeholder="{file:a,b,c;folder:d}"
+                          value={draft.backup.syncExcludeRules ?? ""}
+                          onChange={(event) => backup("syncExcludeRules", event.target.value)}
+                        />
+                        <p className="mt-2 break-all text-xs text-muted-foreground">
+                          {"{file:a,b,c},{folder:d}"} 与 {"{file:a,b,c;folder:d}"} 等效。文件名包含扩展名，如 {"{file:*.log;folder:images,img}"}。
+                        </p>
+                      </div>
+                    </Row>
+                    <Row
+                      title="同步诊断日志"
+                      description="记录同步阶段、文件操作、排除结果和错误，最多保留 1000 条。"
+                    >
+                      <Switch
+                        aria-label="同步诊断日志"
+                        checked={!!draft.backup.logEnabled}
+                        onCheckedChange={(value) => backup("logEnabled", value)}
+                      />
+                    </Row>
+                    <Row
+                      title="同步方向"
+                      description="双向同步可在设备之间上传和下载更新。"
+                    >
+                      <Select
+                        value={draft.backup.direction ?? "bidirectional"}
+                        onValueChange={(value) => backup("direction", value as "push" | "pull" | "bidirectional")}
+                      >
+                        <SelectTrigger aria-label="同步方向">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="bidirectional">双向同步</SelectItem>
+                          <SelectItem value="push">仅上传备份</SelectItem>
+                          <SelectItem value="pull">仅下载更新</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </Row>
+                    <Row
+                      title="并发文件数"
+                      description="网络延迟较高时可提高并发；默认 8。"
+                    >
+                      <Select
+                        value={String(draft.backup.concurrency ?? 8)}
+                        onValueChange={(value) => backup("concurrency", Number(value))}
+                      >
+                        <SelectTrigger aria-label="并发文件数">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {[2, 4, 8, 16, 32].map((value) => (
+                            <SelectItem
+                              key={value}
+                              value={String(value)}
+                            >
+                              {value} 个文件
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </Row>
+                    <Row
+                      title="冲突处理"
+                      description="双方都修改时，默认保留两个版本；双向模式会生成本地冲突副本。"
+                    >
+                      <Select
+                        value={draft.backup.conflictStrategy ?? "keep-both"}
+                        onValueChange={(value) => backup("conflictStrategy", value as "keep-both" | "keep-newer" | "keep-larger" | "error")}
+                      >
+                        <SelectTrigger aria-label="冲突处理">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="keep-both">保留双方</SelectItem>
+                          <SelectItem value="keep-newer">保留较新版本</SelectItem>
+                          <SelectItem value="keep-larger">保留较大版本</SelectItem>
+                          <SelectItem value="error">发现冲突时停止</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </Row>
+                    <Row
+                      title="同步删除"
+                      description="关闭时，双向同步会重新下载本地已删除的远端文件。开启后，仅传播已同步且另一端未修改的删除；同步删除本地文件时移入 .vessel/trash。"
+                    >
+                      <Switch
+                        aria-label="同步删除"
+                        checked={!!draft.backup.propagateDeletes}
+                        onCheckedChange={(value) => backup("propagateDeletes", value)}
+                      />
+                    </Row>
+                    <Row
+                      title="批量删除保护"
+                      description="计划删除比例超过阈值时中止；先预览计划。100% 表示不限制比例。"
+                    >
+                      <Select
+                        value={String(draft.backup.deleteThresholdPercent ?? 20)}
+                        onValueChange={(value) => backup("deleteThresholdPercent", Number(value))}
+                      >
+                        <SelectTrigger aria-label="批量删除保护">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {[10, 20, 50, 100].map((value) => (
+                            <SelectItem
+                              key={value}
+                              value={String(value)}
+                            >
+                              {value}%
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </Row>
+                    <Row
+                      title="跳过大文件"
+                      description="超过此大小的文件不参与同步；0 表示不限制，单位 MB。"
+                    >
+                      <Input
+                        aria-label="跳过大文件"
+                        type="number"
+                        min={0}
+                        max={5120}
+                        value={draft.backup.maxFileSizeMB ?? 0}
+                        onChange={(event) => backup("maxFileSizeMB", Number(event.target.value))}
+                      />
+                    </Row>
+                    <Row
+                      title="保存后同步"
+                      description="文件变更后等待 1.5 秒合并操作，再同步当前工作区。"
+                    >
+                      <Switch
+                        aria-label="保存后同步"
+                        checked={!!draft.backup.syncOnSave}
+                        onCheckedChange={(value) => backup("syncOnSave", value)}
+                      />
+                    </Row>
+                    <Row
+                      title="定时同步"
+                      description="按下方频率检查本地和远端变化，遵循所选同步方向。"
+                    >
+                      <Switch
+                        aria-label="自动备份"
+                        disabled={!draft.backup.enabled}
+                        checked={draft.backup.automatic}
+                        onCheckedChange={(value) => backup("automatic", value)}
+                      />
+                    </Row>
+                    <div className="p-5">
+                      <label className="block rounded-xl border bg-muted/30 p-4 text-xs">
+                        <span className="mb-3 flex items-center gap-2 text-muted-foreground">
+                          <Clock className="size-4" />
+                          更新频率
+                        </span>
+                        <Select
+                          value={String(draft.backup.minutes)}
+                          onValueChange={(value) => backup("minutes", Number(value) as 5 | 10 | 30)}
+                        >
+                          <SelectTrigger aria-label="更新频率">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {[5, 10, 30].map((value) => (
+                              <SelectItem
+                                key={value}
+                                value={String(value)}
+                              >
+                                {value} 分钟
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </label>
+                      <div className="mt-4 flex items-center gap-3 rounded-xl border p-4">
+                        <CheckCircle2 className={`size-6 ${status.time && !status.error ? "text-green-600" : "text-muted-foreground"}`} />
+                        <div className="min-w-0 flex-1">
+                          <h3>
+                            {status.running
+                              ? status.progress
+                                ? status.progress.phase === "remote"
+                                  ? "正在读取远端列表…"
+                                  : status.progress.phase === "hashing"
+                                    ? `正在检查本地文件… ${status.progress.completed}/${status.progress.total}`
+                                    : status.progress.phase === "planning"
+                                      ? `正在生成同步计划… ${status.progress.completed}/${status.progress.total}`
+                                      : `正在同步… ${status.progress.completed}/${status.progress.total}`
+                                : "正在扫描…"
+                              : status.error
+                                ? "上次同步失败"
+                                : status.time
+                                  ? status.conflicts?.length
+                                    ? "同步完成，已处理冲突"
+                                    : "上次同步成功"
+                                  : "尚未执行备份"}
+                          </h3>
+                          <p className="break-all text-xs text-muted-foreground">
+                            {status.running
+                              ? status.progress
+                                ? `${status.progress.path || "正在准备"} · ${(status.progress.bytes / 1024 ** 2).toFixed(1)} MB · ${(status.progress.bytes / 1024 ** 2 / Math.max(1, (status.progress.elapsedMs ?? 0) / 1000)).toFixed(2)} MB/s`
+                                : "正在扫描本地文件"
+                              : status.error ||
+                                (status.time
+                                  ? `${new Date(status.time).toLocaleString()} · ${(((status.size || 0) + (status.downloadSize || 0)) / 1024 ** 2).toFixed(1)} MB · ${status.changed ?? 0} 个上传 · ${status.downloaded ?? 0} 个下载 · ${status.deleted ?? 0} 个删除 · ${((status.durationMs ?? 0) / 1000).toFixed(1)} 秒${status.conflicts?.length ? ` · ${status.conflicts.length} 个冲突处理：${status.conflicts.join("、")}` : ""} · S3`
+                                  : "先保存存储配置，再执行备份")}
+                          </p>
+                        </div>
+                        <Button
+                          variant="outline"
+                          disabled={busy || status.running || !saved || !draft.backup.enabled || !draft.backup.workspacePath}
+                          onClick={() =>
+                            void run(async () => {
+                              if (dirty) {
+                                const next = await window.electronAPI.saveSettings(draft, secret)
+                                setDraft(next)
+                                setSaved(next)
+                                setSecret(undefined)
+                                applyAppearance(next)
+                                window.dispatchEvent(new Event("vessel:settings-saved"))
+                              }
+                              setPreview(await window.electronAPI.previewBackup())
+                              setPreviewLimit(100)
+                            })
+                          }
+                        >
+                          预览计划
+                        </Button>
+                        <Button
+                          variant="outline"
+                          disabled={busy || status.running || !saved || !draft.backup.enabled || !draft.backup.workspacePath}
+                          onClick={() =>
+                            void run(async () => {
+                              if (dirty) {
+                                const next = await window.electronAPI.saveSettings(draft, secret)
+                                setDraft(next)
+                                setSaved(next)
+                                setSecret(undefined)
+                                applyAppearance(next)
+                                window.dispatchEvent(new Event("vessel:settings-saved"))
+                              }
+                              setStatus(await window.electronAPI.runBackup())
+                            })
+                          }
+                        >
+                          <Download className="size-4" />
+                          立即同步
+                        </Button>
+                      </div>
+                      <SyncDiagnosticsPanel
+                        key={draft.backup.workspacePath}
+                        workspace={draft.backup.workspacePath}
+                        running={status.running}
+                      />
+                      {preview && (
+                        <div className="mt-4 rounded-xl border p-4">
+                          <h3>同步计划预览</h3>
+                          <p className="mt-1 text-xs text-muted-foreground">仅预览，不修改文件。{preview.plan?.filter((item) => item.action !== "equal").length ?? 0} 个待处理文件。</p>
+                          <div className="mt-3 max-h-64 overflow-auto">
+                            <table className="w-full text-left text-xs">
+                              <thead>
+                                <tr>
+                                  <th className="p-2">文件</th>
+                                  <th className="p-2">操作</th>
+                                  <th className="p-2">原因</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {preview.plan
+                                  ?.filter((item) => item.action !== "equal")
+                                  .slice(0, previewLimit)
+                                  .map((item) => (
+                                    <tr
+                                      key={item.path}
+                                      className="border-t"
+                                    >
+                                      <td className="break-all p-2">{item.path}</td>
+                                      <td className="whitespace-nowrap p-2">{({ upload: "上传", download: "下载", "delete-local": "移入本地回收目录", "delete-remote": "删除远端", conflict: "处理冲突", skip: "跳过" } as Record<string, string>)[item.action] || item.action}</td>
+                                      <td className="p-2">{item.reason}</td>
+                                    </tr>
+                                  ))}
+                              </tbody>
+                            </table>
+                          </div>
+                          {(preview.plan?.filter((item) => item.action !== "equal").length ?? 0) > previewLimit && (
+                            <Button
+                              variant="outline"
+                              className="mt-3"
+                              onClick={() => setPreviewLimit((current) => current + 100)}
+                            >
+                              查看更多文件
+                            </Button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          </main>
+        </ScrollArea>
+      </div>
+    </div>
+  )
+}

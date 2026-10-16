@@ -1,6 +1,6 @@
 import { expect, it, vi } from "vitest"
 import type { Session } from "electron"
-import { registerBrowserSiteCompatibility, upgradeHelperHeaders } from "../../src/main/browser-site-compatibility"
+import { registerBrowserSiteCompatibility, upgradeHelperHeaders } from "@main/browser/browser-site-compatibility"
 
 it("upgrades helper documents while preserving all existing security policies", () => {
   const headers = { "content-security-policy": ["script-src 'self'", "object-src 'none'"], "X-Frame-Options": ["SAMEORIGIN"] }

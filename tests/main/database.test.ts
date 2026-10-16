@@ -55,8 +55,8 @@ vi.mock("electron", () => ({
   }
 }))
 
-import { AppDatabase } from "../../src/main/modules/welcome/database/index.database"
-import type { WorkspaceDataInput } from "../../src/main/modules/welcome/index.type"
+import { AppDatabase } from "@main/modules/welcome/database/index.database"
+import type { WorkspaceDataInput } from "@main/modules/welcome/index.type"
 
 describe("AppDatabase 数据打印", () => {
   /**

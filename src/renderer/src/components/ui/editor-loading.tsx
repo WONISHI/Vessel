@@ -1,5 +1,7 @@
+import "@/components/ui/editor-loading.css"
 import { FileText } from "lucide-react"
-import "./editor-loading.css"
+
+/** Renders the editor loading component. */
 export function EditorLoading({ kind = "code", label }: { kind?: "code" | "office"; label?: string }) {
   return (
     <div

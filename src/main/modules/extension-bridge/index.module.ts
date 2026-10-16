@@ -1,19 +1,21 @@
-import { createServer, type Server, type IncomingMessage, type ServerResponse } from "node:http"
-import { mkdir, writeFile, stat } from "node:fs/promises"
-import { join, relative } from "node:path"
+import { getBrowserBookmarks, setBrowserBookmarks } from "@main/browser/browser-tools"
+import { BaseModule } from "@main/modules/base/index"
+import { getCurrentWorkspace } from "@main/settings/settings"
 import { BrowserWindow } from "electron"
-import { BaseModule } from "../base"
-import { getCurrentWorkspace } from "../../settings"
-import { getBrowserBookmarks, setBrowserBookmarks } from "../../browser-tools"
+import { mkdir, stat, writeFile } from "node:fs/promises"
+import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http"
+import { join, relative } from "node:path"
 
 const BRIDGE_PORT = 35678
 
 let activePageMetadata: any = null
 
+/** Sets active page metadata. */
 export function setActivePageMetadata(data: any) {
   activePageMetadata = data
 }
 
+/** Returns active page metadata. */
 export function getActivePageMetadata() {
   return activePageMetadata
 }
@@ -45,6 +47,7 @@ interface BookmarkSyncPayload {
 export class ExtensionBridgeModule extends BaseModule {
   private server: Server | null = null
 
+  /** Handles activate events. */
   protected onActivate(): void {
     try {
       this.server = createServer((req, res) => {
@@ -57,9 +60,20 @@ export class ExtensionBridgeModule extends BaseModule {
         })
       })
 
-      this.server.on("error", (err: NodeJS.ErrnoException) => {
+      this.server.on("error", async (err: NodeJS.ErrnoException) => {
         if (err.code === "EADDRINUSE") {
-          console.warn(`[ExtensionBridge] Port ${BRIDGE_PORT} is already in use; extension bridge server will not start on this port.`)
+          try {
+            const controller = new AbortController()
+            const timer = setTimeout(() => controller.abort(), 1000)
+            const resp = await fetch(`http://127.0.0.1:${BRIDGE_PORT}/api/ping`, { signal: controller.signal })
+            clearTimeout(timer)
+            const data: any = await resp.json()
+            if (data?.app === "Vessel") {
+              console.log(`[ExtensionBridge] 已检测到运行中的 Vessel 实例已在端口 ${BRIDGE_PORT} 提供扩展桥接服务。`)
+              return
+            }
+          } catch {}
+          console.warn(`[ExtensionBridge] 端口 ${BRIDGE_PORT} 已被占用，扩展桥接服务未能在此端口启动。`)
         } else {
           console.error("[ExtensionBridge] Server error:", err)
         }
@@ -73,21 +87,25 @@ export class ExtensionBridgeModule extends BaseModule {
     }
   }
 
+  /** Handles dispose events. */
   protected onDispose(): void {
     if (this.server) {
       try {
+        ;(this.server as any).closeAllConnections?.()
         this.server.close()
       } catch {}
       this.server = null
     }
   }
 
+  /** Sets cors headers. */
   private setCorsHeaders(res: ServerResponse) {
     res.setHeader("Access-Control-Allow-Origin", "*")
     res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
     res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With")
   }
 
+  /** Parses body. */
   private async parseBody<T>(req: IncomingMessage): Promise<T> {
     return new Promise((resolve, reject) => {
       const chunks: Buffer[] = []
@@ -112,11 +130,16 @@ export class ExtensionBridgeModule extends BaseModule {
     })
   }
 
+  /** Sanitizes filename. */
   private sanitizeFilename(name: string): string {
-    const sanitized = name.replace(/[\\/:*?"<>|]/g, "-").replace(/\s+/g, " ").trim()
+    const sanitized = name
+      .replace(/[\\/:*?"<>|]/g, "-")
+      .replace(/\s+/g, " ")
+      .trim()
     return (sanitized.slice(0, 100) || "未命名剪藏") + ".md"
   }
 
+  /** Handles request events. */
   private async handleRequest(req: IncomingMessage, res: ServerResponse): Promise<void> {
     this.setCorsHeaders(res)
 
@@ -132,15 +155,19 @@ export class ExtensionBridgeModule extends BaseModule {
     if (pathname === "/api/status" || pathname === "/api/ping") {
       const workspace = getCurrentWorkspace()
       res.writeHead(200, { "Content-Type": "application/json" })
-      res.end(JSON.stringify({
-        ok: true,
-        app: "Vessel",
-        version: "1.0.0",
-        workspace: workspace ? {
-          path: workspace,
-          name: workspace.split(/[\\/]/).filter(Boolean).pop()
-        } : null
-      }))
+      res.end(
+        JSON.stringify({
+          ok: true,
+          app: "Vessel",
+          version: "1.0.0",
+          workspace: workspace
+            ? {
+                path: workspace,
+                name: workspace.split(/[\\/]/).filter(Boolean).pop()
+              }
+            : null
+        })
+      )
       return
     }
 
@@ -189,14 +216,16 @@ export class ExtensionBridgeModule extends BaseModule {
       await writeFile(filePath, fileContent, "utf8")
 
       res.writeHead(200, { "Content-Type": "application/json" })
-      res.end(JSON.stringify({
-        ok: true,
-        success: true,
-        message: "剪藏成功",
-        filename,
-        relativePath: relative(workspace, filePath),
-        path: filePath
-      }))
+      res.end(
+        JSON.stringify({
+          ok: true,
+          success: true,
+          message: "剪藏成功",
+          filename,
+          relativePath: relative(workspace, filePath),
+          path: filePath
+        })
+      )
       return
     }
 
@@ -295,24 +324,30 @@ export class ExtensionBridgeModule extends BaseModule {
           await mkdir(vesselDir, { recursive: true })
           await writeFile(
             join(vesselDir, "bookmarks.json"),
-            JSON.stringify({
-              updatedAt: new Date().toISOString(),
-              total: resultBookmarks.length,
-              bookmarks: resultBookmarks
-            }, null, 2),
+            JSON.stringify(
+              {
+                updatedAt: new Date().toISOString(),
+                total: resultBookmarks.length,
+                bookmarks: resultBookmarks
+              },
+              null,
+              2
+            ),
             "utf8"
           )
         } catch {}
       }
 
       res.writeHead(200, { "Content-Type": "application/json" })
-      res.end(JSON.stringify({
-        ok: true,
-        success: true,
-        direction,
-        total: resultBookmarks.length,
-        bookmarks: resultBookmarks
-      }))
+      res.end(
+        JSON.stringify({
+          ok: true,
+          success: true,
+          direction,
+          total: resultBookmarks.length,
+          bookmarks: resultBookmarks
+        })
+      )
       return
     }
 

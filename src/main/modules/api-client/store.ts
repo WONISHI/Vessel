@@ -1,58 +1,18 @@
+import type { ApiCollectionRecord, ApiEnvironmentRecord, ApiHistoryRecord, ApiRequestRecord } from "@vessel/type/api-client"
 import Database from "better-sqlite3"
-
-export interface ApiCollectionRecord {
-  id: string
-  name: string
-  parentId: string | null
-  createdAt: number
-}
-
-export interface ApiRequestRecord {
-  id: string
-  collectionId: string | null
-  name: string
-  method: string
-  url: string
-  headers: string // JSON: { key, value, enabled, description }[]
-  params: string // JSON: { key, value, enabled, description }[]
-  bodyType: "none" | "form-data" | "x-www-form-urlencoded" | "raw" | "binary"
-  bodyContent: string // text, JSON, or form fields JSON
-  rawType?: "json" | "text" | "html" | "xml" | "javascript"
-  authType: "none" | "bearer" | "basic" | "apiKey"
-  authConfig: string // JSON
-  tests: string // test assertion code / script
-  updatedAt: number
-}
-
-export interface ApiHistoryRecord {
-  id: number
-  method: string
-  url: string
-  status: number
-  statusText: string
-  durationMs: number
-  sizeBytes: number
-  requestData: string // JSON snapshot of request
-  responsePreview?: string
-  createdAt: number
-}
-
-export interface ApiEnvironmentRecord {
-  id: string
-  name: string
-  variables: string // JSON: { key, value, enabled }[]
-  isActive: boolean
-}
+export type { ApiCollectionRecord, ApiEnvironmentRecord, ApiHistoryRecord, ApiRequestRecord } from "@vessel/type/api-client"
 
 export class ApiClientStore {
   private db: Database.Database
 
+  /** Initializes the instance and its required dependencies. */
   constructor(dbPath: string) {
     this.db = new Database(dbPath)
     this.db.pragma("journal_mode = WAL")
     this.initTables()
   }
 
+  /** Initializes tables. */
   private initTables(): void {
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS api_collections (
@@ -106,46 +66,37 @@ export class ApiClientStore {
       this.saveEnvironment({
         id: "env-dev",
         name: "Dev 环境",
-        variables: JSON.stringify([
-          { key: "baseUrl", value: "https://jsonplaceholder.typicode.com", enabled: true }
-        ]),
+        variables: JSON.stringify([{ key: "baseUrl", value: "https://jsonplaceholder.typicode.com", enabled: true }]),
         isActive: true
       })
       this.saveEnvironment({
         id: "env-prod",
         name: "Prod 生产环境",
-        variables: JSON.stringify([
-          { key: "baseUrl", value: "https://api.github.com", enabled: true }
-        ]),
+        variables: JSON.stringify([{ key: "baseUrl", value: "https://api.github.com", enabled: true }]),
         isActive: false
       })
     }
   }
 
   // --- Collections ---
+
+  /** Lists collections. */
   listCollections(): ApiCollectionRecord[] {
-    return (this.db.prepare("SELECT id, name, parent_id as parentId, created_at as createdAt FROM api_collections ORDER BY created_at ASC").all() as ApiCollectionRecord[])
+    return this.db.prepare("SELECT id, name, parent_id as parentId, created_at as createdAt FROM api_collections ORDER BY created_at ASC").all() as ApiCollectionRecord[]
   }
 
+  /** Saves collection. */
   saveCollection(record: { id: string; name: string; parentId?: string | null }): ApiCollectionRecord[] {
     const existing = this.db.prepare("SELECT id FROM api_collections WHERE id = ?").get(record.id)
     if (existing) {
-      this.db.prepare("UPDATE api_collections SET name = ?, parent_id = ? WHERE id = ?").run(
-        record.name,
-        record.parentId || null,
-        record.id
-      )
+      this.db.prepare("UPDATE api_collections SET name = ?, parent_id = ? WHERE id = ?").run(record.name, record.parentId || null, record.id)
     } else {
-      this.db.prepare("INSERT INTO api_collections (id, name, parent_id, created_at) VALUES (?, ?, ?, ?)").run(
-        record.id,
-        record.name,
-        record.parentId || null,
-        Date.now()
-      )
+      this.db.prepare("INSERT INTO api_collections (id, name, parent_id, created_at) VALUES (?, ?, ?, ?)").run(record.id, record.name, record.parentId || null, Date.now())
     }
     return this.listCollections()
   }
 
+  /** Deletes collection. */
   deleteCollection(id: string): ApiCollectionRecord[] {
     this.db.prepare("DELETE FROM api_requests WHERE collection_id = ?").run(id)
     this.db.prepare("DELETE FROM api_collections WHERE id = ? OR parent_id = ?").run(id, id)
@@ -153,128 +104,113 @@ export class ApiClientStore {
   }
 
   // --- Requests ---
+
+  /** Lists requests. */
   listRequests(collectionId?: string): ApiRequestRecord[] {
     if (collectionId) {
-      return (this.db.prepare("SELECT id, collection_id as collectionId, name, method, url, headers, params, body_type as bodyType, body_content as bodyContent, auth_type as authType, auth_config as authConfig, tests, updated_at as updatedAt FROM api_requests WHERE collection_id = ? ORDER BY updated_at DESC").all(collectionId) as ApiRequestRecord[])
+      return this.db
+        .prepare("SELECT id, collection_id as collectionId, name, method, url, headers, params, body_type as bodyType, body_content as bodyContent, auth_type as authType, auth_config as authConfig, tests, updated_at as updatedAt FROM api_requests WHERE collection_id = ? ORDER BY updated_at DESC")
+        .all(collectionId) as ApiRequestRecord[]
     }
-    return (this.db.prepare("SELECT id, collection_id as collectionId, name, method, url, headers, params, body_type as bodyType, body_content as bodyContent, auth_type as authType, auth_config as authConfig, tests, updated_at as updatedAt FROM api_requests ORDER BY updated_at DESC").all() as ApiRequestRecord[])
+    return this.db
+      .prepare("SELECT id, collection_id as collectionId, name, method, url, headers, params, body_type as bodyType, body_content as bodyContent, auth_type as authType, auth_config as authConfig, tests, updated_at as updatedAt FROM api_requests ORDER BY updated_at DESC")
+      .all() as ApiRequestRecord[]
   }
 
+  /** Saves request. */
   saveRequest(record: ApiRequestRecord): ApiRequestRecord {
     const existing = this.db.prepare("SELECT id FROM api_requests WHERE id = ?").get(record.id)
     if (existing) {
-      this.db.prepare(`
+      this.db
+        .prepare(
+          `
         UPDATE api_requests SET
           collection_id = ?, name = ?, method = ?, url = ?, headers = ?, params = ?,
           body_type = ?, body_content = ?, auth_type = ?, auth_config = ?, tests = ?, updated_at = ?
         WHERE id = ?
-      `).run(
-        record.collectionId,
-        record.name,
-        record.method,
-        record.url,
-        record.headers,
-        record.params,
-        record.bodyType,
-        record.bodyContent,
-        record.authType,
-        record.authConfig,
-        record.tests,
-        Date.now(),
-        record.id
-      )
+      `
+        )
+        .run(record.collectionId, record.name, record.method, record.url, record.headers, record.params, record.bodyType, record.bodyContent, record.authType, record.authConfig, record.tests, Date.now(), record.id)
     } else {
-      this.db.prepare(`
+      this.db
+        .prepare(
+          `
         INSERT INTO api_requests (
           id, collection_id, name, method, url, headers, params, body_type, body_content, auth_type, auth_config, tests, updated_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(
-        record.id,
-        record.collectionId,
-        record.name,
-        record.method,
-        record.url,
-        record.headers,
-        record.params,
-        record.bodyType,
-        record.bodyContent,
-        record.authType,
-        record.authConfig,
-        record.tests,
-        Date.now()
-      )
+      `
+        )
+        .run(record.id, record.collectionId, record.name, record.method, record.url, record.headers, record.params, record.bodyType, record.bodyContent, record.authType, record.authConfig, record.tests, Date.now())
     }
     return record
   }
 
+  /** Deletes request. */
   deleteRequest(id: string): void {
     this.db.prepare("DELETE FROM api_requests WHERE id = ?").run(id)
   }
 
   // --- History ---
+
+  /** Lists history. */
   listHistory(limit = 100): ApiHistoryRecord[] {
-    return (this.db.prepare(`
+    return this.db
+      .prepare(
+        `
       SELECT
         id, method, url, status, status_text as statusText, duration_ms as durationMs,
         size_bytes as sizeBytes, request_data as requestData, response_preview as responsePreview, created_at as createdAt
       FROM api_history
       ORDER BY created_at DESC
       LIMIT ?
-    `).all(limit) as ApiHistoryRecord[])
+    `
+      )
+      .all(limit) as ApiHistoryRecord[]
   }
 
+  /** Adds history. */
   addHistory(entry: Omit<ApiHistoryRecord, "id">): ApiHistoryRecord {
-    const res = this.db.prepare(`
+    const res = this.db
+      .prepare(
+        `
       INSERT INTO api_history (method, url, status, status_text, duration_ms, size_bytes, request_data, response_preview, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
-      entry.method,
-      entry.url,
-      entry.status,
-      entry.statusText,
-      entry.durationMs,
-      entry.sizeBytes,
-      entry.requestData,
-      entry.responsePreview || "",
-      entry.createdAt || Date.now()
-    )
+    `
+      )
+      .run(entry.method, entry.url, entry.status, entry.statusText, entry.durationMs, entry.sizeBytes, entry.requestData, entry.responsePreview || "", entry.createdAt || Date.now())
     return { ...entry, id: Number(res.lastInsertRowid) }
   }
 
+  /** Clears history. */
   clearHistory(): void {
     this.db.prepare("DELETE FROM api_history").run()
   }
 
+  /** Deletes history. */
   deleteHistory(id: number): void {
     this.db.prepare("DELETE FROM api_history WHERE id = ?").run(id)
   }
 
   // --- Environments ---
+
+  /** Lists environments. */
   listEnvironments(): ApiEnvironmentRecord[] {
     const rows = this.db.prepare("SELECT id, name, variables, is_active as isActive FROM api_environments ORDER BY name ASC").all() as (Omit<ApiEnvironmentRecord, "isActive"> & { isActive: number })[]
-    return rows.map(r => ({ ...r, isActive: !!r.isActive }))
+    return rows.map((r) => ({ ...r, isActive: !!r.isActive }))
   }
 
+  /** Saves environment. */
   saveEnvironment(env: ApiEnvironmentRecord): ApiEnvironmentRecord[] {
     const existing = this.db.prepare("SELECT id FROM api_environments WHERE id = ?").get(env.id)
     if (existing) {
-      this.db.prepare("UPDATE api_environments SET name = ?, variables = ?, is_active = ? WHERE id = ?").run(
-        env.name,
-        env.variables,
-        env.isActive ? 1 : 0,
-        env.id
-      )
+      this.db.prepare("UPDATE api_environments SET name = ?, variables = ?, is_active = ? WHERE id = ?").run(env.name, env.variables, env.isActive ? 1 : 0, env.id)
     } else {
-      this.db.prepare("INSERT INTO api_environments (id, name, variables, is_active) VALUES (?, ?, ?, ?)").run(
-        env.id,
-        env.name,
-        env.variables,
-        env.isActive ? 1 : 0
-      )
+      this.db.prepare("INSERT INTO api_environments (id, name, variables, is_active) VALUES (?, ?, ?, ?)").run(env.id, env.name, env.variables, env.isActive ? 1 : 0)
     }
     return this.listEnvironments()
   }
 
+  /** Sets active environment. */
   setActiveEnvironment(id: string | null): ApiEnvironmentRecord[] {
     this.db.prepare("UPDATE api_environments SET is_active = 0").run()
     if (id) {
@@ -283,11 +219,13 @@ export class ApiClientStore {
     return this.listEnvironments()
   }
 
+  /** Deletes environment. */
   deleteEnvironment(id: string): ApiEnvironmentRecord[] {
     this.db.prepare("DELETE FROM api_environments WHERE id = ?").run(id)
     return this.listEnvironments()
   }
 
+  /** Closes close. */
   close(): void {
     this.db.close()
   }

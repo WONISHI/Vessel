@@ -1,6 +1,6 @@
 import { expect, it } from "vitest"
-import { countDocument } from "../../src/renderer/src/components/core/canvas/variants/markdown/count-document"
-import { decorateCodeBlocks } from "../../src/renderer/src/components/core/canvas/variants/markdown/code-blocks"
+import { countDocument } from "@/components/core/canvas/variants/markdown/count-document"
+import { decorateCodeBlocks } from "@/components/core/canvas/variants/markdown/code-blocks"
 it("counts Unicode characters and words, including empty documents", () => {
   expect(countDocument("")).toEqual({ words: 0, characters: 0, lines: 0 })
   expect(countDocument("Hello world\n😀")).toEqual({ words: 2, characters: 13, lines: 2 })
@@ -8,7 +8,8 @@ it("counts Unicode characters and words, including empty documents", () => {
 })
 it("labels code previews without modifying editable source or image embeds", () => {
   const root = document.createElement("div")
-  root.innerHTML = '<pre class="vditor-ir__marker"><code>```js\nconst x = 1</code></pre><div class="vditor-ir__preview"><pre><code class="language-js">const x = 1</code></pre></div><div class="vditor-ir__preview"><pre><code class="language-vessel-obsidian-image">image</code></pre></div>'
+  root.innerHTML =
+    '<div data-type="code-block"><pre class="vditor-ir__marker"><code class="language-js">const x = 1</code></pre><pre class="vditor-ir__preview"><code class="language-js">const x = 1</code></pre></div><div data-type="code-block" class="vessel-image-block"><pre class="vditor-ir__marker"><code class="language-vessel-obsidian-image">image</code></pre></div>'
   const source = root.querySelector(".vditor-ir__marker")!.innerHTML
   decorateCodeBlocks(root)
   decorateCodeBlocks(root)

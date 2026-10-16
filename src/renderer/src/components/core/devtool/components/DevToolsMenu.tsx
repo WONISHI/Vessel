@@ -1,16 +1,7 @@
-import { AlertCircle, AlertTriangle, CheckCircle2, FileText, Info, Play, Square } from "lucide-react"
-import {
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger
-} from "@/components/ui/dropdown-menu"
+import type { DevToolsMenuProps } from "@/components/core/devtool/src/type"
+import { DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
-import type { DevToolsMenuProps } from "../src/type"
+import { AlertCircle, AlertTriangle, CheckCircle2, FileText, Info, Play, Square } from "lucide-react"
 
 const checkboxItemClassName =
   "cursor-pointer rounded-md py-[6px] pr-2 text-[12.5px] text-stone-700 " +
@@ -26,6 +17,7 @@ const checkboxItemClassName =
   "[&>span:first-child_svg]:h-[10px] " +
   "[&>span:first-child_svg]:w-[10px]"
 
+/** Renders the dev tools menu component. */
 export function DevToolsMenu({ isSpyEnabled, enabledTypes, hasError, menuItems, onToggleSpy, onToggleType }: DevToolsMenuProps) {
   return (
     <DropdownMenuContent

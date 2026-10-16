@@ -1,8 +1,8 @@
-import { useId, useState } from "react"
-import { Plus } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
-import { greenInput } from "./todo-table-model"
+import { greenInput } from "@/pages/todos/components/todo-table-model"
+import { Plus } from "lucide-react"
+import { useId, useState } from "react"
 
 /** Shared keyboard-accessible suggestions for tags and people; options come from saved data. */
 export function CreatableOptions({
@@ -30,8 +30,12 @@ export function CreatableOptions({
   const [highlight, setHighlight] = useState(0)
   const listId = useId()
   const query = input.trim()
+
+  /** Normalizes normalize. */
   const normalize = (value: string) => value.toLocaleLowerCase()
   const known = [...new Set(suggestions)]
+
+  /** Checks whether excluded. */
   const isExcluded = (value: string) => excluded.some((item) => normalize(item) === normalize(value))
   const matches = known.filter((value) => !isExcluded(value) && normalize(value).includes(normalize(query)))
   const canCreate = !!query && !isExcluded(query) && !known.some((value) => normalize(value) === normalize(query))

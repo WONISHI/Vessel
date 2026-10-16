@@ -1,3 +1,4 @@
+vi.mock("@main/settings/settings", () => ({ generalSettings: () => ({ ignoredFiles: "", externalPreview: true }), parseIgnoredPatterns: () => [] }))
 import { expect, it, vi } from "vitest"
 const mocks = vi.hoisted(() => ({ handlers: new Map<string, (...args: any[]) => any>(), events: new Map<string, (...args: any[]) => any>(), send: vi.fn() }))
 vi.mock("electron", () => ({
@@ -6,7 +7,7 @@ vi.mock("electron", () => ({
   ipcMain: { handle: (event: string, callback: (...args: any[]) => any) => mocks.handlers.set(event, callback) }
 }))
 vi.mock("node:fs/promises", () => ({ stat: vi.fn(async () => ({ isFile: () => true, isDirectory: () => false })) }))
-import { markdownArguments, registerMarkdownOpening } from "../../src/main/open-markdown"
+import { markdownArguments, registerMarkdownOpening } from "@main/files/open-markdown"
 it("accepts Markdown file arguments with spaces and resolves against the launcher cwd", () => {
   expect(markdownArguments(["vessel.exe", "--inspect", "笔记 文档.MD", "readme.markdown", "photo.png"], "/notes")).toEqual(["/notes/笔记 文档.MD", "/notes/readme.markdown", "/notes/photo.png"])
 })
@@ -18,7 +19,7 @@ it("queues files until the renderer is ready and then delivers second-instance r
   const preventDefault = vi.fn()
   mocks.events.get("open-file")!({ preventDefault }, "/notes/first.md")
   await vi.waitFor(() => expect(preventDefault).toHaveBeenCalled())
-  await new Promise(resolve => setTimeout(resolve, 0))
+  await new Promise((resolve) => setTimeout(resolve, 0))
   expect(mocks.handlers.get("markdown:pending")!()).toEqual(["/notes/first.md"])
   mocks.events.get("second-instance")!({}, ["vessel.exe", "第二篇.md"], "/notes")
   await vi.waitFor(() => expect(mocks.send).toHaveBeenCalledWith("markdown:open", "/notes/第二篇.md"))
@@ -33,7 +34,7 @@ it("keeps file delivery ready across subframe loads and queues only real main-fr
   await vi.waitFor(() => expect(sender.send).toHaveBeenCalledWith("markdown:open", "/notes/live.pdf"))
   events.get("did-start-navigation")!({}, "file:///index.html", false, true)
   mocks.events.get("open-file")!({ preventDefault() {} }, "/notes/reload.pdf")
-  await new Promise(resolve => setTimeout(resolve, 0))
+  await new Promise((resolve) => setTimeout(resolve, 0))
   expect(sender.send).not.toHaveBeenCalledWith("markdown:open", "/notes/reload.pdf")
   expect(mocks.handlers.get("markdown:pending")!({ sender })).toEqual(["/notes/reload.pdf"])
 })
@@ -41,7 +42,7 @@ it("keeps file delivery ready across subframe loads and queues only real main-fr
 it("classifies folders separately from files", async () => {
   const { stat } = await import("node:fs/promises")
   vi.mocked(stat).mockResolvedValueOnce({ isDirectory: () => true, isFile: () => false } as never)
-  const { externalPathInfo } = await import("../../src/main/open-markdown")
+  const { externalPathInfo } = await import("@main/files/open-markdown")
   expect(await externalPathInfo("/notes/project")).toMatchObject({ kind: "directory", path: "/notes/project", name: "project" })
   expect(await externalPathInfo("/notes/Image.png")).toMatchObject({ kind: "file", root: "/notes", name: "Image.png" })
 })

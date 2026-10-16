@@ -1,52 +1,8 @@
+import type { GitCommitDetail, GitCommitItem, GitDiffResult, GitFileStatus, GitStatusResult } from "@vessel/type/git"
 import { spawn } from "node:child_process"
 import { existsSync } from "node:fs"
 import { join } from "node:path"
-
-export interface GitFileStatus {
-  path: string
-  status: "M" | "A" | "D" | "R" | "C" | "U" | "?"
-  oldPath?: string
-}
-
-export interface GitStatusResult {
-  isRepo: boolean
-  branch: string
-  upstream: string
-  ahead: number
-  behind: number
-  staged: GitFileStatus[]
-  unstaged: GitFileStatus[]
-  untracked: GitFileStatus[]
-  conflicts: GitFileStatus[]
-}
-
-export interface GitCommitItem {
-  hash: string
-  shortHash: string
-  parents: string[]
-  author: string
-  email: string
-  timestamp: number
-  date: string
-  message: string
-  refs: string[]
-}
-
-export interface GitCommitDetail {
-  hash: string
-  parents: string[]
-  author: string
-  email: string
-  date: string
-  message: string
-  files: { path: string; status: string; additions: number; deletions: number }[]
-}
-
-export interface GitDiffResult {
-  diff: string
-  oldContent?: string
-  newContent?: string
-}
+export type { GitCommitDetail, GitCommitItem, GitDiffResult, GitFileStatus, GitStatusResult } from "@vessel/type/git"
 
 /** 执行 git 命令：优先使用 dugite，若不可用或报错则回退至系统 git */
 export async function runGit(args: string[], cwd: string): Promise<{ stdout: string; stderr: string; exitCode: number }> {
@@ -83,6 +39,7 @@ export async function runGit(args: string[], cwd: string): Promise<{ stdout: str
 }
 
 export class GitService {
+  /** Checks whether repo. */
   async isRepo(cwd: string): Promise<boolean> {
     if (!cwd || !existsSync(cwd)) return false
     try {
@@ -93,11 +50,13 @@ export class GitService {
     }
   }
 
+  /** Initializes init. */
   async init(cwd: string): Promise<void> {
     const res = await runGit(["init"], cwd)
     if (res.exitCode !== 0) throw new Error(res.stderr || "Git init failed")
   }
 
+  /** Returns status. */
   async getStatus(cwd: string): Promise<GitStatusResult> {
     const isRepo = await this.isRepo(cwd)
     if (!isRepo) {
@@ -157,11 +116,7 @@ export class GitService {
       }
 
       // 未合并 / 冲突状态
-      if (
-        (x === "U" || y === "U") ||
-        (x === "A" && y === "A") ||
-        (x === "D" && y === "D")
-      ) {
+      if (x === "U" || y === "U" || (x === "A" && y === "A") || (x === "D" && y === "D")) {
         conflicts.push({ path: filePath, status: "U" })
         continue
       }
@@ -196,6 +151,7 @@ export class GitService {
     }
   }
 
+  /** Returns branches. */
   async getBranches(cwd: string): Promise<{ local: string[]; remote: string[]; current: string }> {
     const res = await runGit(["branch", "-a", "--no-color"], cwd)
     const lines = res.stdout.split("\n")
@@ -222,6 +178,7 @@ export class GitService {
     return { local, remote, current }
   }
 
+  /** Returns log. */
   async getLog(cwd: string, maxCount = 100): Promise<GitCommitItem[]> {
     // 格式: hash|parents|author|email|timestamp|message|refs
     const format = "%H|%P|%an|%ae|%at|%s|%D"
@@ -270,6 +227,7 @@ export class GitService {
     return items
   }
 
+  /** Returns commit detail. */
   async getCommitDetail(cwd: string, hash: string): Promise<GitCommitDetail> {
     const infoRes = await runGit(["show", "--no-patch", "--format=%H|%P|%an|%ae|%at|%B", hash], cwd)
     const [h, p, author, email, timestamp, ...msgParts] = infoRes.stdout.split("|")
@@ -302,6 +260,7 @@ export class GitService {
     }
   }
 
+  /** Returns diff. */
   async getDiff(cwd: string, filePath: string, staged = false, commitHash?: string): Promise<GitDiffResult> {
     let args: string[]
     if (commitHash) {
@@ -322,7 +281,12 @@ export class GitService {
         if (existsSync(full)) {
           const { readFileSync } = await import("node:fs")
           const content = readFileSync(full, "utf-8")
-          diff = `--- /dev/null\n+++ b/${filePath}\n@@ -0,0 +1,${content.split("\n").length} @@\n` + content.split("\n").map(l => `+${l}`).join("\n")
+          diff =
+            `--- /dev/null\n+++ b/${filePath}\n@@ -0,0 +1,${content.split("\n").length} @@\n` +
+            content
+              .split("\n")
+              .map((l) => `+${l}`)
+              .join("\n")
         }
       } catch {}
     }
@@ -330,26 +294,31 @@ export class GitService {
     return { diff }
   }
 
+  /** Performs the stage operation. */
   async stage(cwd: string, files: string[]): Promise<void> {
     const res = await runGit(["add", "--", ...files], cwd)
     if (res.exitCode !== 0) throw new Error(res.stderr || "Stage failed")
   }
 
+  /** Performs the unstage operation. */
   async unstage(cwd: string, files: string[]): Promise<void> {
     const res = await runGit(["reset", "HEAD", "--", ...files], cwd)
     if (res.exitCode !== 0) throw new Error(res.stderr || "Unstage failed")
   }
 
+  /** Performs the stage all operation. */
   async stageAll(cwd: string): Promise<void> {
     const res = await runGit(["add", "-A"], cwd)
     if (res.exitCode !== 0) throw new Error(res.stderr || "Stage all failed")
   }
 
+  /** Performs the unstage all operation. */
   async unstageAll(cwd: string): Promise<void> {
     const res = await runGit(["reset", "HEAD"], cwd)
     if (res.exitCode !== 0) throw new Error(res.stderr || "Unstage all failed")
   }
 
+  /** Performs the discard operation. */
   async discard(cwd: string, files: string[], isUntracked = false): Promise<void> {
     if (isUntracked) {
       const res = await runGit(["clean", "-fd", "--", ...files], cwd)
@@ -360,6 +329,7 @@ export class GitService {
     }
   }
 
+  /** Performs the commit operation. */
   async commit(cwd: string, message: string, amend = false): Promise<void> {
     const args = ["commit", "-m", message]
     if (amend) args.push("--amend")
@@ -367,11 +337,13 @@ export class GitService {
     if (res.exitCode !== 0) throw new Error(res.stderr || "Commit failed")
   }
 
+  /** Performs the checkout operation. */
   async checkout(cwd: string, branch: string): Promise<void> {
     const res = await runGit(["checkout", branch], cwd)
     if (res.exitCode !== 0) throw new Error(res.stderr || `Checkout ${branch} failed`)
   }
 
+  /** Creates branch. */
   async createBranch(cwd: string, name: string, startPoint?: string, checkout = true): Promise<void> {
     const args = checkout ? ["checkout", "-b", name] : ["branch", name]
     if (startPoint) args.push(startPoint)
@@ -379,16 +351,19 @@ export class GitService {
     if (res.exitCode !== 0) throw new Error(res.stderr || `Create branch ${name} failed`)
   }
 
+  /** Deletes branch. */
   async deleteBranch(cwd: string, name: string, force = false): Promise<void> {
     const res = await runGit(["branch", force ? "-D" : "-d", name], cwd)
     if (res.exitCode !== 0) throw new Error(res.stderr || `Delete branch ${name} failed`)
   }
 
+  /** Fetches fetch. */
   async fetch(cwd: string, remote = "origin"): Promise<void> {
     const res = await runGit(["fetch", remote, "--prune"], cwd)
     if (res.exitCode !== 0) throw new Error(res.stderr || "Fetch failed")
   }
 
+  /** Performs the pull operation. */
   async pull(cwd: string, remote = "origin", branch?: string): Promise<{ output: string }> {
     const args = ["pull", remote]
     if (branch) args.push(branch)
@@ -397,6 +372,7 @@ export class GitService {
     return { output: res.stdout || res.stderr }
   }
 
+  /** Pushes push. */
   async push(cwd: string, remote = "origin", branch?: string, force = false): Promise<{ output: string }> {
     const args = ["push", remote]
     if (branch) args.push(branch)
@@ -406,6 +382,7 @@ export class GitService {
     return { output: res.stdout || res.stderr }
   }
 
+  /** Merges merge. */
   async merge(cwd: string, branch: string): Promise<{ success: boolean; output: string }> {
     const res = await runGit(["merge", "--no-edit", branch], cwd)
     return {
@@ -414,6 +391,7 @@ export class GitService {
     }
   }
 
+  /** Returns stashes. */
   async getStashes(cwd: string): Promise<{ index: number; name: string; date: string }[]> {
     const res = await runGit(["stash", "list"], cwd)
     if (res.exitCode !== 0) return []
@@ -436,6 +414,7 @@ export class GitService {
     return stashes
   }
 
+  /** Performs the stash save operation. */
   async stashSave(cwd: string, message?: string, files?: string[]): Promise<void> {
     const args = ["stash", "push", "-u"]
     if (message) args.push("-m", message)
@@ -446,26 +425,31 @@ export class GitService {
     if (res.exitCode !== 0) throw new Error(res.stderr || "Stash save failed")
   }
 
+  /** Performs the stash pop operation. */
   async stashPop(cwd: string, index = 0): Promise<void> {
     const res = await runGit(["stash", "pop", `stash@{${index}}`], cwd)
     if (res.exitCode !== 0) throw new Error(res.stderr || "Stash pop failed")
   }
 
+  /** Performs the stash drop operation. */
   async stashDrop(cwd: string, index = 0): Promise<void> {
     const res = await runGit(["stash", "drop", `stash@{${index}}`], cwd)
     if (res.exitCode !== 0) throw new Error(res.stderr || "Stash drop failed")
   }
 
+  /** Resets reset. */
   async reset(cwd: string, target: string, mode: "soft" | "mixed" | "hard" = "mixed"): Promise<void> {
     const res = await runGit(["reset", `--${mode}`, target], cwd)
     if (res.exitCode !== 0) throw new Error(res.stderr || "Reset failed")
   }
 
+  /** Performs the revert operation. */
   async revert(cwd: string, hash: string): Promise<void> {
     const res = await runGit(["revert", "--no-edit", hash], cwd)
     if (res.exitCode !== 0) throw new Error(res.stderr || "Revert failed")
   }
 
+  /** Creates tag. */
   async createTag(cwd: string, tag: string, target?: string): Promise<void> {
     const args = ["tag", tag]
     if (target) args.push(target)

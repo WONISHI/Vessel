@@ -25,9 +25,13 @@ export interface TodoTab {
 }
 
 export const greenInput = "todo-green-input"
+
+/** Formats todo date. */
 export function formatTodoDate(date: Date) {
   return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`
 }
+
+/** Parses todo date. */
 export function parseTodoDate(value?: string) {
   const match = value?.match(/^(?:(\d{4})年)?(\d{1,2})月(\d{1,2})日$/)
   return match ? new Date(Number(match[1] || new Date().getFullYear()), Number(match[2]) - 1, Number(match[3])) : new Date()

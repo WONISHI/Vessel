@@ -1,11 +1,12 @@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
+import { dateKey, monthDays } from "@/pages/todos/calendar"
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, MoreVertical } from "lucide-react"
 import { useState } from "react"
-import { dateKey, monthDays } from "../calendar"
 
-import { formatTodoDate, parseTodoDate } from "./todo-table-model"
+import { formatTodoDate, parseTodoDate } from "@/pages/todos/components/todo-table-model"
 
+/** Renders the time cell component. */
 export function TimeCell({ time, onUpdateTime }: { time?: string; onUpdateTime: (t: string) => void }) {
   const [open, setOpen] = useState(false)
   const [viewDate, setViewDate] = useState(() => parseTodoDate(time))
@@ -13,6 +14,7 @@ export function TimeCell({ time, onUpdateTime }: { time?: string; onUpdateTime: 
   const days = monthDays(viewDate)
   const todayKey = dateKey(new Date())
 
+  /** Handles select day events. */
   const handleSelectDay = (d: Date) => {
     const formatted = formatTodoDate(d)
     onUpdateTime(formatted)

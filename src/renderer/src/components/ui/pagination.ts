@@ -1,0 +1,7 @@
+export { Pagination } from "@/components/ui/pagination/components/pagination"
+export { PaginationContent } from "@/components/ui/pagination/components/pagination-content"
+export { PaginationEllipsis } from "@/components/ui/pagination/components/pagination-ellipsis"
+export { PaginationItem } from "@/components/ui/pagination/components/pagination-item"
+export { PaginationLink } from "@/components/ui/pagination/components/pagination-link"
+export { PaginationNext } from "@/components/ui/pagination/components/pagination-next"
+export { PaginationPrevious } from "@/components/ui/pagination/components/pagination-previous"

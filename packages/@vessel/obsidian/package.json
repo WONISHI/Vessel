@@ -1,0 +1,20 @@
+{
+  "name": "@vessel/obsidian",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./frontmatter": "./src/frontmatter/index.ts"
+  },
+  "types": "./src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "imports": {
+    "#vessel-obsidian/images": "./src/images.ts",
+    "#vessel-obsidian/wikilinks": "./src/wikilinks.ts",
+    "#vessel-obsidian/frontmatter/index": "./src/frontmatter/index.ts",
+    "#vessel-obsidian/index": "./src/index.ts"
+  }
+}

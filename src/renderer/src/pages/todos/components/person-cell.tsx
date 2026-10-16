@@ -1,10 +1,11 @@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
+import { CreatableOptions } from "@/pages/todos/components/creatable-options"
 import { MoreVertical, Plus, Trash2 } from "lucide-react"
 import { useState } from "react"
-import { CreatableOptions } from "./creatable-options"
 
+/** Renders the person cell component. */
 export function PersonCell({
   suggestions,
   confirmDelete,
@@ -17,6 +18,8 @@ export function PersonCell({
   onUpdatePerson: (person: { name: string; avatarColor?: string } | undefined) => void
 }) {
   const [open, setOpen] = useState(false)
+
+  /** Handles add person events. */
   const handleAddPerson = (name: string) => {
     if (!name.trim()) return
     const colors = ["bg-emerald-600", "bg-blue-600", "bg-purple-600", "bg-amber-600", "bg-stone-600"]

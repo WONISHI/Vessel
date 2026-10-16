@@ -2,8 +2,9 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { cn } from "@/lib/utils"
 import { MoreVertical } from "lucide-react"
 
-import { STATUS_OPTIONS } from "./todo-table-model"
+import { STATUS_OPTIONS } from "@/pages/todos/components/todo-table-model"
 
+/** Renders the status cell component. */
 export function StatusCell({ status, onUpdateStatus }: { status?: { key: string; label: string; colorClass?: string }; onUpdateStatus: (st: { key: string; label: string; colorClass?: string }) => void }) {
   const current = status || { key: "doing", label: "进行中", colorClass: "bg-blue-50 text-blue-600 border-blue-200" }
 

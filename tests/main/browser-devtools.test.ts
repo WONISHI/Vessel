@@ -9,11 +9,22 @@ const mocks = vi.hoisted(() => {
   return { panel, host, guest, detached, window: { contentView: { addChildView: vi.fn(), removeChildView: vi.fn() }, getContentBounds: () => ({ width: 1200, height: 800 }) } }
 })
 vi.mock("electron", () => ({
-  BrowserWindow: class { static fromWebContents() { return mocks.window }; constructor() { return mocks.detached } },
-  WebContentsView: class { constructor() { return mocks.panel } },
-  webContents: { fromId: (id: number) => id === 1 ? mocks.guest : { hostWebContents: {} } }
+  BrowserWindow: class {
+    static fromWebContents() {
+      return mocks.window
+    }
+    constructor() {
+      return mocks.detached
+    }
+  },
+  WebContentsView: class {
+    constructor() {
+      return mocks.panel
+    }
+  },
+  webContents: { fromId: (id: number) => (id === 1 ? mocks.guest : { hostWebContents: {} }) }
 }))
-import { registerBrowserDevtools } from "../../src/main/browser-devtools"
+import { registerBrowserDevtools } from "@main/browser/browser-devtools"
 it("positions only the host's guest console and applies validated font preferences", async () => {
   registerBrowserDevtools(mocks.host as unknown as WebContents)
   const handle = mocks.host.ipc.handle.mock.calls[0][1]

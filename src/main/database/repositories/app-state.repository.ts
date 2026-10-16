@@ -1,6 +1,7 @@
 import type Database from "better-sqlite3"
 
 export class AppStateRepository {
+  /** Initializes the instance and its required dependencies. */
   constructor(private readonly database: Database.Database) {}
 
   /**
@@ -65,6 +66,7 @@ export class AppStateRepository {
     return result.changes > 0
   }
 
+  /** Validates key. */
   private validateKey(key: string): void {
     if (typeof key !== "string" || key.trim().length === 0 || key.length > 200) {
       throw new TypeError("状态 key 必须是长度为 1 到 200 的字符串")

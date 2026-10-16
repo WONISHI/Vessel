@@ -1,0 +1,6 @@
+export { Card } from "@/components/ui/card/components/card"
+export { CardContent } from "@/components/ui/card/components/card-content"
+export { CardDescription } from "@/components/ui/card/components/card-description"
+export { CardFooter } from "@/components/ui/card/components/card-footer"
+export { CardHeader } from "@/components/ui/card/components/card-header"
+export { CardTitle } from "@/components/ui/card/components/card-title"

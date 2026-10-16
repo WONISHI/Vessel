@@ -1,7 +1,12 @@
+/** Performs the date key operation. */
 export const dateKey = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`
+
+/** Performs the from key operation. */
 export const fromKey = (key: string) => new Date(`${key}T12:00:00`)
 const lunar = new Intl.DateTimeFormat("zh-CN-u-ca-chinese", { month: "long", day: "numeric" })
 const digits = ["一", "二", "三", "四", "五", "六", "七", "八", "九", "十"]
+
+/** Performs the lunar label operation. */
 export function lunarLabel(date: Date, full = false) {
   const parts = lunar.formatToParts(date)
   const day = Number(parts.find((part) => part.type === "day")?.value)
@@ -9,6 +14,8 @@ export function lunarLabel(date: Date, full = false) {
   const label = day <= 10 ? (day === 10 ? "初十" : "初" + digits[day - 1]) : day < 20 ? "十" + digits[day - 11] : day === 20 ? "二十" : day < 30 ? "廿" + digits[day - 21] : "三十"
   return full ? `${month}${label}` : day === 1 ? month : label
 }
+
+/** Performs the month days operation. */
 export function monthDays(month: Date) {
   const first = new Date(month.getFullYear(), month.getMonth(), 1, 12)
   const offset = (first.getDay() + 6) % 7

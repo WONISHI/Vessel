@@ -3,9 +3,9 @@ import React from "react"
 import { expect, it, vi, afterEach } from "vitest"
 import { fireEvent, render, screen, cleanup } from "@testing-library/react"
 import { parseObsidianImageEmbed, resolveObsidianImagePath, parseImageReference, resizeImageReference } from "@vessel/obsidian"
-import { prepareObsidianImages, restoreObsidianImages } from "../../src/renderer/src/components/core/canvas/variants/markdown/image-source"
-import { Image } from "../../src/renderer/src/components/ui/image"
-import { ObsidianImageLine } from "../../src/renderer/src/components/core/canvas/variants/markdown/obsidian-images"
+import { prepareObsidianImages, restoreObsidianImages } from "@/components/core/canvas/variants/markdown/image-source"
+import { Image } from "@/components/ui/image"
+import { ObsidianImageLine } from "@/components/core/canvas/variants/markdown/obsidian-images"
 it("parses spaced attachment names, sizes and resolves nearest candidates", () => {
   expect(parseObsidianImageEmbed("![[Pasted image 20260303174838.png|300x200]]")).toMatchObject({ target: "Pasted image 20260303174838.png", width: 300, height: 200 })
   expect(parseObsidianImageEmbed("![[note.md]]")).toBeNull()
@@ -25,7 +25,7 @@ it("shows an error placeholder and supports keyboard image resizing", async () =
     />
   )
   fireEvent.error(await screen.findByRole("img", { name: "附件" }))
-  expect(screen.getByRole("img", {name:"图片不存在或无法读取"})).toBeTruthy()
+  expect(screen.getByRole("img", { name: "图片不存在或无法读取" })).toBeTruthy()
   const handle = screen.getByRole("slider")
   fireEvent.keyDown(handle, { key: "ArrowRight" })
   expect(handle.getAttribute("aria-valuenow")).toBe("310")
@@ -45,16 +45,16 @@ it("opens a larger image dialog on double click", async () => {
       alt="放大测试"
     />
   )
-  const image = await screen.findByRole("img", {name:"放大测试"})
+  const image = await screen.findByRole("img", { name: "放大测试" })
   fireEvent.load(image)
   fireEvent.doubleClick(image)
   expect(screen.getByRole("dialog")).toBeTruthy()
 })
 
 it("separates image titles from local paths and preserves titles on resize", () => {
- const source = '![image|925](软考/assets/image.png "两网、一站、十二金")'
- expect(parseImageReference(source)?.target).toBe("软考/assets/image.png")
- expect(resizeImageReference(source, 640)).toBe('![image|640](软考/assets/image.png "两网、一站、十二金")')
+  const source = '![image|925](软考/assets/image.png "两网、一站、十二金")'
+  expect(parseImageReference(source)?.target).toBe("软考/assets/image.png")
+  expect(resizeImageReference(source, 640)).toBe('![image|640](软考/assets/image.png "两网、一站、十二金")')
 })
 
 afterEach(() => {
@@ -154,6 +154,3 @@ it("supports copying and dragging address via 1号图标 (copy button)", async (
   expect(setData).toHaveBeenCalledWith("text/plain", "https://example.com/test.png")
   expect(setData).toHaveBeenCalledWith("text/uri-list", "https://example.com/test.png")
 })
-
-
-

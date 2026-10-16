@@ -1,19 +1,19 @@
-import { registerScreenshotShortcut } from "./screenshot"
-import { registerContentSearch } from './content-search'
-import { registerSettings } from "./settings"
-import { registerTransit } from "./transit"
-import { registerOffice } from "./office"
-import { registerFileWatch } from "./file-watch"
-import { registerTerminal } from "./terminal"
-import { secureBrowserGuests } from "./browser-security"
-import { registerMarkdownOpening } from "./open-markdown"
-import { join } from "path"
+import { electronApp, is, optimizer } from "@electron-toolkit/utils"
+import { mainApps } from "@main/app/index"
+import { secureBrowserGuests } from "@main/browser/browser-security"
+import { registerContentSearch } from "@main/files/content-search"
+import { registerFileWatch } from "@main/files/file-watch"
+import { registerMarkdownOpening } from "@main/files/open-markdown"
+import { registerOffice } from "@main/office/office"
+import { registerScreenshotShortcut } from "@main/screenshot/screenshot"
+import { registerSettings } from "@main/settings/settings"
+import { registerTerminal } from "@main/terminal/terminal"
+import { registerTransit } from "@main/transit/transit"
+import icon from "@resources/icon.png?asset"
+import dockIconPath from "@resources/icon_108x108.png?asset"
+import { app, BrowserWindow, ipcMain, nativeImage, shell } from "electron"
 import { mkdirSync } from "node:fs"
-import { app, shell, BrowserWindow, ipcMain, nativeImage } from "electron"
-import { electronApp, optimizer, is } from "@electron-toolkit/utils"
-import dockIconPath from "../../resources/icon_108x108.png?asset"
-import icon from "../../resources/icon.png?asset"
-import { mainApps } from "@main/app"
+import { join } from "path"
 
 // Development must not contend with the installed app's lock or databases.
 if (!app.isPackaged) {
@@ -24,10 +24,20 @@ if (!app.isPackaged) {
 registerMarkdownOpening()
 
 let isAppCrashed = false
-export function getAppCrashed(): boolean { return isAppCrashed }
-export function setAppCrashed(crashed: boolean): void { isAppCrashed = crashed }
+
+/** Returns app crashed. */
+export function getAppCrashed(): boolean {
+  return isAppCrashed
+}
+
+/** Sets app crashed. */
+export function setAppCrashed(crashed: boolean): void {
+  isAppCrashed = crashed
+}
 
 let applicationWindow: BrowserWindow | undefined
+
+/** Creates window. */
 function createWindow(): void {
   const mainWindow = new BrowserWindow({
     width: 1174,
@@ -45,7 +55,9 @@ function createWindow(): void {
   })
 
   applicationWindow = mainWindow
-  mainWindow.on("closed", () => { if (applicationWindow === mainWindow) applicationWindow = undefined })
+  mainWindow.on("closed", () => {
+    if (applicationWindow === mainWindow) applicationWindow = undefined
+  })
 
   mainWindow.webContents.on("render-process-gone", () => {
     isAppCrashed = true
@@ -145,7 +157,11 @@ app.whenReady().then(() => {
 
   app.on("activate", function () {
     if (!applicationWindow || applicationWindow.isDestroyed()) createWindow()
-    else { if (applicationWindow.isMinimized()) applicationWindow.restore(); applicationWindow.show(); applicationWindow.focus() }
+    else {
+      if (applicationWindow.isMinimized()) applicationWindow.restore()
+      applicationWindow.show()
+      applicationWindow.focus()
+    }
   })
 })
 
@@ -154,5 +170,9 @@ app.on("window-all-closed", () => {
 })
 
 app.on("before-quit", () => {
+  mainApps.dispose()
+})
+
+app.on("will-quit", () => {
   mainApps.dispose()
 })

@@ -1,10 +1,10 @@
 import { expect, it } from "vitest"
-import { parseWikiLinks, wikiLinkPath } from "../../packages/obsidian/src"
-import { bindWikiLinkEditing, decorateWikiLinks } from "../../src/renderer/src/components/core/canvas/variants/markdown/decorate-wiki-links"
-import { headingSections } from "../../src/renderer/src/components/core/canvas/variants/markdown/heading-sections"
+import { parseWikiLinks, wikiLinkPath } from "#vessel-obsidian/index"
+import { bindWikiLinkEditing, decorateWikiLinks } from "@/components/core/canvas/variants/markdown/decorate-wiki-links"
+import { headingSections } from "@/components/core/canvas/variants/markdown/heading-sections"
 it("parses root relative wiki links and excludes images, code and escaped links", () => {
-  const source = '[[目录/文档|别名]] ![[photo.png]] `[[code]]` \\[[escaped]]\n```md\n[[hidden]]\n```\n[[next#heading]]'
-  expect(parseWikiLinks(source).map(link => link.target)).toEqual(["目录/文档", "next"])
+  const source = "[[目录/文档|别名]] ![[photo.png]] `[[code]]` \\[[escaped]]\n```md\n[[hidden]]\n```\n[[next#heading]]"
+  expect(parseWikiLinks(source).map((link) => link.target)).toEqual(["目录/文档", "next"])
   expect(parseWikiLinks(source)[0].label).toBe("别名")
   expect(wikiLinkPath("目录/文档")).toBe("目录/文档.md")
   expect(() => wikiLinkPath("../secret")).toThrow()

@@ -1,0 +1,8 @@
+export { Table } from "@/components/ui/table/components/table"
+export { TableBody } from "@/components/ui/table/components/table-body"
+export { TableCaption } from "@/components/ui/table/components/table-caption"
+export { TableCell } from "@/components/ui/table/components/table-cell"
+export { TableFooter } from "@/components/ui/table/components/table-footer"
+export { TableHead } from "@/components/ui/table/components/table-head"
+export { TableHeader } from "@/components/ui/table/components/table-header"
+export { TableRow } from "@/components/ui/table/components/table-row"

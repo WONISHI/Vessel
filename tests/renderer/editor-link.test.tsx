@@ -1,7 +1,8 @@
+vi.mock("@vessel/react-router", () => ({ useRouter: () => ({ push: vi.fn() }) }))
 import React from "react"
 import { afterEach, expect, it, vi } from "vitest"
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
-import { LinkInteractionArea } from "../../src/renderer/src/components/ui/link"
+import { LinkInteractionArea } from "@/components/ui/link"
 afterEach(cleanup)
 it("recognizes Vditor IR span links and exposes the shared link menu", async () => {
   const openExternal = vi.fn().mockResolvedValue(undefined)

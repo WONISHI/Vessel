@@ -2,7 +2,7 @@ import { expect, it } from "vitest"
 import { mkdtemp, mkdir, writeFile, rm } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { diagnoseCode } from "../../src/main/code-diagnostics-worker"
+import { diagnoseCode } from "@main/diagnostics/code-diagnostics-worker"
 it("resolves package exports with project NodeNext settings and still reports real errors", async () => {
   const root = await mkdtemp(join(tmpdir(), "vessel-types-"))
   try {
@@ -16,7 +16,9 @@ it("resolves package exports with project NodeNext settings and still reports re
     await writeFile(path, "")
     const source = 'import { createAgent } from "@fixture/graph/prebuilt"; const answer: number = createAgent();'
     expect(diagnoseCode(path, source)).toEqual([])
-    expect(diagnoseCode(path, source + '\nconst broken: string = answer;').some(error => error.code === 2322)).toBe(true)
-    expect(diagnoseCode(path, 'import { missing } from "missing-package";').some(error => error.code === 2307)).toBe(true)
-  } finally { await rm(root, { recursive: true, force: true }) }
+    expect(diagnoseCode(path, source + "\nconst broken: string = answer;").some((error) => error.code === 2322)).toBe(true)
+    expect(diagnoseCode(path, 'import { missing } from "missing-package";').some((error) => error.code === 2307)).toBe(true)
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
 })

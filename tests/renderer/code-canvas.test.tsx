@@ -1,10 +1,18 @@
 import React from "react"
 import { fireEvent, render, screen, waitFor, cleanup } from "@testing-library/react"
 import { afterEach, expect, it, vi } from "vitest"
-vi.mock("../../src/renderer/src/components/core/canvas/variants/code/monaco", () => ({ monaco: { Uri: { file: (path: string) => ({ toString: () => path }) } } }))
-vi.mock("@monaco-editor/react", () => ({ default: ({ value, onChange }: { value: string; onChange: (value: string) => void }) => <textarea aria-label="code" value={value} onChange={event => onChange(event.target.value)} /> }))
-import CodeCanvas from "../../src/renderer/src/components/core/canvas/variants/code"
-import { codeLanguage } from "../../src/renderer/src/components/core/canvas/variants/code/language"
+vi.mock("@/components/core/canvas/variants/code/monaco", () => ({ monaco: { Uri: { file: (path: string) => ({ toString: () => path }) } } }))
+vi.mock("@monaco-editor/react", () => ({
+  default: ({ value, onChange }: { value: string; onChange: (value: string) => void }) => (
+    <textarea
+      aria-label="code"
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+    />
+  )
+}))
+import CodeCanvas from "@/components/core/canvas/variants/code/index"
+import { codeLanguage } from "@/components/core/canvas/variants/code/language"
 afterEach(cleanup)
 it("loads exact source and saves edits to the selected file", async () => {
   const save = vi.fn().mockResolvedValue(undefined)

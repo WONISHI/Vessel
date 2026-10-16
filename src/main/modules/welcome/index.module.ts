@@ -1,12 +1,12 @@
-import { BrowserWindow, dialog, ipcMain } from "electron"
-import { readdir, realpath, stat } from "fs/promises"
-import { basename, extname, join, relative, isAbsolute } from "path"
 import { BaseModule } from "@main/modules/base/index"
+import { SUPPORTED_EXTENSIONS } from "@main/modules/welcome/constants/index.constant"
 import { AppDatabase } from "@main/modules/welcome/database/index.database"
 import type { WorkspaceDataInput, WorkspaceFile } from "@main/modules/welcome/index.type"
-import { isWorkspaceData, assertStateKey } from "@main/modules/welcome/utils/index.util"
-import { SUPPORTED_EXTENSIONS } from "@main/modules/welcome/constants/index.constant"
-import { generalSettings, parseIgnoredPatterns, isIgnoredEntry } from "@main/settings"
+import { assertStateKey, isWorkspaceData } from "@main/modules/welcome/utils/index.util"
+import { generalSettings, isIgnoredEntry, parseIgnoredPatterns } from "@main/settings/settings"
+import { BrowserWindow, dialog, ipcMain } from "electron"
+import { readdir, realpath, stat } from "fs/promises"
+import { basename, extname, isAbsolute, join, relative } from "path"
 
 /**
  * 欢迎页主进程模块。

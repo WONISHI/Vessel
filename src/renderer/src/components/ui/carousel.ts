@@ -1,0 +1,7 @@
+export { Carousel } from "@/components/ui/carousel/components/carousel"
+export { CarouselContent } from "@/components/ui/carousel/components/carousel-content"
+export { CarouselItem } from "@/components/ui/carousel/components/carousel-item"
+export { CarouselNext } from "@/components/ui/carousel/components/carousel-next"
+export { CarouselPrevious } from "@/components/ui/carousel/components/carousel-previous"
+export { useCarousel } from "@/components/ui/carousel/components/carousel-shared"
+export type { CarouselApi } from "@/components/ui/carousel/components/carousel-shared"

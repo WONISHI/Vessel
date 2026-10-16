@@ -1,40 +1,52 @@
-const { app, BrowserWindow } = require('electron')
-const fs = require('node:fs')
-const path = require('node:path')
-const assert = require('node:assert/strict')
-const ts = require('typescript')
-const profile = fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'vessel-extension-panel-'))
-app.setPath('userData', profile)
-require.extensions['.ts'] = (module, filename) => module._compile(ts.transpileModule(fs.readFileSync(filename, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true } }).outputText, filename)
-const extensionPath = path.join(profile, 'fixture')
+require("#vessel-scripts/testing/register-aliases")
+const { app, BrowserWindow } = require("electron")
+const fs = require("node:fs")
+const path = require("node:path")
+const assert = require("node:assert/strict")
+const ts = require("typescript")
+const profile = fs.mkdtempSync(path.join(require("node:os").tmpdir(), "vessel-extension-panel-"))
+app.setPath("userData", profile)
+require.extensions[".ts"] = (module, filename) => module._compile(ts.transpileModule(fs.readFileSync(filename, "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true } }).outputText, filename)
+const extensionPath = path.join(profile, "fixture")
 fs.mkdirSync(extensionPath)
-fs.writeFileSync(path.join(extensionPath, 'manifest.json'), JSON.stringify({ manifest_version: 3, name: 'Panel fixture', version: '1.0', action: { default_popup: 'popup.html' } }))
-fs.writeFileSync(path.join(extensionPath, 'popup.html'), '<html><body>Panel<script src="popup.js"></script></body></html>')
-fs.writeFileSync(path.join(extensionPath, 'popup.js'), 'document.body.dataset.extension = chrome.runtime.id')
-fs.writeFileSync(path.join(profile, 'browser-extensions.json'), JSON.stringify([{ key: 'fixture', path: extensionPath, name: 'Panel fixture', version: '1.0', enabled: true }]))
-app.whenReady().then(async () => {
-  const host = new BrowserWindow({ show: false, width: 1000, height: 800 })
-  await host.loadURL('about:blank')
-  const handlers = {}
-  host.webContents.ipc.handle = (name, handler) => { handlers[name] = handler }
-  require('../src/main/browser-extensions.ts').registerBrowserExtensions(host.webContents)
-  await handlers['browser:extensions:open']({}, 'fixture')
-  assert.equal(BrowserWindow.getAllWindows().length, 1)
-  assert.equal(host.contentView.children.length, 1)
-  const panel = host.contentView.children[0]
-  handlers['browser:extensions:bounds']({}, {x:100,y:120,width:440,height:220})
-  assert.equal(panel.getBounds().width,440)
-  assert(await panel.webContents.executeJavaScript('Boolean(document.body.dataset.extension)'))
-  assert.equal(panel.webContents.session, require('electron').session.fromPartition('persist:vessel-browser'))
-  let opened
-  host.webContents.send = (channel,url) => {if(channel === 'browser:new-tab') opened=url}
-  await panel.webContents.executeJavaScript(`window.open(chrome.runtime.getURL('login.html?/muser/login'))`)
-  await new Promise(resolve=>setTimeout(resolve,200))
-  assert(opened.endsWith('/login.html?/muser/login'))
-  handlers['browser:extensions:close']()
-  assert.equal(host.contentView.children.length, 0)
-  assert.equal(BrowserWindow.getAllWindows().length, 1)
-  console.log('PASS: extension view stays inside host Dialog, shares session and opens login in a browser tab')
-  host.destroy(); app.exit(0)
-}).catch(error => { console.error(error); app.exit(1) })
+fs.writeFileSync(path.join(extensionPath, "manifest.json"), JSON.stringify({ manifest_version: 3, name: "Panel fixture", version: "1.0", action: { default_popup: "popup.html" } }))
+fs.writeFileSync(path.join(extensionPath, "popup.html"), '<html><body>Panel<script src="popup.js"></script></body></html>')
+fs.writeFileSync(path.join(extensionPath, "popup.js"), "document.body.dataset.extension = chrome.runtime.id")
+fs.writeFileSync(path.join(profile, "browser-extensions.json"), JSON.stringify([{ key: "fixture", path: extensionPath, name: "Panel fixture", version: "1.0", enabled: true }]))
+app
+  .whenReady()
+  .then(async () => {
+    const host = new BrowserWindow({ show: false, width: 1000, height: 800 })
+    await host.loadURL("about:blank")
+    const handlers = {}
+    host.webContents.ipc.handle = (name, handler) => {
+      handlers[name] = handler
+    }
+    require("#vessel-main/browser/browser-extensions").registerBrowserExtensions(host.webContents)
+    await handlers["browser:extensions:open"]({}, "fixture")
+    assert.equal(BrowserWindow.getAllWindows().length, 1)
+    assert.equal(host.contentView.children.length, 1)
+    const panel = host.contentView.children[0]
+    handlers["browser:extensions:bounds"]({}, { x: 100, y: 120, width: 440, height: 220 })
+    assert.equal(panel.getBounds().width, 440)
+    assert(await panel.webContents.executeJavaScript("Boolean(document.body.dataset.extension)"))
+    assert.equal(panel.webContents.session, require("electron").session.fromPartition("persist:vessel-browser"))
+    let opened
+    host.webContents.send = (channel, url) => {
+      if (channel === "browser:new-tab") opened = url
+    }
+    await panel.webContents.executeJavaScript(`window.open(chrome.runtime.getURL('login.html?/muser/login'))`)
+    await new Promise((resolve) => setTimeout(resolve, 200))
+    assert(opened.endsWith("/login.html?/muser/login"))
+    handlers["browser:extensions:close"]()
+    assert.equal(host.contentView.children.length, 0)
+    assert.equal(BrowserWindow.getAllWindows().length, 1)
+    console.log("PASS: extension view stays inside host Dialog, shares session and opens login in a browser tab")
+    host.destroy()
+    app.exit(0)
+  })
+  .catch((error) => {
+    console.error(error)
+    app.exit(1)
+  })
 setTimeout(() => app.exit(1), 20000).unref()

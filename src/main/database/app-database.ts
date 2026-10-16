@@ -1,5 +1,5 @@
-import { EnhancedDatabase } from "@main/database/enhanced-database"
 import { DATABASE_MIGRATIONS, DATABASE_VERSION } from "@main/database/database-schema"
+import { EnhancedDatabase } from "@main/database/enhanced-database"
 import { AppStateRepository } from "@main/database/repositories/app-state.repository"
 
 /**

@@ -1,11 +1,11 @@
-import { app } from "electron"
+import { AppDatabase as BaseAppDatabase } from "@main/database/app-database"
+import { DATABASE_COLUMN_LABELS, DATABASE_TABLE_LABELS } from "@main/modules/welcome/constants/index.constant"
+import type { DatabaseColumnInfo, DatabaseTableData, DatabaseTableInfo, DeviceInfo, PersistedWorkspaceData, RecentWorkspace, WorkspaceDataInput, WorkspaceOpenRecord, WorkspaceRow } from "@main/modules/welcome/index.type"
 import { randomUUID } from "crypto"
+import { app } from "electron"
 import { existsSync, mkdirSync } from "fs"
 import { arch, cpus, hostname, platform, release, totalmem, type, version } from "os"
 import { dirname, join, normalize, resolve } from "path"
-import { DATABASE_COLUMN_LABELS, DATABASE_TABLE_LABELS } from "@main/modules/welcome/constants/index.constant"
-import { AppDatabase as BaseAppDatabase } from "@main/database/app-database"
-import type { DatabaseColumnInfo, DatabaseTableData, DatabaseTableInfo, DeviceInfo, PersistedWorkspaceData, RecentWorkspace, WorkspaceDataInput, WorkspaceOpenRecord, WorkspaceRow } from "@main/modules/welcome/index.type"
 
 /**
  * @description Vessel 业务数据库。

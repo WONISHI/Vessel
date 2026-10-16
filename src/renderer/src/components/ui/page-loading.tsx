@@ -1,5 +1,7 @@
 import artwork from "@/assets/vessel-loading/page-loading.svg"
 import { cn } from "@/lib/utils"
+
+/** Renders the page loading component. */
 export function PageLoading({ label = "正在加载页面…", className }: { label?: string; className?: string }) {
   return (
     <div

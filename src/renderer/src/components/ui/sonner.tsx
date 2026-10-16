@@ -3,6 +3,7 @@ import { Toaster as Sonner, toast as sonnerToast } from "sonner"
 
 type ToasterProps = React.ComponentProps<typeof Sonner>
 
+/** Extracts toast text. */
 const extractToastText = (message: any, data?: any): string => {
   const parts: string[] = []
   if (typeof message === "string" && message) parts.push(message)
@@ -10,6 +11,7 @@ const extractToastText = (message: any, data?: any): string => {
   return parts.join("\n") || String(message || "")
 }
 
+/** Copies toast text. */
 const copyToastText = (text: string) => {
   if (!text) return
   void navigator.clipboard
@@ -33,72 +35,80 @@ const copyToastText = (text: string) => {
 }
 
 // 封装 toast，让 error 及带有 description 的提示自动提供快捷复制按钮
-const toast = Object.assign(
-  (message: any, data?: any) => sonnerToast(message, data),
-  sonnerToast,
-  {
-    error: (message: any, data?: any) => {
-      const textToCopy = extractToastText(message, data)
-      const action =
-        data?.action ??
-        (textToCopy
-          ? {
-              label: "复制",
-              onClick: (e: React.MouseEvent) => {
-                e.stopPropagation()
-                copyToastText(textToCopy)
-              }
-            }
-          : undefined)
+const toast = Object.assign((message: any, data?: any) => sonnerToast(message, data), sonnerToast, {
+  /** Performs the error operation. */
+  error: (message: any, data?: any) => {
+    const textToCopy = extractToastText(message, data)
+    const action =
+      data?.action ??
+      (textToCopy
+        ? {
+            label: "复制",
 
-      return sonnerToast.error(message, {
-        duration: 8000,
-        ...data,
-        action
-      })
-    },
-    warning: (message: any, data?: any) => {
-      const textToCopy = extractToastText(message, data)
-      const action =
-        data?.action ??
-        (data?.description && textToCopy
-          ? {
-              label: "复制",
-              onClick: (e: React.MouseEvent) => {
-                e.stopPropagation()
-                copyToastText(textToCopy)
-              }
+            /** Handles click events. */
+            onClick: (e: React.MouseEvent) => {
+              e.stopPropagation()
+              copyToastText(textToCopy)
             }
-          : undefined)
+          }
+        : undefined)
 
-      return sonnerToast.warning(message, {
-        duration: 6000,
-        ...data,
-        action
-      })
-    },
-    info: (message: any, data?: any) => {
-      const textToCopy = extractToastText(message, data)
-      const action =
-        data?.action ??
-        (data?.description && textToCopy
-          ? {
-              label: "复制",
-              onClick: (e: React.MouseEvent) => {
-                e.stopPropagation()
-                copyToastText(textToCopy)
-              }
+    return sonnerToast.error(message, {
+      duration: 8000,
+      ...data,
+      action
+    })
+  },
+
+  /** Performs the warning operation. */
+  warning: (message: any, data?: any) => {
+    const textToCopy = extractToastText(message, data)
+    const action =
+      data?.action ??
+      (data?.description && textToCopy
+        ? {
+            label: "复制",
+
+            /** Handles click events. */
+            onClick: (e: React.MouseEvent) => {
+              e.stopPropagation()
+              copyToastText(textToCopy)
             }
-          : undefined)
+          }
+        : undefined)
 
-      return sonnerToast.info(message, {
-        ...data,
-        action
-      })
-    }
+    return sonnerToast.warning(message, {
+      duration: 6000,
+      ...data,
+      action
+    })
+  },
+
+  /** Performs the info operation. */
+  info: (message: any, data?: any) => {
+    const textToCopy = extractToastText(message, data)
+    const action =
+      data?.action ??
+      (data?.description && textToCopy
+        ? {
+            label: "复制",
+
+            /** Handles click events. */
+            onClick: (e: React.MouseEvent) => {
+              e.stopPropagation()
+              copyToastText(textToCopy)
+            }
+          }
+        : undefined)
+
+    return sonnerToast.info(message, {
+      ...data,
+      action
+    })
   }
-)
+})
 
+/** Renders the toaster component. */
 const Toaster = ({ ...props }: ToasterProps) => {
   return (
     <div
@@ -115,14 +125,11 @@ const Toaster = ({ ...props }: ToasterProps) => {
         position="bottom-right"
         toastOptions={{
           classNames: {
-            toast:
-              "group toast group-[.toaster]:bg-background group-[.toaster]:text-foreground group-[.toaster]:border-border group-[.toaster]:shadow-lg group-[.toaster]:rounded-xl text-xs select-text",
+            toast: "group toast group-[.toaster]:bg-background group-[.toaster]:text-foreground group-[.toaster]:border-border group-[.toaster]:shadow-lg group-[.toaster]:rounded-xl text-xs select-text",
             title: "select-text font-semibold",
             description: "group-[.toast]:text-muted-foreground text-xs select-text cursor-text",
-            actionButton:
-              "group-[.toast]:bg-stone-900 group-[.toast]:text-stone-50 dark:group-[.toast]:bg-stone-100 dark:group-[.toast]:text-stone-900 text-xs px-2.5 py-1 rounded-md font-medium hover:opacity-90 transition-opacity",
-            cancelButton:
-              "group-[.toast]:bg-muted group-[.toast]:text-muted-foreground"
+            actionButton: "group-[.toast]:bg-stone-900 group-[.toast]:text-stone-50 dark:group-[.toast]:bg-stone-100 dark:group-[.toast]:text-stone-900 text-xs px-2.5 py-1 rounded-md font-medium hover:opacity-90 transition-opacity",
+            cancelButton: "group-[.toast]:bg-muted group-[.toast]:text-muted-foreground"
           }
         }}
         {...props}
@@ -131,4 +138,4 @@ const Toaster = ({ ...props }: ToasterProps) => {
   )
 }
 
-export { Toaster, toast }
+export { toast, Toaster }

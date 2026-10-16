@@ -5,8 +5,13 @@ import { join } from "node:path"
 import { fileURLToPath } from "node:url"
 const mocks = vi.hoisted(() => ({ folder: "", writeBuffer: vi.fn(), clear: vi.fn() }))
 vi.mock("electron", () => ({ app: { getPath: () => mocks.folder }, clipboard: { clear: mocks.clear, writeBuffer: mocks.writeBuffer, writeImage: vi.fn() }, nativeImage: { createFromBuffer: () => ({ isEmpty: () => true }) } }))
-import { copyImage } from "../../src/main/modules/files/copy-image"
-afterEach(async () => { vi.unstubAllGlobals(); vi.restoreAllMocks(); if (mocks.folder) await rm(mocks.folder, { recursive: true, force: true }); mocks.writeBuffer.mockClear() })
+import { copyImage } from "@main/modules/files/copy-image"
+afterEach(async () => {
+  vi.unstubAllGlobals()
+  vi.restoreAllMocks()
+  if (mocks.folder) await rm(mocks.folder, { recursive: true, force: true })
+  mocks.writeBuffer.mockClear()
+})
 it("copies SVG bytes as a file URL on macOS", async () => {
   vi.spyOn(process, "platform", "get").mockReturnValue("darwin")
   mocks.folder = await mkdtemp(join(tmpdir(), "vessel-copy-"))

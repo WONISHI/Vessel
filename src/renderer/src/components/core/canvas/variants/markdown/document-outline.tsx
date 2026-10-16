@@ -1,13 +1,29 @@
-import { SectionPreview } from "./section-preview"
-import { useEffect, useRef, useState } from "react"
-import { Pin, PinOff, WrapText, AlignLeft } from "lucide-react"
+import { SectionPreview } from "@/components/core/canvas/variants/markdown/section-preview"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
+import { AlignLeft, Pin, PinOff, WrapText } from "lucide-react"
+import { useEffect, useRef, useState } from "react"
 
 /** 固定时展示标题，取消固定后用静态横线展示标题层级和当前阅读位置。 */
-export function DocumentOutline({ headings, activeIndex, onSelect, fileName, sections = [], workspacePath, documentPath }: { headings: { text: string; level: number; color?: string }[]; activeIndex: number; onSelect: (index: number) => void; fileName?: string; sections?: string[]; workspacePath: string; documentPath: string }) {
+export function DocumentOutline({
+  headings,
+  activeIndex,
+  onSelect,
+  fileName,
+  sections = [],
+  workspacePath,
+  documentPath
+}: {
+  headings: { text: string; level: number; color?: string }[]
+  activeIndex: number
+  onSelect: (index: number) => void
+  fileName?: string
+  sections?: string[]
+  workspacePath: string
+  documentPath: string
+}) {
   const [wrapTitles, setWrapTitles] = useState(false)
   const [pinned, setPinned] = useState(false)
   const [hovered, setHovered] = useState(false)
@@ -32,7 +48,11 @@ export function DocumentOutline({ headings, activeIndex, onSelect, fileName, sec
       className={cn("relative z-20 flex min-h-0 shrink-0 flex-col py-2 transition-[width]", pinned ? "w-48 px-2" : "relative w-12 px-1")}
     >
       {!pinned && (
-        <div aria-hidden={expanded} inert={expanded} className="flex min-h-0 flex-1 flex-col bg-transparent">
+        <div
+          aria-hidden={expanded}
+          inert={expanded}
+          className="flex min-h-0 flex-1 flex-col bg-transparent"
+        >
           <div className="h-8 flex justify-end">
             <Pin className="size-3.5 m-1.5 text-stone-400" />
           </div>
@@ -97,25 +117,34 @@ export function DocumentOutline({ headings, activeIndex, onSelect, fileName, sec
         </div>
         <ScrollArea className="min-h-0 flex-1 [&_[data-radix-scroll-area-viewport]>div]:!block">
           {headings.map((heading, index) => (
-            <SectionPreview enabled={expanded} onOpenChange={(open) => setPreviewIndex(current => open ? index : current === index ? null : current)} workspacePath={workspacePath} documentPath={documentPath} key={index} source={sections[index] || heading.text}><Button
-              variant="ghost"
-              aria-label={heading.text}
-              aria-current={index === activeIndex ? "location" : undefined}
-              onClick={() => onSelect(index)}
-              className={cn(
-                "group min-w-0 w-full overflow-hidden text-[11px] font-normal hover:bg-green-600 hover:text-white data-[state=open]:bg-green-600 data-[state=open]:text-white",
-                cn("min-h-8 justify-start py-1.5 text-left", wrapTitles ? "h-auto whitespace-normal" : "h-8 whitespace-nowrap"),
-                index === activeIndex ? "text-green-700" : "text-stone-500"
-              )}
-              style={{ paddingLeft: 8 + (heading.level - 1) * 10 }}
+            <SectionPreview
+              enabled={expanded}
+              onOpenChange={(open) => setPreviewIndex((current) => (open ? index : current === index ? null : current))}
+              workspacePath={workspacePath}
+              documentPath={documentPath}
+              key={index}
+              source={sections[index] || heading.text}
             >
-              <span
-                style={{ color: index === activeIndex ? undefined : heading.color }}
-                className={cn("min-w-0 group-hover:!text-white group-data-[state=open]:!text-white", wrapTitles ? "break-words" : "truncate")}
+              <Button
+                variant="ghost"
+                aria-label={heading.text}
+                aria-current={index === activeIndex ? "location" : undefined}
+                onClick={() => onSelect(index)}
+                className={cn(
+                  "group min-w-0 w-full overflow-hidden text-[11px] font-normal hover:bg-green-600 hover:text-white data-[state=open]:bg-green-600 data-[state=open]:text-white",
+                  cn("min-h-8 justify-start py-1.5 text-left", wrapTitles ? "h-auto whitespace-normal" : "h-8 whitespace-nowrap"),
+                  index === activeIndex ? "text-green-700" : "text-stone-500"
+                )}
+                style={{ paddingLeft: 8 + (heading.level - 1) * 10 }}
               >
-                {heading.text}
-              </span>
-            </Button></SectionPreview>
+                <span
+                  style={{ color: index === activeIndex ? undefined : heading.color }}
+                  className={cn("min-w-0 group-hover:!text-white group-data-[state=open]:!text-white", wrapTitles ? "break-words" : "truncate")}
+                >
+                  {heading.text}
+                </span>
+              </Button>
+            </SectionPreview>
           ))}
           {!headings.length && expanded && <p className="px-2 py-3 text-xs text-stone-400">暂无标题</p>}
         </ScrollArea>

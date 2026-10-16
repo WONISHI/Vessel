@@ -2,7 +2,7 @@ import { expect, it } from "vitest"
 import { mkdtemp, readFile, rm } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { SyncDiagnostics } from "../../src/main/sync-diagnostics"
+import { SyncDiagnostics } from "@main/sync/sync-diagnostics"
 it("bounds, persists, reloads and clears diagnostic records", async () => {
   const root = await mkdtemp(join(tmpdir(), "vessel-sync-diagnostics-"))
   try {
@@ -17,5 +17,7 @@ it("bounds, persists, reloads and clears diagnostic records", async () => {
     expect(restored.get().entries[0].message).toBe("operation 1199")
     await restored.clear()
     expect(JSON.parse(await readFile(join(root, "sync-diagnostics.json"), "utf8"))).toEqual([])
-  } finally { await rm(root, { recursive: true, force: true }) }
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
 })

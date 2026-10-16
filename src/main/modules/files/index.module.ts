@@ -1,28 +1,35 @@
-import { transferWorkspaceFiles } from "./transfer-workspace-files"
-import { saveObsidianImage } from "./save-obsidian-image"
-import { copyImage } from "./copy-image"
-import { getCodeDiagnostics, disposeCodeDiagnostics } from "../../code-diagnostics"
-import { readWikiLink } from "./wiki-link"
-import { readImageFile } from "./image-file"
-import { readObsidianImage } from "./obsidian-image"
-import { ipcMain, shell, clipboard } from "electron"
-import { readFile, stat, realpath, mkdir, writeFile, link, unlink, rename, lstat } from "node:fs/promises"
-import { isAbsolute, relative, join, sep, dirname } from "node:path"
-import { BaseModule } from "../base"
+import { disposeCodeDiagnostics, getCodeDiagnostics } from "@main/diagnostics/code-diagnostics"
+import { BaseModule } from "@main/modules/base/index"
+import { copyImage } from "@main/modules/files/copy-image"
+import { readImageFile } from "@main/modules/files/image-file"
+import { readObsidianImage } from "@main/modules/files/obsidian-image"
+import { saveObsidianImage } from "@main/modules/files/save-obsidian-image"
+import { transferWorkspaceFiles } from "@main/modules/files/transfer-workspace-files"
+import { readWikiLink } from "@main/modules/files/wiki-link"
+import { clipboard, ipcMain, shell } from "electron"
+import { link, lstat, mkdir, readFile, realpath, rename, stat, unlink, writeFile } from "node:fs/promises"
+import { dirname, isAbsolute, join, relative, sep } from "node:path"
 
 const pendingWrites = new Map<string, Promise<void>>()
 
+/** Saves text file content. */
 export function saveTextFileContent(path: unknown, content: unknown): Promise<void> {
   if (typeof path !== "string" || !isAbsolute(path) || path.includes("\0") || typeof content !== "string") {
     return Promise.reject(new TypeError("文件路径或内容无效"))
   }
   const previous = pendingWrites.get(path) ?? Promise.resolve()
-  const write = previous.catch(() => {}).then(async () => {
-    if (!(await stat(path)).isFile()) throw new Error("只能保存普通文件")
-    await writeFile(path, content, "utf8")
-  })
+  const write = previous
+    .catch(() => {})
+    .then(async () => {
+      if (!(await stat(path)).isFile()) throw new Error("只能保存普通文件")
+      await writeFile(path, content, "utf8")
+    })
   pendingWrites.set(path, write)
-  const cleanup = () => { if (pendingWrites.get(path) === write) pendingWrites.delete(path) }
+
+  /** Performs the cleanup operation. */
+  const cleanup = () => {
+    if (pendingWrites.get(path) === write) pendingWrites.delete(path)
+  }
   void write.then(cleanup, cleanup)
   return write
 }
@@ -99,6 +106,7 @@ export async function mutateWorkspaceFile(root: string, path: string, name?: str
 
 /** 将文件读取能力接入主进程生命周期，避免窗口重建时重复注册 IPC。 */
 export class FilesModule extends BaseModule {
+  /** Handles activate events. */
   protected onActivate(): void {
     ipcMain.handle("code:diagnostics", (_event, path, content) => getCodeDiagnostics(path, content))
     ipcMain.handle("workspace:revealFile", async (_event, root: string, path: string) => {
@@ -109,7 +117,13 @@ export class FilesModule extends BaseModule {
       shell.showItemInFolder(source)
     })
     ipcMain.handle("obsidian:readWikiLink", (_event, root, target) => readWikiLink(root, target))
-    ipcMain.handle("image:clipboard", () => { const image = clipboard.readImage(); if (image.isEmpty()) return null; const data = image.toPNG(); if (data.length > 30_000_000) throw new Error("剪贴板图片超过 30 MB"); return `data:image/png;base64,${data.toString("base64")}` })
+    ipcMain.handle("image:clipboard", () => {
+      const image = clipboard.readImage()
+      if (image.isEmpty()) return null
+      const data = image.toPNG()
+      if (data.length > 30_000_000) throw new Error("剪贴板图片超过 30 MB")
+      return `data:image/png;base64,${data.toString("base64")}`
+    })
     ipcMain.handle("image:copy", (_event, source) => copyImage(source))
     ipcMain.handle("image:readFile", (_event, root, path) => readImageFile(root, path))
     ipcMain.handle("obsidian:saveImage", (_event, root, documentPath, source) => saveObsidianImage(root, documentPath, source))
@@ -126,6 +140,7 @@ export class FilesModule extends BaseModule {
     ipcMain.handle("file:readContent", (_event, path: unknown) => readTextFileContent(path))
   }
 
+  /** Handles dispose events. */
   protected onDispose(): void {
     ipcMain.removeHandler("code:diagnostics")
     disposeCodeDiagnostics()

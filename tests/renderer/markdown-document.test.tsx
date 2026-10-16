@@ -1,8 +1,8 @@
 import React from "react"
 import { afterEach, expect, it } from "vitest"
 import { cleanup, render, screen } from "@testing-library/react"
-import { MarkdownDocument } from "../../src/renderer/src/components/core/canvas/variants/markdown/markdown-document"
-import { parseMarkdownDocument } from "../../src/renderer/src/components/core/canvas/variants/markdown/parse-markdown"
+import { MarkdownDocument } from "@/components/core/canvas/variants/markdown/markdown-document"
+import { parseMarkdownDocument } from "@/components/core/canvas/variants/markdown/parse-markdown"
 afterEach(cleanup)
 it("renders headings, shadcn tables and inline badges without tagging code", () => {
   const document = parseMarkdownDocument("# 标题\n\n#项目 `#代码`\n\n| 名称 | 数量 |\n| --- | --- |\n| A | 2 |\n\n# 标题")

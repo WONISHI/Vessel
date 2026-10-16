@@ -1,0 +1,5 @@
+import "@/components/styles/tool-page-header.css"
+export { Base64Tool } from "@/pages/debug/base64/index"
+export { ColorTool } from "@/pages/debug/color/index"
+export { JsonTool } from "@/pages/debug/json/index"
+export { URLTool } from "@/pages/debug/url/index"

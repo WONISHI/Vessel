@@ -1,19 +1,18 @@
-import { useExternalContent } from "@/pages/workspace/hooks/file-changes"
-import { headingSections } from "./heading-sections"
-import { WikiLinkPreview } from "./wiki-link-preview"
-import { DocumentStats } from "./document-stats"
-import { outlineHeading } from "./outline-heading"
+import { DocumentOutline } from "@/components/core/canvas/variants/markdown/document-outline"
+import { DocumentStats } from "@/components/core/canvas/variants/markdown/document-stats"
+import { headingSections } from "@/components/core/canvas/variants/markdown/heading-sections"
+import "@/components/core/canvas/variants/markdown/index.css"
+import { outlineHeading } from "@/components/core/canvas/variants/markdown/outline-heading"
+import { VditorEditor } from "@/components/core/canvas/variants/markdown/vditor-editor"
+import { WikiLinkPreview } from "@/components/core/canvas/variants/markdown/wiki-link-preview"
 import { PageLoading } from "@/components/ui/page-loading"
-import { useContext, Suspense } from "react"
-import { WorkspaceContext } from "@/pages/workspace/types/workspace"
-import { useEffect, useMemo, useRef, useState } from "react"
-import { DocumentOutline } from "./document-outline"
-import { highlightKeywordInVditor } from "@/pages/search/reveal-hit"
-import { VditorEditor } from "./vditor-editor"
-import "./index.css"
+import { useExternalContent } from "@/components/workspace/hooks/file-changes"
+import { WorkspaceContext } from "@/components/workspace/types/workspace"
 import { lazyWithRetry } from "@/lib/lazy-retry"
+import { highlightKeywordInVditor } from "@/pages/search/reveal-hit"
+import { Suspense, useContext, useEffect, useMemo, useRef, useState } from "react"
 
-const ExcalidrawCanvas = lazyWithRetry(() => import("@/components/core/canvas/variants/excalidraw"))
+const ExcalidrawCanvas = lazyWithRetry(() => import("@/components/core/canvas/variants/excalidraw/index"))
 
 /** 即时编辑文档；基于实际渲染标题同步大纲和滚动位置。 */
 export default function MarkdownCanvas({ activeFilePath, workspacePath: customWorkspacePath, highlightKeyword, revealLine }: { activeFilePath: string; workspacePath?: string; highlightKeyword?: string; revealLine?: number }) {
@@ -41,10 +40,10 @@ export default function MarkdownCanvas({ activeFilePath, workspacePath: customWo
     }
   }, [activeFilePath])
   const [externalRevision, setExternalRevision] = useState(0)
-  useExternalContent(activeFilePath, loaded?.path === activeFilePath ? loaded.content : undefined, content => {
+  useExternalContent(activeFilePath, loaded?.path === activeFilePath ? loaded.content : undefined, (content) => {
     drafts.current.set(activeFilePath, content)
     setLoaded({ path: activeFilePath, content })
-    setExternalRevision(value => value + 1)
+    setExternalRevision((value) => value + 1)
     setSaveState({ path: activeFilePath, message: "已从磁盘更新" })
   })
   const current = loaded?.path === activeFilePath ? loaded : null
@@ -55,6 +54,8 @@ export default function MarkdownCanvas({ activeFilePath, workspacePath: customWo
     const host = contentHost.current
     if (!host) return
     let frame = 0
+
+    /** Refreshes the current state. */
     const update = () => {
       cancelAnimationFrame(frame)
       frame = requestAnimationFrame(() => {
@@ -92,6 +93,8 @@ export default function MarkdownCanvas({ activeFilePath, workspacePath: customWo
     if (!host) return
     let tries = 0
     let timer: ReturnType<typeof setTimeout>
+
+    /** Performs the attempt operation. */
     const attempt = () => {
       const editor = host.querySelector<HTMLElement>(".vditor-ir .vditor-reset")
       if (!editor) {
@@ -104,16 +107,15 @@ export default function MarkdownCanvas({ activeFilePath, workspacePath: customWo
     return () => clearTimeout(timer)
   }, [highlightKeyword, revealLine, activeFilePath, externalRevision])
 
-  const hasExcalidraw = Boolean(
-    current?.content &&
-      (current.content.includes("excalidraw-plugin: parsed") ||
-        current.content.includes("# Excalidraw Data"))
-  )
+  const hasExcalidraw = Boolean(current?.content && (current.content.includes("excalidraw-plugin: parsed") || current.content.includes("# Excalidraw Data")))
 
   if (hasExcalidraw && asExcalidraw) {
     return (
       <Suspense fallback={<PageLoading label="正在载入白板…" />}>
-        <ExcalidrawCanvas activeFilePath={activeFilePath} workspacePath={workspacePath} />
+        <ExcalidrawCanvas
+          activeFilePath={activeFilePath}
+          workspacePath={workspacePath}
+        />
       </Suspense>
     )
   }
@@ -142,10 +144,11 @@ export default function MarkdownCanvas({ activeFilePath, workspacePath: customWo
           {!current ? (
             <PageLoading label="正在读取文档…" />
           ) : current.error ? (
-            <div role="alert" className="flex h-full flex-col items-center justify-center gap-3 p-8 text-center text-sm">
-              <p className="font-medium text-red-500">
-                {current.error.includes("ENOENT") || current.error.includes("no such file") ? "该文件不存在或已被删除" : `读取文件失败：${current.error}`}
-              </p>
+            <div
+              role="alert"
+              className="flex h-full flex-col items-center justify-center gap-3 p-8 text-center text-sm"
+            >
+              <p className="font-medium text-red-500">{current.error.includes("ENOENT") || current.error.includes("no such file") ? "该文件不存在或已被删除" : `读取文件失败：${current.error}`}</p>
               <p className="max-w-md break-all text-xs text-stone-400">{activeFilePath}</p>
               {context && (
                 <button
@@ -168,11 +171,14 @@ export default function MarkdownCanvas({ activeFilePath, workspacePath: customWo
                 setLoaded({ path: activeFilePath, content })
                 const revision = ++saveRevision.current
                 setSaveState({ path: activeFilePath, message: "正在保存…" })
-                void window.electronAPI.saveContent(activeFilePath, content).then(() => {
-                  if (revision === saveRevision.current) setSaveState({ path: activeFilePath, message: "已保存" })
-                }).catch(error => {
-                  if (revision === saveRevision.current) setSaveState({ path: activeFilePath, message: `保存失败：${String(error)}`, failed: true })
-                })
+                void window.electronAPI
+                  .saveContent(activeFilePath, content)
+                  .then(() => {
+                    if (revision === saveRevision.current) setSaveState({ path: activeFilePath, message: "已保存" })
+                  })
+                  .catch((error) => {
+                    if (revision === saveRevision.current) setSaveState({ path: activeFilePath, message: `保存失败：${String(error)}`, failed: true })
+                  })
               }}
             />
           )}
@@ -190,8 +196,15 @@ export default function MarkdownCanvas({ activeFilePath, workspacePath: customWo
           }}
         />
       </div>
-      <WikiLinkPreview key={`${activeFilePath}:${externalRevision}`} host={contentHost} workspacePath={workspacePath} />
-      <DocumentStats source={current?.content ?? ""} saveStatus={saveState?.path === activeFilePath ? saveState : undefined} />
+      <WikiLinkPreview
+        key={`${activeFilePath}:${externalRevision}`}
+        host={contentHost}
+        workspacePath={workspacePath}
+      />
+      <DocumentStats
+        source={current?.content ?? ""}
+        saveStatus={saveState?.path === activeFilePath ? saveState : undefined}
+      />
     </div>
   )
 }

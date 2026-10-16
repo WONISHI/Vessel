@@ -1,17 +1,17 @@
-import { useCallback, useEffect, useMemo, useState } from "react"
-import { Bug, Cog, RefreshCcw, Terminal, Trash2, Wrench } from "lucide-react"
-import { DropdownMenu, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { ConsoleHistory } from "@/components/core/devtool/components/ConsoleHistory"
+import { DevToolsMenu } from "@/components/core/devtool/components/DevToolsMenu"
+import { useDevToolToast, type DevToolLog } from "@/components/core/devtool/hooks/useDevToolToast"
+import { useDraggable } from "@/components/core/devtool/hooks/useDraggable"
+import ConsoleManager, { type ConsoleRecord, type ConsoleSource } from "@/components/core/devtool/src/console-manager"
+import { DEFAULT_ENABLED_TYPES, LOG_TYPES } from "@/components/core/devtool/src/constants"
+import type { DevToolsMenuItem, LogType } from "@/components/core/devtool/src/type"
 import { Button } from "@/components/ui/button"
-import { useNavigate } from "react-router-dom"
+import { DropdownMenu, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
+import { Bug, Cog, RefreshCcw, Terminal, Trash2, Wrench } from "lucide-react"
+import { useCallback, useEffect, useMemo, useState } from "react"
+import { useNavigate } from "react-router-dom"
 import { toast } from "sonner"
-import ConsoleManager, { type ConsoleRecord, type ConsoleSource } from "./src/console-manager"
-import { DevToolsMenu } from "./components/DevToolsMenu"
-import { ConsoleHistory } from "./components/ConsoleHistory"
-import { useDevToolToast, type DevToolLog } from "./hooks/useDevToolToast"
-import { useDraggable } from "./hooks/useDraggable"
-import { LOG_TYPES, DEFAULT_ENABLED_TYPES } from "./src/constants"
-import type { LogType, DevToolsMenuItem } from "./src/type"
 
 /**
  * Console 类型开关
@@ -45,6 +45,7 @@ export default function DevTool() {
   const navigate = useNavigate()
   const [controlVisible, setControlVisible] = useState(() => localStorage.getItem("vessel-control-visible") !== "false")
   useEffect(() => {
+    /** Refreshes the current state. */
     const update = () => setControlVisible(localStorage.getItem("vessel-control-visible") !== "false")
     window.addEventListener("vessel-control-visibility", update)
     return () => window.removeEventListener("vessel-control-visibility", update)
@@ -258,7 +259,7 @@ export default function DevTool() {
    *
    */
   const navigateDebug = useCallback(() => {
-    navigate("/devtools")
+    navigate("/debug")
   }, [navigate])
 
   /**
@@ -321,13 +322,22 @@ export default function DevTool() {
         }}
       >
         {hasError && <span className={cn("pointer-events-none", "absolute", "bottom-0", "right-0", "h-12", "w-12", "animate-ping", "rounded-full", "bg-red-600/30")} />}
-        <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
+        <DropdownMenu
+          open={menuOpen}
+          onOpenChange={setMenuOpen}
+        >
           <DropdownMenuTrigger asChild>
             <Button
               aria-label="控制台菜单"
               title="单击打开菜单，长按拖动"
               onPointerDown={handlePointerDown}
-              onClick={event => { if (consumeDragClick()) { event.preventDefault(); return }; setMenuOpen(value => !value) }}
+              onClick={(event) => {
+                if (consumeDragClick()) {
+                  event.preventDefault()
+                  return
+                }
+                setMenuOpen((value) => !value)
+              }}
               style={{ touchAction: "none", cursor: dragging ? "grabbing" : "pointer" }}
               variant="outline"
               size="icon"

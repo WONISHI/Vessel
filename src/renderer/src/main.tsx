@@ -1,18 +1,18 @@
-import "./assets/main.css"
+import "@/assets/main.css"
 
 import "@fontsource/plus-jakarta-sans"
+import "@fontsource/plus-jakarta-sans/400-italic.css"
 import "@fontsource/plus-jakarta-sans/400.css"
 import "@fontsource/plus-jakarta-sans/500.css"
 import "@fontsource/plus-jakarta-sans/600.css"
 import "@fontsource/plus-jakarta-sans/700.css"
-import "@fontsource/plus-jakarta-sans/400-italic.css"
 
 import { StrictMode } from "react"
 import { createRoot } from "react-dom/client"
 
-import router from "./router"
+import { GlobalErrorBoundary } from "@/components/core/error-boundary/crash-fallback"
+import router from "@/router/index"
 import { RouterProvider } from "@vessel/react-router/components"
-import { GlobalErrorBoundary } from "./components/core/error-boundary/crash-fallback"
 
 // 监听未捕获的致命运行时错误
 window.addEventListener("error", (event) => {

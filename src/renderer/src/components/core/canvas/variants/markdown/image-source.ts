@@ -18,6 +18,8 @@ export function prepareObsidianImages(source: string) {
     })
     .join("\n")
 }
+
+/** Restores obsidian images. */
 export function restoreObsidianImages(source: string) {
   return source.replace(/\n?```vessel-obsidian-image\n([^\n]+)\n```\n?/g, (_match, encoded) => {
     try {

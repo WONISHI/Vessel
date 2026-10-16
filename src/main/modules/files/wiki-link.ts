@@ -1,15 +1,21 @@
-import { realpath, stat, readFile, readdir } from "node:fs/promises"
-import { resolve, relative, isAbsolute, sep } from "node:path"
 import { wikiLinkPath } from "@vessel/obsidian"
+import { readFile, readdir, realpath, stat } from "node:fs/promises"
+import { isAbsolute, relative, resolve, sep } from "node:path"
+
+/** Reads wiki link. */
 export async function readWikiLink(root: string, target: string) {
   const base = await realpath(root)
   const requested = wikiLinkPath(target)
   let candidate = resolve(base, requested)
-  try { await stat(candidate) } catch (error) {
+  try {
+    await stat(candidate)
+  } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error
     if (target.replace(/\\/g, "/").includes("/")) throw new Error("找不到文件：" + target)
     const matches: string[] = []
     const names = /\.(md|markdown|txt)$/i.test(target) ? [target] : [target + ".md", target + ".markdown", target + ".txt"]
+
+    /** Performs the scan operation. */
     const scan = async (directory: string) => {
       for (const entry of await readdir(directory, { withFileTypes: true })) {
         const child = resolve(directory, entry.name)
@@ -19,7 +25,14 @@ export async function readWikiLink(root: string, target: string) {
     }
     await scan(base)
     if (!matches.length) throw new Error("找不到同名文件：" + target)
-    if (matches.length > 1) throw new Error("存在多个同名文件，请使用工作区相对路径：" + matches.map(path => relative(base, path)).sort().join("、"))
+    if (matches.length > 1)
+      throw new Error(
+        "存在多个同名文件，请使用工作区相对路径：" +
+          matches
+            .map((path) => relative(base, path))
+            .sort()
+            .join("、")
+      )
     candidate = matches[0]
   }
   const path = await realpath(candidate)

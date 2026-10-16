@@ -1,24 +1,26 @@
-import { useExternalContent } from "@/pages/workspace/hooks/file-changes"
-import { StatusSlot } from "@/pages/workspace/components/layout-main/status-slot"
-import { countDocument } from "../markdown/count-document"
-import "./index.css"
-import { codeEditors } from "./search-bridge"
-import Editor from "@monaco-editor/react"
-import { Fragment, useContext, useEffect, useRef, useState, useMemo, useDeferredValue } from "react"
-import { monaco } from "./monaco"
-import { codeLanguage } from "./language"
+import { parseLinePosition } from "@/components/core/canvas/variants/code/go-to-line"
+import "@/components/core/canvas/variants/code/index.css"
+import { codeLanguage } from "@/components/core/canvas/variants/code/language"
+import { monaco } from "@/components/core/canvas/variants/code/monaco"
+import { codeEditors } from "@/components/core/canvas/variants/code/search-bridge"
+import { countDocument } from "@/components/core/canvas/variants/markdown/count-document"
+import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb"
 import { EditorLoading } from "@/components/ui/editor-loading"
-import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb"
-import { WorkspaceContext } from "@/pages/workspace/types/workspace"
+import { Kbd } from "@/components/ui/kbd"
+import { StatusSlot } from "@/components/workspace/components/layout-main/status-slot"
+import { useExternalContent } from "@/components/workspace/hooks/file-changes"
+import { WorkspaceContext } from "@/components/workspace/types/workspace"
+import Editor from "@monaco-editor/react"
 import { matchesShortcut } from "@vessel/utils"
 import { Hash } from "lucide-react"
-import { parseLinePosition } from "./go-to-line"
+import { Fragment, useContext, useDeferredValue, useEffect, useMemo, useRef, useState } from "react"
 
 interface BreadcrumbSegment {
   name: string
   path: string
 }
 
+/** Returns breadcrumb segments. */
 function getBreadcrumbSegments(workspacePath: string, filePath: string, workspaceName?: string): BreadcrumbSegment[] {
   const normWorkspace = workspacePath.replace(/\\/g, "/")
   const normFile = filePath.replace(/\\/g, "/")
@@ -50,17 +52,8 @@ function getBreadcrumbSegments(workspacePath: string, filePath: string, workspac
   return segments
 }
 
-export default function CodeCanvas({
-  activeFilePath,
-  workspacePath,
-  revealPosition,
-  highlightKeyword
-}: {
-  activeFilePath: string
-  workspacePath?: string
-  revealPosition?: { lineNumber: number; column: number }
-  highlightKeyword?: string
-}) {
+/** Renders the code canvas component. */
+export default function CodeCanvas({ activeFilePath, workspacePath, revealPosition, highlightKeyword }: { activeFilePath: string; workspacePath?: string; revealPosition?: { lineNumber: number; column: number }; highlightKeyword?: string }) {
   const workspaceContext = useContext(WorkspaceContext)
   const effectiveWorkspacePath = workspacePath || workspaceContext?.workspace?.path || ""
   const workspaceName = workspaceContext?.workspace?.name
@@ -69,6 +62,7 @@ export default function CodeCanvas({
     return getBreadcrumbSegments(effectiveWorkspacePath, activeFilePath, workspaceName)
   }, [effectiveWorkspacePath, activeFilePath, workspaceName])
 
+  /** Handles locate events. */
   const handleLocate = (targetPath: string) => {
     window.dispatchEvent(new CustomEvent("vessel:reveal-file", { detail: targetPath }))
   }
@@ -82,8 +76,11 @@ export default function CodeCanvas({
   const inputRef = useRef<HTMLInputElement>(null)
   const [goto, setGoto] = useState(false)
   const decorationsRef = useRef<string[]>([])
+
+  /** Performs the reveal operation. */
   const reveal = () => {
-    const editor = editorRef.current, model = editor?.getModel()
+    const editor = editorRef.current,
+      model = editor?.getModel()
     if (!editor || !model || !revealPosition) return
     const lineNumber = Math.max(1, Math.min(model.getLineCount(), revealPosition.lineNumber))
     editor.setPosition({ lineNumber, column: Math.max(1, Math.min(model.getLineMaxColumn(lineNumber), revealPosition.column)) })
@@ -105,36 +102,58 @@ export default function CodeCanvas({
     }
   }
   useEffect(reveal, [revealPosition?.lineNumber, revealPosition?.column, highlightKeyword, content])
-  const [lineInput, setLineInput] = useState('1')
-  const totalLines = content?.split('\n').length ?? 1
-  const position = parseLinePosition(lineInput, totalLines, line => editorRef.current?.getModel()?.getLineMaxColumn(line) ?? 1)
-  const line = position?.lineNumber ?? 0, column = position?.column ?? 1
+  const [lineInput, setLineInput] = useState("1")
+  const totalLines = content?.split("\n").length ?? 1
+  const position = parseLinePosition(lineInput, totalLines, (line) => editorRef.current?.getModel()?.getLineMaxColumn(line) ?? 1)
+  const line = position?.lineNumber ?? 0,
+    column = position?.column ?? 1
   const valid = position !== null
-  const closeGoto = () => { setGoto(false); editorRef.current?.focus() }
-  const openGoto = () => { setLineInput(String(editorRef.current?.getPosition()?.lineNumber ?? 1)); setGoto(true) }
+
+  /** Closes goto. */
+  const closeGoto = () => {
+    setGoto(false)
+    editorRef.current?.focus()
+  }
+
+  /** Opens goto. */
+  const openGoto = () => {
+    setLineInput(String(editorRef.current?.getPosition()?.lineNumber ?? 1))
+    setGoto(true)
+  }
   useEffect(() => {
-    if (goto) { inputRef.current?.focus(); inputRef.current?.select() }
+    if (goto) {
+      inputRef.current?.focus()
+      inputRef.current?.select()
+    }
   }, [goto])
   useEffect(() => {
+    /** Performs the key operation. */
     const key = (event: KeyboardEvent) => {
       const container = containerRef.current
-      if (!container || !container.contains(document.activeElement) || !matchesShortcut(event, 'goToLine')) return
-      event.preventDefault(); event.stopImmediatePropagation(); openGoto()
+      if (!container || !container.contains(document.activeElement) || !matchesShortcut(event, "goToLine")) return
+      event.preventDefault()
+      event.stopImmediatePropagation()
+      openGoto()
     }
-    window.addEventListener('keydown', key, true)
-    return () => window.removeEventListener('keydown', key, true)
+    window.addEventListener("keydown", key, true)
+    return () => window.removeEventListener("keydown", key, true)
   }, [])
   useEffect(() => {
     const container = containerRef.current
     if (!container) return
+
+    /** Performs the scroll operation. */
     const scroll = (event: Event) => {
       const editor = editorRef.current
       if (editor) editor.setScrollTop((event as CustomEvent<boolean>).detail ? 0 : editor.getScrollHeight(), monaco.editor.ScrollType.Smooth)
     }
-    container.addEventListener('vessel:scroll-boundary', scroll)
-    return () => container.removeEventListener('vessel:scroll-boundary', scroll)
+    container.addEventListener("vessel:scroll-boundary", scroll)
+    return () => container.removeEventListener("vessel:scroll-boundary", scroll)
   }, [content === undefined])
-  useExternalContent(activeFilePath, content, value => { setContent(value); setStatus("已从磁盘更新") })
+  useExternalContent(activeFilePath, content, (value) => {
+    setContent(value)
+    setStatus("已从磁盘更新")
+  })
   const deferredContent = useDeferredValue(content ?? "")
   const stats = useMemo(() => countDocument(deferredContent), [deferredContent])
   const revision = useRef(0)
@@ -142,49 +161,82 @@ export default function CodeCanvas({
   useEffect(() => {
     mounted.current = true
     let cancelled = false
-    void window.electronAPI.readContent(activeFilePath).then(value => {
-      if (!cancelled) {
-        if (value.includes("\0")) setError("该文件包含二进制内容，无法作为代码编辑。")
-        else setContent(value)
-      }
-    }).catch(error => { if (!cancelled) setError(String(error)) })
-    return () => { cancelled = true; mounted.current = false; if (codeEditors.get(activeFilePath) === editorRef.current) codeEditors.delete(activeFilePath) }
+    void window.electronAPI
+      .readContent(activeFilePath)
+      .then((value) => {
+        if (!cancelled) {
+          if (value.includes("\0")) setError("该文件包含二进制内容，无法作为代码编辑。")
+          else setContent(value)
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) setError(String(error))
+      })
+    return () => {
+      cancelled = true
+      mounted.current = false
+      if (codeEditors.get(activeFilePath) === editorRef.current) codeEditors.delete(activeFilePath)
+    }
   }, [activeFilePath])
   const [diagnosticError, setDiagnosticError] = useState("")
   useEffect(() => {
     if (content === undefined || !/\.[cm]?[jt]sx?$/i.test(activeFilePath)) return
     let cancelled = false
     const timer = window.setTimeout(() => {
-      void window.electronAPI.getCodeDiagnostics(activeFilePath, content).then(diagnostics => {
-        if (cancelled) return
-        setDiagnosticError("")
-        const model = monaco.editor.getModel(monaco.Uri.file(activeFilePath))
-        if (model) monaco.editor.setModelMarkers(model, "vessel-project", diagnostics.map(diagnostic => ({
-          ...diagnostic, code: String(diagnostic.code), source: "TypeScript",
-          severity: diagnostic.severity === "error" ? monaco.MarkerSeverity.Error : diagnostic.severity === "warning" ? monaco.MarkerSeverity.Warning : monaco.MarkerSeverity.Info
-        })))
-      }).catch(error => { if (!cancelled) setDiagnosticError(`代码检查失败：${String(error)}`) })
+      void window.electronAPI
+        .getCodeDiagnostics(activeFilePath, content)
+        .then((diagnostics) => {
+          if (cancelled) return
+          setDiagnosticError("")
+          const model = monaco.editor.getModel(monaco.Uri.file(activeFilePath))
+          if (model)
+            monaco.editor.setModelMarkers(
+              model,
+              "vessel-project",
+              diagnostics.map((diagnostic) => ({
+                ...diagnostic,
+                code: String(diagnostic.code),
+                source: "TypeScript",
+                severity: diagnostic.severity === "error" ? monaco.MarkerSeverity.Error : diagnostic.severity === "warning" ? monaco.MarkerSeverity.Warning : monaco.MarkerSeverity.Info
+              }))
+            )
+        })
+        .catch((error) => {
+          if (!cancelled) setDiagnosticError(`代码检查失败：${String(error)}`)
+        })
     }, 600)
-    return () => { cancelled = true; window.clearTimeout(timer) }
+    return () => {
+      cancelled = true
+      window.clearTimeout(timer)
+    }
   }, [activeFilePath, content])
+
+  /** Saves save. */
   const save = (value: string) => {
     const request = ++revision.current
     setStatus("正在保存…")
     setSaveError(false)
-    void window.electronAPI.saveContent(activeFilePath, value).then(() => {
-      if (mounted.current && revision.current === request) setStatus("已保存")
-    }).catch(error => {
-      if (mounted.current && revision.current === request) { setStatus(`保存失败：${String(error)}`); setSaveError(true) }
-    })
+    void window.electronAPI
+      .saveContent(activeFilePath, value)
+      .then(() => {
+        if (mounted.current && revision.current === request) setStatus("已保存")
+      })
+      .catch((error) => {
+        if (mounted.current && revision.current === request) {
+          setStatus(`保存失败：${String(error)}`)
+          setSaveError(true)
+        }
+      })
   }
 
   if (error) {
     const isNotFound = error.includes("ENOENT") || error.includes("no such file")
     return (
-      <div role="alert" className="flex h-full flex-col items-center justify-center gap-3 p-8 text-center text-sm">
-        <p className="font-medium text-red-500">
-          {isNotFound ? "该文件不存在或已被删除" : `读取失败：${error}`}
-        </p>
+      <div
+        role="alert"
+        className="flex h-full flex-col items-center justify-center gap-3 p-8 text-center text-sm"
+      >
+        <p className="font-medium text-red-500">{isNotFound ? "该文件不存在或已被删除" : `读取失败：${error}`}</p>
         <p className="max-w-md break-all text-xs text-stone-400">{activeFilePath}</p>
         {workspaceContext && (
           <button
@@ -235,34 +287,113 @@ export default function CodeCanvas({
           })}
         </BreadcrumbList>
       </Breadcrumb>
-      <div ref={containerRef} data-vessel-scroll="code" className="vessel-code-editor relative min-h-0 flex-1">
-        <Editor height="100%" path={monaco.Uri.file(activeFilePath).toString()} language={codeLanguage(activeFilePath) || "plaintext"} value={content}
-        loading={<EditorLoading label="正在加载代码编辑器…" />}
-        onChange={value => { if (value !== undefined && value !== content) { setContent(value); save(value) } }}
-        onMount={editor => { editorRef.current = editor; codeEditors.set(activeFilePath, editor); reveal(); editor.onDidFocusEditorText(() => codeEditors.set(activeFilePath, editor)); editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => save(editor.getValue())) }}
-        options={{ automaticLayout: true, scrollbar: { verticalScrollbarSize: 10, horizontalScrollbarSize: 10, useShadows: false }, overviewRulerLanes: 0, hideCursorInOverviewRuler: true, minimap: { enabled: false }, fontSize: 14, scrollBeyondLastLine: false, tabSize: 2, renderWhitespace: "selection" }} />
-      {goto && <div role="dialog" aria-label="跳转到行" className={`code-goto ${valid ? '' : 'code-goto-error'}`}>
-        <div className="code-goto-row"><Hash size={20} className="shrink-0 text-stone-400" /><input ref={inputRef} aria-label="行号或行号:列号" value={lineInput} onChange={event => setLineInput(event.target.value)} placeholder="行:列，例如 12:20" autoComplete="off" spellCheck={false} onKeyDown={event => {
-          if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); closeGoto() }
-          if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
-            event.preventDefault(); event.stopPropagation()
-            if (!valid) return
-            editorRef.current?.setPosition({ lineNumber: line, column })
-            editorRef.current?.revealLineInCenter(line, monaco.editor.ScrollType.Smooth)
-            closeGoto()
-          }
-        }} /><span>共 {totalLines} 行</span></div>
-        <div className="code-goto-hint"><kbd>Enter</kbd> 跳转 <kbd>Esc</kbd> 关闭 <span role="status" className={valid ? 'text-green-700' : 'text-red-600'}>{valid ? `→ 跳转至 第 ${line} 行${column > 1 ? `，第 ${column} 列` : ''}` : `请输入有效行列（1–${totalLines} 行）`}</span></div>
-      </div>}
+      <div
+        ref={containerRef}
+        data-vessel-scroll="code"
+        className="vessel-code-editor relative min-h-0 flex-1"
+      >
+        <Editor
+          height="100%"
+          path={monaco.Uri.file(activeFilePath).toString()}
+          language={codeLanguage(activeFilePath) || "plaintext"}
+          value={content}
+          loading={<EditorLoading label="正在加载代码编辑器…" />}
+          onChange={(value) => {
+            if (value !== undefined && value !== content) {
+              setContent(value)
+              save(value)
+            }
+          }}
+          onMount={(editor) => {
+            editorRef.current = editor
+            codeEditors.set(activeFilePath, editor)
+            reveal()
+            editor.onDidFocusEditorText(() => codeEditors.set(activeFilePath, editor))
+            editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => save(editor.getValue()))
+          }}
+          options={{
+            automaticLayout: true,
+            scrollbar: { verticalScrollbarSize: 10, horizontalScrollbarSize: 10, useShadows: false },
+            overviewRulerLanes: 0,
+            hideCursorInOverviewRuler: true,
+            minimap: { enabled: false },
+            fontSize: 14,
+            scrollBeyondLastLine: false,
+            tabSize: 2,
+            renderWhitespace: "selection"
+          }}
+        />
+        {goto && (
+          <div
+            role="dialog"
+            aria-label="跳转到行"
+            className={`code-goto ${valid ? "" : "code-goto-error"}`}
+          >
+            <div className="code-goto-row">
+              <Hash
+                size={20}
+                className="shrink-0 text-stone-400"
+              />
+              <input
+                ref={inputRef}
+                aria-label="行号或行号:列号"
+                value={lineInput}
+                onChange={(event) => setLineInput(event.target.value)}
+                placeholder="行:列，例如 12:20"
+                autoComplete="off"
+                spellCheck={false}
+                onKeyDown={(event) => {
+                  if (event.key === "Escape") {
+                    event.preventDefault()
+                    event.stopPropagation()
+                    closeGoto()
+                  }
+                  if (event.key === "Enter" && !event.nativeEvent.isComposing) {
+                    event.preventDefault()
+                    event.stopPropagation()
+                    if (!valid) return
+                    editorRef.current?.setPosition({ lineNumber: line, column })
+                    editorRef.current?.revealLineInCenter(line, monaco.editor.ScrollType.Smooth)
+                    closeGoto()
+                  }
+                }}
+              />
+              <span>共 {totalLines} 行</span>
+            </div>
+            <div className="code-goto-hint">
+              <Kbd>Enter</Kbd> 跳转 <Kbd>Esc</Kbd> 关闭{" "}
+              <span
+                role="status"
+                className={valid ? "text-green-700" : "text-red-600"}
+              >
+                {valid ? `→ 跳转至 第 ${line} 行${column > 1 ? `，第 ${column} 列` : ""}` : `请输入有效行列（1–${totalLines} 行）`}
+              </span>
+            </div>
+          </div>
+        )}
+      </div>
+      <StatusSlot>
+        <footer className="flex shrink-0 flex-wrap items-center gap-5 bg-transparent px-2 py-1 text-xs text-stone-500">
+          <span
+            role={saveError ? "alert" : "status"}
+            className={`mr-auto ${saveError ? "text-red-500" : ""}`}
+          >
+            {status}
+          </span>
+          {diagnosticError && (
+            <span
+              role="alert"
+              className="text-amber-600"
+            >
+              {diagnosticError}
+            </span>
+          )}
+          <span>{stats.words.toLocaleString()} 词</span>
+          <span>{stats.characters.toLocaleString()} 字符</span>
+          <span>{stats.lines.toLocaleString()} 行</span>
+          <span>{codeLanguage(activeFilePath) || "plaintext"} · UTF-8</span>
+        </footer>
+      </StatusSlot>
     </div>
-    <StatusSlot><footer className="flex shrink-0 flex-wrap items-center gap-5 bg-transparent px-2 py-1 text-xs text-stone-500">
-      <span role={saveError ? "alert" : "status"} className={`mr-auto ${saveError ? "text-red-500" : ""}`}>{status}</span>
-      {diagnosticError && <span role="alert" className="text-amber-600">{diagnosticError}</span>}
-      <span>{stats.words.toLocaleString()} 词</span>
-      <span>{stats.characters.toLocaleString()} 字符</span>
-      <span>{stats.lines.toLocaleString()} 行</span>
-      <span>{codeLanguage(activeFilePath) || "plaintext"} · UTF-8</span>
-    </footer></StatusSlot>
-  </div>
   )
 }

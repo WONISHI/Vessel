@@ -1,8 +1,8 @@
 import { app, clipboard, nativeImage } from "electron"
+import { createHash } from "node:crypto"
 import { mkdir, writeFile } from "node:fs/promises"
 import { join } from "node:path"
 import { pathToFileURL } from "node:url"
-import { createHash } from "node:crypto"
 
 /** Preserve original image bytes, including SVG, when pasting into a file manager. */
 export async function copyImage(source: string) {

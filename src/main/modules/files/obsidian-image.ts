@@ -1,13 +1,15 @@
-import { fetchRemoteImage } from "./save-obsidian-image"
-import { readdir, realpath, readFile, stat } from "node:fs/promises"
-import { relative, resolve, join, extname, isAbsolute, sep } from "node:path"
+import { fetchRemoteImage } from "@main/modules/files/save-obsidian-image"
 import { parseImageReference, resolveObsidianImagePath } from "@vessel/obsidian"
+import { readdir, readFile, realpath, stat } from "node:fs/promises"
+import { extname, isAbsolute, join, relative, resolve, sep } from "node:path"
 
 /** 在工作区内定位附件并返回 data URL；不跟随目录符号链接，也不允许读取根目录以外的文件。 */
 export async function readObsidianImage(root: string, documentPath: string, reference: string): Promise<string> {
   const embed = parseImageReference(reference)
   if (!embed) throw new Error("不是有效的 Obsidian 图片引用")
   const base = await realpath(root)
+
+  /** Performs the within operation. */
   const within = (path: string) => {
     const offset = relative(base, path)
     return offset !== ".." && !offset.startsWith(".." + sep) && !isAbsolute(offset)
@@ -18,6 +20,8 @@ export async function readObsidianImage(root: string, documentPath: string, refe
     return `data:image/${extension === "svg" ? "svg+xml" : extension === "jpg" ? "jpeg" : extension};base64,${bytes.toString("base64")}`
   }
   const candidates: string[] = []
+
+  /** Performs the scan operation. */
   const scan = async (directory: string) => {
     for (const entry of await readdir(directory, { withFileTypes: true })) {
       const path = join(directory, entry.name)

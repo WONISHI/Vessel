@@ -3,17 +3,28 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { expect, it, vi } from "vitest"
 const mocks = vi.hoisted(() => ({ directory: "", selection: "", options: undefined as unknown, load: vi.fn(async () => ({ id: "ext-id", name: "Test", version: "1.0" })), remove: vi.fn() }))
-vi.mock("electron", () => ({ app: { getPath: () => mocks.directory }, BrowserWindow: { fromWebContents: () => ({}) }, dialog: { showOpenDialog: async (_window: unknown, options: unknown) => { mocks.options = options; return { canceled: false, filePaths: [mocks.selection] } } }, session: { fromPartition: () => ({ extensions: { loadExtension: mocks.load, removeExtension: mocks.remove } }) } }))
+vi.mock("electron", () => ({
+  app: { getPath: () => mocks.directory, getAppPath: () => join(mocks.directory, "missing-builtins"), on: vi.fn(), removeListener: vi.fn() },
+  webContents: { getAllWebContents: () => [] },
+  BrowserWindow: { fromWebContents: () => ({}) },
+  dialog: {
+    showOpenDialog: async (_window: unknown, options: unknown) => {
+      mocks.options = options
+      return { canceled: false, filePaths: [mocks.selection] }
+    }
+  },
+  session: { fromPartition: () => ({ webRequest: { onHeadersReceived: vi.fn() }, extensions: { loadExtension: mocks.load, removeExtension: mocks.remove } }) }
+}))
 it("installs, persists, disables, re-enables and removes extension records without deleting source", async () => {
   mocks.directory = await mkdtemp(join(tmpdir(), "vessel-extensions-"))
   mocks.selection = mocks.directory
   const manifest = join(mocks.directory, "manifest.json")
   await writeFile(manifest, JSON.stringify({ name: "Test", version: "1.0", manifest_version: 3 }))
   const handlers = new Map<string, (...args: unknown[]) => Promise<unknown>>()
-  const { registerBrowserExtensions } = await import("../../src/main/browser-extensions")
+  const { registerBrowserExtensions } = await import("@main/browser/browser-extensions")
   registerBrowserExtensions({ once: vi.fn(), ipc: { handle: (name: string, handler: (...args: unknown[]) => Promise<unknown>) => handlers.set(name, handler) } } as never)
   try {
-    const installed = await handlers.get("browser:extensions:install")!() as {key: string}[]
+    const installed = (await handlers.get("browser:extensions:install")!()) as { key: string }[]
     const key = installed[0].key
     expect(mocks.options).toMatchObject({ properties: ["openDirectory"] })
     expect(mocks.load).toHaveBeenCalled()
@@ -27,14 +38,16 @@ it("installs, persists, disables, re-enables and removes extension records witho
     await handlers.get("browser:extensions:remove")!(null, key)
     expect(await handlers.get("browser:extensions:list")!()).toEqual([])
     const archive = join(mocks.directory, "package.zip")
-    const fixtures = await import("../fixtures/extension-archives.json")
+    const fixtures = await import("@tests/fixtures/extension-archives.json")
     await writeFile(archive, Buffer.from(fixtures.default.zip, "base64"))
     mocks.selection = archive
-    const packages = await handlers.get("browser:extensions:install")!(null, "archive") as { key: string }[]
+    const packages = (await handlers.get("browser:extensions:install")!(null, "archive")) as { key: string }[]
     expect(mocks.options).toMatchObject({ properties: ["openFile"], filters: [{ extensions: ["crx", "zip"] }] })
     expect(packages).toHaveLength(1)
     await handlers.get("browser:extensions:remove")!(null, packages[0].key)
     expect(await readFile(archive)).toEqual(Buffer.from(fixtures.default.zip, "base64"))
     expect(await readFile(manifest, "utf8")).toContain('"Test"')
-  } finally { await rm(mocks.directory, { recursive: true, force: true }) }
+  } finally {
+    await rm(mocks.directory, { recursive: true, force: true })
+  }
 })

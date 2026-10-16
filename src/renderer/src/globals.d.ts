@@ -1,15 +1,5 @@
-import type {
-  BrowserProxyAPI,
-  BrowserToolsAPI,
-  SettingsAPI,
-  TransitFile,
-  BrowserExtensionsAPI,
-  FileWatchAPI,
-  TerminalAPI,
-  ImageFile,
-  TodosAPI
-} from "@vessel/type"
 import type { ElectronAPI } from "@electron-toolkit/preload"
+import type { BrowserExtensionsAPI, BrowserProxyAPI, BrowserToolsAPI, FileWatchAPI, ImageFile, SettingsAPI, TerminalAPI, TodosAPI, TransitFile } from "@vessel/type"
 
 /** 工作区中的文件信息。 */
 interface WorkspaceFile {
@@ -100,7 +90,7 @@ interface StorageInfo {
 
 /** preload 暴露给 React 渲染进程的完整 API。 */
 interface VesselAPI extends BrowserProxyAPI, BrowserToolsAPI, SettingsAPI, BrowserExtensionsAPI, TodosAPI, TerminalAPI, FileWatchAPI {
-  searchContent(options: import('@vessel/type').ContentSearchOptions): Promise<import('@vessel/type').ContentSearchResult>
+  searchContent(options: import("@vessel/type").ContentSearchOptions): Promise<import("@vessel/type").ContentSearchResult>
   cancelContentSearch(): void
   pickSearchFolder(): Promise<string | null>
   readTransitClipboard(): Promise<string | { root: string; path: string; title: string }>
@@ -176,7 +166,7 @@ interface VesselAPI extends BrowserProxyAPI, BrowserToolsAPI, SettingsAPI, Brows
   transferWorkspaceFiles: (root: string, paths: string[], destination: string, external: boolean, duplicate?: boolean) => Promise<{ source: string; target: string }[]>
   mutateWorkspaceFile: (root: string, path: string, name?: string) => Promise<string>
   getCodeDiagnostics: (path: string, content: string) => Promise<import("@vessel/type").CodeDiagnostic[]>
-  createWorkspaceEntry: (root: string, parent: string, name: string, kind: "file" | "directory") => Promise<{name: string; path: string; type: "file" | "directory"}>
+  createWorkspaceEntry: (root: string, parent: string, name: string, kind: "file" | "directory") => Promise<{ name: string; path: string; type: "file" | "directory" }>
   openExternal: (href: string) => Promise<void>
   readContent: (path: string) => Promise<string>
 
@@ -190,8 +180,8 @@ interface VesselAPI extends BrowserProxyAPI, BrowserToolsAPI, SettingsAPI, Brows
   reportCrash?: (crashed: boolean) => Promise<void>
   relaunchApp?: () => Promise<void>
   reloadWindow?: () => Promise<void>
-  git: typeof import("../../preload/apis/git.api").gitAPI
-  apiClient: typeof import("../../preload/apis/api-client.api").apiClientAPI
+  git: typeof import("@preload/apis/git.api").gitAPI
+  apiClient: typeof import("@preload/apis/api-client.api").apiClientAPI
 }
 
 declare global {
@@ -199,8 +189,8 @@ declare global {
     electron: ElectronAPI
     api: unknown
     electronAPI: VesselAPI
-    git: typeof import("../../preload/apis/git.api").gitAPI
-    apiClient: typeof import("../../preload/apis/api-client.api").apiClientAPI
+    git: typeof import("@preload/apis/git.api").gitAPI
+    apiClient: typeof import("@preload/apis/api-client.api").apiClientAPI
   }
 }
 
