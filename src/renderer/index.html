@@ -14,11 +14,12 @@
       content="
     default-src 'self';
     frame-src 'self' blob: http://127.0.0.1:*;
-    script-src 'self' 'wasm-unsafe-eval';
+    script-src 'self' blob: 'wasm-unsafe-eval';
+    worker-src 'self' blob:;
     style-src 'self' 'unsafe-inline';
     img-src 'self' data: blob: https: http:;
     font-src 'self' data: https://at.alicdn.com;
-    connect-src 'self' http://localhost:* ws://localhost:*;
+    connect-src 'self' blob: http://localhost:* ws://localhost:*;
   "
     />
 

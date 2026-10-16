@@ -22,10 +22,11 @@ export function clampRegion(region: ImageRegion, size: ImageSize): ImageRegion {
   const x = Math.max(0, Math.min(size.width - 1, Math.round(region.x) || 0)), y = Math.max(0, Math.min(size.height - 1, Math.round(region.y) || 0))
   return { x, y, width: Math.max(1, Math.min(size.width - x, Math.round(region.width) || 1)), height: Math.max(1, Math.min(size.height - y, Math.round(region.height) || 1)) }
 }
-export async function cropImage(src: string, region: ImageRegion) {
+export async function cropImage(src: string, region: ImageRegion, output?: ImageSize) {
   const image = await loadImage(src), r = clampRegion(region, { width: image.naturalWidth, height: image.naturalHeight })
-  const canvas = canvasFor(r.width, r.height)
-  canvas.getContext('2d')!.drawImage(image, r.x, r.y, r.width, r.height, 0, 0, r.width, r.height)
+  const canvas = canvasFor(output?.width ?? r.width, output?.height ?? r.height)
+  const ctx = canvas.getContext('2d')!; ctx.imageSmoothingQuality = 'high'
+  ctx.drawImage(image, r.x, r.y, r.width, r.height, 0, 0, canvas.width, canvas.height)
   return canvas
 }
 export function downloadImage(data: string, name: string) {

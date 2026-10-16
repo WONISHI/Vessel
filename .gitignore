@@ -12,3 +12,6 @@ out
 resources/office/
 
 src/renderer/public/ocr/runtime/
+
+# Bundled IS-Net resources; prepare with npm run assets:matting
+/src/renderer/public/vendor/imgly/

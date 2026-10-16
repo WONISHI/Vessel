@@ -152,7 +152,8 @@
     "build:sync": "npm run build --workspace=@vessel/sync",
     "typecheck:sync": "npm run typecheck --workspace=@vessel/sync",
     "build:clipper": "npm run build --workspace=@vessel/clipper",
-    "typecheck:clipper": "npm run typecheck --workspace=@vessel/clipper"
+    "typecheck:clipper": "npm run typecheck --workspace=@vessel/clipper",
+    "assets:matting": "node scripts/prepare-matting-assets.cjs"
   },
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.2",
@@ -172,7 +173,8 @@
     "recharts": "^3.10.1",
     "typescript": "^5.9.3",
     "yaml": "^2.9.1",
-    "yauzl": "^3.4.0"
+    "yauzl": "^3.4.0",
+    "@vessel/image-matting": "workspace:*"
   },
   "devDependencies": {
     "@codemirror/lang-markdown": "^6.5.0",

@@ -1,5 +1,6 @@
 import { resolve } from "path"
 import { cpSync, mkdirSync } from "node:fs"
+import { execFileSync } from "node:child_process"
 import { createRequire } from "node:module"
 import { defineConfig } from "electron-vite"
 import react from "@vitejs/plugin-react"
@@ -19,6 +20,16 @@ function localVditorAssets() {
       const destination = resolve("src/renderer/public/vendor/vditor/dist")
       mkdirSync(destination, { recursive: true })
       cpSync(source, destination, { recursive: true })
+    }
+  }
+}
+
+function localMattingAssets() {
+  return {
+    name: "vessel-local-matting-assets",
+    configResolved() {
+      // Fail before packaging if the offline runtime is incomplete. Never fetch at runtime.
+      execFileSync(process.execPath, [resolve("scripts/prepare-matting-assets.cjs"), "--check"], { stdio: "inherit" })
     }
   }
 }
@@ -123,6 +134,6 @@ export default defineConfig({
         "@": resolve("src/renderer/src")
       }
     },
-    plugins: [localOcrAssets(), localVditorAssets(), patchScreenShotPlugin(), react(), svgr()]
+    plugins: [localMattingAssets(), localOcrAssets(), localVditorAssets(), patchScreenShotPlugin(), react(), svgr()]
   }
 })
