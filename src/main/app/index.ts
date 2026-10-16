@@ -3,9 +3,10 @@ import { FilesModule } from "@main/modules/files/index.module"
 import { WelcomeModule } from "@main/modules/welcome/index.module"
 import { GitModule } from "@main/modules/git/index.module"
 import { ApiClientModule } from "@main/modules/api-client/index.module"
+import { ExtensionBridgeModule } from "@main/modules/extension-bridge/index.module"
 import { type BaseModule, type ModuleConstructor } from "@main/modules/base/index"
 
-const MODULES: ModuleConstructor[] = [WelcomeModule, FilesModule, TodosModule, GitModule, ApiClientModule]
+const MODULES: ModuleConstructor[] = [WelcomeModule, FilesModule, TodosModule, GitModule, ApiClientModule, ExtensionBridgeModule]
 
 class MainApps {
   private modules: BaseModule[] = []

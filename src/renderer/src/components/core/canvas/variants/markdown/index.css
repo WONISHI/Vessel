@@ -498,8 +498,33 @@
 .vessel-hover-preview .vditor-ir { padding: 8px !important; }
 .vessel-hover-preview .vditor-toolbar, .vessel-hover-preview .vditor-ir__marker { display: none !important; }
 
-/* Read-only is still readable: Vditor defaults disabled IR content to 30% opacity. */
-.vessel-hover-preview .vditor-ir pre.vditor-reset[contenteditable="false"] { opacity: 1; }
+/* Read-only is still readable: Vditor defaults disabled IR content to 30% opacity, override globally */
+.vditor-ir pre.vditor-reset[contenteditable="false"],
+.vessel-vditor .vditor-ir pre.vditor-reset[contenteditable="false"],
+.vessel-hover-preview .vditor-ir pre.vditor-reset[contenteditable="false"],
+.vditor-wysiwyg pre.vditor-reset[contenteditable="false"] {
+  opacity: 1 !important;
+  cursor: text !important;
+  color: #1c1917 !important;
+}
+
+.workspace-readme-body .vditor {
+  border: none !important;
+  background: transparent !important;
+}
+.workspace-readme-body .vditor-reset {
+  color: #1c1917 !important;
+  opacity: 1 !important;
+  padding: 0 !important;
+}
+.workspace-readme-body .vditor-reset :is(h1, h2, h3, h4, h5, h6) {
+  color: #1c1917 !important;
+  font-weight: 700 !important;
+}
+.workspace-readme-body .vditor-reset p,
+.workspace-readme-body .vditor-reset li {
+  color: #292524 !important;
+}
 .vessel-vditor .vessel-wiki-link { color: #648798; font-size: 0; }
 .vessel-vditor .vessel-wiki-link.vessel-wiki-editing { font-size: 14px; outline: none; }
 .vessel-vditor .vessel-wiki-link.vessel-wiki-editing::after { content: none; }

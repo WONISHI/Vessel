@@ -174,7 +174,7 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
                 {label}
               </TooltipContent>
             </Tooltip>
-            {id === "files" && <ContextMenuContent><ContextMenuItem disabled={!syncEnabled || syncRunning} onSelect={() => { void syncWorkspace() }}><RefreshCcw className={syncRunning ? "animate-spin" : ""} />{syncRunning ? "正在同步…" : "同步"}</ContextMenuItem></ContextMenuContent>}
+            {id === "files" && <ContextMenuContent className="min-w-[140px] w-[140px]"><ContextMenuItem disabled={!syncEnabled || syncRunning} onSelect={() => { void syncWorkspace() }}><RefreshCcw className={syncRunning ? "animate-spin" : ""} />{syncRunning ? "正在同步…" : "同步"}</ContextMenuItem></ContextMenuContent>}
           </ContextMenu>
         ))}
 

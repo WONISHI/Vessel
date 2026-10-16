@@ -18,6 +18,8 @@ export type BrowserDevice = {
 
 export interface BrowserToolsAPI {
   syncBrowserBookmarks(items: { url: string; title: string }[]): Promise<void>
+  getBrowserBookmarks(): Promise<{ url: string; title: string }[]>
+  onBrowserBookmarksUpdated(callback: (items: { url: string; title: string }[]) => void): () => void
   listBrowserHistory(): Promise<HistoryEntry[]>
   deleteBrowserHistory(id: number | null): Promise<void>
   printBrowserPage(id: number): Promise<void>

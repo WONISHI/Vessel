@@ -89,7 +89,7 @@ export function FileSearch({ path, contentHost }: { path: string; contentHost: R
               variant="ghost"
               size="icon"
               aria-label="搜索当前文件"
-              className="size-7 shrink-0 text-stone-500 hover:bg-emerald-700 hover:text-white"
+              className="size-7 shrink-0 text-stone-500 hover:bg-emerald-700 hover:!text-white hover:[&_svg]:!text-white hover:[&_svg]:!stroke-white active:bg-emerald-700 active:!text-white data-[state=open]:bg-emerald-700 data-[state=open]:!text-white data-[state=open]:[&_svg]:!text-white data-[state=open]:[&_svg]:!stroke-white"
             >
               <Search className="!size-3.5" />
             </Button>

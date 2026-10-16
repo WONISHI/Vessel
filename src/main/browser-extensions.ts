@@ -5,7 +5,7 @@ import { loadExtensionPage, handleExtensionWindows } from "./extension-navigatio
 import { extensionMetadata, extensionFile } from "./extension-metadata"
 import { importExtensionArchive } from "./extension-archive"
 import { app, BrowserWindow, WebContentsView, webContents, dialog, session, type WebContents } from "electron"
-import { readFile, writeFile, rename, realpath, rm } from "node:fs/promises"
+import { readFile, writeFile, rename, realpath, rm, stat } from "node:fs/promises"
 import { join, dirname, basename } from "node:path"
 import { randomUUID } from "node:crypto"
 import type { BrowserExtension } from "@vessel/type"
@@ -35,6 +35,42 @@ function initialize() {
       if (!Array.isArray(saved)) throw new Error("扩展配置格式无效")
       records = saved.filter(record => record && typeof record.key === "string" && typeof record.path === "string" && typeof record.enabled === "boolean")
     } catch (error) { if ((error as NodeJS.ErrnoException).code !== "ENOENT") console.error("读取扩展列表失败", error) }
+
+    // 清理已废弃的 bookmarks 内置扩展记录
+    const filteredRecords = records.filter(
+      r => r.key !== "builtin-vessel-bookmarks" && !r.name?.includes("Bookmarks Sync") && !r.path?.includes("bookmarks")
+    )
+    if (filteredRecords.length !== records.length) {
+      records = filteredRecords
+      void save(records)
+    }
+
+    // 自动扫描与预置内置扩展（仅保留 Clipper 网页剪藏）
+    const builtins = [
+      {
+        key: "builtin-vessel-clipper",
+        name: "Vessel Clipper - 网页剪藏",
+        path: app.isPackaged ? join(process.resourcesPath, "extensions/clipper") : join(app.getAppPath(), "packages/clipper/dist")
+      }
+    ]
+
+    for (const item of builtins) {
+      try {
+        await stat(join(item.path, "manifest.json"))
+        const found = records.find(r => r.key === item.key || r.path === item.path || r.name === item.name)
+        if (!found) {
+          records.push({
+            key: item.key,
+            path: item.path,
+            name: item.name,
+            version: "1.0.0",
+            enabled: true,
+            pinned: true
+          })
+        }
+      } catch {}
+    }
+
     for (const record of records) { record.extensionId = undefined; if (record.enabled) await load(record); else await extensionMetadata(record).catch(() => {}) }
   })()
 }
@@ -95,6 +131,7 @@ export function registerBrowserExtensions(host: WebContents) {
     closePopup(key)
     closeOwned()
     const popup = new WebContentsView({ webPreferences: { partition: "persist:vessel-browser", sandbox: true, contextIsolation: true, nodeIntegration: false } })
+    try { popup.setBackgroundColor('#00000000') } catch {}
     activePopup = popup.webContents
     popup.webContents.on('dom-ready', () => {
       void popup.webContents.insertCSS('::-webkit-scrollbar { display: none !important; } html { scrollbar-width: none !important; }')

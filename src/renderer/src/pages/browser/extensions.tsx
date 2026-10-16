@@ -8,7 +8,13 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
 import type { BrowserExtension } from "@vessel/type"
 const Icon = ({ item }: { item: BrowserExtension }) => item.icon ? <img src={item.icon} alt="" className="size-4 object-contain" /> : <Puzzle className="size-4" />
-export function BrowserExtensions({ onOpenDevtools }: { onOpenDevtools?: () => void }) {
+export function BrowserExtensions({
+  onOpenDevtools,
+  getActivePageData
+}: {
+  onOpenDevtools?: () => void
+  getActivePageData?: () => Promise<any>
+}) {
   const [popup, setPopup] = useState<BrowserExtension | null>(null)
   const popupArea = useRef<HTMLDivElement>(null)
   const scrollViewport = useRef<HTMLDivElement>(null)
@@ -54,6 +60,20 @@ export function BrowserExtensions({ onOpenDevtools }: { onOpenDevtools?: () => v
   const launch = async (item: BrowserExtension, mode: "open" | "options" | "inspect" = "open") => {
     setError("")
     try {
+      if (getActivePageData && (item.key.includes("clipper") || item.name.includes("剪藏"))) {
+        try {
+          const pageData = await getActivePageData()
+          if (pageData) {
+            await fetch("http://127.0.0.1:35678/api/active-page", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(pageData)
+            })
+          }
+        } catch (err) {
+          console.warn("Failed to extract or post active-page data:", err)
+        }
+      }
       const result = await window.electronAPI.openBrowserExtension(item.key, mode)
       if (result.kind === "dialog") { setOpen(false); setPopup(item) }
       if (result.kind === "devtools") { onOpenDevtools?.(); setOpen(false) }
@@ -63,18 +83,18 @@ export function BrowserExtensions({ onOpenDevtools }: { onOpenDevtools?: () => v
   const context = (event: React.MouseEvent, item: BrowserExtension) => { event.preventDefault(); setPosition({ x: event.clientX, y: event.clientY }); setMenu(item) }
   return <>
     <Dialog open={!!popup} onOpenChange={value => { if(!value) { setPopup(null); void window.electronAPI.closeBrowserExtension() } }}>
-      <DialogContent overlayClassName="bg-transparent" className="gap-0 overflow-hidden rounded-xl border-stone-200 p-0 !animate-none shadow-[0_8px_30px_rgba(0,0,0,0.12),0_2px_8px_rgba(0,0,0,0.06)] sm:max-w-[440px] [&>button]:right-[18px] [&>button]:top-[14px] [&>button]:flex [&>button]:size-7 [&>button]:items-center [&>button]:justify-center [&>button]:rounded-md [&>button]:text-stone-400 [&>button:hover]:bg-stone-100" aria-describedby={undefined}>
+      <DialogContent overlayClassName="bg-transparent" className="gap-0 overflow-hidden rounded-2xl border-stone-200 p-0 !animate-none shadow-[0_8px_30px_rgba(0,0,0,0.12),0_2px_8px_rgba(0,0,0,0.06)] sm:max-w-[440px] [&>button]:right-[18px] [&>button]:top-[14px] [&>button]:flex [&>button]:size-7 [&>button]:items-center [&>button]:justify-center [&>button]:rounded-md [&>button]:text-stone-400 [&>button:hover]:bg-stone-100" aria-describedby={undefined}>
         <DialogTitle className="flex h-14 items-center gap-2 border-b border-[#f0efed] px-[18px] text-[15px] font-bold text-stone-900"><span className="flex size-[22px] items-center justify-center rounded-md bg-green-50"><Shield className="size-[13px] text-green-600" /></span>{popup?.name}</DialogTitle>
-        <div className="relative h-[360px] max-h-[70vh] w-full">
+        <div className="relative h-[360px] max-h-[70vh] w-full pb-2">
           <ScrollArea type="auto" viewportRef={scrollViewport} className="h-full w-full"><div style={{height:scrollHeight}} /></ScrollArea>
-          <div ref={popupArea} className="pointer-events-none absolute inset-y-0 left-0 right-3" />
+          <div ref={popupArea} className="pointer-events-none absolute left-0 right-3.5 top-0 bottom-2.5" />
         </div>
       </DialogContent>
     </Dialog>
     {items.filter(item => item.pinned && item.enabled).map(item => <Button key={item.key} className="browser-extension-button" variant="ghost" size="icon" title={item.name} aria-label={`打开 ${item.name}`} onClick={() => void launch(item)} onContextMenu={event => context(event, item)}><Icon item={item} /></Button>)}
     <Button variant="ghost" size="icon" aria-label="管理浏览器扩展" title="管理浏览器扩展" onClick={() => { setOpen(!open); void run(() => window.electronAPI.listBrowserExtensions()) }}><Puzzle /></Button>
     <Sheet modal={false} open={open} onOpenChange={setOpen}>
-      <SheetContent showOverlay={false} className="flex w-[380px] max-w-[100vw] flex-col gap-0 p-0 text-xs sm:max-w-[380px]" onInteractOutside={event => event.preventDefault()}>
+      <SheetContent showOverlay={false} className="z-[200] flex w-[380px] max-w-[100vw] flex-col gap-0 p-0 text-xs sm:max-w-[380px]" onInteractOutside={event => event.preventDefault()}>
         <SheetHeader className="border-b px-5 py-4 text-left"><SheetTitle className="text-base flex items-center gap-2"><Box className="size-5 text-green-600" />浏览器扩展</SheetTitle><SheetDescription className="pr-4 text-xs leading-5">支持 CRX、ZIP（含 CRX 的压缩包）和包含 manifest.json 的解压目录。支持部分 Chrome 扩展和 DevTools 扩展，暂不支持从 Chrome 商店直接安装。</SheetDescription></SheetHeader>
         <div className="min-h-0 flex-1 overflow-auto p-5">
           <div className="mb-4 grid grid-cols-2 gap-2"><Button className="h-9 px-2 text-xs bg-green-600 text-white hover:bg-green-700" disabled={busy} onClick={() => void run(() => window.electronAPI.installBrowserExtension("archive"))}><Upload />安装 CRX / ZIP</Button><Button className="h-9 px-2 text-xs hover:bg-[#327f73] hover:text-white active:bg-[#327f73] active:text-white" variant="outline" disabled={busy} onClick={() => void run(() => window.electronAPI.installBrowserExtension("directory"))}><Folder />加载解压目录</Button></div>
@@ -94,7 +114,7 @@ export function BrowserExtensions({ onOpenDevtools }: { onOpenDevtools?: () => v
         <footer className="flex gap-2 border-t bg-muted/20 px-5 py-3 text-[11px] leading-5 text-muted-foreground"><TriangleAlert className="mt-1 size-4 shrink-0 text-amber-600" />安装或启停后请刷新网页；DevTools 扩展需重新打开网页控制台。下次启动会自动恢复已启用的扩展。</footer>
       </SheetContent>
     </Sheet>
-    <DropdownMenu modal={false} open={!!menu} onOpenChange={value => { if (!value) setMenu(null) }}><DropdownMenuTrigger className="fixed size-0" style={{ left: position.x, top: position.y }} aria-label="扩展菜单" /><DropdownMenuContent align="start" className="z-[60] w-64">
+    <DropdownMenu modal={false} open={!!menu} onOpenChange={value => { if (!value) setMenu(null) }}><DropdownMenuTrigger className="fixed size-0" style={{ left: position.x, top: position.y }} aria-label="扩展菜单" /><DropdownMenuContent align="start" className="z-[260] w-64">
       <DropdownMenuLabel>{menu?.name}</DropdownMenuLabel><DropdownMenuSeparator />
       <DropdownMenuItem onSelect={() => { setPermissions(menu); setOpen(true) }}>可读取和更改的网站数据</DropdownMenuItem><DropdownMenuSeparator />
       <DropdownMenuItem onSelect={() => menu && void run(() => window.electronAPI.removeBrowserExtension(menu.key))}>从 Vessel 中移除</DropdownMenuItem>

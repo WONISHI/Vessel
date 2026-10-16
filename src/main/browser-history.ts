@@ -39,8 +39,16 @@ export class BrowserHistory {
     if (/^https?:\/\//i.test(url) && url.length < 8192) this.db.prepare("UPDATE visits SET favicon=? WHERE id=?").run(url, id)
   }
   setBookmarks(items: { url: string; title: string }[]) {
-    if (!Array.isArray(items) || items.length > 10000 || items.some(item => !item || typeof item.url !== 'string' || !/^https?:\/\//i.test(item.url) || typeof item.title !== 'string')) throw new Error('书签数据无效')
-    this.db.transaction(() => { this.db.exec('DELETE FROM bookmarks'); const insert = this.db.prepare('INSERT OR REPLACE INTO bookmarks(url,title) VALUES (?,?)'); for (const item of items) insert.run(item.url, item.title.slice(0,1000)) })()
+    if (!Array.isArray(items)) throw new Error('书签数据无效')
+    const valid = items.filter(item => item && typeof item.url === 'string' && /^https?:\/\//i.test(item.url))
+    this.db.transaction(() => {
+      this.db.exec('DELETE FROM bookmarks')
+      const insert = this.db.prepare('INSERT OR REPLACE INTO bookmarks(url,title) VALUES (?,?)')
+      for (const item of valid) insert.run(item.url, String(item.title || item.url).slice(0, 1000))
+    })()
+  }
+  getBookmarks(): { url: string; title: string }[] {
+    return this.db.prepare("SELECT url, title FROM bookmarks ORDER BY rowid ASC").all() as { url: string; title: string }[]
   }
   list(): HistoryEntry[] { this.prune(); return this.db.prepare("SELECT visits.*, EXISTS(SELECT 1 FROM bookmarks WHERE bookmarks.url=visits.url) AS bookmarked FROM visits ORDER BY visitedAt DESC, id DESC").all() as HistoryEntry[] }
   delete(id: number | null) { if (id === null) this.db.exec("DELETE FROM visits"); else if (Number.isSafeInteger(id)) this.db.prepare("DELETE FROM visits WHERE id=?").run(id) }

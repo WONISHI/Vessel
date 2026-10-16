@@ -17,6 +17,12 @@ const api = {}
 
 const vesselAPI = {
   syncBrowserBookmarks: (items: { url: string; title: string }[]) => ipcRenderer.invoke("browser:bookmarks:sync", items),
+  getBrowserBookmarks: (): Promise<{ url: string; title: string }[]> => ipcRenderer.invoke("browser:bookmarks:get"),
+  onBrowserBookmarksUpdated: (callback: (items: { url: string; title: string }[]) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, items: { url: string; title: string }[]) => callback(items)
+    ipcRenderer.on("browser:bookmarks-updated", handler)
+    return () => { ipcRenderer.removeListener("browser:bookmarks-updated", handler) }
+  },
   listBrowserHistory: () => ipcRenderer.invoke("browser:history:list"),
   deleteBrowserHistory: (id: number | null) => ipcRenderer.invoke("browser:history:delete", id),
   printBrowserPage: (id: number) => ipcRenderer.invoke("browser:print", id),

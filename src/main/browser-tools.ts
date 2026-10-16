@@ -1,4 +1,4 @@
-import { app, webContents, session, type WebContents } from "electron"
+import { app, webContents, session, BrowserWindow, type WebContents } from "electron"
 import { join } from "node:path"
 import { BrowserHistory } from "./browser-history"
 import type { BrowserDevice } from "@vessel/type"
@@ -12,6 +12,8 @@ function store() {
   }
   return history
 }
+export function getBrowserBookmarks() { return store().getBookmarks() }
+export function setBrowserBookmarks(items: { url: string; title: string }[]) { return store().setBookmarks(items) }
 export function registerBrowserTools(host: WebContents) {
   store().prune()
   const guest = (id: number, allowTransit = false) => {
@@ -19,7 +21,19 @@ export function registerBrowserTools(host: WebContents) {
     if (!target || target.hostWebContents !== host || (target.session !== session.fromPartition("persist:vessel-browser") && !(allowTransit && target.session === session.fromPartition("persist:vessel-transit")))) throw new Error("浏览器页面无效")
     return target
   }
-  host.ipc.handle("browser:bookmarks:sync", (_event, items) => store().setBookmarks(items))
+  host.ipc.handle("browser:bookmarks:sync", (_event, items) => {
+    const valid = Array.isArray(items)
+      ? items.filter((item) => item && typeof item.url === "string" && /^https?:\/\//i.test(item.url)).map(item => ({ url: item.url, title: String(item.title || item.url) }))
+      : []
+    store().setBookmarks(valid)
+    for (const win of BrowserWindow.getAllWindows()) {
+      if (!win.isDestroyed()) {
+        win.webContents.send("browser:bookmarks-updated", valid)
+      }
+    }
+    return valid
+  })
+  host.ipc.handle("browser:bookmarks:get", () => store().getBookmarks())
   host.ipc.handle("browser:history:list", () => store().list())
   host.ipc.handle("browser:history:delete", (_event, id: number | null) => store().delete(id))
   host.ipc.handle("browser:print", (_event, id: number) => new Promise<void>((resolve, reject) => guest(id).print({ silent: false, printBackground: true }, (success, reason) => { if (success || /cancel/i.test(reason)) resolve(); else reject(new Error(reason)) })))

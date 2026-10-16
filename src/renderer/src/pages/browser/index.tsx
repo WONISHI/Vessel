@@ -26,6 +26,131 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { browserURL } from "./url"
 import "./index.css"
 
+const PAGE_EXTRACTOR_SCRIPT = `(() => {
+  try {
+    function extractArticleHtml() {
+      // 1. 优先匹配主流平台和标准文章语义标签
+      const selectors = [
+        "#js_content",
+        ".Post-RichText",
+        ".RichContent-inner",
+        "#content_views",
+        ".article_content",
+        ".article-viewer",
+        ".markdown-body",
+        ".article-holder",
+        ".article-content",
+        "article",
+        "main",
+        "[role='main']",
+        ".post-content",
+        ".article-content",
+        ".entry-content",
+        "#article-root",
+        "#content",
+        ".article",
+        ".post_body",
+        ".post-body"
+      ];
+      for (const sel of selectors) {
+        try {
+          const el = document.querySelector(sel);
+          if (el && ((el.innerText || el.textContent || "").trim().length > 20)) {
+            return el.innerHTML;
+          }
+        } catch (_) {}
+      }
+
+      // 2. 启发式：寻找正文段落与文字密度最高的容器元素
+      try {
+        const candidates = Array.from(document.querySelectorAll("div, section"));
+        let bestEl = null;
+        let maxScore = 0;
+        for (const el of candidates) {
+          if (el.closest("nav, header, footer, aside, .sidebar, .comments")) continue;
+          const textLen = (el.innerText || "").trim().length;
+          if (textLen < 50) continue;
+          const pCount = el.querySelectorAll("p").length;
+          const score = textLen + pCount * 120;
+          if (score > maxScore) {
+            maxScore = score;
+            bestEl = el;
+          }
+        }
+        if (bestEl && maxScore > 200) {
+          return bestEl.innerHTML;
+        }
+      } catch (_) {}
+
+      // 3. 降级：复制 document.body 并清除导航与干扰元素
+      const body = document.body || document.documentElement;
+      if (!body) return "";
+      const clone = body.cloneNode(true);
+      const removeSelectors = [
+        "script", "style", "noscript", "iframe", "nav", "header", "footer", "aside",
+        ".sidebar", ".comments", ".advertisement", ".ad", "#sidebar", "#footer", "#header"
+      ];
+      removeSelectors.forEach(sel => {
+        try {
+          clone.querySelectorAll(sel).forEach(node => node.remove());
+        } catch (_) {}
+      });
+      return clone.innerHTML;
+    }
+
+    function extractSelection() {
+      try {
+        const selection = window.getSelection();
+        if (!selection || selection.rangeCount === 0 || selection.isCollapsed) return { text: "", html: "" };
+        const text = selection.toString().trim();
+        const range = selection.getRangeAt(0);
+        const container = document.createElement("div");
+        container.appendChild(range.cloneContents());
+        return { text, html: container.innerHTML };
+      } catch (_) {
+        return { text: "", html: "" };
+      }
+    }
+
+    const sel = extractSelection();
+    const getMeta = (names) => {
+      for (const name of names) {
+        try {
+          const el = document.querySelector("meta[name=\x27" + name + "\x27], meta[property=\x27" + name + "\x27]");
+          if (el) {
+            const val = el.getAttribute("content");
+            if (val) return val.trim();
+          }
+        } catch (_) {}
+      }
+      return "";
+    };
+
+    const faviconEl = document.querySelector("link[rel*=\x27icon\x27]");
+    return {
+      title: document.title || "未命名网页",
+      url: window.location.href,
+      description: getMeta(["description", "og:description", "twitter:description"]),
+      author: getMeta(["author", "article:author", "twitter:creator"]),
+      siteName: getMeta(["og:site_name", "application-name"]) || window.location.hostname,
+      favicon: faviconEl ? faviconEl.href : (window.location.origin + "/favicon.ico"),
+      selectedText: sel.text,
+      selectedHtml: sel.html,
+      articleHtml: extractArticleHtml(),
+      timestamp: new Date().toISOString()
+    };
+  } catch (err) {
+    return {
+      title: document.title || "未命名网页",
+      url: window.location.href,
+      selectedText: "",
+      selectedHtml: "",
+      articleHtml: document.body ? document.body.innerHTML : "",
+      timestamp: new Date().toISOString()
+    };
+  }
+})()`
+
 type Tab = { ready?: boolean; openerId?: string; favicon?: string; id: string; url: string; title: string; loading: boolean; back: boolean; forward: boolean; error: string; zoom: number; pinned?: boolean }
 const newTab = (): Tab => ({ id: crypto.randomUUID(), url: "", title: "新标签页", loading: false, back: false, forward: false, error: "", zoom: 1 })
 export type BookmarkItem = { title: string; url: string; favicon?: string }
@@ -205,20 +330,64 @@ export default function BrowserPage({ visible = true }: { visible?: boolean }) {
   }, [visible])
   const [input, setInput] = useState<string | null>(null)
   const [searchInput, setSearchInput] = useState("")
-  const [bookmarks, setBookmarks] = useState(() => {
+  const [bookmarks, setBookmarks] = useState<{ url: string; title: string; favicon?: string }[]>(() => {
     try {
-      return (JSON.parse(localStorage.getItem("browser-bookmarks") || "null") as typeof shortcuts) || shortcuts
-    } catch {
-      return shortcuts
-    }
+      const saved = JSON.parse(localStorage.getItem("browser-bookmarks") || "null")
+      if (Array.isArray(saved) && saved.length > 0 && shortcuts.some(sc => saved.some(s => s.url === sc.url))) {
+        return saved
+      }
+    } catch {}
+    localStorage.setItem("browser-bookmarks", JSON.stringify(shortcuts))
+    return shortcuts
   })
-  useEffect(() => { void window.electronAPI.syncBrowserBookmarks(bookmarks).catch(console.error) }, [bookmarks])
+
+  // 保持 Vessel 自身的 SQLite 数据库同步
+  useEffect(() => {
+    void window.electronAPI.syncBrowserBookmarks(bookmarks).catch(console.error)
+  }, [bookmarks])
+
+  const removeBookmark = useCallback((url: string) => {
+    setBookmarks(current => {
+      const next = current.filter(item => item.url !== url)
+      localStorage.setItem("browser-bookmarks", JSON.stringify(next))
+      return next
+    })
+  }, [])
+
+  const resetBookmarks = useCallback(() => {
+    setBookmarks(shortcuts)
+    localStorage.setItem("browser-bookmarks", JSON.stringify(shortcuts))
+    void window.electronAPI.syncBrowserBookmarks(shortcuts).catch(console.error)
+  }, [])
   const views = useRef(new Map<string, WebviewTag>())
   const registerView = useCallback((id: string, view: WebviewTag | null) => {
     if (view) views.current.set(id, view)
     else views.current.delete(id)
   }, [])
   const tab = tabs.find((item) => item.id === active) || tabs[0]
+  const getActivePageData = useCallback(async () => {
+    const currentTab = tabs.find(t => t.id === active) || tabs[0]
+    if (!currentTab) return null
+    const view = views.current.get(currentTab.id)
+    if (!view) {
+      return {
+        title: currentTab.title,
+        url: currentTab.url,
+        timestamp: new Date().toISOString()
+      }
+    }
+    try {
+      const data = await view.executeJavaScript(PAGE_EXTRACTOR_SCRIPT)
+      return data
+    } catch (err) {
+      console.warn("[getActivePageData] Failed to execute extractor script:", err)
+      return {
+        title: currentTab.title,
+        url: currentTab.url,
+        timestamp: new Date().toISOString()
+      }
+    }
+  }, [active, tabs])
   useEffect(() => { publishBrowserTabs(tabs.filter(item => Boolean(item.url)).map(item => ({ id: item.id, title: item.title, url: item.url, favicon: item.favicon, active: item.id === tab.id }))) }, [tabs, tab.id])
   useEffect(() => {
     try {
@@ -407,6 +576,7 @@ export default function BrowserPage({ visible = true }: { visible?: boolean }) {
     const next = bookmarks.some((item) => item.url === tab.url) ? bookmarks.filter((item) => item.url !== tab.url) : [...bookmarks, { url: tab.url, title: tab.title, favicon: tab.favicon }]
     setBookmarks(next)
     localStorage.setItem("browser-bookmarks", JSON.stringify(next))
+    void window.electronAPI.syncBrowserBookmarks(next).catch(() => {})
   }
   return (
     <Layout
@@ -586,10 +756,15 @@ export default function BrowserPage({ visible = true }: { visible?: boolean }) {
           >
             <Bug />
           </Button>
-          <BrowserExtensions onOpenDevtools={() => setDevtoolsOpen(true)} />
+          <BrowserExtensions onOpenDevtools={() => setDevtoolsOpen(true)} getActivePageData={getActivePageData} />
           <BrowserMore zoomFactor={tab.zoom} zoom={zoom} onFind={() => setFindOpen(true)} onNavigate={navigate} guest={() => views.current.get(tab.id)} deviceMode={deviceMode} onDevice={() => { setDeviceMode(value => !value) }} />
         </div>
-        <BookmarkBar items={bookmarks} onNavigate={navigate} />
+        <BookmarkBar
+          items={bookmarks}
+          onNavigate={navigate}
+          onRemove={removeBookmark}
+          onReset={resetBookmarks}
+        />
         </div></div>
         {deviceMode && <DeviceToolbar onViewport={setDeviceViewport} guest={() => views.current.get(tab.id)} tabId={tab.id} onClose={() => setDeviceMode(false)} />}
         <div className={`browser-content dock-${dock}`}>
@@ -636,7 +811,7 @@ export default function BrowserPage({ visible = true }: { visible?: boolean }) {
             <div className="browser-loading-bar" />
             <div className="browser-loading-card"><img src={browserLoading} alt="" /><div>正在加载页面<span className="browser-loading-dots"><span>.</span><span>.</span><span>.</span></span></div><small title={tab.url}>{tab.url}</small></div>
           </div>}
-          {tab.loading && tab.ready && <div className="pointer-events-none absolute inset-x-0 top-0 z-[150] h-1" role="status" aria-label="正在加载页面"><div className="browser-loading-bar" /></div>}
+          {tab.loading && tab.ready && <div className="pointer-events-none absolute inset-x-0 top-0 z-[220] h-1" role="status" aria-label="正在加载页面"><div className="browser-loading-bar" /></div>}
           <div className={deviceMode && tab.url ? "device-preview-surface absolute inset-0 overflow-auto p-7" : "absolute inset-0"}>
           <div style={deviceMode && tab.url ? { width: deviceViewport.width + 2, height: deviceViewport.height + 2, margin: "0 auto" } : { width: "100%", height: "100%" }}>
           <div aria-label={deviceMode ? "设备预览边框" : undefined} style={deviceMode && tab.url ? { width: deviceViewport.width, height: deviceViewport.height, boxSizing: "content-box", border: "1px solid #d6d3d1", borderRadius: 4, boxShadow: "0 8px 32px #0000001a, 0 2px 8px #0000000a", background: "white", overflow: "hidden" } : { width: "100%", height: "100%" }}>

@@ -227,7 +227,7 @@
 .browser-find button:disabled { opacity:.3; }
 .browser-find .browser-find-close:hover { background:#fef2f2; color:#dc2626; }
 .browser-find-divider { width:1px; height:16px; background:#e7e5e4; margin:0 2px; }
-.browser-page-loading { position:absolute; inset:0; z-index:150; display:flex; align-items:center; justify-content:center; background:#faf9f7; }
+.browser-page-loading { position:absolute; inset:0; z-index:220; display:flex; align-items:center; justify-content:center; background:#faf9f7; }
 .browser-loading-card { background:white; border:1px solid #e7e5e4; border-radius:14px; padding:12px 34px 22px; display:flex; align-items:center; flex-direction:column; gap:12px; box-shadow:0 8px 30px #0000000f; font-size:13px; color:#57534e; }
 .browser-loading-card img { width:120px; height:120px; }
 .browser-loading-card small { max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#a8a29e; font-size:11px; }

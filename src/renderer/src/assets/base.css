@@ -67,3 +67,58 @@ select {
   stroke: currentColor !important;
 }
 
+/* 按钮 hover 处于深绿/纯白文字背景时，图标与文字强制纯白（不影响浅色 active/hover 状态） */
+button[class*="hover:text-white"]:hover svg,
+button[class*="hover:!text-white"]:hover svg,
+button[class*="hover:bg-emerald-6"]:hover svg,
+button[class*="hover:bg-emerald-7"]:hover svg,
+button[class*="hover:bg-emerald-8"]:hover svg,
+button[class*="hover:bg-green-6"]:hover svg,
+button[class*="hover:bg-green-7"]:hover svg,
+button[class*="hover:bg-green-8"]:hover svg,
+button[class*="hover:!bg-[#17A34A]"]:hover svg,
+button[class*="hover:!bg-[#327f73]"]:hover svg,
+button[class*="hover:bg-[#327f73]"]:hover svg,
+button[class*="hover:bg-emerald-6"]:active svg,
+button[class*="hover:bg-emerald-7"]:active svg,
+button[class*="hover:bg-emerald-8"]:active svg,
+button[class*="hover:bg-green-6"]:active svg,
+button[class*="hover:bg-green-7"]:active svg,
+button[class*="hover:bg-green-8"]:active svg,
+button[data-state="open"][class*="bg-emerald-6"] svg,
+button[data-state="open"][class*="bg-emerald-7"] svg,
+button[data-state="open"][class*="bg-green-6"] svg,
+button[data-state="open"][class*="bg-green-7"] svg {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+}
+
+/* 工作区年度热力图单屏自适应（消除横向滚动条，整年自适应容器宽度） */
+.workspace-activity-calendar .react-activity-calendar {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+.workspace-activity-calendar .react-activity-calendar__scroll-container {
+  overflow-x: hidden !important;
+  overflow-y: hidden !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  padding-bottom: 2px !important;
+}
+
+.workspace-activity-calendar .react-activity-calendar__calendar {
+  width: 100% !important;
+  height: auto !important;
+  max-width: 100% !important;
+  display: block !important;
+}
+
+.workspace-activity-calendar .react-activity-calendar__footer {
+  width: 100% !important;
+  font-size: 11px !important;
+  color: #78716c !important;
+  padding-top: 4px !important;
+}
+
+

@@ -14,6 +14,7 @@ import { createS3Storage } from "./settings-s3"
 type Profile = { config: AppSettings["backup"]; secret: string; status: BackupStatus }
 let stored: { syncExcludeDefaultsVersion: number; settings: AppSettings; secret: string; status: BackupStatus; profiles: Record<string, Profile> } | undefined
 let currentWorkspace: string | null = null
+export function getCurrentWorkspace(): string | null { return currentWorkspace }
 let syncing = false
 const emptyProfile = (): Profile => ({ config: structuredClone(defaultSettings.backup), secret: "", status: { running: false } })
 const profile = (root = currentWorkspace): Profile => root ? (load().profiles[root] ?? emptyProfile()) : emptyProfile()

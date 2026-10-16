@@ -130,7 +130,7 @@
     "fix": "npm run lint -- --fix",
     "typecheck:node": "tsc --noEmit -p tsconfig.node.json --composite false",
     "typecheck:web": "tsc --noEmit -p tsconfig.web.json --composite false",
-    "typecheck": "npm run typecheck:sync && npm run typecheck:obsidian && npm run typecheck:utils && npm run typecheck:type && npm run typecheck:router && npm run typecheck:node && npm run typecheck:web",
+    "typecheck": "npm run typecheck:sync && npm run typecheck:obsidian && npm run typecheck:utils && npm run typecheck:type && npm run typecheck:router && npm run typecheck:clipper && npm run typecheck:bookmarks && npm run typecheck:node && npm run typecheck:web",
     "start": "electron-vite preview",
     "dev": "electron-vite dev --watch",
     "dev:main": "electron-vite dev --watch",
@@ -150,22 +150,29 @@
     "prestart": "node scripts/prepare-dev-icon.cjs",
     "build:win:arm64": "npm run build && node scripts/build-win.cjs --arm64",
     "build:sync": "npm run build --workspace=@vessel/sync",
-    "typecheck:sync": "npm run typecheck --workspace=@vessel/sync"
+    "typecheck:sync": "npm run typecheck --workspace=@vessel/sync",
+    "build:clipper": "npm run build --workspace=@vessel/clipper",
+    "typecheck:clipper": "npm run typecheck --workspace=@vessel/clipper"
   },
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.2",
     "@electron-toolkit/utils": "^4.0.0",
     "@excalidraw/excalidraw": "^0.18.1",
     "@parcel/watcher": "^2.6.0",
+    "@vessel/clipper": "file:packages/clipper",
+    "@vessel/sync": "file:packages/sync",
     "@vscode/ripgrep": "^1.18.0",
     "better-sqlite3": "^12.4.1",
     "dugite": "^3.2.3",
+    "embla-carousel-autoplay": "^8.6.0",
+    "embla-carousel-react": "^8.6.0",
     "lz-string": "^1.5.0",
     "node-pty": "^1.1.0",
+    "react-activity-calendar": "^3.2.1",
+    "recharts": "^3.10.1",
     "typescript": "^5.9.3",
     "yaml": "^2.9.1",
-    "yauzl": "^3.4.0",
-    "@vessel/sync": "file:packages/sync"
+    "yauzl": "^3.4.0"
   },
   "devDependencies": {
     "@codemirror/lang-markdown": "^6.5.0",
