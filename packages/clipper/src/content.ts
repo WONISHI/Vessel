@@ -1,9 +1,54 @@
 import type { PageMetadata } from "./types"
 
+function cleanElement(node: HTMLElement) {
+  if (!node) return
+  const junkTags = [
+    "script", "style", "noscript", "iframe", "svg", "canvas", "video", "audio",
+    "nav", "header", "footer", "aside", "form", "button", "input", "select", "textarea",
+    "dialog", "[aria-hidden='true']"
+  ]
+  junkTags.forEach((sel) => {
+    try {
+      node.querySelectorAll(sel).forEach((el) => el.remove())
+    } catch (_) {}
+  })
+
+  const junkClasses = [
+    ".sidebar", ".comments", "#comments", ".comment-list", ".ad", ".advertisement",
+    ".share-wrap", ".social-share", ".recommend-box", ".related-posts", ".banner",
+    ".footer", ".header", "#header", "#footer"
+  ]
+  junkClasses.forEach((sel) => {
+    try {
+      node.querySelectorAll(sel).forEach((el) => el.remove())
+    } catch (_) {}
+  })
+
+  try {
+    const imgs = node.querySelectorAll("img")
+    imgs.forEach((img) => {
+      const realSrc =
+        img.getAttribute("data-src") ||
+        img.getAttribute("data-original") ||
+        img.getAttribute("data-actualsrc") ||
+        img.getAttribute("data-lazy-src") ||
+        img.getAttribute("data-url") ||
+        img.src
+      if (realSrc) {
+        if (realSrc.startsWith("data:") && realSrc.length > 50000) {
+          img.removeAttribute("src")
+        } else {
+          img.src = realSrc
+        }
+      }
+    })
+  } catch (_) {}
+}
+
 /**
- * 提取页面主体文章 HTML
+ * 提取页面主体文章 HTML 和纯文本
  */
-function extractArticleHtml(): string {
+function extractArticle(): { html: string; text: string } {
   // 1. 尝试寻找明确的主体文章选择器
   const selectors = [
     "#js_content", // 微信公众号
@@ -15,14 +60,13 @@ function extractArticleHtml(): string {
     ".markdown-body", // 掘金, GitHub
     ".article-holder",
     ".article-content", // B站专栏
+    ".entry-content",
+    ".post-content",
+    "#article-root",
+    "#content",
     "article",
     "main",
     "[role='main']",
-    ".post-content",
-    ".article-content",
-    ".entry-content",
-    "#article-root",
-    "#content",
     ".article",
     ".post_body",
     ".post-body"
@@ -30,62 +74,62 @@ function extractArticleHtml(): string {
 
   for (const sel of selectors) {
     try {
-      const el = document.querySelector(sel)
-      if (el && ((el as HTMLElement).innerText || el.textContent || "").trim().length > 20) {
-        return el.innerHTML
+      const el = document.querySelector(sel) as HTMLElement
+      if (el) {
+        const rawText = (el.innerText || el.textContent || "").trim()
+        if (rawText.length > 30) {
+          const clone = el.cloneNode(true) as HTMLElement
+          cleanElement(clone)
+          const cleanText = (clone.innerText || clone.textContent || "").trim()
+          if (cleanText.length > 20) {
+            return {
+              html: clone.innerHTML,
+              text: cleanText
+            }
+          }
+        }
       }
     } catch (_) {}
   }
 
   // 2. 启发式：寻找正文段落与文字密度最高的容器元素
   try {
-    const candidates = Array.from(document.querySelectorAll("div, section"))
-    let bestEl: Element | null = null
+    const candidates = Array.from(document.querySelectorAll("div, section, article"))
+    let bestEl: HTMLElement | null = null
     let maxScore = 0
     for (const el of candidates) {
       if (el.closest("nav, header, footer, aside, .sidebar, .comments")) continue
       const textLen = ((el as HTMLElement).innerText || "").trim().length
       if (textLen < 50) continue
       const pCount = el.querySelectorAll("p").length
-      const score = textLen + pCount * 120
+      const score = textLen + pCount * 100
       if (score > maxScore) {
         maxScore = score
-        bestEl = el
+        bestEl = el as HTMLElement
       }
     }
     if (bestEl && maxScore > 200) {
-      return bestEl.innerHTML
+      const clone = bestEl.cloneNode(true) as HTMLElement
+      cleanElement(clone)
+      return {
+        html: clone.innerHTML,
+        text: (clone.innerText || clone.textContent || "").trim()
+      }
     }
   } catch (_) {}
 
   // 3. 降级：使用 body 的副本，移除已知非内容块
   const body = document.body || document.documentElement
-  if (!body) return ""
-  const clone = body.cloneNode(true) as HTMLElement
-  const removeSelectors = [
-    "script",
-    "style",
-    "noscript",
-    "iframe",
-    "nav",
-    "header",
-    "footer",
-    "aside",
-    ".sidebar",
-    ".comments",
-    ".advertisement",
-    ".ad",
-    "#sidebar",
-    "#footer",
-    "#header"
-  ]
-  removeSelectors.forEach((sel) => {
-    try {
-      clone.querySelectorAll(sel).forEach((node) => node.remove())
-    } catch (_) {}
-  })
+  if (body) {
+    const clone = body.cloneNode(true) as HTMLElement
+    cleanElement(clone)
+    return {
+      html: clone.innerHTML,
+      text: (clone.innerText || clone.textContent || "").trim()
+    }
+  }
 
-  return clone.innerHTML
+  return { html: "", text: "" }
 }
 
 /**
@@ -129,6 +173,7 @@ function getPageMetadata(): PageMetadata {
 
   const selection = extractSelection()
   const faviconEl = document.querySelector("link[rel*='icon']") as HTMLLinkElement | null
+  const article = extractArticle()
 
   return {
     title: document.title || "未命名网页",
@@ -139,7 +184,8 @@ function getPageMetadata(): PageMetadata {
     favicon: faviconEl ? faviconEl.href : `${window.location.origin}/favicon.ico`,
     selectedText: selection.text,
     selectedHtml: selection.html,
-    articleHtml: extractArticleHtml(),
+    articleHtml: article.html,
+    articleText: article.text,
     timestamp: new Date().toISOString()
   }
 }

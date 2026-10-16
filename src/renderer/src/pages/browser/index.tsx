@@ -28,91 +28,145 @@ import "./index.css"
 
 const PAGE_EXTRACTOR_SCRIPT = `(() => {
   try {
-    function extractArticleHtml() {
-      // 1. 优先匹配主流平台和标准文章语义标签
+    let selectedText = "";
+    let selectedHtml = "";
+    try {
+      const sel = window.getSelection();
+      if (sel && sel.rangeCount > 0 && !sel.isCollapsed) {
+        selectedText = sel.toString().trim();
+        const range = sel.getRangeAt(0);
+        const container = document.createElement("div");
+        container.appendChild(range.cloneContents());
+        selectedHtml = container.innerHTML;
+      }
+    } catch (_) {}
+
+    function cleanElement(node) {
+      if (!node) return;
+      const junkTags = [
+        "script", "style", "noscript", "iframe", "svg", "canvas", "video", "audio",
+        "nav", "header", "footer", "aside", "form", "button", "input", "select", "textarea",
+        "dialog", "[aria-hidden='true']"
+      ];
+      junkTags.forEach(sel => {
+        try {
+          node.querySelectorAll(sel).forEach(el => el.remove());
+        } catch (_) {}
+      });
+
+      const junkClasses = [
+        ".sidebar", ".comments", "#comments", ".comment-list", ".ad", ".advertisement",
+        ".share-wrap", ".social-share", ".recommend-box", ".related-posts", ".banner",
+        ".footer", ".header", "#header", "#footer"
+      ];
+      junkClasses.forEach(sel => {
+        try {
+          node.querySelectorAll(sel).forEach(el => el.remove());
+        } catch (_) {}
+      });
+
+      try {
+        const imgs = node.querySelectorAll("img");
+        imgs.forEach(img => {
+          const realSrc = img.getAttribute("data-src") ||
+                          img.getAttribute("data-original") ||
+                          img.getAttribute("data-actualsrc") ||
+                          img.getAttribute("data-lazy-src") ||
+                          img.getAttribute("data-url") ||
+                          img.src;
+          if (realSrc) {
+            if (realSrc.startsWith("data:") && realSrc.length > 50000) {
+              img.removeAttribute("src");
+            } else {
+              img.src = realSrc;
+            }
+          }
+        });
+      } catch (_) {}
+    }
+
+    function extractArticle() {
       const selectors = [
         "#js_content",
         ".Post-RichText",
         ".RichContent-inner",
         "#content_views",
-        ".article_content",
         ".article-viewer",
         ".markdown-body",
         ".article-holder",
         ".article-content",
+        ".entry-content",
+        ".post-content",
+        "#article-root",
+        "#content",
         "article",
         "main",
         "[role='main']",
-        ".post-content",
-        ".article-content",
-        ".entry-content",
-        "#article-root",
-        "#content",
         ".article",
         ".post_body",
         ".post-body"
       ];
+
       for (const sel of selectors) {
         try {
-          const el = document.querySelector(sel);
-          if (el && ((el.innerText || el.textContent || "").trim().length > 20)) {
-            return el.innerHTML;
+          const target = document.querySelector(sel);
+          if (target) {
+            const rawText = (target.innerText || target.textContent || "").trim();
+            if (rawText.length > 30) {
+              const clone = target.cloneNode(true);
+              cleanElement(clone);
+              const cleanText = (clone.innerText || clone.textContent || "").trim();
+              if (cleanText.length > 20) {
+                return {
+                  html: clone.innerHTML,
+                  text: cleanText
+                };
+              }
+            }
           }
         } catch (_) {}
       }
 
-      // 2. 启发式：寻找正文段落与文字密度最高的容器元素
       try {
-        const candidates = Array.from(document.querySelectorAll("div, section"));
+        const candidates = Array.from(document.querySelectorAll("div, section, article"));
         let bestEl = null;
         let maxScore = 0;
         for (const el of candidates) {
           if (el.closest("nav, header, footer, aside, .sidebar, .comments")) continue;
-          const textLen = (el.innerText || "").trim().length;
-          if (textLen < 50) continue;
+          const text = (el.innerText || "").trim();
+          if (text.length < 50) continue;
           const pCount = el.querySelectorAll("p").length;
-          const score = textLen + pCount * 120;
+          const score = text.length + pCount * 100;
           if (score > maxScore) {
             maxScore = score;
             bestEl = el;
           }
         }
         if (bestEl && maxScore > 200) {
-          return bestEl.innerHTML;
+          const clone = bestEl.cloneNode(true);
+          cleanElement(clone);
+          return {
+            html: clone.innerHTML,
+            text: (clone.innerText || clone.textContent || "").trim()
+          };
         }
       } catch (_) {}
 
-      // 3. 降级：复制 document.body 并清除导航与干扰元素
       const body = document.body || document.documentElement;
-      if (!body) return "";
-      const clone = body.cloneNode(true);
-      const removeSelectors = [
-        "script", "style", "noscript", "iframe", "nav", "header", "footer", "aside",
-        ".sidebar", ".comments", ".advertisement", ".ad", "#sidebar", "#footer", "#header"
-      ];
-      removeSelectors.forEach(sel => {
-        try {
-          clone.querySelectorAll(sel).forEach(node => node.remove());
-        } catch (_) {}
-      });
-      return clone.innerHTML;
-    }
-
-    function extractSelection() {
-      try {
-        const selection = window.getSelection();
-        if (!selection || selection.rangeCount === 0 || selection.isCollapsed) return { text: "", html: "" };
-        const text = selection.toString().trim();
-        const range = selection.getRangeAt(0);
-        const container = document.createElement("div");
-        container.appendChild(range.cloneContents());
-        return { text, html: container.innerHTML };
-      } catch (_) {
-        return { text: "", html: "" };
+      if (body) {
+        const clone = body.cloneNode(true);
+        cleanElement(clone);
+        return {
+          html: clone.innerHTML,
+          text: (clone.innerText || clone.textContent || "").trim()
+        };
       }
+
+      return { html: "", text: "" };
     }
 
-    const sel = extractSelection();
+    const article = extractArticle();
+
     const getMeta = (names) => {
       for (const name of names) {
         try {
@@ -127,16 +181,24 @@ const PAGE_EXTRACTOR_SCRIPT = `(() => {
     };
 
     const faviconEl = document.querySelector("link[rel*=\x27icon\x27]");
+    const title = document.title || "未命名网页";
+    const url = window.location.href || "";
+    const description = getMeta(["description", "og:description", "twitter:description"]);
+    const author = getMeta(["author", "article:author", "twitter:creator"]);
+    const siteName = getMeta(["og:site_name", "application-name"]) || window.location.hostname || "";
+    const favicon = faviconEl ? faviconEl.href : (window.location.origin + "/favicon.ico");
+
     return {
-      title: document.title || "未命名网页",
-      url: window.location.href,
-      description: getMeta(["description", "og:description", "twitter:description"]),
-      author: getMeta(["author", "article:author", "twitter:creator"]),
-      siteName: getMeta(["og:site_name", "application-name"]) || window.location.hostname,
-      favicon: faviconEl ? faviconEl.href : (window.location.origin + "/favicon.ico"),
-      selectedText: sel.text,
-      selectedHtml: sel.html,
-      articleHtml: extractArticleHtml(),
+      title: title,
+      url: url,
+      description: description,
+      author: author,
+      siteName: siteName,
+      favicon: favicon,
+      selectedText: selectedText,
+      selectedHtml: selectedHtml,
+      articleHtml: article.html,
+      articleText: article.text,
       timestamp: new Date().toISOString()
     };
   } catch (err) {
@@ -145,7 +207,8 @@ const PAGE_EXTRACTOR_SCRIPT = `(() => {
       url: window.location.href,
       selectedText: "",
       selectedHtml: "",
-      articleHtml: document.body ? document.body.innerHTML : "",
+      articleHtml: document.body ? document.body.innerText : "",
+      articleText: document.body ? document.body.innerText : "",
       timestamp: new Date().toISOString()
     };
   }
@@ -368,7 +431,11 @@ export default function BrowserPage({ visible = true }: { visible?: boolean }) {
   const getActivePageData = useCallback(async () => {
     const currentTab = tabs.find(t => t.id === active) || tabs[0]
     if (!currentTab) return null
-    const view = views.current.get(currentTab.id)
+    let view = views.current.get(currentTab.id)
+    if (!view) {
+      const allWebviews = Array.from(document.querySelectorAll<WebviewTag>("webview"))
+      view = allWebviews.find(w => w.style.display !== "none") || allWebviews[0] || null
+    }
     if (!view) {
       return {
         title: currentTab.title,
@@ -378,12 +445,30 @@ export default function BrowserPage({ visible = true }: { visible?: boolean }) {
     }
     try {
       const data = await view.executeJavaScript(PAGE_EXTRACTOR_SCRIPT)
-      return data
+      if (data && (data.articleHtml || data.selectedText || data.articleText)) {
+        return data
+      }
+      // 容错降级：若提取的内容为空，直接获取 webview 内的 innerText
+      const fallbackText = await view.executeJavaScript(`(() => (document.body ? document.body.innerText : ''))()`).catch(() => "")
+      return {
+        ...data,
+        title: data?.title || currentTab.title,
+        url: data?.url || currentTab.url,
+        articleHtml: data?.articleHtml || (fallbackText ? ("<p>" + fallbackText.replace(/\\n+/g, "</p><p>") + "</p>") : ""),
+        articleText: data?.articleText || fallbackText || "",
+        timestamp: new Date().toISOString()
+      }
     } catch (err) {
       console.warn("[getActivePageData] Failed to execute extractor script:", err)
+      let fallbackText = ""
+      try {
+        fallbackText = await view.executeJavaScript(`(() => (document.body ? document.body.innerText : ''))()`)
+      } catch (_) {}
       return {
         title: currentTab.title,
         url: currentTab.url,
+        articleHtml: fallbackText ? ("<p>" + fallbackText.replace(/\\n+/g, "</p><p>") + "</p>") : "",
+        articleText: fallbackText,
         timestamp: new Date().toISOString()
       }
     }

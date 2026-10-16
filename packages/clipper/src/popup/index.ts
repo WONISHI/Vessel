@@ -153,122 +153,133 @@ saveBtn?.addEventListener("click", async () => {
 async function loadActivePageData() {
   let pageMetadata: PageMetadata | null = null
 
-  // A. 独立 Chrome 浏览器环境检测：检查是否有真实的 active tab
+  // 1. 优先尝试从 Vessel Bridge 获取当前活动页面（在 Vessel 桌面端内时极速获取）
   try {
-    if (typeof chrome !== "undefined" && chrome.tabs?.query) {
-      const tabs = await chrome.tabs.query({ active: true, currentWindow: true }).catch(() => [] as chrome.tabs.Tab[])
-      const activeTab = tabs[0]
-      if (activeTab && activeTab.id && activeTab.url && /^https?:\/\//i.test(activeTab.url)) {
-        // 尝试向 content script 发送消息
-        try {
-          const resp = await chrome.tabs.sendMessage<any, PageMetadata>(activeTab.id, { type: "GET_PAGE_DATA" }).catch(() => null)
-          if (resp && (resp.articleHtml || resp.selectedText || resp.url)) {
-            pageMetadata = resp
-          }
-        } catch {}
-
-        // 若 content script 未注入，使用 scripting.executeScript 动态提取
-        if (!pageMetadata && chrome.scripting?.executeScript) {
-          try {
-            const results = await chrome.scripting.executeScript({
-              target: { tabId: activeTab.id },
-              func: () => {
-                const sel = window.getSelection()
-                const text = sel ? sel.toString().trim() : ""
-                let selHtml = ""
-                if (sel && sel.rangeCount > 0 && !sel.isCollapsed) {
-                  const div = document.createElement("div")
-                  div.appendChild(sel.getRangeAt(0).cloneContents())
-                  selHtml = div.innerHTML
-                }
-
-                const selectors = [
-                  "#js_content", ".Post-RichText", ".RichContent-inner",
-                  "#content_views", ".article_content", ".article-viewer",
-                  ".markdown-body", ".article-holder", ".article-content",
-                  "article", "main", "[role='main']",
-                  ".post-content", ".article-content", ".entry-content",
-                  "#article-root", "#content", ".article", ".post_body", ".post-body"
-                ]
-                let artHtml = ""
-                for (const s of selectors) {
-                  const el = document.querySelector(s)
-                  if (el && ((el as HTMLElement).innerText || el.textContent || "").trim().length > 20) {
-                    artHtml = el.innerHTML
-                    break
-                  }
-                }
-                if (!artHtml) {
-                  const body = document.body || document.documentElement
-                  if (body) {
-                    const clone = body.cloneNode(true) as HTMLElement
-                    const removeSelectors = ["script", "style", "noscript", "iframe", "nav", "header", "footer", "aside", ".sidebar", ".comments", ".ad"]
-                    removeSelectors.forEach(s => { clone.querySelectorAll(s).forEach(n => n.remove()) })
-                    artHtml = clone.innerHTML
-                  }
-                }
-
-                const getMeta = (names: string[]) => {
-                  for (const n of names) {
-                    const m = document.querySelector(`meta[name='${n}'], meta[property='${n}']`)
-                    if (m) {
-                      const v = m.getAttribute("content")
-                      if (v) return v.trim()
-                    }
-                  }
-                  return ""
-                }
-
-                return {
-                  title: document.title || "未命名网页",
-                  url: window.location.href,
-                  description: getMeta(["description", "og:description", "twitter:description"]),
-                  author: getMeta(["author", "article:author", "twitter:creator"]),
-                  siteName: getMeta(["og:site_name", "application-name"]) || window.location.hostname,
-                  selectedText: text,
-                  selectedHtml: selHtml,
-                  articleHtml: artHtml,
-                  timestamp: new Date().toISOString()
-                }
-              }
-            })
-            if (results && results[0]?.result) {
-              pageMetadata = results[0].result as PageMetadata
-            }
-          } catch (scriptErr) {
-            console.warn("executeScript fallback error:", scriptErr)
-          }
+    const res = await fetch("http://127.0.0.1:35678/api/active-page")
+    if (res.ok) {
+      const json = await res.json()
+      const data = json.data || json
+      if (data && (data.url || data.title)) {
+        pageMetadata = {
+          title: data.title || "未命名网页",
+          url: data.url || "",
+          description: data.description || "",
+          author: data.author || "",
+          siteName: data.siteName || "",
+          favicon: data.favicon || "",
+          articleHtml: data.articleHtml || "",
+          articleText: data.articleText || "",
+          selectedText: data.selectedText || "",
+          selectedHtml: data.selectedHtml || "",
+          timestamp: data.timestamp || new Date().toISOString()
         }
       }
     }
-  } catch (chromeErr) {
-    console.warn("Chrome tab query error:", chromeErr)
+  } catch (bridgeErr) {
+    // Vessel Bridge 未连接或不可用，继续降级到 Chrome 扩展 API
   }
 
-  // B. Vessel 内置浏览器环境（或 Chrome 环境未获取成功时）：向 Vessel Bridge 获取当前活动页面
-  if (!pageMetadata || !pageMetadata.articleHtml) {
+  // 2. 如果未从 Bridge 获取到正文，且存在 Chrome 扩展环境，尝试 Chrome Tabs 与 Scripting API
+  if (!pageMetadata || (!pageMetadata.articleHtml && !pageMetadata.articleText && !pageMetadata.selectedText)) {
     try {
-      const res = await fetch("http://127.0.0.1:35678/api/active-page")
-      if (res.ok) {
-        const json = await res.json()
-        const data = json.data || json
-        if (data && data.url) {
-          pageMetadata = {
-            title: data.title || pageMetadata?.title || "未命名网页",
-            url: data.url || pageMetadata?.url || "",
-            description: data.description || pageMetadata?.description || "",
-            author: data.author || pageMetadata?.author || "",
-            siteName: data.siteName || pageMetadata?.siteName || "",
-            favicon: data.favicon || pageMetadata?.favicon || "",
-            articleHtml: data.articleHtml || pageMetadata?.articleHtml || "",
-            selectedText: data.selectedText || pageMetadata?.selectedText || "",
-            selectedHtml: data.selectedHtml || pageMetadata?.selectedHtml || "",
-            timestamp: data.timestamp || new Date().toISOString()
+      if (typeof chrome !== "undefined" && chrome.tabs?.query) {
+        const tabs = await chrome.tabs.query({ active: true, currentWindow: true }).catch(() => [] as chrome.tabs.Tab[])
+        const activeTab = tabs[0]
+        if (activeTab && activeTab.id && activeTab.url && /^https?:\/\//i.test(activeTab.url)) {
+          // 尝试向 content script 发送消息
+          try {
+            const resp = await chrome.tabs.sendMessage<any, PageMetadata>(activeTab.id, { type: "GET_PAGE_DATA" }).catch(() => null)
+            if (resp && (resp.articleHtml || resp.articleText || resp.selectedText || resp.url)) {
+              pageMetadata = resp
+            }
+          } catch {}
+
+          // 若 content script 未注入，使用 scripting.executeScript 动态提取
+          if (!pageMetadata && chrome.scripting?.executeScript) {
+            try {
+              const results = await chrome.scripting.executeScript({
+                target: { tabId: activeTab.id },
+                func: () => {
+                  const sel = window.getSelection()
+                  const text = sel ? sel.toString().trim() : ""
+                  let selHtml = ""
+                  if (sel && sel.rangeCount > 0 && !sel.isCollapsed) {
+                    const div = document.createElement("div")
+                    div.appendChild(sel.getRangeAt(0).cloneContents())
+                    selHtml = div.innerHTML
+                  }
+
+                  function clean(el: HTMLElement) {
+                    const junk = ["script", "style", "noscript", "iframe", "svg", "nav", "header", "footer", "aside", ".sidebar", ".comments", ".ad"]
+                    junk.forEach(s => { el.querySelectorAll(s).forEach(n => n.remove()) })
+                  }
+
+                  const selectors = [
+                    "#js_content", ".Post-RichText", ".RichContent-inner",
+                    "#content_views", ".article_content", ".article-viewer",
+                    ".markdown-body", ".article-holder", ".article-content",
+                    "article", "main", "[role='main']",
+                    ".post-content", ".article-content", ".entry-content",
+                    "#article-root", "#content", ".article", ".post_body", ".post-body"
+                  ]
+                  let artHtml = ""
+                  let artText = ""
+                  for (const s of selectors) {
+                    const el = document.querySelector(s) as HTMLElement
+                    if (el && (el.innerText || el.textContent || "").trim().length > 20) {
+                      const clone = el.cloneNode(true) as HTMLElement
+                      clean(clone)
+                      artHtml = clone.innerHTML
+                      artText = (clone.innerText || "").trim()
+                      break
+                    }
+                  }
+                  if (!artHtml) {
+                    const body = document.body || document.documentElement
+                    if (body) {
+                      const clone = body.cloneNode(true) as HTMLElement
+                      clean(clone)
+                      artHtml = clone.innerHTML
+                      artText = (clone.innerText || "").trim()
+                    }
+                  }
+
+                  const getMeta = (names: string[]) => {
+                    for (const n of names) {
+                      const m = document.querySelector(`meta[name='${n}'], meta[property='${n}']`)
+                      if (m) {
+                        const v = m.getAttribute("content")
+                        if (v) return v.trim()
+                      }
+                    }
+                    return ""
+                  }
+
+                  return {
+                    title: document.title || "未命名网页",
+                    url: window.location.href,
+                    description: getMeta(["description", "og:description", "twitter:description"]),
+                    author: getMeta(["author", "article:author", "twitter:creator"]),
+                    siteName: getMeta(["og:site_name", "application-name"]) || window.location.hostname,
+                    selectedText: text,
+                    selectedHtml: selHtml,
+                    articleHtml: artHtml,
+                    articleText: artText,
+                    timestamp: new Date().toISOString()
+                  }
+                }
+              })
+              if (results && results[0]?.result) {
+                pageMetadata = results[0].result as PageMetadata
+              }
+            } catch (scriptErr) {
+              console.warn("executeScript fallback error:", scriptErr)
+            }
           }
         }
       }
-    } catch (bridgeErr) {
-      console.warn("Vessel bridge fetch error:", bridgeErr)
+    } catch (chromeErr) {
+      console.warn("Chrome tab query error:", chromeErr)
     }
   }
 

@@ -60,4 +60,17 @@ describe("Clipper Parser", () => {
     expect(md).toContain("这是我非常喜欢的一篇好文章")
     expect(md).toContain("关于 React 渲染和调度机制的深度解析")
   })
+
+  it("uses articleText fallback when articleHtml is not available", () => {
+    const meta: PageMetadata = {
+      title: "测试文章",
+      url: "https://example.com/test",
+      articleText: "这是从网页直接提取到的纯文本正文内容",
+      timestamp: "2026-10-16T12:00:00Z"
+    }
+
+    const md = buildClipMarkdown(meta, "article")
+    expect(md).toContain("这是从网页直接提取到的纯文本正文内容")
+    expect(md).not.toContain("未能自动提取到正文内容")
+  })
 })

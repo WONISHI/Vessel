@@ -10,6 +10,7 @@ export interface PageMetadata {
   selectedText?: string
   selectedHtml?: string
   articleHtml?: string
+  articleText?: string
   timestamp?: string
 }
 

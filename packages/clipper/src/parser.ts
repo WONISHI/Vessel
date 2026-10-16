@@ -16,11 +16,11 @@ export function resolveUrl(href: string, base: string): string {
  */
 export function cleanHtml(html: string): string {
   return html
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
-    .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, "")
-    .replace(/<noscript\b[^<]*(?:(?!<\/noscript>)<[^<]*)*<\/noscript>/gi, "")
-    .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, "")
-    .replace(/<svg\b[^<]*(?:(?!<\/svg>)<[^<]*)*<\/svg>/gi, "")
+    .replace(/<script\b[\s\S]*?<\/script>/gi, "")
+    .replace(/<style\b[\s\S]*?<\/style>/gi, "")
+    .replace(/<noscript\b[\s\S]*?<\/noscript>/gi, "")
+    .replace(/<iframe\b[\s\S]*?<\/iframe>/gi, "")
+    .replace(/<svg\b[\s\S]*?<\/svg>/gi, "")
     .replace(/<!--[\s\S]*?-->/g, "")
 }
 
@@ -52,7 +52,7 @@ export function elementToMarkdown(element: Element, baseUrl: string): string {
   }
 
   // 块级容器元素（避免文字直接粘连）
-  if (["div", "section", "article", "figure", "header"].includes(tagName)) {
+  if (["div", "section", "article", "figure", "header", "main", "aside", "details", "summary"].includes(tagName)) {
     const childrenMd = Array.from(element.childNodes)
       .map((child) => nodeToMarkdown(child, baseUrl))
       .join("")
@@ -288,11 +288,13 @@ export function buildClipMarkdown(
     // article mode
     let articleMd = meta.articleHtml ? htmlToMarkdown(meta.articleHtml, meta.url) : ""
     if (!articleMd.trim()) {
-      articleMd = meta.selectedText
-        ? `### 摘录内容\n\n${meta.selectedText}`
-        : meta.description
-          ? `### 页面简介\n\n${meta.description}`
-          : `> ⚠️ 未能自动提取到正文内容。若页面使用特殊动态渲染，建议在网页上选中文本后使用【✂️ 选中文字】模式剪藏。`
+      articleMd = meta.articleText
+        ? meta.articleText
+        : meta.selectedText
+          ? `### 摘录内容\n\n${meta.selectedText}`
+          : meta.description
+            ? `### 页面简介\n\n${meta.description}`
+            : `> ⚠️ 未能自动提取到正文内容。若页面使用特殊动态渲染，建议在网页上选中文本后使用【✂️ 选中文字】模式剪藏。`
     }
     body = `\n${articleMd}\n`
   }
