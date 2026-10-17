@@ -93,7 +93,8 @@
           "odp",
           "csv",
           "canvas",
-          "excalidraw"
+          "excalidraw",
+          "base"
         ],
         "name": "Vessel Document",
         "description": "Vessel 支持的文档与图片",

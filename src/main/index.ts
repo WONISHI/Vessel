@@ -1,3 +1,4 @@
+import { registerBases } from "@main/modules/bases"
 import { electronApp, is, optimizer } from "@electron-toolkit/utils"
 import { mainApps } from "@main/app/index"
 import { secureBrowserGuests } from "@main/browser/browser-security"
@@ -98,6 +99,7 @@ function createWindow(): void {
   registerContentSearch(mainWindow.webContents)
   registerTerminal(mainWindow.webContents)
   registerFileWatch(mainWindow.webContents)
+  registerBases(mainWindow.webContents)
 
   mainWindow.on("ready-to-show", () => {
     mainWindow.show()

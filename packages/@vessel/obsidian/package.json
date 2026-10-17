@@ -5,16 +5,27 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./frontmatter": "./src/frontmatter/index.ts"
+    "./frontmatter": "./src/frontmatter/index.ts",
+    "./bases": "./src/bases/index.ts"
   },
   "types": "./src/index.ts",
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "imports": {
-    "#vessel-obsidian/images": "./src/images.ts",
-    "#vessel-obsidian/wikilinks": "./src/wikilinks.ts",
+    "#vessel-obsidian/images": "./src/images/index.ts",
+    "#vessel-obsidian/wikilinks": "./src/wikilinks/index.ts",
     "#vessel-obsidian/frontmatter/index": "./src/frontmatter/index.ts",
-    "#vessel-obsidian/index": "./src/index.ts"
+    "#vessel-obsidian/index": "./src/index.ts",
+    "#vessel-obsidian/bases/types": "./src/bases/types.ts",
+    "#vessel-obsidian/bases/parse": "./src/bases/parse.ts",
+    "#vessel-obsidian/bases/expression": "./src/bases/expression.ts",
+    "#vessel-obsidian/bases/query": "./src/bases/query.ts",
+    "#vessel-obsidian/bases/index": "./src/bases/index.ts",
+    "#vessel-obsidian/bases/note-properties": "./src/bases/note-properties.ts",
+    "#vessel-obsidian/bases/yaml": "./src/bases/yaml.ts"
+  },
+  "dependencies": {
+    "yaml": "2.9.1"
   }
 }

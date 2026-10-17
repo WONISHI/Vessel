@@ -1,5 +1,6 @@
+import { useState } from "react"
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { afterEach, expect, it, vi } from "vitest"
 import LayoutActivityBar from "@/components/layout/activity-bar/index"
 vi.mock("@vessel/react-router", () => ({ useRouter: () => ({ push: vi.fn() }) }))
@@ -32,4 +33,73 @@ it("runs whole-workspace sync from the home context menu without navigating", as
   fireEvent.click(item)
   await waitFor(() => expect(runBackup).toHaveBeenCalledWith())
   expect(change).not.toHaveBeenCalled()
+})
+
+it("moves crowded activities into More and restores them when the rail grows", async () => {
+  let height = 600
+  let resize: (() => void) | undefined
+  vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function () {
+    return { height: this.getAttribute("aria-label") === "工作台活动栏" ? height : 38, width: 52, x: 0, y: 0, top: 0, left: 0, bottom: height, right: 52, toJSON() {} } as DOMRect
+  })
+  vi.stubGlobal(
+    "ResizeObserver",
+    class {
+      callback: () => void
+      constructor(callback: () => void) {
+        this.callback = callback
+      }
+      observe(element: Element) {
+        if (element.getAttribute("aria-label") === "工作台活动栏") resize = this.callback
+      }
+      disconnect() {}
+      unobserve() {}
+    }
+  )
+  Object.defineProperty(window, "electronAPI", { configurable: true, value: { getSettings: vi.fn(async () => ({ backup: {} })), getBackupStatus: vi.fn(async () => ({})) } })
+  const change = vi.fn()
+  try {
+    render(
+      <LayoutActivityBar
+        activity="files"
+        onActivityChange={change}
+      />
+    )
+    expect(screen.getByRole("button", { name: "图片" })).toBeTruthy()
+    act(() => {
+      height = 300
+      resize?.()
+    })
+    expect(screen.queryByRole("button", { name: "图片" })).toBeNull()
+    expect(screen.getByRole("button", { name: "工作区" })).toBeTruthy()
+    fireEvent.click(screen.getByRole("button", { name: "更多开发工具" }))
+    fireEvent.click(await screen.findByRole("button", { name: "图片" }))
+    expect(change).toHaveBeenCalledWith("image")
+    act(() => {
+      height = 600
+      resize?.()
+    })
+    expect(screen.getByRole("button", { name: "图片" })).toBeTruthy()
+  } finally {
+    vi.unstubAllGlobals()
+  }
+})
+
+it("restores the workspace active state after choosing Git from More", async () => {
+  Object.defineProperty(window, "electronAPI", { configurable: true, value: { getSettings: vi.fn(async () => ({ backup: {} })), getBackupStatus: vi.fn(async () => ({})) } })
+  const Harness = () => {
+    const [activity, setActivity] = useState<"files" | "git">("files")
+    return (
+      <LayoutActivityBar
+        activity={activity}
+        onActivityChange={(value) => setActivity(value as "files" | "git")}
+      />
+    )
+  }
+  render(<Harness />)
+  fireEvent.click(screen.getByRole("button", { name: "更多开发工具" }))
+  fireEvent.click(await screen.findByRole("button", { name: /Git 代码版本管理/ }))
+  expect(screen.getByRole("button", { name: "更多开发工具" }).getAttribute("aria-pressed")).toBe("true")
+  fireEvent.click(screen.getByRole("button", { name: "工作区" }))
+  expect(screen.getByRole("button", { name: "工作区" }).getAttribute("aria-pressed")).toBe("true")
+  expect(screen.getByRole("button", { name: "更多开发工具" }).getAttribute("aria-pressed")).toBe("false")
 })

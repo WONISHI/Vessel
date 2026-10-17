@@ -7,9 +7,15 @@ import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 
 /** Renders the transit button component. */
-export function TransitButton() {
+export function TransitButton({ menuItem = false, onOpenChange }: { menuItem?: boolean; onOpenChange?: (open: boolean) => void }) {
   const { items, selected } = useTransit()
   const [open, setOpen] = useState(false)
+  const notifyOpen = useRef(onOpenChange)
+  notifyOpen.current = onOpenChange
+  useEffect(() => {
+    notifyOpen.current?.(open)
+    return () => notifyOpen.current?.(false)
+  }, [open])
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
   /** Performs the enter operation. */
@@ -35,9 +41,10 @@ export function TransitButton() {
           aria-label={`中转站，${items.length} 个`}
           onMouseEnter={enter}
           onMouseLeave={leave}
-          className={`relative size-[38px] rounded-[10px] hover:!bg-[#f0efed] hover:!text-stone-500 ${selected ? "!bg-emerald-50 !text-green-700" : "text-stone-500"}`}
+          className={`${menuItem ? "relative flex h-[38px] w-full items-center justify-start gap-2.5 px-2.5 text-xs" : "relative size-[38px]"} rounded-[10px] hover:!bg-[#f0efed] hover:!text-stone-500 ${selected ? "!bg-emerald-50 !text-green-700" : "text-stone-500"}`}
         >
-          <Pin className="!size-5" />
+          <Pin className={menuItem ? "!size-4" : "!size-5"} />
+          {menuItem && "中转站"}
           {items.length > 0 && <span className="absolute -right-0.5 -top-0.5 min-w-4 rounded-full bg-emerald-700 px-1 text-[9px] leading-4 !text-white">{items.length}</span>}
         </Button>
       </PopoverTrigger>
@@ -48,7 +55,7 @@ export function TransitButton() {
         onCloseAutoFocus={(e) => e.preventDefault()}
         onMouseEnter={enter}
         onMouseLeave={leave}
-        className="z-[60] w-[280px] overflow-hidden rounded-xl border-stone-200 bg-white p-0 text-stone-800 shadow-xl"
+        className="z-[310] w-[280px] overflow-hidden rounded-xl border-stone-200 bg-white p-0 text-stone-800 shadow-xl"
       >
         <div className="flex items-center gap-2 border-b px-3 py-2.5 text-sm font-semibold">
           <Pin className="size-4 text-green-600" />

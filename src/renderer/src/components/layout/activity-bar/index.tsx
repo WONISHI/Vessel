@@ -1,3 +1,6 @@
+import { useActivityOverflow } from "@/components/layout/activity-bar/use-activity-overflow"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import Logo from "@/assets/logo.png"
 import { ACTIVITY_ITEMS } from "@/components/layout/activity-bar/constants"
 import type { LayoutActivityBarProps } from "@/components/layout/activity-bar/types"
@@ -18,6 +21,7 @@ import { toast } from "sonner"
 export default function LayoutActivityBar({ activity, onActivityChange, onResourceEnter, onResourceLeave }: LayoutActivityBarProps) {
   const location = useLocation()
   const [moreToolsOpen, setMoreToolsOpen] = useState(false)
+  const transitOpen = useRef(false)
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isMoreToolsActive = activity === "tools" || activity === "git" || activity === "postman" || ["/devtools", "/git", "/api-client"].some((p) => location.pathname.startsWith(p))
 
@@ -97,11 +101,56 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
     }
   }, [])
   const visibleItems = ACTIVITY_ITEMS.filter((item) => item.id !== "search" || globalSearchEnabled)
+  const { railRef, capacity } = useActivityOverflow(visibleItems.length + 1)
+  const priorityItems = [...visibleItems].sort((a, b) => {
+    /** Keeps the workspace and current activity ahead of secondary entries when space is limited. */
+    const priority = (id: string) => (id === "files" ? 0 : id === activity ? 1 : 2)
+    return priority(a.id) - priority(b.id)
+  })
+  const shownIds = new Set(priorityItems.slice(0, capacity).map((item) => item.id))
+  const shownItems = visibleItems.filter((item) => shownIds.has(item.id))
+  const overflowItems = visibleItems.filter((item) => !shownIds.has(item.id))
+  const showTransit = capacity > visibleItems.length
+  const moreActive = isMoreToolsActive || overflowItems.some((item) => item.id === activity)
+
+  /** Opens an activity through the same navigation path in the rail and overflow menu. */
+  const openActivity = (id: (typeof visibleItems)[number]["id"]) => {
+    setMoreToolsOpen(false)
+    if (id === "search" || id === "browser") {
+      onActivityChange(id)
+      void router.push(id === "search" ? "/search" : "/browser")
+      return
+    }
+    if (id === "files") {
+      onActivityChange(id)
+      const last = sessionStorage.getItem("vessel-last-editor-route")
+      void router.push(last?.startsWith("/editor") ? last : "/editor")
+      return
+    }
+    if (id === "resources") {
+      selectLastPinned()
+      onActivityChange(id)
+      void router.push("/resources")
+      return
+    }
+    if (id === "office") {
+      void router.push("/office")
+      return
+    }
+    onActivityChange(id)
+  }
+  useEffect(
+    () => () => {
+      if (closeTimer.current) clearTimeout(closeTimer.current)
+    },
+    []
+  )
   return (
     <TooltipProvider delayDuration={250}>
       <nav
+        ref={railRef}
         aria-label="工作台活动栏"
-        className="flex w-[52px] shrink-0 flex-col items-center gap-1 border-r border-[#f0efed] py-2.5"
+        className="flex min-h-0 w-[52px] shrink-0 flex-col items-center gap-1 [&>*]:shrink-0 border-r border-[#f0efed] py-2.5"
       >
         <Tooltip>
           <TooltipTrigger asChild>
@@ -128,7 +177,7 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
             {activity !== "browser" && activity !== "office" ? (expanded ? "收起侧边栏" : "展开侧边栏") : "Vessel"}
           </TooltipContent>
         </Tooltip>
-        {visibleItems.map(({ id, label, icon: Icon }) => (
+        {shownItems.map(({ id, label, icon: Icon }) => (
           <ContextMenu key={id}>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -141,34 +190,7 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
                     size="icon"
                     aria-label={label}
                     aria-pressed={activity === id}
-                    onClick={() => {
-                      if (id === "search") {
-                        onActivityChange(id)
-                        void router.push("/search")
-                        return
-                      }
-                      if (id === "browser") {
-                        onActivityChange(id)
-                        void router.push("/browser")
-                        return
-                      }
-                      if (id === "files") {
-                        const last = sessionStorage.getItem("vessel-last-editor-route")
-                        void router.push(last?.startsWith("/editor") ? last : "/editor")
-                        return
-                      }
-                      if (id === "resources") {
-                        selectLastPinned()
-                        onActivityChange(id)
-                        void router.push("/resources")
-                        return
-                      }
-                      if (id === "office") {
-                        void router.push("/office")
-                        return
-                      }
-                      onActivityChange(id)
-                    }}
+                    onClick={() => openActivity(id)}
                     onMouseEnter={id === "resources" ? onResourceEnter : undefined}
                     onMouseLeave={id === "resources" ? onResourceLeave : undefined}
                     className={cn("relative h-[38px] w-[38px] rounded-[10px] text-[#a8a29e] hover:!bg-[#f0efed] hover:!text-[#a8a29e]", activity === id && "!bg-emerald-50 !text-[#16a34a] hover:!bg-emerald-50 hover:!text-[#16a34a]")}
@@ -212,115 +234,175 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
           </ContextMenu>
         ))}
 
-        <TransitButton />
+        {showTransit && <TransitButton />}
 
         {/* 合并工具入口按钮：ellipsis-vertical (SourceTree, Postman, 开发者工具) */}
-        <div
-          className="relative flex size-[38px] items-center justify-center"
-          onMouseEnter={() => {
-            if (closeTimer.current) clearTimeout(closeTimer.current)
-            setMoreToolsOpen(true)
-          }}
-          onMouseLeave={() => {
-            closeTimer.current = setTimeout(() => setMoreToolsOpen(false), 250)
-          }}
+        <Popover
+          open={moreToolsOpen}
+          onOpenChange={setMoreToolsOpen}
         >
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label="更多开发工具"
-                aria-pressed={isMoreToolsActive}
-                onClick={() => setMoreToolsOpen((prev) => !prev)}
-                className={cn("relative h-[38px] w-[38px] rounded-[10px] text-stone-500 hover:!bg-[#f0efed] hover:!text-stone-500", (isMoreToolsActive || moreToolsOpen) && "!bg-emerald-50 !text-green-700 hover:!bg-emerald-50 hover:!text-green-700")}
-              >
-                <Ellipsis className="!size-5" />
-              </Button>
-            </TooltipTrigger>
-            {!moreToolsOpen && (
-              <TooltipContent
+          <div
+            className="relative flex size-[38px] items-center justify-center"
+            onMouseEnter={() => {
+              if (closeTimer.current) clearTimeout(closeTimer.current)
+              setMoreToolsOpen(true)
+            }}
+            onMouseLeave={() => {
+              closeTimer.current = setTimeout(() => {
+                if (!transitOpen.current) setMoreToolsOpen(false)
+              }, 250)
+            }}
+          >
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label="更多开发工具"
+                    aria-pressed={moreActive}
+                    className={cn("relative h-[38px] w-[38px] rounded-[10px] text-stone-500 hover:!bg-[#f0efed] hover:!text-stone-500", (moreActive || moreToolsOpen) && "!bg-emerald-50 !text-green-700 hover:!bg-emerald-50 hover:!text-green-700")}
+                  >
+                    <Ellipsis className="!size-5" />
+                  </Button>
+                </PopoverTrigger>
+              </TooltipTrigger>
+              {!moreToolsOpen && (
+                <TooltipContent
+                  side="right"
+                  sideOffset={10}
+                  className="border-stone-200 bg-white text-xs text-stone-700"
+                >
+                  更多工具 (Git / API / 开发工具)
+                </TooltipContent>
+              )}
+            </Tooltip>
+
+            {/* 悬停/点击浮层：显示三个合并按钮 */}
+            {moreToolsOpen && (
+              <PopoverContent
                 side="right"
-                sideOffset={10}
-                className="border-stone-200 bg-white text-xs text-stone-700"
+                align="end"
+                sideOffset={6}
+                collisionPadding={8}
+                onOpenAutoFocus={(event) => event.preventDefault()}
+                className="z-[300] max-h-[var(--radix-popover-content-available-height)] w-56 overflow-hidden rounded-xl border border-stone-200 bg-white p-0 shadow-xl"
+                onMouseEnter={() => {
+                  if (closeTimer.current) clearTimeout(closeTimer.current)
+                }}
+                onMouseLeave={() => {
+                  closeTimer.current = setTimeout(() => {
+                    if (!transitOpen.current) setMoreToolsOpen(false)
+                  }, 200)
+                }}
               >
-                更多工具 (Git / API / 开发工具)
-              </TooltipContent>
+                <ScrollArea className="max-h-[calc(var(--radix-popover-content-available-height)-2px)] [&_[data-radix-scroll-area-viewport]]:max-h-[calc(var(--radix-popover-content-available-height)-2px)]">
+                  <div className="p-1.5">
+                    {(overflowItems.length > 0 || !showTransit) && (
+                      <div className="border-b border-stone-100 pb-1 mb-1">
+                        <div className="px-2 py-1 text-[11px] font-semibold text-stone-400">工作台</div>
+                        {overflowItems.map(({ id, label, icon: Icon }) => (
+                          <button
+                            key={id}
+                            type="button"
+                            aria-pressed={activity === id}
+                            onClick={() => openActivity(id)}
+                            onMouseEnter={id === "resources" ? onResourceEnter : undefined}
+                            onMouseLeave={id === "resources" ? onResourceLeave : undefined}
+                            className={cn("flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-xs hover:bg-stone-100", activity === id && "bg-emerald-50 text-green-700")}
+                          >
+                            <Icon className="size-4" />
+                            {label}
+                          </button>
+                        ))}
+                        {!showTransit && (
+                          <TransitButton
+                            menuItem
+                            onOpenChange={(open) => {
+                              transitOpen.current = open
+                              if (open && closeTimer.current) clearTimeout(closeTimer.current)
+                            }}
+                          />
+                        )}
+                        {overflowItems.some((item) => item.id === "files") && (
+                          <button
+                            type="button"
+                            disabled={!syncEnabled || syncRunning}
+                            onClick={() => {
+                              void syncWorkspace()
+                            }}
+                            className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-xs hover:bg-stone-100 disabled:opacity-50"
+                          >
+                            <RefreshCcw className={cn("size-4", syncRunning && "animate-spin")} />
+                            {syncRunning ? "正在同步…" : "同步工作区"}
+                          </button>
+                        )}
+                      </div>
+                    )}
+                    <div className="px-2 py-1 text-[11px] font-semibold text-stone-400">开发与接口工具</div>
+
+                    {/* 1. Git (代码版本管理) */}
+                    <button
+                      type="button"
+                      className={cn("flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-stone-100", location.pathname === "/git" && "bg-green-50 text-green-700 font-medium")}
+                      onClick={() => {
+                        setMoreToolsOpen(false)
+                        onActivityChange("git")
+                        void router.push("/git")
+                      }}
+                    >
+                      <div className="flex size-7 shrink-0 items-center justify-center rounded-md bg-orange-50 text-orange-600">
+                        <GitBranch className="size-4" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-xs font-medium text-stone-800">Git</div>
+                        <div className="truncate text-[10px] text-stone-400">代码版本管理与分支</div>
+                      </div>
+                    </button>
+
+                    {/* 2. API (接口调试与管理) */}
+                    <button
+                      type="button"
+                      className={cn("flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-stone-100", location.pathname === "/api-client" && "bg-green-50 text-green-700 font-medium")}
+                      onClick={() => {
+                        setMoreToolsOpen(false)
+                        onActivityChange("postman")
+                        void router.push("/api-client")
+                      }}
+                    >
+                      <div className="flex size-7 shrink-0 items-center justify-center rounded-md bg-amber-50 text-amber-600">
+                        <Send className="size-4" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-xs font-medium text-stone-800">API</div>
+                        <div className="truncate text-[10px] text-stone-400">接口调试与请求管理</div>
+                      </div>
+                    </button>
+
+                    {/* 3. 开发者工具 (DevTools) */}
+                    <button
+                      type="button"
+                      className={cn("flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-stone-100", location.pathname.startsWith("/devtools") && "bg-green-50 text-green-700 font-medium")}
+                      onClick={() => {
+                        setMoreToolsOpen(false)
+                        onActivityChange("tools")
+                        void router.push("/devtools")
+                      }}
+                    >
+                      <div className="flex size-7 shrink-0 items-center justify-center rounded-md bg-blue-50 text-blue-600">
+                        <Wrench className="size-4" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-xs font-medium text-stone-800">开发工具</div>
+                        <div className="truncate text-[10px] text-stone-400">Console / 存储 / 调试工具</div>
+                      </div>
+                    </button>
+                  </div>
+                </ScrollArea>
+              </PopoverContent>
             )}
-          </Tooltip>
-
-          {/* 悬停/点击浮层：显示三个合并按钮 */}
-          {moreToolsOpen && (
-            <div
-              className="absolute left-[44px] top-0 z-[300] w-56 rounded-xl border border-stone-200 bg-white p-1.5 shadow-xl transition-all"
-              onMouseEnter={() => {
-                if (closeTimer.current) clearTimeout(closeTimer.current)
-              }}
-              onMouseLeave={() => {
-                closeTimer.current = setTimeout(() => setMoreToolsOpen(false), 200)
-              }}
-            >
-              <div className="px-2 py-1 text-[11px] font-semibold text-stone-400">开发与接口工具</div>
-
-              {/* 1. Git (代码版本管理) */}
-              <button
-                type="button"
-                className={cn("flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-stone-100", location.pathname === "/git" && "bg-green-50 text-green-700 font-medium")}
-                onClick={() => {
-                  setMoreToolsOpen(false)
-                  onActivityChange("git")
-                  void router.push("/git")
-                }}
-              >
-                <div className="flex size-7 shrink-0 items-center justify-center rounded-md bg-orange-50 text-orange-600">
-                  <GitBranch className="size-4" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="text-xs font-medium text-stone-800">Git</div>
-                  <div className="truncate text-[10px] text-stone-400">代码版本管理与分支</div>
-                </div>
-              </button>
-
-              {/* 2. API (接口调试与管理) */}
-              <button
-                type="button"
-                className={cn("flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-stone-100", location.pathname === "/api-client" && "bg-green-50 text-green-700 font-medium")}
-                onClick={() => {
-                  setMoreToolsOpen(false)
-                  onActivityChange("postman")
-                  void router.push("/api-client")
-                }}
-              >
-                <div className="flex size-7 shrink-0 items-center justify-center rounded-md bg-amber-50 text-amber-600">
-                  <Send className="size-4" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="text-xs font-medium text-stone-800">API</div>
-                  <div className="truncate text-[10px] text-stone-400">接口调试与请求管理</div>
-                </div>
-              </button>
-
-              {/* 3. 开发者工具 (DevTools) */}
-              <button
-                type="button"
-                className={cn("flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-stone-100", location.pathname.startsWith("/devtools") && "bg-green-50 text-green-700 font-medium")}
-                onClick={() => {
-                  setMoreToolsOpen(false)
-                  onActivityChange("tools")
-                  void router.push("/devtools")
-                }}
-              >
-                <div className="flex size-7 shrink-0 items-center justify-center rounded-md bg-blue-50 text-blue-600">
-                  <Wrench className="size-4" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="text-xs font-medium text-stone-800">开发工具</div>
-                  <div className="truncate text-[10px] text-stone-400">Console / 存储 / 调试工具</div>
-                </div>
-              </button>
-            </div>
-          )}
-        </div>
+          </div>
+        </Popover>
         <div className="mt-auto flex flex-col items-center gap-1">
           <span
             title="外观可在设置中调整"

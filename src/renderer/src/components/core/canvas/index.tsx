@@ -4,6 +4,7 @@ import MediaCanvas from "@/components/core/canvas/variants/media/index"
 import { EditorLoading } from "@/components/ui/editor-loading"
 import { lazyWithRetry } from "@/lib/lazy-retry"
 import { Suspense, memo } from "react"
+const BaseCanvas = lazyWithRetry(() => import("@/components/core/canvas/variants/base"))
 const OfficeCanvas = lazyWithRetry(() => import("@/components/core/canvas/variants/office/index"))
 const CodeCanvas = lazyWithRetry(() => import("@/components/core/canvas/variants/code/index"))
 const ExcalidrawCanvas = lazyWithRetry(() => import("@/components/core/canvas/variants/excalidraw/index"))
@@ -22,6 +23,16 @@ interface EditorTabsProps {
 const EditorCanvas = ({ fileType, activeFilePath, workspacePath, revealPosition, highlightKeyword, revealLine }: EditorTabsProps) => {
   fileType = fileType?.toLowerCase()
   const lowerPath = activeFilePath.toLowerCase()
+  if (fileType === "base" || lowerPath.endsWith(".base"))
+    return (
+      <Suspense fallback={<EditorLoading />}>
+        <BaseCanvas
+          key={activeFilePath}
+          activeFilePath={activeFilePath}
+          workspacePath={workspacePath}
+        />
+      </Suspense>
+    )
   if (lowerPath.endsWith(".excalidraw.md") || lowerPath.endsWith(".excalidraw") || lowerPath.endsWith(".canvas") || fileType === "canvas" || fileType === "excalidraw") {
     return (
       <Suspense fallback={<EditorLoading />}>

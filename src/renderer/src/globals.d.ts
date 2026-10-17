@@ -168,6 +168,7 @@ interface VesselAPI extends BrowserProxyAPI, BrowserToolsAPI, SettingsAPI, Brows
   getCodeDiagnostics: (path: string, content: string) => Promise<import("@vessel/type").CodeDiagnostic[]>
   createWorkspaceEntry: (root: string, parent: string, name: string, kind: "file" | "directory") => Promise<{ name: string; path: string; type: "file" | "directory" }>
   openExternal: (href: string) => Promise<void>
+  queryBase: typeof import("@preload/apis/files.api").filesAPI.queryBase
   readContent: (path: string) => Promise<string>
 
   /** 保存文件内容。 */

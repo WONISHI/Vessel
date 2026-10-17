@@ -4,8 +4,8 @@ import { Sidebar, useSidebar } from "@/components/ui/sidebar"
 import LayoutWorkspaceSidebar from "@/components/workspace/components/layout-aside/layout-workspace-sidebar/index"
 import { ProjectLibrary } from "@/components/workspace/components/layout-aside/project-library"
 import type { AsideActivity } from "@/components/workspace/components/layout-aside/types"
-import { useWorkspace } from "@/components/workspace/hooks/useWorkspace"
 import { selectLastPinned } from "@/pages/resources/library-state"
+import { useLocation } from "react-router-dom"
 import { useRouter } from "@vessel/react-router"
 import type { ReactNode } from "react"
 import { useEffect, useRef, useState } from "react"
@@ -29,7 +29,12 @@ export default function LayoutAside({ resources = false, children }: { resources
     hideTimer.current = setTimeout(() => setPreview(false), 200)
   }
   const [activity, setActivity] = useState<AsideActivity>("files")
-  const { navigateToWorkspaceHome } = useWorkspace()
+  const location = useLocation()
+  // Cached workspaces keep local state while Git/API routes render another activity bar.
+  // A new editor navigation must restore the cached sidebar as well as the clicked bar.
+  useEffect(() => {
+    if (location.pathname === "/editor" || location.pathname.startsWith("/editor/")) setActivity("files")
+  }, [location.key, location.pathname])
 
   const router = useRouter()
 
@@ -63,13 +68,13 @@ export default function LayoutAside({ resources = false, children }: { resources
       void router.push("/devtools")
       return
     }
+    if (next === "git" || next === "postman") {
+      void router.push(next === "git" ? "/git" : "/api-client")
+      return
+    }
     setActivity(next)
     if (isMobile) setOpenMobile(true)
     else setOpen(true)
-    if (next === "files") {
-      if (resources) void router.push("/editor")
-      else navigateToWorkspaceHome()
-    }
   }
 
   return (
