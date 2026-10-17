@@ -64,3 +64,22 @@ it("computes the pin state from the selected project, not the current page", asy
   fireEvent.click(screen.getByRole("button", { name: "固定资源库" }))
   expect(JSON.parse(localStorage.getItem("resource-library-meta")!).lastPinned.path).toBe("/projects/assets")
 })
+
+it("selects only the most recently popped project when switching back to an earlier project", async () => {
+  localStorage.setItem("resource-library-meta", JSON.stringify({ pins: [{ name: "Vessel", path: "/projects/Vessel" }], lastPinned: { name: "Vessel", path: "/projects/Vessel" } }))
+  render(
+    <ProjectLibrary
+      pinned
+      onPin={() => {}}
+    />
+  )
+  fireEvent.click(await screen.findByText("附件"))
+  fireEvent.click(screen.getByRole("button", { name: "固定资源库" }))
+  expect(screen.getByRole("button", { name: "取消固定资源库" })).toBeTruthy()
+  fireEvent.click(await screen.findByRole("button", { name: "Vessel", exact: true }))
+  expect(screen.getByRole("button", { name: "固定资源库" })).toBeTruthy()
+  expect(screen.queryByRole("button", { name: "取消固定资源库" })).toBeNull()
+  fireEvent.click(screen.getByRole("button", { name: "固定资源库" }))
+  expect(JSON.parse(localStorage.getItem("resource-library-meta")!).lastPinned.path).toBe("/projects/Vessel")
+  expect(JSON.parse(localStorage.getItem("resource_current_project")!).path).toBe("/projects/Vessel")
+})

@@ -11,6 +11,7 @@ it("loads a named workspace attachment and rejects missing references", async ()
     await writeFile(join(root, "images", "Pasted image 20260303174838.png"), Buffer.from([137, 80, 78, 71]))
     expect(await readObsidianImage(root, join(root, "note.md"), "![[Pasted image 20260303174838.png]]")).toBe("data:image/png;base64,iVBORw==")
     expect(await readObsidianImage(root, join(root, "note.md"), "![image|925](images/Pasted image 20260303174838.png)")).toBe("data:image/png;base64,iVBORw==")
+    expect(await readObsidianImage(root, join(root, "note.md"), '<img src="images/Pasted image 20260303174838.png" alt="附件" width="96" />')).toBe("data:image/png;base64,iVBORw==")
     await expect(readObsidianImage(root, join(root, "note.md"), "![[missing.png]]")).rejects.toThrow("找不到")
   } finally {
     await rm(root, { recursive: true, force: true })

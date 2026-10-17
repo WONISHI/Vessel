@@ -1,3 +1,4 @@
+import type { FilePickerWorkspace } from "@/components/workspace-file-picker/types"
 import { useDirectoryWatch, useFileChanges } from "@/components/workspace/hooks/file-changes"
 import type { WorkspaceContextType, WorkspaceData, WorkspaceNode } from "@/components/workspace/types/workspace"
 import { getFileExtension } from "@vessel/utils"
@@ -140,6 +141,16 @@ export function useWorkspaceController(workspace: WorkspaceData, initialFile?: s
     setActiveFilePath(file.path)
     if (!preview && activeRef.current) navigate(getFileRoute(file.path))
   }
+  useEffect(() => {
+    /** Supplies only the visible workspace's tabs and navigation callback to the global command palette. */
+    const provideFiles = (event: Event) => {
+      if (!activeRef.current || preview) return
+      const request = event as CustomEvent<(workspace: FilePickerWorkspace) => void>
+      request.detail({ root: workspace.path, files: openFiles, openFile: openWorkspaceFile })
+    }
+    window.addEventListener("vessel:request-workspace-files", provideFiles)
+    return () => window.removeEventListener("vessel:request-workspace-files", provideFiles)
+  }, [workspace.path, openFiles, preview, active])
   /** 关闭指定标签；关闭当前标签时优先选择左侧标签，否则返回首页。
    * @param path 要关闭的文件路径。 */
   const closeWorkspaceFile = (path: string) => {

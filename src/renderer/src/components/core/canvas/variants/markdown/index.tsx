@@ -1,7 +1,6 @@
 import { DocumentOutline } from "@/components/core/canvas/variants/markdown/document-outline"
 import { DocumentStats } from "@/components/core/canvas/variants/markdown/document-stats"
 import { headingSections } from "@/components/core/canvas/variants/markdown/heading-sections"
-import "@/components/core/canvas/variants/markdown/index.css"
 import { outlineHeading } from "@/components/core/canvas/variants/markdown/outline-heading"
 import { VditorEditor } from "@/components/core/canvas/variants/markdown/vditor-editor"
 import { WikiLinkPreview } from "@/components/core/canvas/variants/markdown/wiki-link-preview"

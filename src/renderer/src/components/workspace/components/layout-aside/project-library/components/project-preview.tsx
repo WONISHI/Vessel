@@ -8,7 +8,7 @@ import { useNavigate } from "react-router-dom"
 /** Renders the project preview component. */
 export function ProjectPreview({ project, onSelect, onPin }: { project: Project; onSelect: (project: Project) => void; pinned: boolean; onPin: () => void }) {
   const meta = useLibraryMeta()
-  const isPinned = !!meta.pins?.some((item) => item.path === project.path)
+  const isPinned = meta.lastPinned?.path === project.path && !!meta.pins?.some((item) => item.path === project.path)
   const controller = useWorkspaceController({ ...project, files: [] }, undefined, "resources", true)
   const navigate = useNavigate()
 

@@ -172,7 +172,7 @@ export default function HomePage({ onEnter }: HomePageProps) {
               />
             </div>
 
-            <h1 className="mb-5 text-[40px] font-bold leading-[1.15] tracking-tight text-stone-900">
+            <h1 className="mb-5 text-[40px] font-bold leading-[1.15] tracking-tight text-stone-900 dark:text-white">
               让知识在
               <br />
               画布上自由生长
@@ -203,14 +203,14 @@ export default function HomePage({ onEnter }: HomePageProps) {
                 <div className="h-1.5 w-1.5 rounded-full bg-stone-300" />
               </div>
 
-              <h1 className="mb-3 text-2xl font-bold leading-tight tracking-tight text-stone-900 sm:text-[28px]">设置你的工作区</h1>
+              <h1 className="mb-3 text-2xl font-bold leading-tight tracking-tight text-stone-900 dark:text-white sm:text-[28px]">设置你的工作区</h1>
 
               <p className="mb-8 text-sm leading-relaxed text-stone-400 sm:mb-10 sm:text-[15px]">选择一个本地文件夹，Vessel 会将你的笔记和数据保存在这里</p>
             </div>
 
             {/* 大屏表单标题 */}
             <div className="mb-8 hidden lg:block">
-              <h2 className="mb-1.5 text-xl font-semibold text-stone-900">开始使用</h2>
+              <h2 className="mb-1.5 text-xl font-semibold text-stone-900 dark:text-white">开始使用</h2>
 
               <p className="text-sm text-stone-400">选择一个本地文件夹作为你的工作区</p>
             </div>

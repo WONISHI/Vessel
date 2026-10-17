@@ -9,6 +9,14 @@ export interface ObsidianImageEmbed {
 }
 /** 识别 ![[附件.png]]、带路径、别名以及 |300 或 |300x200 的图片嵌入。 */
 export function parseObsidianImageEmbed(value: string): ObsidianImageEmbed | null {
+  if (/^<img\b[^>]*\/?>$/i.test(value.trim())) {
+    const attributes = new Map([...value.matchAll(/([\w-]+)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/g)].map((match) => [match[1].toLowerCase(), match[2] ?? match[3] ?? match[4]]))
+    const target = attributes.get("src")
+    if (!target) return null
+    const width = Number(attributes.get("width")),
+      height = Number(attributes.get("height"))
+    return { raw: value, target: target.replace(/&amp;/g, "&"), alt: attributes.get("alt") || "图片", ...(width > 0 && Number.isFinite(width) ? { width } : {}), ...(height > 0 && Number.isFinite(height) ? { height } : {}) }
+  }
   const match = /^!\[\[([^\]\r\n]+)\]\]$/.exec(value.trim())
   if (!match) return null
   const [target, ...options] = match[1].split("|")
@@ -34,6 +42,7 @@ export function resizeImageReference(reference: string, width: number): string {
   const embed = parseImageReference(reference)
   if (!embed) return reference
   const size = Math.max(1, Math.round(width))
+  if (/^<img\b/i.test(reference.trim())) return /\bwidth\s*=/.test(reference) ? reference.replace(/\bwidth\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/i, `width="${size}"`) : reference.replace(/\s*\/?>$/, ` width="${size}" />`)
   if (reference.trim().startsWith("![[")) return `![[${embed.target}|${size}]]`
   return reference.replace(/^!\[[^\]]*\]/, `![${embed.alt}|${size}]`)
 }

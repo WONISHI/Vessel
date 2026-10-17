@@ -19,6 +19,8 @@ export default function FileTreeItem({ node, selected, expanded, loading, error,
   const appearance = getFilePresentation(node.name)
   return (
     <Button
+      data-workspace-tree-row
+      data-selected={selected}
       variant="ghost"
       title={error ? `${error}，点击重试` : node.path}
       onClick={onActivate}
@@ -30,9 +32,38 @@ export default function FileTreeItem({ node, selected, expanded, loading, error,
       >
         {folder && <ChevronRight className={cn("!size-3 text-stone-400 transition-transform", expanded && "rotate-90")} />}
       </span>
-      {loading ? <LoaderCircle className="!size-3.5 animate-spin text-stone-400" /> : folder ? <Folder className="!size-3.5 text-amber-500" /> : <File className={cn("!size-3.5", appearance.color)} />}
-      <span className={cn("min-w-0 flex-1 truncate text-left", folder && "font-semibold")}>{node.name}</span>
-      {error ? <span className="text-[10px] text-red-500">重试</span> : !folder && appearance.label && <span className={cn("rounded px-1 py-0 text-[9px] leading-4 font-semibold", appearance.badge)}>{appearance.label}</span>}
+      {loading ? (
+        <LoaderCircle className="!size-3.5 animate-spin text-stone-400" />
+      ) : folder ? (
+        <Folder
+          data-tree-icon="folder"
+          className="!size-3.5 text-amber-500"
+        />
+      ) : (
+        <File
+          data-tree-icon="file"
+          className={cn("!size-3.5", appearance.color)}
+        />
+      )}
+      <span
+        data-tree-label
+        className={cn("min-w-0 flex-1 truncate text-left", folder && "font-semibold")}
+      >
+        {node.name}
+      </span>
+      {error ? (
+        <span className="text-[10px] text-red-500">重试</span>
+      ) : (
+        !folder &&
+        appearance.label && (
+          <span
+            data-tree-badge={appearance.label?.toLowerCase()}
+            className={cn("rounded px-1 py-0 text-[9px] leading-4 font-semibold", appearance.badge)}
+          >
+            {appearance.label}
+          </span>
+        )
+      )}
     </Button>
   )
 }

@@ -43,11 +43,21 @@ export function OfficePage() {
           .finally(() => port.close())
     }
     window.addEventListener("message", listener)
+
     return () => {
       clearTimeout(timeout)
       window.removeEventListener("message", listener)
     }
   }, [url])
+  useEffect(() => {
+    if (!url || !ready) return
+    /** Synchronizes only shell appearance across the isolated Office frame. */
+    const syncTheme = () => frame.current?.contentWindow?.postMessage({ type: "office:theme", dark: document.documentElement.classList.contains("dark") }, new URL(url).origin)
+    syncTheme()
+    const observer = new MutationObserver(syncTheme)
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] })
+    return () => observer.disconnect()
+  }, [url, ready])
   useEffect(() => {
     if (!ready || !url) return
     let queue = Promise.resolve()

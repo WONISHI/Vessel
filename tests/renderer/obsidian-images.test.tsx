@@ -154,3 +154,12 @@ it("supports copying and dragging address via 1号图标 (copy button)", async (
   expect(setData).toHaveBeenCalledWith("text/plain", "https://example.com/test.png")
   expect(setData).toHaveBeenCalledWith("text/uri-list", "https://example.com/test.png")
 })
+
+it("loads relative HTML image references through the workspace resolver and preserves source", () => {
+  const reference = '<img src="src/renderer/src/assets/logo.png" width="96" height="96" alt="Vessel Logo" />'
+  expect(parseImageReference(reference)).toMatchObject({ target: "src/renderer/src/assets/logo.png", width: 96, height: 96, alt: "Vessel Logo" })
+  const source = `<p align="center">\n  ${reference}\n</p>\n\n# Vessel`
+  expect(prepareObsidianImages(source)).toContain("```vessel-obsidian-image")
+  expect(restoreObsidianImages(prepareObsidianImages(source))).toBe(source)
+  expect(resizeImageReference(reference, 128)).toContain('width="128"')
+})

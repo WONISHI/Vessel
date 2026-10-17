@@ -93,6 +93,9 @@ export default function LayoutWorkspaceSidebar({ activity }: LayoutWorkspaceSide
     window.addEventListener("vessel:reveal-file", handleReveal)
     return () => window.removeEventListener("vessel:reveal-file", handleReveal)
   }, [revealCurrentFile])
+  useEffect(() => {
+    if (activeFilePath) revealCurrentFile(activeFilePath)
+  }, [activeFilePath])
   const [viewport, setViewport] = useState<HTMLDivElement | null>(null)
   const navigate = useNavigate()
   const workspaceName = workspace.path.split(/[\\/]/).filter(Boolean).pop() || workspace.name
@@ -133,7 +136,7 @@ export default function LayoutWorkspaceSidebar({ activity }: LayoutWorkspaceSide
           <TooltipTrigger asChild>
             <span
               tabIndex={0}
-              className="min-w-0 truncate font-semibold text-black"
+              className="min-w-0 truncate font-semibold text-black dark:text-white"
             >
               {activity === "files" ? workspaceName : "开发工具"}
             </span>

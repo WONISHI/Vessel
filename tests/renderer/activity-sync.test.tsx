@@ -103,3 +103,30 @@ it("restores the workspace active state after choosing Git from More", async () 
   expect(screen.getByRole("button", { name: "工作区" }).getAttribute("aria-pressed")).toBe("true")
   expect(screen.getByRole("button", { name: "更多开发工具" }).getAttribute("aria-pressed")).toBe("false")
 })
+
+it("switches dark and light appearance from the activity bar without changing other settings", async () => {
+  const { defaultSettings } = await import("@vessel/utils")
+  const settings = structuredClone(defaultSettings)
+  const saveSettings = vi.fn(async (next) => next)
+  Object.defineProperty(window, "electronAPI", {
+    configurable: true,
+    value: {
+      getSettings: vi.fn(async () => settings),
+      saveSettings,
+      getBackupStatus: vi.fn(async () => ({ running: false }))
+    }
+  })
+  document.documentElement.classList.remove("dark")
+  render(
+    <LayoutActivityBar
+      activity="files"
+      onActivityChange={() => {}}
+    />
+  )
+  fireEvent.click(screen.getByRole("button", { name: "切换浅色或深色主题" }))
+  await waitFor(() => expect(document.documentElement.classList.contains("dark")).toBe(true))
+  expect(saveSettings).toHaveBeenLastCalledWith({ ...settings, theme: "dark" })
+  fireEvent.click(screen.getByRole("button", { name: "切换浅色或深色主题" }))
+  await waitFor(() => expect(document.documentElement.classList.contains("dark")).toBe(false))
+  expect(saveSettings).toHaveBeenLastCalledWith({ ...settings, theme: "light" })
+})

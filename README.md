@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="src/renderer/src/assets/vessel.png" width="96" height="96" alt="Vessel Logo" />
+  <img src="src/renderer/src/assets/logo.png" width="96" height="96" alt="Vessel Logo" />
 </p>
 
 # Vessel
@@ -31,6 +31,7 @@ pnpm run dev
 ONLYOFFICE 需要另外准备体积较大的运行资源，步骤见 [Office 资源说明](resources/office-README.md)。模型与 Office 运行资源不提交到 Git，构建前需要准备完整。
 
 ## 常用命令
+
 
 | 命令                         | 用途                                              |
 | ---------------------------- | ------------------------------------------------- |
@@ -71,6 +72,7 @@ docs/                   功能文档和工程规范
 ### Workspace 包
 
 npm 包名与源码目录名分别管理，业务代码通过包名或别名导入。
+
 
 | 包名                    | 职责                         |
 | ----------------------- | ---------------------------- |

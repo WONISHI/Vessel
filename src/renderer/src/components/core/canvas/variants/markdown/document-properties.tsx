@@ -1,9 +1,9 @@
-import { Link } from "@/components/ui/link"
+import { ObsidianPropertyValue } from "@/components/obsidian-property-value"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import type { FrontmatterProperty } from "@vessel/obsidian/frontmatter"
 
 /** Renders the document properties component. */
-export function DocumentProperties({ properties }: { properties: FrontmatterProperty[] }) {
+export function DocumentProperties({ properties, workspacePath }: { properties: FrontmatterProperty[]; workspacePath: string }) {
   return (
     <section
       aria-label="文档属性"
@@ -20,7 +20,16 @@ export function DocumentProperties({ properties }: { properties: FrontmatterProp
           {properties.map(({ key, value }, index) => (
             <TableRow key={index}>
               <TableCell className="align-top text-xs font-medium">{key}</TableCell>
-              <TableCell className="whitespace-pre-wrap break-all text-xs">{/^https?:\/\//.test(value) ? <Link href={value}>{value}</Link> : value || <span className="text-stone-400">—</span>}</TableCell>
+              <TableCell className="whitespace-pre-wrap break-all text-xs">
+                {value ? (
+                  <ObsidianPropertyValue
+                    text={value}
+                    root={workspacePath}
+                  />
+                ) : (
+                  <span className="text-stone-400">—</span>
+                )}
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>

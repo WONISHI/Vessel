@@ -1,3 +1,5 @@
+import { useDarkAppearance } from "@/hooks/use-dark-appearance"
+import { applyAppearance } from "@/pages/settings/appearance"
 import { useActivityOverflow } from "@/components/layout/activity-bar/use-activity-overflow"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -12,13 +14,14 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { cn } from "@/lib/utils"
 import { selectLastPinned } from "@/pages/resources/library-state"
 import { useRouter } from "@vessel/react-router"
-import { Ellipsis, GitBranch, RefreshCcw, Send, Settings, Sun, Wrench } from "lucide-react"
+import { Ellipsis, GitBranch, RefreshCcw, Send, Settings, Sun, Moon, Wrench } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { useLocation } from "react-router-dom"
 import { toast } from "sonner"
 
 /** 左侧窄活动栏：应用入口、活动切换和外观标识。 */
 export default function LayoutActivityBar({ activity, onActivityChange, onResourceEnter, onResourceLeave }: LayoutActivityBarProps) {
+  const dark = useDarkAppearance()
   const location = useLocation()
   const [moreToolsOpen, setMoreToolsOpen] = useState(false)
   const transitOpen = useRef(false)
@@ -188,6 +191,7 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
                   <Button
                     variant="ghost"
                     size="icon"
+                    data-activity-button
                     aria-label={label}
                     aria-pressed={activity === id}
                     onClick={() => openActivity(id)}
@@ -259,6 +263,7 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
                   <Button
                     variant="ghost"
                     size="icon"
+                    data-activity-button
                     aria-label="更多开发工具"
                     aria-pressed={moreActive}
                     className={cn("relative h-[38px] w-[38px] rounded-[10px] text-stone-500 hover:!bg-[#f0efed] hover:!text-stone-500", (moreActive || moreToolsOpen) && "!bg-emerald-50 !text-green-700 hover:!bg-emerald-50 hover:!text-green-700")}
@@ -404,12 +409,26 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
           </div>
         </Popover>
         <div className="mt-auto flex flex-col items-center gap-1">
-          <span
-            title="外观可在设置中调整"
-            className="flex size-[38px] items-center justify-center text-stone-500"
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="切换浅色或深色主题"
+            title="切换浅色或深色主题"
+            className="size-[38px] text-stone-500"
+            onClick={() => {
+              void window.electronAPI
+                .getSettings()
+                .then(async (settings) => {
+                  const theme = document.documentElement.classList.contains("dark") ? "light" : "dark"
+                  const saved = await window.electronAPI.saveSettings({ ...settings, theme })
+                  applyAppearance(saved)
+                  window.dispatchEvent(new Event("vessel:settings-saved"))
+                })
+                .catch((error) => toast.error(String(error)))
+            }}
           >
-            <Sun className="size-5" />
-          </span>
+            {dark ? <Sun className="size-5" /> : <Moon className="size-5" />}
+          </Button>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button

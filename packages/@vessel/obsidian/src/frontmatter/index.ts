@@ -1,3 +1,5 @@
+import { parseBaseYaml } from "#vessel-obsidian/bases/yaml"
+
 export interface FrontmatterProperty {
   key: string
   value: string
@@ -8,7 +10,7 @@ export interface FrontmatterDocument {
   properties: FrontmatterProperty[]
 }
 /** 解析文档起始的扁平 YAML 属性；复杂 YAML 保留原文，不做有损转换。 */
-export function parseFrontmatter(source: string): FrontmatterDocument | null {
+function parseFlatFrontmatter(source: string): FrontmatterDocument | null {
   const match = /^(?:\uFEFF)?---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/.exec(source)
   if (!match) return null
   const properties: FrontmatterProperty[] = []
@@ -34,4 +36,27 @@ export function parseFrontmatter(source: string): FrontmatterDocument | null {
   }
   if (!properties.length) return null
   return { raw: match[0], body: source.slice(match[0].length), properties }
+}
+
+/** Parses YAML lists and mappings for display while retaining the original bytes for editing round trips. */
+export function parseFrontmatter(source: string): FrontmatterDocument | null {
+  const flat = parseFlatFrontmatter(source)
+  if (flat) return flat
+  const match = /^(?:\uFEFF)?---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/.exec(source)
+  if (!match) return null
+  try {
+    const value = parseBaseYaml(match[1])
+    if (!value || typeof value !== "object" || Array.isArray(value)) return null
+    const properties = Object.entries(value).map(([key, entry]) => ({ key, value: formatProperty(entry) }))
+    return properties.length ? { raw: match[0], body: source.slice(match[0].length), properties } : null
+  } catch {
+    return null
+  }
+}
+
+/** Formats nested property values for reading without flattening or rewriting their source YAML. */
+function formatProperty(value: unknown): string {
+  if (value === null || value === undefined) return ""
+  if (Array.isArray(value)) return value.map(formatProperty).join("\n")
+  return typeof value === "object" ? JSON.stringify(value, null, 2) : String(value)
 }

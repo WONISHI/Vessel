@@ -17,6 +17,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "imports": {
+    "#vessel-utils/calendar": "./src/calendar/index.ts",
     "#vessel-utils/types": "./src/types.ts",
     "#vessel-utils/file-tree": "./src/file-tree.ts",
     "#vessel-utils/files": "./src/files.ts",

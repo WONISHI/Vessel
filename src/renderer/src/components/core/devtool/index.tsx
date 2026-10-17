@@ -342,7 +342,7 @@ export default function DevTool() {
               variant="outline"
               size="icon"
               className={cn(
-                "relative h-12 w-12 rounded-full border bg-white text-stone-600",
+                "relative h-12 w-12 rounded-full border bg-white text-stone-600 dark:border-[#444c56]",
                 "outline-none transition-all duration-200",
                 "shadow-[0_4px_12px_rgba(0,0,0,0.08)]",
                 "focus:outline-none",

@@ -1,3 +1,4 @@
+import { useDarkAppearance } from "@/hooks/use-dark-appearance"
 import vesselLogo from "@/assets/vessel.png"
 import { VditorEditor } from "@/components/core/canvas/variants/markdown/vditor-editor"
 import { Button } from "@/components/ui/button"
@@ -74,6 +75,7 @@ function getFileMeta(fileName: string) {
 
 /** Renders the workspace home component. */
 export default function WorkspaceHome() {
+  const dark = useDarkAppearance()
   const { workspace, openFiles, openWorkspaceFile } = useWorkspace()
   const { calendarData, activityMap, monthlyData } = useWorkspaceActivity(workspace.path)
 
@@ -152,7 +154,7 @@ export default function WorkspaceHome() {
         </div>
 
         {/* 1. 当前打开的文件（全新卡片样式） */}
-        <section className="rounded-xl border border-stone-200/70 bg-white p-5 shadow-sm">
+        <section className="rounded-xl border border-stone-200/70 dark:border-[#444c56] bg-white p-5 shadow-sm">
           <div className="mb-3.5 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <FileText className="size-4 text-emerald-600" />
@@ -216,13 +218,16 @@ export default function WorkspaceHome() {
         </section>
 
         {/* 2. 轮播图：热力图（年）与 折线图（月），1分钟自动轮播 */}
-        <section className="rounded-xl border border-stone-200/70 bg-white p-5 shadow-sm">
+        <section className="rounded-xl border border-stone-200/70 dark:border-[#444c56] bg-white p-5 shadow-sm">
           <div className="mb-4 flex items-center justify-between border-b border-stone-100 pb-3">
             <div className="flex items-center gap-2">
               <Activity className="size-4 text-emerald-600" />
               <h2 className="text-sm font-semibold text-stone-800">工作区编辑动态</h2>
             </div>
-            <div className="flex items-center gap-1.5 rounded-lg border border-stone-200/70 bg-stone-50/80 p-0.5 text-xs">
+            <div
+              data-workspace-activity-switch
+              className="flex items-center gap-1.5 rounded-lg border border-stone-200/70 bg-stone-50/80 p-0.5 text-xs"
+            >
               <button
                 type="button"
                 onClick={() => carouselApi?.scrollTo(0)}
@@ -258,9 +263,10 @@ export default function WorkspaceHome() {
                     <TooltipProvider delayDuration={50}>
                       <ActivityCalendar
                         data={calendarData}
+                        colorScheme={dark ? "dark" : "light"}
                         theme={{
                           light: ["#ebedf0", "#9be9a8", "#40c463", "#30a14e", "#216e39"],
-                          dark: ["#1e293b", "#065f46", "#047857", "#059669", "#10b981"]
+                          dark: ["#22272e", "#065f46", "#047857", "#059669", "#10b981"]
                         }}
                         labels={{
                           months: ["1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"],
@@ -425,7 +431,7 @@ export default function WorkspaceHome() {
         </section>
 
         {/* 3. 轮播图下面：项目情况（README.md，使用 vditor 显示只读） */}
-        <section className="rounded-xl border border-stone-200/70 bg-white p-5 shadow-sm">
+        <section className="rounded-xl border border-stone-200/70 dark:border-[#444c56] bg-white p-5 shadow-sm">
           <div className="mb-4 flex items-center justify-between border-b border-stone-100 pb-3">
             <div className="flex items-center gap-2">
               <BookOpen className="size-4 text-emerald-600" />

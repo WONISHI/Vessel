@@ -36,3 +36,216 @@ html.dark .browser-status {
   color: hsl(var(--foreground));
   border-color: hsl(var(--border));
 }
+
+/* Dark surfaces and separators are isolated from light appearance. */
+html.dark {
+  background-color: #22272e;
+}
+html.dark :is(.border-stone-100, .border-stone-200, .border-stone-300, .border-zinc-200, .border-gray-200, [class~="border-[#f0efed]"]) {
+  border-color: #444c56;
+}
+html.dark .vessel-vditor,
+html.dark .vessel-vditor :is(.vditor-content, .vditor-ir, .vditor-reset, .vditor-toolbar),
+html.dark .vessel-typography {
+  background-color: #22272e !important;
+  color: #cdd9e5 !important;
+}
+html.dark .vessel-vditor :is(h1, h2, h3, h4, h5, h6, p, li),
+html.dark .vditor-ir pre.vditor-reset[contenteditable="false"] {
+  color: #cdd9e5 !important;
+}
+html.dark .vessel-vditor :is(table, th, td, hr, blockquote, .vditor-toolbar) {
+  border-color: #444c56 !important;
+}
+html.dark .vessel-vditor :is(blockquote, th, pre),
+html.dark .vessel-vditor tr:nth-child(2n) {
+  background-color: #2d333b !important;
+}
+
+/* Workspace chrome: scoped dark separators and selected-tab contrast. */
+html.dark [data-workspace-tab="true"][data-active="true"],
+html.dark [data-workspace-tab="true"][data-active="true"] :is(button, span, svg) {
+  color: #fff !important;
+}
+html.dark [data-workspace-tab="true"][data-active="true"] {
+  border-color: #444c56;
+  box-shadow: none;
+}
+html.dark .vessel-resize-handle::before {
+  background-color: #444c56;
+}
+html.dark [data-sidebar="sidebar"] {
+  border-color: #444c56;
+}
+
+/* Base action icons must keep their contrast in all active dark-mode states. */
+html.dark [data-base-action]:is(:hover, :active, [data-state="open"], [data-filtered="true"], [aria-busy="true"]),
+html.dark [data-base-action]:is(:hover, :active, [data-state="open"], [data-filtered="true"], [aria-busy="true"]) svg {
+  color: #fff !important;
+}
+html.dark [data-base-action]:is(:hover, :active, [data-state="open"], [data-filtered="true"], [aria-busy="true"]) svg {
+  stroke: #fff !important;
+}
+
+/* Tool-page shells keep their light palette untouched. */
+html.dark .todo-calendar,
+html.dark .todo-calendar [class~="bg-[#faf9f7]"],
+html.dark .dev-tools,
+html.dark .dev-tools aside,
+html.dark [data-office-shell],
+html.dark [data-office-shell] :is(.bg-white, .bg-stone-50, .bg-stone-100) {
+  background-color: #22272e !important;
+  color: #cdd9e5;
+}
+html.dark .todo-table-scroll :is(th, .todo-sticky-action, .todo-sticky-add),
+html.dark .todo-calendar :is(thead, tfoot) {
+  background-color: #22272e !important;
+}
+
+html.dark .image-toolbox,
+html.dark .image-button,
+html.dark .image-preview-area,
+html.dark .image-preview-toolbar,
+html.dark .image-size,
+html.dark .image-language,
+html.dark .image-result,
+html.dark .image-field input:not([type="range"]),
+html.dark .image-field select {
+  background: #22272e !important;
+  color: #cdd9e5;
+}
+
+/* Dark interaction tokens from the supplied file-tree, activity-bar and table designs. */
+html.dark [data-workspace-tree-row] {
+  color: #e6e8eb !important;
+}
+html.dark [data-workspace-tree-row]:hover {
+  background-color: rgba(255, 255, 255, 0.07) !important;
+  color: #fff !important;
+}
+html.dark [data-workspace-tree-row] [data-tree-icon="folder"] {
+  color: #e9a23b !important;
+}
+html.dark [data-workspace-tree-row] [data-tree-icon="file"] {
+  color: #9aa1a9 !important;
+}
+html.dark [data-workspace-tree-row][data-selected="true"] {
+  background-color: rgba(34, 197, 94, 0.18) !important;
+  color: #4ade80 !important;
+  font-weight: 600;
+}
+html.dark [data-workspace-tree-row][data-selected="true"]:hover {
+  background-color: rgba(34, 197, 94, 0.27) !important;
+}
+html.dark [data-workspace-tree-row] [data-tree-label] {
+  color: inherit !important;
+}
+html.dark [data-workspace-tree-row][data-selected="true"] [data-tree-icon] {
+  color: #22c55e !important;
+}
+html.dark [data-tree-badge] {
+  background-color: #3c424a !important;
+  color: #cbd2d9 !important;
+}
+html.dark [data-tree-badge="md"] {
+  background-color: #3b2f52 !important;
+  color: #c4b5fd !important;
+}
+html.dark [data-activity-button] {
+  background-color: transparent !important;
+  color: #8a8f98 !important;
+}
+html.dark [data-activity-button] > svg {
+  color: inherit !important;
+}
+html.dark [data-activity-button]:hover {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  color: #d6d9de !important;
+}
+html.dark [data-activity-button][data-state="open"],
+html.dark [data-activity-button][aria-pressed="true"] {
+  background-color: rgba(34, 197, 94, 0.18) !important;
+  color: #4ade80 !important;
+}
+html.dark [data-activity-button][data-state="open"]:hover,
+html.dark [data-activity-button][aria-pressed="true"]:hover {
+  background-color: rgba(34, 197, 94, 0.27) !important;
+}
+html.dark [data-base-table] tbody tr:hover {
+  background-color: rgba(255, 255, 255, 0.06) !important;
+}
+html.dark [data-base-table] tbody td {
+  color: #e6e8eb;
+}
+html.dark [data-base-table] tbody tr:hover td {
+  color: #fff;
+}
+html.dark [data-base-table] tbody :is(a, .text-green-700) {
+  color: #4ade80 !important;
+  text-decoration-color: rgba(74, 222, 128, 0.45);
+}
+html.dark [data-base-table] tbody a:hover {
+  text-decoration-color: #4ade80;
+}
+
+/* Browser dark palette from the supplied tab design; website content remains untouched. */
+html.dark .browser-home {
+  background: #22272e;
+  color: #e6e8eb;
+}
+html.dark .browser-home form {
+  background: #2d333b;
+  border-color: #444c56;
+  color: #9aa1a9;
+}
+html.dark .browser-home input {
+  background: transparent;
+  color: #e6e8eb;
+}
+html.dark .browser-tabs {
+  background: #1e2126;
+  border-color: #30353c;
+}
+html.dark .browser-tab {
+  background: transparent;
+  color: #9aa1a9;
+  border-color: transparent;
+}
+html.dark .browser-tab:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #e6e8eb;
+}
+html.dark .browser-tab.selected,
+html.dark .browser-tab.selected:hover {
+  background: #23272d;
+  color: #fff;
+  border-color: #30353c;
+}
+html.dark .browser-tab :is(button, svg) {
+  color: inherit !important;
+}
+html.dark .browser-tab > button[title="关闭标签页"] {
+  opacity: 0.6;
+}
+html.dark .browser-tab.selected > button[title="关闭标签页"] {
+  opacity: 1;
+}
+html.dark .browser-tab > button[title="关闭标签页"]:hover {
+  background: rgba(255, 255, 255, 0.12);
+  opacity: 1;
+}
+html.dark .browser-tab.selected > button[title="关闭标签页"]:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+html.dark .browser-tabs > button {
+  color: #9aa1a9;
+}
+html.dark .browser-tabs > button:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+}
+
+html.dark [data-workspace-activity-switch] {
+  background-color: #22272e;
+  border-color: #444c56;
+}

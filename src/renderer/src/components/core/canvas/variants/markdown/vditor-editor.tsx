@@ -1,3 +1,4 @@
+import "@/components/core/canvas/variants/markdown/index.css"
 import { clearCodeHighlights, decorateCodeBlocks } from "@/components/core/canvas/variants/markdown/code-blocks"
 import { decorateMarkdownTags } from "@/components/core/canvas/variants/markdown/decorate-tags"
 import { bindWikiLinkEditing, decorateWikiLinks } from "@/components/core/canvas/variants/markdown/decorate-wiki-links"
@@ -548,7 +549,12 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
         className={readOnly ? "hidden" : "vessel-vditor shrink-0 min-w-0 w-full"}
       />
       <ScrollArea className="vessel-editor-scroll flex-1 min-h-0 min-w-0 mt-2">
-        {properties && <DocumentProperties properties={properties.properties} />}
+        {properties && (
+          <DocumentProperties
+            properties={properties.properties}
+            workspacePath={workspacePath}
+          />
+        )}
         <Typography asChild>
           <div
             ref={host}

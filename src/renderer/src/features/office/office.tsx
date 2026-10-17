@@ -1,3 +1,4 @@
+import "@/pages/settings/appearance.css"
 import "@/assets/tailwind.css"
 import { Editor, Office } from "@/features/office/components/index"
 import { OfficeErrorBoundary } from "@/features/office/components/office-error-boundary"

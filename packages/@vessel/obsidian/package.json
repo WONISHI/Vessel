@@ -13,6 +13,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "imports": {
+    "#vessel-obsidian/links": "./src/links/index.ts",
     "#vessel-obsidian/images": "./src/images/index.ts",
     "#vessel-obsidian/wikilinks": "./src/wikilinks/index.ts",
     "#vessel-obsidian/frontmatter/index": "./src/frontmatter/index.ts",

@@ -6,7 +6,7 @@ import { Fragment } from "react"
 export function ObsidianImageLine({ source, root, documentPath, onChange, onFocusAbove, onFocusBelow, readOnly = false }: { onFocusAbove?: () => void; onFocusBelow?: () => void; readOnly?: boolean; source: string; root: string; documentPath: string; onChange: (source: string) => void }) {
   return (
     <span className="block py-2">
-      {source.split(/(!\[\[[^\]\n]+\]\]|!\[[^\]\n]*\]\([^\n]+?\))/g).map((part, index) => (
+      {source.split(/(!\[\[[^\]\n]+\]\]|!\[[^\]\n]*\]\([^\n]+?\)|<img\b[^>\n]*>)/g).map((part, index) => (
         <Fragment key={index}>
           {parseImageReference(part) ? (
             <ObsidianImage
@@ -17,7 +17,7 @@ export function ObsidianImageLine({ source, root, documentPath, onChange, onFocu
               onChange={(updated) =>
                 onChange(
                   source
-                    .split(/(!\[\[[^\]\n]+\]\]|!\[[^\]\n]*\]\([^\n]+?\))/g)
+                    .split(/(!\[\[[^\]\n]+\]\]|!\[[^\]\n]*\]\([^\n]+?\)|<img\b[^>\n]*>)/g)
                     .map((value, i) => (i === index ? updated : value))
                     .join("")
                 )

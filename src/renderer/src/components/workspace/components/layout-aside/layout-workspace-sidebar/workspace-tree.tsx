@@ -43,6 +43,10 @@ export default function WorkspaceTree({
   const { workspace, openFiles, activeFilePath, openWorkspaceFile, renameWorkspaceTab, expandedFolders, setDirectoryExpanded } = useWorkspace()
   const [selection, setSelection] = useState<string[]>([])
   const anchor = useRef<string | undefined>(undefined)
+  useEffect(() => {
+    setSelection(activeFilePath ? [activeFilePath] : [])
+    anchor.current = activeFilePath || undefined
+  }, [activeFilePath])
   const [dropTarget, setDropTarget] = useState<string>()
   const [move, setMove] = useState<{ paths: string[]; destination: string }>()
   const [moving, setMoving] = useState(false)

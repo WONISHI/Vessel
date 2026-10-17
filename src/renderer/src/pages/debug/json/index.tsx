@@ -1,3 +1,4 @@
+import { useDarkAppearance } from "@/hooks/use-dark-appearance"
 import "@/components/core/canvas/variants/code/monaco"
 import "@/components/styles/tool-page-header.css"
 import { Button } from "@/components/ui/button"
@@ -9,6 +10,7 @@ import { toast } from "sonner"
 
 /** Renders the json tool component. */
 export function JsonTool() {
+  const dark = useDarkAppearance()
   const [value, setValue] = useState("")
   const [error, setError] = useState("")
   const editor = useRef<MonacoEditor.IStandaloneCodeEditor | null>(null)
@@ -118,9 +120,11 @@ export function JsonTool() {
       )}
       <div className="min-h-0 min-w-0 flex-1 overflow-hidden">
         <Editor
+          theme={dark ? "vessel-dark" : "light"}
           height="100%"
           language="json"
           value={value}
+          beforeMount={(monaco) => monaco.editor.defineTheme("vessel-dark", { base: "vs-dark", inherit: true, rules: [], colors: { "editor.background": "#22272E", "editorGutter.background": "#22272E" } })}
           onMount={(instance) => {
             editor.current = instance
           }}

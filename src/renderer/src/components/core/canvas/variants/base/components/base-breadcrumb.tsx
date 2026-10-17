@@ -20,11 +20,22 @@ export function BaseBreadcrumb({ root, path }: { root: string; path: string }) {
             {index > 0 && <BreadcrumbSeparator />}
             <BreadcrumbItem className="min-w-0">
               {index === segments.length - 1 ? (
-                <BreadcrumbPage className="max-w-64 truncate">{segment}</BreadcrumbPage>
+                <BreadcrumbPage
+                  aria-disabled={false}
+                  className="max-w-64 truncate"
+                >
+                  <button
+                    title={`定位文件: ${segment}`}
+                    onClick={() => window.dispatchEvent(new CustomEvent("vessel:reveal-file", { detail: normalizedRoot + "/" + segments.slice(1).join("/") }))}
+                  >
+                    {segment}
+                  </button>
+                </BreadcrumbPage>
               ) : (
                 <button
                   className="max-w-48 truncate text-stone-500 transition-colors hover:text-stone-800"
-                  onClick={() => context?.expandDirectory?.(index === 0 ? root : normalizedRoot + "/" + segments.slice(1, index + 1).join("/"))}
+                  title={`定位文件夹: ${segment}`}
+                  onClick={() => window.dispatchEvent(new CustomEvent("vessel:reveal-file", { detail: index === 0 ? root : normalizedRoot + "/" + segments.slice(1, index + 1).join("/") }))}
                 >
                   {segment}
                 </button>

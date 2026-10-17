@@ -21,6 +21,10 @@ export function Office() {
 
     /** Performs the listener operation. */
     const listener = (event: MessageEvent) => {
+      if (event.source === parent && event.data?.type === "office:theme") {
+        document.documentElement.classList.toggle("dark", event.data.dark === true)
+        return
+      }
       if (event.source === parent && event.data?.type === "office:external") {
         const doc = event.data.document
         add(new File([doc.bytes], doc.name), undefined, doc.token)
@@ -81,6 +85,7 @@ export function Office() {
   const selected = docs.find((doc) => doc.id === active)
   return (
     <div
+      data-office-shell
       className="flex h-screen flex-col bg-white text-stone-800"
       style={{ fontFamily: "system-ui" }}
     >

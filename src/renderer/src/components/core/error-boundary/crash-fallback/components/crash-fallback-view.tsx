@@ -1,3 +1,5 @@
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Kbd } from "@/components/ui/kbd"
 import { CrashFallbackViewProps } from "@/components/core/error-boundary/crash-fallback/components/crash-fallback-shared"
 import { Button } from "@/components/ui/button"
 import { AlertTriangle, Check, ChevronDown, ChevronUp, Copy, RefreshCw, RotateCcw, X } from "lucide-react"
@@ -130,7 +132,11 @@ export function CrashFallbackView({ error, onReset }: CrashFallbackViewProps) {
                 )}
               </div>
 
-              {showDetails && <pre className="max-h-40 w-full overflow-auto rounded-md border border-border/50 bg-muted/60 p-3 font-mono text-[11px] leading-snug text-muted-foreground select-text whitespace-pre-wrap break-all">{errorStack}</pre>}
+              {showDetails && (
+                <ScrollArea className="h-40 w-full rounded-md border border-border/50 bg-muted/60 [&_[data-radix-scroll-area-viewport]>div]:!block">
+                  <pre className="p-3 font-mono text-[11px] leading-snug text-muted-foreground select-text whitespace-pre-wrap break-all">{errorStack}</pre>
+                </ScrollArea>
+              )}
             </div>
           )}
 
@@ -162,7 +168,7 @@ export function CrashFallbackView({ error, onReset }: CrashFallbackViewProps) {
           </div>
 
           <p className="text-[11px] text-muted-foreground/70">
-            按 <kbd className="rounded border bg-muted px-1.5 py-0.5 text-[10px] font-mono">Cmd + R</kbd> 即可快速重新加载页面
+            按 <Kbd>{isMac ? "Cmd" : "Ctrl"} + R</Kbd> 即可快速重新加载页面
           </p>
         </div>
       </div>

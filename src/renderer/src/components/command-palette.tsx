@@ -1,13 +1,17 @@
+import { WorkspaceFilePicker } from "@/components/workspace-file-picker"
+import type { FilePickerWorkspace } from "@/components/workspace-file-picker/types"
 import { CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { openInAppBrowser, toURL } from "@/lib/app-browser"
 import { useRouter } from "@vessel/react-router"
 import { matchesShortcut } from "@vessel/utils"
-import { ExternalLink, Eye, EyeOff, Globe, RotateCw } from "lucide-react"
+import { ExternalLink, Eye, EyeOff, Globe, RotateCw, FileSearch } from "lucide-react"
 import { useEffect, useState } from "react"
 
 /** Renders the command palette component. */
 export function CommandPalette() {
   const router = useRouter()
+  const [finderOpen, setFinderOpen] = useState(false)
+  const [finderWorkspace, setFinderWorkspace] = useState<FilePickerWorkspace | null>(null)
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState("")
   const [visible, setVisible] = useState(() => localStorage.getItem("vessel-control-visible") !== "false")
@@ -43,89 +47,109 @@ export function CommandPalette() {
   }
   const url = toURL(search)
   return (
-    <CommandDialog
-      open={open}
-      onOpenChange={setOpen}
-    >
-      <CommandInput
-        autoFocus
-        placeholder="输入命令或链接…"
-        value={search}
-        onValueChange={setSearch}
-      />
-      <CommandList>
-        <CommandEmpty>没有匹配的命令</CommandEmpty>
-        {url && (
-          <CommandGroup
-            heading="链接"
-            forceMount
-          >
-            <CommandItem
+    <>
+      <CommandDialog
+        open={open}
+        onOpenChange={setOpen}
+      >
+        <CommandInput
+          autoFocus
+          placeholder="输入命令或链接…"
+          value={search}
+          onValueChange={setSearch}
+        />
+        <CommandList>
+          <CommandEmpty>没有匹配的命令</CommandEmpty>
+          {url && (
+            <CommandGroup
+              heading="链接"
               forceMount
-              value={`访问链接 ${search}`}
+            >
+              <CommandItem
+                forceMount
+                value={`访问链接 ${search}`}
+                onSelect={() => {
+                  setOpen(false)
+                  openInAppBrowser(url, (path) => router.push(path))
+                }}
+              >
+                <Globe />
+                <span className="min-w-0 flex-1 truncate">
+                  在内置浏览器访问 <span className="text-stone-400">{url}</span>
+                </span>
+              </CommandItem>
+              <CommandItem
+                forceMount
+                value={`默认浏览器打开 ${search}`}
+                onSelect={() => {
+                  setOpen(false)
+                  void window.electronAPI.openExternal(url)
+                }}
+              >
+                <ExternalLink />
+                <span className="min-w-0 flex-1 truncate">在默认浏览器打开</span>
+              </CommandItem>
+            </CommandGroup>
+          )}
+          <CommandGroup heading="常用">
+            <CommandItem
+              value="查找工作区文件 搜索文件 find file"
               onSelect={() => {
+                setFinderWorkspace(null)
+                window.dispatchEvent(new CustomEvent("vessel:request-workspace-files", { detail: setFinderWorkspace }))
                 setOpen(false)
-                openInAppBrowser(url, (path) => router.push(path))
+                setFinderOpen(true)
               }}
             >
-              <Globe />
-              <span className="min-w-0 flex-1 truncate">
-                在内置浏览器访问 <span className="text-stone-400">{url}</span>
-              </span>
+              <FileSearch />
+              查找工作区文件
             </CommandItem>
+            {!url && (
+              <CommandItem
+                value="访问链接 打开网址 url"
+                onSelect={() => setSearch("https://")}
+              >
+                <Globe />
+                访问链接…
+              </CommandItem>
+            )}
             <CommandItem
-              forceMount
-              value={`默认浏览器打开 ${search}`}
+              value="刷新页面 reload"
               onSelect={() => {
                 setOpen(false)
-                void window.electronAPI.openExternal(url)
+                window.location.reload()
               }}
             >
-              <ExternalLink />
-              <span className="min-w-0 flex-1 truncate">在默认浏览器打开</span>
+              <RotateCw />
+              刷新页面
             </CommandItem>
           </CommandGroup>
-        )}
-        <CommandGroup heading="常用">
-          {!url && (
+          <CommandGroup heading="界面">
             <CommandItem
-              value="访问链接 打开网址 url"
-              onSelect={() => setSearch("https://")}
+              value="显示控制按钮"
+              disabled={visible}
+              onSelect={() => choose(true)}
             >
-              <Globe />
-              访问链接…
+              <Eye />
+              显示控制按钮
             </CommandItem>
-          )}
-          <CommandItem
-            value="刷新页面 reload"
-            onSelect={() => {
-              setOpen(false)
-              window.location.reload()
-            }}
-          >
-            <RotateCw />
-            刷新页面
-          </CommandItem>
-        </CommandGroup>
-        <CommandGroup heading="界面">
-          <CommandItem
-            value="显示控制按钮"
-            disabled={visible}
-            onSelect={() => choose(true)}
-          >
-            <Eye />
-            显示控制按钮
-          </CommandItem>
-          <CommandItem
-            value="关闭控制按钮"
-            disabled={!visible}
-            onSelect={() => choose(false)}
-          >
-            <EyeOff />
-            关闭控制按钮
-          </CommandItem>
-        </CommandGroup>
-      </CommandList>
-    </CommandDialog>
+            <CommandItem
+              value="关闭控制按钮"
+              disabled={!visible}
+              onSelect={() => choose(false)}
+            >
+              <EyeOff />
+              关闭控制按钮
+            </CommandItem>
+          </CommandGroup>
+        </CommandList>
+      </CommandDialog>
+      {finderOpen && (
+        <WorkspaceFilePicker
+          workspace={finderWorkspace}
+          onClose={() => setFinderOpen(false)}
+        />
+      )}
+    </>
   )
 }

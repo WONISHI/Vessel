@@ -55,3 +55,17 @@ it("restores file order and selection before saving, and restores after remount"
   expect(next.result.current.activeFilePath).toBe(files[1].path)
   next.unmount()
 })
+
+it("provides current workspace tabs and navigation to the file finder but excludes preview workspaces", () => {
+  const { result } = renderHook(() => useWorkspaceController({ name: "test", path: "/test", files: [] }))
+  renderHook(() => useWorkspaceController({ name: "preview", path: "/preview", files: [] }, undefined, "resources", true))
+  act(() => result.current.openWorkspaceFile({ name: "a.md", path: "/test/a.md", type: "file" }))
+  const receive = vi.fn()
+  act(() => window.dispatchEvent(new CustomEvent("vessel:request-workspace-files", { detail: receive })))
+  expect(receive).toHaveBeenCalledTimes(1)
+  const snapshot = receive.mock.calls[0][0]
+  expect(snapshot.root).toBe("/test")
+  expect(snapshot.files.map((file: { path: string }) => file.path)).toEqual(["/test/a.md"])
+  act(() => snapshot.openFile({ name: "b.md", path: "/test/b.md", type: "file" }))
+  expect(result.current.activeFilePath).toBe("/test/b.md")
+})

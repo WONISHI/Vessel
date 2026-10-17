@@ -107,7 +107,7 @@ export default function LayoutMain({ resources = false }: { resources?: boolean 
       <main className="relative flex min-h-0 min-w-0 flex-1 flex-col bg-white">
         <nav
           aria-label="已打开的标签"
-          className="flex h-12 shrink-0 items-center gap-1 border-b border-[#e6e8eb] bg-white px-2.5"
+          className="flex h-12 shrink-0 items-center gap-1 border-b border-[#e6e8eb] dark:border-[#444c56] bg-white px-2.5"
         >
           <Tooltip>
             <TooltipTrigger asChild>
@@ -142,7 +142,7 @@ export default function LayoutMain({ resources = false }: { resources?: boolean 
           </Button>
           <span
             aria-hidden="true"
-            className="mx-1.5 h-5 w-px shrink-0 bg-[#e6e8eb]"
+            className="mx-1.5 h-5 w-px shrink-0 bg-[#e6e8eb] dark:bg-[#444c56]"
           />
           <div className="relative min-w-0 flex-1">
             <div
@@ -156,6 +156,7 @@ export default function LayoutMain({ resources = false }: { resources?: boolean 
                     <ContextMenuTrigger asChild>
                       <div
                         data-active={active}
+                        data-workspace-tab="true"
                         className={cn(
                           "group flex h-[34px] shrink-0 items-center rounded-lg border pr-1 transition-colors",
                           active ? "border-[#1f23290d] bg-white font-medium text-[#1f2329] shadow-[0_1px_3px_#1f23291a,0_0_0_1px_#1f23290f]" : "border-transparent bg-transparent text-[#646a73] hover:bg-[#f2f3f5]"

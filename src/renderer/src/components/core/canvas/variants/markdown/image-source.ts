@@ -13,7 +13,7 @@ export function prepareObsidianImages(source: string) {
         return line
       }
       if (fence || /^ {4}|^\t/.test(line) || line.includes("`")) return line
-      if (![...line.matchAll(/!\[\[[^\]\n]+\]\]|!\[[^\]\n]*\]\([^\n]+?\)/g)].some((match) => parseImageReference(match[0]))) return line
+      if (![...line.matchAll(/!\[\[[^\]\n]+\]\]|!\[[^\]\n]*\]\([^\n]+?\)|<img\b[^>\n]*>/g)].some((match) => parseImageReference(match[0]))) return line
       return "\n```" + language + "\n" + encodeURIComponent(line) + "\n```\n"
     })
     .join("\n")

@@ -3,3 +3,5 @@ export * from "#vessel-obsidian/images"
 export * from "#vessel-obsidian/wikilinks"
 
 export * from "#vessel-obsidian/bases/index"
+
+export * from "#vessel-obsidian/links"
