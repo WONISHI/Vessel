@@ -1,3 +1,4 @@
+import { installApplicationMenu } from "@main/menu"
 import { registerBases } from "@main/modules/bases"
 import { electronApp, is, optimizer } from "@electron-toolkit/utils"
 import { mainApps } from "@main/app/index"
@@ -12,7 +13,7 @@ import { registerTerminal } from "@main/terminal/terminal"
 import { registerTransit } from "@main/transit/transit"
 import icon from "@resources/icon.png?asset"
 import dockIconPath from "@resources/icon_108x108.png?asset"
-import { app, BrowserWindow, ipcMain, nativeImage, shell } from "electron"
+import { app, BrowserWindow, ipcMain, nativeImage, nativeTheme, shell } from "electron"
 import { mkdirSync } from "node:fs"
 import { join } from "path"
 
@@ -22,6 +23,7 @@ if (!app.isPackaged) {
   mkdirSync(developmentData, { recursive: true })
   app.setPath("userData", developmentData)
 }
+app.setName("vessel")
 registerMarkdownOpening()
 
 let isAppCrashed = false
@@ -53,6 +55,12 @@ function createWindow(): void {
       contextIsolation: true,
       nodeIntegration: true
     }
+  })
+
+  mainWindow.webContents.ipc.handle("app:appearance", (_event, dark: boolean) => {
+    if (typeof dark !== "boolean") return
+    nativeTheme.themeSource = dark ? "dark" : "light"
+    mainWindow.setBackgroundColor(dark ? "#22272E" : "#FFFFFF")
   })
 
   applicationWindow = mainWindow
@@ -155,6 +163,10 @@ app.whenReady().then(() => {
   ipcMain.on("ping", () => console.log("pong"))
 
   createWindow()
+  installApplicationMenu(() => {
+    if (!applicationWindow || applicationWindow.isDestroyed()) createWindow()
+    return applicationWindow
+  })
   registerScreenshotShortcut()
 
   app.on("activate", function () {

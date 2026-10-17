@@ -17,6 +17,7 @@ import { WorkspaceRouteCache } from "@/components/workspace-route-cache/index"
 /** Renders the app component. */
 function App() {
   const router = useRouter()
+  useEffect(() => window.electronAPI.onOpenSettings?.(() => void router.push("/settings")), [router])
   const location = useLocation()
   useEffect(() => {
     /** Refreshes the current state. */

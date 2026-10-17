@@ -602,39 +602,6 @@
   top: auto;
   cursor: nwse-resize;
 }
-.image-footer-statusbar {
-  height: 32px;
-  padding: 0 16px;
-  background-color: #faf9f7;
-  border-top: 1px solid #e7e5e4;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 11px;
-  color: #78716c;
-  flex-shrink: 0;
-  z-index: 10;
-  width: 100%;
-  box-sizing: border-box;
-}
-.image-statusbar-left {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-  overflow: hidden;
-  white-space: nowrap;
-}
-.image-statusbar-right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-  margin-left: auto;
-  font-variant-numeric: tabular-nums;
-  color: #57534e;
-  font-weight: 500;
-}
 
 .image-viewport {
   overflow: hidden;
@@ -643,4 +610,133 @@
 }
 .image-viewport:active {
   cursor: grabbing;
+}
+
+/* Palette from the image-toolbox dark design, scoped away from light mode. */
+html.dark .image-toolbox {
+  --image-bg: #23272d;
+  --image-border: #30353c;
+  --image-text: #e6e8eb;
+  --image-dim: #9aa1a9;
+  --image-faint: #6b7280;
+  --image-hover: rgba(255, 255, 255, 0.06);
+  --image-active: rgba(34, 197, 94, 0.18);
+  background: var(--image-bg) !important;
+  color: var(--image-text) !important;
+  color-scheme: dark;
+}
+html.dark .image-toolbox :is(.image-header, .image-tool-nav, .image-settings, .image-settings-heading, .image-settings-footer, .image-preview-toolbar, .image-size) {
+  background: var(--image-bg) !important;
+  border-color: var(--image-border) !important;
+}
+html.dark .image-toolbox :is(h1, h2, .image-preview-toolbar output) {
+  color: var(--image-text) !important;
+}
+html.dark .image-toolbox :is(.image-header p, .image-settings-heading p, .image-hint, .image-field, .image-range, .image-switch, .image-size, .image-result-stats) {
+  color: var(--image-dim) !important;
+}
+html.dark .image-toolbox :is(.image-tool-nav h3, .image-empty span) {
+  color: var(--image-faint) !important;
+}
+html.dark .image-toolbox .image-empty strong {
+  color: var(--image-dim) !important;
+}
+html.dark .image-toolbox .image-preview-area {
+  background: #1f2328 !important;
+}
+html.dark .image-toolbox :is(.image-button, .image-presets button, .image-language, .image-result, .image-field input:not([type="range"]), .image-field select) {
+  background: transparent !important;
+  border-color: var(--image-border) !important;
+  color: var(--image-text) !important;
+}
+html.dark .image-toolbox :is(input, textarea)::placeholder {
+  color: var(--image-faint) !important;
+}
+html.dark .image-toolbox :is(.image-button, .image-presets button):not(:disabled):hover {
+  background: var(--image-hover) !important;
+  color: #fff !important;
+}
+html.dark .image-toolbox :is(.image-tool-nav button, .image-preview-toolbar button, .image-result-label button) {
+  color: var(--image-dim) !important;
+}
+html.dark .image-toolbox :is(.image-tool-nav button, .image-preview-toolbar button, .image-result-label button):not(:disabled):hover {
+  background: var(--image-hover) !important;
+  color: #fff !important;
+}
+html.dark .image-toolbox :is(.image-tool-nav button, .image-preview-toolbar button, .image-presets button)[aria-pressed="true"],
+html.dark .image-toolbox .image-settings-heading > span {
+  background: var(--image-active) !important;
+  color: #4ade80 !important;
+}
+html.dark .image-toolbox :is(.image-tool-nav button, .image-preview-toolbar button, .image-presets button)[aria-pressed="true"]:hover {
+  background: rgba(34, 197, 94, 0.27) !important;
+}
+html.dark .image-toolbox .image-primary {
+  border-color: #22c55e !important;
+  color: #4ade80 !important;
+}
+html.dark .image-toolbox .image-primary:not(:disabled):hover {
+  background: var(--image-active) !important;
+  color: #4ade80 !important;
+}
+html.dark .image-toolbox .image-result-label {
+  color: var(--image-text) !important;
+}
+html.dark .image-toolbox .image-result-stats {
+  border-color: var(--image-border) !important;
+}
+html.dark .image-toolbox .image-empty svg {
+  color: #4ade80;
+  opacity: 0.85;
+}
+html.dark .image-toolbox .image-processing {
+  background: #23272de6;
+  color: #4ade80;
+}
+
+/* Metadata sits in the shared StatusBar; the clock is owned by that component. */
+.image-toolbox-statusbar .vessel-status-left {
+  overflow: hidden;
+}
+.image-status-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 24px;
+  padding: 0 7px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+.image-status-item:hover {
+  background: #e7e5e4;
+  color: #1c1917;
+}
+.image-status-filename {
+  min-width: 0;
+  max-width: 240px;
+  flex-shrink: 1;
+}
+.image-status-filename > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.image-status-divider {
+  width: 1px;
+  height: 16px;
+  margin: 0 2px;
+  background: #d6d3d1;
+  flex-shrink: 0;
+}
+.image-status-selection {
+  color: #15803d;
+}
+html.dark .image-status-item:hover {
+  background: #292524;
+  color: #fff;
+}
+html.dark .image-status-divider {
+  background: #44403c;
+}
+html.dark .image-status-selection {
+  color: #4ade80;
 }

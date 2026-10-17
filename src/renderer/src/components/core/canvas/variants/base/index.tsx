@@ -221,6 +221,7 @@ export default function BaseCanvas({ activeFilePath, workspacePath }: { activeFi
           <Button
             size="sm"
             variant="outline"
+            className="base-pagination-button"
             disabled={!page}
             onClick={() => setPage((value) => value - 1)}
           >
@@ -229,6 +230,7 @@ export default function BaseCanvas({ activeFilePath, workspacePath }: { activeFi
           <Button
             size="sm"
             variant="outline"
+            className="base-pagination-button"
             disabled={(page + 1) * 100 >= rows.length}
             onClick={() => setPage((value) => value + 1)}
           >

@@ -495,6 +495,7 @@ export function SettingsPage() {
                           onFocus={(event) => event.target.select()}
                           onChange={(e) => setSecret(e.target.value)}
                         />
+                        {draft.backup.secretUnavailable && secret === undefined && <p className="mt-2 text-xs text-amber-600">已保存的凭据暂时无法解密，请重新输入 Secret Key；主题和其他设置仍可使用。</p>}
                       </label>
                       <div className="col-span-2">
                         <Button

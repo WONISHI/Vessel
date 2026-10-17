@@ -63,7 +63,7 @@ export function BackupStatus({ workspace, file }: { workspace: string; file?: st
   if (!enabled) return null
 
   const elapsed = status.time ? now - new Date(status.time).getTime() : 0
-  const syncLabel = elapsed < 60_000 ? "已同步" : `上次同步 ${formatSyncTime(status.time!)}`
+  const syncLabel = elapsed < 60_000 ? "同步成功" : `上次同步 ${formatSyncTime(status.time!)}`
 
   const label = status.running
     ? status.progress?.phase === "remote"
@@ -89,6 +89,7 @@ export function BackupStatus({ workspace, file }: { workspace: string; file?: st
     <button
       title={status.error || (status.time ? `上次同步：${new Date(status.time).toLocaleString()}；点击同步当前文件` : "点击同步当前文件")}
       disabled={status.running || !file}
+      data-sync-state={status.running ? "running" : status.error ? "error" : status.time ? (elapsed < 60_000 ? "success" : "last") : "idle"}
       className={`flex h-6 items-center gap-1 rounded px-2 hover:bg-stone-200 ${status.running ? "text-blue-600" : status.error ? "text-red-600" : status.time ? "text-green-700" : "text-stone-500"}`}
       onClick={() => {
         setStatus((current) => ({ ...current, running: true }))

@@ -1,3 +1,5 @@
+import { useDarkAppearance } from "@/hooks/use-dark-appearance"
+import { registerMonacoTheme } from "@/components/core/canvas/variants/code/theme"
 import { parseLinePosition } from "@/components/core/canvas/variants/code/go-to-line"
 import "@/components/core/canvas/variants/code/index.css"
 import { codeLanguage } from "@/components/core/canvas/variants/code/language"
@@ -54,6 +56,7 @@ function getBreadcrumbSegments(workspacePath: string, filePath: string, workspac
 
 /** Renders the code canvas component. */
 export default function CodeCanvas({ activeFilePath, workspacePath, revealPosition, highlightKeyword }: { activeFilePath: string; workspacePath?: string; revealPosition?: { lineNumber: number; column: number }; highlightKeyword?: string }) {
+  const dark = useDarkAppearance()
   const workspaceContext = useContext(WorkspaceContext)
   const effectiveWorkspacePath = workspacePath || workspaceContext?.workspace?.path || ""
   const workspaceName = workspaceContext?.workspace?.name
@@ -293,6 +296,8 @@ export default function CodeCanvas({ activeFilePath, workspacePath, revealPositi
         className="vessel-code-editor relative min-h-0 flex-1"
       >
         <Editor
+          theme={dark ? "vessel-dark" : "light"}
+          beforeMount={registerMonacoTheme}
           height="100%"
           path={monaco.Uri.file(activeFilePath).toString()}
           language={codeLanguage(activeFilePath) || "plaintext"}

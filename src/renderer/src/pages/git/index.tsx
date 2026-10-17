@@ -1,3 +1,4 @@
+import "@/pages/git/dark.css"
 import type { AsideActivity } from "@/components/layout/activity-bar/activity"
 import LayoutActivityBar from "@/components/layout/activity-bar/index"
 import Layout from "@/components/layout/index"
@@ -710,7 +711,7 @@ export default function SourceTreePage() {
         />
       }
     >
-      <div className="flex h-full min-w-0 flex-1 flex-col overflow-hidden bg-white text-stone-800">
+      <div className="vessel-git-page flex h-full min-w-0 flex-1 flex-col overflow-hidden bg-white text-stone-800">
         {/* 1. 顶部操作工具栏 (SourceTree 经典 Toolbar) */}
         <header className="flex h-12 shrink-0 items-center justify-between border-b border-stone-200 bg-stone-50/70 px-3">
           <div className="flex items-center gap-1">
@@ -718,6 +719,7 @@ export default function SourceTreePage() {
             <button
               type="button"
               className="flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium text-stone-700 hover:bg-stone-200/70"
+              data-git-selected={activeTab === "status"}
               onClick={() => setActiveTab("status")}
             >
               <GitCommit className="size-4 text-green-600" />
@@ -870,132 +872,137 @@ export default function SourceTreePage() {
             defaultSize="18%"
             minSize="10%"
             maxSize="35%"
-            className="bg-stone-50/50 flex flex-col overflow-y-auto p-2 text-xs select-none min-h-0"
+            className="git-navigation flex flex-col overflow-hidden text-xs select-none min-h-0"
           >
-            {/* 工作区区段 */}
-            <div className="mb-4">
-              <div className="px-2 py-1 text-[11px] font-semibold text-stone-400">工作空间</div>
-              <button
-                type="button"
-                className={`flex w-full items-center justify-between rounded-md px-2.5 py-1.5 transition-colors ${activeTab === "status" ? "bg-stone-200/80 font-medium text-stone-900" : "text-stone-600 hover:bg-stone-100"}`}
-                onClick={() => setActiveTab("status")}
-              >
-                <span className="flex items-center gap-2">
-                  <FileText className="size-3.5 text-stone-500" />
-                  文件状态
-                </span>
-                {!!(status?.unstaged.length || status?.staged.length || status?.untracked.length) && <span className="rounded-full bg-amber-100 px-1.5 text-[10px] font-bold text-amber-700">{(status?.unstaged.length || 0) + (status?.staged.length || 0) + (status?.untracked.length || 0)}</span>}
-              </button>
-
-              <button
-                type="button"
-                className={`flex w-full items-center justify-between rounded-md px-2.5 py-1.5 transition-colors ${activeTab === "history" ? "bg-stone-200/80 font-medium text-stone-900" : "text-stone-600 hover:bg-stone-100"}`}
-                onClick={() => setActiveTab("history")}
-              >
-                <span className="flex items-center gap-2">
-                  <Clock className="size-3.5 text-stone-500" />
-                  历史记录
-                </span>
-                <span className="text-[10px] text-stone-400">{commits.length}</span>
-              </button>
-            </div>
-
-            {/* 分支区段 */}
-            <div className="mb-4">
-              <div className="flex items-center justify-between px-2 py-1 text-[11px] font-semibold text-stone-400">
-                <span>分支 (BRANCHES)</span>
+            <ScrollArea className="h-full min-h-0 [&_[data-radix-scroll-area-viewport]]:p-2">
+              {/* 工作区区段 */}
+              <div className="mb-4">
+                <div className="px-2 py-1 text-[11px] font-semibold text-stone-400">工作空间</div>
                 <button
                   type="button"
-                  title="新建分支"
-                  className="hover:text-stone-700"
-                  onClick={() => {
-                    setBranchStartPoint(undefined)
-                    setCreateBranchOpen(true)
-                  }}
+                  className={`flex w-full items-center justify-between rounded-md px-2.5 py-1.5 transition-colors ${activeTab === "status" ? "bg-stone-200/80 font-medium text-stone-900" : "text-stone-600 hover:bg-stone-100"}`}
+                  data-git-selected={activeTab === "status"}
+                  onClick={() => setActiveTab("status")}
                 >
-                  <Plus className="size-3.5" />
+                  <span className="flex items-center gap-2">
+                    <FileText className="size-3.5 text-stone-500" />
+                    文件状态
+                  </span>
+                  {!!(status?.unstaged.length || status?.staged.length || status?.untracked.length) && <span className="rounded-full bg-amber-100 px-1.5 text-[10px] font-bold text-amber-700">{(status?.unstaged.length || 0) + (status?.staged.length || 0) + (status?.untracked.length || 0)}</span>}
+                </button>
+
+                <button
+                  type="button"
+                  className={`flex w-full items-center justify-between rounded-md px-2.5 py-1.5 transition-colors ${activeTab === "history" ? "bg-stone-200/80 font-medium text-stone-900" : "text-stone-600 hover:bg-stone-100"}`}
+                  data-git-selected={activeTab === "history"}
+                  onClick={() => setActiveTab("history")}
+                >
+                  <span className="flex items-center gap-2">
+                    <Clock className="size-3.5 text-stone-500" />
+                    历史记录
+                  </span>
+                  <span className="text-[10px] text-stone-400">{commits.length}</span>
                 </button>
               </div>
-              {branches.local.map((b) => {
-                const isCurrent = b === branches.current
-                return (
-                  <div
-                    key={b}
-                    onDoubleClick={() => handleCheckoutBranch(b)}
-                    onClick={() => handleCheckoutBranch(b)}
-                    className={`flex cursor-pointer items-center justify-between rounded-md px-2.5 py-1.5 transition-colors ${isCurrent ? "bg-green-50 font-semibold text-green-800" : "text-stone-600 hover:bg-stone-100"}`}
-                  >
-                    <span className="flex items-center gap-2 truncate">
-                      <GitBranch className={`size-3.5 ${isCurrent ? "text-green-600" : "text-stone-400"}`} />
-                      <span className="truncate">{b}</span>
-                    </span>
-                    {isCurrent && <CheckCircle2 className="size-3.5 text-green-600 shrink-0" />}
-                  </div>
-                )
-              })}
-            </div>
 
-            {/* 远端分支 */}
-            {branches.remote.length > 0 && (
+              {/* 分支区段 */}
               <div className="mb-4">
-                <div className="px-2 py-1 text-[11px] font-semibold text-stone-400">远程 (REMOTES)</div>
-                {branches.remote.map((r) => (
-                  <div
-                    key={r}
-                    className="flex items-center gap-2 rounded-md px-2.5 py-1 text-stone-500 hover:bg-stone-100 truncate text-[11px]"
-                    title={r}
+                <div className="flex items-center justify-between px-2 py-1 text-[11px] font-semibold text-stone-400">
+                  <span>分支 (BRANCHES)</span>
+                  <button
+                    type="button"
+                    title="新建分支"
+                    className="hover:text-stone-700"
+                    onClick={() => {
+                      setBranchStartPoint(undefined)
+                      setCreateBranchOpen(true)
+                    }}
                   >
-                    <Layers className="size-3 shrink-0 text-stone-400" />
-                    <span className="truncate">{r}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* 贮藏区段 (STASHES) */}
-            <div className="mb-4">
-              <div className="flex items-center justify-between px-2 py-1 text-[11px] font-semibold text-stone-400">
-                <span className="flex items-center gap-1">
-                  <Archive className="size-3" />
-                  <span>贮藏 (STASHES)</span>
-                </span>
-                {stashes.length > 0 && <span className="rounded-full bg-stone-200 px-1.5 text-[10px] text-stone-600 font-medium">{stashes.length}</span>}
-              </div>
-              {stashes.length === 0 ? (
-                <div className="px-2 py-1 text-[11px] text-stone-400 italic">暂无贮藏记录</div>
-              ) : (
-                stashes.map((s) => (
-                  <div
-                    key={s.index}
-                    className="group flex items-center justify-between rounded-md px-2 py-1 text-stone-600 hover:bg-stone-100 text-[11px]"
-                    title={`stash@{${s.index}}: ${s.name}`}
-                  >
-                    <span className="truncate flex-1 mr-1">
-                      <span className="font-mono text-stone-400 mr-1">#{s.index}</span>
-                      <span className="truncate">{s.name}</span>
-                    </span>
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 shrink-0">
-                      <button
-                        type="button"
-                        className="rounded px-1 py-0.5 text-green-700 hover:bg-green-100 text-[10px] font-medium"
-                        title="恢复并弹出此贮藏 (git stash pop)"
-                        onClick={() => handleStashPop(s.index)}
-                      >
-                        弹出
-                      </button>
-                      <button
-                        type="button"
-                        className="rounded px-1 py-0.5 text-red-600 hover:bg-red-100 text-[10px] font-medium"
-                        title="丢弃此贮藏 (git stash drop)"
-                        onClick={() => handleStashDrop(s.index)}
-                      >
-                        删除
-                      </button>
+                    <Plus className="size-3.5" />
+                  </button>
+                </div>
+                {branches.local.map((b) => {
+                  const isCurrent = b === branches.current
+                  return (
+                    <div
+                      key={b}
+                      data-git-selected={isCurrent}
+                      onDoubleClick={() => handleCheckoutBranch(b)}
+                      onClick={() => handleCheckoutBranch(b)}
+                      className={`flex cursor-pointer items-center justify-between rounded-md px-2.5 py-1.5 transition-colors ${isCurrent ? "bg-green-50 font-semibold text-green-800" : "text-stone-600 hover:bg-stone-100"}`}
+                    >
+                      <span className="flex items-center gap-2 truncate">
+                        <GitBranch className={`size-3.5 ${isCurrent ? "text-green-600" : "text-stone-400"}`} />
+                        <span className="truncate">{b}</span>
+                      </span>
+                      {isCurrent && <CheckCircle2 className="size-3.5 text-green-600 shrink-0" />}
                     </div>
-                  </div>
-                ))
+                  )
+                })}
+              </div>
+
+              {/* 远端分支 */}
+              {branches.remote.length > 0 && (
+                <div className="mb-4">
+                  <div className="px-2 py-1 text-[11px] font-semibold text-stone-400">远程 (REMOTES)</div>
+                  {branches.remote.map((r) => (
+                    <div
+                      key={r}
+                      className="flex items-center gap-2 rounded-md px-2.5 py-1 text-stone-500 hover:bg-stone-100 truncate text-[11px]"
+                      title={r}
+                    >
+                      <Layers className="size-3 shrink-0 text-stone-400" />
+                      <span className="truncate">{r}</span>
+                    </div>
+                  ))}
+                </div>
               )}
-            </div>
+
+              {/* 贮藏区段 (STASHES) */}
+              <div className="mb-4">
+                <div className="flex items-center justify-between px-2 py-1 text-[11px] font-semibold text-stone-400">
+                  <span className="flex items-center gap-1">
+                    <Archive className="size-3" />
+                    <span>贮藏 (STASHES)</span>
+                  </span>
+                  {stashes.length > 0 && <span className="rounded-full bg-stone-200 px-1.5 text-[10px] text-stone-600 font-medium">{stashes.length}</span>}
+                </div>
+                {stashes.length === 0 ? (
+                  <div className="px-2 py-1 text-[11px] text-stone-400 italic">暂无贮藏记录</div>
+                ) : (
+                  stashes.map((s) => (
+                    <div
+                      key={s.index}
+                      className="group flex items-center justify-between rounded-md px-2 py-1 text-stone-600 hover:bg-stone-100 text-[11px]"
+                      title={`stash@{${s.index}}: ${s.name}`}
+                    >
+                      <span className="truncate flex-1 mr-1">
+                        <span className="font-mono text-stone-400 mr-1">#{s.index}</span>
+                        <span className="truncate">{s.name}</span>
+                      </span>
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 shrink-0">
+                        <button
+                          type="button"
+                          className="rounded px-1 py-0.5 text-green-700 hover:bg-green-100 text-[10px] font-medium"
+                          title="恢复并弹出此贮藏 (git stash pop)"
+                          onClick={() => handleStashPop(s.index)}
+                        >
+                          弹出
+                        </button>
+                        <button
+                          type="button"
+                          className="rounded px-1 py-0.5 text-red-600 hover:bg-red-100 text-[10px] font-medium"
+                          title="丢弃此贮藏 (git stash drop)"
+                          onClick={() => handleStashDrop(s.index)}
+                        >
+                          删除
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </ScrollArea>
           </ResizablePanel>
 
           {/* 1号: 拖拽调节左侧边栏宽度的分割线 */}

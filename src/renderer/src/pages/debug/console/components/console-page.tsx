@@ -34,7 +34,7 @@ export function ConsolePage() {
   const toggleType = (level: LogLevel) => setTypes((prev) => ({ ...prev, [level]: !prev[level] }))
 
   return (
-    <div className="flex h-full flex-col bg-[#faf9f7]">
+    <div className="dev-console-page flex h-full flex-col bg-[#faf9f7]">
       {/* 页面标题（高度固定 60px，参考 main-header） */}
       <div className="flex h-[60px] shrink-0 items-center justify-between border-b border-[#f0efed] bg-white px-4">
         <div className="flex items-center gap-2.5">

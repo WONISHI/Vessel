@@ -258,31 +258,31 @@ export function PdfDocument({ bytes, name }: { bytes: Uint8Array; name: string }
           className="h-1.5"
         />
       </ScrollArea>
-      <div
-        data-pdf-scroll
-        className="min-h-0 flex-1 overflow-auto bg-stone-100 p-4"
-      >
-        <Document
-          file={file}
-          onLoadSuccess={setDocument}
-          loading="正在加载 PDF…"
-          error="PDF 加载失败，请检查文件是否完整或已加密。"
-        >
-          {Array.from({ length: document?.numPages || 0 }, (_, index) => (
-            <LazyPage
-              key={`${key}:${index}`}
-              number={index + 1}
-              width={width * zoom}
-              strokes={strokes.filter((stroke) => stroke.page === index + 1)}
-              tool={loaded ? tool : "view"}
-              color={color}
-              penWidth={penWidth}
-              add={(stroke) => change([...strokes, stroke])}
-              erase={(id) => change(strokes.filter((stroke) => stroke.id !== id))}
-            />
-          ))}
-        </Document>
-      </div>
+      <ScrollArea className="min-h-0 flex-1 bg-stone-100 [&_[data-radix-scroll-area-viewport]]:p-4">
+        <div data-pdf-scroll>
+          <Document
+            file={file}
+            onLoadSuccess={setDocument}
+            loading="正在加载 PDF…"
+            error="PDF 加载失败，请检查文件是否完整或已加密。"
+          >
+            {Array.from({ length: document?.numPages || 0 }, (_, index) => (
+              <LazyPage
+                key={`${key}:${index}`}
+                number={index + 1}
+                width={width * zoom}
+                strokes={strokes.filter((stroke) => stroke.page === index + 1)}
+                tool={loaded ? tool : "view"}
+                color={color}
+                penWidth={penWidth}
+                add={(stroke) => change([...strokes, stroke])}
+                erase={(id) => change(strokes.filter((stroke) => stroke.id !== id))}
+              />
+            ))}
+          </Document>
+        </div>
+        <ScrollBar orientation="horizontal" />
+      </ScrollArea>
     </div>
   )
 }

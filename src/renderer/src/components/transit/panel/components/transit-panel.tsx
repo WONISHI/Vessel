@@ -119,7 +119,7 @@ export function TransitPanel() {
       {items.length > 1 && (
         <nav
           aria-label="中转项轮播"
-          className="flex shrink-0 items-center justify-center gap-3 border-b bg-stone-50/70 px-3 py-1"
+          className="transit-navigation-bar flex shrink-0 items-center justify-center gap-3 border-b bg-white px-3 py-1"
         >
           <button
             aria-label="上一个中转项"

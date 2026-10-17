@@ -102,19 +102,6 @@ html.dark .todo-calendar :is(thead, tfoot) {
   background-color: #22272e !important;
 }
 
-html.dark .image-toolbox,
-html.dark .image-button,
-html.dark .image-preview-area,
-html.dark .image-preview-toolbar,
-html.dark .image-size,
-html.dark .image-language,
-html.dark .image-result,
-html.dark .image-field input:not([type="range"]),
-html.dark .image-field select {
-  background: #22272e !important;
-  color: #cdd9e5;
-}
-
 /* Dark interaction tokens from the supplied file-tree, activity-bar and table designs. */
 html.dark [data-workspace-tree-row] {
   color: #e6e8eb !important;
@@ -249,3 +236,164 @@ html.dark [data-workspace-activity-switch] {
   background-color: #22272e;
   border-color: #444c56;
 }
+
+/* Active Base controls need the same contrast in light appearance. */
+html:not(.dark) [data-base-action]:is(:hover, :active, [data-state="open"], [data-filtered="true"], [aria-busy="true"]),
+html:not(.dark) [data-base-action]:is(:hover, :active, [data-state="open"], [data-filtered="true"], [aria-busy="true"]) svg {
+  color: #fff !important;
+}
+html:not(.dark) [data-base-action]:is(:hover, :active, [data-state="open"], [data-filtered="true"], [aria-busy="true"]) svg {
+  stroke: #fff !important;
+}
+html:not(.dark) [data-base-action]:is(:hover, :active) {
+  background-color: var(--settings-accent, #16a34a);
+}
+html.dark .todo-table-scroll > div {
+  scrollbar-color: #444c56 #22272e;
+}
+html.dark .todo-table-scroll > div::-webkit-scrollbar-track {
+  background: #22272e;
+}
+html.dark .todo-table-scroll > div::-webkit-scrollbar-thumb {
+  background: #444c56;
+  border-color: #22272e;
+}
+
+html.dark .vessel-settings > .tool-page-header {
+  border-bottom-color: #444c56;
+}
+
+html.dark .todo-table-scroll tbody tr:hover,
+html.dark .todo-table-scroll tbody tr:hover > td,
+html.dark .todo-table-scroll tbody tr:hover .todo-sticky-action,
+html.dark .todo-table-scroll tbody tr:hover .todo-sticky-add {
+  background-color: #2f343b !important;
+}
+
+/* Keep the workspace heading and selected home tab readable in dark mode. */
+html.dark .workspace-home-title,
+html.dark .workspace-home-tab[aria-current="page"],
+html.dark .workspace-home-tab[aria-current="page"] svg {
+  color: #ffffff !important;
+}
+
+/* Base pagination keeps white foreground on its green interaction state. */
+html .base-pagination-button:not(:disabled):is(:hover, :active, :focus-visible),
+html.dark .base-pagination-button:not(:disabled):is(:hover, :active, :focus-visible),
+html .base-pagination-button:not(:disabled):is(:hover, :active, :focus-visible) svg {
+  color: #ffffff !important;
+}
+html.dark .dev-actions-menu,
+html.dark .dev-actions-menu [role="separator"],
+html.dark .dev-actions-menu > div {
+  border-color: #444c56 !important;
+}
+html.dark .dev-actions-menu [role="separator"] { background: #444c56 !important; }
+html.dark .dev-console-page { background: #22272e !important; }
+
+/* Console page chrome follows the dark palette without changing other debug pages. */
+html.dark .dev-console-page h2 { color: #ffffff !important; }
+html.dark .dev-console-page :is(.border, .border-b, .border-t) {
+  border-color: #444c56 !important;
+}
+
+/* Developer cards use translucent dark interaction states from the design. */
+html.dark [data-developer-tool-card] { background: transparent !important; }
+html.dark [data-developer-tool-card] .developer-tool-title { color: #e6e8eb !important; }
+html.dark [data-developer-tool-card] .developer-tool-description { color: #9aa1a9 !important; }
+html.dark [data-developer-tool-card]:hover { background: rgba(255, 255, 255, .06) !important; }
+html.dark [data-developer-tool-card]:hover .developer-tool-title { color: #fff !important; }
+html.dark [data-developer-tool-card][data-active="true"] { background: rgba(34, 197, 94, .18) !important; }
+html.dark [data-developer-tool-card][data-active="true"] .developer-tool-title { color: #4ade80 !important; }
+html.dark [data-developer-tool-card][data-active="true"]:hover { background: rgba(34, 197, 94, .27) !important; }
+html.dark [data-developer-tool-card] > .bg-orange-50,
+html.dark [data-developer-tool-card] > .bg-amber-50 { background: rgba(217, 98, 43, .13) !important; color: #e8743b !important; }
+html.dark [data-developer-tool-card] > .bg-blue-50 { background: rgba(55, 98, 227, .13) !important; color: #5a7ff0 !important; }
+html.dark [data-developer-tool-card] > div > svg { color: inherit !important; }
+
+/* Transit and tab lists share the developer-card dark interaction palette. */
+html.dark [data-dark-list-item] { background: transparent !important; color: #e6e8eb !important; }
+html.dark [data-dark-list-item] .dark-list-title { color: #e6e8eb !important; }
+html.dark [data-dark-list-item] .dark-list-description { color: #9aa1a9 !important; }
+html.dark [data-dark-list-item]:is(:hover, :focus, :focus-within, [data-highlighted]) { background: rgba(255, 255, 255, .06) !important; color: #fff !important; }
+html.dark [data-dark-list-item]:is(:hover, :focus, :focus-within, [data-highlighted]) .dark-list-title { color: #fff !important; }
+html.dark [data-dark-list-item][data-active="true"] { background: rgba(34, 197, 94, .18) !important; color: #4ade80 !important; }
+html.dark [data-dark-list-item][data-active="true"] .dark-list-title { color: #4ade80 !important; }
+html.dark [data-dark-list-item][data-active="true"]:is(:hover, :focus, :focus-within, [data-highlighted]) { background: rgba(34, 197, 94, .27) !important; }
+html.dark [data-dark-list-item] svg.text-stone-400 { color: inherit !important; }
+
+html.dark .transit-read-clipboard {
+  background: #22272e !important;
+  border-color: #444c56 !important;
+  color: #9aa1a9 !important;
+}
+html.dark .transit-read-clipboard:is(:hover, :focus-visible) {
+  background: #2f343b !important;
+  color: #ffffff !important;
+}
+
+html.dark [data-workspace-tab="true"]:hover {
+  background: rgba(255,255,255,.06) !important;
+}
+
+html.dark .workspace-tab-edge-left {
+  background-image: linear-gradient(to right, #1c2025, transparent) !important;
+}
+html.dark .workspace-tab-edge-right {
+  background-image: linear-gradient(to left, #1c2025, transparent) !important;
+}
+html.dark .workspace-home-tab:hover {
+  background: rgba(255,255,255,.06) !important;
+}
+
+html.dark .document-properties tr:hover,
+html.dark .document-properties tr:hover > :is(th, td) {
+  background: #2f343b !important;
+}
+
+html.dark .browser-new-tab:is(:hover, :active),
+html.dark [data-office-hover]:is(:hover, :focus-visible) {
+  background: rgba(255,255,255,.06) !important;
+  color: #ffffff !important;
+}
+
+/* Markdown's odd rows also need a dark fill instead of Vditor's white default. */
+html.dark .vessel-vditor table tbody tr:nth-child(2n + 1),
+html.dark .vessel-vditor table tbody tr:nth-child(2n + 1) > td {
+  background: #2f343b !important;
+}
+
+/* Native horizontal table scrolling matches the shared dark ScrollArea thumb. */
+html.dark .vessel-vditor :is(table, .vditor-reset) {
+  scrollbar-color: #444c56 #22272e;
+}
+html.dark .vessel-vditor table::-webkit-scrollbar { height: 10px; }
+html.dark .vessel-vditor table::-webkit-scrollbar-track { background: #22272e; }
+html.dark .vessel-vditor table::-webkit-scrollbar-thumb {
+  background: #444c56;
+  border: 2px solid #22272e;
+  border-radius: 999px;
+}
+html.dark .vessel-vditor table::-webkit-scrollbar-thumb:hover { background: #57606a; }
+html.dark .browser-address input {
+  color: #e6e8eb !important;
+  -webkit-text-fill-color: #e6e8eb;
+  caret-color: #e6e8eb;
+}
+
+/* Guest surface color applies while loading and wherever the page is transparent. */
+html.dark .browser-page webview,
+html.dark webview[partition="persist:vessel-browser"] {
+  background-color: #22272e !important;
+}
+
+html.dark .transit-navigation-bar { background: rgba(255,255,255,.06) !important; }
+html.dark :is(.editor-loading, .loading-editor-overlay, .loading-office-toolbar, .loading-office-paper, .vessel-page-loading) { background: #22272e !important; }
+html.dark .loading-shimmer { background: linear-gradient(90deg, #2d333b, #444c56, #2d333b); background-size: 200% 100%; }
+html.dark .loading-office-paper { border-color: #444c56; box-shadow: none; }
+html.dark .vessel-search-sidebar,
+html.dark .vessel-search-sidebar :is(.search-folder, input) { background: #22272e !important; color: #cdd9e5 !important; border-color: #444c56 !important; }
+html:not(.dark) webview[partition="persist:vessel-browser"] { background: #ffffff !important; }
+html.dark .vessel-search-sheet,
+html.dark .vessel-search-sidebar .search-input-row { background: #22272e !important; color: #cdd9e5 !important; border-color: #444c56 !important; }
+html.dark .vessel-search-sidebar .search-input-row:focus-within { border-color: #16a34a !important; box-shadow: 0 0 0 3px #16a34a26; }

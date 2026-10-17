@@ -1,3 +1,4 @@
+import "@/pages/postman/dark.css"
 import type { AsideActivity } from "@/components/layout/activity-bar/activity"
 import LayoutActivityBar from "@/components/layout/activity-bar/index"
 import Layout from "@/components/layout/index"
@@ -265,7 +266,7 @@ pm.test("Response time is less than 1000ms", function () {
         />
       }
     >
-      <div className="flex h-full min-w-0 flex-1 flex-col overflow-hidden bg-white text-stone-800">
+      <div className="vessel-api-page flex h-full min-w-0 flex-1 flex-col overflow-hidden bg-white text-stone-800">
         {/* 顶部工具栏 */}
         <header className="flex h-12 shrink-0 items-center justify-between border-b border-stone-200 bg-stone-50/70 px-3">
           <div className="flex items-center gap-2">

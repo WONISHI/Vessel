@@ -1,3 +1,5 @@
+import { useDarkAppearance } from "@/hooks/use-dark-appearance"
+import { registerMonacoTheme } from "@/components/core/canvas/variants/code/theme"
 import { codeLanguage } from "@/components/core/canvas/variants/code/language"
 import { VditorEditor } from "@/components/core/canvas/variants/markdown/vditor-editor"
 import { PdfDocument } from "@/components/core/canvas/variants/pdf"
@@ -11,6 +13,7 @@ import { useEffect, useState } from "react"
 
 /** Renders the file preview component. */
 export function FilePreview({ item }: { item: TransitItem }) {
+  const dark = useDarkAppearance()
   const [file, setFile] = useState<TransitFile>()
   const [error, setError] = useState("")
   useEffect(() => {
@@ -78,6 +81,8 @@ export function FilePreview({ item }: { item: TransitItem }) {
   return (
     <div className="min-h-0 flex-1">
       <Editor
+          theme={dark ? "vessel-dark" : "light"}
+          beforeMount={registerMonacoTheme}
         height="100%"
         language={codeLanguage(item.content) || "plaintext"}
         value={file.content}

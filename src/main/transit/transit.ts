@@ -1,8 +1,8 @@
 import { serveOffice } from "@main/office/office"
 import type { TransitFile } from "@vessel/type"
-import { app, BrowserWindow, clipboard, type WebContents } from "electron"
+import { app, BrowserWindow, clipboard, dialog, type WebContents } from "electron"
 import { mkdir, readFile, realpath, stat, writeFile } from "node:fs/promises"
-import { basename, extname, isAbsolute, join, relative } from "node:path"
+import { basename, dirname, extname, isAbsolute, join, relative } from "node:path"
 
 /** Reads transit file. */
 async function readTransitFile(root: string, file: string): Promise<TransitFile> {
@@ -22,6 +22,22 @@ async function readTransitFile(root: string, file: string): Promise<TransitFile>
 
 /** Registers transit. */
 export function registerTransit(host: WebContents) {
+  host.ipc.handle("transit:import-files", async () => {
+    const owner = BrowserWindow.fromWebContents(host)
+    if (!owner) throw new Error("窗口已关闭")
+    const extensions = ["doc", "docx", "xls", "xlsx", "ppt", "pptx", "odt", "ods", "odp", "pdf", "png", "jpg", "jpeg", "gif", "webp", "md", "markdown", "txt", "json", "js", "jsx", "ts", "tsx", "css", "html", "xml", "yaml", "yml", "csv", "log", "py", "sh", "sql"]
+    const result = await dialog.showOpenDialog(owner, { title: "导入文件到中转站", properties: ["openFile", "multiSelections"], filters: [{ name: "可预览文件", extensions }] })
+    if (result.canceled) return []
+    return Promise.all(
+      result.filePaths.map(async (file) => {
+        const path = await realpath(file)
+        const info = await stat(path)
+        if (!info.isFile() || info.size > 50 * 1024 * 1024) throw new Error(`${basename(path)}：预览文件不能超过 50 MB`)
+        if (!extensions.includes(extname(path).slice(1).toLowerCase())) throw new Error("暂不支持此文件格式的预览")
+        return { root: dirname(path), path, title: basename(path) }
+      })
+    )
+  })
   host.ipc.handle("transit:read-file", (_event, root: string, file: string) => readTransitFile(root, file))
   host.ipc.handle("transit:clipboard", async () => {
     const image = clipboard.readImage()

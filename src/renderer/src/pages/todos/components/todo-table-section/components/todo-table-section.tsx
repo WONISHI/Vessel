@@ -442,7 +442,7 @@ export function TodoTableSection() {
                   setRenameTabTitle(activeTab.title)
                   setIsRenamingTab(true)
                 }}
-                className="flex items-center gap-2 text-sm font-bold text-stone-900 cursor-pointer hover:text-green-700 transition-colors"
+                className="flex items-center gap-2 text-sm font-bold text-stone-900 dark:text-white cursor-pointer hover:text-green-700 transition-colors"
                 title="双击修改标题名称"
               >
                 <ClipboardList className="size-4 text-green-600" />

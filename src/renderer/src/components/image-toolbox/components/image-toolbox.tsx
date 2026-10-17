@@ -1,5 +1,6 @@
+import { StatusBar } from "@/components/ui/status-bar"
 import { Action } from "@/components/image-toolbox/components/action"
-import { Shape, allTools, annotateTools, copy, drawShape, formatBytes, formatDate, groups } from "@/components/image-toolbox/components/image-toolbox-shared"
+import { Shape, allTools, annotateTools, copy, drawShape, formatBytes, groups } from "@/components/image-toolbox/components/image-toolbox-shared"
 import { NumberField } from "@/components/image-toolbox/components/number-field"
 import { RangeField } from "@/components/image-toolbox/components/range-field"
 import { ShapeSvg } from "@/components/image-toolbox/components/shape-svg"
@@ -98,11 +99,6 @@ export function ImageToolbox({ initialImage, initialTool = "ocr", embedded = fal
     observer.observe(viewport)
     return () => observer.disconnect()
   }, [viewport])
-  const [now, setNow] = useState(new Date())
-  useEffect(() => {
-    const timer = setInterval(() => setNow(new Date()), 1000)
-    return () => clearInterval(timer)
-  }, [])
   const fit = Math.min(1, Math.max(1, bounds.width - 48) / size.width, Math.max(1, bounds.height - 48) / size.height)
   const scale = fit * zoom,
     selection = !!image && (tool === "crop" || (tool === "ocr" && regionOCR))
@@ -1335,36 +1331,48 @@ export function ImageToolbox({ initialImage, initialTool = "ocr", embedded = fal
           </aside>
         )}
       </div>
-      <footer className="image-footer-statusbar">
-        <div className="image-statusbar-left">
-          {image ? (
+      <StatusBar
+        className="image-toolbox-statusbar"
+        left={
+          image ? (
             <>
-              <span className="font-medium text-stone-700">{meta.name}</span>
-              <span>·</span>
-              <span>
+              <span
+                className="image-status-item image-status-filename"
+                title={meta.name}
+              >
+                <ImageIcon />
+                <span>{meta.name}</span>
+              </span>
+              <span
+                className="image-status-divider"
+                aria-hidden="true"
+              />
+              <span className="image-status-item">
+                <Expand />
                 {size.width} × {size.height} px
               </span>
-              <span>·</span>
-              <span>{Math.round(scale * 100)}%</span>
-              <span>·</span>
-              <span>{formatBytes(meta.size)}</span>
+              <span className="image-status-item">
+                <ZoomIn />
+                {Math.round(scale * 100)}%
+              </span>
+              <span className="image-status-item">
+                <Upload />
+                {formatBytes(meta.size)}
+              </span>
               {selection && (
-                <>
-                  <span>·</span>
-                  <span className="text-emerald-600 font-medium">
-                    框选: {region.width} × {region.height} px
-                  </span>
-                </>
+                <span className="image-status-item image-status-selection">
+                  框选: {region.width} × {region.height} px
+                </span>
               )}
             </>
           ) : (
-            <span className="text-stone-400">未导入图片</span>
-          )}
-        </div>
-        <div className="image-statusbar-right">
-          <span>{formatDate(now)}</span>
-        </div>
-      </footer>
+            <span className="image-status-item">
+              <ImageIcon />
+              未导入图片
+            </span>
+          )
+        }
+      />
     </div>
   )
 }

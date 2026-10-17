@@ -1,3 +1,4 @@
+const darkPalette: Record<string, string> = { keyword: "#f47067", string: "#96d0ff", number: "#6cb6ff", title: "#dcbdfb", comment: "#768390", variable: "#6cb6ff", built_in: "#6cb6ff" }
 let nextHighlightId = 0
 const layers = new WeakMap<HTMLElement, { prefix: string; style: HTMLStyleElement }>()
 const palette: Record<string, string> = { keyword: "#a626a4", string: "#50a14f", number: "#986801", title: "#4078f2", comment: "#a0a1a7", variable: "#986801", built_in: "#c18401" }
@@ -19,7 +20,7 @@ function highlightCode(root: HTMLElement) {
     const prefix = `vessel-code-${nextHighlightId++}`
     const style = document.createElement("style")
     style.textContent = Object.entries(palette)
-      .map(([kind, color]) => `::highlight(${prefix}-${kind}){color:${color}}`)
+      .map(([kind, color]) => `::highlight(${prefix}-${kind}){color:${color}} html.dark ::highlight(${prefix}-${kind}){color:${darkPalette[kind]}}`)
       .join("")
     document.head.append(style)
     layer = { prefix, style }

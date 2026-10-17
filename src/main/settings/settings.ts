@@ -150,11 +150,26 @@ function validate(value: AppSettings): AppSettings {
 /** Performs the public settings operation. */
 function publicSettings() {
   const p = profile()
-  return { ...load().settings, backup: { ...p.config, workspacePath: currentWorkspace ?? undefined, hasSecret: !!p.secret, secretLength: p.secret ? decrypt(p).length : 0 } }
+  let secretLength = 0
+  let secretUnavailable = false
+  try {
+    secretLength = p.secret ? decrypt(p).length : 0
+  } catch {
+    // Keep the ciphertext intact; ordinary settings do not require access to the backup credential.
+    secretUnavailable = true
+  }
+  return { ...load().settings, backup: { ...p.config, workspacePath: currentWorkspace ?? undefined, hasSecret: !!p.secret, secretLength, secretUnavailable } }
 }
 
 /** Performs the decrypt operation. */
-const decrypt = (p = profile()) => (p.secret ? safeStorage.decryptString(Buffer.from(p.secret, "base64")) : "")
+function decrypt(p = profile()): string {
+  if (!p.secret) return ""
+  try {
+    return safeStorage.decryptString(Buffer.from(p.secret, "base64"))
+  } catch {
+    throw new Error("无法读取已保存的 Secret Key，请在同步与备份中重新输入；原始加密凭据已保留")
+  }
+}
 
 /** Persists persist. */
 async function persist(next: NonNullable<typeof stored>) {
@@ -275,8 +290,13 @@ function checkAutoSync() {
   if (!root || syncing) return
   const p = profile(root)
   if (!p.config.enabled || !p.config.automatic) return
-  const secret = decrypt(p),
-    config = p.config
+  let secret: string
+  try {
+    secret = decrypt(p)
+  } catch {
+    return
+  }
+  const config = p.config
   if (!secret || !config.endpoint || !config.bucket || !config.accessKey) return
   const lastSyncTime = p.status.time ? new Date(p.status.time).getTime() : 0
   const intervalMs = Math.max(1, p.config.minutes || 10) * 60000

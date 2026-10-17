@@ -1,3 +1,5 @@
+import { useDarkAppearance } from "@/hooks/use-dark-appearance"
+import { registerMonacoTheme } from "@/components/core/canvas/variants/code/theme"
 import Editor, { loader } from "@monaco-editor/react"
 import * as monaco from "monaco-editor" // 引入核心包
 import { useCallback, useEffect, useRef, useState } from "react"
@@ -16,6 +18,7 @@ function customJSONStringify(obj: any) {
 
 /** Renders the jsoncanvas component. */
 export default function JSONCanvas({ activeFilePath }: any) {
+  const dark = useDarkAppearance()
   const editorRef = useRef<any>(null)
   const monacoRef = useRef<any>(null) // 存储 monaco 实例
   const [jsonStr, setJsonStr] = useState<string>("") // 初始空字符串
@@ -90,6 +93,8 @@ export default function JSONCanvas({ activeFilePath }: any) {
         </div>
       )}
       <Editor
+          theme={dark ? "vessel-dark" : "light"}
+          beforeMount={registerMonacoTheme}
         className="flex-1"
         language="json"
         value={jsonStr}

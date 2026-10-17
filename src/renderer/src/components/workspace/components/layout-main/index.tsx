@@ -17,7 +17,7 @@ import { useWorkspace } from "@/components/workspace/hooks/useWorkspace"
 import { cn } from "@/lib/utils"
 import { RouterView } from "@vessel/react-router/components"
 import { matchesShortcut } from "@vessel/utils"
-import { ChevronLeft, ChevronRight, Columns2, Copy, File, Home, LayoutTemplate, List, MoreHorizontal, Pin, SquareChevronDown, SquareChevronRight, X } from "lucide-react"
+import { ChevronLeft, ChevronRight, Columns2, Copy, File, Home, LayoutTemplate, List, MoreHorizontal, Pin, Terminal, X } from "lucide-react"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useLocation } from "react-router-dom"
 import { toast } from "sonner"
@@ -133,7 +133,7 @@ export default function LayoutMain({ resources = false }: { resources?: boolean 
             aria-current={home ? "page" : undefined}
             onClick={navigateToWorkspaceHome}
             className={cn(
-              "h-[34px] shrink-0 gap-1.5 rounded-lg border px-2.5 text-[13px] transition-colors hover:bg-[#f2f3f5] hover:text-[#1f2329]",
+              "workspace-home-tab h-[34px] shrink-0 gap-1.5 rounded-lg border px-2.5 text-[13px] transition-colors hover:bg-[#f2f3f5] hover:text-[#1f2329]",
               home ? "border-[#1f23290d] bg-white font-medium text-[#1f2329] shadow-[0_1px_3px_#1f23291a,0_0_0_1px_#1f23290f] hover:bg-white" : "border-transparent bg-transparent font-normal text-[#646a73]"
             )}
           >
@@ -227,13 +227,13 @@ export default function LayoutMain({ resources = false }: { resources?: boolean 
             {edges.left && (
               <span
                 aria-hidden="true"
-                className="pointer-events-none absolute inset-y-0 left-0 z-10 w-2 bg-gradient-to-r from-stone-200/20 to-transparent"
+                className="workspace-tab-edge workspace-tab-edge-left pointer-events-none absolute inset-y-0 left-0 z-10 w-2 bg-gradient-to-r from-stone-200/20 to-transparent"
               />
             )}
             {edges.right && (
               <span
                 aria-hidden="true"
-                className="pointer-events-none absolute inset-y-0 right-0 z-10 w-2 bg-gradient-to-l from-stone-200/20 to-transparent"
+                className="workspace-tab-edge workspace-tab-edge-right pointer-events-none absolute inset-y-0 right-0 z-10 w-2 bg-gradient-to-l from-stone-200/20 to-transparent"
               />
             )}
           </div>
@@ -421,7 +421,7 @@ export default function LayoutMain({ resources = false }: { resources?: boolean 
                     aria-label={terminal ? "关闭控制台" : "打开控制台"}
                     onClick={() => setTerminal((current) => (current ? null : { file: home ? undefined : activeFilePath || undefined }))}
                   >
-                    {terminal ? <SquareChevronDown className="!size-3.5" /> : <SquareChevronRight className="!size-3.5" />}控制台
+                    <Terminal className="!size-3.5" />控制台
                   </Button>
                   {!resources && (
                     <BackupStatus

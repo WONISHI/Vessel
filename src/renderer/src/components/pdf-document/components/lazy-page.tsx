@@ -10,7 +10,7 @@ export function LazyPage({ number, width, strokes, tool, color, penWidth, add, e
   const [draft, setDraft] = useState<Stroke | null>(null)
   const current = useRef<Stroke | null>(null)
   useEffect(() => {
-    const observer = new IntersectionObserver(([entry]) => setVisible(entry.isIntersecting), { root: host.current?.closest("[data-pdf-scroll]"), rootMargin: "700px" })
+    const observer = new IntersectionObserver(([entry]) => setVisible(entry.isIntersecting), { root: host.current?.closest("[data-radix-scroll-area-viewport]"), rootMargin: "700px" })
     if (host.current) observer.observe(host.current)
     return () => observer.disconnect()
   }, [])

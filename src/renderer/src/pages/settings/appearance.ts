@@ -7,6 +7,7 @@ export function applyAppearance(settings: AppSettings) {
   const dark = settings.theme === "dark" || (settings.theme === "system" && matchMedia("(prefers-color-scheme: dark)").matches)
   root.dataset.vesselAppearance = "true"
   root.classList.toggle("dark", dark)
+  void window.electronAPI?.setWindowAppearance?.(dark)?.catch(() => {})
   root.style.fontSize = `${(16 * settings.fontSize) / 14}px`
   root.style.setProperty("--font-sans", `${settings.font}, system-ui, sans-serif`)
   document.body.style.fontFamily = `${settings.font}, system-ui, sans-serif`

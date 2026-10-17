@@ -77,12 +77,18 @@ const vesselAPI = {
   /** Returns backup status. */
   getBackupStatus: (): Promise<BackupStatus> => ipcRenderer.invoke("settings:status"),
 
-  /** Reads transit file. */
+  /** Imports local files using the native picker. */
+  importTransitFiles: (): Promise<Array<{ root: string; path: string; title: string }>> => ipcRenderer.invoke("transit:import-files"),
+  /** Reads a file for transit preview. */
   readTransitFile: (root: string, path: string): Promise<TransitFile> => ipcRenderer.invoke("transit:read-file", root, path),
 
-  /** Performs the pick office file operation. */
+  /** Synchronizes native window chrome with the applied renderer theme. */
+  setWindowAppearance: (dark: boolean): Promise<void> => ipcRenderer.invoke("app:appearance", dark),
+  /** Picks an Office document. */
   pickOfficeFile: (): Promise<{ token: string; name: string; bytes: Uint8Array } | null> => ipcRenderer.invoke("office:pick"),
 
+  /** Converts the current Office export and asks for an output folder. */
+  convertOfficeMarkdown: (name: string, bytes: Uint8Array): Promise<{ saved: boolean; path?: string }> => ipcRenderer.invoke("office:convert-markdown", name, bytes),
   /** Performs the commit office operation. */
   commitOffice: (name: string, bytes: Uint8Array, token?: string): Promise<{ saved: boolean; name?: string; token?: string }> => ipcRenderer.invoke("office:commit", name, bytes, token),
 
@@ -139,6 +145,14 @@ const vesselAPI = {
 
   /** Reloads window. */
   reloadWindow: (): Promise<void> => ipcRenderer.invoke("app:reload"),
+
+  /** Opens the settings route when requested by the native application menu. */
+  onOpenSettings: (callback: () => void) => {
+    /** Forwards the native menu event without exposing IPC objects. */
+    const listener = () => callback()
+    ipcRenderer.on("app:open-settings", listener)
+    return () => ipcRenderer.removeListener("app:open-settings", listener)
+  },
 
   /** Handles command palette events. */
   onCommandPalette: (callback: () => void) => {

@@ -77,3 +77,32 @@
     animation: none;
   }
 }
+
+/* Shared dark palette for dialog and embedded command lists. */
+html.dark .vessel-command-dialog {
+  background: #23272d !important;
+  border-color: #30353c !important;
+  box-shadow: 0 24px 60px #00000080;
+}
+html.dark [cmdk-root] { background: #23272d !important; color: #e6e8eb !important; }
+html.dark [cmdk-root] [data-command-input-wrapper] {
+  background: #1c2025 !important;
+  border-color: #30353c !important;
+}
+html.dark [cmdk-root] [data-command-input-wrapper]:focus-within { border-color: #444c56 !important; }
+html.dark [cmdk-root] [data-command-input-wrapper] svg { color: #6b7280 !important; }
+html.dark [cmdk-root] [cmdk-input] { background: transparent !important; color: #e6e8eb !important; }
+html.dark [cmdk-root] [cmdk-input]::placeholder,
+html.dark [cmdk-root] [cmdk-group-heading],
+html.dark [cmdk-root] [cmdk-empty] { color: #6b7280 !important; }
+html.dark [cmdk-root] [cmdk-item] { background: transparent; color: #e6e8eb !important; }
+html.dark [cmdk-root] [cmdk-item] svg { color: #9aa1a9 !important; }
+html.dark [cmdk-root] [cmdk-item]:not([data-disabled="true"]):hover { background: rgba(255,255,255,.07) !important; color: #fff !important; }
+html.dark [cmdk-root] [cmdk-item]:not([data-disabled="true"]):hover svg { color: #fff !important; }
+html.dark [cmdk-root] [cmdk-item][data-selected="true"] { background: rgba(34,197,94,.18) !important; color: #4ade80 !important; }
+html.dark [cmdk-root] [cmdk-item][data-selected="true"] svg { color: #4ade80 !important; }
+html.dark [cmdk-root] [cmdk-item][data-selected="true"]:hover { background: rgba(34,197,94,.27) !important; }
+html.dark [cmdk-root] [cmdk-item][data-selected="true"]:hover svg { color: #4ade80 !important; }
+html.dark [cmdk-root] [cmdk-separator] { background: #30353c !important; }
+html.dark [cmdk-root] kbd { color: #6b7280; border-color: #30353c; }
+html.dark [cmdk-root] [cmdk-list]::-webkit-scrollbar-thumb { background: #444c56; }

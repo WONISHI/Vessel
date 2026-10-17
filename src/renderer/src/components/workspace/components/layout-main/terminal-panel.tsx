@@ -14,6 +14,13 @@ export function TerminalPanel({ root, file }: { root: string; file?: string }) {
     let id: string | undefined
     const pending = new Map<string, string[]>()
     const terminal = new Terminal({ cursorBlink: true, fontSize: 12, fontFamily: "Menlo, Consolas, monospace", scrollback: 5000, theme: { background: "#faf9f7", foreground: "#292524", cursor: "#15803d", selectionBackground: "#bbf7d0" } })
+    /** Updates terminal colors without restarting its shell session. */
+    const updateTheme = () => {
+      terminal.options.theme = document.documentElement.classList.contains("dark") ? { background: "#22272E", foreground: "#cdd9e5", cursor: "#4ade80", selectionBackground: "#34704c" } : { background: "#faf9f7", foreground: "#292524", cursor: "#15803d", selectionBackground: "#bbf7d0" }
+    }
+    updateTheme()
+    const themeObserver = new MutationObserver(updateTheme)
+    themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] })
     const fit = new FitAddon()
     terminal.loadAddon(fit)
     terminal.open(host.current)
@@ -53,6 +60,7 @@ export function TerminalPanel({ root, file }: { root: string; file?: string }) {
     return () => {
       disposed = true
       observer.disconnect()
+      themeObserver.disconnect()
       unsubscribe()
       input.dispose()
       terminal.dispose()
@@ -62,7 +70,7 @@ export function TerminalPanel({ root, file }: { root: string; file?: string }) {
   return (
     <section
       aria-label="命令终端"
-      className="flex h-full min-h-0 flex-col bg-[#faf9f7]"
+      className="flex h-full min-h-0 flex-col bg-[#faf9f7] dark:bg-[#22272E]"
     >
       <header className="flex items-center gap-3 border-b px-3 py-1 text-xs text-stone-500">
         <strong className="text-green-700">终端</strong>

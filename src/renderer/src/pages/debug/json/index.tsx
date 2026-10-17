@@ -1,3 +1,4 @@
+import { registerMonacoTheme } from "@/components/core/canvas/variants/code/theme"
 import { useDarkAppearance } from "@/hooks/use-dark-appearance"
 import "@/components/core/canvas/variants/code/monaco"
 import "@/components/styles/tool-page-header.css"
@@ -124,7 +125,7 @@ export function JsonTool() {
           height="100%"
           language="json"
           value={value}
-          beforeMount={(monaco) => monaco.editor.defineTheme("vessel-dark", { base: "vs-dark", inherit: true, rules: [], colors: { "editor.background": "#22272E", "editorGutter.background": "#22272E" } })}
+          beforeMount={registerMonacoTheme}
           onMount={(instance) => {
             editor.current = instance
           }}

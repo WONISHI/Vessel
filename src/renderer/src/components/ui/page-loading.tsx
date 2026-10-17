@@ -7,7 +7,7 @@ export function PageLoading({ label = "正在加载页面…", className }: { la
     <div
       role="status"
       aria-live="polite"
-      className={cn("flex h-full min-h-40 flex-col items-center justify-center gap-3 bg-white", className)}
+      className={cn("vessel-page-loading flex h-full min-h-40 flex-col items-center justify-center gap-3 bg-white", className)}
     >
       <img
         src={artwork}

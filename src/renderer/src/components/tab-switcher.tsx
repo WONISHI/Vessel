@@ -93,6 +93,8 @@ export function TabSwitcher({
               className="group relative"
             >
               <DropdownMenuItem
+                data-dark-list-item
+                data-active={tab.active}
                 onSelect={() => {
                   onSelect(tab.id)
                   setOpen(false)
@@ -119,8 +121,8 @@ export function TabSwitcher({
                   )}
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className={`block truncate ${preview ? "font-semibold" : ""}`}>{tab.title}</span>
-                  {preview && <span className="mt-0.5 block truncate text-[11px] font-normal tracking-wide text-stone-400">{tab.url?.replace(/^https?:\/\//, "").replace(/\/$/, "")}</span>}
+                  <span className={`dark-list-title block truncate ${preview ? "font-semibold" : ""}`}>{tab.title}</span>
+                  {preview && <span className="dark-list-description mt-0.5 block truncate text-[11px] font-normal tracking-wide text-stone-400">{tab.url?.replace(/^https?:\/\//, "").replace(/\/$/, "")}</span>}
                 </span>
               </DropdownMenuItem>
               {preview && onClose && (

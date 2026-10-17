@@ -561,7 +561,7 @@ export function BrowserPage({ visible = true }: { visible?: boolean }) {
                 variant="ghost"
                 size="icon"
                 title="新标签页"
-                className="h-[var(--browser-tab-height)] w-[var(--browser-tab-height)] rounded-t-lg rounded-b-none text-stone-500 hover:bg-stone-200"
+                className="browser-new-tab h-[var(--browser-tab-height)] w-[var(--browser-tab-height)] rounded-t-lg rounded-b-none text-stone-500 hover:bg-stone-200"
                 onClick={add}
               >
                 <Plus className="size-4" />

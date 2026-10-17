@@ -349,6 +349,8 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
                     {/* 1. Git (代码版本管理) */}
                     <button
                       type="button"
+                      data-developer-tool-card
+                      data-active={location.pathname === "/git"}
                       className={cn("flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-stone-100", location.pathname === "/git" && "bg-green-50 text-green-700 font-medium")}
                       onClick={() => {
                         setMoreToolsOpen(false)
@@ -360,14 +362,16 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
                         <GitBranch className="size-4" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div className="text-xs font-medium text-stone-800">Git</div>
-                        <div className="truncate text-[10px] text-stone-400">代码版本管理与分支</div>
+                        <div className="developer-tool-title text-xs font-medium text-stone-800">Git</div>
+                        <div className="developer-tool-description truncate text-[10px] text-stone-400">代码版本管理与分支</div>
                       </div>
                     </button>
 
                     {/* 2. API (接口调试与管理) */}
                     <button
                       type="button"
+                      data-developer-tool-card
+                      data-active={location.pathname === "/api-client"}
                       className={cn("flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-stone-100", location.pathname === "/api-client" && "bg-green-50 text-green-700 font-medium")}
                       onClick={() => {
                         setMoreToolsOpen(false)
@@ -379,14 +383,16 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
                         <Send className="size-4" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div className="text-xs font-medium text-stone-800">API</div>
-                        <div className="truncate text-[10px] text-stone-400">接口调试与请求管理</div>
+                        <div className="developer-tool-title text-xs font-medium text-stone-800">API</div>
+                        <div className="developer-tool-description truncate text-[10px] text-stone-400">接口调试与请求管理</div>
                       </div>
                     </button>
 
                     {/* 3. 开发者工具 (DevTools) */}
                     <button
                       type="button"
+                      data-developer-tool-card
+                      data-active={location.pathname.startsWith("/devtools")}
                       className={cn("flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-stone-100", location.pathname.startsWith("/devtools") && "bg-green-50 text-green-700 font-medium")}
                       onClick={() => {
                         setMoreToolsOpen(false)
@@ -398,8 +404,8 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
                         <Wrench className="size-4" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div className="text-xs font-medium text-stone-800">开发工具</div>
-                        <div className="truncate text-[10px] text-stone-400">Console / 存储 / 调试工具</div>
+                        <div className="developer-tool-title text-xs font-medium text-stone-800">开发工具</div>
+                        <div className="developer-tool-description truncate text-[10px] text-stone-400">Console / 存储 / 调试工具</div>
                       </div>
                     </button>
                   </div>
@@ -412,9 +418,10 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
           <Button
             variant="ghost"
             size="icon"
+            data-activity-button
             aria-label="切换浅色或深色主题"
             title="切换浅色或深色主题"
-            className="size-[38px] text-stone-500"
+            className="size-[38px] rounded-[10px] text-stone-500 hover:!bg-[#f0efed] hover:!text-stone-500"
             onClick={() => {
               void window.electronAPI
                 .getSettings()
@@ -434,6 +441,7 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
               <Button
                 variant="ghost"
                 size="icon"
+                data-activity-button
                 aria-label="设置"
                 className="size-[38px] rounded-[10px] text-stone-500 hover:!bg-[#f0efed] hover:!text-stone-500"
                 onClick={() => {

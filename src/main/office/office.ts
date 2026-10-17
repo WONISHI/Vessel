@@ -1,3 +1,4 @@
+import { convertOfficeMarkdown, saveConvertedMarkdown } from "@main/office/markdown"
 import { app, BrowserWindow, dialog, type WebContents } from "electron"
 import { readFile, realpath, rename, stat, writeFile } from "node:fs/promises"
 import { createServer } from "node:http"
@@ -110,6 +111,15 @@ export function registerOffice(host: WebContents) {
     await writeFile(path, bytes)
     documents.set(token!, path)
     return { saved: true, token, name: basename(path) }
+  })
+  host.ipc.handle("office:convert-markdown", async (_event, name: string, bytes: Uint8Array) => {
+    validateName(name)
+    if (!/\.(docx|xlsx|xls|pptx|pdf|csv)$/i.test(name) || !(bytes instanceof Uint8Array) || bytes.byteLength > 256 * 1024 * 1024) throw new Error("不支持的转换格式或文档数据无效")
+    const markdown = await convertOfficeMarkdown(name, bytes)
+    const result = await dialog.showOpenDialog(owner(), { title: "转换成功，选择 Markdown 保存文件夹", properties: ["openDirectory", "createDirectory"] })
+    if (result.canceled || !result.filePaths[0]) return { saved: false }
+    const path = await saveConvertedMarkdown(result.filePaths[0], name, markdown)
+    return { saved: true, path }
   })
   host.ipc.handle("office:rename", async (_event, token: string | undefined, name: string) => {
     validateName(name)

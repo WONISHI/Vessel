@@ -1,11 +1,12 @@
 import { EditorLoading } from "@/components/ui/editor-loading"
 import { Doc } from "@/features/office/components/office-components-shared"
 import { loadOfficeAPI } from "@/features/office/office-loader"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { OnlyOfficeEditor } from "wasm-onlyoffice-sdk/react"
 
 /** Renders the editor component. */
 export function Editor() {
+  const exportAction = useRef("office:save")
   const [ready, setReady] = useState(false)
   const [apiReady, setApiReady] = useState(false)
   const [loadError, setLoadError] = useState("")
@@ -33,6 +34,10 @@ export function Editor() {
     /** Initializes init. */
     const init = (event: MessageEvent) => {
       if (event.source !== parent || (!embedded && event.origin !== location.origin)) return
+      if (event.data?.type === "office:theme") {
+        document.documentElement.classList.toggle("dark", event.data.dark === true)
+        return
+      }
       if (event.data?.type === "office:init") {
         setReady(false)
         setLoadError("")
@@ -41,13 +46,14 @@ export function Editor() {
       if (event.data?.type === "office:export") {
         const runtime = (document.querySelector<HTMLIFrameElement>('iframe[name="frameEditor"]')?.contentWindow as (Window & { Asc?: { editor?: { asc_DownloadAs(options: unknown): void }; asc_CDownloadOptions: new (format: number) => unknown; c_oAscFileType: Record<string, number> } }) | null)?.Asc
         if (!runtime?.editor) {
-          report({ status: "编辑器尚未就绪，请稍后重试" })
+          report({ status: "编辑器尚未就绪，请稍后重试", exportFailed: true })
           return
         }
         try {
+          exportAction.current = event.data.action === "markdown" ? "office:convert-markdown" : "office:save"
           runtime.editor.asc_DownloadAs(new runtime.asc_CDownloadOptions(runtime.c_oAscFileType[event.data.format]))
         } catch (error) {
-          report({ status: `导出失败：${String(error)}` })
+          report({ status: `导出失败：${String(error)}`, exportFailed: true })
         }
       }
     }
@@ -83,12 +89,14 @@ export function Editor() {
             report({ status: `加载失败：${error.message}` })
           }}
           onSave={async (blob, name) => {
+            const action = exportAction.current
+            exportAction.current = "office:save"
             const channel = new MessageChannel()
             channel.port1.onmessage = (event) => {
-              report(event.data.saved ? { dirty: false, status: "已保存" } : { status: event.data.error || "已取消保存" })
+              if (action === "office:save") report(event.data.saved ? { dirty: false, status: "已保存" } : { status: event.data.error || "已取消保存" })
               channel.port1.close()
             }
-            parent.postMessage({ type: "office:save", name, bytes: new Uint8Array(await blob.arrayBuffer()) }, embedded ? "*" : location.origin, [channel.port2])
+            parent.postMessage({ type: action, name, bytes: new Uint8Array(await blob.arrayBuffer()) }, embedded ? "*" : location.origin, [channel.port2])
           }}
         />
       )}

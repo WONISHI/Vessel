@@ -7,7 +7,7 @@ export function DocumentProperties({ properties, workspacePath }: { properties: 
   return (
     <section
       aria-label="文档属性"
-      className="mx-8 mb-2 mt-4 overflow-hidden rounded-lg border"
+      className="document-properties mx-8 mb-2 mt-4 overflow-hidden rounded-lg border"
     >
       <Table>
         <TableHeader>

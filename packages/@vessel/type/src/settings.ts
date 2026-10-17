@@ -34,6 +34,7 @@ export interface AppSettings {
     minutes: 5 | 10 | 30
     hasSecret: boolean
     secretLength?: number
+    secretUnavailable?: boolean
   }
 }
 

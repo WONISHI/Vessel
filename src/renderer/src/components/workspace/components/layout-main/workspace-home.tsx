@@ -147,7 +147,7 @@ export default function WorkspaceHome() {
               <FolderOpen className="size-6" />
             </span>
             <div>
-              <h1 className="text-xl font-bold tracking-tight text-stone-900">{workspace.name}</h1>
+              <h1 className="workspace-home-title text-xl font-bold tracking-tight text-stone-900">{workspace.name}</h1>
               <p className="mt-0.5 break-all text-xs text-stone-400">{workspace.path}</p>
             </div>
           </div>
@@ -266,7 +266,7 @@ export default function WorkspaceHome() {
                         colorScheme={dark ? "dark" : "light"}
                         theme={{
                           light: ["#ebedf0", "#9be9a8", "#40c463", "#30a14e", "#216e39"],
-                          dark: ["#22272e", "#065f46", "#047857", "#059669", "#10b981"]
+                          dark: ["#444c56", "#065f46", "#047857", "#059669", "#10b981"]
                         }}
                         labels={{
                           months: ["1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"],
@@ -453,7 +453,7 @@ export default function WorkspaceHome() {
           {readmeLoading ? (
             <div className="flex h-36 items-center justify-center text-xs text-stone-400">正在加载项目 README.md 文档…</div>
           ) : readme ? (
-            <div className="rounded-lg border border-stone-200/80 bg-white shadow-xs">
+            <div className="rounded-lg border border-stone-200/80 dark:border-[#444c56] bg-white shadow-xs">
               <ScrollArea className="h-[480px] w-full p-4">
                 <div className="workspace-readme-body [&_.vditor]:!border-none [&_.vditor]:!bg-transparent [&_.vditor-reset]:!opacity-100 [&_.vditor-reset]:!cursor-text [&_.vditor-reset]:!text-stone-800 [&_.vditor-reset_h1]:!text-stone-900 [&_.vditor-reset_h1]:!font-bold [&_.vditor-reset_h2]:!text-stone-900 [&_.vditor-reset_h2]:!font-bold [&_.vditor-reset_h3]:!text-stone-900 [&_.vditor-reset_p]:!text-stone-800 [&_.vditor-reset_li]:!text-stone-800 [&_.vditor-reset_strong]:!text-stone-900 [&_.vditor-toolbar]:!hidden">
                   <VditorEditor

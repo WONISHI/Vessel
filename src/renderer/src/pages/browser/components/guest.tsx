@@ -1,3 +1,5 @@
+import { guestAppearanceScript } from "@/pages/browser/guest-appearance"
+import { useDarkAppearance } from "@/hooks/use-dark-appearance"
 import { Tab } from "@/pages/browser/components/index-shared"
 import { markGuestReady, withGuest } from "@/pages/browser/guest-lifecycle"
 import { pageObserverScript } from "@/pages/browser/page-observer"
@@ -7,7 +9,13 @@ import { memo, useCallback, useEffect, useRef, useState } from "react"
 
 /** Renders the guest component. */
 export const Guest = memo(function Guest({ tab, visible, register, update }: { tab: Tab; visible: boolean; register: (id: string, view: WebviewTag | null) => void; update: (id: string, patch: Partial<Tab>) => void }) {
+  const dark = useDarkAppearance()
+  const darkRef = useRef(dark)
+  darkRef.current = dark
   const ref = useRef<WebviewTag | null>(null)
+  useEffect(() => {
+    withGuest(ref.current, (view) => void view.executeJavaScript(guestAppearanceScript(dark)).catch((error) => console.warn("网页主题切换失败", error)))
+  }, [dark])
   const [initialURL] = useState(tab.url)
   const updateRef = useRef(update)
   useEffect(() => {
@@ -24,6 +32,7 @@ export const Guest = memo(function Guest({ tab, visible, register, update }: { t
     const onReady = () => {
       void view.executeJavaScript(pageObserverScript).catch((error) => console.warn("页面监听注入失败", error))
       markGuestReady(view, true)
+      void view.executeJavaScript(guestAppearanceScript(darkRef.current)).catch((error) => console.warn("网页主题初始化失败", error))
       if (tab.zoom && tab.zoom !== 1) {
         try {
           view.setZoomFactor(tab.zoom)

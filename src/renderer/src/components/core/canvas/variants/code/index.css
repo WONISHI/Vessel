@@ -67,3 +67,13 @@
   border-radius: 2px;
   font-weight: 600;
 }
+
+html.dark .vessel-code-editor .monaco-scrollable-element > .scrollbar > .slider {
+  background-color: #444c56 !important;
+}
+html.dark .vessel-code-editor .monaco-scrollable-element > .scrollbar > .slider:hover,
+html.dark .vessel-code-editor .monaco-scrollable-element > .scrollbar > .slider.active {
+  background-color: #57606a !important;
+}
+html.dark .code-goto { background: #2d333b; border-color: #444c56; color: #cdd9e5; }
+html.dark .code-goto-hint { border-color: #444c56; }

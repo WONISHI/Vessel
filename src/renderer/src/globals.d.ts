@@ -96,8 +96,11 @@ interface VesselAPI extends BrowserProxyAPI, BrowserToolsAPI, SettingsAPI, Brows
   readTransitClipboard(): Promise<string | { root: string; path: string; title: string }>
   openTransitWindow(item: { kind: string; content: string; title: string; root?: string }): Promise<void>
   pickOfficeFile(): Promise<{ token: string; name: string; bytes: Uint8Array } | null>
+  convertOfficeMarkdown(name: string, bytes: Uint8Array): Promise<{ saved: boolean; path?: string }>
+  setWindowAppearance(dark: boolean): Promise<void>
   commitOffice(name: string, bytes: Uint8Array, token?: string): Promise<{ saved: boolean; name?: string; token?: string }>
   renameOffice(token: string | undefined, name: string): Promise<string>
+  importTransitFiles(): Promise<Array<{ root: string; path: string; title: string }>>
   readTransitFile(root: string, path: string): Promise<TransitFile>
   getExternalPathInfo(path: string): Promise<{ path: string; name: string; root: string; kind: "file" | "directory" }>
   getDroppedFilePath(file: File): string
@@ -106,6 +109,7 @@ interface VesselAPI extends BrowserProxyAPI, BrowserToolsAPI, SettingsAPI, Brows
   saveOffice(name: string, bytes: Uint8Array): Promise<boolean>
 
   onBrowserDevtoolsClosed: (callback: () => void) => () => void
+  onOpenSettings: (callback: () => void) => () => void
   onCommandPalette: (callback: () => void) => () => void
   onBrowserToggleDevtools: (callback: (id: number) => void) => () => void
   onBrowserFind: (callback: (id: number) => void) => () => void

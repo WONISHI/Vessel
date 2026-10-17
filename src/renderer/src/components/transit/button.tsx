@@ -2,7 +2,7 @@ import { addTransit, addTransitFile, deleteTransit, selectTransit, useTransit } 
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { ClipboardPaste, FileText, Globe, Pin, Trash2 } from "lucide-react"
+import { ClipboardPaste, FileText, Globe, Pin, Trash2, Upload } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 
@@ -68,6 +68,8 @@ export function TransitButton({ menuItem = false, onOpenChange }: { menuItem?: b
           {items.map((item) => (
             <div
               key={item.id}
+              data-dark-list-item
+              data-active={selected === item.id}
               className={`group flex items-center gap-2 rounded-lg p-2 ${selected === item.id ? "bg-emerald-50" : "hover:bg-stone-50"}`}
             >
               <button
@@ -79,8 +81,8 @@ export function TransitButton({ menuItem = false, onOpenChange }: { menuItem?: b
               >
                 <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-stone-100 text-stone-500">{item.kind === "url" ? <Globe className="size-4" /> : <FileText className="size-4 text-blue-600" />}</span>
                 <span className="min-w-0">
-                  <span className="block truncate text-xs font-semibold">{item.title}</span>
-                  <span className="block truncate text-[11px] text-stone-400">{item.kind === "url" ? `${new URL(item.content).hostname} · 网页` : item.kind === "file" ? "工作区 · 文件" : "剪贴板 · 文本"}</span>
+                  <span className="dark-list-title block truncate text-xs font-semibold">{item.title}</span>
+                  <span className="dark-list-description block truncate text-[11px] text-stone-400">{item.kind === "url" ? `${new URL(item.content).hostname} · 网页` : item.kind === "file" ? "工作区 · 文件" : "剪贴板 · 文本"}</span>
                 </span>
               </button>
               <button
@@ -101,7 +103,23 @@ export function TransitButton({ menuItem = false, onOpenChange }: { menuItem?: b
           ))}
         </ScrollArea>
         <button
-          className="flex w-full items-center gap-2 border-t px-3 py-2.5 text-xs text-stone-500 hover:bg-stone-50 hover:text-green-600"
+          className="transit-read-clipboard flex w-full items-center gap-2 border-t px-3 py-2.5 text-xs text-stone-500 hover:bg-stone-50 hover:text-green-600"
+          onClick={() => {
+            clearTimeout(timer.current)
+            void window.electronAPI
+              .importTransitFiles()
+              .then((files) => {
+                files.forEach((file) => addTransitFile(file.root, file.path, file.title))
+                if (files.length) setOpen(false)
+              })
+              .catch((error) => toast.error(String(error)))
+          }}
+        >
+          <Upload className="size-4" />
+          导入文件
+        </button>
+        <button
+          className="transit-read-clipboard flex w-full items-center gap-2 border-t px-3 py-2.5 text-xs text-stone-500 hover:bg-stone-50 hover:text-green-600"
           onClick={() => {
             void window.electronAPI
               .readTransitClipboard()

@@ -699,3 +699,25 @@
   padding: 1px 2px;
   font-weight: 600;
 }
+
+/* Source and rendered code share the same dark surface. */
+html.dark .vessel-vditor .vditor-reset pre,
+html.dark .vessel-vditor .vditor-reset pre code,
+html.dark .vessel-vditor .vditor-ir__preview[data-render="1"]:has(pre) {
+  background: #22272e !important;
+  background-image: none !important;
+  color: #cdd9e5;
+}
+html.dark .vessel-vditor .vditor-reset pre.vessel-code-frame {
+  border-color: #444c56;
+}
+html.dark .vessel-vditor .vditor-reset pre.vessel-code-frame::before {
+  background: #2d333b;
+  border-color: #444c56;
+  color: #adbac7;
+}
+html.dark .vessel-vditor pre code .hljs-keyword { color: #f47067; }
+html.dark .vessel-vditor pre code .hljs-string { color: #96d0ff; }
+html.dark .vessel-vditor pre code :is(.hljs-number, .hljs-variable, .hljs-built_in) { color: #6cb6ff; }
+html.dark .vessel-vditor pre code .hljs-title { color: #dcbdfb; }
+html.dark .vessel-vditor pre code .hljs-comment { color: #768390; }

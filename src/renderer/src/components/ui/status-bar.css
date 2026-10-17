@@ -1,0 +1,75 @@
+.vessel-status-bar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 32px;
+  flex-shrink: 0;
+  padding: 0 8px;
+  border-top: 1px solid #e7e5e4;
+  border-radius: 0 0 8px 8px;
+  background: #f5f5f4;
+  color: #57534e;
+  font-size: 12px;
+  font-weight: 500;
+  user-select: none;
+  white-space: nowrap;
+}
+.vessel-status-left, .vessel-document-stats, .vessel-status-clock {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+.vessel-document-stats { justify-content: flex-end; overflow: hidden; }
+.vessel-status-bar .vessel-status-left > button,
+.vessel-status-bar .vessel-document-stats > span,
+.vessel-status-bar .vessel-status-time {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 24px;
+  flex-shrink: 0;
+  padding: 0 7px;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  transition: background .12s;
+}
+.vessel-status-bar svg { width: 14px; height: 14px; }
+.vessel-status-bar .vessel-status-left > button:hover,
+.vessel-status-bar .vessel-document-stats > span:hover { background: #e7e5e4; color: #1c1917; }
+.vessel-status-clock::before,
+.vessel-status-left > button[data-sync-state]::before,
+.vessel-status-separated::before {
+  content: "";
+  width: 1px;
+  height: 16px;
+  background: #d6d3d1;
+  margin: 0 2px;
+  flex-shrink: 0;
+}
+.vessel-status-bar .vessel-status-time { gap: 14px; box-shadow: none; }
+.vessel-status-bar .vessel-status-left > button[aria-pressed="true"] { background: #dcfce7; color: #15803d; }
+.vessel-status-bar button[data-sync-state="success"] { color: #15803d; }
+.vessel-status-bar button[data-sync-state="running"] { color: #2563eb; }
+.vessel-status-bar button[data-sync-state="last"], .vessel-status-bar button[data-sync-state="idle"] { color: #78716c; }
+.vessel-status-bar button[data-sync-state="error"] { color: #dc2626; }
+html.dark .vessel-status-bar { background: #22272e; border-color: #292524; color: #d6d3d1; }
+html.dark .vessel-status-bar .vessel-status-left > button:hover,
+html.dark .vessel-status-bar .vessel-document-stats > span:hover { background: #292524; color: #fff; }
+html.dark .vessel-status-clock::before,
+html.dark .vessel-status-left > button[data-sync-state]::before,
+html.dark .vessel-status-separated::before { background: #44403c; }
+html.dark .vessel-status-bar .vessel-status-left > button[aria-pressed="true"] { background: #14532d; color: #bbf7d0; }
+html.dark .vessel-status-bar button[data-sync-state="success"] { color: #4ade80; }
+html.dark .vessel-status-bar button[data-sync-state="running"] { color: #60a5fa; }
+html.dark .vessel-status-bar button[data-sync-state="last"], html.dark .vessel-status-bar button[data-sync-state="idle"] { color: #a8a29e; }
+html.dark .vessel-status-bar button[data-sync-state="error"] { color: #f87171; }
+
+.vessel-status-bar .vessel-document-stats > [role="alert"] { color: #dc2626; }
+html.dark .vessel-status-bar .vessel-document-stats > [role="alert"] { color: #f87171; }
+.vessel-status-bar button[data-sync-state="success"]:hover { color: #166534; }
+.vessel-status-bar button[data-sync-state="running"]:hover { color: #1d4ed8; }
+html.dark .vessel-status-bar button[data-sync-state="success"]:hover { color: #86efac; }
+html.dark .vessel-status-bar button[data-sync-state="running"]:hover { color: #93c5fd; }

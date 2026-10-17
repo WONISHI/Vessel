@@ -33,7 +33,7 @@ export function OfficePage() {
       const port = event.ports[0]
       if (!port) return
       const data = event.data
-      const request = data?.type === "office:pick" ? window.electronAPI.pickOfficeFile() : data?.type === "office:rename" ? window.electronAPI.renameOffice(data.token, data.name) : data?.type === "office:save" ? window.electronAPI.commitOffice(data.name, data.bytes, data.token) : null
+      const request = data?.type === "office:convert-markdown" ? window.electronAPI.convertOfficeMarkdown(data.name, data.bytes) : data?.type === "office:pick" ? window.electronAPI.pickOfficeFile() : data?.type === "office:rename" ? window.electronAPI.renameOffice(data.token, data.name) : data?.type === "office:save" ? window.electronAPI.commitOffice(data.name, data.bytes, data.token) : null
       if (request)
         void request
           .then(
