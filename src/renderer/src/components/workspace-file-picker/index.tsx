@@ -21,7 +21,7 @@ export function WorkspaceFilePicker({ workspace, onClose }: { workspace: FilePic
       <DialogContent
         showCloseButton={false}
         overlayClassName="z-[281] bg-black/[.04] backdrop-blur-[3px]"
-        className="z-[282] top-[14vh] max-w-lg translate-y-0 gap-3 rounded-2xl bg-white p-4 shadow-2xl"
+        className="workspace-file-picker z-[282] top-[14vh] max-w-lg translate-y-0 gap-3 rounded-2xl bg-white p-4 shadow-2xl"
       >
         <DialogTitle className="text-xs">查找工作区文件</DialogTitle>
         <DialogDescription className="sr-only">默认显示当前打开的文件，输入关键词搜索文件夹、文件名、路径或文件中的链接与内容。</DialogDescription>
@@ -38,7 +38,7 @@ export function WorkspaceFilePicker({ workspace, onClose }: { workspace: FilePic
           {files.slice(0, 100).map((file) => (
             <button
               key={file.path}
-              className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left hover:bg-stone-100 focus:bg-stone-100 focus:outline-none"
+              className="workspace-file-picker-row flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left hover:bg-stone-100 focus:bg-stone-100 focus:outline-none"
               onClick={() => {
                 if (file.type === "directory") window.dispatchEvent(new CustomEvent("vessel:reveal-file", { detail: file.path }))
                 else workspace?.openFile(file)
@@ -57,8 +57,8 @@ export function WorkspaceFilePicker({ workspace, onClose }: { workspace: FilePic
                 />
               )}
               <span className="flex min-w-0 flex-1 flex-col">
-                <span className="truncate text-xs leading-4">{file.name}</span>
-                <span className="w-full truncate text-[10px] leading-4 text-stone-400">{file.path.startsWith((workspace?.root || "") + "/") ? file.path.slice(workspace!.root.length + 1) : file.path}</span>
+                <span className="workspace-file-picker-name truncate text-xs leading-4">{file.name}</span>
+                <span className="workspace-file-picker-path w-full truncate text-[10px] leading-4 text-stone-400">{file.path.startsWith((workspace?.root || "") + "/") ? file.path.slice(workspace!.root.length + 1) : file.path}</span>
               </span>
             </button>
           ))}

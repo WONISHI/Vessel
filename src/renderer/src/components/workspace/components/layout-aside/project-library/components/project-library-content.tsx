@@ -82,6 +82,8 @@ export function ProjectLibraryContent({ pinned, onPin, onSelect }: { pinned: boo
           {visible.map((project) => (
             <div
               key={project.path}
+              data-project-tab
+              data-active={project.path === workspace.path}
               className={`group relative flex min-w-0 items-center rounded-md ${project.path === workspace.path ? (visible.length === 1 ? "max-w-[104px] w-[65%] bg-green-50 text-green-700" : "max-w-[160px] flex-[1.6_1_0%] bg-green-50 text-green-700") : "max-w-[100px] flex-[1_1_0%] text-stone-500"}`}
             >
               <button
@@ -125,6 +127,8 @@ export function ProjectLibraryContent({ pinned, onPin, onSelect }: { pinned: boo
                 {overflow.map((project) => (
                   <button
                     key={project.path}
+              data-project-tab
+              data-active={project.path === workspace.path}
                     title={project.path}
                     className="block w-full truncate rounded px-2 py-2 text-left text-xs hover:bg-green-50"
                     onClick={() => activate(project)}

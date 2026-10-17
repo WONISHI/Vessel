@@ -72,7 +72,7 @@ export function TerminalPanel({ root, file }: { root: string; file?: string }) {
       aria-label="命令终端"
       className="flex h-full min-h-0 flex-col bg-[#faf9f7] dark:bg-[#22272E]"
     >
-      <header className="flex items-center gap-3 border-b px-3 py-1 text-xs text-stone-500">
+      <header className="flex shrink-0 items-center gap-3 border-b px-3 py-1 text-xs text-stone-500">
         <strong className="text-green-700">终端</strong>
         <span
           className="min-w-0 flex-1 truncate"
@@ -89,10 +89,12 @@ export function TerminalPanel({ root, file }: { root: string; file?: string }) {
           {error}
         </p>
       )}
-      <div
-        ref={host}
-        className="min-h-0 flex-1 overflow-hidden px-2 pt-2 pb-4"
-      />
+      <div className="min-h-0 flex-1 overflow-hidden px-2 pt-2 pb-[9.6px]">
+        <div
+          ref={host}
+          className="h-full w-full overflow-hidden"
+        />
+      </div>
     </section>
   )
 }

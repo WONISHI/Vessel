@@ -51,7 +51,7 @@ export function ColorTool() {
     setError("")
   }
   return (
-    <div className="flex h-full flex-col">
+    <div className="color-converter flex h-full flex-col">
       <header className="tool-page-header">
         <span className="tool-page-brand">
           <Palette size={16} />
