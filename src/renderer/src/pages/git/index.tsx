@@ -1,3 +1,4 @@
+import { CommitMessageInput } from "@/pages/git/components/commit-message-input"
 import "@/pages/git/dark.css"
 import type { AsideActivity } from "@/components/layout/activity-bar/activity"
 import LayoutActivityBar from "@/components/layout/activity-bar/index"
@@ -12,7 +13,7 @@ import { DiffViewer } from "@/pages/git/components/diff-viewer"
 import { computeGitTopology, GitGraphSvg } from "@/pages/git/components/git-graph"
 import type { GitCommitDetail, GitCommitItem, GitFileStatus, GitStatusResult } from "@vessel/type"
 import { AlertCircle, Archive, ArrowDownUp, CheckCircle2, CheckSquare, Clock, Copy, Download, FileText, FolderGit2, FolderOpen, GitBranch, GitCommit, GitPullRequest, Layers, Minus, Plus, RefreshCw, RotateCcw, Tag, Trash2, Undo2, Upload } from "lucide-react"
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
 
 /**
@@ -116,7 +117,8 @@ export default function SourceTreePage() {
   const [stashes, setStashes] = useState<{ index: number; name: string; date: string }[]>([])
 
   // Commit 表单
-  const [commitMessage, setCommitMessage] = useState("")
+  const commitMessage = useRef("")
+  const [commitMessageReset, setCommitMessageReset] = useState(0)
   const [isAmend, setIsAmend] = useState(false)
 
   // 弹窗状态
@@ -618,7 +620,8 @@ export default function SourceTreePage() {
 
   /** Handles commit events. */
   const handleCommit = async () => {
-    if (!commitMessage.trim()) {
+    const message = commitMessage.current
+    if (!message.trim()) {
       toast.error("请输入提交说明 (Commit Message)")
       return
     }
@@ -627,8 +630,11 @@ export default function SourceTreePage() {
       return
     }
     try {
-      await window.electronAPI.git.commit(repoPath, commitMessage.trim(), isAmend)
-      setCommitMessage("")
+      await window.electronAPI.git.commit(repoPath, message.trim(), isAmend)
+      if (commitMessage.current === message) {
+        commitMessage.current = ""
+        setCommitMessageReset((version) => version + 1)
+      }
       setIsAmend(false)
       await refresh()
       toast.success("提交成功")
@@ -1421,15 +1427,10 @@ export default function SourceTreePage() {
 
                   {/* 底部提交输入栏 */}
                   <div className="border-t border-stone-200 p-2.5 bg-white shrink-0">
-                    <textarea
-                      rows={3}
-                      value={commitMessage}
-                      onChange={(e) => setCommitMessage(e.target.value)}
-                      placeholder="输入提交信息 (Commit message)…"
-                      className="w-full resize-none rounded border border-stone-200 p-2 text-xs outline-none focus:border-green-600"
-                      onKeyDown={(e) => {
-                        if ((e.metaKey || e.ctrlKey) && e.key === "Enter") handleCommit()
-                      }}
+                    <CommitMessageInput
+                      draft={commitMessage}
+                      resetVersion={commitMessageReset}
+                      onSubmit={() => void handleCommit()}
                     />
                     <div className="mt-2 flex items-center justify-between">
                       <div className="flex items-center gap-3">
