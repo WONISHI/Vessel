@@ -26,3 +26,27 @@ html.dark .vessel-git-page [data-git-selected="true"] :is(span, svg) { color: #4
 html.dark .vessel-git-page :is(.text-green-600, .text-green-700, .text-green-800) { color: #4ade80 !important; }
 html.dark .vessel-git-page .text-amber-700 { color: #e9a23b !important; }
 html.dark .vessel-git-page .text-blue-500 { color: #60a5fa; }
+
+/* Explicit surfaces also cover translucent light utility backgrounds. */
+html.dark .vessel-git-page .git-toolbar,
+html.dark .vessel-git-page .git-file-panel,
+html.dark .vessel-git-page [class~="bg-stone-50/30"] {
+  background: #23272d !important;
+}
+html.dark .vessel-git-page .git-toolbar { border-color: #30353c !important; }
+html.dark .vessel-git-page .git-toolbar button { color: #9aa1a9 !important; }
+html.dark .vessel-git-page .git-toolbar button:hover { color: #e6e8eb !important; }
+html.dark .vessel-git-page .git-toolbar :is(.text-green-600, .text-green-500) { color: #4ade80 !important; }
+html.dark .vessel-git-page .git-toolbar .text-blue-600 { color: #60a5fa !important; }
+html.dark .vessel-git-page .git-toolbar .text-orange-600 { color: #fb923c !important; }
+html.dark .vessel-git-page .git-toolbar :is(.text-indigo-500, .text-indigo-600) { color: #a78bfa !important; }
+html.dark .vessel-git-page .git-toolbar :is(.text-purple-500, .text-purple-600) { color: #c084fc !important; }
+html.dark .vessel-git-page .git-toolbar :is(.text-amber-500, .text-amber-600) { color: #fbbf24 !important; }
+html.dark .vessel-git-page .git-file-panel [data-radix-scroll-area-viewport] { background: #23272d !important; }
+html.dark .vessel-git-page :is(.bg-stone-200, [class~="bg-stone-200/70"], [class~="bg-stone-200/80"]) :is(.text-stone-700, .text-stone-800, .text-stone-900) { color: #4ade80 !important; }
+html.dark .vessel-git-page .git-toolbar select { background: #1c2025 !important; border-color: #30353c !important; color: #e6e8eb !important; }
+
+html.dark .vessel-git-page [data-git-file-selected="true"],
+html.dark .vessel-git-page [data-git-file-selected="true"]:hover {
+  background: #2f343b !important;
+}

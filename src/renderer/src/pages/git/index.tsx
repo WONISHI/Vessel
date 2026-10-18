@@ -719,13 +719,12 @@ export default function SourceTreePage() {
     >
       <div className="vessel-git-page flex h-full min-w-0 flex-1 flex-col overflow-hidden bg-white text-stone-800">
         {/* 1. 顶部操作工具栏 (SourceTree 经典 Toolbar) */}
-        <header className="flex h-12 shrink-0 items-center justify-between border-b border-stone-200 bg-stone-50/70 px-3">
+        <header className="git-toolbar flex h-12 shrink-0 items-center justify-between border-b border-stone-200 bg-stone-50/70 px-3">
           <div className="flex items-center gap-1">
             {/* Commit 按钮 */}
             <button
               type="button"
               className="flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium text-stone-700 hover:bg-stone-200/70"
-              data-git-selected={activeTab === "status"}
               onClick={() => setActiveTab("status")}
             >
               <GitCommit className="size-4 text-green-600" />
@@ -1046,7 +1045,7 @@ export default function SourceTreePage() {
                   defaultSize="60%"
                   minSize="20%"
                   maxSize="85%"
-                  className="flex flex-col min-h-0 min-w-0 bg-stone-50/30"
+                  className="git-file-panel flex flex-col min-h-0 min-w-0 bg-stone-50/30"
                 >
                   {/* 2号: 垂直可调整面板组 (已暂存 / 未暂存，支持 Resizable 拖拽) */}
                   <ResizablePanelGroup
@@ -1110,6 +1109,7 @@ export default function SourceTreePage() {
                               <ContextMenu key={file.path}>
                                 <ContextMenuTrigger asChild>
                                   <div
+                                    data-git-file-selected={isSelected}
                                     onClick={(e) => handleStagedItemClick(e, file, idx)}
                                     onContextMenu={() => handleStagedContextMenu(file, idx)}
                                     className={`group flex items-center justify-between rounded px-2 py-1 text-xs cursor-pointer select-none transition-colors ${
@@ -1291,6 +1291,7 @@ export default function SourceTreePage() {
                               <ContextMenu key={file.path}>
                                 <ContextMenuTrigger asChild>
                                   <div
+                                    data-git-file-selected={isSelected}
                                     onClick={(e) => handleUnstagedItemClick(e, file, idx)}
                                     onContextMenu={() => handleUnstagedContextMenu(file, idx)}
                                     className={`group flex items-center justify-between rounded px-2 py-1 text-xs cursor-pointer select-none transition-colors ${
