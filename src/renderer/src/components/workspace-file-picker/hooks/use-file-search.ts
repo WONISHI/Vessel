@@ -8,11 +8,14 @@ export function useFileSearch(root: string, query: string) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState("")
   const [limited, setLimited] = useState(false)
-  const searching = Boolean(query.trim())
+  const [indexing, setIndexing] = useState(false)
+  const [indexLimited, setIndexLimited] = useState(false)
   useEffect(() => {
-    if (!root || !searching) return
-    let cancelled = false
     setFiles([])
+    setIndexLimited(false)
+    if (!root) { setIndexing(false); return }
+    setIndexing(true)
+    let cancelled = false
     const pending = [root]
     const collected: WorkspaceNode[] = []
 
@@ -21,7 +24,11 @@ export function useFileSearch(root: string, query: string) {
       try {
         let count = 0
         while (pending.length && count++ < 10000 && collected.length < 20000 && !cancelled) {
-          const nodes = await window.electronAPI.readWorkspaceDirectory(root, pending.shift()!)
+          const directory = pending.shift()!
+          const nodes = await window.electronAPI.readWorkspaceDirectory(root, directory).catch((reason) => {
+            if (!cancelled) setError(String(reason))
+            return []
+          })
           for (const node of nodes) {
             if (node.type === "directory") {
               if (!["node_modules", ".git", ".pnpm-store"].includes(node.name)) {
@@ -33,16 +40,18 @@ export function useFileSearch(root: string, query: string) {
           if (!cancelled && count % 25 === 0) setFiles([...collected])
         }
         if (!cancelled) setFiles([...collected])
-        if (!cancelled && pending.length) setLimited(true)
+        if (!cancelled && pending.length) setIndexLimited(true)
       } catch (reason) {
         if (!cancelled) setError(String(reason))
+      } finally {
+        if (!cancelled) setIndexing(false)
       }
     }
     void scan()
     return () => {
       cancelled = true
     }
-  }, [root, searching])
+  }, [root])
   useEffect(() => {
     setContentFiles([])
     setError("")
@@ -74,5 +83,5 @@ export function useFileSearch(root: string, query: string) {
     }
   }, [root, query])
   const keyword = query.trim().toLocaleLowerCase()
-  return { files: [...new Map([...files.filter((file) => file.path.toLocaleLowerCase().includes(keyword)), ...contentFiles].map((file) => [file.path, file])).values()], busy, error, limited }
+  return { files: [...new Map([...files.filter((file) => file.path.toLocaleLowerCase().includes(keyword)), ...contentFiles].map((file) => [file.path, file])).values()], busy: busy || indexing, error, limited: limited || indexLimited }
 }

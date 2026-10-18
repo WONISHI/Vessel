@@ -79,7 +79,7 @@ export function DocumentOutline({
         aria-hidden={!expanded}
         inert={!expanded}
         style={{ transition: "transform 400ms cubic-bezier(0.22,1,0.36,1), opacity 250ms ease", transform: expanded ? "translateX(0)" : "translateX(24px)", opacity: expanded ? 1 : 0 }}
-        className={cn("flex min-h-0 flex-1 flex-col overflow-hidden motion-reduce:!transition-none", pinned ? "w-full" : "absolute inset-y-0 right-0 z-20", !pinned && "w-48 rounded-lg bg-white p-2 shadow-lg ring-1 ring-stone-100")}
+        className={cn("document-outline-panel flex min-h-0 flex-1 flex-col overflow-hidden motion-reduce:!transition-none", pinned ? "w-full" : "absolute inset-y-0 right-0 z-20", !pinned && "w-48 rounded-lg bg-white p-2 shadow-lg ring-1 ring-stone-100")}
       >
         <div className="flex h-8 shrink-0 items-center justify-end gap-2">
           {fileName && (

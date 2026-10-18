@@ -571,3 +571,12 @@ html.dark [data-sonner-toast] .toast-error-toggle { color: #4ade80; }
 [data-sonner-toast].vessel-error-toast[data-expanded="true"] { height: auto !important; }
 .toast-error-details { min-width: 0; max-width: 100%; }
 .toast-error-scroll { width: 100%; min-width: 0; overflow: hidden; }
+
+/* Replace the floating outline's light ring with the workspace dark edge. */
+html.dark .document-outline-panel.ring-1 {
+  --tw-ring-color: #444c56;
+  --tw-ring-shadow: 0 0 0 1px #444c56;
+  --tw-shadow: -8px 0 12px -8px #1c2025;
+  box-shadow: 0 0 0 1px #444c56, -8px 0 12px -8px #1c2025 !important;
+  border-color: #444c56 !important;
+}

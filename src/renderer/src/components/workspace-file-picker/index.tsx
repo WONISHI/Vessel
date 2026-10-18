@@ -10,7 +10,9 @@ import { useState } from "react"
 export function WorkspaceFilePicker({ workspace, onClose }: { workspace: FilePickerWorkspace | null; onClose: () => void }) {
   const [query, setQuery] = useState("")
   const result = useFileSearch(workspace?.root || "", query)
-  const files = query.trim() ? result.files : workspace?.files || []
+  const keyword = query.trim().toLocaleLowerCase()
+  const openFiles = (workspace?.files || []).filter((file) => !keyword || file.path.toLocaleLowerCase().includes(keyword))
+  const files = [...new Map([...openFiles, ...result.files].map((file) => [file.path, file])).values()]
   return (
     <Dialog
       open
@@ -24,7 +26,7 @@ export function WorkspaceFilePicker({ workspace, onClose }: { workspace: FilePic
         className="workspace-file-picker z-[282] top-[14vh] max-w-lg translate-y-0 gap-3 rounded-2xl bg-white p-4 shadow-2xl"
       >
         <DialogTitle className="text-xs">查找工作区文件</DialogTitle>
-        <DialogDescription className="sr-only">默认显示当前打开的文件，输入关键词搜索文件夹、文件名、路径或文件中的链接与内容。</DialogDescription>
+        <DialogDescription className="sr-only">搜索整个工作区，包含尚未打开的文件；已打开文件优先显示，支持文件夹、文件名、路径、链接与内容。</DialogDescription>
         <Input
           autoFocus
           aria-label="搜索工作区文件"
@@ -33,7 +35,7 @@ export function WorkspaceFilePicker({ workspace, onClose }: { workspace: FilePic
           onChange={(event) => setQuery(event.target.value)}
           className="h-8 text-xs md:text-xs rounded-lg bg-stone-50 focus-visible:border-green-600 focus-visible:ring-green-100 focus-visible:ring-offset-0"
         />
-        <p className="text-xs text-stone-400">{query.trim() ? "工作区搜索结果" : "当前打开的文件"}</p>
+        <p className="text-xs text-stone-400">{query.trim() ? "工作区搜索结果（包含未打开文件）" : "工作区全部文件（已打开优先）"}</p>
         <ScrollArea className="max-h-[45vh] min-h-0 [&_[data-radix-scroll-area-viewport]]:max-h-[45vh]">
           {files.slice(0, 100).map((file) => (
             <button
@@ -63,7 +65,7 @@ export function WorkspaceFilePicker({ workspace, onClose }: { workspace: FilePic
             </button>
           ))}
           {!workspace && <p className="p-3 text-xs text-stone-400">请先打开工作区</p>}
-          {workspace && !files.length && <p className="p-3 text-xs text-stone-400">{result.busy ? "正在搜索…" : query.trim() ? "没有匹配的文件" : "暂无打开的文件"}</p>}
+          {workspace && !files.length && <p className="p-3 text-xs text-stone-400">{result.busy ? "正在搜索…" : query.trim() ? "没有匹配的文件" : "工作区暂无文件"}</p>}
         </ScrollArea>
         {result.error && (
           <p

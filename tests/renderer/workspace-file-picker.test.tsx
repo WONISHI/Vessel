@@ -34,6 +34,8 @@ it("lists current tabs first and searches filenames plus contained links before 
   )
   expect(screen.getByRole("button", { name: /open.md/ })).toBeTruthy()
   expect(searchContent).not.toHaveBeenCalled()
+  expect(await screen.findByRole("button", { name: /service.md/ })).toBeTruthy()
+  expect(screen.getByText("工作区全部文件（已打开优先）")).toBeTruthy()
   fireEvent.change(screen.getByRole("textbox", { name: "搜索工作区文件" }), { target: { value: "service" } })
   expect(await screen.findByRole("button", { name: /service.md/ })).toBeTruthy()
   fireEvent.click(await screen.findByRole("button", { name: /linked.md/ }))
@@ -75,4 +77,17 @@ it("searches folders and reveals the selected folder without opening it as a fil
   } finally {
     window.removeEventListener("vessel:reveal-file", reveal)
   }
+})
+
+it("indexes unopened nested files before typing and opens them", async () => {
+  vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} })
+  const read = vi.fn(async (_root: string, path: string) => path === "/vault"
+    ? [{ name: "notes", path: "/vault/notes", type: "directory" }]
+    : [{ name: "unopened.md", path: "/vault/notes/unopened.md", type: "file" }])
+  Object.defineProperty(window, "electronAPI", { configurable: true, value: { readWorkspaceDirectory: read, searchContent: vi.fn() } })
+  const openFile = vi.fn()
+  render(<WorkspaceFilePicker workspace={{ root: "/vault", files: [], openFile }} onClose={() => {}} />)
+  fireEvent.click(await screen.findByRole("button", { name: /unopened.md/ }))
+  expect(read).toHaveBeenCalledWith("/vault", "/vault/notes")
+  expect(openFile).toHaveBeenCalledWith({ name: "unopened.md", path: "/vault/notes/unopened.md", type: "file" })
 })
