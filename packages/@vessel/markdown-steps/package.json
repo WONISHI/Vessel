@@ -1,0 +1,17 @@
+{
+  "name": "@vessel/markdown-steps",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./style.css": "./src/style.css"
+  },
+  "types": "./src/index.ts",
+  "dependencies": {
+    "marked": "^17.0.1"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  }
+}

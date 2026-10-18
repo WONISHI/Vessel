@@ -1,0 +1,5 @@
+.vessel-mindmap { background: #fff; color: #374151; }
+.vessel-mindmap header, .vessel-mindmap footer { border-color: #e5e7eb; }
+html.dark .vessel-mindmap { background: #22272e; color: #cdd9e5; }
+html.dark .vessel-mindmap header, html.dark .vessel-mindmap footer { border-color: #444c56; }
+html.dark .vessel-mindmap .mind-elixir { --bgcolor: #22272e; }

@@ -30,7 +30,7 @@ export default function WorkspaceTree({
   sortBy = "auto",
   sortOrder = "asc"
 }: {
-  onCreate?: (parent: string, kind: "file" | "directory") => void
+  onCreate?: (parent: string, kind: "file" | "directory", extension?: string) => void
   onSearchDirectory?: (path: string) => void
   viewport: HTMLElement | null
   recent?: boolean
@@ -266,10 +266,10 @@ export default function WorkspaceTree({
                 node={node}
                 onRenamingChange={(isRenaming) => setRenamingPath(isRenaming ? node.path : null)}
                 onSearchDirectory={onSearchDirectory}
-                onCreate={(kind) => {
+                onCreate={(kind, extension) => {
                   setDirectoryExpanded(node.path, true)
                   void loadDirectoryChildren(node.path)
-                  onCreate?.(node.path, kind)
+                  onCreate?.(node.path, kind, extension)
                 }}
                 onChanged={() => {
                   const index = Math.max(node.path.lastIndexOf("/"), node.path.lastIndexOf("\\"))

@@ -64,7 +64,7 @@ export function decorateCodeBlocks(root: HTMLElement, readOnly = false) {
         .find((name) => name.startsWith("language-"))
         ?.slice(9) || "text"
     if (language === "vessel-obsidian-image") return
-    if (language.toLowerCase() === "mermaid") {
+    if (["mermaid", "steps", "timeline"].includes(language.toLowerCase())) {
       // Diagram previews must remain under Vditor's native render/edit lifecycle.
       block.classList.remove("vessel-direct-code")
       for (const frame of block.querySelectorAll<HTMLElement>(".vessel-code-frame")) {

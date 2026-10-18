@@ -1,8 +1,9 @@
+import { fileEntryOptions } from "@/components/workspace/components/layout-aside/layout-workspace-sidebar/create-entry/components/file-entry-options"
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { EntryDraft } from "@/components/workspace/components/layout-aside/layout-workspace-sidebar/create-entry/components/create-entry-shared"
-import { FileCode2, FilePlus2, FileText, FolderPlus, LayoutTemplate } from "lucide-react"
+import { FilePlus2, FolderPlus } from "lucide-react"
 import { useState } from "react"
 
 /** Renders the create entry component. */
@@ -43,8 +44,7 @@ export function CreateEntry({ kind, onStart }: { kind: EntryDraft["kind"]; onSta
           onCloseAutoFocus={(event) => event.preventDefault()}
           onOpenAutoFocus={(event) => event.preventDefault()}
         >
-          {["md", "excalidraw.md", "js", "ts", "json", "jsx", "html", "css", "vue", ""].map((extension) => {
-            const itemLabel = extension === "excalidraw.md" ? "新建白板 (.excalidraw.md)" : extension ? `新建 ${extension.toUpperCase()} 文件` : "新建自定义文件"
+          {fileEntryOptions.map(({ extension, label: itemLabel, icon: Icon }) => {
             return (
               <Button
                 key={extension}
@@ -56,7 +56,7 @@ export function CreateEntry({ kind, onStart }: { kind: EntryDraft["kind"]; onSta
                   setOpen(false)
                 }}
               >
-                {extension === "md" ? <FileText className="!size-3.5 shrink-0" /> : extension === "excalidraw.md" ? <LayoutTemplate className="!size-3.5 shrink-0" /> : <FileCode2 className="!size-3.5 shrink-0" />}
+                <Icon className="!size-3.5 shrink-0" />
                 <span className="truncate min-w-0 flex-1 text-left">{itemLabel}</span>
               </Button>
             )

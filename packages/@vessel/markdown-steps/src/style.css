@@ -1,0 +1,91 @@
+.vessel-steps {
+  --step-accent: #16a34a;
+  --step-line: #d1d5db;
+  --step-title: #292524;
+  --step-text: #57534e;
+  list-style: none !important;
+  padding: 16px 12px !important;
+  margin: 0 !important;
+  text-align: left;
+}
+.vessel-steps > .vessel-step {
+  position: relative;
+  display: flex;
+  gap: 16px;
+  padding: 0 0 24px !important;
+  margin: 0 !important;
+  list-style: none !important;
+}
+.vessel-step:not(:last-child)::before {
+  content: "";
+  position: absolute;
+  left: 14px;
+  top: 30px;
+  bottom: 0;
+  width: 2px;
+  background: var(--step-line);
+}
+.vessel-step-marker {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--step-accent);
+  color: white;
+  font: 600 13px/1 sans-serif;
+}
+.vessel-step-content {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.vessel-step-title {
+  color: var(--step-title);
+  font-weight: 600;
+  line-height: 30px;
+}
+.vessel-step-body {
+  margin-top: 6px;
+  color: var(--step-text);
+  line-height: 1.8;
+}
+.vessel-step-body :is(ul, ol) {
+  padding-left: 1.5em;
+}
+.vessel-step-body p {
+  margin: 4px 0;
+}
+.vessel-steps--timeline .vessel-step-marker {
+  flex-basis: 12px;
+  height: 12px;
+  margin: 9px;
+}
+.vessel-steps > .vessel-step:last-child {
+  padding-bottom: 0 !important;
+}
+html.dark .vessel-steps {
+  --step-accent: #4ade80;
+  --step-line: #444c56;
+  --step-title: #e6e8eb;
+  --step-text: #9aa1a9;
+}
+html.dark .vessel-step-marker {
+  color: #1c2025;
+}
+.vessel-step-body blockquote {
+  margin: 8px 0;
+  padding: 4px 12px;
+  border-left: 3px solid var(--step-line);
+  color: var(--step-text);
+}
+.vessel-step-body :is(h1, h2, h3, h4, h5, h6) {
+  margin: 12px 0 6px;
+  color: var(--step-title);
+}
+.vessel-step-body table { display: block; max-width: 100%; overflow-x: auto; border-collapse: collapse; }
+.vessel-step-body :is(th, td) { border: 1px solid var(--step-line); padding: 5px 10px; }
+.vessel-step-body pre { max-width: 100%; overflow-x: auto; }

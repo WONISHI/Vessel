@@ -432,6 +432,12 @@ html.dark .dev-actions-menu :is([role="menuitem"], [role="menuitemcheckbox"]):is
 }
 
 /* Quick file switcher dark palette from the supplied design. */
+/* Keep long file paths inside the same 400px width as the command palette. */
+.workspace-file-picker [data-radix-scroll-area-viewport] > div {
+  display: block !important;
+  width: 100%;
+  min-width: 0 !important;
+}
 html.dark .workspace-file-picker { background: #23272d !important; border-color: #30353c !important; color: #e6e8eb !important; }
 html.dark .workspace-file-picker h2 { color: #e6e8eb !important; }
 html.dark .workspace-file-picker input { background: #1c2025 !important; color: #e6e8eb !important; border-color: #30353c !important; }
@@ -579,4 +585,13 @@ html.dark .document-outline-panel.ring-1 {
   --tw-shadow: -8px 0 12px -8px #1c2025;
   box-shadow: 0 0 0 1px #444c56, -8px 0 12px -8px #1c2025 !important;
   border-color: #444c56 !important;
+}
+
+html.dark [data-file-context-open="true"] [data-workspace-tree-row] {
+  background-color: #30353c !important;
+  color: #fff !important;
+}
+html.dark .workspace-file-context-menu [role="menuitem"]:is([data-highlighted], [data-state="open"]) {
+  background-color: #30353c !important;
+  color: #fff !important;
 }

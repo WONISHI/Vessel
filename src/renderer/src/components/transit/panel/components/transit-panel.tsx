@@ -1,12 +1,15 @@
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { FilePreview } from "@/components/transit/file-preview"
-import { formatTransitDate } from "@/components/transit/panel/components/panel-shared"
+import { TransitDock, type TransitDockMode } from "@/components/transit/panel/components/transit-dock"
+import { TransitStatus } from "@/components/transit/panel/components/transit-status"
+import "@/components/transit/panel/components/transit.css"
+import type { TransitFile } from "@vessel/type"
 import { WebPreview } from "@/components/transit/panel/components/web-preview"
 import { selectTransit, useTransit } from "@/components/transit/state"
 import { ResizableSplit } from "@/components/ui/resizable-split"
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet"
-import { ChevronLeft, ChevronRight, ExternalLink, FileText, Globe, Maximize, Minimize, PanelRight, X } from "lucide-react"
-import { useRef, useState } from "react"
-import Clock from "react-live-clock"
+import { ChevronLeft, ChevronRight, ExternalLink, Clipboard, FileText, Globe, Maximize, Minimize, X } from "lucide-react"
+import { useCallback, useRef, useState } from "react"
 import { toast } from "sonner"
 
 /** Renders the transit panel component. */
@@ -14,8 +17,18 @@ export function TransitPanel() {
   const { items, selected } = useTransit()
   const index = items.findIndex((i) => i.id === selected)
   const item = items[index]
-  const [width, setWidth] = useState(() => Math.max(320, Math.min(900, Number(localStorage.getItem("vessel-transit-width")) || 480)))
-  const [dock, setDock] = useState<"left" | "right" | "floating">("right")
+  const pageStart = Math.floor(Math.max(0, index) / 4) * 4
+  const visibleItems = items.slice(pageStart, pageStart + 4)
+  const [width, setWidth] = useState(() => Math.max(320, Math.min(900, Number(localStorage.getItem("vessel-transit-width")) || 420)))
+  const [dock, setDock] = useState<TransitDockMode>("right")
+  const [height, setHeight] = useState(300)
+  const [refresh, setRefresh] = useState(0)
+  const [searchRequest, setSearchRequest] = useState(0)
+  const [loaded, setLoaded] = useState<{ id: string; file: TransitFile } | null>(null)
+  /** Tracks preview metadata without re-reading the file. */
+  const onLoaded = useCallback((file: TransitFile) => { if (item) setLoaded({ id: item.id, file }) }, [item?.id])
+  /** Changes docking and exits fullscreen. */
+  const changeDock = (value: TransitDockMode) => { setDock(value); setFull(false) }
   const left = dock === "left"
   const [full, setFull] = useState(false)
   const [position, setPosition] = useState({ x: 120, y: 70 })
@@ -53,119 +66,45 @@ export function TransitPanel() {
         onPointerMove={move}
         onPointerUp={stop}
         onPointerCancel={stop}
-        className="flex items-center gap-2 border-b p-3"
+        className="transit-bar transit-top-bar"
       >
-        <span className="rounded-lg bg-emerald-50 p-2 text-green-600">{item.kind === "url" ? <Globe className="size-4" /> : <FileText className="size-4" />}</span>
-        <div className="min-w-0 flex-1">
-          <SheetTitle className="truncate text-sm">{item.title}</SheetTitle>
-          <SheetDescription className="truncate text-[11px] text-stone-400">{item.kind === "text" ? "剪贴板文本" : item.content}</SheetDescription>
-        </div>
-        <button
-          title={full ? "还原" : "展开"}
-          aria-label={full ? "还原" : "展开"}
-          onClick={() => setFull(!full)}
-          className="rounded p-1.5 text-stone-500 hover:bg-stone-100"
-        >
-          {full ? <Minimize className="size-4" /> : <Maximize className="size-4" />}
-        </button>
-        <button
-          title="独立窗口"
-          aria-label="独立窗口"
-          onClick={() => void window.electronAPI.openTransitWindow(item).catch((error) => toast.error(String(error)))}
-          className="rounded p-1.5 text-stone-500 hover:bg-stone-100"
-        >
-          <ExternalLink className="size-4" />
-        </button>
-        <div className="group relative self-center">
-          <button
-            aria-label="中转站停靠方式"
-            className="flex items-center rounded bg-emerald-50 p-1.5 text-green-600"
-          >
-            <PanelRight className="size-4" />
-          </button>
-          <div className="absolute right-0 top-full z-[70] hidden w-36 pt-2 group-hover:block group-focus-within:block">
-            <div className="rounded-lg border bg-white p-1 shadow-lg">
-              {(
-                [
-                  ["left", "左侧边停靠"],
-                  ["right", "右侧边停靠"],
-                  ["floating", "悬浮停靠"]
-                ] as const
-              ).map(([value, label]) => (
-                <button
-                  key={value}
-                  aria-pressed={dock === value}
-                  onClick={() => {
-                    setDock(value)
-                    setFull(false)
-                  }}
-                  className={`block w-full rounded px-3 py-2 text-left text-xs hover:bg-emerald-50 ${dock === value ? "text-green-600" : "text-stone-600"}`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-        <button
-          aria-label="关闭中转站"
-          title="关闭"
-          onClick={() => selectTransit(null)}
-          className="rounded p-1.5 text-stone-500 hover:bg-stone-100"
-        >
-          <X className="size-4" />
-        </button>
+        <SheetTitle className="sr-only">{item.title}</SheetTitle>
+        <SheetDescription className="sr-only">中转站预览：{item.kind === "text" ? "剪贴板文本" : item.content}</SheetDescription>
+        <button title={full ? "还原" : "展开"} aria-label={full ? "还原" : "展开"} onClick={() => setFull(!full)} className="transit-bar-item">{full ? <Minimize /> : <Maximize />}</button>
+        <button title="独立窗口" aria-label="独立窗口" onClick={() => void window.electronAPI.openTransitWindow(item).catch((error) => toast.error(String(error)))} className="transit-bar-item"><ExternalLink /></button>
+        <TransitDock value={dock} onChange={changeDock} />
+        <button title="关闭" aria-label="关闭中转站" onClick={() => selectTransit(null)} className="transit-bar-item transit-close"><X /></button>
       </header>
-      {items.length > 1 && (
-        <nav
-          aria-label="中转项轮播"
-          className="transit-navigation-bar flex shrink-0 items-center justify-center gap-3 border-b bg-white px-3 py-1"
-        >
-          <button
-            aria-label="上一个中转项"
-            disabled={index <= 0}
-            onClick={() => selectTransit(items[index - 1].id)}
-            className="rounded p-1 text-stone-500 hover:bg-stone-200 disabled:opacity-30"
-          >
-            <ChevronLeft className="size-4" />
-          </button>
-          <span
-            aria-live="polite"
-            className="text-[11px] text-stone-400"
-          >
-            {index + 1} / {items.length}
-          </span>
-          <button
-            aria-label="下一个中转项"
-            disabled={index >= items.length - 1}
-            onClick={() => selectTransit(items[index + 1].id)}
-            className="rounded p-1 text-stone-500 hover:bg-stone-200 disabled:opacity-30"
-          >
-            <ChevronRight className="size-4" />
-          </button>
-        </nav>
-      )}
+      <nav aria-label="中转项轮播" className="transit-bar transit-strip-bar">
+        <button aria-label="上一个中转项" disabled={index <= 0} onClick={() => selectTransit(items[index - 1].id)} className="transit-bar-item"><ChevronLeft /></button>
+        <div className="transit-strip-tabs" role="tablist" aria-label="中转项">
+          {visibleItems.map((entry) => (
+            <button role="tab" aria-selected={entry.id === selected} aria-label={entry.title} title={entry.title} key={entry.id} className="transit-strip-tab" onClick={() => selectTransit(entry.id)}>
+              {entry.kind === "url" ? <Globe /> : entry.kind === "text" ? <Clipboard /> : <FileText />}
+            </button>
+          ))}
+        </div>
+        <button aria-label="下一个中转项" disabled={index >= items.length - 1} onClick={() => selectTransit(items[index + 1].id)} className="transit-bar-item"><ChevronRight /></button>
+        <span aria-live="polite" className="transit-strip-count">{index + 1}/{items.length}</span>
+      </nav>
+      <div className="transit-sheet-body">
       {item.kind === "file" ? (
         <FilePreview
-          key={item.id}
+          key={`${item.id}-${refresh}`}
           item={item}
+          onLoaded={onLoaded}
         />
       ) : item.kind === "url" ? (
         <WebPreview
-          key={item.id}
+          searchRequest={searchRequest}
+          key={`${item.id}-${refresh}`}
           item={item}
         />
       ) : (
-        <pre className="min-h-0 flex-1 overflow-auto whitespace-pre-wrap break-words p-5 font-sans text-sm leading-7 text-stone-700">{item.content}</pre>
+        <ScrollArea className="transit-text-scroll min-h-0 min-w-0 flex-1"><div className="transit-text-panel"><pre className="transit-clipboard-text">{item.content}</pre><p className="transit-type-hint"><Clipboard />来自剪贴板</p></div></ScrollArea>
       )}
-      <footer className="border-t bg-stone-50 px-3 py-2 text-right text-[11px] text-stone-400">
-        <Clock
-          format="YYYY年MM月DD日 HH:mm"
-          ticking
-          interval={1000}
-          filter={() => formatTransitDate(new Date())}
-        />
-      </footer>
+      </div>
+      <TransitStatus item={item} file={loaded?.id === item.id ? loaded.file : undefined} onSearch={() => setSearchRequest((value) => value + 1)} onRefresh={() => setRefresh((value) => value + 1)} />
     </>
   )
   return (
@@ -186,7 +125,7 @@ export function TransitPanel() {
         className="z-[240] pointer-events-none [&_.vessel-panel-separator]:pointer-events-auto !max-w-none border-0 bg-transparent p-0 shadow-none"
       >
         {dock === "floating" && !full ? (
-          <div className="pointer-events-auto relative flex h-full flex-col overflow-hidden rounded-xl border bg-white shadow-xl">
+          <div className="transit-sheet pointer-events-auto relative flex h-full flex-col overflow-hidden rounded-xl border bg-white shadow-xl">
             {content}
             <div
               role="separator"
@@ -205,15 +144,16 @@ export function TransitPanel() {
           </div>
         ) : (
           <ResizableSplit
-            side={left ? "left" : "right"}
-            size={width}
-            min={320}
-            max={Math.min(900, window.innerWidth - 52)}
-            label="调整中转站宽度"
-            onResize={saveWidth}
-            pane={!full ? <div className="transit-resizable-content pointer-events-auto flex h-full min-w-0 flex-col bg-white shadow-lg">{content}</div> : undefined}
+            key={dock}
+            side={dock === "bottom" ? "bottom" : left ? "left" : "right"}
+            size={dock === "bottom" ? height : width}
+            min={dock === "bottom" ? 180 : 320}
+            max={dock === "bottom" ? window.innerHeight - 60 : Math.min(900, window.innerWidth - 52)}
+            label={dock === "bottom" ? "调整中转站高度" : "调整中转站宽度"}
+            onResize={dock === "bottom" ? setHeight : saveWidth}
+            pane={!full ? <div className="transit-sheet transit-resizable-content pointer-events-auto flex h-full min-w-0 flex-col bg-white shadow-lg">{content}</div> : undefined}
           >
-            {full ? <div className="pointer-events-auto flex h-full flex-col bg-white">{content}</div> : <div className="h-full" />}
+            {full ? <div className="transit-sheet pointer-events-auto flex h-full flex-col bg-white">{content}</div> : <div className="h-full" />}
           </ResizableSplit>
         )}
       </SheetContent>

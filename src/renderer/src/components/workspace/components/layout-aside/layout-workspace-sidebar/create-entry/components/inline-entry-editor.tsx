@@ -1,3 +1,4 @@
+import { createMindmapDocument } from "@/components/core/canvas/variants/mindmap/document"
 import { createNewExcalidrawContent } from "@/components/core/canvas/variants/excalidraw/parser"
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { EntryDraft } from "@/components/workspace/components/layout-aside/layout-workspace-sidebar/create-entry/components/create-entry-shared"
@@ -66,6 +67,9 @@ export function InlineEntryEditor({ draft, onFinish }: { draft: EntryDraft; onFi
       const node = await window.electronAPI.createWorkspaceEntry(workspace.path, draft.parent, name.trim(), draft.kind)
       if (draft.kind === "file" && name.toLowerCase().endsWith(".excalidraw.md")) {
         await window.electronAPI.saveContent(node.path, createNewExcalidrawContent(name))
+      }
+      if (draft.kind === "file" && name.toLowerCase().endsWith(".mind")) {
+        await window.electronAPI.saveContent(node.path, createMindmapDocument(name))
       }
       onFinish(true)
       if (draft.kind === "file") openWorkspaceFile(node)

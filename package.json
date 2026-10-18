@@ -167,6 +167,7 @@
     "@vscode/ripgrep": "^1.18.0",
     "better-sqlite3": "^12.4.1",
     "dugite": "^3.2.3",
+    "mind-elixir": "5.4.0",
     "node-pty": "^1.1.0",
     "typescript": "^5.9.3",
     "yaml": "^2.9.1",
@@ -267,7 +268,8 @@
     "lz-string": "^1.5.0",
     "react-activity-calendar": "^3.2.1",
     "recharts": "^3.10.1",
-    "@vessel/image-matting": "workspace:*"
+    "@vessel/image-matting": "workspace:*",
+    "@vessel/markdown-steps": "workspace:*"
   },
   "volta": {
     "node": "20.20.0"

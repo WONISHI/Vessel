@@ -283,7 +283,7 @@ export default function LayoutWorkspaceSidebar({ activity }: LayoutWorkspaceSide
           <WorkspaceTree
             key={`${workspace.path}-${activity}`}
             draft={draft}
-            onCreate={(parent, kind) => setDraft({ parent, kind, extension: "" })}
+            onCreate={(parent, kind, extension = "") => setDraft({ parent, kind, extension })}
             onSearchDirectory={(path) => {
               setSearchTarget(path)
               setSearchOpen(true)

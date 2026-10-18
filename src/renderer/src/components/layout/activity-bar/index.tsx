@@ -70,7 +70,7 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
             setSyncRunning(syncPending.current || Boolean(settings?.backup?.enabled && status?.running))
           }
         })
-        .catch(() => {})
+        .catch(() => { })
     }
     checkSync()
     window.addEventListener("vessel:sync-context", checkSync)
@@ -95,7 +95,7 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
         .then((s) => {
           if (!cancelled) setGlobalSearchEnabled(!!s.globalSearchEnabled)
         })
-        .catch(() => {})
+        .catch(() => { })
     }
     update()
     window.addEventListener("vessel:settings-saved", update)

@@ -23,7 +23,7 @@ export function WorkspaceFilePicker({ workspace, onClose }: { workspace: FilePic
       <DialogContent
         showCloseButton={false}
         overlayClassName="z-[281] bg-black/[.04] backdrop-blur-[3px]"
-        className="workspace-file-picker z-[282] top-[14vh] max-w-lg translate-y-0 gap-3 rounded-2xl bg-white p-4 shadow-2xl"
+        className="workspace-file-picker z-[282] top-[14vh] w-[400px] max-w-[92vw] sm:max-w-[400px] translate-y-0 gap-3 rounded-2xl bg-white p-4 shadow-2xl"
       >
         <DialogTitle className="text-xs">查找工作区文件</DialogTitle>
         <DialogDescription className="sr-only">搜索整个工作区，包含尚未打开的文件；已打开文件优先显示，支持文件夹、文件名、路径、链接与内容。</DialogDescription>
@@ -59,7 +59,7 @@ export function WorkspaceFilePicker({ workspace, onClose }: { workspace: FilePic
                 />
               )}
               <span className="flex min-w-0 flex-1 flex-col">
-                <span className="workspace-file-picker-name truncate text-xs leading-4">{file.name}</span>
+                <span title={file.name} className="workspace-file-picker-name truncate text-xs leading-4">{file.name}</span>
                 <span className="workspace-file-picker-path w-full truncate text-[10px] leading-4 text-stone-400">{file.path.startsWith((workspace?.root || "") + "/") ? file.path.slice(workspace!.root.length + 1) : file.path}</span>
               </span>
             </button>

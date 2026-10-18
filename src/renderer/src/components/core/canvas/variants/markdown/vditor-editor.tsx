@@ -1,3 +1,11 @@
+import { MarkdownInsertMenu } from "@/components/core/canvas/variants/markdown/insert-menu"
+import { bindMarkdownInsertMenu, type MarkdownInsertLocation } from "@/components/core/canvas/variants/markdown/insert-menu-selection"
+import { CodeLanguageDialog } from "@/components/core/canvas/variants/markdown/code-language-dialog"
+import { bindTaskCheckboxes } from "@/components/core/canvas/variants/markdown/task-checkboxes"
+import { renderSteps, escapeStepsText } from "@vessel/markdown-steps"
+import "@vessel/markdown-steps/style.css"
+import { bindListShortcuts } from "@/components/core/canvas/variants/markdown/list-shortcuts"
+import { bindImageParagraphs, insertImageParagraph } from "@/components/core/canvas/variants/markdown/image-paragraph"
 import "@/components/core/canvas/variants/markdown/index.css"
 import { clearCodeHighlights, decorateCodeBlocks } from "@/components/core/canvas/variants/markdown/code-blocks"
 import { decorateMarkdownTags } from "@/components/core/canvas/variants/markdown/decorate-tags"
@@ -18,7 +26,6 @@ import { parseFrontmatter } from "@vessel/obsidian/frontmatter"
 import { markdownHotkey } from "@vessel/utils"
 import { Bold, Code, CodeXml, Heading, ImagePlus, Italic, Link, List, ListChecks, ListOrdered, Minus, Palette, Quote, Redo2, Smile, Strikethrough, Table2, Undo2 } from "lucide-react"
 import { Fragment, useEffect, useRef, useState } from "react"
-import { createPortal } from "react-dom"
 import { createRoot, type Root } from "react-dom/client"
 import { renderToStaticMarkup } from "react-dom/server"
 import { toast } from "sonner"
@@ -27,6 +34,8 @@ import "vditor/dist/index.css"
 
 /** 保留 Vditor 编辑能力，文档显示和大纲由外层 React 组件负责。 */
 export function VditorEditor({ value, onChange, workspacePath, documentPath, readOnly = false }: { readOnly?: boolean; workspacePath: string; documentPath: string; value: string; onChange: (value: string) => void }) {
+  const [insertLocation, setInsertLocation] = useState<MarkdownInsertLocation | null>(null)
+  const imageInsertAction = useRef<(() => void) | null>(null)
   const [languageBlock, setLanguageBlock] = useState<HTMLElement | null>(null)
   const [colorAnchor, setColorAnchor] = useState<{ left: number; top: number } | null>(null)
   const colorRange = useRef<Range | null>(null)
@@ -52,7 +61,11 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
     }
     const toolbarContainer = toolbarHost.current
     toolbarContainer?.addEventListener("pointerdown", rememberSelection, true)
+    const unbindInsertMenu = readOnly ? () => {} : bindMarkdownInsertMenu(element, setInsertLocation)
     const unbindTablePaste = readOnly ? () => {} : bindTablePaste(element)
+    const unbindImageParagraphs = readOnly ? () => {} : bindImageParagraphs(element)
+    const unbindListShortcuts = readOnly ? () => {} : bindListShortcuts(element)
+    const unbindTaskCheckboxes = bindTaskCheckboxes(element, readOnly)
     const unbindWikiEditing = bindWikiLinkEditing(element)
     const unbindTableActions = readOnly ? () => {} : bindTableActions(element)
 
@@ -81,6 +94,7 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
     let disposed = false
     let ready = false
     const imagePicker = document.createElement("input")
+    imageInsertAction.current = () => imagePicker.click()
     imagePicker.type = "file"
     imagePicker.accept = "image/png,image/jpeg,image/gif,image/webp"
     imagePicker.addEventListener("change", () => {
@@ -167,6 +181,17 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
           height: "auto",
           value: prepareObsidianImages(initialValue.current),
           customRenders: [
+            ...(["steps", "timeline"] as const).map((language) => ({
+              language,
+              /** Renders list-based diagrams while leaving Vditor's source node intact. */
+              render: (preview: HTMLElement) => {
+                const code = preview.querySelector(`code.language-${language}`)
+                if (!code) return
+                const source = code.textContent || ""
+                try { preview.innerHTML = renderSteps(source, language) }
+                catch (error) { preview.innerHTML = `<div role="alert">${escapeStepsText(String(error))}</div><pre>${escapeStepsText(source)}</pre>` }
+              }
+            })),
             {
               language: "vessel-obsidian-image",
 
@@ -204,43 +229,13 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
                       const block = element.closest<HTMLElement>("[data-type=code-block]")
                       const editable = block?.closest<HTMLElement>('[contenteditable="true"]')
                       if (!block || !editable || readOnly) return
-                      let prev = block.previousElementSibling as HTMLElement | null
-                      if (!prev || prev.tagName !== "P") {
-                        prev = document.createElement("p")
-                        prev.dataset.block = "0"
-                        prev.innerHTML = "<br>"
-                        block.before(prev)
-                      }
-                      editable.focus({ preventScroll: true })
-                      const range = document.createRange()
-                      range.selectNodeContents(prev)
-                      range.collapse(true)
-                      const selection = window.getSelection()
-                      selection?.removeAllRanges()
-                      selection?.addRange(range)
-                      editable.dispatchEvent(new InputEvent("input", { bubbles: true, inputType: "insertParagraph" }))
-                      prev.scrollIntoView({ block: "nearest" })
+                      insertImageParagraph(block, false)?.scrollIntoView({ block: "nearest" })
                     }}
                     onFocusBelow={() => {
                       const block = element.closest<HTMLElement>("[data-type=code-block]")
                       const editable = block?.closest<HTMLElement>('[contenteditable="true"]')
                       if (!block || !editable || readOnly) return
-                      let next = block.nextElementSibling as HTMLElement | null
-                      if (!next || next.tagName !== "P") {
-                        next = document.createElement("p")
-                        next.dataset.block = "0"
-                        next.innerHTML = "<br>"
-                        block.after(next)
-                      }
-                      editable.focus({ preventScroll: true })
-                      const range = document.createRange()
-                      range.selectNodeContents(next)
-                      range.collapse(true)
-                      const selection = window.getSelection()
-                      selection?.removeAllRanges()
-                      selection?.addRange(range)
-                      editable.dispatchEvent(new InputEvent("input", { bubbles: true, inputType: "insertParagraph" }))
-                      next.scrollIntoView({ block: "nearest" })
+                      insertImageParagraph(block)?.scrollIntoView({ block: "nearest" })
                     }}
                     readOnly={readOnly}
                     source={source}
@@ -374,7 +369,12 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
       toolbarContainer?.removeEventListener("pointerdown", rememberSelection, true)
       unbindWikiEditing()
       unbindTableActions()
+      unbindInsertMenu()
+      imageInsertAction.current = null
       unbindTablePaste()
+      unbindImageParagraphs()
+      unbindListShortcuts()
+      unbindTaskCheckboxes()
       element.removeEventListener("focusout", decorate)
       element.removeEventListener("vessel-code-language", chooseLanguage)
       element.removeEventListener("paste", pasteImage, true)
@@ -386,51 +386,44 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
   }, [properties, readOnly])
   return (
     <LinkInteractionArea className="relative flex h-full min-h-0 min-w-0 flex-col">
-      {languageBlock &&
-        createPortal(
-          <div
-            className="fixed inset-0 z-[280]"
-            onMouseDown={() => setLanguageBlock(null)}
-          >
-            <div
-              className="absolute w-56 rounded-lg border bg-white p-3 shadow-lg"
-              style={{ left: Math.min(innerWidth - 240, languageBlock.getBoundingClientRect().left + 50), top: Math.min(innerHeight - 150, languageBlock.getBoundingClientRect().top + 40), fontFamily: '"Plus Jakarta Sans", sans-serif' }}
-              onMouseDown={(event) => event.stopPropagation()}
-            >
-              <label className="text-xs text-stone-500">
-                代码语言
-                <select
-                  autoFocus
-                  aria-label="代码语言"
-                  className="mt-2 w-full rounded border bg-white p-2 text-sm"
-                  value={languageBlock.querySelector("pre code")?.className.replace("language-", "") || "text"}
-                  onChange={(event) => {
-                    const info = languageBlock.querySelector('[data-type="code-block-info"]')
-                    const code = languageBlock.querySelector("pre.vditor-ir__marker code")
-                    if (info && code && instance.current) {
-                      info.textContent = "\u200b" + event.target.value
-                      code.className = "language-" + event.target.value
-                      const next = instance.current.getValue()
-                      instance.current.setValue(next)
-                      changeHandler.current((properties?.raw ?? "") + restoreObsidianImages(next))
-                    }
-                    setLanguageBlock(null)
-                  }}
-                >
-                  {["text", "js", "ts", "jsx", "tsx", "json", "html", "css", "scss", "vue", "python", "java", "go", "rust", "c", "cpp", "csharp", "sql", "bash", "yaml", "xml", "markdown"].map((language) => (
-                    <option
-                      key={language}
-                      value={language}
-                    >
-                      {language}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-          </div>,
-          document.body
-        )}
+      {insertLocation && !readOnly && (
+        <MarkdownInsertMenu
+          x={insertLocation.x}
+          y={insertLocation.y}
+          onClose={() => setInsertLocation(null)}
+          onInsert={(value, inline) => {
+            const range = insertLocation.range
+            const editable = host.current?.querySelector<HTMLElement>('.vditor-ir [contenteditable="true"]')
+            if (!editable?.contains(range.commonAncestorContainer) || !instance.current) return
+            editable.focus({ preventScroll: true })
+            const selection = window.getSelection()
+            selection?.removeAllRanges()
+            selection?.addRange(range)
+            if (value === "image") imageInsertAction.current?.()
+            else instance.current.insertValue(inline ? value : `\n\n${value}\n\n`, true)
+            setInsertLocation(null)
+          }}
+        />
+      )}
+      {languageBlock && (
+        <CodeLanguageDialog
+          anchor={languageBlock}
+          value={languageBlock.querySelector("pre code")?.className.match(/language-([^\s]+)/)?.[1] || "text"}
+          onClose={() => setLanguageBlock(null)}
+          onConfirm={(language) => {
+            const info = languageBlock.querySelector('[data-type="code-block-info"]')
+            const code = languageBlock.querySelector("pre.vditor-ir__marker code")
+            if (info && code && instance.current && languageBlock.isConnected) {
+              info.textContent = "\u200b" + language
+              code.className = "language-" + language
+              const next = instance.current.getValue()
+              instance.current.setValue(next)
+              changeHandler.current((properties?.raw ?? "") + restoreObsidianImages(next))
+            }
+            setLanguageBlock(null)
+          }}
+        />
+      )}
       {colorAnchor && (
         <TextColors
           anchor={colorAnchor}

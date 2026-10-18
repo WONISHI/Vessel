@@ -12,7 +12,7 @@ import type { TransitFile } from "@vessel/type"
 import { useEffect, useState } from "react"
 
 /** Renders the file preview component. */
-export function FilePreview({ item }: { item: TransitItem }) {
+export function FilePreview({ item, onLoaded }: { item: TransitItem; onLoaded?: (file: TransitFile) => void }) {
   const dark = useDarkAppearance()
   const [file, setFile] = useState<TransitFile>()
   const [error, setError] = useState("")
@@ -30,6 +30,7 @@ export function FilePreview({ item }: { item: TransitItem }) {
       alive = false
     }
   }, [item.root, item.content])
+  useEffect(() => { if (file) onLoaded?.(file) }, [file, onLoaded])
   if (error)
     return (
       <p
@@ -55,7 +56,7 @@ export function FilePreview({ item }: { item: TransitItem }) {
     )
   if (file.kind === "markdown")
     return (
-      <div className="min-h-0 flex-1 overflow-auto [&_.vditor-reset]:!opacity-100 [&_.vditor-reset]:!cursor-text">
+      <div className="min-h-0 flex-1 overflow-hidden [&_.vditor-reset]:!opacity-100 [&_.vditor-reset]:!cursor-text">
         <VditorEditor
           value={file.content}
           workspacePath={item.root!}

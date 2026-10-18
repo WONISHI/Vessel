@@ -1,3 +1,4 @@
+import { fileEntryOptions } from "@/components/workspace/components/layout-aside/layout-workspace-sidebar/create-entry/components/file-entry-options"
 import { addTransitFile } from "@/components/transit/state"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSub, ContextMenuSubContent, ContextMenuSubTrigger, ContextMenuTrigger } from "@/components/ui/context-menu"
@@ -23,7 +24,7 @@ export function FileActions({
   node: WorkspaceNode
   children: ReactNode
   onChanged: () => void
-  onCreate?: (kind: "file" | "directory") => void
+  onCreate?: (kind: "file" | "directory", extension?: string) => void
   onSearchDirectory?: (path: string) => void
   onRenamingChange?: (renaming: boolean) => void
 }) {
@@ -104,7 +105,10 @@ export function FileActions({
       setError("")
       setConfirmRename(true)
     } catch (reason) {
-      setError(String(reason))
+      toast.error("重命名失败", {
+        id: `workspace-rename-${node.path}`,
+        description: reason instanceof Error ? reason.message : String(reason).replace(/^Error:\s*/, "")
+      })
     } finally {
       validating.current = false
     }
@@ -142,6 +146,7 @@ export function FileActions({
       <ContextMenu onOpenChange={setMenuOpen}>
         <ContextMenuTrigger asChild>
           <div
+            data-file-context-open={menuOpen}
             className={`w-full min-w-0 rounded-md ${menuOpen ? "[&>button]:!bg-[#f0efed]" : ""}`}
             onContextMenu={() => {
               setError("")
@@ -190,15 +195,6 @@ export function FileActions({
                     className="min-w-0 flex-1 bg-transparent text-xs outline-none"
                   />
                 </div>
-                {error && (
-                  <span
-                    role="alert"
-                    title={error}
-                    className="text-xs text-red-500"
-                  >
-                    {error}
-                  </span>
-                )}
               </form>
             ) : (
               children
@@ -207,7 +203,7 @@ export function FileActions({
         </ContextMenuTrigger>
         <ContextMenuContent
           onCloseAutoFocus={(event) => event.preventDefault()}
-          className="w-48"
+          className="workspace-file-context-menu w-48"
         >
           {node.type !== "directory" && /\.(html?|xhtml)$/i.test(node.name) && (
             <ContextMenuSub>
@@ -233,21 +229,21 @@ export function FileActions({
               </ContextMenuSubContent>
             </ContextMenuSub>
           )}
-          {node.type === "directory" &&
-            (
-              [
-                ["file", "新建文件", FilePlus2],
-                ["directory", "新建文件夹", FolderPlus]
-              ] as const
-            ).map(([kind, label, Icon]) => (
-              <ContextMenuItem
-                key={kind}
-                onSelect={() => onCreate?.(kind)}
-              >
-                <Icon />
-                {label}
-              </ContextMenuItem>
-            ))}
+          {node.type === "directory" && (
+            <>
+              <ContextMenuSub>
+                <ContextMenuSubTrigger><FilePlus2 />新建文件</ContextMenuSubTrigger>
+                <ContextMenuSubContent className="workspace-file-context-menu w-52">
+                  {fileEntryOptions.map(({ extension, label, icon: Icon }) => (
+                    <ContextMenuItem key={extension} title={label} onSelect={() => onCreate?.("file", extension)}>
+                      <Icon /><span className="min-w-0 truncate">{label}</span>
+                    </ContextMenuItem>
+                  ))}
+                </ContextMenuSubContent>
+              </ContextMenuSub>
+              <ContextMenuItem onSelect={() => onCreate?.("directory")}><FolderPlus />新建文件夹</ContextMenuItem>
+            </>
+          )}
           {node.type === "directory" && onSearchDirectory && (
             <ContextMenuItem onSelect={() => onSearchDirectory(node.path)}>
               <Search />
