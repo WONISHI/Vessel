@@ -1,0 +1,30 @@
+import { execFileSync } from "node:child_process"
+import { mkdtemp, rm } from "node:fs/promises"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
+import { expect, it } from "vitest"
+import { GitService } from "@main/modules/git/git-service"
+
+it("counts all commits and pages past the original 150-record limit without duplicates", async () => {
+  const root = await mkdtemp(join(tmpdir(), "vessel-git-history-"))
+  try {
+    execFileSync("git", ["init", "-b", "master", root])
+    let input = ""
+    for (let index = 1; index <= 163; index++) {
+      const message = `commit ${index}`
+      input += `commit refs/heads/master\nmark :${index}\ncommitter Test <test@example.com> ${1700000000 + index} +0000\ndata ${Buffer.byteLength(message)}\n${message}\n${index > 1 ? `from :${index - 1}\n` : ""}\n`
+    }
+    execFileSync("git", ["fast-import", "--quiet"], { cwd: root, input })
+    const service = new GitService()
+    expect(await service.getLogCount(root)).toBe(163)
+    const first = await service.getLog(root, 150)
+    const second = await service.getLog(root, 150, 150)
+    expect(first).toHaveLength(150)
+    expect(second).toHaveLength(13)
+    expect(new Set([...first, ...second].map((item) => item.hash)).size).toBe(163)
+    expect(second.at(-1)?.message).toBe("commit 1")
+    expect(await service.getLog(root, 150, 163)).toEqual([])
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
+})

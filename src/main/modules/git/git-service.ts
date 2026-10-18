@@ -178,11 +178,18 @@ export class GitService {
     return { local, remote, current }
   }
 
+  /** Counts commits reachable from HEAD, matching the history list scope. */
+  async getLogCount(cwd: string): Promise<number> {
+    const result = await runGit(["rev-list", "--count", "HEAD"], cwd)
+    if (result.exitCode !== 0) return 0
+    return Number.parseInt(result.stdout.trim(), 10) || 0
+  }
+
   /** Returns log. */
-  async getLog(cwd: string, maxCount = 100): Promise<GitCommitItem[]> {
+  async getLog(cwd: string, maxCount = 100, skip = 0): Promise<GitCommitItem[]> {
     // 格式: hash|parents|author|email|timestamp|message|refs
     const format = "%H|%P|%an|%ae|%at|%s|%D"
-    const res = await runGit(["log", `-n${maxCount}`, `--format=format:${format}`], cwd)
+    const res = await runGit(["log", `-n${Math.max(1, Math.min(500, Math.floor(maxCount)))}`, `--skip=${Math.max(0, Math.floor(skip))}`, `--format=format:${format}`], cwd)
     if (res.exitCode !== 0) return []
 
     const items: GitCommitItem[] = []

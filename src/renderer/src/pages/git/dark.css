@@ -65,3 +65,23 @@ html.dark .vessel-git-page tr[class~="hover:bg-stone-50"]:hover,
 html.dark .vessel-git-page tr[class~="hover:bg-stone-50"]:hover > td {
   background: #2f343b !important;
 }
+
+/* Radix's table wrapper must shrink with the navigation panel. */
+.vessel-git-page .git-navigation [data-radix-scroll-area-viewport] > div {
+  display: block !important;
+  min-width: 0 !important;
+  width: 100%;
+}
+.vessel-git-page .git-navigation [data-git-selected],
+.vessel-git-page .git-navigation [data-git-sidebar-hover] {
+  min-width: 0;
+  max-width: 100%;
+  gap: 8px;
+}
+
+/* Constrain commit metadata and paths to the resized details viewport. */
+.vessel-git-page .git-commit-files-scroll [data-radix-scroll-area-viewport] > div {
+  display: block !important;
+  min-width: 0 !important;
+  width: 100%;
+}

@@ -1,3 +1,4 @@
+import { HistoryLoadMore } from "@/pages/git/components/history-load-more"
 import { CommitMessageInput } from "@/pages/git/components/commit-message-input"
 import "@/pages/git/dark.css"
 import type { AsideActivity } from "@/components/layout/activity-bar/activity"
@@ -101,6 +102,11 @@ export default function SourceTreePage() {
     current: ""
   })
   const [commits, setCommits] = useState<GitCommitItem[]>([])
+  const [commitTotal, setCommitTotal] = useState(0)
+  const [historyLoading, setHistoryLoading] = useState(false)
+  const historyVersion = useRef(0)
+  const historyPending = useRef<number | null>(null)
+  const [historyFailed, setHistoryFailed] = useState(false)
   const [selectedCommitIndex, setSelectedCommitIndex] = useState(0)
   const [commitDetail, setCommitDetail] = useState<GitCommitDetail | null>(null)
 
@@ -134,6 +140,10 @@ export default function SourceTreePage() {
       setIsRepo(false)
       return
     }
+    const version = ++historyVersion.current
+    historyPending.current = null
+    setHistoryFailed(false)
+    setHistoryLoading(false)
     setLoading(true)
     try {
       const git = window.electronAPI.git
@@ -144,8 +154,10 @@ export default function SourceTreePage() {
         return
       }
 
-      const [statusRes, branchRes, logRes, stashRes] = await Promise.all([git.getStatus(repoPath), git.getBranches(repoPath), git.getLog(repoPath, 150), git.getStashes(repoPath).catch(() => [])])
+      const [statusRes, branchRes, logRes, stashRes, totalRes] = await Promise.all([git.getStatus(repoPath), git.getBranches(repoPath), git.getLog(repoPath, 150), git.getStashes(repoPath).catch(() => []), git.getLogCount(repoPath)])
 
+      if (version !== historyVersion.current) return
+      setCommitTotal(totalRes)
       setStatus(statusRes)
       setBranches(branchRes)
       setCommits(logRes)
@@ -175,6 +187,28 @@ export default function SourceTreePage() {
       setLoading(false)
     }
   }, [repoPath])
+
+  /** Loads the next history page while rejecting responses from an older refresh. */
+  const loadMoreHistory = async () => {
+    if (historyPending.current !== null || historyLoading || loading || commits.length >= commitTotal) return
+    const version = historyVersion.current
+    historyPending.current = version
+    setHistoryFailed(false)
+    setHistoryLoading(true)
+    try {
+      const next = await window.electronAPI.git.getLog(repoPath, 150, commits.length)
+      if (version !== historyVersion.current) return
+      setCommits((current) => [...new Map([...current, ...next].map((commit) => [commit.hash, commit])).values()])
+      if (!next.length) setCommitTotal(commits.length)
+    } catch (error) {
+      if (version === historyVersion.current) {
+        setHistoryFailed(true)
+        toast.error("加载历史记录失败", { description: cleanGitErrorMessage(error) })
+      }
+    } finally {
+      if (version === historyVersion.current) { historyPending.current = null; setHistoryLoading(false) }
+    }
+  }
 
   useEffect(() => {
     void refresh()
@@ -874,10 +908,9 @@ export default function SourceTreePage() {
           {/* 1号: 左侧边栏导航 (SourceTree 风格) */}
           <ResizablePanel
             id="git-sidebar-nav"
-            defaultSize="18%"
-            minSize="10%"
-            maxSize="35%"
-            className="git-navigation flex flex-col overflow-hidden text-xs select-none min-h-0"
+            defaultSize="320px"
+            minSize="230px"
+            className="git-navigation flex min-w-0 flex-col overflow-hidden text-xs select-none min-h-0"
           >
             <ScrollArea className="h-full min-h-0 [&_[data-radix-scroll-area-viewport]]:p-2">
               {/* 工作区区段 */}
@@ -906,7 +939,7 @@ export default function SourceTreePage() {
                     <Clock className="size-3.5 text-stone-500" />
                     历史记录
                   </span>
-                  <span className="text-[10px] text-stone-400">{commits.length}</span>
+                  <span className="shrink-0 pl-2 text-[10px] text-stone-400" title="当前分支可达的全部提交">{commitTotal}</span>
                 </button>
               </div>
 
@@ -932,13 +965,14 @@ export default function SourceTreePage() {
                     <div
                       key={b}
                       data-git-selected={isCurrent}
+                      title={b}
                       onDoubleClick={() => handleCheckoutBranch(b)}
                       onClick={() => handleCheckoutBranch(b)}
                       className={`flex cursor-pointer items-center justify-between rounded-md px-2.5 py-1.5 transition-colors ${isCurrent ? "bg-green-50 font-semibold text-green-800" : "text-stone-600 hover:bg-stone-100"}`}
                     >
-                      <span className="flex items-center gap-2 truncate">
-                        <GitBranch className={`size-3.5 ${isCurrent ? "text-green-600" : "text-stone-400"}`} />
-                        <span className="truncate">{b}</span>
+                      <span className="flex min-w-0 flex-1 items-center gap-2 truncate">
+                        <GitBranch className={`size-3.5 shrink-0 ${isCurrent ? "text-green-600" : "text-stone-400"}`} />
+                        <span className="min-w-0 flex-1 truncate">{b}</span>
                       </span>
                       {isCurrent && <CheckCircle2 className="size-3.5 text-green-600 shrink-0" />}
                     </div>
@@ -1651,6 +1685,7 @@ export default function SourceTreePage() {
                         })}
                       </div>
                     </div>
+                    <HistoryLoadMore loaded={commits.length} total={commitTotal} loading={historyLoading} failed={historyFailed} paused={loading} onLoad={() => void loadMoreHistory()} />
                     <ScrollBar orientation="horizontal" />
                   </ScrollArea>
                 </ResizablePanel>
@@ -1678,14 +1713,14 @@ export default function SourceTreePage() {
                       maxSize="70%"
                       className="flex min-h-0 min-w-0 flex-col bg-white"
                     >
-                      <ScrollArea className="flex-1 min-h-0 p-3 text-xs">
+                      <ScrollArea className="git-commit-files-scroll flex-1 min-h-0 min-w-0 p-3 text-xs">
                         {commitDetail ? (
                           <div>
-                            <div className="font-semibold text-stone-800 mb-1">{commitDetail.message}</div>
-                            <div className="text-stone-400 text-[11px] mb-2">
+                            <div className="truncate font-semibold text-stone-800 mb-1" title={commitDetail.message}>{commitDetail.message}</div>
+                            <div className="truncate text-stone-400 text-[11px] mb-2" title={`${commitDetail.author} <${commitDetail.email}> • ${commitDetail.date}`}>
                               {commitDetail.author} &lt;{commitDetail.email}&gt; • {commitDetail.date}
                             </div>
-                            <div className="text-[11px] font-mono text-stone-400 mb-3">Commit: {commitDetail.hash}</div>
+                            <div className="truncate text-[11px] font-mono text-stone-400 mb-3" title={`Commit: ${commitDetail.hash}`}>Commit: {commitDetail.hash}</div>
 
                             <div className="text-[11px] font-semibold text-stone-500 mb-1">修改的文件 ({commitDetail.files.length})</div>
                             <div className="space-y-1">
