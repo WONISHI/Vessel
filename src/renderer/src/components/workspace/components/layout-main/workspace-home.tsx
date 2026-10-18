@@ -76,7 +76,7 @@ function getFileMeta(fileName: string) {
 /** Renders the workspace home component. */
 export default function WorkspaceHome() {
   const dark = useDarkAppearance()
-  const { workspace, openFiles, openWorkspaceFile } = useWorkspace()
+  const { workspace, openFiles, openWorkspaceFile, activeFilePath } = useWorkspace()
   const { calendarData, activityMap, monthlyData } = useWorkspaceActivity(workspace.path)
 
   const [carouselApi, setCarouselApi] = useState<CarouselApi>()
@@ -154,12 +154,12 @@ export default function WorkspaceHome() {
         </div>
 
         {/* 1. 当前打开的文件（全新卡片样式） */}
-        <section className="rounded-xl border border-stone-200/70 dark:border-[#444c56] bg-white p-5 shadow-sm">
+        <section className="workspace-open-files rounded-xl border border-stone-200/70 dark:border-[#444c56] bg-white p-5 shadow-sm">
           <div className="mb-3.5 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <FileText className="size-4 text-emerald-600" />
               <h2 className="text-sm font-semibold text-stone-800">当前打开的文件</h2>
-              <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700">{openFiles.length}</span>
+              <span className="workspace-open-count rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700">{openFiles.length}</span>
             </div>
           </div>
 
@@ -173,6 +173,7 @@ export default function WorkspaceHome() {
                 return (
                   <div
                     key={file.path}
+                    data-active={file.path === activeFilePath}
                     role="button"
                     tabIndex={0}
                     onClick={() => openWorkspaceFile(file)}
@@ -182,23 +183,23 @@ export default function WorkspaceHome() {
                         openWorkspaceFile(file)
                       }
                     }}
-                    className="group relative flex cursor-pointer flex-col justify-between rounded-lg border border-stone-200/80 bg-stone-50/40 p-3 text-left transition-all hover:-translate-y-0.5 hover:border-emerald-300 hover:bg-emerald-50/30 hover:shadow-sm"
+                    className="workspace-file-card group relative flex min-w-0 cursor-pointer flex-col justify-between rounded-lg border border-stone-200/80 bg-stone-50/40 p-3 text-left transition-all hover:-translate-y-0.5 hover:border-emerald-300 hover:bg-emerald-50/30 hover:shadow-sm"
                   >
                     <div className="mb-2 flex items-center justify-between">
-                      <span className={cn("flex size-7 items-center justify-center rounded-md border", meta.badgeClass)}>
+                      <span className={cn("workspace-file-icon flex size-7 items-center justify-center rounded-md border", meta.badgeClass)}>
                         <Icon className="size-4" />
                       </span>
-                      <span className="font-mono text-[10px] uppercase text-stone-400 transition-colors group-hover:text-emerald-600">{meta.ext}</span>
+                      <span className="workspace-file-type font-mono text-[10px] uppercase text-stone-400 transition-colors group-hover:text-emerald-600">{meta.ext}</span>
                     </div>
                     <div>
                       <p
-                        className="truncate text-xs font-medium text-stone-700 transition-colors group-hover:text-emerald-800"
+                        className="workspace-file-name truncate text-xs font-medium text-stone-700 transition-colors group-hover:text-emerald-800"
                         title={file.name}
                       >
                         {file.name}
                       </p>
                       <p
-                        className="mt-0.5 truncate text-[11px] text-stone-400"
+                        className="workspace-file-path mt-0.5 truncate text-[11px] text-stone-400"
                         title={file.path}
                       >
                         {relativePath}

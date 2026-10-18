@@ -165,6 +165,7 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
               />
               {activity !== "browser" && activity !== "office" ? (
                 <SidebarTrigger
+                  data-activity-sidebar-toggle
                   aria-label={expanded ? "收起侧边栏" : "展开侧边栏"}
                   aria-expanded={expanded}
                   className="!bg-transparent hover:!bg-stone-100 active:!bg-stone-200 focus:!bg-transparent !shadow-none size-[30px] rounded-lg text-stone-700 [&>svg]:opacity-0 hover:bg-stone-100 group-hover/logo:[&>svg]:!opacity-100 group-focus-within/logo:[&>svg]:!opacity-100"
