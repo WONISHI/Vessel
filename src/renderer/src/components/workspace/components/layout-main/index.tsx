@@ -421,7 +421,8 @@ export default function LayoutMain({ resources = false }: { resources?: boolean 
                     aria-label={terminal ? "关闭控制台" : "打开控制台"}
                     onClick={() => setTerminal((current) => (current ? null : { file: home ? undefined : activeFilePath || undefined }))}
                   >
-                    <Terminal className="!size-3.5" />控制台
+                    <Terminal className="!size-3.5" />
+                    控制台
                   </Button>
                   {!resources && (
                     <BackupStatus
