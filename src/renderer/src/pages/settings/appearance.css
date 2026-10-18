@@ -515,3 +515,59 @@ html.dark [data-workspace-activity-switch] button:not([aria-pressed="true"]):hov
 html.dark [data-workspace-activity-switch] button:not([aria-pressed="true"]):hover svg {
   color: #ffffff !important;
 }
+
+/* Error notifications use the supplied push-failure dark palette. */
+html.dark [data-sonner-toast][data-type="error"] {
+  background: #23272d !important;
+  color: #e6e8eb !important;
+  border-color: #30353c !important;
+  box-shadow: 0 24px 60px #00000080 !important;
+}
+html.dark [data-sonner-toast][data-type="error"] [data-content] { min-width: 0; }
+html.dark [data-sonner-toast][data-type="error"] [data-title] { color: #e6e8eb !important; }
+html.dark [data-sonner-toast][data-type="error"] [data-description] {
+  background: #1c2025 !important;
+  color: #9aa1a9 !important;
+  border: 1px solid #30353c;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-top: 8px;
+  overflow: hidden;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  line-height: 1.7;
+}
+html.dark [data-sonner-toast][data-type="error"] [data-icon] { color: #f87171 !important; }
+html.dark [data-sonner-toast][data-type="error"] :is([data-button], [data-close-button]) {
+  background: #262a30 !important;
+  color: #9aa1a9 !important;
+  border: 1px solid #30353c !important;
+}
+html.dark [data-sonner-toast][data-type="error"] :is([data-button], [data-close-button]):hover {
+  background: #2b3037 !important;
+  color: #fff !important;
+}
+
+/* Wide error logs with a six-line preview and Radix scrolling after expansion. */
+[data-sonner-toast].vessel-error-toast {
+  width: min(640px, calc(100vw - 48px)) !important;
+  max-width: calc(100vw - 48px);
+  left: auto !important;
+  right: 0;
+}
+[data-sonner-toast].vessel-error-toast [data-content] { flex: 1; min-width: 0; }
+[data-sonner-toast].vessel-error-toast [data-description] { width: 100%; box-sizing: border-box; }
+.toast-error-text { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.7; }
+.toast-error-preview { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 6; max-height: 10.2em; overflow: hidden; }
+.toast-error-scroll { height: 300px; max-height: 50vh; }
+.toast-error-scroll .toast-error-text { padding-right: 12px; }
+.toast-error-scroll [data-radix-scroll-area-viewport] > div { display: block !important; }
+[data-sonner-toast] .toast-error-toggle { display: block; margin-top: 8px; padding: 3px 0; color: #15803d; font-size: 12px; cursor: pointer; }
+html.dark [data-sonner-toast] .toast-error-toggle { color: #4ade80; }
+
+/* Let the visible error shell grow immediately while Sonner refreshes stack offsets. */
+[data-sonner-toast].vessel-error-toast[data-front="true"],
+[data-sonner-toast].vessel-error-toast[data-expanded="true"] { height: auto !important; }
+.toast-error-details { min-width: 0; max-width: 100%; }
+.toast-error-scroll { width: 100%; min-width: 0; overflow: hidden; }

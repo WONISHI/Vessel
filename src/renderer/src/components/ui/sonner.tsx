@@ -1,4 +1,5 @@
 import * as React from "react"
+import { ToastErrorDetails } from "@/components/ui/toast-error-details"
 import { Toaster as Sonner, toast as sonnerToast } from "sonner"
 
 type ToasterProps = React.ComponentProps<typeof Sonner>
@@ -53,11 +54,23 @@ const toast = Object.assign((message: any, data?: any) => sonnerToast(message, d
           }
         : undefined)
 
-    return sonnerToast.error(message, {
+    let id: string | number
+    /** Refreshes Sonner's measured height when the nested log changes size. */
+    const refreshDescription = () => {
+      sonnerToast.error(message, { id, description: makeDescription() })
+    }
+    /** Creates a new description reference so Sonner measures the updated content. */
+    const makeDescription = (): React.ReactNode => typeof data?.description === "string"
+      ? React.createElement(ToastErrorDetails, { text: data.description, onExpandedChange: refreshDescription })
+      : data?.description
+    id = sonnerToast.error(message, {
       duration: 8000,
       ...data,
+      className: [data?.className, "vessel-error-toast"].filter(Boolean).join(" "),
+      description: makeDescription(),
       action
     })
+    return id
   },
 
   /** Performs the warning operation. */
