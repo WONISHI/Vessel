@@ -224,13 +224,13 @@ export function SearchPanel({
         </p>
       )}
       <ScrollArea className="min-h-0 flex-1">
-        <div className="px-2 pb-3">
+        <div className="search-results min-w-0 px-2 pb-3">
           {groups.map(([path, matches]) => (
             <Collapsible
               key={path}
               defaultOpen
             >
-              <CollapsibleTrigger className="group flex w-full items-center gap-1.5 rounded-md px-1.5 py-1.5 text-left text-xs hover:bg-[#f0efed]">
+              <CollapsibleTrigger className="search-file-heading group flex min-w-0 max-w-full w-full items-center gap-1.5 rounded-md px-1.5 py-1.5 text-left text-xs hover:bg-[#f0efed]">
                 <ChevronDown className="size-3 shrink-0 text-stone-400 group-data-[state=closed]:-rotate-90" />
                 <File className="size-3.5 shrink-0 text-stone-500" />
                 <span
@@ -239,7 +239,7 @@ export function SearchPanel({
                 >
                   {matches[0].relativePath}
                 </span>
-                <span className="text-[10px] text-stone-400">{matches.length}</span>
+                <span className="search-match-count shrink-0 text-[10px] text-stone-400" aria-label={`${matches.length} 处匹配`}>{matches.length}</span>
               </CollapsibleTrigger>
               <CollapsibleContent>
                 {matches.map((match, index) => (
@@ -250,7 +250,7 @@ export function SearchPanel({
                     onClick={() => onSelect(match)}
                   >
                     <span className="w-7 shrink-0 text-right font-mono text-[10px] text-stone-400">{match.line}</span>
-                    <span className="min-w-0 flex-1 truncate">
+                    <span className="min-w-0 flex-1 overflow-hidden">
                       <Highlight match={match} />
                     </span>
                   </button>

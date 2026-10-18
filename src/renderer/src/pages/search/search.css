@@ -85,3 +85,13 @@
   color: #15803d;
   border-radius: 2px;
 }
+
+/* Constrain Radix's table-like scroll content so long paths cannot grow the panel. */
+.vessel-search-sidebar [data-radix-scroll-area-viewport] > div { display: block !important; min-width: 0 !important; }
+.search-match { min-width: 0; max-width: 100%; overflow: hidden; }
+.search-match-count { margin-left: auto; min-width: 20px; padding: 1px 5px; border-radius: 8px; text-align: center; background: #78716c14; }
+.search-snippet { display: flex; align-items: baseline; width: 100%; min-width: 0; white-space: pre; overflow: hidden; }
+.search-snippet-before { flex: 0 1 auto; max-width: 28%; overflow: hidden; text-overflow: ellipsis; direction: rtl; text-align: left; unicode-bidi: plaintext; }
+.search-snippet mark { flex: 0 0 auto; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.search-snippet-after { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+html.dark .vessel-search-sidebar .search-match-count { background: rgba(255,255,255,.06); }

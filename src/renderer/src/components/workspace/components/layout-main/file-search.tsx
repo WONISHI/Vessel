@@ -135,7 +135,7 @@ export function FileSearch({ path, contentHost }: { path: string; contentHost: R
         onCloseAutoFocus={(event) => event.preventDefault()}
         align="end"
         style={{ fontFamily: '"Plus Jakarta Sans", sans-serif' }}
-        className="w-[372px] max-w-[calc(100vw-24px)] overflow-hidden rounded-xl border-stone-200 p-0 shadow-[0_18px_50px_#1c19172e]"
+        className="document-find-panel w-[372px] max-w-[calc(100vw-24px)] overflow-hidden rounded-xl border-stone-200 p-0 shadow-[0_18px_50px_#1c19172e]"
       >
         <div className="flex items-center gap-1 px-3 pb-1 pt-2">
           <Search className="size-4 shrink-0 text-stone-400" />
@@ -223,7 +223,8 @@ export function FileSearch({ path, contentHost }: { path: string; contentHost: R
             <button
               type="button"
               key={item.line}
-              className={`flex w-full items-start gap-2 border-l-2 px-3 py-2 text-left text-xs hover:bg-stone-50 ${active === index ? "border-green-600 bg-green-50" : "border-transparent"}`}
+              data-active={active === index}
+              className={`document-find-match flex w-full items-start gap-2 border-l-2 px-3 py-2 text-left text-xs hover:bg-stone-50 ${active === index ? "border-green-600 bg-green-50" : "border-transparent"}`}
               onClick={() => selectMatch(index)}
             >
               <span className="min-w-6 shrink-0 whitespace-nowrap tabular-nums text-stone-400">{item.line}</span>

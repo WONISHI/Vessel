@@ -82,22 +82,24 @@ export async function searchContent(options: ContentSearchOptions, signal?: Abor
             text = data.lines.text.replace(/\r?\n$/, "")
           const bytes = Buffer.from(text)
           const ranges = data.submatches.map((match: { start: number; end: number }) => ({ start: bytes.subarray(0, match.start).toString("utf8").length, end: bytes.subarray(0, match.end).toString("utf8").length }))
-          const column = (ranges[0]?.start ?? 0) + 1
-          const start = Math.max(0, column - 121)
-          const preview = text.slice(start, start + 2000)
-          matches.push({
-            path: resolve(root, data.path.text),
-            relativePath: data.path.text.replace(/^\.\//, ""),
-            line: data.line_number,
-            column,
-            text: preview,
-            ranges: ranges.filter((range: { start: number; end: number }) => range.end >= start && range.start < start + preview.length).map((range: { start: number; end: number }) => ({ start: Math.max(0, range.start - start), end: Math.min(preview.length, range.end - start) }))
-          })
-          if (matches.length >= 2000) {
-            truncated = true
-            child.kill()
-            break
+          for (const range of ranges) {
+            const start = Math.max(0, range.start - 120)
+            const end = Math.min(text.length, range.end + 240)
+            matches.push({
+              path: resolve(root, data.path.text),
+              relativePath: data.path.text.replace(/^\.\//, ""),
+              line: data.line_number,
+              column: range.start + 1,
+              text: text.slice(start, end),
+              ranges: [{ start: range.start - start, end: range.end - start }]
+            })
+            if (matches.length >= 2000) {
+              truncated = true
+              child.kill()
+              break
+            }
           }
+          if (truncated) break
         } catch {
           /* Ignore non-match or malformed records. */
         }

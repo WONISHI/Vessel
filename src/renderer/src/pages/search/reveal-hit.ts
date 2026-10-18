@@ -81,7 +81,7 @@ export function revealSearchHit(match: ContentMatch) {
   const attempt = () => {
     const code = codeEditors.get(match.path)
     if (code) {
-      const column = (range?.start ?? 0) + 1
+      const column = match.column
       code.revealLineInCenter(match.line)
       code.setPosition({ lineNumber: match.line, column })
       code.focus()

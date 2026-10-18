@@ -35,7 +35,7 @@ it("supports filters, literal and regex matching, case sensitivity, invalid rege
   const root = await fixture()
   expect((await searchContent({ root, query: "needle", caseSensitive: true, include: "*.ts" })).matches).toHaveLength(1)
   expect((await searchContent({ root, query: "a.b", include: "*.ts" })).matches[0].ranges).toHaveLength(1)
-  expect((await searchContent({ root, query: "a.b", regex: true, include: "*.ts" })).matches[0].ranges).toHaveLength(2)
+  expect((await searchContent({ root, query: "a.b", regex: true, include: "*.ts" })).matches).toHaveLength(2)
   expect((await searchContent({ root, query: "needle", exclude: "*.ts,*.md" })).matches).toHaveLength(0)
   await expect(searchContent({ root, query: "[", regex: true })).rejects.toThrow()
   const controller = new AbortController()
@@ -48,4 +48,18 @@ it("bounds large result sets and reports truncation", async () => {
   const result = await searchContent({ root, query: "match" })
   expect(result.matches).toHaveLength(2000)
   expect(result.truncated).toBe(true)
+})
+
+it("returns every occurrence on a long line with its own preview and real editor column", async () => {
+  const root = await fixture()
+  const text = "前".repeat(350) + "关键词" + "x".repeat(3000) + "关键词"
+  await writeFile(join(root, "long.txt"), text)
+  const result = await searchContent({ root, query: "关键词", include: "long.txt" })
+  expect(result.matches).toHaveLength(2)
+  expect(result.matches.map((match) => match.column)).toEqual([351, 3354])
+  for (const match of result.matches) {
+    const range = match.ranges[0]
+    expect(match.text.slice(range.start, range.end)).toBe("关键词")
+    expect(match.text.length).toBeLessThanOrEqual(363)
+  }
 })
