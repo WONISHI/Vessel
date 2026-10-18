@@ -1,3 +1,4 @@
+import { treeRevealScrollTop } from "@/components/workspace/components/layout-aside/layout-workspace-sidebar/reveal-scroll"
 import { Button } from "@/components/ui/button"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { VirtualTree, type VirtualTreeRow } from "@/components/ui/tree"
@@ -165,7 +166,8 @@ export default function WorkspaceTree({
       setSelection([])
       onRevealed?.()
     } else if (viewport && revealIndex >= 0 && !draft && revealPath) {
-      viewport.scrollTo({ top: Math.max(0, revealIndex * 32 - viewport.clientHeight / 2 + 16), behavior: "smooth" })
+      const top = treeRevealScrollTop(revealIndex, viewport.scrollTop, viewport.clientHeight)
+      if (top !== viewport.scrollTop) viewport.scrollTo({ top, behavior: "smooth" })
       setSelection([revealPath])
       onRevealed?.()
     }
