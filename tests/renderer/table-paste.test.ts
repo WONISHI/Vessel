@@ -64,3 +64,29 @@ it("copies a shift-selected rectangle and pastes it as one editor edit", () => {
   root.remove()
   expect(document.querySelector(".vessel-table-cell-selection")).toBeNull()
 })
+
+it("clears only drag-selected cells with Delete as one undoable edit", () => {
+  const root = document.createElement("div")
+  root.setAttribute("contenteditable", "true")
+  root.innerHTML = "<table><tbody><tr><td>keep</td><td>A</td><td>B</td></tr><tr><td>also keep</td><td>C</td><td>D</td></tr></tbody></table>"
+  document.body.append(root)
+  const unbind = bindTablePaste(root)
+  const cells = root.querySelectorAll("td")
+  const insert = vi.fn()
+  Object.defineProperty(document, "execCommand", { configurable: true, value: insert })
+  try {
+    const single = new KeyboardEvent("keydown", { key: "Delete", bubbles: true, cancelable: true })
+    cells[0].dispatchEvent(single)
+    expect(single.defaultPrevented).toBe(false)
+    cells[1].dispatchEvent(new MouseEvent("pointerdown", { bubbles: true, button: 0 }))
+    cells[5].dispatchEvent(new MouseEvent("pointermove", { bubbles: true, button: 0 }))
+    document.dispatchEvent(new MouseEvent("pointerup", { bubbles: true }))
+    const event = new KeyboardEvent("keydown", { key: "Delete", bubbles: true, cancelable: true })
+    cells[1].dispatchEvent(event)
+    expect(event.defaultPrevented).toBe(true)
+    expect(insert).toHaveBeenCalledTimes(1)
+    const table = new DOMParser().parseFromString(insert.mock.calls[0][2], "text/html").querySelector("table")!
+    expect(Array.from(table.rows, (row) => Array.from(row.cells, (cell) => cell.textContent))).toEqual([["keep", "", ""], ["also keep", "", ""]])
+    expect(document.querySelector(".vessel-table-cell-selection")).toBeNull()
+  } finally { unbind(); root.remove() }
+})

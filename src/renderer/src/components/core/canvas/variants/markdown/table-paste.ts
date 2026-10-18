@@ -200,6 +200,26 @@ export function bindTablePaste(root: HTMLElement) {
 
   /** Performs the key operation. */
   const key = (event: KeyboardEvent) => {
+    const area = bounds()
+    if ((event.key === "Delete" || event.key === "Backspace") && !event.isComposing && !event.ctrlKey && !event.metaKey && !event.altKey && area && area.table.isConnected) {
+      const editor = area.table.closest<HTMLElement>('[contenteditable="true"]')
+      if (!editor || !root.contains(editor)) return
+      event.preventDefault()
+      event.stopImmediatePropagation()
+      const values = Array.from({ length: area.bottom - area.top + 1 }, () => Array<string>(area.right - area.left + 1).fill(""))
+      const replacement = fillTable(area.table, area.top, area.left, values)
+      editor.focus({ preventScroll: true })
+      const range = document.createRange()
+      range.selectNode(area.table)
+      const selection = window.getSelection()
+      selection?.removeAllRanges()
+      selection?.addRange(range)
+      clear()
+      anchor = null
+      // A native edit keeps clearing the entire rectangle as one undoable change.
+      document.execCommand("insertHTML", false, replacement.outerHTML)
+      return
+    }
     if (event.key === "Escape") {
       clear()
       anchor = null
@@ -212,7 +232,7 @@ export function bindTablePaste(root: HTMLElement) {
   document.addEventListener("pointermove", move, true)
   document.addEventListener("pointerup", up)
   document.addEventListener("pointercancel", up)
-  root.addEventListener("keydown", key)
+  root.addEventListener("keydown", key, true)
   window.addEventListener("scroll", clear, true)
   window.addEventListener("resize", clear)
   return () => {
@@ -224,7 +244,7 @@ export function bindTablePaste(root: HTMLElement) {
     document.removeEventListener("pointermove", move, true)
     document.removeEventListener("pointerup", up)
     document.removeEventListener("pointercancel", up)
-    root.removeEventListener("keydown", key)
+    root.removeEventListener("keydown", key, true)
     window.removeEventListener("scroll", clear, true)
     window.removeEventListener("resize", clear)
   }
