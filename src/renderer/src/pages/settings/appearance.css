@@ -344,6 +344,10 @@ html.dark .workspace-tab-edge-right {
 }
 html.dark .workspace-home-tab:hover {
   background: rgba(255,255,255,.06) !important;
+  color: #646a73 !important;
+}
+html.dark .workspace-home-tab:hover svg {
+  color: #8f959e !important;
 }
 
 html.dark .document-properties tr:hover,
