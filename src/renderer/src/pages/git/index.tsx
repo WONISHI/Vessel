@@ -953,6 +953,7 @@ export default function SourceTreePage() {
                   {branches.remote.map((r) => (
                     <div
                       key={r}
+                      data-git-sidebar-hover
                       className="flex items-center gap-2 rounded-md px-2.5 py-1 text-stone-500 hover:bg-stone-100 truncate text-[11px]"
                       title={r}
                     >
@@ -978,6 +979,7 @@ export default function SourceTreePage() {
                   stashes.map((s) => (
                     <div
                       key={s.index}
+                      data-git-sidebar-hover
                       className="group flex items-center justify-between rounded-md px-2 py-1 text-stone-600 hover:bg-stone-100 text-[11px]"
                       title={`stash@{${s.index}}: ${s.name}`}
                     >
@@ -1526,6 +1528,7 @@ export default function SourceTreePage() {
                               <ContextMenuTrigger asChild>
                                 <div
                                   style={{ height: 32 }}
+                                  data-git-history-selected={isSelected}
                                   onClick={() => setSelectedCommitIndex(idx)}
                                   onContextMenu={() => setSelectedCommitIndex(idx)}
                                   className={`flex items-center gap-3 px-2 text-xs cursor-pointer border-b border-stone-100 ${isSelected ? "bg-blue-50 text-blue-900 font-medium" : "hover:bg-stone-50 text-stone-700"}`}
@@ -1538,6 +1541,7 @@ export default function SourceTreePage() {
                                     {c.refs.map((r) => (
                                       <span
                                         key={r}
+                      data-git-sidebar-hover
                                         className="mr-1.5 rounded bg-blue-100 px-1 py-0.5 text-[10px] font-semibold text-blue-700"
                                       >
                                         {r}

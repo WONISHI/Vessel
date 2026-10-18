@@ -50,3 +50,18 @@ html.dark .vessel-git-page [data-git-file-selected="true"],
 html.dark .vessel-git-page [data-git-file-selected="true"]:hover {
   background: #2f343b !important;
 }
+
+html.dark .vessel-git-page [data-git-history-selected="true"],
+html.dark .vessel-git-page [data-git-history-selected="true"]:hover {
+  background: #2f343b !important;
+  color: #e6e8eb !important;
+}
+html.dark .vessel-git-page .git-commit-node { stroke: #444c56; }
+
+html.dark .vessel-git-page [data-git-sidebar-hover]:hover { background: #2f343b !important; }
+
+/* Context rows must not inherit the light table hover surface. */
+html.dark .vessel-git-page tr[class~="hover:bg-stone-50"]:hover,
+html.dark .vessel-git-page tr[class~="hover:bg-stone-50"]:hover > td {
+  background: #2f343b !important;
+}

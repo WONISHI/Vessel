@@ -274,3 +274,16 @@ html.dark .dev-tools .dev-nav-item svg { color: inherit !important; }
 
 /* All developer tools share the color-converter header separator in dark mode. */
 html.dark .dev-tools .tool-page-header { border-color: #30353c !important; }
+
+/* Text codecs use the same dark palette as the color-converter design. */
+html.dark .dev-tools:has(.dual-tools) { background: #23272d !important; color: #e6e8eb; }
+html.dark .dev-tools:has(.dual-tools) aside { background: #20242a !important; }
+html.dark .dev-tools:has(.dual-tools) .dev-sidebar-title { color: #e6e8eb; }
+html.dark .dev-tools:has(.dual-tools) .dev-nav-label { color: #6b7280; }
+html.dark .dev-tools .dual-tools section,
+html.dark .dev-tools .dual-tools section > div { border-color: #30353c !important; }
+html.dark .dev-tools .dual-tools section > div { background: #20242a !important; color: #9aa1a9 !important; }
+html.dark .dev-tools .dual-tools textarea { background: #1c2025 !important; color: #e6e8eb !important; }
+html.dark .dev-tools .dual-tools textarea::placeholder { color: #6b7280; }
+html.dark .dev-tools .dual-tools section button { color: #9aa1a9 !important; }
+html.dark .dev-tools .dual-tools section button:hover { background: rgba(255,255,255,.06) !important; color: #fff !important; }

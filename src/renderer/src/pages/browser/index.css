@@ -524,3 +524,11 @@
   left: 8px;
   bottom: 6px;
 }
+
+html.dark .browser-page-loading { background: #22272e; }
+html.dark .browser-loading-card {
+  background: #22272e;
+  border-color: #444c56;
+  color: #cdd9e5;
+  box-shadow: 0 8px 30px #00000026;
+}

@@ -198,6 +198,7 @@ export function GitGraphSvg({ nodes, maxColumns, selectedIndex, onSelectIndex }:
                 cy={cy}
                 r={7}
                 fill="none"
+                className="git-commit-node"
                 stroke={node.color}
                 strokeWidth={2}
                 strokeOpacity={0.6}
@@ -208,6 +209,7 @@ export function GitGraphSvg({ nodes, maxColumns, selectedIndex, onSelectIndex }:
               cy={cy}
               r={isSelected ? 4.5 : 3.5}
               fill={node.color}
+              className="git-commit-node"
               stroke="#ffffff"
               strokeWidth={1.8}
             />
