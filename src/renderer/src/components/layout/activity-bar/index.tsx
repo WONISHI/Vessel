@@ -4,6 +4,7 @@ import { useActivityOverflow } from "@/components/layout/activity-bar/use-activi
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import Logo from "@/assets/logo.png"
+import DarkLogo from "@/assets/logo-dark.svg"
 import { ACTIVITY_ITEMS } from "@/components/layout/activity-bar/constants"
 import type { LayoutActivityBarProps } from "@/components/layout/activity-bar/types"
 import { TransitButton } from "@/components/transit/button"
@@ -159,7 +160,7 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
           <TooltipTrigger asChild>
             <span className="group/logo relative mb-2 block size-[30px] rounded-lg">
               <img
-                src={Logo}
+                src={dark ? DarkLogo : Logo}
                 alt=""
                 className={cn("pointer-events-none absolute inset-0 size-full object-contain p-0.5", activity !== "browser" && activity !== "office" && "group-hover/logo:opacity-0 group-focus-within/logo:opacity-0")}
               />

@@ -510,3 +510,8 @@ html.dark [data-activity-sidebar-toggle]:is(:hover, :active, :focus-visible) {
 html.dark [data-activity-sidebar-toggle]:is(:hover, :active, :focus-visible) > svg {
   color: inherit !important;
 }
+
+html.dark [data-workspace-activity-switch] button:not([aria-pressed="true"]):hover,
+html.dark [data-workspace-activity-switch] button:not([aria-pressed="true"]):hover svg {
+  color: #ffffff !important;
+}

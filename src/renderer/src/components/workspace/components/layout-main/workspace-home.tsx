@@ -231,6 +231,7 @@ export default function WorkspaceHome() {
             >
               <button
                 type="button"
+                aria-pressed={currentSlide === 0}
                 onClick={() => carouselApi?.scrollTo(0)}
                 className={cn("flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium transition-all", currentSlide === 0 ? "bg-white text-emerald-700 shadow-sm" : "text-stone-500 hover:text-stone-800")}
               >
@@ -239,6 +240,7 @@ export default function WorkspaceHome() {
               </button>
               <button
                 type="button"
+                aria-pressed={currentSlide === 1}
                 onClick={() => carouselApi?.scrollTo(1)}
                 className={cn("flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium transition-all", currentSlide === 1 ? "bg-white text-emerald-700 shadow-sm" : "text-stone-500 hover:text-stone-800")}
               >
@@ -419,13 +421,15 @@ export default function WorkspaceHome() {
             <button
               type="button"
               aria-label="查看热力图"
-              onClick={() => carouselApi?.scrollTo(0)}
+              aria-pressed={currentSlide === 0}
+                onClick={() => carouselApi?.scrollTo(0)}
               className={cn("h-1.5 rounded-full transition-all", currentSlide === 0 ? "w-5 bg-emerald-600" : "w-1.5 bg-stone-200 hover:bg-stone-300")}
             />
             <button
               type="button"
               aria-label="查看趋势图"
-              onClick={() => carouselApi?.scrollTo(1)}
+              aria-pressed={currentSlide === 1}
+                onClick={() => carouselApi?.scrollTo(1)}
               className={cn("h-1.5 rounded-full transition-all", currentSlide === 1 ? "w-5 bg-emerald-600" : "w-1.5 bg-stone-200 hover:bg-stone-300")}
             />
           </div>
