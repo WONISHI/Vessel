@@ -908,7 +908,7 @@ export default function SourceTreePage() {
           {/* 1号: 左侧边栏导航 (SourceTree 风格) */}
           <ResizablePanel
             id="git-sidebar-nav"
-            defaultSize="320px"
+            defaultSize="230px"
             minSize="230px"
             className="git-navigation flex min-w-0 flex-col overflow-hidden text-xs select-none min-h-0"
           >
