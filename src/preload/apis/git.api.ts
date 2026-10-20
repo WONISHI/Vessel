@@ -15,10 +15,10 @@ export const gitAPI = {
   getBranches: (cwd: string): Promise<{ local: string[]; remote: string[]; current: string }> => ipcRenderer.invoke("git:branches", cwd),
 
   /** Returns log. */
-  getLog: (cwd: string, maxCount?: number, skip?: number): Promise<GitCommitItem[]> => ipcRenderer.invoke("git:log", cwd, maxCount, skip),
+  getLog: (cwd: string, maxCount?: number, skip?: number, allBranches?: boolean): Promise<GitCommitItem[]> => ipcRenderer.invoke("git:log", cwd, maxCount, skip, allBranches),
 
   /** Counts commits in repository history. */
-  getLogCount: (cwd: string): Promise<number> => ipcRenderer.invoke("git:log-count", cwd),
+  getLogCount: (cwd: string, allBranches?: boolean): Promise<number> => ipcRenderer.invoke("git:log-count", cwd, allBranches),
 
   /** Returns commit detail. */
   getCommitDetail: (cwd: string, hash: string): Promise<GitCommitDetail> => ipcRenderer.invoke("git:commit-detail", cwd, hash),

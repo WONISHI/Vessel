@@ -11,6 +11,7 @@ export function installDataTitleTooltips() {
   let target: HTMLElement | null = null
   let timer: ReturnType<typeof setTimeout> | undefined
   let previousDescription: string | null = null
+  let pointerX = 0
 
   /** Hides the layer and restores the target's existing accessibility description. */
   const hide = () => {
@@ -20,6 +21,7 @@ export function installDataTitleTooltips() {
       else target.setAttribute("aria-describedby", previousDescription)
     }
     target = null
+    pointerX = 0
     tooltip.hidden = true
   }
   /** Positions a readable tooltip within the current viewport. */
@@ -30,20 +32,31 @@ export function installDataTitleTooltips() {
     const rect = target.getBoundingClientRect()
     const size = tooltip.getBoundingClientRect()
     const gap = 8
-    const top = target.dataset.titleSide === "top" || Boolean(target.closest(".vessel-status-bar, .browser-status"))
-    const bottom = !top && (target.dataset.titleSide === "bottom" || Boolean(target.closest('[data-workspace-tab="true"], .browser-tabs')))
-    if (top) {
+
+    const explicitSide = target.dataset.titleSide
+    const isTopTab = Boolean(target.closest('[data-workspace-tab="true"], .browser-tabs'))
+    let side = explicitSide || (isTopTab ? "bottom" : "top")
+    if (side === "top" && rect.top - size.height - gap < gap && !explicitSide) {
+      side = "bottom"
+    }
+
+    const centerX = pointerX > 0 && pointerX >= rect.left && pointerX <= rect.right ? pointerX : rect.left + rect.width / 2
+
+    if (side === "top") {
       tooltip.dataset.side = "top"
-      tooltip.style.left = `${Math.max(gap, Math.min(innerWidth - size.width - gap, rect.left + rect.width / 2 - size.width / 2))}px`
+      tooltip.style.left = `${Math.max(gap, Math.min(innerWidth - size.width - gap, centerX - size.width / 2))}px`
       tooltip.style.top = `${Math.max(gap, rect.top - size.height - gap)}px`
-    } else if (bottom) {
+    } else if (side === "bottom") {
       tooltip.dataset.side = "bottom"
-      tooltip.style.left = `${Math.max(gap, Math.min(innerWidth - size.width - gap, rect.left + rect.width / 2 - size.width / 2))}px`
+      tooltip.style.left = `${Math.max(gap, Math.min(innerWidth - size.width - gap, centerX - size.width / 2))}px`
       tooltip.style.top = `${Math.max(gap, Math.min(innerHeight - size.height - gap, rect.bottom + gap))}px`
+    } else if (side === "left") {
+      tooltip.dataset.side = "left"
+      tooltip.style.left = `${Math.max(gap, rect.left - size.width - gap)}px`
+      tooltip.style.top = `${Math.max(gap, Math.min(innerHeight - size.height - gap, rect.top + rect.height / 2 - size.height / 2))}px`
     } else {
-      const right = rect.right + gap + size.width <= innerWidth - gap
-      tooltip.dataset.side = right ? "right" : "left"
-      tooltip.style.left = `${Math.max(gap, Math.min(innerWidth - size.width - gap, right ? rect.right + gap : rect.left - size.width - gap))}px`
+      tooltip.dataset.side = "right"
+      tooltip.style.left = `${Math.max(gap, Math.min(innerWidth - size.width - gap, rect.right + gap))}px`
       tooltip.style.top = `${Math.max(gap, Math.min(innerHeight - size.height - gap, rect.top + rect.height / 2 - size.height / 2))}px`
     }
     previousDescription = target.getAttribute("aria-describedby")
@@ -52,6 +65,9 @@ export function installDataTitleTooltips() {
   /** Resolves the innermost annotated element, including icons nested in buttons. */
   const enter = (event: Event) => {
     if (typeof PointerEvent !== "undefined" && event instanceof PointerEvent && event.pointerType === "touch") return
+    if (event instanceof MouseEvent) {
+      pointerX = event.clientX
+    }
     const next = event.target instanceof Element ? event.target.closest<HTMLElement>("[data-title]") : null
     if (next === target) return
     hide()

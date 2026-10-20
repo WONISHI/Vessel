@@ -11,7 +11,7 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 import { toast } from "@/components/ui/sonner"
 import { CreateBranchDialog, MergeBranchDialog } from "@/pages/git/components/branch-dialog"
 import { DiffViewer } from "@/pages/git/components/diff-viewer"
-import { computeGitTopology, GitGraphSvg } from "@/pages/git/components/git-graph"
+import { computeGitTopology, getGraphWidth, GitGraphSvg } from "@/pages/git/components/git-graph"
 import type { GitCommitDetail, GitCommitItem, GitFileStatus, GitStatusResult } from "@vessel/type"
 import { AlertCircle, Archive, ArrowDownUp, CheckCircle2, CheckSquare, Clock, Copy, Download, FileText, FolderGit2, FolderOpen, GitBranch, GitCommit, GitPullRequest, Globe, Layers, Minus, Plus, RefreshCw, RotateCcw, Tag, Trash2, Undo2, Upload } from "lucide-react"
 import { useCallback, useEffect, useRef, useState } from "react"
@@ -110,6 +110,7 @@ export default function SourceTreePage() {
   const [historyFailed, setHistoryFailed] = useState(false)
   const [selectedCommitIndex, setSelectedCommitIndex] = useState(0)
   const [commitDetail, setCommitDetail] = useState<GitCommitDetail | null>(null)
+  const [historyScope, setHistoryScope] = useState<"all" | "current">("all")
 
   // 选中的文件与 Diff
   const [selectedFile, setSelectedFile] = useState<GitFileStatus | null>(null)
@@ -155,12 +156,13 @@ export default function SourceTreePage() {
         return
       }
 
+      const isAll = historyScope === "all"
       const [statusRes, branchRes, logRes, stashRes, totalRes, unpushedRes] = await Promise.all([
         git.getStatus(repoPath),
         git.getBranches(repoPath),
-        git.getLog(repoPath, 150),
+        git.getLog(repoPath, 150, 0, isAll),
         git.getStashes(repoPath).catch(() => []),
-        git.getLogCount(repoPath),
+        git.getLogCount(repoPath, isAll),
         git.getUnpushedCommits(repoPath).catch(() => [])
       ])
 
@@ -195,7 +197,7 @@ export default function SourceTreePage() {
     } finally {
       setLoading(false)
     }
-  }, [repoPath])
+  }, [repoPath, historyScope])
 
   /** Loads the next history page while rejecting responses from an older refresh. */
   const loadMoreHistory = async () => {
@@ -205,7 +207,8 @@ export default function SourceTreePage() {
     setHistoryFailed(false)
     setHistoryLoading(true)
     try {
-      const next = await window.electronAPI.git.getLog(repoPath, 150, commits.length)
+      const isAll = historyScope === "all"
+      const next = await window.electronAPI.git.getLog(repoPath, 150, commits.length, isAll)
       if (version !== historyVersion.current) return
       setCommits((current) => [...new Map([...current, ...next].map((commit) => [commit.hash, commit])).values()])
       if (!next.length) setCommitTotal(commits.length)
@@ -1565,20 +1568,55 @@ export default function SourceTreePage() {
                   maxSize="85%"
                   className="flex min-h-0 flex-col"
                 >
+                  {/* 历史视图顶部工具条 (分支范围切换与统计) */}
+                  <div className="flex shrink-0 items-center justify-between border-b border-stone-200 bg-stone-50/90 px-3 py-1.5 text-xs text-stone-600">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] font-medium text-stone-500">显示分支:</span>
+                      <div className="inline-flex rounded-md border border-stone-200 bg-stone-100 p-0.5">
+                        <button
+                          type="button"
+                          onClick={() => setHistoryScope("all")}
+                          className={`rounded px-2.5 py-0.5 text-[11px] font-medium transition-colors ${
+                            historyScope === "all"
+                              ? "bg-white text-stone-900 shadow-xs"
+                              : "text-stone-500 hover:text-stone-800"
+                          }`}
+                        >
+                          所有分支
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setHistoryScope("current")}
+                          className={`rounded px-2.5 py-0.5 text-[11px] font-medium transition-colors ${
+                            historyScope === "current"
+                              ? "bg-white text-stone-900 shadow-xs"
+                              : "text-stone-500 hover:text-stone-800"
+                          }`}
+                        >
+                          当前分支 {branches.current ? `(${branches.current})` : ""}
+                        </button>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 text-[11px] text-stone-400">
+                      <span>共 {commitTotal} 次提交</span>
+                    </div>
+                  </div>
+
                   <ScrollArea className="flex-1 min-h-0">
-                    <div className="flex min-w-[700px]">
-                      {/* SVG 拓扑轨道列 */}
-                      <div className="shrink-0">
+                    <div className="relative min-w-[700px]">
+                      {/* SVG 拓扑轨道列 (绝对定位浮层，自然悬浮在每行背景之上) */}
+                      <div className="pointer-events-none absolute left-0 top-0 z-10">
                         <GitGraphSvg
                           nodes={topology.nodes}
                           maxColumns={topology.maxColumns}
                           selectedIndex={selectedCommitIndex}
                           onSelectIndex={(idx) => setSelectedCommitIndex(idx)}
+                          currentBranch={branches.current}
                         />
                       </div>
 
-                      {/* 提交列表信息 */}
-                      <div className="flex-1">
+                      {/* 提交列表信息 (整行横跨，选中/悬停背景完整覆盖最左侧拓扑图区域) */}
+                      <div className="w-full">
                         {commits.map((c, idx) => {
                           const isSelected = idx === selectedCommitIndex
                           return (
@@ -1589,22 +1627,40 @@ export default function SourceTreePage() {
                                   data-git-history-selected={isSelected}
                                   onClick={() => setSelectedCommitIndex(idx)}
                                   onContextMenu={() => setSelectedCommitIndex(idx)}
-                                  className={`flex items-center gap-3 px-2 text-xs cursor-pointer border-b border-stone-100 ${isSelected ? "bg-blue-50 text-blue-900 font-medium" : "hover:bg-stone-50 text-stone-700"}`}
+                                  className={`flex items-center gap-3 pr-3 text-xs cursor-pointer border-b border-stone-100 transition-colors ${isSelected ? "bg-blue-50 text-blue-900 font-medium" : "hover:bg-stone-50 text-stone-700"}`}
                                 >
+                                  {/* 左侧拓扑图占位 */}
+                                  <div
+                                    style={{ width: getGraphWidth(topology.maxColumns), minWidth: getGraphWidth(topology.maxColumns) }}
+                                    className="shrink-0"
+                                  />
                                   <span className="font-mono text-[11px] text-stone-400">{c.shortHash}</span>
                                   <span
                                     className="truncate flex-1"
                                     data-title={c.message}
                                   >
-                                    {c.refs.map((r) => (
-                                      <span
-                                        key={r}
-                      data-git-sidebar-hover
-                                        className="mr-1.5 rounded bg-blue-100 px-1 py-0.5 text-[10px] font-semibold text-blue-700"
-                                      >
-                                        {r}
-                                      </span>
-                                    ))}
+                                    {c.refs.map((r) => {
+                                      const isTag = r.startsWith("tag:")
+                                      const isHead = r.startsWith("HEAD -> ") || r === branches.current
+                                      const isRemote = r.startsWith("origin/") || r.includes("/")
+                                      const badgeClass = isTag
+                                        ? "bg-amber-100 text-amber-800 border-amber-200"
+                                        : isHead
+                                        ? "bg-emerald-100 text-emerald-800 border-emerald-200 font-bold"
+                                        : isRemote
+                                        ? "bg-purple-100 text-purple-800 border-purple-200"
+                                        : "bg-blue-100 text-blue-800 border-blue-200"
+
+                                      return (
+                                        <span
+                                          key={r}
+                                          data-git-sidebar-hover
+                                          className={`mr-1.5 rounded border px-1 py-0.5 text-[10px] font-medium ${badgeClass}`}
+                                        >
+                                          {r}
+                                        </span>
+                                      )
+                                    })}
                                     {c.message}
                                   </span>
                                   <span className="w-24 truncate text-stone-500 text-[11px]">{c.author}</span>

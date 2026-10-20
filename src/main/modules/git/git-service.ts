@@ -178,18 +178,32 @@ export class GitService {
     return { local, remote, current }
   }
 
-  /** Counts commits reachable from HEAD, matching the history list scope. */
-  async getLogCount(cwd: string): Promise<number> {
-    const result = await runGit(["rev-list", "--count", "HEAD"], cwd)
+  /** Counts commits reachable from HEAD or all branches, matching the history list scope. */
+  async getLogCount(cwd: string, allBranches = false): Promise<number> {
+    const args = ["rev-list", "--count"]
+    if (allBranches) {
+      args.push("--all")
+    } else {
+      args.push("HEAD")
+    }
+    const result = await runGit(args, cwd)
     if (result.exitCode !== 0) return 0
     return Number.parseInt(result.stdout.trim(), 10) || 0
   }
 
   /** Returns log. */
-  async getLog(cwd: string, maxCount = 100, skip = 0): Promise<GitCommitItem[]> {
+  async getLog(cwd: string, maxCount = 100, skip = 0, allBranches = false): Promise<GitCommitItem[]> {
     // 格式: hash|parents|author|email|timestamp|message|refs
     const format = "%H|%P|%an|%ae|%at|%s|%D"
-    const res = await runGit(["log", `-n${Math.max(1, Math.min(500, Math.floor(maxCount)))}`, `--skip=${Math.max(0, Math.floor(skip))}`, `--format=format:${format}`], cwd)
+    const args = ["log", "--topo-order"]
+    if (allBranches) {
+      args.push("--all")
+    }
+    args.push(`-n${Math.max(1, Math.min(500, Math.floor(maxCount)))}`)
+    args.push(`--skip=${Math.max(0, Math.floor(skip))}`)
+    args.push(`--format=format:${format}`)
+
+    const res = await runGit(args, cwd)
     if (res.exitCode !== 0) return []
 
     const items: GitCommitItem[] = []

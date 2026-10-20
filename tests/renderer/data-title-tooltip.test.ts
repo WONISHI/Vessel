@@ -79,3 +79,29 @@ it("positions status bar tooltips above the target", () => {
   expect(tooltip.dataset.side).toBe("top")
 })
 
+it("defaults to positioning tooltips on top for normal elements with adequate space", () => {
+  vi.useFakeTimers()
+  dispose = installDataTitleTooltips()
+  const span = document.createElement("span")
+  span.dataset.title = "feat: 调整面包屑"
+  // 模拟元素在页面中间
+  vi.spyOn(span, "getBoundingClientRect").mockReturnValue({
+    top: 300,
+    bottom: 320,
+    left: 200,
+    right: 600,
+    width: 400,
+    height: 20,
+    x: 200,
+    y: 300,
+    toJSON: () => {}
+  })
+  document.body.append(span)
+  fireEvent.pointerOver(span, { clientX: 250, clientY: 310 })
+  vi.advanceTimersByTime(350)
+  const tooltip = document.querySelector<HTMLElement>('[role="tooltip"]')!
+  expect(tooltip.hidden).toBe(false)
+  expect(tooltip.dataset.side).toBe("top")
+})
+
+

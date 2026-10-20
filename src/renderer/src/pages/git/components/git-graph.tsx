@@ -55,52 +55,23 @@ export function computeGitTopology(commits: GitCommitItem[]): { nodes: GraphNode
 
     const lines: GraphNode["lines"] = []
 
-    // 1. 直线传递其他未完成的分支轨道
-    for (let c = 0; c < activeLanes.length; c++) {
-      if (c !== col && activeLanes[c] !== null) {
-        lines.push({
-          fromCol: c,
-          toCol: c,
-          type: "straight",
-          color: LANE_COLORS[c % LANE_COLORS.length]
-        })
-      }
-    }
-
-    // 2. 将 parents 接入轨道
     const parents = commit.parents
     if (parents.length > 0) {
-      // 主 parent 占据当前列
+      // 主分支 parent 保持在当前列，各分支平行延伸不提前重叠
       const primaryParent = parents[0]
-      const existingCol = nextLanes.indexOf(primaryParent)
-      if (existingCol !== -1) {
-        lines.push({
-          fromCol: col,
-          toCol: existingCol,
-          type: "merge",
-          color: nodeColor
-        })
-      } else {
-        nextLanes[col] = primaryParent
-        lines.push({
-          fromCol: col,
-          toCol: col,
-          type: "straight",
-          color: nodeColor
-        })
-      }
+      nextLanes[col] = primaryParent
 
-      // 处理多 parent 合并分支 (merge commits)
+      // 多 parent 合并提交，优先复用已在等待该 parent 的轨道
       for (let p = 1; p < parents.length; p++) {
-        const mergeParent = parents[p]
-        let pCol = nextLanes.indexOf(mergeParent)
+        const branchParent = parents[p]
+        let pCol = nextLanes.indexOf(branchParent)
         if (pCol === -1) {
           pCol = nextLanes.indexOf(null)
           if (pCol === -1) {
             pCol = nextLanes.length
-            nextLanes.push(mergeParent)
+            nextLanes.push(branchParent)
           } else {
-            nextLanes[pCol] = mergeParent
+            nextLanes[pCol] = branchParent
           }
         }
         lines.push({
@@ -111,6 +82,70 @@ export function computeGitTopology(commits: GitCommitItem[]): { nodes: GraphNode
         })
       }
     }
+
+    // 检查下一个紧接着要渲染的提交
+    const nextCommitHash = r + 1 < commits.length ? commits[r + 1].hash : null
+    const primaryNextCol = nextCommitHash ? nextLanes.indexOf(nextCommitHash) : -1
+
+    // 处理当前提交的主轨道连线
+    if (parents.length > 0) {
+      const primaryParent = parents[0]
+      if (nextCommitHash && primaryParent === nextCommitHash && col !== primaryNextCol && primaryNextCol !== -1) {
+        // 当前列与更低列在下一个提交汇合
+        lines.push({
+          fromCol: col,
+          toCol: primaryNextCol,
+          type: "merge",
+          color: nodeColor
+        })
+        nextLanes[col] = null
+      } else {
+        lines.push({
+          fromCol: col,
+          toCol: col,
+          type: "straight",
+          color: nodeColor
+        })
+      }
+    }
+
+    // 处理其他并行轨道的直行或向公共祖先汇合
+    for (let c = 0; c < activeLanes.length; c++) {
+      if (c === col || activeLanes[c] === null) continue
+
+      if (activeLanes[c] === commit.hash) {
+        // 该轨道已到达当前提交，汇入当前提交列并关闭
+        lines.push({
+          fromCol: c,
+          toCol: col,
+          type: "merge",
+          color: LANE_COLORS[c % LANE_COLORS.length]
+        })
+        nextLanes[c] = null
+        continue
+      }
+
+      if (nextCommitHash && nextLanes[c] === nextCommitHash && c !== primaryNextCol && primaryNextCol !== -1) {
+        // 该轨道在进入下一个提交节点时汇入主轨道
+        lines.push({
+          fromCol: c,
+          toCol: primaryNextCol,
+          type: "merge",
+          color: LANE_COLORS[c % LANE_COLORS.length]
+        })
+        nextLanes[c] = null
+      } else {
+        lines.push({
+          fromCol: c,
+          toCol: c,
+          type: "straight",
+          color: LANE_COLORS[c % LANE_COLORS.length]
+        })
+      }
+    }
+
+    // 更新最大列数
+    maxCols = Math.max(maxCols, activeLanes.length, nextLanes.length)
 
     // 清理尾部 null
     while (nextLanes.length > 0 && nextLanes[nextLanes.length - 1] === null) {
@@ -130,9 +165,26 @@ export function computeGitTopology(commits: GitCommitItem[]): { nodes: GraphNode
   return { nodes, maxColumns: maxCols }
 }
 
+/** 计算拓扑图所需的列宽 */
+export function getGraphWidth(maxColumns: number): number {
+  return Math.max(maxColumns * COL_WIDTH + 24, 60)
+}
+
 /** Renders the git graph svg component. */
-export function GitGraphSvg({ nodes, maxColumns, selectedIndex, onSelectIndex }: { nodes: GraphNode[]; maxColumns: number; selectedIndex: number; onSelectIndex: (index: number) => void }) {
-  const width = Math.max(maxColumns * COL_WIDTH + 24, 60)
+export function GitGraphSvg({
+  nodes,
+  maxColumns,
+  selectedIndex,
+  onSelectIndex,
+  currentBranch
+}: {
+  nodes: GraphNode[]
+  maxColumns: number
+  selectedIndex: number
+  onSelectIndex: (index: number) => void
+  currentBranch?: string
+}) {
+  const width = getGraphWidth(maxColumns)
   const height = nodes.length * ROW_HEIGHT
 
   return (
@@ -180,11 +232,20 @@ export function GitGraphSvg({ nodes, maxColumns, selectedIndex, onSelectIndex }:
         })
       })}
 
-      {/* 提交节点圆圈 */}
+      {/* 提交节点圆圈 (参考 SourceTree: 仅当前检出的 HEAD 显示为空心圆圈，其余提交均为实心圆点) */}
       {nodes.map((node, row) => {
         const cx = node.column * COL_WIDTH + COL_WIDTH / 2 + 10
         const cy = row * ROW_HEIGHT + ROW_HEIGHT / 2
         const isSelected = row === selectedIndex
+        const isHead = Boolean(
+          node.commit.refs &&
+          node.commit.refs.some(
+            (r) =>
+              r === "HEAD" ||
+              r.startsWith("HEAD -> ") ||
+              (currentBranch && (r === currentBranch || r === `HEAD -> ${currentBranch}`))
+          )
+        )
 
         return (
           <g
@@ -207,11 +268,11 @@ export function GitGraphSvg({ nodes, maxColumns, selectedIndex, onSelectIndex }:
             <circle
               cx={cx}
               cy={cy}
-              r={isSelected ? 4.5 : 3.5}
-              fill={node.color}
+              r={isSelected ? 4.5 : isHead ? 4 : 3}
+              fill={isHead ? (isSelected ? "#eff6ff" : "#ffffff") : node.color}
               className="git-commit-node"
-              stroke="#ffffff"
-              strokeWidth={1.8}
+              stroke={isHead ? node.color : "#ffffff"}
+              strokeWidth={isHead ? 2.2 : 1.5}
             />
           </g>
         )

@@ -24,6 +24,21 @@ it("counts all commits and pages past the original 150-record limit without dupl
     expect(new Set([...first, ...second].map((item) => item.hash)).size).toBe(163)
     expect(second.at(-1)?.message).toBe("commit 1")
     expect(await service.getLog(root, 150, 163)).toEqual([])
+
+    // 创建另外一个未合并的分支 feature
+    execFileSync("git", ["branch", "feature", "master~5"], { cwd: root })
+    const featureInput = "commit refs/heads/feature\nmark :200\ncommitter Test <test@example.com> 1700000300 +0000\ndata 14\nfeature commit\nfrom refs/heads/feature^0\n\n"
+    execFileSync("git", ["fast-import", "--quiet"], { cwd: root, input: featureInput })
+
+    // HEAD 仅统计 master，而 allBranches=true 包含 feature
+    expect(await service.getLogCount(root, false)).toBe(163)
+    expect(await service.getLogCount(root, true)).toBe(164)
+
+    const allLogs = await service.getLog(root, 200, 0, true)
+    expect(allLogs.some((c) => c.message === "feature commit")).toBe(true)
+
+    const headLogs = await service.getLog(root, 200, 0, false)
+    expect(headLogs.some((c) => c.message === "feature commit")).toBe(false)
   } finally {
     await rm(root, { recursive: true, force: true })
   }
