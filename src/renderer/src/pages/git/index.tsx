@@ -1604,19 +1604,33 @@ export default function SourceTreePage() {
 
                   <ScrollArea className="flex-1 min-h-0">
                     <div className="relative min-w-[700px]">
-                      {/* SVG 拓扑轨道列 (绝对定位浮层，自然悬浮在每行背景之上) */}
-                      <div className="pointer-events-none absolute left-0 top-0 z-10">
-                        <GitGraphSvg
-                          nodes={topology.nodes}
-                          maxColumns={topology.maxColumns}
-                          selectedIndex={selectedCommitIndex}
-                          onSelectIndex={(idx) => setSelectedCommitIndex(idx)}
-                          currentBranch={branches.current}
-                        />
+                      {/* 表头 (参考 SourceTree: 图表 | 描述 | 提交 | 作者 | 日期) */}
+                      <div className="sticky top-0 z-20 flex h-7 items-center gap-3 pr-3 text-[11px] font-medium text-stone-500 border-b border-stone-200 bg-stone-100/95 backdrop-blur-xs select-none">
+                        <div
+                          style={{ width: getGraphWidth(topology.maxColumns), minWidth: getGraphWidth(topology.maxColumns) }}
+                          className="shrink-0 pl-3.5"
+                        >
+                          图表
+                        </div>
+                        <span className="flex-1">描述</span>
+                        <span className="w-20 shrink-0">提交</span>
+                        <span className="w-28 shrink-0">作者</span>
+                        <span className="w-36 shrink-0">日期</span>
                       </div>
 
-                      {/* 提交列表信息 (整行横跨，选中/悬停背景完整覆盖最左侧拓扑图区域) */}
-                      <div className="w-full">
+                      {/* 提交列表信息容器 */}
+                      <div className="relative w-full">
+                        {/* SVG 拓扑轨道列 (绝对定位浮层，自然悬浮在每行背景之上) */}
+                        <div className="pointer-events-none absolute left-0 top-0 z-10">
+                          <GitGraphSvg
+                            nodes={topology.nodes}
+                            maxColumns={topology.maxColumns}
+                            selectedIndex={selectedCommitIndex}
+                            onSelectIndex={(idx) => setSelectedCommitIndex(idx)}
+                            currentBranch={branches.current}
+                          />
+                        </div>
+
                         {commits.map((c, idx) => {
                           const isSelected = idx === selectedCommitIndex
                           return (
@@ -1634,7 +1648,7 @@ export default function SourceTreePage() {
                                     style={{ width: getGraphWidth(topology.maxColumns), minWidth: getGraphWidth(topology.maxColumns) }}
                                     className="shrink-0"
                                   />
-                                  <span className="font-mono text-[11px] text-stone-400">{c.shortHash}</span>
+                                  {/* 描述 (含分支标签与提交信息) */}
                                   <span
                                     className="truncate flex-1"
                                     data-title={c.message}
@@ -1663,8 +1677,12 @@ export default function SourceTreePage() {
                                     })}
                                     {c.message}
                                   </span>
-                                  <span className="w-24 truncate text-stone-500 text-[11px]">{c.author}</span>
-                                  <span className="w-32 text-stone-400 text-[11px] text-right">{c.date}</span>
+                                  {/* 提交哈希 */}
+                                  <span className="w-20 shrink-0 font-mono text-[11px] text-stone-400">{c.shortHash}</span>
+                                  {/* 作者 */}
+                                  <span className="w-28 shrink-0 truncate text-stone-500 text-[11px]">{c.author}</span>
+                                  {/* 日期 */}
+                                  <span className="w-36 shrink-0 text-stone-400 text-[11px]">{c.date}</span>
                                 </div>
                               </ContextMenuTrigger>
                               <ContextMenuContent className="w-56">
