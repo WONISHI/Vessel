@@ -1,0 +1,731 @@
+/* ==========================================================================
+   Vessel Markdown Table - Official Shadcn Data Table Theme
+   ========================================================================== */
+
+.vessel-markdown-table-wrapper {
+  margin: 1rem 0;
+  border-radius: 8px;
+  border: 1px solid #e4e4e7;
+  background-color: #ffffff;
+  box-shadow: none !important;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  color: #09090b;
+  user-select: none;
+  transition: border-color 0.15s ease;
+}
+
+html.dark .vessel-markdown-table-wrapper {
+  background-color: #18181b;
+  border-color: #27272a;
+  color: #f4f4f5;
+  box-shadow: none !important;
+}
+
+/* --------------------------------------------------------------------------
+   Toolbar (Shadcn compact secondary bar)
+   -------------------------------------------------------------------------- */
+
+.vessel-table-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  background-color: #fafafa;
+  border-bottom: 1px solid #e4e4e7;
+}
+
+html.dark .vessel-table-toolbar {
+  background-color: #141416;
+  border-bottom-color: #27272a;
+}
+
+.vessel-table-toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.vessel-table-toolbar-divider {
+  width: 1px;
+  height: 14px;
+  background-color: #e4e4e7;
+  margin: 0 3px;
+}
+
+html.dark .vessel-table-toolbar-divider {
+  background-color: #27272a;
+}
+
+/* Shadcn Button Style */
+.vessel-table-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 24px;
+  padding: 0 7px;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1;
+  border-radius: 4px;
+  border: 1px solid #e4e4e7;
+  background-color: #ffffff;
+  color: #3f3f46;
+  cursor: pointer;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.02);
+  transition: all 0.12s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
+}
+
+.vessel-table-btn-icon {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  color: #a1a1aa;
+}
+
+.vessel-table-btn-icon svg {
+  opacity: 0.55;
+  transition: opacity 0.12s ease, stroke 0.12s ease;
+}
+
+html.dark .vessel-table-btn-icon {
+  color: #71717a;
+}
+
+html.dark .vessel-table-btn {
+  background-color: #1f1f23;
+  border-color: #27272a;
+  color: #d4d4d8;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.15);
+}
+
+.vessel-table-btn:hover:not(:disabled) {
+  background-color: #f4f4f5;
+  border-color: #d4d4d8;
+  color: #09090b;
+}
+
+.vessel-table-btn-icon:hover:not(:disabled) {
+  color: #09090b;
+}
+
+.vessel-table-btn-icon:hover:not(:disabled) svg {
+  opacity: 1;
+}
+
+html.dark .vessel-table-btn:hover:not(:disabled) {
+  background-color: #27272a;
+  border-color: #3f3f46;
+  color: #ffffff;
+}
+
+html.dark .vessel-table-btn-icon:hover:not(:disabled) {
+  color: #ffffff;
+}
+
+.vessel-table-btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.vessel-table-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* Active buttons: icon color turns deep dark, matching [背景] and [文字] */
+.vessel-table-btn.active,
+.vessel-table-btn-icon.active {
+  background-color: #ffffff;
+  color: #09090b !important;
+  border-color: #e4e4e7;
+  font-weight: 600;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+}
+
+html.dark .vessel-table-btn.active,
+html.dark .vessel-table-btn-icon.active {
+  background-color: #1f1f23;
+  color: #ffffff !important;
+  border-color: #27272a;
+}
+
+.vessel-table-btn.active svg,
+.vessel-table-btn-icon.active svg {
+  opacity: 1 !important;
+  color: #09090b !important;
+  stroke: currentColor !important;
+}
+
+/* More menu (ellipsis-vertical) button: always lit/dark, matching standard action buttons */
+.vessel-table-btn-more {
+  color: #09090b !important;
+}
+
+.vessel-table-btn-more svg {
+  opacity: 1 !important;
+  color: #09090b !important;
+  stroke: currentColor !important;
+}
+
+html.dark .vessel-table-btn-more {
+  color: #ffffff !important;
+}
+
+html.dark .vessel-table-btn-more svg {
+  opacity: 1 !important;
+  color: #ffffff !important;
+  stroke: currentColor !important;
+}
+
+html.dark .vessel-table-btn.active svg,
+html.dark .vessel-table-btn-icon.active svg {
+  color: #ffffff !important;
+  stroke: currentColor !important;
+}
+
+.vessel-table-btn svg {
+  flex-shrink: 0;
+}
+
+/* Shadcn Input Style */
+.vessel-table-caption-input {
+  flex: 1;
+  min-width: 110px;
+  max-width: 200px;
+  height: 24px;
+  padding: 0 8px;
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: 4px;
+  border: 1px solid #e4e4e7;
+  background-color: #ffffff;
+  color: #09090b;
+  outline: none;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.02);
+  transition: all 0.12s ease;
+}
+
+html.dark .vessel-table-caption-input {
+  background-color: #1f1f23;
+  border-color: #27272a;
+  color: #f4f4f5;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.15);
+}
+
+.vessel-table-caption-input::placeholder {
+  color: #a1a1aa;
+  font-weight: normal;
+}
+
+html.dark .vessel-table-caption-input::placeholder {
+  color: #71717a;
+}
+
+.vessel-table-caption-input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 1px #2563eb;
+}
+
+html.dark .vessel-table-caption-input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 1px #3b82f6;
+}
+
+/* --------------------------------------------------------------------------
+   Color Dropdown Popover
+   -------------------------------------------------------------------------- */
+
+.vessel-color-popover {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 50;
+  margin-top: 4px;
+  padding: 6px;
+  background-color: #ffffff;
+  border: 1px solid #e4e4e7;
+  border-radius: 6px;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+  display: grid;
+  grid-template-columns: repeat(6, 20px);
+  gap: 5px;
+  animation: vesselFadeIn 0.12s ease-out;
+}
+
+@keyframes vesselFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+html.dark .vessel-color-popover {
+  background-color: #18181b;
+  border-color: #27272a;
+  box-shadow: 0 10px 20px -3px rgba(0, 0, 0, 0.5);
+}
+
+.vessel-color-swatch {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.vessel-color-swatch:hover {
+  transform: scale(1.15);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+/* --------------------------------------------------------------------------
+   Table Layout & Grid (Exact Shadcn Data Table Dimensions & Styles)
+   -------------------------------------------------------------------------- */
+
+.vessel-table-container {
+  overflow-x: auto;
+  width: 100%;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+}
+
+/* Reset any external / Vditor overrides */
+.vessel-markdown-table-wrapper table.vessel-table-grid,
+.vditor-reset .vessel-markdown-table-wrapper table.vessel-table-grid,
+.vessel-vditor .vessel-markdown-table-wrapper table.vessel-table-grid {
+  display: table !important;
+  width: 100% !important;
+  table-layout: auto !important;
+  border-collapse: collapse !important;
+  border-spacing: 0 !important;
+  border: none !important;
+  margin: 0 !important;
+  margin-bottom: 0 !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  font-size: 12px !important;
+  line-height: 18px !important;
+  text-align: left;
+}
+
+.vessel-table-caption {
+  caption-side: top;
+  padding: 8px 14px 6px 14px;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 600;
+  color: #09090b;
+  border: none !important;
+  border-bottom: none !important;
+}
+
+html.dark .vessel-table-caption {
+  color: #f4f4f5;
+  border: none !important;
+  border-bottom: none !important;
+}
+
+.vessel-caption-editor {
+  width: 100%;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: inherit;
+  line-height: inherit;
+  box-sizing: border-box;
+}
+
+html.dark .vessel-caption-editor {
+  background: transparent !important;
+  border: none !important;
+  color: #f4f4f5;
+}
+
+.vessel-caption-text {
+  cursor: text;
+  display: inline-block;
+  user-select: text;
+}
+
+/* Rows: Only horizontal border, NO vertical borders */
+.vessel-markdown-table-wrapper table.vessel-table-grid tr.vessel-table-row,
+.vditor-reset .vessel-markdown-table-wrapper table.vessel-table-grid tr.vessel-table-row {
+  display: table-row !important;
+  border: none !important;
+  border-bottom: 1px solid #e4e4e7 !important;
+  background-color: transparent !important;
+  transition: background-color 0.15s ease !important;
+}
+
+html.dark .vessel-markdown-table-wrapper table.vessel-table-grid tr.vessel-table-row,
+html.dark .vditor-reset .vessel-markdown-table-wrapper table.vessel-table-grid tr.vessel-table-row {
+  border-bottom-color: #27272a !important;
+}
+
+.vessel-markdown-table-wrapper table.vessel-table-grid tr.vessel-table-row:hover,
+.vditor-reset .vessel-markdown-table-wrapper table.vessel-table-grid tr.vessel-table-row:hover {
+  background-color: rgba(244, 244, 245, 0.6) !important;
+}
+
+html.dark .vessel-markdown-table-wrapper table.vessel-table-grid tr.vessel-table-row:hover,
+html.dark .vditor-reset .vessel-markdown-table-wrapper table.vessel-table-grid tr.vessel-table-row:hover {
+  background-color: rgba(255, 255, 255, 0.03) !important;
+}
+
+/* Neutralize Vditor pseudo elements on first cell */
+.vessel-markdown-table-wrapper table.vessel-table-grid th::after,
+.vessel-markdown-table-wrapper table.vessel-table-grid td::after,
+.vditor-reset .vessel-markdown-table-wrapper table.vessel-table-grid th::after,
+.vditor-reset .vessel-markdown-table-wrapper table.vessel-table-grid td::after,
+.vessel-markdown-table-wrapper table.vessel-table-grid th::before,
+.vessel-markdown-table-wrapper table.vessel-table-grid td::before,
+.vditor-reset .vessel-markdown-table-wrapper table.vessel-table-grid th::before,
+.vditor-reset .vessel-markdown-table-wrapper table.vessel-table-grid td::before {
+  display: none !important;
+  content: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  min-height: 0 !important;
+}
+
+/* Header Cells (th) */
+.vessel-markdown-table-wrapper table.vessel-table-grid th.vessel-table-th,
+.vditor-reset .vessel-markdown-table-wrapper table.vessel-table-grid th.vessel-table-th {
+  display: table-cell !important;
+  height: 34px !important;
+  padding: 6px 14px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  color: #09090b;
+  background-color: #fafafa;
+  border: 1px solid #e4e4e7 !important;
+  vertical-align: middle !important;
+  white-space: nowrap;
+  box-sizing: border-box !important;
+  user-select: text;
+}
+
+html.dark .vessel-markdown-table-wrapper table.vessel-table-grid th.vessel-table-th,
+html.dark .vditor-reset .vessel-markdown-table-wrapper table.vessel-table-grid th.vessel-table-th {
+  background-color: #1a1a1e;
+  color: #f4f4f5;
+  border-color: #27272a !important;
+}
+
+/* Data Cells (td) */
+.vessel-markdown-table-wrapper table.vessel-table-grid td.vessel-table-td,
+.vditor-reset .vessel-markdown-table-wrapper table.vessel-table-grid td.vessel-table-td {
+  position: relative;
+  display: table-cell !important;
+  height: 34px !important;
+  padding: 6px 14px !important;
+  font-size: 12px !important;
+  color: #09090b;
+  border: 1px solid #e4e4e7 !important;
+  vertical-align: middle !important;
+  word-break: normal !important;
+  white-space: normal !important;
+  box-sizing: border-box !important;
+  user-select: text;
+}
+
+html.dark .vessel-markdown-table-wrapper table.vessel-table-grid td.vessel-table-td,
+html.dark .vditor-reset .vessel-markdown-table-wrapper table.vessel-table-grid td.vessel-table-td {
+  color: #f4f4f5;
+  border-color: #27272a !important;
+}
+
+.vessel-cell-content {
+  min-height: 18px;
+  line-height: 18px;
+  font-size: 12px;
+  color: inherit;
+}
+
+/* --------------------------------------------------------------------------
+   Outer edges removal (1号:左无边框, 2号:底无边框, 3号:右无边框)
+   -------------------------------------------------------------------------- */
+
+/* 1号: 去除左外边框 */
+.vessel-markdown-table-wrapper table.vessel-table-grid .vessel-cell-edge-left,
+.vessel-markdown-table-wrapper table.vessel-table-grid tr > th:first-child,
+.vessel-markdown-table-wrapper table.vessel-table-grid tr > td:first-child,
+.vditor-reset .vessel-markdown-table-wrapper table.vessel-table-grid .vessel-cell-edge-left,
+.vditor-reset .vessel-markdown-table-wrapper table.vessel-table-grid tr > th:first-child,
+.vditor-reset .vessel-markdown-table-wrapper table.vessel-table-grid tr > td:first-child {
+  border-left: none !important;
+}
+
+/* 3号: 去除右外边框 */
+.vessel-markdown-table-wrapper table.vessel-table-grid .vessel-cell-edge-right,
+.vessel-markdown-table-wrapper table.vessel-table-grid tr > th:last-child,
+.vessel-markdown-table-wrapper table.vessel-table-grid tr > td:last-child,
+.vditor-reset .vessel-markdown-table-wrapper table.vessel-table-grid .vessel-cell-edge-right,
+.vditor-reset .vessel-markdown-table-wrapper table.vessel-table-grid tr > th:last-child,
+.vditor-reset .vessel-markdown-table-wrapper table.vessel-table-grid tr > td:last-child {
+  border-right: none !important;
+}
+
+/* 2号: 去除底外边框（包括最后一行 tr、所有底边单元格以及表格自身底边，避免双层底边框） */
+.vessel-markdown-table-wrapper table.vessel-table-grid,
+.vessel-markdown-table-wrapper table.vessel-table-grid tr:last-child,
+.vessel-markdown-table-wrapper table.vessel-table-grid tbody tr:last-child,
+.vessel-markdown-table-wrapper table.vessel-table-grid tr:last-child > th,
+.vessel-markdown-table-wrapper table.vessel-table-grid tr:last-child > td,
+.vessel-markdown-table-wrapper table.vessel-table-grid tbody tr:last-child > th,
+.vessel-markdown-table-wrapper table.vessel-table-grid tbody tr:last-child > td,
+.vessel-markdown-table-wrapper table.vessel-table-grid .vessel-cell-edge-bottom,
+.vditor-reset .vessel-markdown-table-wrapper table.vessel-table-grid,
+.vditor-reset .vessel-markdown-table-wrapper table.vessel-table-grid tr:last-child,
+.vditor-reset .vessel-markdown-table-wrapper table.vessel-table-grid tbody tr:last-child,
+.vditor-reset .vessel-markdown-table-wrapper table.vessel-table-grid tr:last-child > th,
+.vditor-reset .vessel-markdown-table-wrapper table.vessel-table-grid tr:last-child > td,
+.vditor-reset .vessel-markdown-table-wrapper table.vessel-table-grid tbody tr:last-child > th,
+.vditor-reset .vessel-markdown-table-wrapper table.vessel-table-grid tbody tr:last-child > td,
+.vditor-reset .vessel-markdown-table-wrapper table.vessel-table-grid .vessel-cell-edge-bottom {
+  border-bottom: none !important;
+}
+
+/* --------------------------------------------------------------------------
+   Selected Cells (Shadcn Primary Ring Selection)
+   -------------------------------------------------------------------------- */
+
+/* Selected Cells: Outer perimeter ring (never double-border between adjacent selected cells) */
+.vessel-markdown-table-wrapper table.vessel-table-grid td.vessel-cell-selected,
+.vessel-markdown-table-wrapper table.vessel-table-grid th.vessel-cell-selected,
+.vditor-reset .vessel-markdown-table-wrapper table.vessel-table-grid td.vessel-cell-selected,
+.vditor-reset .vessel-markdown-table-wrapper table.vessel-table-grid th.vessel-cell-selected {
+  outline: none !important;
+  --sel-top: 0px;
+  --sel-bottom: 0px;
+  --sel-left: 0px;
+  --sel-right: 0px;
+  --sel-color: #60a5fa;
+  box-shadow:
+    inset 0 var(--sel-top) 0 0 var(--sel-color),
+    inset 0 calc(-1 * var(--sel-bottom)) 0 0 var(--sel-color),
+    inset var(--sel-left) 0 0 0 var(--sel-color),
+    inset calc(-1 * var(--sel-right)) 0 0 0 var(--sel-color) !important;
+}
+
+html.dark .vessel-markdown-table-wrapper table.vessel-table-grid td.vessel-cell-selected,
+html.dark .vessel-markdown-table-wrapper table.vessel-table-grid th.vessel-cell-selected,
+html.dark .vditor-reset .vessel-markdown-table-wrapper table.vessel-table-grid td.vessel-cell-selected,
+html.dark .vditor-reset .vessel-markdown-table-wrapper table.vessel-table-grid th.vessel-cell-selected {
+  --sel-color: #60a5fa;
+}
+
+.vessel-markdown-table-wrapper table.vessel-table-grid .vessel-sel-top,
+.vditor-reset .vessel-markdown-table-wrapper table.vessel-table-grid .vessel-sel-top {
+  --sel-top: 2px !important;
+}
+
+.vessel-markdown-table-wrapper table.vessel-table-grid .vessel-sel-bottom,
+.vditor-reset .vessel-markdown-table-wrapper table.vessel-table-grid .vessel-sel-bottom {
+  --sel-bottom: 2px !important;
+}
+
+.vessel-markdown-table-wrapper table.vessel-table-grid .vessel-sel-left,
+.vditor-reset .vessel-markdown-table-wrapper table.vessel-table-grid .vessel-sel-left {
+  --sel-left: 2px !important;
+}
+
+.vessel-markdown-table-wrapper table.vessel-table-grid .vessel-sel-right,
+.vditor-reset .vessel-markdown-table-wrapper table.vessel-table-grid .vessel-sel-right {
+  --sel-right: 2px !important;
+}
+
+/* Only cells without a custom background get the blue selection tint */
+.vessel-markdown-table-wrapper table.vessel-table-grid td.vessel-cell-selected:not(.vessel-cell-custom-bg),
+.vessel-markdown-table-wrapper table.vessel-table-grid th.vessel-cell-selected:not(.vessel-cell-custom-bg),
+.vditor-reset .vessel-markdown-table-wrapper table.vessel-table-grid td.vessel-cell-selected:not(.vessel-cell-custom-bg),
+.vditor-reset .vessel-markdown-table-wrapper table.vessel-table-grid th.vessel-cell-selected:not(.vessel-cell-custom-bg) {
+  background-color: rgba(37, 99, 235, 0.08);
+}
+
+html.dark .vessel-markdown-table-wrapper table.vessel-table-grid td.vessel-cell-selected:not(.vessel-cell-custom-bg),
+html.dark .vessel-markdown-table-wrapper table.vessel-table-grid th.vessel-cell-selected:not(.vessel-cell-custom-bg),
+html.dark .vditor-reset .vessel-markdown-table-wrapper table.vessel-table-grid td.vessel-cell-selected:not(.vessel-cell-custom-bg),
+html.dark .vditor-reset .vessel-markdown-table-wrapper table.vessel-table-grid th.vessel-cell-selected:not(.vessel-cell-custom-bg) {
+  background-color: rgba(59, 130, 246, 0.16);
+}
+
+/* --------------------------------------------------------------------------
+   Inline Cell Editor
+   -------------------------------------------------------------------------- */
+
+.vessel-cell-editor {
+  width: 100%;
+  height: 100%;
+  min-height: 18px;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  background-color: transparent !important;
+  color: inherit;
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  font-style: inherit;
+  text-align: inherit;
+  line-height: inherit;
+  box-sizing: border-box;
+}
+
+html.dark .vessel-cell-editor {
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* --------------------------------------------------------------------------
+   Raw JSON Editor View
+   -------------------------------------------------------------------------- */
+
+.vessel-table-raw-editor {
+  width: 100%;
+  height: 240px;
+  padding: 12px 16px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  border: none;
+  background-color: #fafafa;
+  color: #09090b;
+  outline: none;
+  resize: vertical;
+}
+
+html.dark .vessel-table-raw-editor {
+  background-color: #141416;
+  color: #f4f4f5;
+}
+
+/* --------------------------------------------------------------------------
+   More Options Dropdown Menu (Context Menu style)
+   -------------------------------------------------------------------------- */
+
+.vessel-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  z-index: 60;
+  margin-top: 4px;
+  min-width: 130px;
+  padding: 4px;
+  background-color: #ffffff;
+  border: 1px solid #e4e4e7;
+  border-radius: 6px;
+  box-shadow: 0 4px 16px -2px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.06);
+  font-size: 12px;
+  animation: vesselFadeIn 0.12s ease-out;
+}
+
+html.dark .vessel-dropdown-menu {
+  background-color: #18181b;
+  border-color: #27272a;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.5);
+}
+
+.vessel-menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 5px 8px;
+  font-size: 12px;
+  font-weight: 400;
+  color: #09090b;
+  border-radius: 4px;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.1s ease, color 0.1s ease;
+  box-sizing: border-box;
+}
+
+html.dark .vessel-menu-item {
+  color: #f4f4f5;
+}
+
+.vessel-menu-item:hover {
+  background-color: #f4f4f5;
+  color: #09090b;
+}
+
+html.dark .vessel-menu-item:hover {
+  background-color: #27272a;
+  color: #ffffff;
+}
+
+.vessel-menu-item-sub {
+  position: relative;
+}
+
+.vessel-menu-item-danger {
+  color: #dc2626 !important;
+}
+
+.vessel-menu-item-danger:hover {
+  background-color: #fee2e2 !important;
+  color: #b91c1c !important;
+}
+
+html.dark .vessel-menu-item-danger {
+  color: #ef4444 !important;
+}
+
+html.dark .vessel-menu-item-danger:hover {
+  background-color: rgba(239, 68, 68, 0.15) !important;
+  color: #fca5a5 !important;
+}
+
+.vessel-menu-divider {
+  height: 1px;
+  margin: 4px 0;
+  background-color: #e4e4e7;
+}
+
+html.dark .vessel-menu-divider {
+  background-color: #27272a;
+}
+
+/* Submenu flyout */
+.vessel-dropdown-submenu {
+  position: absolute;
+  top: -4px;
+  right: 100%;
+  margin-right: 4px;
+  min-width: 110px;
+  padding: 4px;
+  background-color: #ffffff;
+  border: 1px solid #e4e4e7;
+  border-radius: 6px;
+  box-shadow: 0 4px 16px -2px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.06);
+  font-size: 12px;
+  animation: vesselFadeIn 0.12s ease-out;
+}
+
+html.dark .vessel-dropdown-submenu {
+  background-color: #18181b;
+  border-color: #27272a;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.5);
+}

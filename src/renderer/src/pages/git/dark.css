@@ -5,7 +5,7 @@ html.dark .vessel-git-page {
 }
 html.dark .vessel-git-page .bg-white { background: #23272d !important; }
 html.dark .vessel-git-page .git-navigation { background: #20242a !important; }
-html.dark .vessel-git-page :is([class~="bg-stone-50"], [class~="bg-stone-50/50"], [class~="bg-stone-50/80"], [class~="bg-stone-100"], [class~="bg-stone-100/70"]) { background: #262a30 !important; }
+html.dark .vessel-git-page :is([class*="bg-stone-50"], [class*="bg-stone-100"]) { background: #262a30 !important; }
 html.dark .vessel-git-page :is(.border, .border-b, .border-t, .border-r, .border-l, .divide-x > *) { border-color: #30353c !important; }
 html.dark .vessel-git-page :is(.text-stone-900, .text-stone-800, .text-stone-700) { color: #e6e8eb !important; }
 html.dark .vessel-git-page :is(.text-stone-600, .text-stone-500) { color: #9aa1a9 !important; }
@@ -26,6 +26,80 @@ html.dark .vessel-git-page [data-git-selected="true"] :is(span, svg) { color: #4
 html.dark .vessel-git-page :is(.text-green-600, .text-green-700, .text-green-800) { color: #4ade80 !important; }
 html.dark .vessel-git-page .text-amber-700 { color: #e9a23b !important; }
 html.dark .vessel-git-page .text-blue-500 { color: #60a5fa; }
+
+/* 1号: 未推送与待拉取角标在深色模式下的背景与文字颜色，防止被选中样式覆盖 */
+html.dark .vessel-git-page :is(.bg-orange-100, [class*="bg-orange-100"]) {
+  background: rgba(249, 115, 22, 0.22) !important;
+  color: #fb923c !important;
+}
+html.dark .vessel-git-page :is(.bg-orange-100, [class*="bg-orange-100"]) :is(span, svg) {
+  color: #fb923c !important;
+}
+html.dark .vessel-git-page :is(.bg-blue-100, [class*="bg-blue-100"]) {
+  background: rgba(59, 130, 246, 0.22) !important;
+  color: #60a5fa !important;
+}
+html.dark .vessel-git-page :is(.bg-blue-100, [class*="bg-blue-100"]) :is(span, svg) {
+  color: #60a5fa !important;
+}
+html.dark .vessel-git-page .git-navigation :is(.bg-stone-100, [class*="bg-stone-100"]) {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: #9aa1a9 !important;
+}
+html.dark .vessel-git-page .git-navigation :is(.bg-stone-100, [class*="bg-stone-100"]) :is(span, svg) {
+  color: #9aa1a9 !important;
+}
+html.dark .vessel-git-page [data-git-selected="true"] :is(.bg-orange-100, [class*="bg-orange-100"]) {
+  background: rgba(249, 115, 22, 0.22) !important;
+  color: #fb923c !important;
+}
+html.dark .vessel-git-page [data-git-selected="true"] :is(.bg-orange-100, [class*="bg-orange-100"]) :is(span, svg) {
+  color: #fb923c !important;
+}
+html.dark .vessel-git-page [data-git-selected="true"] :is(.bg-blue-100, [class*="bg-blue-100"]) {
+  background: rgba(59, 130, 246, 0.22) !important;
+  color: #60a5fa !important;
+}
+html.dark .vessel-git-page [data-git-selected="true"] :is(.bg-blue-100, [class*="bg-blue-100"]) :is(span, svg) {
+  color: #60a5fa !important;
+}
+html.dark .vessel-git-page [data-git-selected="true"] :is(.bg-stone-100, [class*="bg-stone-100"]) {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: #9aa1a9 !important;
+}
+html.dark .vessel-git-page [data-git-selected="true"] :is(.bg-stone-100, [class*="bg-stone-100"]) :is(span, svg) {
+  color: #9aa1a9 !important;
+}
+html.dark .vessel-git-page [data-git-selected="true"] span.font-mono {
+  color: #8b949e !important;
+}
+
+/* 2号: 提交历史视图顶部工具条与表格表头背景 */
+html.dark .vessel-git-page :is(.git-history-toolbar, [class*="git-history-toolbar"]) {
+  background: #20242a !important;
+  border-color: #30353c !important;
+  color: #9aa1a9 !important;
+}
+html.dark .vessel-git-page :is(.git-history-table-header, [class*="git-history-table-header"]) {
+  background: #20242a !important;
+  border-color: #30353c !important;
+  color: #9aa1a9 !important;
+}
+html.dark .vessel-git-page .git-scope-pill {
+  background: #1c2025 !important;
+  border-color: #30353c !important;
+}
+html.dark .vessel-git-page .git-scope-pill button[data-scope-active="true"] {
+  background: #2d333b !important;
+  color: #e6e8eb !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4) !important;
+}
+html.dark .vessel-git-page .git-scope-pill button[data-scope-active="false"] {
+  color: #9aa1a9 !important;
+}
+html.dark .vessel-git-page .git-scope-pill button[data-scope-active="false"]:hover {
+  color: #e6e8eb !important;
+}
 
 /* Explicit surfaces also cover translucent light utility backgrounds. */
 html.dark .vessel-git-page .git-toolbar,

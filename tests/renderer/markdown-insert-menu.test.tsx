@@ -52,3 +52,27 @@ it("captures the clicked caret and leaves tables and readonly content alone", ()
   fireEvent.contextMenu(root.querySelector("p")!)
   expect(open).toHaveBeenCalledOnce()
 })
+
+it("triggers insert menu upon typing slash in editable markdown", () => {
+  const root = document.createElement("div")
+  root.innerHTML = '<div class="vditor-ir"><pre class="vditor-reset" contenteditable="true"><p>测试/</p></pre></div>'
+  document.body.append(root)
+  const textNode = root.querySelector("p")!.firstChild!
+  const range = document.createRange()
+  range.setStart(textNode, 3)
+  range.collapse(true)
+  window.getSelection()?.removeAllRanges()
+  window.getSelection()?.addRange(range)
+
+  const open = vi.fn()
+  const unbind = bindMarkdownInsertMenu(root, open)
+
+  vi.useFakeTimers()
+  fireEvent(root.querySelector('[contenteditable="true"]')!, new InputEvent("input", { data: "/", bubbles: true }))
+  vi.runAllTimers()
+  vi.useRealTimers()
+  expect(open).toHaveBeenCalledOnce()
+  expect(open.mock.calls[0][0].range.startOffset).toBe(2)
+  expect(open.mock.calls[0][0].range.endOffset).toBe(3)
+  unbind()
+})

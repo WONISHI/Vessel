@@ -1,4 +1,5 @@
 import { treeRevealScrollTop } from "@/components/workspace/components/layout-aside/layout-workspace-sidebar/reveal-scroll"
+import { useTreeDragAutoScroll } from "@/components/workspace/components/layout-aside/layout-workspace-sidebar/use-tree-drag-scroll"
 import { Button } from "@/components/ui/button"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { VirtualTree, type VirtualTreeRow } from "@/components/ui/tree"
@@ -59,6 +60,31 @@ export default function WorkspaceTree({
   const [moving, setMoving] = useState(false)
   const [moveError, setMoveError] = useState("")
   const [renamingPath, setRenamingPath] = useState<string | null>(null)
+
+  useTreeDragAutoScroll({
+    viewport,
+    onHoverPath: (path) => setDropTarget(path),
+    onDropRoot: (event) => {
+      setDropTarget(undefined)
+      const internal = event.dataTransfer?.getData("application/x-vessel-files")
+      if (internal) {
+        try {
+          const paths = JSON.parse(internal)
+          if (Array.isArray(paths) && paths.every((path) => typeof path === "string")) {
+            setMoveError("")
+            setMove({ paths, destination: workspace.path })
+          }
+        } catch {
+          /* Ignore unrelated drag payloads. */
+        }
+      } else if (event.dataTransfer?.files.length) {
+        const paths = Array.from(event.dataTransfer.files)
+          .map((file) => window.electronAPI.getDroppedFilePath(file))
+          .filter(Boolean)
+        if (paths.length) void transfer(paths, workspace.path, true)
+      }
+    }
+  })
 
   /** Performs the parent path operation. */
   const parentPath = (path: string) => path.replace(/[\\/][^\\/]+$/, "")
@@ -235,6 +261,7 @@ export default function WorkspaceTree({
             />
           ) : (
             <div
+              data-node-path={node.path}
               onContextMenuCapture={() => { if (!selection.includes(node.path)) setSelection([node.path]) }}
               draggable={renamingPath !== node.path}
               onDragStart={(event) => {
@@ -259,7 +286,10 @@ export default function WorkspaceTree({
                 event.dataTransfer.dropEffect = event.dataTransfer.types.includes("application/x-vessel-files") ? "move" : "copy"
                 setDropTarget(node.path)
               }}
-              onDragLeave={() => setDropTarget(undefined)}
+              onDragLeave={(event) => {
+                if (event.currentTarget.contains(event.relatedTarget as Node)) return
+                setDropTarget(undefined)
+              }}
               onDrop={(event) => {
                 event.preventDefault()
                 event.stopPropagation()

@@ -104,4 +104,55 @@ it("defaults to positioning tooltips on top for normal elements with adequate sp
   expect(tooltip.dataset.side).toBe("top")
 })
 
+it("positions workspace tree row tooltips to the right of the row", () => {
+  vi.useFakeTimers()
+  dispose = installDataTitleTooltips()
+  const row = document.createElement("button")
+  row.dataset.workspaceTreeRow = "true"
+  row.dataset.title = "obsidian/后端/韩顺平Python/第一章 课程说明.md"
+  vi.spyOn(row, "getBoundingClientRect").mockReturnValue({
+    top: 100,
+    bottom: 132,
+    left: 10,
+    right: 250,
+    width: 240,
+    height: 32,
+    x: 10,
+    y: 100,
+    toJSON: () => {}
+  })
+  document.body.append(row)
+  fireEvent.pointerOver(row)
+  vi.advanceTimersByTime(350)
+  const tooltip = document.querySelector<HTMLElement>('[role="tooltip"]')!
+  expect(tooltip.hidden).toBe(false)
+  expect(tooltip.dataset.side).toBe("right")
+})
+
+it("honors explicit data-title-side right on elements", () => {
+  vi.useFakeTimers()
+  dispose = installDataTitleTooltips()
+  const button = document.createElement("button")
+  button.dataset.title = "第一章 课程说明.md"
+  button.dataset.titleSide = "right"
+  vi.spyOn(button, "getBoundingClientRect").mockReturnValue({
+    top: 100,
+    bottom: 132,
+    left: 10,
+    right: 250,
+    width: 240,
+    height: 32,
+    x: 10,
+    y: 100,
+    toJSON: () => {}
+  })
+  document.body.append(button)
+  fireEvent.pointerOver(button)
+  vi.advanceTimersByTime(350)
+  const tooltip = document.querySelector<HTMLElement>('[role="tooltip"]')!
+  expect(tooltip.hidden).toBe(false)
+  expect(tooltip.dataset.side).toBe("right")
+})
+
+
 

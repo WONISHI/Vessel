@@ -1,15 +1,19 @@
 import { WorkspaceFilePicker } from "@/components/workspace-file-picker"
 import type { FilePickerWorkspace } from "@/components/workspace-file-picker/types"
 import { CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
+import { useDarkAppearance } from "@/hooks/use-dark-appearance"
 import { openInAppBrowser, toURL } from "@/lib/app-browser"
+import { applyAppearance } from "@/pages/settings/appearance"
 import { useRouter } from "@vessel/react-router"
 import { matchesShortcut } from "@vessel/utils"
-import { ExternalLink, Eye, EyeOff, Globe, RotateCw, FileSearch } from "lucide-react"
+import { ExternalLink, Eye, EyeOff, Globe, RotateCw, FileSearch, Moon, Sun } from "lucide-react"
 import { useEffect, useState } from "react"
+import { toast } from "sonner"
 
 /** Renders the command palette component. */
 export function CommandPalette() {
   const router = useRouter()
+  const dark = useDarkAppearance()
   const [finderOpen, setFinderOpen] = useState(false)
   const [finderWorkspace, setFinderWorkspace] = useState<FilePickerWorkspace | null>(null)
   const [open, setOpen] = useState(false)
@@ -44,6 +48,20 @@ export function CommandPalette() {
     setVisible(value)
     window.dispatchEvent(new Event("vessel-control-visibility"))
     setOpen(false)
+  }
+
+  /** Toggles light / dark appearance. */
+  const toggleTheme = () => {
+    setOpen(false)
+    void window.electronAPI
+      ?.getSettings()
+      .then(async (settings) => {
+        const nextTheme = document.documentElement.classList.contains("dark") ? "light" : "dark"
+        const saved = await window.electronAPI.saveSettings({ ...settings, theme: nextTheme })
+        applyAppearance(saved)
+        window.dispatchEvent(new Event("vessel:settings-saved"))
+      })
+      .catch((error) => toast.error(String(error)))
   }
   const url = toURL(search)
   return (
@@ -125,6 +143,13 @@ export function CommandPalette() {
             </CommandItem>
           </CommandGroup>
           <CommandGroup heading="界面">
+            <CommandItem
+              value="切换主题 切换深色主题 切换浅色主题 theme dark light toggle"
+              onSelect={toggleTheme}
+            >
+              {dark ? <Sun /> : <Moon />}
+              切换主题
+            </CommandItem>
             <CommandItem
               value="显示控制按钮"
               disabled={visible}

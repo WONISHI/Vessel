@@ -1,5 +1,8 @@
 import { parseWikiLinks } from "#vessel-obsidian/wikilinks"
 
+export * from "#vessel-obsidian/links/markdown-link"
+export * from "#vessel-obsidian/links/link-tooltip"
+
 export interface ObsidianTextPart {
   kind: "text" | "wiki" | "url"
   text: string

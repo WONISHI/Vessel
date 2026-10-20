@@ -35,9 +35,12 @@ export function installDataTitleTooltips() {
 
     const explicitSide = target.dataset.titleSide
     const isTopTab = Boolean(target.closest('[data-workspace-tab="true"], .browser-tabs'))
-    let side = explicitSide || (isTopTab ? "bottom" : "top")
+    const isTreeRow = Boolean(target.closest('[data-workspace-tree-row]'))
+    let side = explicitSide || (isTopTab ? "bottom" : isTreeRow ? "right" : "top")
     if (side === "top" && rect.top - size.height - gap < gap && !explicitSide) {
       side = "bottom"
+    } else if (side === "right" && rect.right + size.width + gap > innerWidth && !explicitSide) {
+      side = "top"
     }
 
     const centerX = pointerX > 0 && pointerX >= rect.left && pointerX <= rect.right ? pointerX : rect.left + rect.width / 2

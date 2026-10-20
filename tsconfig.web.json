@@ -28,6 +28,12 @@
       "@vessel/utils/*": [
         "./packages/@vessel/utils/src/*"
       ],
+      "@vessel/markdown-table": [
+        "./packages/@vessel/markdown-table/src/index.ts"
+      ],
+      "@vessel/markdown-table/*": [
+        "./packages/@vessel/markdown-table/src/*"
+      ],
       "@preload/*": [
         "./src/preload/*"
       ]

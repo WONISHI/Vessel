@@ -11,32 +11,23 @@ function fixture() {
   root.innerHTML = '<div class="vessel-image-block"><pre><code>encoded-image-source</code></pre><div contenteditable="false"><img src="image.png"></div></div><blockquote><p>后面的正文</p></blockquote>'
   document.body.append(root)
   unbind = bindImageParagraphs(root)
-  const command = vi.fn(() => {
-    const range = window.getSelection()!.getRangeAt(0)
-    const paragraph = document.createElement("p")
-    paragraph.innerHTML = "<br>"
-    range.insertNode(paragraph)
-    return true
-  })
-  Object.defineProperty(document, "execCommand", { configurable: true, value: command })
-  return { root, command }
+  return { root }
 }
 it("Enter at the start of text after an image inserts a blank paragraph without changing image source", () => {
-  const { root, command } = fixture()
+  const { root } = fixture()
   const text = root.querySelector("blockquote p")!.firstChild!
   const range = document.createRange(); range.setStart(text, 0); range.collapse(true)
   window.getSelection()!.addRange(range)
   const event = new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true })
   text.parentElement!.dispatchEvent(event)
   expect(event.defaultPrevented).toBe(true)
-  expect(command).toHaveBeenCalledWith("insertHTML", false, '<p data-block="0"><br></p>')
   expect(root.children[1].tagName).toBe("P")
   expect(root.querySelector("code")!.textContent).toBe("encoded-image-source")
   expect(root.querySelector("blockquote")!.textContent).toBe("后面的正文")
   expect(window.getSelection()!.anchorNode).toBe(root.children[1])
 })
 it("keeps Enter in ordinary text and IME input untouched", () => {
-  const { root, command } = fixture()
+  const { root } = fixture()
   const text = root.querySelector("blockquote p")!.firstChild!
   const range = document.createRange(); range.setStart(text, 2); range.collapse(true)
   window.getSelection()!.addRange(range)
@@ -44,24 +35,50 @@ it("keeps Enter in ordinary text and IME input untouched", () => {
   range.setStart(text, 0); range.collapse(true)
   window.getSelection()!.removeAllRanges(); window.getSelection()!.addRange(range)
   text.parentElement!.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", isComposing: true, bubbles: true }))
-  expect(command).not.toHaveBeenCalled()
+  expect(root.querySelectorAll("p")).toHaveLength(1)
 })
 
-it("focuses the line directly below the image without inserting another paragraph", () => {
-  const { root, command } = fixture()
+it("focuses an existing empty line directly below the image without inserting another paragraph", () => {
+  const { root } = fixture()
+  const image = root.firstElementChild as HTMLElement
+  const paragraph = document.createElement("p")
+  paragraph.innerHTML = "<br>"
+  image.after(paragraph)
+  expect(focusImageParagraph(image, true)).toBe(paragraph)
+  expect(window.getSelection()?.anchorNode).toBe(paragraph)
+  expect(window.getSelection()?.anchorOffset).toBe(0)
+})
+
+it("focuses an existing empty line directly above the image without inserting another paragraph", () => {
+  const { root } = fixture()
+  const image = root.firstElementChild as HTMLElement
+  const paragraph = document.createElement("p")
+  paragraph.innerHTML = "<br>"
+  image.before(paragraph)
+  expect(focusImageParagraph(image, false)).toBe(paragraph)
+  expect(window.getSelection()?.anchorNode).toBe(paragraph)
+  expect(window.getSelection()?.anchorOffset).toBe(0)
+})
+
+it("creates and focuses a new empty line when the line next to the image is not empty", () => {
+  const { root } = fixture()
   const image = root.firstElementChild as HTMLElement
   const paragraph = document.createElement("p")
   paragraph.textContent = "下一行"
   image.after(paragraph)
-  expect(focusImageParagraph(image)).toBe(paragraph)
-  expect(window.getSelection()?.anchorNode).toBe(paragraph)
-  expect(window.getSelection()?.anchorOffset).toBe(0)
-  expect(command).not.toHaveBeenCalled()
+  const created = focusImageParagraph(image, true)
+  expect(created).not.toBe(paragraph)
+  expect(created?.tagName).toBe("P")
+  expect(image.nextElementSibling).toBe(created)
+  expect(created?.nextElementSibling).toBe(paragraph)
+  expect(window.getSelection()?.anchorNode).toBe(created)
 })
+
 it("creates and focuses an empty line when the image is followed by another block", () => {
-  const { root, command } = fixture()
-  const paragraph = focusImageParagraph(root.firstElementChild as HTMLElement)
+  const { root } = fixture()
+  const image = root.firstElementChild as HTMLElement
+  const paragraph = focusImageParagraph(image)
   expect(paragraph?.tagName).toBe("P")
-  expect(command).toHaveBeenCalledOnce()
+  expect(image.nextElementSibling).toBe(paragraph)
   expect(window.getSelection()?.anchorNode).toBe(paragraph)
 })

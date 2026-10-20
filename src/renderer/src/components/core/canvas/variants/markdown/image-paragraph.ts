@@ -1,10 +1,20 @@
-/** Focuses the editable line next to an image, creating it only when necessary. */
+/** Checks if an element is an empty paragraph (contains no text or only whitespace / zero-width space, and no sub-blocks/images). */
+export function isEmptyParagraph(node: Node | null | undefined): node is HTMLElement {
+  if (!(node instanceof HTMLElement)) return false
+  if (node.tagName !== "P") return false
+  if (node.querySelector('[contenteditable="false"], img, table, pre, code')) return false
+  const text = node.textContent?.replace(/[\u200B\u00A0\s]/g, "") || ""
+  return text.length === 0
+}
+
+/** Focuses the editable line next to an image: directly focuses if an empty line exists, or creates a new empty line if not. */
 export function focusImageParagraph(block: HTMLElement, below = true): HTMLElement | null {
   const editor = block.closest<HTMLElement>('[contenteditable="true"]')
   if (!editor) return null
   const adjacent = below ? block.nextElementSibling : block.previousElementSibling
-  const paragraph = adjacent instanceof HTMLElement && adjacent.tagName === "P" && !adjacent.querySelector('[contenteditable="false"], img')
-    ? adjacent : insertImageParagraph(block, below)
+  const paragraph = isEmptyParagraph(adjacent)
+    ? adjacent
+    : insertImageParagraph(block, below)
   if (!paragraph) return null
   /** Restores the caret after the context menu and editor input handlers settle. */
   const focus = () => {
@@ -26,24 +36,23 @@ export function focusImageParagraph(block: HTMLElement, below = true): HTMLEleme
 export function insertImageParagraph(block: HTMLElement, below = true): HTMLElement | null {
   const editor = block.closest<HTMLElement>('[contenteditable="true"]')
   if (!editor) return null
+  const paragraph = document.createElement("p")
+  paragraph.setAttribute("data-block", "0")
+  paragraph.innerHTML = "<br>"
+  if (below) {
+    block.after(paragraph)
+  } else {
+    block.before(paragraph)
+  }
   editor.focus({ preventScroll: true })
   const selection = window.getSelection()
-  if (!selection) return null
-  const range = document.createRange()
-  if (below) range.setStartAfter(block)
-  else range.setStartBefore(block)
-  range.collapse(true)
-  selection.removeAllRanges()
-  selection.addRange(range)
-  // Native insertion gives the paragraph its own undo step and normal editor input events.
-  document.execCommand("insertHTML", false, '<p data-block="0"><br></p>')
-  const paragraph = (below ? block.nextElementSibling : block.previousElementSibling) as HTMLElement | null
-  if (paragraph?.tagName !== "P") return null
-  const caret = document.createRange()
-  caret.selectNodeContents(paragraph)
-  caret.collapse(true)
-  selection.removeAllRanges()
-  selection.addRange(caret)
+  if (selection) {
+    const caret = document.createRange()
+    caret.selectNodeContents(paragraph)
+    caret.collapse(true)
+    selection.removeAllRanges()
+    selection.addRange(caret)
+  }
   return paragraph
 }
 

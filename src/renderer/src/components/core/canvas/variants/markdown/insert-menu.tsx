@@ -1,10 +1,11 @@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuPortal, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Code, CodeXml, Heading, ImagePlus, LayoutGrid, Link, List, ListChecks, ListOrdered, Milestone, Minus, Quote, Table2, Workflow } from "lucide-react"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Code, CodeXml, Heading, ImagePlus, LayoutGrid, Link, List, ListChecks, ListOrdered, Milestone, Minus, Quote, Table2, TableProperties, Workflow } from "lucide-react"
 
 const groups = [
   { label: "插入", items: [
     { label: "插入标题", icon: Heading, children: ["一级标题", "二级标题", "三级标题", "四级标题", "五级标题", "六级标题"].map((label, index) => ({ label, badge: `H${index + 1}`, value: `${"#".repeat(index + 1)} 标题` })) },
-    { label: "插入链接", icon: Link, value: "[链接文字](https://example.com)" },
+    { label: "插入链接", icon: Link, value: "link" },
     { label: "插入图片", icon: ImagePlus, value: "image" }
   ] },
   { label: "块", items: [
@@ -24,7 +25,12 @@ const groups = [
   { label: "", items: [
     { label: "添加组件", icon: LayoutGrid, children: [
       { label: "时间线", icon: Milestone, value: "```timeline\n- 第一个事件\n  - 事件说明\n- 第二个事件\n  - 事件说明\n```" },
-      { label: "步骤条", icon: Workflow, value: "```steps\n1. 第一步\n   - 步骤说明\n2. 第二步\n   - 步骤说明\n```" }
+      { label: "步骤条", icon: Workflow, value: "```steps\n1. 第一步\n   - 步骤说明\n2. 第二步\n   - 步骤说明\n```" },
+      {
+        label: "高级表格",
+        icon: TableProperties,
+        value: "```markdown-table\n{\n  \"caption\": \"\",\n  \"columns\": [\n    { \"align\": \"left\" },\n    { \"align\": \"left\" },\n    { \"align\": \"right\" }\n  ],\n  \"rows\": [\n    {\n      \"isHeader\": true,\n      \"cells\": [\n        { \"id\": \"c_0_0\", \"text\": \"Status\", \"style\": { \"bold\": true } },\n        { \"id\": \"c_0_1\", \"text\": \"Email\", \"style\": { \"bold\": true } },\n        { \"id\": \"c_0_2\", \"text\": \"Amount\", \"style\": { \"bold\": true } }\n      ]\n    },\n    {\n      \"cells\": [\n        { \"id\": \"c_1_0\", \"text\": \"Success\", \"style\": {} },\n        { \"id\": \"c_1_1\", \"text\": \"ken99@example.com\", \"style\": {} },\n        { \"id\": \"c_1_2\", \"text\": \"$316.00\", \"style\": { \"bold\": true } }\n      ]\n    },\n    {\n      \"cells\": [\n        { \"id\": \"c_2_0\", \"text\": \"Success\", \"style\": {} },\n        { \"id\": \"c_2_1\", \"text\": \"abe45@example.com\", \"style\": {} },\n        { \"id\": \"c_2_2\", \"text\": \"$242.00\", \"style\": { \"bold\": true } }\n      ]\n    },\n    {\n      \"cells\": [\n        { \"id\": \"c_3_0\", \"text\": \"Processing\", \"style\": {} },\n        { \"id\": \"c_3_1\", \"text\": \"monserrat44@example.com\", \"style\": {} },\n        { \"id\": \"c_3_2\", \"text\": \"$837.00\", \"style\": { \"bold\": true } }\n      ]\n    },\n    {\n      \"cells\": [\n        { \"id\": \"c_4_0\", \"text\": \"Success\", \"style\": {} },\n        { \"id\": \"c_4_1\", \"text\": \"silas22@example.com\", \"style\": {} },\n        { \"id\": \"c_4_2\", \"text\": \"$874.00\", \"style\": { \"bold\": true } }\n      ]\n    },\n    {\n      \"cells\": [\n        { \"id\": \"c_5_0\", \"text\": \"Failed\", \"style\": {} },\n        { \"id\": \"c_5_1\", \"text\": \"carmella@example.com\", \"style\": {} },\n        { \"id\": \"c_5_2\", \"text\": \"$721.00\", \"style\": { \"bold\": true } }\n      ]\n    }\n  ],\n  \"merges\": []\n}\n```"
+      }
     ] }
   ] }
 ]
@@ -34,7 +40,9 @@ export function MarkdownInsertMenu({ x, y, onClose, onInsert }: { x: number; y: 
   return (
     <DropdownMenu open modal={false} onOpenChange={(open) => { if (!open) onClose() }}>
       <DropdownMenuTrigger aria-label="Markdown 插入菜单" style={{ position: "fixed", left: x, top: y, width: 0, height: 0, pointerEvents: "none" }} />
-      <DropdownMenuContent className="markdown-insert-menu" align="start" sideOffset={0} collisionPadding={8} onCloseAutoFocus={(event) => event.preventDefault()}>
+      <DropdownMenuContent className="markdown-insert-menu markdown-insert-menu-scroll" align="start" sideOffset={4} collisionPadding={8} onCloseAutoFocus={(event) => event.preventDefault()} onFocusOutside={(event) => event.preventDefault()}>
+        <ScrollArea className="markdown-insert-scroll">
+        <div className="markdown-insert-scroll-inner">
         {groups.map((group, index) => (
           <div key={index}>
             {index > 0 && <DropdownMenuSeparator />}
@@ -56,6 +64,8 @@ export function MarkdownInsertMenu({ x, y, onClose, onInsert }: { x: number; y: 
             ) : <DropdownMenuItem key={item.label} onSelect={() => onInsert(item.value, item.label === "插入链接")}><item.icon />{item.label}</DropdownMenuItem>)}
           </div>
         ))}
+        </div>
+        </ScrollArea>
       </DropdownMenuContent>
     </DropdownMenu>
   )

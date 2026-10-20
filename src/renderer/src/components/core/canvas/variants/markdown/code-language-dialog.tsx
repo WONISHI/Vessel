@@ -5,6 +5,7 @@ import { Check, Search, X } from "lucide-react"
 import { useRef, useState } from "react"
 
 const languages = [
+  ["markdown-table", "markdown-table", "高级表格"],
   ["steps", "steps", "步骤条"], ["timeline", "timeline", "时间线"],
   ["text", "text", "plain text"], ["js", "javascript", ".js"], ["ts", "typescript", ".ts"],
   ["jsx", "jsx", ".jsx"], ["tsx", "tsx", ".tsx"], ["json", "json", ".json"],

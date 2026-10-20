@@ -207,6 +207,18 @@
   white-space: normal;
 }
 
+/* 高级表格独立渲染，内部适配标记不进入可见编辑界面。 */
+.vessel-vditor .vessel-table-block > :not(.vditor-ir__preview) {
+  display: none !important;
+}
+.vessel-vditor .vessel-table-block > .vditor-ir__preview {
+  display: block !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  background: transparent !important;
+  white-space: normal;
+}
+
 /* 图片链接浮动编辑栏样式（覆盖 Vditor reset 与外部样式污染） */
 .vessel-image-link-bar,
 .vessel-vditor .vessel-image-link-bar {
@@ -808,6 +820,12 @@ html.dark .markdown-insert-menu {
   box-shadow: 0 20px 56px #0000008c;
 }
 .markdown-insert-submenu { min-width: 152px; }
+/* Root menu scrolls through shadcn ScrollArea instead of the native scrollbar. */
+.markdown-insert-menu.markdown-insert-menu-scroll { padding: 0; overflow: hidden !important; }
+.markdown-insert-scroll > [data-radix-scroll-area-viewport] {
+  max-height: min(420px, calc(var(--radix-dropdown-menu-content-available-height, 420px) - 2px));
+}
+.markdown-insert-scroll-inner { padding: 4px; }
 .markdown-insert-menu [role="menuitem"] { height: 29px; gap: 8px; border-radius: 6px; padding: 0 8px; font-size: 12px; }
 .markdown-insert-menu [role="menuitem"] svg { width: 15px; height: 15px; color: var(--insert-dim); }
 .markdown-insert-menu [role="menuitem"][data-highlighted],

@@ -977,17 +977,17 @@ export default function SourceTreePage() {
                     {/* 远程仓库已同步的提交数 (带 Globe 图标) */}
                     {remoteCommitTotal > 0 && (
                       <span
-                        className="inline-flex items-center gap-0.5 rounded-full bg-stone-100 px-1.5 py-0.5 text-[10px] font-medium text-stone-600"
+                        className="inline-flex items-center gap-0.5 rounded-full bg-stone-100 dark:bg-stone-800 px-1.5 py-0.5 text-[10px] font-medium text-stone-600 dark:text-stone-300"
                         data-title={`远程仓库已同步 ${remoteCommitTotal} 次提交`}
                       >
-                        <Globe className="size-2.5 text-stone-500" />
+                        <Globe className="size-2.5 text-stone-500 dark:text-stone-400" />
                         <span>{remoteCommitTotal}</span>
                       </span>
                     )}
                     {/* 未推送到远程仓库的记录 (ahead 待推送) */}
                     {aheadCount > 0 && (
                       <span
-                        className="inline-flex items-center gap-0.5 rounded-full bg-orange-100 px-1.5 py-0.5 text-[10px] font-bold text-orange-700"
+                        className="inline-flex items-center gap-0.5 rounded-full bg-orange-100 dark:bg-orange-500/20 px-1.5 py-0.5 text-[10px] font-bold text-orange-700 dark:text-orange-400"
                         data-title={`${aheadCount} 次提交未推送到远程仓库`}
                       >
                         <ArrowUp className="size-2.5 stroke-[2.5]" />
@@ -997,7 +997,7 @@ export default function SourceTreePage() {
                     {/* 远程仓库有新提交待拉取 (behind 待拉取) */}
                     {behindCount > 0 && (
                       <span
-                        className="inline-flex items-center gap-0.5 rounded-full bg-blue-100 px-1.5 py-0.5 text-[10px] font-bold text-blue-700"
+                        className="inline-flex items-center gap-0.5 rounded-full bg-blue-100 dark:bg-blue-500/20 px-1.5 py-0.5 text-[10px] font-bold text-blue-700 dark:text-blue-400"
                         data-title={`远程仓库有 ${behindCount} 次提交待拉取到本地`}
                       >
                         <ArrowDown className="size-2.5 stroke-[2.5]" />
@@ -1005,7 +1005,7 @@ export default function SourceTreePage() {
                       </span>
                     )}
                     <span
-                      className="text-[10px] text-stone-400 font-mono"
+                      className="text-[10px] text-stone-400 dark:text-stone-500 font-mono"
                       data-title={`提交总数: ${commitTotal} 次（远程已同步: ${remoteCommitTotal} 次，未推送到远程: ${aheadCount} 次${behindCount > 0 ? `，待拉取: ${behindCount} 次` : ""}）`}
                     >
                       {commitTotal}
@@ -1048,7 +1048,7 @@ export default function SourceTreePage() {
                       <div className="flex items-center gap-1 shrink-0">
                         {isCurrent && aheadCount > 0 && (
                           <span
-                            className="inline-flex items-center gap-0.5 rounded-full bg-orange-100 px-1 py-0.2 text-[9px] font-bold text-orange-700"
+                            className="inline-flex items-center gap-0.5 rounded-full bg-orange-100 dark:bg-orange-500/20 px-1 py-0.2 text-[9px] font-bold text-orange-700 dark:text-orange-400"
                             data-title={`${aheadCount} 次提交待推送`}
                           >
                             <ArrowUp className="size-2 stroke-[2.5]" />
@@ -1057,14 +1057,14 @@ export default function SourceTreePage() {
                         )}
                         {isCurrent && behindCount > 0 && (
                           <span
-                            className="inline-flex items-center gap-0.5 rounded-full bg-blue-100 px-1 py-0.2 text-[9px] font-bold text-blue-700"
+                            className="inline-flex items-center gap-0.5 rounded-full bg-blue-100 dark:bg-blue-500/20 px-1 py-0.2 text-[9px] font-bold text-blue-700 dark:text-blue-400"
                             data-title={`远程有 ${behindCount} 次提交待拉取`}
                           >
                             <ArrowDown className="size-2 stroke-[2.5]" />
                             <span>{behindCount}</span>
                           </span>
                         )}
-                        {isCurrent && <CheckCircle2 className="size-3.5 text-green-600" />}
+                        {isCurrent && <CheckCircle2 className="size-3.5 text-green-600 dark:text-green-400" />}
                       </div>
                     </div>
                   )
@@ -1633,64 +1633,66 @@ export default function SourceTreePage() {
                   className="flex min-h-0 flex-col"
                 >
                   {/* 历史视图顶部工具条 (分支范围切换与统计) */}
-                  <div className="flex shrink-0 items-center justify-between border-b border-stone-200 bg-stone-50/90 px-3 py-1.5 text-xs text-stone-600">
+                  <div className="git-history-toolbar flex shrink-0 items-center justify-between border-b border-stone-200 dark:border-stone-800 bg-stone-50/90 dark:bg-[#20242a] px-3 py-1.5 text-xs text-stone-600 dark:text-stone-300">
                     <div className="flex items-center gap-2">
-                      <span className="text-[11px] font-medium text-stone-500">显示分支:</span>
-                      <div className="inline-flex rounded-md border border-stone-200 bg-stone-100 p-0.5">
+                      <span className="text-[11px] font-medium text-stone-500 dark:text-stone-400">显示分支:</span>
+                      <div className="git-scope-pill inline-flex rounded-md border border-stone-200 dark:border-stone-700 bg-stone-100 dark:bg-[#1c2025] p-0.5">
                         <button
                           type="button"
+                          data-scope-active={historyScope === "all"}
                           onClick={() => setHistoryScope("all")}
                           className={`rounded px-2.5 py-0.5 text-[11px] font-medium transition-colors ${
                             historyScope === "all"
-                              ? "bg-white text-stone-900 shadow-xs"
-                              : "text-stone-500 hover:text-stone-800"
+                              ? "bg-white text-stone-900 shadow-xs dark:bg-[#2d333b] dark:text-stone-100 dark:shadow-none"
+                              : "text-stone-500 hover:text-stone-800 dark:text-stone-400 dark:hover:text-stone-200"
                           }`}
                         >
                           所有分支
                         </button>
                         <button
                           type="button"
+                          data-scope-active={historyScope === "current"}
                           onClick={() => setHistoryScope("current")}
                           className={`rounded px-2.5 py-0.5 text-[11px] font-medium transition-colors ${
                             historyScope === "current"
-                              ? "bg-white text-stone-900 shadow-xs"
-                              : "text-stone-500 hover:text-stone-800"
+                              ? "bg-white text-stone-900 shadow-xs dark:bg-[#2d333b] dark:text-stone-100 dark:shadow-none"
+                              : "text-stone-500 hover:text-stone-800 dark:text-stone-400 dark:hover:text-stone-200"
                           }`}
                         >
                           当前分支 {branches.current ? `(${branches.current})` : ""}
                         </button>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 text-[11px] text-stone-500">
+                    <div className="flex items-center gap-2 text-[11px] text-stone-500 dark:text-stone-400">
                       {remoteCommitTotal > 0 && (
                         <span
-                          className="inline-flex items-center gap-1 rounded-full bg-stone-100 px-2 py-0.5 text-[11px] font-medium text-stone-600"
+                          className="inline-flex items-center gap-1 rounded-full bg-stone-100 dark:bg-stone-800 px-2 py-0.5 text-[11px] font-medium text-stone-600 dark:text-stone-300"
                           data-title={`远程仓库已同步 ${remoteCommitTotal} 次提交`}
                         >
-                          <Globe className="size-3 text-stone-500" />
+                          <Globe className="size-3 text-stone-500 dark:text-stone-400" />
                           <span>远程已同步 {remoteCommitTotal} 次</span>
                         </span>
                       )}
                       {aheadCount > 0 && (
                         <span
-                          className="inline-flex items-center gap-1 rounded-full bg-orange-100 px-2 py-0.5 text-[11px] font-medium text-orange-700"
+                          className="inline-flex items-center gap-1 rounded-full bg-orange-100 dark:bg-orange-500/20 px-2 py-0.5 text-[11px] font-medium text-orange-700 dark:text-orange-400"
                           data-title={`${aheadCount} 次提交未推送到远程仓库`}
                         >
-                          <ArrowUp className="size-3 text-orange-600 stroke-[2.2]" />
+                          <ArrowUp className="size-3 text-orange-600 dark:text-orange-400 stroke-[2.2]" />
                           <span>{aheadCount} 个未推送</span>
                         </span>
                       )}
                       {behindCount > 0 && (
                         <span
-                          className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-[11px] font-medium text-blue-700"
+                          className="inline-flex items-center gap-1 rounded-full bg-blue-100 dark:bg-blue-500/20 px-2 py-0.5 text-[11px] font-medium text-blue-700 dark:text-blue-400"
                           data-title={`远程仓库有 ${behindCount} 次提交待拉取到本地`}
                         >
-                          <ArrowDown className="size-3 text-blue-600 stroke-[2.2]" />
+                          <ArrowDown className="size-3 text-blue-600 dark:text-blue-400 stroke-[2.2]" />
                           <span>{behindCount} 个待拉取</span>
                         </span>
                       )}
                       <span
-                        className="text-stone-400"
+                        className="text-stone-400 dark:text-stone-500"
                         data-title={`提交总数: ${commitTotal} 次（远程已同步: ${remoteCommitTotal} 次，未推送到远程: ${aheadCount} 次${behindCount > 0 ? `，待拉取: ${behindCount} 次` : ""}）`}
                       >
                         共 {commitTotal} 次提交
@@ -1701,7 +1703,7 @@ export default function SourceTreePage() {
                   <ScrollArea className="flex-1 min-h-0">
                     <div className="relative min-w-[700px]">
                       {/* 表头 (参考 SourceTree: 图表 | 描述 | 提交 | 作者 | 日期) */}
-                      <div className="sticky top-0 z-20 flex h-7 items-center gap-3 pr-3 text-[11px] font-medium text-stone-500 border-b border-stone-200 bg-stone-100/95 backdrop-blur-xs select-none">
+                      <div className="git-history-table-header sticky top-0 z-20 flex h-7 items-center gap-3 pr-3 text-[11px] font-medium text-stone-500 dark:text-stone-400 border-b border-stone-200 dark:border-stone-800 bg-stone-100/95 dark:bg-[#20242a] backdrop-blur-xs select-none">
                         <div
                           style={{ width: getGraphWidth(topology.maxColumns), minWidth: getGraphWidth(topology.maxColumns) }}
                           className="shrink-0 pl-3.5"

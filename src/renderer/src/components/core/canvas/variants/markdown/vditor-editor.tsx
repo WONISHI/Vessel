@@ -1,9 +1,12 @@
 import { MarkdownInsertMenu } from "@/components/core/canvas/variants/markdown/insert-menu"
 import { bindMarkdownInsertMenu, type MarkdownInsertLocation } from "@/components/core/canvas/variants/markdown/insert-menu-selection"
+import { CodeBlockContextMenu } from "@/components/core/canvas/variants/markdown/code-block-context-menu"
 import { CodeLanguageDialog } from "@/components/core/canvas/variants/markdown/code-language-dialog"
 import { bindTaskCheckboxes } from "@/components/core/canvas/variants/markdown/task-checkboxes"
 import { renderSteps, escapeStepsText } from "@vessel/markdown-steps"
 import "@vessel/markdown-steps/style.css"
+import { MarkdownTableEditor } from "@vessel/markdown-table"
+import "@vessel/markdown-table/style.css"
 import { bindListShortcuts } from "@/components/core/canvas/variants/markdown/list-shortcuts"
 import { bindImageParagraphs, focusImageParagraph } from "@/components/core/canvas/variants/markdown/image-paragraph"
 import "@/components/core/canvas/variants/markdown/index.css"
@@ -23,8 +26,10 @@ import { PageLoading } from "@/components/ui/page-loading"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Typography } from "@/components/ui/typography"
 import { parseFrontmatter } from "@vessel/obsidian/frontmatter"
+import { LinkTooltip, buildMarkdownLink, normalizeLinkUrl } from "@vessel/obsidian"
+import "@vessel/obsidian/links/style.css"
 import { markdownHotkey } from "@vessel/utils"
-import { Bold, Code, CodeXml, Heading, ImagePlus, Italic, Link, List, ListChecks, ListOrdered, Minus, Palette, Quote, Redo2, Smile, Strikethrough, Table2, Undo2 } from "lucide-react"
+import { Bold, Code, CodeXml, Heading, ImagePlus, Italic, Link as LinkIcon, List, ListChecks, ListOrdered, Minus, Palette, Quote, Redo2, Smile, Strikethrough, Table2, Undo2 } from "lucide-react"
 import { Fragment, useEffect, useRef, useState } from "react"
 import { createRoot, type Root } from "react-dom/client"
 import { renderToStaticMarkup } from "react-dom/server"
@@ -37,6 +42,7 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
   const [insertLocation, setInsertLocation] = useState<MarkdownInsertLocation | null>(null)
   const imageInsertAction = useRef<(() => void) | null>(null)
   const [languageBlock, setLanguageBlock] = useState<HTMLElement | null>(null)
+  const [codeContextMenu, setCodeContextMenu] = useState<{ block: HTMLElement; x: number; y: number } | null>(null)
   const [colorAnchor, setColorAnchor] = useState<{ left: number; top: number } | null>(null)
   const colorRange = useRef<Range | null>(null)
   const instance = useRef<Vditor | null>(null)
@@ -47,6 +53,143 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
   const [properties] = useState(() => parseFrontmatter(value))
   const initialValue = useRef(properties?.body ?? value)
   const changeHandler = useRef(onChange)
+  const [linkTooltip, setLinkTooltip] = useState<{
+    anchor: { left: number; top: number; width?: number; height?: number }
+    initialUrl?: string
+    initialText?: string
+    targetElement?: HTMLElement | null
+  } | null>(null)
+  const triggerInsertLinkRef = useRef<(customRange?: Range) => void>(() => {})
+
+  const triggerInsertLink = (customRange?: Range) => {
+    if (readOnly || !instance.current) return
+    const editable = host.current?.querySelector<HTMLElement>('.vditor-ir [contenteditable="true"]')
+    if (!editable) return
+
+    editable.focus({ preventScroll: true })
+    const selection = window.getSelection()
+    if (customRange) {
+      selection?.removeAllRanges()
+      selection?.addRange(customRange)
+    }
+
+    const range = selection && selection.rangeCount > 0 ? selection.getRangeAt(0) : null
+    const selectedText = range ? range.toString() : ""
+
+    let anchorRect: { left: number; top: number; width?: number; height?: number } | null = null
+    if (range) {
+      const rect = range.getBoundingClientRect()
+      if (rect.top > 0 || rect.left > 0) {
+        anchorRect = {
+          left: rect.left,
+          top: rect.top,
+          width: Math.max(rect.width, 24),
+          height: Math.max(rect.height, 22)
+        }
+      }
+    }
+
+    instance.current.insertValue(selectedText ? `[${selectedText}](https://)` : "[](https://)", true)
+
+    requestAnimationFrame(() => {
+      const sel = window.getSelection()
+      const activeRange = sel && sel.rangeCount > 0 ? sel.getRangeAt(0) : null
+      let linkEl: HTMLElement | null = null
+
+      if (activeRange) {
+        const container = activeRange.startContainer
+        linkEl = (container instanceof HTMLElement ? container : container.parentElement)?.closest<HTMLElement>('[data-type="a"]') || null
+      }
+
+      if (!linkEl) {
+        const allLinks = editable.querySelectorAll<HTMLElement>('[data-type="a"]')
+        if (allLinks.length > 0) {
+          linkEl = allLinks[allLinks.length - 1]
+        }
+      }
+
+      if (linkEl) {
+        const rect = linkEl.getBoundingClientRect()
+        if (rect.top > 0 || rect.left > 0) {
+          anchorRect = {
+            left: rect.left,
+            top: rect.top,
+            width: rect.width,
+            height: rect.height
+          }
+        }
+      }
+
+      if (!anchorRect) {
+        const edRect = editable.getBoundingClientRect()
+        anchorRect = {
+          left: edRect.left + 24,
+          top: edRect.top + 24,
+          width: 32,
+          height: 22
+        }
+      }
+
+      setLinkTooltip({
+        anchor: anchorRect,
+        initialUrl: "https://",
+        initialText: selectedText,
+        targetElement: linkEl
+      })
+    })
+  }
+  triggerInsertLinkRef.current = triggerInsertLink
+
+  const handleConfirmLink = (url: string) => {
+    if (!instance.current) {
+      setLinkTooltip(null)
+      return
+    }
+
+    const normalized = normalizeLinkUrl(url)
+    const targetEl = linkTooltip?.targetElement
+    const selectedText = linkTooltip?.initialText || ""
+    const updatedMd = buildMarkdownLink(selectedText, normalized)
+
+    if (targetEl && targetEl.isConnected) {
+      const range = document.createRange()
+      range.selectNode(targetEl)
+      range.deleteContents()
+      range.collapse(true)
+      const sel = window.getSelection()
+      sel?.removeAllRanges()
+      sel?.addRange(range)
+      instance.current.insertValue(updatedMd, true)
+    } else {
+      instance.current.insertValue(updatedMd, true)
+    }
+
+    if (!selectedText) {
+      requestAnimationFrame(() => {
+        const editable = host.current?.querySelector<HTMLElement>('.vditor-ir [contenteditable="true"]')
+        const sel = window.getSelection()
+        if (editable && sel) {
+          const links = editable.querySelectorAll<HTMLElement>('[data-type="a"]')
+          const lastLink = links.length > 0 ? links[links.length - 1] : null
+          if (lastLink) {
+            const linkTextSpan = lastLink.querySelector<HTMLElement>('.vditor-ir__link')
+            if (linkTextSpan) {
+              const r = document.createRange()
+              r.selectNodeContents(linkTextSpan)
+              r.collapse(true)
+              sel.removeAllRanges()
+              sel.addRange(r)
+            }
+          }
+        }
+      })
+    }
+
+    const next = instance.current.getValue()
+    changeHandler.current((properties?.raw ?? "") + restoreObsidianImages(next))
+    setLinkTooltip(null)
+  }
+
   useEffect(() => {
     changeHandler.current = onChange
   }, [onChange])
@@ -61,6 +204,14 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
     }
     const toolbarContainer = toolbarHost.current
     toolbarContainer?.addEventListener("pointerdown", rememberSelection, true)
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && (event.key === "k" || event.key === "K")) {
+        event.preventDefault()
+        event.stopPropagation()
+        triggerInsertLinkRef.current()
+      }
+    }
+    element.addEventListener("keydown", handleKeyDown, true)
     const unbindInsertMenu = readOnly ? () => {} : bindMarkdownInsertMenu(element, setInsertLocation)
     const unbindTablePaste = readOnly ? () => {} : bindTablePaste(element)
     const unbindImageParagraphs = readOnly ? () => {} : bindImageParagraphs(element)
@@ -69,9 +220,103 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
     const unbindWikiEditing = bindWikiLinkEditing(element)
     const unbindTableActions = readOnly ? () => {} : bindTableActions(element)
 
+    const imageRoots = new Map<HTMLElement, Root>()
+    const tableRoots = new Map<HTMLElement, Root>()
+    let disposed = false
+    let ready = false
+
+    const mountTable = (previewElement: HTMLElement) => {
+      const block = previewElement.closest<HTMLElement>("[data-type=code-block]")
+      if (!block) return
+      block.classList.add("vessel-table-block")
+      block.classList.remove("vessel-direct-code")
+
+      if (previewElement.querySelector(".vessel-table-container")) return
+
+      const code = previewElement.querySelector("code") || block.querySelector("pre.vditor-ir__marker code")
+      const source = code?.textContent || ""
+
+      const container = document.createElement("div")
+      container.className = "vessel-table-container"
+      container.contentEditable = "false"
+      container.addEventListener("mousedown", (event) => event.stopPropagation())
+      container.addEventListener("click", (event) => event.stopPropagation())
+      container.addEventListener("mouseup", (event) => event.stopPropagation())
+      previewElement.replaceChildren(container)
+
+      for (const [node, root] of tableRoots) {
+        if (!node.isConnected) {
+          queueMicrotask(() => root.unmount())
+          tableRoots.delete(node)
+        }
+      }
+
+      const root = createRoot(container)
+      tableRoots.set(container, root)
+
+      const renderTable = (currentSource: string) => root.render(
+        <MarkdownTableEditor
+          readOnly={readOnly}
+          source={currentSource}
+          onChange={(updated) => {
+            if (readOnly) return
+            const sourceCode = block.querySelector("pre.vditor-ir__marker code")
+            if (!sourceCode) return
+            editor?.vditor?.undo?.addToUndoStack(editor.vditor)
+            sourceCode.textContent = updated + "\n"
+            const next = editor?.getValue() || ""
+            renderTable(updated)
+            editor?.vditor?.undo?.addToUndoStack(editor.vditor)
+            changeHandler.current((properties?.raw ?? "") + restoreObsidianImages(next))
+          }}
+          onFocusAbove={() => {
+            const editable = block.closest<HTMLElement>('[contenteditable="true"]')
+            if (!editable || readOnly) return
+            focusImageParagraph(block, false)?.scrollIntoView({ block: "nearest" })
+          }}
+          onFocusBelow={() => {
+            const editable = block.closest<HTMLElement>('[contenteditable="true"]')
+            if (!editable || readOnly) return
+            focusImageParagraph(block)?.scrollIntoView({ block: "nearest" })
+          }}
+          onCopy={() => {
+            const sourceCode = block.querySelector("pre.vditor-ir__marker code")
+            const textToCopy = sourceCode?.textContent?.trim() || currentSource || ""
+            if (textToCopy) {
+              void navigator.clipboard?.writeText(textToCopy)
+              toast.success("已复制表格数据")
+            }
+          }}
+          onDelete={() => {
+            if (readOnly) return
+            editor?.vditor?.undo?.addToUndoStack(editor.vditor)
+            block.remove()
+            const next = editor?.getValue() || ""
+            editor?.vditor?.undo?.addToUndoStack(editor.vditor)
+            changeHandler.current((properties?.raw ?? "") + restoreObsidianImages(next))
+            tableRoots.delete(container)
+            queueMicrotask(() => root.unmount())
+          }}
+        />
+      )
+      renderTable(source)
+    }
+
     /** Performs the decorate operation. */
     const decorate = () => {
       decorateCodeBlocks(element, readOnly)
+      element.querySelectorAll<HTMLElement>('[data-type="code-block"]').forEach((block) => {
+        const markerCode = block.querySelector<HTMLElement>("pre.vditor-ir__marker code")
+        const isTable = markerCode && Array.from(markerCode.classList).some((cls) => cls.includes("language-markdown-table"))
+        if (isTable) {
+          block.classList.add("vessel-table-block")
+          block.classList.remove("vessel-direct-code")
+          const preview = block.querySelector<HTMLElement>(".vditor-ir__preview")
+          if (preview && !preview.querySelector(".vessel-table-container")) {
+            mountTable(preview)
+          }
+        }
+      })
       const content = element.querySelector<HTMLElement>(".vditor-ir .vditor-reset")
       if (content) {
         decorateWikiLinks(content)
@@ -87,12 +332,11 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
     /** Performs the choose language operation. */
     const chooseLanguage = (event: Event) => setLanguageBlock((event as CustomEvent<HTMLElement>).detail)
     element.addEventListener("vessel-code-language", chooseLanguage)
+    const handleCodeContextMenu = (event: Event) => setCodeContextMenu((event as CustomEvent<{ block: HTMLElement; x: number; y: number }>).detail)
+    element.addEventListener("vessel-code-context-menu", handleCodeContextMenu)
     element.addEventListener("focusout", decorate)
     const observer = new MutationObserver(decorate)
     observer.observe(element, { childList: true, subtree: true })
-    const imageRoots = new Map<HTMLElement, Root>()
-    let disposed = false
-    let ready = false
     const imagePicker = document.createElement("input")
     imageInsertAction.current = () => imagePicker.click()
     imagePicker.type = "file"
@@ -270,6 +514,10 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
                 )
                 renderImage(source)
               }
+            },
+            {
+              language: "markdown-table",
+              render: (element) => mountTable(element)
             }
           ],
           cache: { enable: false },
@@ -298,7 +546,7 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
                   }
                 },
                 "|",
-                { name: "link", hotkey: markdownHotkey("link"), icon: renderToStaticMarkup(<Link />) },
+                { name: "link", hotkey: markdownHotkey("link"), icon: renderToStaticMarkup(<LinkIcon />) },
                 {
                   name: "insert-image",
                   tip: "插入图片",
@@ -344,6 +592,13 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
             instance.current = editor
             const toolbar = host.current?.querySelector<HTMLElement>(".vditor-toolbar")
             if (!disposed && toolbar && toolbarHost.current) toolbarHost.current.appendChild(toolbar)
+            const linkBtn = toolbar?.querySelector<HTMLElement>('[data-type="link"]')
+            const handleLinkBtnClick = (event: Event) => {
+              event.preventDefault()
+              event.stopPropagation()
+              triggerInsertLinkRef.current()
+            }
+            linkBtn?.addEventListener("click", handleLinkBtnClick, true)
             toolbar?.querySelectorAll<HTMLElement>('button[data-tag^="h"]').forEach((button, index) => {
               button.parentElement?.classList.add("vessel-heading-menu")
               button.textContent = ["一级标题", "二级标题", "三级标题", "四级标题", "五级标题", "六级标题"][index]
@@ -378,9 +633,11 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
       cancelAnimationFrame(initFrame)
       cancelAnimationFrame(paintFrame)
       imageRoots.forEach((root) => queueMicrotask(() => root.unmount()))
+      tableRoots.forEach((root) => queueMicrotask(() => root.unmount()))
       observer.disconnect()
       clearCodeHighlights(element)
       instance.current = null
+      element.removeEventListener("keydown", handleKeyDown, true)
       toolbarContainer?.removeEventListener("pointerdown", rememberSelection, true)
       unbindWikiEditing()
       unbindTableActions()
@@ -392,6 +649,7 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
       unbindTaskCheckboxes()
       element.removeEventListener("focusout", decorate)
       element.removeEventListener("vessel-code-language", chooseLanguage)
+      element.removeEventListener("vessel-code-context-menu", handleCodeContextMenu)
       element.removeEventListener("paste", pasteImage, true)
       cancelAnimationFrame(imageFrame)
       disposed = true
@@ -414,7 +672,11 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
             const selection = window.getSelection()
             selection?.removeAllRanges()
             selection?.addRange(range)
+            if (range.toString() === "/" || range.toString() === "、") {
+              range.deleteContents()
+            }
             if (value === "image") imageInsertAction.current?.()
+            else if (value === "link") triggerInsertLink(range)
             else instance.current.insertValue(inline ? value : `\n\n${value}\n\n`, true)
             setInsertLocation(null)
           }}
@@ -436,6 +698,43 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
               changeHandler.current((properties?.raw ?? "") + restoreObsidianImages(next))
             }
             setLanguageBlock(null)
+          }}
+        />
+      )}
+      {codeContextMenu && (
+        <CodeBlockContextMenu
+          x={codeContextMenu.x}
+          y={codeContextMenu.y}
+          readOnly={readOnly}
+          onClose={() => setCodeContextMenu(null)}
+          onFocusAbove={() => {
+            const { block } = codeContextMenu
+            const editable = block.closest<HTMLElement>('[contenteditable="true"]')
+            if (!editable || readOnly) return
+            focusImageParagraph(block, false)?.scrollIntoView({ block: "nearest" })
+          }}
+          onFocusBelow={() => {
+            const { block } = codeContextMenu
+            const editable = block.closest<HTMLElement>('[contenteditable="true"]')
+            if (!editable || readOnly) return
+            focusImageParagraph(block, true)?.scrollIntoView({ block: "nearest" })
+          }}
+          onCopy={() => {
+            const { block } = codeContextMenu
+            const codeEl = block.querySelector<HTMLElement>("pre.vditor-ir__marker code, pre.vditor-ir__preview code, code")
+            const textToCopy = codeEl?.textContent || ""
+            void navigator.clipboard?.writeText(textToCopy)
+            toast.success("已复制代码内容")
+          }}
+          onDelete={() => {
+            if (readOnly || !instance.current) return
+            const { block } = codeContextMenu
+            instance.current.vditor.undo?.addToUndoStack(instance.current.vditor)
+            block.remove()
+            const next = instance.current.getValue()
+            instance.current.vditor.undo?.addToUndoStack(instance.current.vditor)
+            changeHandler.current((properties?.raw ?? "") + restoreObsidianImages(next))
+            toast.success("已删除代码块")
           }}
         />
       )}
@@ -501,6 +800,20 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
             <PageLoading label="正在解析 Markdown 文档…" />
           )}
         </div>
+      )}
+      {linkTooltip && !readOnly && (
+        <LinkTooltip
+          anchor={linkTooltip.anchor}
+          initialUrl={linkTooltip.initialUrl}
+          initialText={linkTooltip.initialText}
+          onConfirm={handleConfirmLink}
+          onClose={() => {
+            setLinkTooltip(null)
+            const editable = host.current?.querySelector<HTMLElement>('.vditor-ir [contenteditable="true"]')
+            editable?.focus({ preventScroll: true })
+          }}
+          onOpenUrl={(url) => window.open(url, "_blank")}
+        />
       )}
       {!readOnly && (
         <Breadcrumb

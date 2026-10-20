@@ -53,7 +53,7 @@ function highlightCode(root: HTMLElement) {
 /** Display the real editable code node as the card; never require a second source view. */
 export function decorateCodeBlocks(root: HTMLElement, readOnly = false) {
   root.querySelectorAll<HTMLElement>('[data-type="code-block"]').forEach((block) => {
-    if (block.classList.contains("vessel-image-block")) return
+    if (block.classList.contains("vessel-image-block") || block.classList.contains("vessel-table-block")) return
     const source = block.querySelector<HTMLElement>("pre.vditor-ir__marker")
     const preview = block.querySelector<HTMLElement>("pre.vditor-ir__preview")
     const pre = readOnly ? preview : source
@@ -63,14 +63,25 @@ export function decorateCodeBlocks(root: HTMLElement, readOnly = false) {
       Array.from(code.classList)
         .find((name) => name.startsWith("language-"))
         ?.slice(9) || "text"
-    if (language === "vessel-obsidian-image") return
-    if (["mermaid", "steps", "timeline"].includes(language.toLowerCase())) {
+    if (language === "vessel-obsidian-image" || language === "markdown-table") {
+      block.classList.remove("vessel-direct-code")
+      for (const frame of block.querySelectorAll<HTMLElement>(".vessel-code-frame")) {
+        frame.classList.remove("vessel-code-frame")
+        delete frame.dataset.language
+        frame.onmousedown = null
+        frame.oncontextmenu = null
+        frame.oncopy = null
+      }
+      return
+    }
+    if (["mermaid", "steps", "timeline", "markdown-table"].includes(language.toLowerCase())) {
       // Diagram previews must remain under Vditor's native render/edit lifecycle.
       block.classList.remove("vessel-direct-code")
       for (const frame of block.querySelectorAll<HTMLElement>(".vessel-code-frame")) {
         frame.classList.remove("vessel-code-frame")
         delete frame.dataset.language
         frame.onmousedown = null
+        frame.oncontextmenu = null
         frame.oncopy = null
       }
       return
@@ -85,11 +96,26 @@ export function decorateCodeBlocks(root: HTMLElement, readOnly = false) {
     }
     if (!readOnly)
       pre.onmousedown = (event) => {
+        if (event.button !== 0) return
         if (event.clientY - pre.getBoundingClientRect().top > 40) return
         event.preventDefault()
         event.stopPropagation()
         root.dispatchEvent(new CustomEvent("vessel-code-language", { detail: block }))
       }
+    pre.oncontextmenu = (event) => {
+      if (event.clientY - pre.getBoundingClientRect().top > 40) return
+      event.preventDefault()
+      event.stopPropagation()
+      root.dispatchEvent(
+        new CustomEvent("vessel-code-context-menu", {
+          detail: {
+            block,
+            x: event.clientX,
+            y: event.clientY
+          }
+        })
+      )
+    }
     if (readOnly) {
       pre.onmousedown = (event) => event.stopPropagation()
       pre.onmouseup = (event) => event.stopPropagation()

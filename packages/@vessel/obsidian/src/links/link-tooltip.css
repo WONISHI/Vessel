@@ -1,0 +1,140 @@
+/* Link Tooltip Floating Popover */
+.vessel-link-tooltip,
+.vessel-link-tooltip * {
+  box-sizing: border-box;
+}
+
+.vessel-link-tooltip {
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 4px 14px -1px rgba(0, 0, 0, 0.12), 0 2px 6px -1px rgba(0, 0, 0, 0.08);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  min-width: 280px;
+  max-width: 380px;
+  animation: vessel-tooltip-fade-in 0.12s ease-out;
+}
+
+html.dark .vessel-link-tooltip {
+  background: #23272d;
+  border-color: #374151;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+@keyframes vessel-tooltip-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.vessel-link-tooltip-body {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+}
+
+.vessel-link-tooltip-icon {
+  color: #9ca3af;
+  flex-shrink: 0;
+}
+
+html.dark .vessel-link-tooltip-icon {
+  color: #6b7280;
+}
+
+.vessel-link-tooltip-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  color: #111827;
+  font-size: 12px;
+  padding: 3px 2px;
+  outline: none;
+}
+
+html.dark .vessel-link-tooltip-input {
+  color: #f3f4f6;
+}
+
+.vessel-link-tooltip-input::placeholder {
+  color: #9ca3af;
+}
+
+.vessel-link-tooltip-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  border: none;
+  background: transparent;
+  color: #6b7280;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+
+.vessel-link-tooltip-btn:hover {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+html.dark .vessel-link-tooltip-btn:hover {
+  background: #374151;
+  color: #f3f4f6;
+}
+
+.vessel-link-tooltip-confirm {
+  color: #16a34a;
+}
+
+.vessel-link-tooltip-confirm:hover {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+html.dark .vessel-link-tooltip-confirm {
+  color: #4ade80;
+}
+
+html.dark .vessel-link-tooltip-confirm:hover {
+  background: rgba(34, 197, 94, 0.2);
+  color: #4ade80;
+}
+
+/* Tooltip Arrow */
+.vessel-link-tooltip-arrow {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  transform: rotate(45deg);
+}
+
+html.dark .vessel-link-tooltip-arrow {
+  background: #23272d;
+  border-color: #374151;
+}
+
+.vessel-link-tooltip-arrow.arrow-bottom {
+  bottom: -5px;
+  border-top: none;
+  border-left: none;
+}
+
+.vessel-link-tooltip-arrow.arrow-top {
+  top: -5px;
+  border-bottom: none;
+  border-right: none;
+}
