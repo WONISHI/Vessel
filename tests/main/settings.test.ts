@@ -51,7 +51,7 @@ it("isolates workspace credentials, blocks resources, and only uploads the selec
     const { registerSettings } = await import("@main/settings/settings")
     registerSettings({ ipc: { handle: (name: string, callback: (...args: unknown[]) => Promise<unknown>) => handlers.set(name, callback) } } as never)
     await call("workspace", notes)
-    expect((await call("get")).backup.syncExcludeRules).toBe("{folder:.vessel,node-modules,.git,.obsidian}")
+    expect((await call("get")).backup.syncExcludeRules).toBe("{folder:.vessel,.vscode,node-modules,.git,.obsidian,file:.DS_Store}")
     expect(defaultSettings.backup.propagateDeletes).toBe(true)
     const settings = { ...defaultSettings, name: "Test User", backup: { ...defaultSettings.backup, workspacePath: notes, enabled: true, propagateDeletes: false, endpoint: "https://storage.example.com", bucket: "notes", accessKey: "AKID" } }
     const saved = await call("save", settings, mocks.secret)

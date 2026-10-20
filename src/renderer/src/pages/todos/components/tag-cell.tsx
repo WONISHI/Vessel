@@ -56,7 +56,7 @@ export function TagCell({
             <DropdownMenuTrigger asChild>
               <button
                 className="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-black/10 rounded transition-opacity"
-                title="编辑颜色/更多"
+                data-title="编辑颜色/更多" aria-label="编辑颜色/更多"
               >
                 <MoreVertical className="size-2.5" />
               </button>
@@ -93,7 +93,7 @@ export function TagCell({
           <button
             onClick={() => handleRemoveTag(tag.id)}
             className="opacity-0 group-hover:opacity-100 hover:text-red-600 ml-0.5 transition-opacity"
-            title="右上角删除 Tag"
+            data-title="右上角删除 Tag" aria-label="右上角删除 Tag"
           >
             <X className="size-2.5" />
           </button>

@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react"
+import { act, waitFor, cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { afterEach, expect, it, vi } from "vitest"
 import WorkspaceTree from "@/components/workspace/components/layout-aside/layout-workspace-sidebar/workspace-tree"
 import { WorkspaceContext } from "@/components/workspace/types/workspace"
@@ -53,3 +53,35 @@ it("replaces the clicked Base selection after linked-file navigation and scrolls
   expect(screen.getByRole("button", { name: "note.md" }).getAttribute("aria-pressed")).toBe("true")
   expect(viewport.scrollTo).toHaveBeenCalledWith(expect.objectContaining({ behavior: "smooth" }))
 })
+
+
+it("keeps loaded rows mounted while a theme/settings change refreshes directories", async () => {
+  const node = { name: "note.md", path: "/vault/note.md", type: "file" }
+  let resolveRefresh: (nodes: any[]) => void = () => {}
+  const read = vi.fn().mockResolvedValueOnce([node]).mockImplementationOnce(() => new Promise((resolve) => { resolveRefresh = resolve }))
+  window.electronAPI = { ...window.electronAPI, readWorkspaceDirectory: read } as any
+  const context = { workspace: { name: "vault", path: "/vault" }, openFiles: [], activeFilePath: "", openWorkspaceFile: vi.fn(), expandedFolders: [], setDirectoryExpanded: vi.fn() }
+  render(<WorkspaceContext.Provider value={context as any}><WorkspaceTree viewport={null} /></WorkspaceContext.Provider>)
+  await screen.findByRole("button", { name: "note.md" })
+  act(() => { window.dispatchEvent(new Event("vessel:settings-saved")) })
+  expect(screen.getByRole("button", { name: "note.md" })).toBeTruthy()
+  await act(async () => { resolveRefresh([node]) })
+  await waitFor(() => expect(read).toHaveBeenCalledTimes(2))
+  expect(screen.getByRole("button", { name: "note.md" })).toBeTruthy()
+})
+
+it("reuses cached directories without reloading when the sidebar is collapsed and re-expanded", async () => {
+  const node = { name: "cached.md", path: "/vault/cached.md", type: "file" }
+  const read = vi.fn().mockResolvedValue([node])
+  window.electronAPI = { ...window.electronAPI, readWorkspaceDirectory: read } as any
+  const context = { workspace: { name: "vault", path: "/vault" }, openFiles: [], activeFilePath: "", openWorkspaceFile: vi.fn(), expandedFolders: [], setDirectoryExpanded: vi.fn() }
+  const first = render(<WorkspaceContext.Provider value={context as any}><WorkspaceTree viewport={null} /></WorkspaceContext.Provider>)
+  await screen.findByRole("button", { name: "cached.md" })
+  expect(read).toHaveBeenCalledTimes(1)
+  first.unmount()
+
+  render(<WorkspaceContext.Provider value={context as any}><WorkspaceTree viewport={null} /></WorkspaceContext.Provider>)
+  expect(screen.getByRole("button", { name: "cached.md" })).toBeTruthy()
+  expect(read).toHaveBeenCalledTimes(1)
+})
+

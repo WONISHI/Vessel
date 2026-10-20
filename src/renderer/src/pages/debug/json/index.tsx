@@ -78,7 +78,7 @@ export function JsonTool() {
             size="icon"
             variant="ghost"
             aria-label="复制内容"
-            title="复制内容"
+            data-title="复制内容"
             disabled={!value}
             onClick={() =>
               void navigator.clipboard
@@ -93,7 +93,7 @@ export function JsonTool() {
             size="icon"
             variant="ghost"
             aria-label="下载 JSON"
-            title="下载 JSON"
+            data-title="下载 JSON"
             disabled={!value}
             onClick={download}
           >
@@ -103,7 +103,7 @@ export function JsonTool() {
             size="icon"
             variant="ghost"
             aria-label="清空内容"
-            title="清空内容"
+            data-title="清空内容"
             disabled={!value}
             onClick={() => replace("")}
           >

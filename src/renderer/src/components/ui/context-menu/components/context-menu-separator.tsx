@@ -6,7 +6,7 @@ import * as React from "react"
 export const ContextMenuSeparator = React.forwardRef<React.ElementRef<typeof Primitive.Separator>, React.ComponentPropsWithoutRef<typeof Primitive.Separator>>(({ className, ...props }, ref) => (
   <Primitive.Separator
     ref={ref}
-    className={cn("-mx-1 my-1 h-px bg-stone-200", className)}
+    className={cn("-mx-1 my-1 h-px bg-stone-200 dark:bg-[#30353C]", className)}
     {...props}
   />
 ))

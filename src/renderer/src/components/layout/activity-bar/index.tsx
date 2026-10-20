@@ -197,14 +197,14 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
                     aria-label={label}
                     aria-pressed={activity === id}
                     onClick={() => openActivity(id)}
-                    onMouseEnter={id === "resources" ? onResourceEnter : undefined}
+                    onMouseEnter={id === "resources" && activity === "resources" ? onResourceEnter : undefined}
                     onMouseLeave={id === "resources" ? onResourceLeave : undefined}
                     className={cn("relative h-[38px] w-[38px] rounded-[10px] text-[#a8a29e] hover:!bg-[#f0efed] hover:!text-[#a8a29e]", activity === id && "!bg-emerald-50 !text-[#16a34a] hover:!bg-emerald-50 hover:!text-[#16a34a]")}
                   >
                     <Icon className="!size-5" />
                     {id === "files" && syncRunning && (
                       <span
-                        title="正在同步工作区…"
+                        data-title="正在同步工作区…"
                         className="pointer-events-none absolute bottom-1 right-1 flex size-3.5 aspect-square shrink-0 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-black/5 dark:bg-stone-900 dark:ring-stone-700"
                       >
                         <RefreshCcw
@@ -314,7 +314,7 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
                             type="button"
                             aria-pressed={activity === id}
                             onClick={() => openActivity(id)}
-                            onMouseEnter={id === "resources" ? onResourceEnter : undefined}
+                            onMouseEnter={id === "resources" && activity === "resources" ? onResourceEnter : undefined}
                             onMouseLeave={id === "resources" ? onResourceLeave : undefined}
                             className={cn("flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-xs hover:bg-stone-100", activity === id && "bg-emerald-50 text-green-700")}
                           >
@@ -422,7 +422,7 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
             size="icon"
             data-activity-button
             aria-label="切换浅色或深色主题"
-            title="切换浅色或深色主题"
+            data-title="切换浅色或深色主题"
             className="size-[38px] rounded-[10px] text-stone-500 hover:!bg-[#f0efed] hover:!text-stone-500"
             onClick={() => {
               void window.electronAPI

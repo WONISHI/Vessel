@@ -1,0 +1,11 @@
+.diagnostics-layout { background: #faf9f7; }
+.diagnostics-breadcrumb { border-color: #f0efed; }
+.diagnostics-console-grid { height: 380px; flex-shrink: 0; }
+.diagnostics-console-grid > div { min-width: 0; }
+.diagnostics-console-grid [data-slot="scroll-area-viewport"] > div { display: block !important; min-width: 0; }
+.diagnostics-console-grid [role="switch"][data-state="checked"] { background: #16a34a; }
+@media (max-width: 760px) {
+  .diagnostics-console-grid { grid-template-columns: minmax(0, 1fr); height: auto; }
+  .diagnostics-console-grid > div { min-height: 340px; }
+  .diagnostics-console-body > .grid:first-child { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

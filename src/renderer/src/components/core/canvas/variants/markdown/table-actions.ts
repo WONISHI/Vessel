@@ -146,7 +146,7 @@ export function bindTableActions(root: HTMLElement) {
     button.className = "vessel-table-add"
     button.innerHTML = renderToStaticMarkup(createElement(Plus, { size: 14, "aria-hidden": true }))
     button.setAttribute("aria-label", label)
-    button.title = label
+    button.dataset.title = label
     button.hidden = true
     document.body.appendChild(button)
     button.onmousedown = (event) => {

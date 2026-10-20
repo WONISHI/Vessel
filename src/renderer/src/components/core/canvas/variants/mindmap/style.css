@@ -3,3 +3,42 @@
 html.dark .vessel-mindmap { background: #22272e; color: #cdd9e5; }
 html.dark .vessel-mindmap header, html.dark .vessel-mindmap footer { border-color: #444c56; }
 html.dark .vessel-mindmap .mind-elixir { --bgcolor: #22272e; }
+
+html.dark .vessel-mindmap .map-container { background: #30353c !important; }
+.vessel-mindmap .mindmap-node-actions { border-color: #e5e7eb; }
+html.dark .vessel-mindmap .mindmap-node-actions { border-color: #444c56; }
+.vessel-mindmap .mindmap-node-actions button { width: 28px; height: 28px; padding: 0; }
+.vessel-mindmap .mindmap-node-actions button svg { width: 16px; height: 16px; }
+
+.vessel-mindmap .mindmap-toolbar-action { width: 28px; height: 28px; padding: 0; }
+.vessel-mindmap .mindmap-toolbar-action svg { width: 16px; height: 16px; }
+
+.vessel-mindmap .map-container { overflow: hidden !important; cursor: grab; }
+.vessel-mindmap .map-container:active { cursor: grabbing; }
+.vessel-mindmap me-tpc { cursor: pointer; }
+
+.vessel-mindmap .mindmap-node-actions {
+  position: absolute;
+  z-index: 10;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: calc(100% - 32px);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, .95);
+  box-shadow: 0 4px 20px #0000001a;
+  backdrop-filter: blur(12px);
+}
+html.dark .vessel-mindmap .mindmap-node-actions {
+  background: rgba(34, 39, 46, .95);
+  box-shadow: 0 4px 20px #00000040;
+}
+@media (max-width: 1000px) {
+  .vessel-mindmap .mindmap-node-actions { bottom: 70px; }
+}
+.vessel-mindmap .mindmap-drag-handle { cursor: grab; touch-action: none; user-select: none; }
+.vessel-mindmap .mindmap-drag-handle:active { cursor: grabbing; }
+/* Fullscreen belongs to the canvas wrapper so its floating toolbar stays visible. */
+.vessel-mindmap > div:fullscreen { background: #fff; width: 100vw; height: 100vh; }
+html.dark .vessel-mindmap > div:fullscreen { background: #30353c; }

@@ -100,7 +100,7 @@ export function TabSwitcher({
                   setOpen(false)
                 }}
                 className={`relative flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-xs focus:!bg-[#f0efed] focus:!text-stone-700 data-[highlighted]:!bg-[#f0efed] data-[highlighted]:!text-stone-700 ${tab.active ? `bg-[#f0efed] text-stone-700` : "text-stone-700"} ${preview ? "gap-3 pr-8" : ""}`}
-                title={tab.title}
+                data-title={tab.title}
               >
                 {preview && tab.active && <span className="absolute left-0 top-3 bottom-3 w-[3px] rounded-r bg-green-600" />}
                 <span className="flex size-4 shrink-0 items-center justify-center">

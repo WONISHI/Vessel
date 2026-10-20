@@ -194,13 +194,13 @@ export default function WorkspaceHome() {
                     <div>
                       <p
                         className="workspace-file-name truncate text-xs font-medium text-stone-700 transition-colors group-hover:text-emerald-800"
-                        title={file.name}
+                        data-title={file.name}
                       >
                         {file.name}
                       </p>
                       <p
                         className="workspace-file-path mt-0.5 truncate text-[11px] text-stone-400"
-                        title={file.path}
+                        data-title={file.path}
                       >
                         {relativePath}
                       </p>

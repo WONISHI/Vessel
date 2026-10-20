@@ -595,3 +595,81 @@ html.dark .workspace-file-context-menu [role="menuitem"]:is([data-highlighted], 
   background-color: #30353c !important;
   color: #fff !important;
 }
+
+/* DEV ACTIONS dark palette from the supplied design. */
+html.dark .dev-actions-menu {
+  background: #23272d !important;
+  border-color: #30353c !important;
+
+}
+html.dark .dev-actions-menu > div { border-color: #30353c !important; }
+html.dark .dev-actions-menu > .dev-actions-heading {
+  background: #262a30;
+}
+html.dark .dev-actions-menu > .dev-actions-heading > span:first-child { color: #9aa1a9 !important; }
+html.dark .dev-actions-menu [role="menuitem"] {
+  color: #e6e8eb !important;
+}
+html.dark .dev-actions-menu [role="menuitem"] > svg { color: #8a8f98 !important; }
+html.dark .dev-actions-menu [data-dev-master="on"] > svg { color: #22c55e !important; }
+html.dark .dev-actions-menu [role="separator"] { background: #30353c !important; }
+html.dark .dev-actions-submenu [role="menuitemcheckbox"] { color: #e6e8eb !important; }
+html.dark .dev-actions-submenu [role="menuitemcheckbox"] > span:first-child { background: #2d333b !important; border-color: #3f454d !important; }
+html.dark .dev-actions-submenu [role="menuitemcheckbox"][data-state="checked"] > span:first-child { background: #eef0f3 !important; border-color: #eef0f3 !important; color: #1f2328 !important; }
+html.dark .dev-actions-submenu .text-teal-600 { color: #5bb0b0 !important; }
+html.dark .dev-actions-submenu .text-cyan-600 { color: #60a5fa !important; }
+html.dark .dev-actions-submenu .text-amber-600 { color: #fbbf24 !important; }
+html.dark .dev-actions-submenu .text-red-600 { color: #f87171 !important; }
+html.dark .dev-actions-trigger { background: transparent !important; border-color: #30353c !important; color: #8a8f98 !important; box-shadow: none; }
+html.dark .dev-actions-trigger:hover { background: #ffffff14 !important; color: #fff !important; }
+html.dark .dev-actions-trigger[data-state="open"] { background: #30353c !important; color: #fff !important; border-color: #30353c !important; }
+
+html.dark .dev-actions-menu [role="menuitem"]:is(:hover, :focus, [data-highlighted], [data-state="open"]) > svg { color: #fff !important; }
+
+/* Keep the floating DEV ACTIONS gear white in dark mode, including its open state. */
+html.dark .dev-actions-trigger,
+html.dark .dev-actions-trigger:hover,
+html.dark .dev-actions-trigger[data-state="open"] { color: #fff !important; }
+
+/* Tab close hover follows the tab label without a separate button surface. */
+.workspace-tab-close:is(:hover, :active, :focus-visible) { background: transparent !important; color: inherit !important; opacity: 1; box-shadow: none !important; }
+.workspace-tab-close:is(:hover, :active, :focus-visible) svg { color: inherit !important; stroke: currentColor !important; }
+
+/* Path breadcrumb segments share the same rounded pill hover state across folders and current file. */
+html.dark nav[aria-label*="路径"] ol > li :is(span.cursor-pointer, button):hover {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  color: #ffffff !important;
+}
+
+
+/* Console dark design: colors only; preserve existing panel and control geometry. */
+html.dark .diagnostics-breadcrumb { background: #23272d !important; border-color: #30353c !important; color: #9aa1a9 !important; }
+html.dark .diagnostics-breadcrumb button:hover { background: #ffffff0f !important; color: #e6e8eb !important; }
+html.dark .diagnostics-breadcrumb [aria-current="page"] { color: #4ade80 !important; }
+html.dark .dev-console-page { background: #1a1d21 !important; color: #e6e8eb; }
+html.dark .dev-console-page .console-page-header { background: #23272d !important; }
+html.dark .dev-console-page :is(.border, .border-b, .border-t) { border-color: #30353c !important; }
+html.dark .dev-console-page .bg-white { background: #23272d !important; }
+html.dark .dev-console-page :is(.text-stone-900, .text-stone-800, .text-stone-700) { color: #e6e8eb !important; }
+html.dark .dev-console-page :is(.text-stone-500, .text-stone-400) { color: #9aa1a9 !important; }
+html.dark .dev-console-page .text-teal-600 { color: #5bb0b0 !important; }
+html.dark .dev-console-page .text-teal-700 { color: #4ca1a1 !important; }
+html.dark .dev-console-page .text-cyan-600 { color: #60a5fa !important; }
+html.dark .dev-console-page .text-amber-600 { color: #fbbf24 !important; }
+html.dark .dev-console-page .text-red-600 { color: #f87171 !important; }
+html.dark .dev-console-page .bg-stone-100 { background: #ffffff0f !important; }
+html.dark .dev-console-page .bg-teal-50 { background: #4ca1a129 !important; }
+html.dark .dev-console-page .bg-cyan-50 { background: #60a5fa29 !important; }
+html.dark .dev-console-page .bg-amber-50 { background: #f59e0b29 !important; }
+html.dark .dev-console-page .bg-red-50 { background: #f8717129 !important; }
+html.dark .dev-console-page .bg-green-50 { background: #22c55e26 !important; color: #4ade80 !important; }
+html.dark .dev-console-page .console-panel > .border-b { background: #262a30 !important; }
+html.dark .dev-console-page .console-panel .bg-\[\#faf9f7\] { background: #ffffff14 !important; color: #9aa1a9 !important; }
+html.dark .dev-console-page [data-log-level="warn"] { background: #f59e0b1a !important; color: #f0a93b !important; }
+html.dark .dev-console-page [data-log-level="error"] { background: #f871711a !important; color: #f87171 !important; }
+html.dark .dev-console-page [data-log-level] > span:first-child { color: #6b7280 !important; }
+html.dark .dev-console-page .console-panel button:not([role="switch"]):hover { background: #ffffff0f !important; color: #e6e8eb !important; }
+html.dark .dev-console-page [role="switch"] { background: #3a4049 !important; }
+html.dark .dev-console-page [role="switch"][data-state="checked"] { background: #22c55e !important; }
+html.dark .dev-console-page [role="switch"] > span { background: #a9aeb6 !important; }
+html.dark .dev-console-page [role="switch"][data-state="checked"] > span { background: #fff !important; }

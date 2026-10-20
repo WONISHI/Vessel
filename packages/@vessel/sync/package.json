@@ -65,6 +65,10 @@
     "#vessel-sync/index": {
       "types": "./src/index.ts",
       "default": "./dist/index.js"
+    },
+    "#vessel-sync/merge-text": {
+      "types": "./src/merge-text.ts",
+      "default": "./dist/merge-text.js"
     }
   }
 }

@@ -93,7 +93,7 @@ export function DiffViewer({ diffText, filePath, isStaged, onToggleStage }: Diff
         {/* 3号: 宽度是 flex: 1，超出显示省略号 */}
         <span
           className="flex-1 min-w-0 truncate font-mono font-medium text-stone-700"
-          title={filePath}
+          data-title={filePath}
         >
           {filePath || "Diff 视图"}
         </span>
@@ -113,17 +113,17 @@ export function DiffViewer({ diffText, filePath, isStaged, onToggleStage }: Diff
           <div className="flex rounded border border-stone-200 bg-white p-0.5">
             <button
               type="button"
-              title="统一视图 (Unified)"
+              data-title="统一视图 (Unified)"
               className={`flex size-6 items-center justify-center rounded ${viewMode === "unified" ? "bg-stone-200 text-stone-800" : "text-stone-400 hover:text-stone-600"}`}
-              onClick={() => setViewMode("unified")}
+              onClick={() => setViewMode("unified")} aria-label="统一视图 (Unified)"
             >
               <AlignJustify className="size-3.5" />
             </button>
             <button
               type="button"
-              title="分栏视图 (Split)"
+              data-title="分栏视图 (Split)"
               className={`flex size-6 items-center justify-center rounded ${viewMode === "split" ? "bg-stone-200 text-stone-800" : "text-stone-400 hover:text-stone-600"}`}
-              onClick={() => setViewMode("split")}
+              onClick={() => setViewMode("split")} aria-label="分栏视图 (Split)"
             >
               <Columns className="size-3.5" />
             </button>
@@ -131,7 +131,7 @@ export function DiffViewer({ diffText, filePath, isStaged, onToggleStage }: Diff
 
           <button
             type="button"
-            title="复制 Diff"
+            data-title="复制 Diff"
             className="flex size-7 items-center justify-center rounded text-stone-400 hover:bg-stone-200 hover:text-stone-700"
             onClick={handleCopy}
           >

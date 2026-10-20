@@ -5,7 +5,7 @@ import { bindTaskCheckboxes } from "@/components/core/canvas/variants/markdown/t
 import { renderSteps, escapeStepsText } from "@vessel/markdown-steps"
 import "@vessel/markdown-steps/style.css"
 import { bindListShortcuts } from "@/components/core/canvas/variants/markdown/list-shortcuts"
-import { bindImageParagraphs, insertImageParagraph } from "@/components/core/canvas/variants/markdown/image-paragraph"
+import { bindImageParagraphs, focusImageParagraph } from "@/components/core/canvas/variants/markdown/image-paragraph"
 import "@/components/core/canvas/variants/markdown/index.css"
 import { clearCodeHighlights, decorateCodeBlocks } from "@/components/core/canvas/variants/markdown/code-blocks"
 import { decorateMarkdownTags } from "@/components/core/canvas/variants/markdown/decorate-tags"
@@ -96,17 +96,20 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
     const imagePicker = document.createElement("input")
     imageInsertAction.current = () => imagePicker.click()
     imagePicker.type = "file"
-    imagePicker.accept = "image/png,image/jpeg,image/gif,image/webp"
+    imagePicker.accept = "image/png,image/jpeg,image/gif,image/webp,image/svg+xml,image/avif,image/bmp"
     imagePicker.addEventListener("change", () => {
       const file = imagePicker.files?.[0]
-      if (!file || !/^image\/(png|jpeg|gif|webp)$/.test(file.type)) return
-      const reader = new FileReader()
-      reader.onload = () => {
-        if (!disposed && typeof reader.result === "string") {
-          editor.insertValue(`![图片](${reader.result})`, true)
-        }
-      }
-      reader.readAsDataURL(file)
+      if (!file || !/\.(png|jpe?g|gif|webp|svg|avif|bmp)$/i.test(file.name)) return
+      const path = window.electronAPI.getDroppedFilePath(file)
+      void (path
+        ? window.electronAPI.saveObsidianImage(workspacePath, documentPath, { path })
+        : file.arrayBuffer().then((bytes) => window.electronAPI.saveObsidianImage(workspacePath, documentPath, { bytes: new Uint8Array(bytes) })))
+        .then((saved) => {
+          if (disposed) return
+          editor.insertMD(prepareObsidianImages(saved.reference))
+          refreshImages()
+        })
+        .catch((error) => toast.error(String(error)))
       imagePicker.value = ""
     })
     let editor: Vditor
@@ -223,43 +226,49 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
                 }
                 const root = createRoot(container)
                 imageRoots.set(container, root)
-                root.render(
+                /** Updates only this React image root, retaining the surrounding editor DOM. */
+                const renderImage = (currentSource: string) => root.render(
                   <ObsidianImageLine
                     onFocusAbove={() => {
                       const block = element.closest<HTMLElement>("[data-type=code-block]")
                       const editable = block?.closest<HTMLElement>('[contenteditable="true"]')
                       if (!block || !editable || readOnly) return
-                      insertImageParagraph(block, false)?.scrollIntoView({ block: "nearest" })
+                      focusImageParagraph(block, false)?.scrollIntoView({ block: "nearest" })
                     }}
                     onFocusBelow={() => {
                       const block = element.closest<HTMLElement>("[data-type=code-block]")
                       const editable = block?.closest<HTMLElement>('[contenteditable="true"]')
                       if (!block || !editable || readOnly) return
-                      insertImageParagraph(block)?.scrollIntoView({ block: "nearest" })
+                      focusImageParagraph(block)?.scrollIntoView({ block: "nearest" })
                     }}
                     readOnly={readOnly}
-                    source={source}
+                    source={currentSource}
                     onChange={(updated) => {
                       if (readOnly) return
                       const block = element.closest<HTMLElement>("[data-type=code-block]")
                       const sourceCode = block?.querySelector("pre.vditor-ir__marker code")
                       if (!sourceCode) return
+                      editor.vditor.undo?.addToUndoStack(editor.vditor)
                       if (!updated.trim()) {
                         block?.remove()
-                        const next = editor.getValue().replace(/\n?```vessel-obsidian-image\n[^\n]*\n```\n?/g, "")
-                        editor.setValue(next)
+                        const next = editor.getValue()
+                        editor.vditor.undo?.addToUndoStack(editor.vditor)
                         changeHandler.current((properties?.raw ?? "") + restoreObsidianImages(next))
+                        imageRoots.delete(container)
+                        queueMicrotask(() => root.unmount())
                         return
                       }
                       sourceCode.textContent = encodeURIComponent(updated) + "\n"
                       const next = editor.getValue()
-                      editor.setValue(next)
+                      renderImage(updated)
+                      editor.vditor.undo?.addToUndoStack(editor.vditor)
                       changeHandler.current((properties?.raw ?? "") + restoreObsidianImages(next))
                     }}
                     root={workspacePath}
                     documentPath={documentPath}
                   />
                 )
+                renderImage(source)
               }
             }
           ],
@@ -335,6 +344,12 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
             instance.current = editor
             const toolbar = host.current?.querySelector<HTMLElement>(".vditor-toolbar")
             if (!disposed && toolbar && toolbarHost.current) toolbarHost.current.appendChild(toolbar)
+            toolbar?.querySelectorAll<HTMLElement>('button[data-tag^="h"]').forEach((button, index) => {
+              button.parentElement?.classList.add("vessel-heading-menu")
+              button.textContent = ["一级标题", "二级标题", "三级标题", "四级标题", "五级标题", "六级标题"][index]
+              button.dataset.level = `H${index + 1}`
+              button.dataset.shortcut = /Mac/.test(navigator.platform) ? `⌥⌘${index + 1}` : `Alt+Ctrl+${index + 1}`
+            })
             if (readOnly && !disposed) editor.disabled()
             decorate()
             ready = true
@@ -514,16 +529,14 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
                     <BreadcrumbItem className="min-w-0">
                       {isLast ? (
                         <BreadcrumbPage
-                          className="cursor-pointer truncate max-w-64 hover:text-stone-900 transition-colors"
-                          title={`定位文件: ${segment.name}`}
+                          className="cursor-pointer truncate rounded-md px-1.5 py-0.5 max-w-64 hover:bg-stone-100 hover:text-stone-900 dark:hover:bg-white/[0.08] dark:hover:text-white transition-colors"
                           onClick={() => window.dispatchEvent(new CustomEvent("vessel:reveal-file", { detail: segment.path }))}
                         >
                           {segment.name}
                         </BreadcrumbPage>
                       ) : (
                         <span
-                          className="cursor-pointer text-stone-500 hover:text-stone-800 transition-colors"
-                          title={`定位文件夹: ${segment.name}`}
+                          className="cursor-pointer truncate rounded-md px-1.5 py-0.5 text-stone-500 hover:bg-stone-100 hover:text-stone-800 dark:hover:bg-white/[0.08] dark:hover:text-white transition-colors"
                           onClick={() => window.dispatchEvent(new CustomEvent("vessel:reveal-file", { detail: segment.path }))}
                         >
                           {segment.name}

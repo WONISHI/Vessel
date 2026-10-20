@@ -1,6 +1,6 @@
 import { StatusSlot } from "@/components/workspace/components/layout-main/status-slot"
 import { parseWikiLinks } from "@vessel/obsidian"
-import { Check, Link2, List, Loader2, Type } from "lucide-react"
+import { Check, Link2, CaseSensitive, Loader2, Type } from "lucide-react"
 import { useDeferredValue, useMemo } from "react"
 
 import { countDocument } from "@/components/core/canvas/variants/markdown/count-document"
@@ -14,7 +14,8 @@ export function DocumentStats({ source, saveStatus }: { source: string; saveStat
     <StatusSlot>
       <footer
         aria-label="文档统计"
-        title={`统计 Markdown 源文；${stats.characters.toLocaleString()} 字符（包含空格与换行）；Markdown · UTF-8`}
+        data-title={`统计 Markdown 正文（不含 YAML 属性）；中文逐字、英文按单词；${stats.characters.toLocaleString()} 字符（包含空格、换行与 Markdown 标记）；Markdown · UTF-8`}
+        data-title-side="top"
         className="vessel-document-stats"
       >
         {saveStatus && (
@@ -35,8 +36,8 @@ export function DocumentStats({ source, saveStatus }: { source: string; saveStat
           {stats.words.toLocaleString()} 词
         </span>
         <span>
-          <List />
-          {stats.lines.toLocaleString()} 行
+          <CaseSensitive />
+          {stats.characters.toLocaleString()} 字
         </span>
       </footer>
     </StatusSlot>

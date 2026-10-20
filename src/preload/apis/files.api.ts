@@ -36,7 +36,7 @@ export const filesAPI = {
   /** Reads image file. */
   readImageFile: (root: string, path: string): Promise<ImageFile> => ipcRenderer.invoke("image:readFile", root, path),
   /** 读取指定绝对路径的 UTF-8 文本，读取失败时 Promise 拒绝。 */
-  saveObsidianImage: (root: string, documentPath: string, source: { bytes?: Uint8Array; url?: string }): Promise<{ name: string; path: string; reference: string }> => ipcRenderer.invoke("obsidian:saveImage", root, documentPath, source),
+  saveObsidianImage: (root: string, documentPath: string, source: { bytes?: Uint8Array; url?: string; path?: string }): Promise<{ name: string; path: string; reference: string }> => ipcRenderer.invoke("obsidian:saveImage", root, documentPath, source),
 
   /** Reads obsidian image. */
   readObsidianImage: (root: string, documentPath: string, reference: string): Promise<string> => ipcRenderer.invoke("obsidian:readImage", root, documentPath, reference),

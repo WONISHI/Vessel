@@ -53,7 +53,7 @@ export function ObsidianPropertyValue({ text, root }: { text: string; root: stri
             href={part.kind === "url" ? part.target : "#"}
             data-wiki-target={part.kind === "wiki" ? part.target : undefined}
             data-wiki-label={part.kind === "wiki" ? part.text : undefined}
-            title={part.kind === "url" ? part.target : undefined}
+            data-title={part.kind === "url" ? part.target : undefined}
             className="text-green-700 hover:underline"
             onClick={(event) => {
               event.preventDefault()

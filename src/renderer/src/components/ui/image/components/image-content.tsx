@@ -1,7 +1,7 @@
 import { ImageEditorSheet } from "@/components/image-preview/editor-sheet"
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuSub, ContextMenuSubContent, ContextMenuSubTrigger, ContextMenuTrigger } from "@/components/ui/context-menu"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
-import { artwork, imageClipboardSource, ImageProps, normalizeSvg } from "@/components/ui/image/components/image-shared"
+import { artwork, ImageProps, normalizeSvg } from "@/components/ui/image/components/image-shared"
 import { Resizable } from "@/components/ui/resizable"
 import { cn } from "@/lib/utils"
 import { ImageDown, RotateCw, X } from "lucide-react"
@@ -12,9 +12,11 @@ import { toast } from "sonner"
 export function ImageContent({
   remote = false,
   src,
+  sourceAddress,
   srcSet,
   alt = "",
   width = 480,
+  defaultWidthPercent,
   resizable = true,
   className,
   onError,
@@ -24,6 +26,7 @@ export function ImageContent({
   onFocusAbove,
   onFocusBelow,
   onViewLink,
+  onCopyReference,
   onDelete,
   onDownloadLocal,
   sourceKey: _sourceKey,
@@ -98,7 +101,7 @@ export function ImageContent({
     >
       {remote && (
         <span
-          title="远程图片"
+          data-title="远程图片"
           className="pointer-events-none absolute left-2 top-2 z-10 rounded bg-white/90 p-1 text-stone-500 shadow-sm"
         >
           <ImageDown className="size-4" />
@@ -145,6 +148,7 @@ export function ImageContent({
             {resizable ? (
               <Resizable
                 defaultWidth={width}
+                defaultWidthPercent={defaultWidthPercent}
                 onResizeEnd={onResizeEnd}
               >
                 {content}
@@ -159,12 +163,13 @@ export function ImageContent({
           className="z-[260]"
         >
           <ContextMenuItem
-            disabled={!loaded || !resolved}
+            disabled={!onCopyReference && !(sourceAddress || src)}
             onSelect={() => {
-              if (resolved)
-                void imageClipboardSource(resolved)
-                  .then((source) => window.electronAPI.copyImage(source))
-                  .catch((error) => toast.error(String(error)))
+              if (onCopyReference) { onCopyReference(); return }
+              const address = sourceAddress || src
+              if (address) void navigator.clipboard.writeText(address)
+                .then(() => toast.success("已复制图片地址"))
+                .catch((error) => toast.error(String(error)))
             }}
           >
             复制

@@ -1,6 +1,6 @@
 import { Switch } from "@/components/ui/switch"
 import { cn } from "@/lib/utils"
-import { PageBackButton } from "@/pages/debug/components/page-back-button"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { INITIAL_LOGS, LogEntry, LogLevel, levelStyle } from "@/pages/debug/console/components/devtools-console-shared"
 import { MonitorSwitch } from "@/pages/debug/console/components/monitor-switch"
 import { StatCard } from "@/pages/debug/console/components/stat-card"
@@ -11,7 +11,7 @@ import { useMemo, useState } from "react"
 /** Renders the console page component. */
 export function ConsolePage() {
   const [logs, setLogs] = useState<LogEntry[]>(INITIAL_LOGS)
-  // 总开关默认开启；监听类型默认全部关闭（与设计稿一致）
+  // 保留现有监听开关状态。
   const [master, setMaster] = useState(true)
   const [types, setTypes] = useState<Record<LogLevel, boolean>>({
     log: false,
@@ -36,9 +36,8 @@ export function ConsolePage() {
   return (
     <div className="dev-console-page flex h-full flex-col bg-[#faf9f7]">
       {/* 页面标题（高度固定 60px，参考 main-header） */}
-      <div className="flex h-[60px] shrink-0 items-center justify-between border-b border-[#f0efed] bg-white px-4">
-        <div className="flex items-center gap-2.5">
-          <PageBackButton />
+      <div className="console-page-header flex h-[60px] shrink-0 items-center justify-between border-b border-[#f0efed] bg-white px-4">
+        <div className="flex flex-col items-start gap-0.5">
           <h2 className="text-[16px] font-bold text-stone-900">控制台</h2>
           <span className="text-[12px] text-stone-400">Console 日志查看与监听控制</span>
         </div>
@@ -46,18 +45,18 @@ export function ConsolePage() {
           <StatusBadge
             tone="red"
             icon={XCircle}
-            text="1 Error"
+            text={`${counts.error} Error`}
           />
           <StatusBadge
             tone="green"
             icon={CheckCircle2}
-            text="监听中"
+            text={master ? "监听中" : "已暂停"}
           />
         </div>
       </div>
 
-      {/* 内容区：统计卡片固定，下方双栏撑满剩余高度 */}
-      <div className="flex min-h-0 flex-1 flex-col gap-4 p-4">
+      {/* 内容区：统计卡片与等宽双栏 */}
+      <div className="diagnostics-console-body flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-4">
         {/* 统计卡片 */}
         <div className="grid shrink-0 grid-cols-4 gap-4">
           <StatCard
@@ -94,10 +93,10 @@ export function ConsolePage() {
           />
         </div>
 
-        {/* 日志 + 监听控制（撑满剩余高度） */}
-        <div className="grid min-h-0 flex-1 grid-cols-[1fr_380px] gap-4">
+        {/* 日志 + 监听控制 */}
+        <div className="diagnostics-console-grid grid min-h-0 grid-cols-2 gap-3">
           {/* Console 日志 */}
-          <div className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-[#e7e5e4] bg-white">
+          <div className="console-panel flex min-h-0 flex-col overflow-hidden rounded-xl border border-[#e7e5e4] bg-white">
             <div className="flex shrink-0 items-center justify-between border-b border-[#f0efed] px-4 py-3">
               <div className="flex items-center gap-2 text-[14px] font-bold text-stone-800">
                 <Terminal className="h-4 w-4 text-stone-500" />
@@ -112,22 +111,23 @@ export function ConsolePage() {
                 清空
               </button>
             </div>
-            <div className="min-h-0 flex-1 overflow-y-auto p-3 font-sans text-[12.5px] leading-relaxed [scrollbar-width:thin]">
+            <ScrollArea className="min-h-0 flex-1 p-3 font-mono text-[12.5px] leading-relaxed">
               {logs.length === 0 && <div className="py-10 text-center font-sans text-[13px] italic text-stone-400">暂无日志</div>}
               {logs.map((log) => (
                 <div
                   key={log.id}
+                  data-log-level={log.level}
                   className={cn("mb-0.5 flex items-start gap-3 px-2 py-1.5", levelStyle[log.level])}
                 >
                   <span className="shrink-0 select-none text-stone-400">{log.time}</span>
                   <span className="whitespace-pre-wrap break-all">{log.message}</span>
                 </div>
               ))}
-            </div>
+            </ScrollArea>
           </div>
 
           {/* 监听控制 */}
-          <div className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-[#e7e5e4] bg-white">
+          <div className="console-panel flex min-h-0 flex-col overflow-hidden rounded-xl border border-[#e7e5e4] bg-white">
             <div className="flex shrink-0 items-center gap-2 border-b border-[#f0efed] px-4 py-3 text-[14px] font-bold text-stone-800">
               <CheckCircle2 className="h-4 w-4 text-stone-500" />
               监听控制
@@ -140,6 +140,7 @@ export function ConsolePage() {
                   <div className="mt-0.5 text-[12px] text-stone-400">拦截 console 输出</div>
                 </div>
                 <Switch
+                  aria-label="总开关"
                   checked={master}
                   onCheckedChange={setMaster}
                 />

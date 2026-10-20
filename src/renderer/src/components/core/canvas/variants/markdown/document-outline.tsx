@@ -63,11 +63,12 @@ export function DocumentOutline({
                 aria-label={heading.text}
                 aria-current={index === activeIndex ? "location" : undefined}
                 onClick={() => onSelect(index)}
-                className="flex h-4 w-full items-center justify-end bg-transparent px-1"
+                data-heading-level={heading.level}
+                className="document-outline-bar-row flex h-4 w-full items-center justify-end bg-transparent px-1"
               >
                 <Skeleton
                   aria-hidden="true"
-                  className={cn("h-[3px] animate-none rounded-full", index === activeIndex ? "bg-green-600" : "bg-stone-300")}
+                  className={cn("document-outline-bar h-[3px] animate-none rounded-full", index === activeIndex ? "bg-green-600" : "bg-stone-300")}
                   style={{ width: Math.max(8, 34 - (heading.level - 1) * 5) }}
                 />
               </button>
@@ -84,7 +85,7 @@ export function DocumentOutline({
         <div className="flex h-8 shrink-0 items-center justify-end gap-2">
           {fileName && (
             <span
-              title={fileName}
+              data-title={fileName}
               className="min-w-0 flex-1 truncate px-2 text-xs font-semibold text-stone-700"
             >
               {fileName}
@@ -96,7 +97,7 @@ export function DocumentOutline({
               size="icon"
               className="size-7 shrink-0 text-stone-400 hover:bg-green-600 hover:text-white"
               aria-label={wrapTitles ? "标题改为单行显示" : "标题改为换行显示"}
-              title={wrapTitles ? "标题改为单行显示" : "标题改为换行显示"}
+              data-title={wrapTitles ? "标题改为单行显示" : "标题改为换行显示"}
               aria-pressed={wrapTitles}
               onClick={() => setWrapTitles(!wrapTitles)}
             >
@@ -107,7 +108,7 @@ export function DocumentOutline({
             variant="ghost"
             size="icon"
             className="size-7 text-stone-400 hover:bg-green-600 hover:text-white"
-            title={pinned ? "取消固定大纲" : "固定大纲"}
+            data-title={pinned ? "取消固定大纲" : "固定大纲"}
             aria-label={pinned ? "取消固定大纲" : "固定大纲"}
             aria-pressed={pinned}
             onClick={() => setPinned(!pinned)}

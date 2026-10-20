@@ -17,6 +17,8 @@ interface DirectoryState {
   error?: string
 }
 
+const directoryCache = new Map<string, { reader: unknown; entries: Record<string, DirectoryState> }>()
+
 /** Renders the workspace tree component. */
 export default function WorkspaceTree({
   viewport,
@@ -24,7 +26,9 @@ export default function WorkspaceTree({
   draft,
   onDraftFinish,
   revealPath,
+  revealCentered = false,
   onRevealed,
+  onFileActivate,
   onCreate,
   onSearchDirectory,
   sortBy = "auto",
@@ -35,7 +39,9 @@ export default function WorkspaceTree({
   viewport: HTMLElement | null
   recent?: boolean
   revealPath?: string
+  revealCentered?: boolean
   onRevealed?: () => void
+  onFileActivate?: (path: string) => void
   draft?: EntryDraft | null
   onDraftFinish?: (created: boolean) => void
   sortBy?: FileSortBy
@@ -56,9 +62,22 @@ export default function WorkspaceTree({
 
   /** Performs the parent path operation. */
   const parentPath = (path: string) => path.replace(/[\\/][^\\/]+$/, "")
-  const [directories, setDirectories] = useState<Record<string, DirectoryState>>({})
+  const [directories, setDirectories] = useState<Record<string, DirectoryState>>(() => {
+    const reader = typeof window !== "undefined" ? window.electronAPI?.readWorkspaceDirectory : undefined
+    const cached = directoryCache.get(workspace.path)
+    return cached && cached.reader === reader ? cached.entries : {}
+  })
   const pending = useRef(new Map<string, Promise<void>>())
   const mounted = useRef(true)
+
+  /** Updates a directory entry in both component state and the workspace-scoped cache. */
+  const updateDirectory = (path: string, entry: DirectoryState) => {
+    setDirectories((state) => {
+      const next = { ...state, [path]: entry }
+      directoryCache.set(workspace.path, { reader: window.electronAPI?.readWorkspaceDirectory, entries: next })
+      return next
+    })
+  }
   /** 按需读取直接子节点并缓存，合并同一路径的并发请求。
    * @param path 要展开的目录路径。
    * @returns 完成缓存更新的 Promise；失败信息保留用于重试。
@@ -68,10 +87,10 @@ export default function WorkspaceTree({
     const request = window.electronAPI
       .readWorkspaceDirectory(workspace.path, path)
       .then((nodes) => {
-        if (mounted.current) setDirectories((state) => ({ ...state, [path]: { nodes } }))
+        if (mounted.current) updateDirectory(path, { nodes })
       })
       .catch((error) => {
-        if (mounted.current) setDirectories((state) => ({ ...state, [path]: { error: String(error) } }))
+        if (mounted.current) updateDirectory(path, { error: String(error) })
       })
       .finally(() => pending.current.delete(path))
     pending.current.set(path, request)
@@ -106,9 +125,9 @@ export default function WorkspaceTree({
   useEffect(() => {
     mounted.current = true
     if (!recent) {
-      void loadDirectoryChildren(workspace.path)
+      if (!directories[workspace.path]?.nodes) void loadDirectoryChildren(workspace.path)
       expandedFolders.forEach((path) => {
-        void loadDirectoryChildren(path)
+        if (!directories[path]?.nodes) void loadDirectoryChildren(path)
       })
     }
     return () => {
@@ -126,7 +145,8 @@ export default function WorkspaceTree({
   useEffect(() => {
     /** Handles settings saved events. */
     const handleSettingsSaved = () => {
-      setDirectories({})
+      // Refresh in place: clearing rows collapses the scroll height and resets scrollTop.
+      // Keep the cached tree visible while settings (including appearance) are refreshed.
       if (!recent) {
         void loadDirectoryChildren(workspace.path)
         expandedFolders.forEach((path) => {
@@ -154,6 +174,8 @@ export default function WorkspaceTree({
   }
   const root = directories[workspace.path]
   appendVisibleTreeRows(recent ? openFiles : (root?.nodes ?? []))
+  const selectedPaths = new Set(selection)
+  const selectedNodes = rows.filter((row) => selectedPaths.has(row.id)).map((row) => row.item)
   const draftIndex = rows.findIndex((row) => row.id === "__draft__")
   useEffect(() => {
     if (viewport && draftIndex >= 0) viewport.scrollTo({ top: draftIndex * 32 < viewport.scrollTop ? draftIndex * 32 : draftIndex * 32 + 32 > viewport.scrollTop + viewport.clientHeight ? draftIndex * 32 + 32 - viewport.clientHeight : viewport.scrollTop })
@@ -166,12 +188,12 @@ export default function WorkspaceTree({
       setSelection([])
       onRevealed?.()
     } else if (viewport && revealIndex >= 0 && !draft && revealPath) {
-      const top = treeRevealScrollTop(revealIndex, viewport.scrollTop, viewport.clientHeight)
+      const top = revealCentered ? Math.max(0, revealIndex * 32 + 16 - viewport.clientHeight / 2) : treeRevealScrollTop(revealIndex, viewport.scrollTop, viewport.clientHeight)
       if (top !== viewport.scrollTop) viewport.scrollTo({ top, behavior: "smooth" })
       setSelection([revealPath])
       onRevealed?.()
     }
-  }, [viewport, isRootReveal, revealIndex, revealPath, draft, onRevealed])
+  }, [viewport, isRootReveal, revealIndex, revealPath, revealCentered, draft, onRevealed])
   if (!recent && !root)
     return (
       <p
@@ -185,7 +207,7 @@ export default function WorkspaceTree({
     return (
       <Button
         variant="ghost"
-        title={root.error}
+        data-title={root.error}
         onClick={() => void loadDirectoryChildren(workspace.path)}
         className="w-full text-xs text-red-500"
       >
@@ -213,6 +235,7 @@ export default function WorkspaceTree({
             />
           ) : (
             <div
+              onContextMenuCapture={() => { if (!selection.includes(node.path)) setSelection([node.path]) }}
               draggable={renamingPath !== node.path}
               onDragStart={(event) => {
                 if (renamingPath) {
@@ -264,6 +287,7 @@ export default function WorkspaceTree({
             >
               <FileActions
                 node={node}
+                selectedNodes={selectedNodes}
                 onRenamingChange={(isRenaming) => setRenamingPath(isRenaming ? node.path : null)}
                 onSearchDirectory={onSearchDirectory}
                 onCreate={(kind, extension) => {
@@ -272,11 +296,13 @@ export default function WorkspaceTree({
                   onCreate?.(node.path, kind, extension)
                 }}
                 onChanged={() => {
-                  const index = Math.max(node.path.lastIndexOf("/"), node.path.lastIndexOf("\\"))
-                  void loadDirectoryChildren(node.path.slice(0, index) || workspace.path)
+                  const changed = selectedPaths.has(node.path) ? selectedNodes : [node]
+                  const parents = new Set(changed.map((item) => parentPath(item.path) || workspace.path))
+                  parents.forEach((path) => { void loadDirectoryChildren(path) })
                 }}
               >
                 <FileTreeItem
+                  rootPath={workspace.path}
                   node={node}
                   selected={selection.includes(node.path) || (!selection.length && node.path === activeFilePath)}
                   expanded={Boolean(expanded)}
@@ -301,6 +327,7 @@ export default function WorkspaceTree({
                     }
                     setSelection([node.path])
                     if (node.type !== "directory") {
+                      onFileActivate?.(node.path)
                       openWorkspaceFile(node)
                       return
                     }

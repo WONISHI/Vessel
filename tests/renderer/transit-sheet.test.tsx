@@ -1,4 +1,5 @@
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { useToolboxImageImport } from "@/components/image-toolbox/import-state"
+import { cleanup, renderHook, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { afterEach, expect, it, vi } from "vitest"
 import { TransitStatus } from "@/components/transit/panel/components/transit-status"
 import { TransitPanel } from "@/components/transit/panel/components/transit-panel"
@@ -61,7 +62,7 @@ it("shows four tabs per page and the remaining two when advancing past item four
 it("uses Markdown document statistics and exposes webpage search and refresh", () => {
   const view = render(<TransitStatus item={{ id: "md", kind: "file", title: "note.md", root: "/vault", content: "/vault/note.md" }} file={{ kind: "markdown", content: "Hello world\nnext" }} onRefresh={vi.fn()} />)
   expect(screen.getByText("3 词")).toBeTruthy()
-  expect(screen.getByText("2 行")).toBeTruthy()
+  expect(screen.getByText("16 字")).toBeTruthy()
   view.unmount()
   const search = vi.fn(), refresh = vi.fn()
   render(<TransitStatus item={{ id: "url", kind: "url", title: "网页", content: "https://example.com" }} onSearch={search} onRefresh={refresh} />)
@@ -79,6 +80,8 @@ it("shows decoded image dimensions and byte size with an edit action", async () 
   expect(await screen.findByText("640 × 480")).toBeTruthy()
   expect(screen.getByText("3 B")).toBeTruthy()
   fireEvent.click(screen.getByRole("button", { name: "编辑中转图片" }))
+  const imported = renderHook(() => useToolboxImageImport())
+  expect(imported.result.current?.source).toBe("data:image/png;base64,YWJj")
   expect(state.push).toHaveBeenCalledWith("/image")
   expect(state.select).toHaveBeenCalledWith(null)
 })

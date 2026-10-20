@@ -49,7 +49,7 @@ export function DataTable<T>({ columns, rows, getRowKey, loading = false, error,
             {ordered.map((col) => (
               <TableHead
                 key={col.id}
-                title={col.description}
+                data-title={col.description}
                 style={styles.get(col.id)}
                 className={cn("whitespace-nowrap px-3 py-2 text-stone-600", col.pin && "sticky z-20 border-r border-stone-200 bg-[#faf9f7]")}
               >

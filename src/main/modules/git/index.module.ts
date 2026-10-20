@@ -89,7 +89,16 @@ export class GitModule extends BaseModule {
       "git:revert": (_e, cwd: string, hash: string) => gitService.revert(cwd, hash),
 
       /** Performs the "git:create tag" operation. */
-      "git:create-tag": (_e, cwd: string, tag: string, target?: string) => gitService.createTag(cwd, tag, target)
+      "git:create-tag": (_e, cwd: string, tag: string, target?: string) => gitService.createTag(cwd, tag, target),
+
+      /** Performs the "git:remote url" operation. */
+      "git:remote-url": (_e, cwd: string, remote?: string) => gitService.getRemoteUrl(cwd, remote),
+
+      /** Performs the "git:remote commit url" operation. */
+      "git:remote-commit-url": (_e, cwd: string, hash: string, remote?: string) => gitService.getRemoteCommitUrl(cwd, hash, remote),
+
+      /** Performs the "git:unpushed commits" operation. */
+      "git:unpushed-commits": (_e, cwd: string) => gitService.getUnpushedCommits(cwd)
     }
 
     for (const [channel, handler] of Object.entries(handlers)) {

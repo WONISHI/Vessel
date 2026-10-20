@@ -37,7 +37,7 @@ export function BookmarkBar({ items, onNavigate, onRemove, onReset }: { items: {
     const btn = (
       <button
         key={item.url}
-        title={`${item.title}\n${item.url}`}
+        data-title={`${item.title}\n${item.url}`}
         tabIndex={hidden ? -1 : undefined}
         onClick={() => {
           onNavigate(item.url)

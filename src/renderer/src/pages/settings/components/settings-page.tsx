@@ -11,7 +11,7 @@ import { ShortcutSettings } from "@/pages/settings/components/shortcuts"
 import { SyncDiagnosticsPanel } from "@/pages/settings/components/sync-diagnostics"
 import { useRouter } from "@vessel/react-router"
 import type { AppSettings, BackupStatus } from "@vessel/type"
-import { defaultSettings } from "@vessel/utils"
+import { defaultSettings, isLegacyDefaultIgnoredFiles } from "@vessel/utils"
 import { ArrowLeft, Camera, CheckCircle2, Clock, Cloud, Download, RotateCcw, Save, Settings } from "lucide-react"
 import { version as reactVersion, useEffect, useState } from "react"
 import { toast } from "sonner"
@@ -34,8 +34,11 @@ export function SettingsPage() {
     const refresh = () => {
       void Promise.all([window.electronAPI.getSettings(), window.electronAPI.getSettingsInfo(), window.electronAPI.getBackupStatus()])
         .then(([value, version, backup]) => {
-          setDraft(value)
-          setSaved(value)
+          const normalized: AppSettings = isLegacyDefaultIgnoredFiles(value.ignoredFiles)
+            ? { ...value, ignoredFiles: defaultSettings.ignoredFiles }
+            : value
+          setDraft(normalized)
+          setSaved(normalized)
           setSecret(undefined)
           setInfo(version)
           setStatus(backup)
@@ -109,7 +112,7 @@ export function SettingsPage() {
           size="icon"
           className="hover:!bg-[#17A34A] hover:!text-white hover:[&_svg]:!text-white hover:[&_svg]:!stroke-white active:!bg-green-700 active:!text-white"
           aria-label="返回"
-          title="返回"
+          data-title="返回"
           onClick={back}
         >
           <ArrowLeft className="size-5" />
@@ -434,13 +437,17 @@ export function SettingsPage() {
                     </Row>
                     <Row
                       title="忽略文件与文件夹"
-                      description="配置在工作区和项目资源区中需要过滤隐藏的文件或文件夹名称，多个以逗号分隔。默认：.obsidian, .git"
+                      description="配置在工作区和项目资源区中需要过滤隐藏的文件或文件夹名称，多个以逗号分隔。默认：.obsidian, .git, .DS_Store, .vscode, .vessel"
                     >
                       <Input
                         aria-label="忽略文件与文件夹"
                         className="!w-[280px]"
-                        value={(draft.ignoredFiles === ".obsidian, .gut" ? ".obsidian, .git" : draft.ignoredFiles) ?? ".obsidian, .git"}
-                        placeholder=".obsidian, .git"
+                        value={
+                          isLegacyDefaultIgnoredFiles(draft.ignoredFiles)
+                            ? ".obsidian, .git, .DS_Store, .vscode, .vessel"
+                            : (draft.ignoredFiles ?? ".obsidian, .git, .DS_Store, .vscode, .vessel")
+                        }
+                        placeholder=".obsidian, .git, .DS_Store, .vscode, .vessel"
                         onChange={(e) => update("ignoredFiles", e.target.value)}
                       />
                     </Row>
@@ -807,7 +814,7 @@ export function SettingsPage() {
                                       className="border-t"
                                     >
                                       <td className="break-all p-2">{item.path}</td>
-                                      <td className="whitespace-nowrap p-2">{({ upload: "上传", download: "下载", "delete-local": "移入本地回收目录", "delete-remote": "删除远端", conflict: "处理冲突", skip: "跳过" } as Record<string, string>)[item.action] || item.action}</td>
+                                      <td className="whitespace-nowrap p-2">{({ upload: "上传", download: "下载", merge: "自动合并", "delete-local": "移入本地回收目录", "delete-remote": "删除远端", conflict: "处理冲突", skip: "跳过" } as Record<string, string>)[item.action] || item.action}</td>
                                       <td className="p-2">{item.reason}</td>
                                     </tr>
                                   ))}

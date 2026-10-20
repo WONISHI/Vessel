@@ -463,6 +463,86 @@ export class GitService {
     const res = await runGit(args, cwd)
     if (res.exitCode !== 0) throw new Error(res.stderr || "Create tag failed")
   }
+
+  /** Returns the remote repository URL, prioritizing origin. */
+  async getRemoteUrl(cwd: string, remote = "origin"): Promise<string> {
+    if (!cwd) return ""
+    let res = await runGit(["remote", "get-url", remote], cwd)
+    if (res.exitCode === 0 && res.stdout.trim()) {
+      return res.stdout.trim()
+    }
+    res = await runGit(["config", "--get", `remote.${remote}.url`], cwd)
+    if (res.exitCode === 0 && res.stdout.trim()) {
+      return res.stdout.trim()
+    }
+    const listRes = await runGit(["remote"], cwd)
+    if (listRes.exitCode === 0) {
+      const remotes = listRes.stdout
+        .split("\n")
+        .map((s) => s.trim())
+        .filter(Boolean)
+      for (const r of remotes) {
+        if (r === remote) continue
+        const fallbackRes = await runGit(["remote", "get-url", r], cwd)
+        if (fallbackRes.exitCode === 0 && fallbackRes.stdout.trim()) {
+          return fallbackRes.stdout.trim()
+        }
+      }
+    }
+    return ""
+  }
+
+  /** Returns the web URL for viewing a commit in the remote repository. */
+  async getRemoteCommitUrl(cwd: string, hash: string, remote = "origin"): Promise<string> {
+    const remoteUrl = await this.getRemoteUrl(cwd, remote)
+    if (!remoteUrl) return ""
+    return formatGitCommitWebUrl(remoteUrl, hash)
+  }
+
+  /** Returns the list of unpushed commit hashes. */
+  async getUnpushedCommits(cwd: string): Promise<string[]> {
+    const res = await runGit(["rev-list", "--branches", "HEAD", "--not", "--remotes"], cwd)
+    if (res.exitCode !== 0) return []
+    return res.stdout
+      .split("\n")
+      .map((s) => s.trim())
+      .filter(Boolean)
+  }
+}
+
+/** Formats a Git remote repository URL into a web URL for viewing a commit. */
+export function formatGitCommitWebUrl(rawRemoteUrl: string, hash: string): string {
+  if (!rawRemoteUrl || !hash) return ""
+  let s = rawRemoteUrl.trim().replace(/\/+$/, "")
+
+  let base = ""
+  if (s.startsWith("http://") || s.startsWith("https://")) {
+    const match = s.match(/^(https?:\/\/)(?:[^@]+@)?(.+)$/)
+    if (match) {
+      base = match[1] + match[2].replace(/\.git$/, "")
+    }
+  } else if (s.startsWith("ssh://")) {
+    const match = s.match(/^ssh:\/\/(?:[^@]+@)?([^:/]+)(?::\d+)?\/(.+)$/)
+    if (match) {
+      base = `https://${match[1]}/${match[2].replace(/\.git$/, "")}`
+    }
+  } else if (s.includes("@") && s.includes(":")) {
+    const match = s.match(/^(?:[^@]+@)?([^:]+):(.+)$/)
+    if (match) {
+      const path = match[2].replace(/^\/+/, "").replace(/\.git$/, "")
+      base = `https://${match[1]}/${path}`
+    }
+  }
+
+  if (!base) return ""
+  const lower = base.toLowerCase()
+  if (lower.includes("bitbucket.org")) {
+    return `${base}/commits/${hash}`
+  }
+  if (lower.includes("gitlab")) {
+    return `${base}/-/commit/${hash}`
+  }
+  return `${base}/commit/${hash}`
 }
 
 export const gitService = new GitService()

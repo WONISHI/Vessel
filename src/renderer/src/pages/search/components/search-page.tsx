@@ -84,7 +84,7 @@ export function SearchPage() {
                     size="sm"
                     className="h-7 gap-1 text-xs text-stone-600 hover:text-stone-900"
                     onClick={() => void router.push(`/editor?external=${encodeURIComponent(selected.path)}`)}
-                    title="在工作区打开编辑"
+                    data-title="在工作区打开编辑"
                   >
                     <ExternalLink size={13} />
                     在工作区打开

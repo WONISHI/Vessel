@@ -35,7 +35,7 @@ export type SyncDirection = "push" | "pull" | "bidirectional"
 export type ConflictStrategy = "keep-both" | "keep-newer" | "keep-larger" | "error"
 export interface SyncPlanItem {
   path: string
-  action: "upload" | "download" | "delete-local" | "delete-remote" | "conflict" | "equal" | "skip"
+  action: "upload" | "download" | "delete-local" | "delete-remote" | "merge" | "conflict" | "equal" | "skip"
   reason: string
 }
 export interface SyncLogEvent {

@@ -87,7 +87,7 @@ export function ProjectLibraryContent({ pinned, onPin, onSelect }: { pinned: boo
               className={`group relative flex min-w-0 items-center rounded-md ${project.path === workspace.path ? (visible.length === 1 ? "max-w-[104px] w-[65%] bg-green-50 text-green-700" : "max-w-[160px] flex-[1.6_1_0%] bg-green-50 text-green-700") : "max-w-[100px] flex-[1_1_0%] text-stone-500"}`}
             >
               <button
-                title={project.path}
+                data-title={project.path}
                 className="min-w-0 flex-1 truncate px-2 py-1 text-xs"
                 onClick={() => activate(project)}
               >
@@ -129,7 +129,7 @@ export function ProjectLibraryContent({ pinned, onPin, onSelect }: { pinned: boo
                     key={project.path}
               data-project-tab
               data-active={project.path === workspace.path}
-                    title={project.path}
+                    data-title={project.path}
                     className="block w-full truncate rounded px-2 py-2 text-left text-xs hover:bg-green-50"
                     onClick={() => activate(project)}
                   >
@@ -166,7 +166,7 @@ export function ProjectLibraryContent({ pinned, onPin, onSelect }: { pinned: boo
           <h2 className="truncate text-sm font-semibold">{workspace.name}</h2>
           <p
             className="truncate text-[10px] text-stone-400"
-            title={workspace.path}
+            data-title={workspace.path}
           >
             {workspace.path}
           </p>

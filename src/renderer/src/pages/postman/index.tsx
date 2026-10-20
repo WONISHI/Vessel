@@ -350,7 +350,7 @@ pm.test("Response time is less than 1000ms", function () {
                     <span className="font-semibold text-stone-500">我的集合</span>
                     <button
                       type="button"
-                      title="新建集合"
+                      data-title="新建集合"
                       className="rounded p-1 hover:bg-stone-200"
                       onClick={async () => {
                         const name = prompt("请输入集合名称:")
@@ -360,7 +360,7 @@ pm.test("Response time is less than 1000ms", function () {
                           name
                         })
                         setCollections(updated)
-                      }}
+                      }} aria-label="新建集合"
                     >
                       <FolderPlus className="size-3.5" />
                     </button>
@@ -378,21 +378,21 @@ pm.test("Response time is less than 1000ms", function () {
                           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100">
                             <button
                               type="button"
-                              title="批量运行 (Run)"
+                              data-title="批量运行 (Run)"
                               className="p-1 hover:text-green-700"
-                              onClick={() => handleRunCollection(col.id)}
+                              onClick={() => handleRunCollection(col.id)} aria-label="批量运行 (Run)"
                             >
                               <Play className="size-3 text-green-600" />
                             </button>
                             <button
                               type="button"
-                              title="删除集合"
+                              data-title="删除集合"
                               className="p-1 hover:text-red-700"
                               onClick={async () => {
                                 if (!confirm(`确定删除集合 ${col.name} 吗？`)) return
                                 const updated = await window.electronAPI.apiClient.deleteCollection(col.id)
                                 setCollections(updated)
-                              }}
+                              }} aria-label="删除集合"
                             >
                               <Trash2 className="size-3 text-stone-400" />
                             </button>
@@ -454,7 +454,7 @@ pm.test("Response time is less than 1000ms", function () {
                       </div>
                       <div
                         className="truncate text-stone-600 font-mono text-[10px]"
-                        title={h.url}
+                        data-title={h.url}
                       >
                         {h.url}
                       </div>
@@ -469,7 +469,7 @@ pm.test("Response time is less than 1000ms", function () {
                     <span>环境变量</span>
                     <button
                       type="button"
-                      title="添加环境"
+                      data-title="添加环境"
                       className="p-1 hover:bg-stone-200 rounded"
                       onClick={async () => {
                         const name = prompt("请输入环境名称 (如 Staging):")
@@ -481,7 +481,7 @@ pm.test("Response time is less than 1000ms", function () {
                           isActive: false
                         })
                         setEnvironments(updated)
-                      }}
+                      }} aria-label="添加环境"
                     >
                       <Plus className="size-3.5" />
                     </button>
@@ -882,7 +882,7 @@ pm.test("Response time is less than 1000ms", function () {
 
                       <button
                         type="button"
-                        title="复制响应"
+                        data-title="复制响应"
                         onClick={handleCopyResponse}
                         className="ml-2 flex size-6 items-center justify-center rounded text-stone-400 hover:bg-stone-200 hover:text-stone-700"
                       >

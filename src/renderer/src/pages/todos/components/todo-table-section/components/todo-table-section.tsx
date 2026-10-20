@@ -367,7 +367,7 @@ export function TodoTableSection() {
                   setRenameTabTitle(tab.title)
                   setIsRenamingTab(true)
                 }}
-                title="单击切换，双击修改标题"
+                data-title="单击切换，双击修改标题"
                 className={cn(
                   "group flex min-w-0 shrink-0 max-w-[130px] items-center gap-1.5 border-b-2 px-2.5 py-2 text-xs font-medium transition-colors",
                   isActive ? "border-green-600 bg-white text-green-700 font-semibold" : "border-transparent text-stone-600 hover:bg-stone-200/60 hover:text-stone-900"
@@ -424,14 +424,14 @@ export function TodoTableSection() {
                 <button
                   onClick={handleSaveTabRename}
                   className="flex size-6 items-center justify-center rounded bg-green-700 text-white hover:bg-green-800"
-                  title="保存名称"
+                  data-title="保存名称" aria-label="保存名称"
                 >
                   <Check className="size-3.5" />
                 </button>
                 <button
                   onClick={() => setIsRenamingTab(false)}
                   className="flex size-6 items-center justify-center rounded bg-stone-200 text-stone-600 hover:bg-stone-300"
-                  title="取消"
+                  data-title="取消" aria-label="取消"
                 >
                   <X className="size-3.5" />
                 </button>
@@ -443,7 +443,7 @@ export function TodoTableSection() {
                   setIsRenamingTab(true)
                 }}
                 className="flex items-center gap-2 text-sm font-bold text-stone-900 dark:text-white cursor-pointer hover:text-green-700 transition-colors"
-                title="双击修改标题名称"
+                data-title="双击修改标题名称"
               >
                 <ClipboardList className="size-4 text-green-600" />
                 <span>{activeTab.title}</span>
@@ -453,8 +453,8 @@ export function TodoTableSection() {
             <div className="flex items-center gap-2">
               <button
                 onClick={handleCopyDetails}
-                title="复制详情"
-                className="flex size-8 items-center justify-center rounded-lg border border-stone-200 bg-white text-stone-600 hover:border-stone-300 hover:bg-stone-50 hover:text-green-700"
+                data-title="复制详情"
+                className="flex size-8 items-center justify-center rounded-lg border border-stone-200 bg-white text-stone-600 hover:border-stone-300 hover:bg-stone-50 hover:text-green-700" aria-label="复制详情"
               >
                 <Copy className="size-3.5" />
               </button>
@@ -462,8 +462,8 @@ export function TodoTableSection() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button
-                    title="更多操作"
-                    className="flex size-8 items-center justify-center rounded-lg border border-stone-200 bg-white text-stone-600 hover:border-stone-300 hover:bg-stone-50 hover:text-green-700"
+                    data-title="更多操作"
+                    className="flex size-8 items-center justify-center rounded-lg border border-stone-200 bg-white text-stone-600 hover:border-stone-300 hover:bg-stone-50 hover:text-green-700" aria-label="更多操作"
                   >
                     <MoreVertical className="size-3.5" />
                   </button>
@@ -522,7 +522,7 @@ export function TodoTableSection() {
                             <button
                               onClick={() => confirmDelete(`删除「${col.title}」列？`, () => handleRemoveColumn(col.id))}
                               className="ml-auto opacity-0 transition-opacity group-hover:opacity-100 p-0.5 rounded hover:bg-red-50 hover:text-red-600 text-stone-300"
-                              title="删除列"
+                              data-title="删除列" aria-label="删除列"
                             >
                               <X className="size-3" />
                             </button>

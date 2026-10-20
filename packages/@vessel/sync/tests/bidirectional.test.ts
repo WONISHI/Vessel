@@ -1,6 +1,6 @@
 import { afterEach, expect, it, vi } from "vitest"
 import { createHash } from "node:crypto"
-import { mkdtemp, mkdir, writeFile, readFile, rm, symlink } from "node:fs/promises"
+import { mkdtemp, mkdir, writeFile, readFile, readdir, rm, symlink } from "node:fs/promises"
 import { join } from "node:path"
 import { tmpdir } from "node:os"
 import { collectFiles, syncFiles, SyncError, excludedBackupName, createSyncExcludeFilter, type StorageAdapter, type RemoteFile } from "#vessel-sync/index"
@@ -248,4 +248,125 @@ it("emits structured diagnostics and isolates observer failures", async () => {
   expect(events[0].type).toBe("start")
   expect(events).toContainEqual(expect.objectContaining({ type: "operation", path: "note.md", action: "upload" }))
   expect(events.at(-1)?.type).toBe("finish")
+})
+
+it("merges independent Markdown edits on two devices without creating conflict copies", async () => {
+  const f = await fixture()
+  await writeFile(join(f.a, "note.md"), "# Title\n\nfirst\n\nlast\n")
+  await f.run()
+  await f.run(f.b)
+  await writeFile(join(f.a, "note.md"), "# Title\n\nfirst edited by A\n\nlast\n")
+  await writeFile(join(f.b, "note.md"), "# Title\n\nfirst\n\nlast edited by B\n")
+  await f.run(f.b)
+  const preview = await f.run(f.a, { dryRun: true })
+  expect(preview.plan).toContainEqual({ path: "note.md", action: "merge", reason: "自动合并双方不重叠的 Markdown 修改" })
+  expect(await readFile(join(f.a, "note.md"), "utf8")).not.toContain("last edited by B")
+  expect(await f.run()).toMatchObject({ changed: 1, downloaded: 1, conflicts: [] })
+  const merged = "# Title\n\nfirst edited by A\n\nlast edited by B\n"
+  expect(await readFile(join(f.a, "note.md"), "utf8")).toBe(merged)
+  expect(f.objects.get("note.md")?.content.toString()).toBe(merged)
+  expect([...f.objects.keys()]).toEqual(["note.md"])
+  expect(await f.run()).toMatchObject({ changed: 0, downloaded: 0, conflicts: [] })
+  await f.run(f.b)
+  expect(await readFile(join(f.b, "note.md"), "utf8")).toBe(merged)
+})
+
+it("keeps both versions if no common Markdown ancestor is available", async () => {
+  const f = await fixture()
+  await writeFile(join(f.a, "note.md"), "local\n")
+  f.put("note.md", "remote\n")
+  expect(await f.run()).toMatchObject({ conflicts: ["note.md"] })
+  expect(await readFile(join(f.a, `note.conflict-local-${digest("local\n")}.md`), "utf8")).toBe("local\n")
+})
+
+it("does not replace a newer remote version while uploading an automatic merge", async () => {
+  const f = await fixture()
+  await writeFile(join(f.a, "note.md"), "a\nb\nc\n")
+  await f.run()
+  await writeFile(join(f.a, "note.md"), "A\nb\nc\n")
+  f.put("note.md", "a\nb\nC\n")
+  const upload = f.storage.upload
+  vi.mocked(f.storage.upload).mockImplementationOnce(async (...args) => {
+    f.put("note.md", "remote changed again\n")
+    return upload(...args)
+  })
+  await expect(f.run()).rejects.toMatchObject({ code: "REMOTE_CONFLICT" })
+  expect(await readFile(join(f.a, "note.md"), "utf8")).toBe("A\nb\nc\n")
+  expect(f.objects.get("note.md")?.content.toString()).toBe("remote changed again\n")
+})
+
+it("retains local edits made while an automatic merge is uploading", async () => {
+  const f = await fixture()
+  await writeFile(join(f.a, "note.md"), "a\nb\nc\n")
+  await f.run()
+  await writeFile(join(f.a, "note.md"), "A\nb\nc\n")
+  f.put("note.md", "a\nb\nC\n")
+  const upload = f.storage.upload
+  vi.mocked(f.storage.upload).mockImplementationOnce(async (...args) => {
+    const receipt = await upload(...args)
+    await writeFile(join(f.a, "note.md"), "new local edits during upload\n")
+    return receipt
+  })
+  await expect(f.run()).rejects.toMatchObject({ code: "FILE_CHANGED" })
+  expect(await readFile(join(f.a, "note.md"), "utf8")).toBe("new local edits during upload\n")
+})
+
+
+it("does not trust a corrupted ancestor and leaves conflict copies recoverable", async () => {
+  const f = await fixture()
+  const base = "a\nb\nc\n"
+  await writeFile(join(f.a, "note.md"), base)
+  await f.run()
+  await writeFile(join(f.root, "state-a", "backup-files-index.json.merge-bases", digest(base)), "corrupted")
+  await writeFile(join(f.a, "note.md"), "A\nb\nc\n")
+  f.put("note.md", "a\nb\nC\n")
+  expect(await f.run()).toMatchObject({ conflicts: ["note.md"] })
+  expect(await readFile(join(f.a, `note.conflict-local-${digest("A\nb\nc\n")}.md`), "utf8")).toBe("A\nb\nc\n")
+})
+
+it("keeps only current ancestor snapshots after successful edits", async () => {
+  const f = await fixture()
+  await writeFile(join(f.a, "note.md"), "first")
+  await f.run()
+  await writeFile(join(f.a, "note.md"), "second")
+  await f.run()
+  expect(await readdir(join(f.root, "state-a", "backup-files-index.json.merge-bases"))).toEqual([digest("second")])
+})
+
+it("does not manufacture a two-sided conflict when the editor saves during upload", async () => {
+  const f = await fixture()
+  const path = join(f.a, "note.md")
+  await writeFile(path, "base\n")
+  await f.run()
+  await writeFile(path, "saved version\n")
+  const upload = f.storage.upload
+  vi.mocked(f.storage.upload).mockImplementationOnce(async (key, source, options) => {
+    expect(source).not.toBe(path)
+    // The editor writes again before the adapter starts reading its upload source.
+    await writeFile(path, "new edits while syncing\n")
+    expect(await readFile(source, "utf8")).toBe("saved version\n")
+    return upload(key, source, options)
+  })
+  expect(await f.run()).toMatchObject({ changed: 1, conflicts: [] })
+  expect(f.objects.get("note.md")?.content.toString()).toBe("saved version\n")
+  expect(await readFile(path, "utf8")).toBe("new edits while syncing\n")
+  expect(await f.run()).toMatchObject({ changed: 1, downloaded: 0, conflicts: [] })
+  expect(f.objects.get("note.md")?.content.toString()).toBe("new edits while syncing\n")
+  expect([...f.objects.keys()]).toEqual(["note.md"])
+})
+
+it("records the uploaded ancestor when a new file is edited before upload finishes", async () => {
+  const f = await fixture()
+  const path = join(f.a, "note.md")
+  await writeFile(path, "first save\n")
+  const upload = f.storage.upload
+  vi.mocked(f.storage.upload).mockImplementationOnce(async (...args) => {
+    const receipt = await upload(...args)
+    await writeFile(path, "second save\n")
+    return receipt
+  })
+  expect(await f.run()).toMatchObject({ changed: 1, conflicts: [] })
+  expect(await f.run()).toMatchObject({ changed: 1, conflicts: [] })
+  expect(f.objects.get("note.md")?.content.toString()).toBe("second save\n")
+  expect([...f.objects.keys()]).toEqual(["note.md"])
 })

@@ -27,7 +27,7 @@ export function BrowserMore({ zoom, zoomFactor, onFind, onNavigate, guest, devic
     action()
   }
   const itemClass =
-    "browser-more-item gap-2.5 rounded-md px-2.5 py-2 text-xs font-normal text-stone-600 focus:!bg-[#327f73] focus:!text-white data-[highlighted]:!bg-[#327f73] data-[highlighted]:!text-white [&>svg]:size-4 [&>svg]:text-stone-400 data-[highlighted]:[&>svg]:!text-white focus:[&>svg]:!text-white"
+    "group browser-more-item gap-2.5 rounded-md px-2.5 py-2 text-xs font-normal text-stone-400 focus:!bg-[#327f73] focus:!text-white data-[highlighted]:!bg-[#327f73] data-[highlighted]:!text-white [&>svg]:size-4 [&>svg]:text-stone-400 data-[highlighted]:[&>svg]:!text-white focus:[&>svg]:!text-white"
   return (
     <>
       <DropdownMenu
@@ -50,24 +50,24 @@ export function BrowserMore({ zoom, zoomFactor, onFind, onNavigate, guest, devic
           className="z-[250] w-60 rounded-xl border-stone-200 bg-white p-1.5 shadow-lg"
         >
           <div className="flex items-center justify-between gap-3 px-2.5 py-2">
-            <span className="text-xs text-stone-500">页面缩放</span>
+            <span className="text-xs text-stone-400">页面缩放</span>
             <div className="flex items-center rounded-md border border-stone-200 bg-stone-50 p-0.5">
               <button
                 aria-label="缩小"
-                title="缩小"
+                data-title="缩小"
                 disabled={zoomFactor <= 0.25}
                 onClick={() => zoom(-0.1)}
-                className="flex size-6 items-center justify-center rounded text-stone-500 hover:bg-[#327f73] hover:text-white disabled:opacity-30"
+                className="flex size-6 items-center justify-center rounded text-stone-400 hover:bg-[#327f73] hover:text-white disabled:opacity-30"
               >
                 <ZoomOut size={15} />
               </button>
-              <span className="w-11 text-center text-[11px] tabular-nums text-stone-600">{Math.round(zoomFactor * 100)}%</span>
+              <span className="w-11 text-center text-[11px] tabular-nums text-stone-400">{Math.round(zoomFactor * 100)}%</span>
               <button
                 aria-label="放大"
-                title="放大"
+                data-title="放大"
                 disabled={zoomFactor >= 3}
                 onClick={() => zoom(0.1)}
-                className="flex size-6 items-center justify-center rounded text-stone-500 hover:bg-[#327f73] hover:text-white disabled:opacity-30"
+                className="flex size-6 items-center justify-center rounded text-stone-400 hover:bg-[#327f73] hover:text-white disabled:opacity-30"
               >
                 <ZoomIn size={15} />
               </button>
@@ -79,7 +79,7 @@ export function BrowserMore({ zoom, zoomFactor, onFind, onNavigate, guest, devic
             onSelect={() => run(onFind)}
           >
             <Search />
-            查找<DropdownMenuShortcut className="text-[10px]">⌘/Ctrl F</DropdownMenuShortcut>
+            查找<DropdownMenuShortcut className="text-[10px] text-stone-400 opacity-100 group-focus:text-white group-data-[highlighted]:text-white">⌘/Ctrl F</DropdownMenuShortcut>
           </DropdownMenuItem>
           <DropdownMenuItem
             className={itemClass}

@@ -17,10 +17,10 @@ export default function LayoutAside({ resources = false, children }: { resources
   const hideTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   useEffect(() => () => clearTimeout(hideTimer.current), [])
 
-  /** Shows show. */
+  /** Shows the library preview only while its activity is selected. */
   const show = () => {
     clearTimeout(hideTimer.current)
-    setPreview(true)
+    if (resources) setPreview(true)
   }
 
   /** Hides hide. */
@@ -85,7 +85,7 @@ export default function LayoutAside({ resources = false, children }: { resources
         onResourceLeave={hide}
         onActivityChange={handleActivityChange}
       />
-      {preview && (
+      {resources && preview && (
         <div
           onMouseEnter={show}
           onMouseLeave={hide}

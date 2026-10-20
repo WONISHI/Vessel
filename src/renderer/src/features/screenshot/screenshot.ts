@@ -75,7 +75,7 @@ void api
         const confirm = document.querySelector<HTMLElement>("#toolPanel .confirm")
         if (!confirm || document.querySelector("#toolPanel .shot-pin")) return
         const copy = confirm.parentElement?.classList.contains("item-panel") ? confirm.parentElement : confirm
-        copy.title = "完成并复制"
+        copy.dataset.title = "完成并复制"
         const heading = document.createElement("div")
         heading.className = "shot-toolbar-heading"
         const grip = document.createElement("span")
@@ -93,7 +93,7 @@ void api
           const button = document.createElement("button")
           button.type = "button"
           button.className = `item-panel ${className}`
-          button.title = title
+          button.dataset.title = title
           button.setAttribute("aria-label", title)
           button.style.backgroundImage = icon(Icon)
           if (callback) button.onclick = callback

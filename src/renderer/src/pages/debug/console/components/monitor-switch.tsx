@@ -15,6 +15,7 @@ export function MonitorSwitch({ icon: Icon, iconBg, iconColor, label, checked, o
         <span className="text-[13.5px] font-medium text-stone-700">{label}</span>
       </div>
       <Switch
+        aria-label={label}
         checked={checked}
         onCheckedChange={onChange}
       />

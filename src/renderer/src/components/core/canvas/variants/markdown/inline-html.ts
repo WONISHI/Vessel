@@ -39,7 +39,7 @@ export function decorateInlineHTML(root: HTMLElement) {
         preview.dataset.vesselHref = href
         preview.dataset.vesselLink = "true"
         preview.setAttribute("role", "link")
-        preview.title = href
+        preview.dataset.title = href
         preview.className = "text-primary underline underline-offset-4 cursor-pointer hover:opacity-80"
       }
     }

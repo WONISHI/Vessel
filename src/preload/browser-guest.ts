@@ -1,4 +1,8 @@
 import { contextBridge, ipcRenderer } from "electron"
+import { installExtensionApiShim } from "../main/browser/extensions/extension-api-shim"
+
+// Extension pages (e.g. iGuge login.html) need Chrome APIs Electron lacks before their own scripts run.
+if (location.protocol === "chrome-extension:") contextBridge.executeInMainWorld({ func: installExtensionApiShim })
 // Narrow page-world bridge: reports state, never input values or page contents.
 contextBridge.exposeInMainWorld("vesselPageBridge", {
   /** Performs the report operation. */

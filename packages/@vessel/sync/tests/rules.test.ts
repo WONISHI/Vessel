@@ -7,6 +7,11 @@ it("accepts both requested syntaxes and merges repeated groups", () => {
   const expected = { file: ["a", "b", "c"], folder: ["d"] }
   expect(parseSyncExcludeRules("{file:a,b,c},{folder:d}")).toEqual(expected)
   expect(parseSyncExcludeRules("{file:a,b,c;folder:d}")).toEqual(expected)
+  expect(parseSyncExcludeRules("{file:a,b,c,folder:d}")).toEqual(expected)
+  expect(parseSyncExcludeRules("{folder:.vessel,.vscode,node-modules,.git,.obsidian,file:.DS_Store}")).toEqual({
+    file: [".DS_Store"],
+    folder: [".vessel", ".vscode", "node-modules", ".git", ".obsidian"]
+  })
   expect(parseSyncExcludeRules(" {file:a,b}\n{file:b,c;folder:d} ")).toEqual(expected)
   expect(parseSyncExcludeRules("  ")).toEqual({ file: [], folder: [] })
 })

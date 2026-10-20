@@ -87,7 +87,7 @@ export function TransitButton({ menuItem = false, onOpenChange }: { menuItem?: b
               </button>
               <button
                 aria-label={`删除 ${item.title}`}
-                title="删除"
+                data-title="删除"
                 className="rounded p-1 text-stone-400 opacity-0 hover:bg-stone-200 hover:text-red-600 focus:opacity-100 group-hover:opacity-100 group-focus-within:opacity-100"
                 onClick={() => {
                   try {

@@ -6,6 +6,7 @@ import { ChevronRight, File, Folder, LoaderCircle } from "lucide-react"
 import type { MouseEvent } from "react"
 
 interface FileTreeItemProps {
+  rootPath?: string
   node: WorkspaceNode
   selected: boolean
   expanded: boolean
@@ -14,7 +15,10 @@ interface FileTreeItemProps {
   onActivate: (event: MouseEvent<HTMLButtonElement>) => void
 }
 /** 虚拟树中的单行；不递归挂载子节点。 */
-export default function FileTreeItem({ node, selected, expanded, loading, error, onActivate }: FileTreeItemProps) {
+export default function FileTreeItem({ node, rootPath, selected, expanded, loading, error, onActivate }: FileTreeItemProps) {
+  const root = rootPath?.replace(/\\/g, "/").replace(/\/$/, "")
+  const path = node.path.replace(/\\/g, "/")
+  const tooltipPath = root && (path === root || path.startsWith(`${root}/`)) ? `${root.split("/").pop()}${path.slice(root.length)}` : node.path
   const folder = node.type === "directory"
   const appearance = getFilePresentation(node.name)
   return (
@@ -22,7 +26,7 @@ export default function FileTreeItem({ node, selected, expanded, loading, error,
       data-workspace-tree-row
       data-selected={selected}
       variant="ghost"
-      title={error ? `${error}，点击重试` : node.path}
+      data-title={error ? `${error}，点击重试` : tooltipPath}
       onClick={onActivate}
       className={cn("h-8 w-full justify-start gap-2 rounded-md px-2 text-[11px] font-normal transition-none", selected ? "bg-emerald-50 text-green-700 font-medium hover:bg-emerald-50 hover:text-green-700 cursor-pointer shadow-none" : "text-stone-700 hover:bg-[#f0efed] hover:text-stone-900")}
     >

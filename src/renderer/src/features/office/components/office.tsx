@@ -314,7 +314,7 @@ export function Office() {
                 else frames.current.delete(doc.id)
               }}
               hidden={doc.id !== active}
-              title={doc.name}
+              data-title={doc.name} aria-label={doc.name}
               src="/office.html?editor=1"
               className="absolute inset-0 h-full w-full border-0"
             />

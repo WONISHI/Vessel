@@ -1,3 +1,27 @@
+/** Focuses the editable line next to an image, creating it only when necessary. */
+export function focusImageParagraph(block: HTMLElement, below = true): HTMLElement | null {
+  const editor = block.closest<HTMLElement>('[contenteditable="true"]')
+  if (!editor) return null
+  const adjacent = below ? block.nextElementSibling : block.previousElementSibling
+  const paragraph = adjacent instanceof HTMLElement && adjacent.tagName === "P" && !adjacent.querySelector('[contenteditable="false"], img')
+    ? adjacent : insertImageParagraph(block, below)
+  if (!paragraph) return null
+  /** Restores the caret after the context menu and editor input handlers settle. */
+  const focus = () => {
+    if (!paragraph.isConnected) return
+    editor.focus({ preventScroll: true })
+    const range = document.createRange()
+    range.selectNodeContents(paragraph)
+    range.collapse(true)
+    const selection = window.getSelection()
+    selection?.removeAllRanges()
+    selection?.addRange(range)
+  }
+  focus()
+  requestAnimationFrame(focus)
+  return paragraph
+}
+
 /** Inserts an editable paragraph beside an image without splitting its encoded source block. */
 export function insertImageParagraph(block: HTMLElement, below = true): HTMLElement | null {
   const editor = block.closest<HTMLElement>('[contenteditable="true"]')

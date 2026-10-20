@@ -34,6 +34,24 @@ export function ObsidianImage({ reference, root, documentPath, onChange, onFocus
       })
   }
 
+  /** Copies a vault Wiki embed, importing remote or inline images before referencing them. */
+  const copyReference = async () => {
+    try {
+      let reference: string
+      if (/^https?:/i.test(embed.target)) {
+        reference = (await window.electronAPI.saveObsidianImage(root, documentPath, { url: embed.target })).reference
+      } else if (/^data:image\//i.test(embed.target)) {
+        const bytes = new Uint8Array(await (await fetch(embed.target)).arrayBuffer())
+        reference = (await window.electronAPI.saveObsidianImage(root, documentPath, { bytes })).reference
+      } else {
+        const name = embed.target.replace(/\\/g, "/").split("/").pop()!
+        reference = `![[${name}]]`
+      }
+      await navigator.clipboard.writeText(reference)
+      toast.success("已复制图片引用")
+    } catch (error) { toast.error(String(error)) }
+  }
+
   /** Loads source. */
   const loadSource = useCallback(() => (/^data:image\//.test(embed.target) ? Promise.resolve(embed.target) : window.electronAPI.readObsidianImage(root, documentPath, reference)), [embed.target, root, documentPath, reference])
 
@@ -68,7 +86,7 @@ export function ObsidianImage({ reference, root, documentPath, onChange, onFocus
   const handleDelete = () => {
     if (readOnly) return
     onChange("")
-    toast.success("图片已删除")
+    toast.success("已移除图片引用，原文件保留")
   }
 
   /** Handles open link events. */
@@ -87,7 +105,7 @@ export function ObsidianImage({ reference, root, documentPath, onChange, onFocus
 
   return (
     <span
-      className="relative block bg-white"
+      className="vessel-obsidian-image relative block bg-white"
       onBlur={(event) => {
         if (!event.currentTarget.contains(event.relatedTarget)) {
           if (showLink) {
@@ -111,7 +129,7 @@ export function ObsidianImage({ reference, root, documentPath, onChange, onFocus
           <button
             type="button"
             className="vessel-image-link-copy-btn"
-            title="点击复制图片地址，也可拖拽地址"
+            data-title="点击复制图片地址，也可拖拽地址"
             aria-label="复制图片地址"
             draggable
             onDragStart={(e) => {
@@ -152,7 +170,7 @@ export function ObsidianImage({ reference, root, documentPath, onChange, onFocus
             type="text"
             value={draftUrl}
             disabled={readOnly}
-            title={draftUrl}
+            data-title={draftUrl}
             className="vessel-image-link-input flex-1 min-w-0 border-0 bg-transparent p-0 text-[11px] text-stone-700 outline-none placeholder:text-stone-400 focus:ring-0 dark:text-stone-200"
             style={{ fontSize: 11, fontFamily: '"Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}
             placeholder="输入图片链接或路径"
@@ -177,7 +195,7 @@ export function ObsidianImage({ reference, root, documentPath, onChange, onFocus
               className="vessel-image-link-btn vessel-image-link-save flex items-center gap-1 text-[11px] font-normal text-[#16a34a] transition-opacity hover:opacity-80"
               style={{ fontSize: 11, color: "#16a34a" }}
               onClick={commitLink}
-              title="保存"
+              data-title="保存"
               aria-label="保存"
             >
               <Check
@@ -194,7 +212,7 @@ export function ObsidianImage({ reference, root, documentPath, onChange, onFocus
                 className="vessel-image-link-btn vessel-image-link-delete flex items-center gap-1 text-[11px] font-normal text-[#dc2626] transition-opacity hover:opacity-80"
                 style={{ fontSize: 11, color: "#dc2626" }}
                 onClick={handleDelete}
-                title="删除"
+                data-title="删除"
                 aria-label="删除"
               >
                 <Trash2
@@ -214,7 +232,7 @@ export function ObsidianImage({ reference, root, documentPath, onChange, onFocus
               type="button"
               className="vessel-image-link-btn vessel-image-link-close flex items-center justify-center text-stone-400 transition-colors hover:text-stone-600 dark:hover:text-stone-200"
               onClick={() => setShowLink(false)}
-              title="关闭"
+              data-title="关闭"
               aria-label="关闭"
             >
               <X
@@ -228,6 +246,8 @@ export function ObsidianImage({ reference, root, documentPath, onChange, onFocus
         </div>
       )}
       <Image
+        sourceAddress={embed.target}
+        onCopyReference={() => void copyReference()}
         remote={/^https?:/.test(embed.target)}
         onDownloadLocal={
           !readOnly && /^https?:/.test(embed.target)
@@ -245,6 +265,7 @@ export function ObsidianImage({ reference, root, documentPath, onChange, onFocus
         loadSource={loadSource}
         alt={embed.alt}
         width={embed.width}
+        defaultWidthPercent={embed.width === undefined ? 75 : undefined}
         onResizeEnd={readOnly ? undefined : (width) => onChange(resizeImageReference(reference, width))}
       />
     </span>

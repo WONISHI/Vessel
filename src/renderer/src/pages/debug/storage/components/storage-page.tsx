@@ -153,7 +153,7 @@ export function StoragePage() {
                   aria-pressed={active}
                   key={t.name}
                   onClick={() => switchTable(t.name)}
-                  title={`${t.name}：${getTableDescription(t.name)}`}
+                  data-title={`${t.name}：${getTableDescription(t.name)}`}
                   className={cn("flex h-auto w-full justify-start items-center gap-2.5 rounded-lg px-2 py-2 text-left transition-colors", active ? "bg-green-50 hover:bg-green-50" : "hover:bg-black/[0.03]")}
                 >
                   <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-lg", active ? "bg-green-100 text-green-600" : "bg-stone-100 text-stone-400")}>

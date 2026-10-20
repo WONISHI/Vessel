@@ -19,7 +19,7 @@
   align-items: center;
   min-width: 0;
 }
-.vessel-document-stats { justify-content: flex-end; overflow: hidden; }
+.vessel-document-stats { justify-content: flex-end; overflow: hidden; margin-left: auto; width: fit-content; max-width: 100%; }
 .vessel-status-bar .vessel-status-left > button,
 .vessel-status-bar .vessel-document-stats > span,
 .vessel-status-bar .vessel-status-time {
@@ -73,3 +73,9 @@ html.dark .vessel-status-bar .vessel-document-stats > [role="alert"] { color: #f
 .vessel-status-bar button[data-sync-state="running"]:hover { color: #1d4ed8; }
 html.dark .vessel-status-bar button[data-sync-state="success"]:hover { color: #86efac; }
 html.dark .vessel-status-bar button[data-sync-state="running"]:hover { color: #93c5fd; }
+
+/* Aa has a shorter glyph box than Type; match their visible size. */
+.vessel-status-bar svg.lucide-case-sensitive {
+  transform: scale(1.25);
+  transform-origin: center;
+}

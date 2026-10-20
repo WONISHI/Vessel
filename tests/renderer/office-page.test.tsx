@@ -12,7 +12,7 @@ afterEach(() => {
 it("mounts ONLYOFFICE and synchronizes its theme after load without calling hooks inside effects", async () => {
   Object.defineProperty(window, "electronAPI", { configurable: true, value: { openOffice: vi.fn(async () => "http://localhost:1234/office.html") } })
   render(<OfficePage />)
-  const frame = (await screen.findByTitle("ONLYOFFICE 本地编辑器")) as HTMLIFrameElement
+  const frame = (await screen.findByLabelText("ONLYOFFICE 本地编辑器")) as HTMLIFrameElement
   const send = vi.spyOn(frame.contentWindow!, "postMessage")
   act(() => window.dispatchEvent(new MessageEvent("message", { source: frame.contentWindow, origin: "http://localhost:1234", data: { type: "office:loaded" } })))
   await waitFor(() => expect(send).toHaveBeenCalledWith({ type: "office:theme", dark: false }, "http://localhost:1234"))

@@ -818,3 +818,37 @@ html.dark .markdown-insert-menu {
 .markdown-insert-menu [role="separator"] { background: var(--insert-border); margin: 4px 5px; }
 .markdown-insert-menu .markdown-insert-category { font-size: 10px; font-weight: 600; color: var(--insert-faint); padding: 5px 8px 3px; }
 .markdown-insert-heading { display: flex; align-items: center; justify-content: center; width: 23px; height: 19px; background: var(--insert-hover); border-radius: 4px; color: var(--insert-dim); font-size: 10px; font-weight: 700; }
+
+.vessel-vditor .vditor-hint.vessel-heading-menu {
+  min-width: 198px; max-width: 240px; padding: 4px; border: 1px solid #e7e5e4;
+  border-radius: 9px; background: #fff; box-shadow: 0 12px 32px #0002;
+}
+.vessel-vditor .vessel-heading-menu::before { display: none; }
+.vessel-vditor .vessel-heading-menu button {
+  display: flex; align-items: center; gap: 8px; width: 100%; height: 29px;
+  padding: 0 8px; border-radius: 6px; font-size: 12px; color: #1c1917;
+}
+.vessel-vditor .vessel-heading-menu button::before { content: attr(data-level); font: 600 10px/19px sans-serif; width: 23px; border-radius: 4px; background: #f4f4f3; color: #78716c; }
+.vessel-vditor .vessel-heading-menu button::after { content: attr(data-shortcut); margin-left: auto; font-size: 10px; color: #a8a29e; }
+.vessel-vditor .vessel-heading-menu button:hover { background: #f4f4f3; color: #16a34a; }
+html.dark .vessel-vditor .vditor-hint.vessel-heading-menu { background: #23272d; border-color: #30353c; box-shadow: 0 12px 32px #0006; }
+html.dark .vessel-vditor .vessel-heading-menu button { color: #e6e8eb; }
+html.dark .vessel-vditor .vessel-heading-menu button::before { background: #ffffff0f; color: #9aa1a9; }
+html.dark .vessel-vditor .vessel-heading-menu button:hover { background: #ffffff0f; color: #4ade80; }
+
+/* Dark outline minimap colors and hierarchy from the supplied design. */
+html.dark .document-outline-bar-row { border-radius: 6px; }
+html.dark .document-outline-bar-row .document-outline-bar { background: #555a63; width: 62% !important; }
+html.dark .document-outline-bar-row[data-heading-level="1"] .document-outline-bar { width: 100% !important; }
+html.dark .document-outline-bar-row:hover .document-outline-bar { background: #7d838c; }
+html.dark .document-outline-bar-row[aria-current="location"] { background: transparent; box-shadow: none; }
+html.dark .document-outline-bar-row[aria-current="location"]:hover { background: transparent; box-shadow: none; }
+html.dark .document-outline-bar-row[aria-current="location"] .document-outline-bar { background: #4ade80; }
+
+/* Keep consecutive image blocks and multiple embeds within a block visually separated. */
+.vessel-vditor .vessel-image-block + .vessel-image-block {
+  margin-top: 16px !important;
+}
+.vessel-obsidian-image + .vessel-obsidian-image {
+  margin-top: 16px !important;
+}

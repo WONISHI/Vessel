@@ -5,3 +5,5 @@ export * from "#vessel-obsidian/wikilinks"
 export * from "#vessel-obsidian/bases/index"
 
 export * from "#vessel-obsidian/links"
+
+export * from "#vessel-obsidian/tags"

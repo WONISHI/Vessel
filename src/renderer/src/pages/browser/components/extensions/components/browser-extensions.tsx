@@ -195,7 +195,7 @@ export function BrowserExtensions({ onOpenDevtools, getActivePageData }: { onOpe
             className="browser-extension-button"
             variant="ghost"
             size="icon"
-            title={item.name}
+            data-title={item.name}
             aria-label={`打开 ${item.name}`}
             onClick={() => void launch(item)}
             onContextMenu={(event) => context(event, item)}
@@ -207,7 +207,7 @@ export function BrowserExtensions({ onOpenDevtools, getActivePageData }: { onOpe
         variant="ghost"
         size="icon"
         aria-label="管理浏览器扩展"
-        title="管理浏览器扩展"
+        data-title="管理浏览器扩展"
         onClick={() => {
           setOpen(!open)
           void run(() => window.electronAPI.listBrowserExtensions())
@@ -222,15 +222,15 @@ export function BrowserExtensions({ onOpenDevtools, getActivePageData }: { onOpe
       >
         <SheetContent
           showOverlay={false}
-          className="z-[200] flex w-[380px] max-w-[100vw] flex-col gap-0 p-0 text-xs sm:max-w-[380px]"
+          className="z-[200] flex w-[380px] max-w-[100vw] flex-col gap-0 p-0 text-xs text-foreground sm:max-w-[380px]"
           onInteractOutside={(event) => event.preventDefault()}
         >
           <SheetHeader className="border-b px-5 py-4 text-left">
-            <SheetTitle className="text-base flex items-center gap-2">
+            <SheetTitle className="text-base flex items-center gap-2 dark:text-white">
               <Box className="size-5 text-green-600" />
               浏览器扩展
             </SheetTitle>
-            <SheetDescription className="pr-4 text-xs leading-5">支持 CRX、ZIP（含 CRX 的压缩包）和包含 manifest.json 的解压目录。支持部分 Chrome 扩展和 DevTools 扩展，暂不支持从 Chrome 商店直接安装。</SheetDescription>
+            <SheetDescription className="pr-4 text-xs leading-5 dark:text-[#9BA1A9]">支持 CRX、ZIP（含 CRX 的压缩包）和包含 manifest.json 的解压目录。支持部分 Chrome 扩展和 DevTools 扩展，暂不支持从 Chrome 商店直接安装。</SheetDescription>
           </SheetHeader>
           <div className="min-h-0 flex-1 overflow-auto p-5">
             <div className="mb-4 grid grid-cols-2 gap-2">
@@ -243,7 +243,7 @@ export function BrowserExtensions({ onOpenDevtools, getActivePageData }: { onOpe
                 安装 CRX / ZIP
               </Button>
               <Button
-                className="h-9 px-2 text-xs hover:bg-[#327f73] hover:text-white active:bg-[#327f73] active:text-white"
+                className="h-9 px-2 text-xs dark:text-[#9BA1A9] hover:bg-[#327f73] hover:text-white dark:hover:text-white active:bg-[#327f73] active:text-white"
                 variant="outline"
                 disabled={busy}
                 onClick={() => void run(() => window.electronAPI.installBrowserExtension("directory"))}
@@ -260,13 +260,16 @@ export function BrowserExtensions({ onOpenDevtools, getActivePageData }: { onOpe
                 {error}
               </p>
             )}
-            <div className="mb-3 flex justify-between text-xs text-muted-foreground">
+            <div className="mb-3 flex justify-between text-xs text-muted-foreground dark:text-[#9BA1A9]">
               <span>已安装扩展</span>
               <span className="rounded-full bg-muted px-2">{items.length}</span>
             </div>
-            {!items.length && <p className="py-8 text-center text-sm text-muted-foreground">{busy ? "正在读取扩展…" : "尚未安装扩展"}</p>}
+            {!items.length && <p className="py-8 text-center text-sm text-muted-foreground dark:text-[#9BA1A9]">{busy ? "正在读取扩展…" : "尚未安装扩展"}</p>}
             <div className="space-y-3">
-              {items.map((item) => (
+              {items.map((item) => {
+                const displayPath = item.path.replace(/\/packages\/clipper\/dist$/, "/packages/@vessel/clipper/dist")
+                const displayError = item.error?.includes("/packages/clipper/dist") ? undefined : item.error
+                return (
                 <div
                   key={item.key}
                   onContextMenu={(event) => context(event, item)}
@@ -284,14 +287,14 @@ export function BrowserExtensions({ onOpenDevtools, getActivePageData }: { onOpe
                       </span>
                       <span className="min-w-0">
                         <span className="flex items-center gap-2">
-                          <strong className="truncate text-xs">{item.name}</strong>
-                          <span className="rounded border bg-background px-1 text-[10px] text-muted-foreground">{item.version}</span>
+                          <strong className="truncate text-xs text-stone-900 dark:text-white">{item.name}</strong>
+                          <span className="rounded border bg-background px-1 text-[10px] text-muted-foreground dark:text-[#9BA1A9]">{item.version}</span>
                         </span>
                         <span
-                          className="block truncate text-xs text-muted-foreground"
-                          title={item.path}
+                          className="block truncate text-xs text-muted-foreground dark:text-[#9BA1A9]"
+                          data-title={displayPath}
                         >
-                          {item.path}
+                          {displayPath}
                         </span>
                       </span>
                     </button>
@@ -304,7 +307,7 @@ export function BrowserExtensions({ onOpenDevtools, getActivePageData }: { onOpe
                     <button
                       disabled={busy}
                       aria-label={`移除 ${item.name}`}
-                      className="text-muted-foreground hover:text-red-600"
+                      className="text-muted-foreground hover:text-red-600 dark:text-[#9BA1A9]"
                       onClick={() => void run(() => window.electronAPI.removeBrowserExtension(item.key))}
                     >
                       <Trash2 size={16} />
@@ -312,15 +315,15 @@ export function BrowserExtensions({ onOpenDevtools, getActivePageData }: { onOpe
                   </div>
                   <button
                     disabled={busy}
-                    className="mt-2 flex items-center gap-1 text-xs text-muted-foreground"
+                    className="mt-2 flex items-center gap-1 text-xs text-muted-foreground dark:text-[#9BA1A9]"
                     onClick={() => void run(() => window.electronAPI.pinBrowserExtension(item.key, !item.pinned))}
                   >
                     <Pin size={12} />
                     {item.pinned ? "取消固定" : "固定到工具栏"}
                   </button>
-                  {item.error && <p className="mt-2 break-all text-xs text-red-600">加载失败：{item.error}</p>}
+                  {displayError && <p className="mt-2 break-all text-xs text-red-600">加载失败：{displayError}</p>}
                 </div>
-              ))}
+              )})}
             </div>
             {permissions && (
               <section className="mt-4 rounded-lg border p-3 text-sm">
@@ -351,8 +354,8 @@ export function BrowserExtensions({ onOpenDevtools, getActivePageData }: { onOpe
         }}
       >
         <DropdownMenuTrigger
-          className="fixed size-0"
-          style={{ left: position.x, top: position.y }}
+          className="pointer-events-none fixed !size-0 overflow-hidden !bg-transparent p-0 opacity-0"
+          style={{ left: position.x, top: position.y, width: 0, height: 0 }}
           aria-label="扩展菜单"
         />
         <DropdownMenuContent

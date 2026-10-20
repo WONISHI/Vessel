@@ -499,7 +499,7 @@ export function BrowserPage({ visible = true }: { visible?: boolean }) {
                       setInput(null)
                     }}
                     className="browser-tab-select flex min-w-0 flex-1 items-center gap-2"
-                    title={item.title}
+                    data-title={item.title}
                   >
                     {item.favicon ? (
                       <img
@@ -518,8 +518,8 @@ export function BrowserPage({ visible = true }: { visible?: boolean }) {
                   </button>
                   {!item.pinned && (
                     <button
-                      title="关闭标签页"
-                      onClick={() => close(item.id)}
+                      data-title="关闭标签页"
+                      onClick={() => close(item.id)} aria-label="关闭标签页"
                     >
                       <X size={14} />
                     </button>
@@ -560,9 +560,9 @@ export function BrowserPage({ visible = true }: { visible?: boolean }) {
               <Button
                 variant="ghost"
                 size="icon"
-                title="新标签页"
+                data-title="新标签页"
                 className="browser-new-tab h-[var(--browser-tab-height)] w-[var(--browser-tab-height)] rounded-t-lg rounded-b-none text-stone-500 hover:bg-stone-200"
-                onClick={add}
+                onClick={add} aria-label="新标签页"
               >
                 <Plus className="size-4" />
               </Button>
@@ -575,25 +575,25 @@ export function BrowserPage({ visible = true }: { visible?: boolean }) {
               <Button
                 variant="ghost"
                 size="icon"
-                title="后退"
+                data-title="后退"
                 disabled={!tab.back}
-                onClick={() => withGuest(views.current.get(tab.id), (guest) => guest.goBack())}
+                onClick={() => withGuest(views.current.get(tab.id), (guest) => guest.goBack())} aria-label="后退"
               >
                 <ArrowLeft />
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
-                title="前进"
+                data-title="前进"
                 disabled={!tab.forward}
-                onClick={() => withGuest(views.current.get(tab.id), (guest) => guest.goForward())}
+                onClick={() => withGuest(views.current.get(tab.id), (guest) => guest.goForward())} aria-label="前进"
               >
                 <ArrowRight />
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
-                title={tab.loading ? "停止" : "刷新（F5）"}
+                data-title={tab.loading ? "停止" : "刷新（F5）"}
                 disabled={!tab.url}
                 onClick={() => {
                   const view = views.current.get(tab.id)
@@ -606,11 +606,11 @@ export function BrowserPage({ visible = true }: { visible?: boolean }) {
               <Button
                 variant="ghost"
                 size="icon"
-                title="首页"
+                data-title="首页"
                 onClick={() => {
                   update(tab.id, { ...newTab(), id: tab.id })
                   setInput(null)
-                }}
+                }} aria-label="首页"
               >
                 <Home />
               </Button>
@@ -642,7 +642,7 @@ export function BrowserPage({ visible = true }: { visible?: boolean }) {
                 />
                 <button
                   type="button"
-                  title="收藏当前页面"
+                  data-title="收藏当前页面"
                   aria-label={bookmarks.some((item) => item.url === tab.url) ? "取消书签" : "添加书签"}
                   disabled={!tab.url}
                   onClick={bookmark}
@@ -656,7 +656,7 @@ export function BrowserPage({ visible = true }: { visible?: boolean }) {
               <Button
                 variant="ghost"
                 size="icon"
-                title="查看元素信息（Esc 退出，再次点击关闭）"
+                data-title="查看元素信息（Esc 退出，再次点击关闭）"
                 aria-label="查看元素信息"
                 disabled={!tab.url}
                 onClick={() => {
@@ -669,7 +669,7 @@ export function BrowserPage({ visible = true }: { visible?: boolean }) {
                 variant="ghost"
                 size="icon"
                 aria-label="加入中转站"
-                title="加入中转站"
+                data-title="加入中转站"
                 disabled={!tab.url}
                 onClick={() => {
                   try {
@@ -684,7 +684,7 @@ export function BrowserPage({ visible = true }: { visible?: boolean }) {
               <Button
                 variant="ghost"
                 size="icon"
-                title="当前网页控制台"
+                data-title="当前网页控制台"
                 aria-label="打开当前网页控制台"
                 disabled={!tab.url}
                 aria-pressed={devtoolsOpen}
@@ -770,7 +770,7 @@ export function BrowserPage({ visible = true }: { visible?: boolean }) {
                     </select>
                     <select
                       aria-label="控制台字号（整体缩放）"
-                      title="字号（整体缩放）"
+                      data-title="字号（整体缩放）"
                       value={consoleSize}
                       onChange={(event) => setConsoleSize(Number(event.target.value))}
                     >
@@ -906,7 +906,7 @@ export function BrowserPage({ visible = true }: { visible?: boolean }) {
                         <span>.</span>
                       </span>
                     </div>
-                    <small title={tab.url}>{tab.url}</small>
+                    <small data-title={tab.url}>{tab.url}</small>
                   </div>
                 </div>
               )}
@@ -1061,7 +1061,7 @@ export function BrowserPage({ visible = true }: { visible?: boolean }) {
           right={<BrowserProxy showLabel />}
           after={
             <button
-              title="恢复 100% 缩放"
+              data-title="恢复 100% 缩放"
               aria-label="恢复页面缩放"
               className="ml-2 flex shrink-0 items-center gap-1 border-l border-stone-300 px-2 py-1 hover:bg-stone-200"
               onClick={() => zoom(1 - tab.zoom)}

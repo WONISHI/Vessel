@@ -29,7 +29,7 @@ export function EditableColumnTitle({ title, onRename }: { title: string; onRena
     />
   ) : (
     <span
-      title="双击修改列标题"
+      data-title="双击修改列标题"
       onDoubleClick={() => {
         setDraft(title)
         setEditing(true)

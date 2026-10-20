@@ -1,7 +1,8 @@
+import { mergeMarkdown, mergeableMarkdown, MAX_MERGE_BYTES } from "#vessel-sync/merge-text"
 import { SyncError, type RemoteFile, type SyncLogEvent, type SyncOptions, type SyncPlanItem, type SyncResult } from "#vessel-sync/types"
 import { createHash, randomUUID } from "node:crypto"
 import { constants, createReadStream } from "node:fs"
-import { copyFile, link, lstat, mkdir, open, readFile, realpath, rename, rm, utimes, writeFile } from "node:fs/promises"
+import { copyFile, link, lstat, mkdir, open, readFile, readdir, realpath, rename, rm, utimes, writeFile } from "node:fs/promises"
 import { dirname, isAbsolute, join, posix, relative, sep } from "node:path"
 import { performance } from "node:perf_hooks"
 
@@ -333,7 +334,7 @@ async function run(options: SyncOptions, prefix: string, indexPath: string, conc
     requests.set(key, request)
     return request
   }
-  type Task = SyncPlanItem & { local?: { source: string; entry: Entry }; remote?: RemoteFile; winner?: "local" | "remote" }
+  type Task = SyncPlanItem & { local?: { source: string; entry: Entry }; remote?: RemoteFile; merged?: string; winner?: "local" | "remote" }
   const paths = new Set([...locals.keys(), ...result.skipped!])
   if (direction !== "push" || options.propagateDeletes) {
     for (const path of remotePaths) paths.add(path)
@@ -436,6 +437,48 @@ async function run(options: SyncOptions, prefix: string, indexPath: string, conc
     tasks.push(task)
     phase("planning", ++planned, paths.size, path)
   })
+  // Use only a hash-verified common ancestor. Unknown history remains a real conflict.
+  const bases = indexPath + ".merge-bases"
+  await parallel(tasks, async (task) => {
+    const old = previous.files[task.path]
+    if (task.action !== "conflict" || strategy !== "keep-both" || direction !== "bidirectional" || !task.local || !task.remote?.etag || !storage.download || !mergeableMarkdown(task.path, task.local.entry.size) || (task.remote.size ?? Infinity) > MAX_MERGE_BYTES) return
+    /** Reads a hash-verified merge base by digest if present on disk. */
+    const readBase = async (digest?: string) => {
+      if (!digest) return undefined
+      try {
+        const bytes = await readFile(join(bases, digest))
+        return bytes.length <= MAX_MERGE_BYTES && createHash("sha256").update(bytes).digest("hex") === digest ? bytes : undefined
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code === "ENOENT") return undefined
+        throw error
+      }
+    }
+    const base = (await readBase(task.remote.digest ?? undefined)) ?? (await readBase(old?.digest))
+    if (!base) return
+    let verified = prefetched.get(task.path)
+    if (!verified) {
+      const source = join(await temporaryDirectory(), randomUUID())
+      const remote = await storage.download(keyFor(task.path), source, { etag: task.remote.etag, signal: options.signal })
+      const size = (await lstat(source)).size
+      const digest = await digestFile(source)
+      if ((task.remote.digest && task.remote.digest !== digest) || (remote.digest && remote.digest !== digest) || (remote.etag && remote.etag !== task.remote.etag) || (task.remote.size !== undefined && task.remote.size !== size)) throw new SyncError("REMOTE_CONFLICT", `合并前远端内容校验失败：${task.path}`)
+      verified = { source, remote: { ...task.remote, ...remote, digest, size } }
+      prefetched.set(task.path, verified)
+      result.downloadSize! += size
+    }
+    const local = await readFile(task.local.source), remote = await readFile(verified.source)
+    if (createHash("sha256").update(local).digest("hex") !== task.local.entry.digest) throw new SyncError("FILE_CHANGED", `合并期间本地文件变化：${task.path}`)
+    /** Decodes text strictly while preserving an existing BOM. */
+    const decode = (value: Buffer) => new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(value)
+    let localText: string
+    try {
+      localText = decode(local)
+      task.merged = mergeMarkdown(decode(base), localText, decode(remote))
+    } catch { return } // Invalid UTF-8 is not Markdown prose.
+    if (task.merged !== undefined && options.maxFileSize && Buffer.byteLength(task.merged) > options.maxFileSize) task.merged = undefined
+    if (task.merged === localText) { task.merged = undefined; task.action = "upload"; task.reason = "本地修改已包含远端内容" }
+    else if (task.merged !== undefined) { task.action = "merge"; task.reason = "自动合并双方不重叠的 Markdown 修改" }
+  })
   tasks.sort((a, b) => a.path.localeCompare(b.path))
   const publicPlan = tasks.map(({ path, action, reason }) => ({ path, action, reason }))
   const deletes = tasks.filter((task) => task.action.startsWith("delete-")).length
@@ -470,6 +513,27 @@ async function run(options: SyncOptions, prefix: string, indexPath: string, conc
     }
   }
 
+  /** Caches the exact synced Markdown bytes independently of the live editor file. */
+  const cacheAncestor = async (path: string, entry: Entry, source: string) => {
+    if (mergeableMarkdown(path, entry.size)) {
+      let cached = false
+      try { cached = (await lstat(join(bases, entry.digest))).size === entry.size }
+      catch (error) { if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error }
+      if (cached) return
+      const bytes = await readFile(source)
+      if (bytes.length <= MAX_MERGE_BYTES && createHash("sha256").update(bytes).digest("hex") === entry.digest) {
+        await mkdir(bases, { recursive: true, mode: 0o700 })
+        await writeFile(join(bases, entry.digest), bytes, { mode: 0o600 })
+      }
+    }
+  }
+
+  /** Records the common remote version even if the editor has already saved a newer local version. */
+  const establish = async (path: string, entry: Entry, source: string) => {
+    await cacheAncestor(path, entry, source)
+    record(path, entry)
+  }
+
   /** Performs the flush operation. */
   const flush = () => {
     if (!dirty) return writes
@@ -482,17 +546,27 @@ async function run(options: SyncOptions, prefix: string, indexPath: string, conc
     return writes
   }
 
-  /** Uploads upload. */
+  /** Uploads Markdown from an immutable snapshot so editor saves cannot invalidate a successful transfer. */
   const upload = async (path: string, source: string, entry: Entry, remote?: RemoteFile) => {
     if (remote && !remote.etag) throw new SyncError("REMOTE_CONFLICT", `远端缺少版本标识，未覆盖：${path}`)
     await stable(source, entry.fingerprint!)
-    let uploaded: RemoteFile | void
+    let transferSource = source
+    let transferVersion = entry.fingerprint!
+    const snapshot = /\.(md|markdown)$/i.test(path) ? join(await temporaryDirectory(), randomUUID()) : undefined
     try {
-      uploaded = await storage.upload(keyFor(path), source, {
+      if (snapshot) {
+        await copyFile(source, snapshot, constants.COPYFILE_EXCL)
+        await stable(source, entry.fingerprint!)
+        if (await digestFile(snapshot) !== entry.digest) throw new SyncError("FILE_CHANGED", `创建上传快照期间文件变化：${path}`)
+        transferSource = snapshot
+        transferVersion = fingerprint(await lstat(snapshot))
+      }
+      await cacheAncestor(path, entry, transferSource)
+      const uploaded = await storage.upload(keyFor(path), transferSource, {
         digest: entry.digest,
         size: entry.size,
         modifiedMs: entry.fingerprint?.mtimeMs,
-        sourceVersion: entry.fingerprint,
+        sourceVersion: transferVersion,
         etag: remote?.etag ?? undefined,
         signal: options.signal,
 
@@ -502,13 +576,19 @@ async function run(options: SyncOptions, prefix: string, indexPath: string, conc
           phase("transferring", completed, transferCount, path, true)
         }
       })
+      result.size += entry.size
+      result.changed++
+      // Verify the transferred bytes, not the mutable file currently open in the editor.
+      if (snapshot) {
+        if (!matches(transferVersion, fingerprint(await lstat(snapshot)))) throw new SyncError("FILE_CHANGED", `上传快照变化：${path}`)
+      } else await stable(transferSource, transferVersion)
+      const receipt = { ...entry, remote: uploaded || undefined }
+      await cacheAncestor(path, receipt, transferSource)
+      return receipt
     } finally {
       activeBytes.delete(path)
+      if (snapshot) await rm(snapshot, { force: true })
     }
-    result.size += entry.size
-    result.changed++
-    await stable(source, entry.fingerprint!)
-    return { ...entry, remote: uploaded || undefined }
   }
 
   /** Performs the destination for operation. */
@@ -576,7 +656,7 @@ async function run(options: SyncOptions, prefix: string, indexPath: string, conc
       } // Atomic create-only, never replace a newly created local file.
       if (Number.isFinite(task.remote.modifiedMs)) await utimes(destination, new Date(), new Date(task.remote.modifiedMs!))
       const fp = fingerprint(await lstat(destination))
-      record(task.path, { digest, size, fingerprint: fp, remote: { ...task.remote, ...downloaded, digest, size } })
+      await establish(task.path, { digest, size, fingerprint: fp, remote: { ...task.remote, ...downloaded, digest, size } }, destination)
       result.downloaded!++
       if (!verified) result.downloadSize! += size
     } finally {
@@ -591,8 +671,24 @@ async function run(options: SyncOptions, prefix: string, indexPath: string, conc
     await parallel(tasks, async (task) => {
       const transfers = task.action !== "equal" && task.action !== "skip"
       if (transfers) phase("transferring", completed, transferCount, task.path, true)
-      if (task.action === "upload") record(task.path, await upload(task.path, task.local!.source, task.local!.entry, task.remote))
+      if (task.action === "upload") await establish(task.path, await upload(task.path, task.local!.source, task.local!.entry, task.remote), task.local!.source)
       else if (task.action === "download") await pull(task)
+      else if (task.action === "merge") {
+        const destination = await destinationFor(task.path)
+        const temporary = join(dirname(destination), `.vessel-download-${randomUUID()}.tmp`)
+        try {
+          await writeFile(temporary, task.merged!, { flag: "wx", mode: 0o600 })
+          const entry: Entry = { digest: await digestFile(temporary), size: (await lstat(temporary)).size, fingerprint: fingerprint(await lstat(temporary)) }
+          await stable(task.local!.source, task.local!.entry.fingerprint!)
+          const receipt = await upload(task.path, temporary, entry, task.remote)
+          await establish(task.path, receipt, temporary)
+          // Upload uses a conditional remote version; recheck local edits before installing the result.
+          await stable(task.local!.source, task.local!.entry.fingerprint!)
+          await rename(temporary, destination)
+          await establish(task.path, { ...receipt, fingerprint: fingerprint(await lstat(destination)) }, destination)
+          result.downloaded!++
+        } finally { await rm(temporary, { force: true }) }
+      }
       else if (task.action === "delete-remote") {
         if (!task.remote?.etag) throw new SyncError("REMOTE_CONFLICT", `删除缺少远端版本标识：${task.path}`)
         // Verify local absence again immediately before a remote deletion.
@@ -619,7 +715,7 @@ async function run(options: SyncOptions, prefix: string, indexPath: string, conc
       } else if (task.action === "conflict") {
         result.conflicts.push(task.path)
         if (task.winner) {
-          if (task.winner === "local" && direction !== "pull") record(task.path, await upload(task.path, task.local!.source, task.local!.entry, task.remote))
+          if (task.winner === "local" && direction !== "pull") await establish(task.path, await upload(task.path, task.local!.source, task.local!.entry, task.remote), task.local!.source)
           else if (task.winner === "remote" && direction !== "push") await pull(task)
         } else {
           const local = task.local!,
@@ -646,7 +742,7 @@ async function run(options: SyncOptions, prefix: string, indexPath: string, conc
           } else record(task.path, local.entry, false)
         }
       } else if (task.action === "equal") {
-        if (task.local && task.remote) record(task.path, { ...task.local.entry, remote: task.remote })
+        if (task.local && task.remote) await establish(task.path, { ...task.local.entry, remote: task.remote }, task.local.source)
         else if (!task.local && !task.remote) record(task.path)
       }
       if (transfers) completed++
@@ -673,5 +769,11 @@ async function run(options: SyncOptions, prefix: string, indexPath: string, conc
     throw new SyncError("SYNC_FAILED", failure instanceof Error ? failure.message : "同步失败", { result, cause: failure })
   }
   options.signal?.throwIfAborted()
+  // Retain only current ancestors; history is a merge cache, not an unbounded backup archive.
+  let snapshots: string[] = []
+  try { snapshots = await readdir(bases) }
+  catch (error) { if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error }
+  const retained = new Set(Object.values(next.files).map((entry) => entry.digest))
+  await Promise.all(snapshots.filter((name) => /^[a-f0-9]{64}$/.test(name) && !retained.has(name)).map((name) => rm(join(bases, name), { force: true })))
   return result
 }

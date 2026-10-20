@@ -11,7 +11,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import Canvas from "@/components/workspace/components/layout-main/canvas"
 import { FileSearch } from "@/components/workspace/components/layout-main/file-search"
 import { StatusTarget } from "@/components/workspace/components/layout-main/status-context"
-import { TerminalPanel } from "@/components/workspace/components/layout-main/terminal-panel"
+import { resolveTerminalDirectory, TerminalPanel } from "@/components/workspace/components/layout-main/terminal-panel"
 import WorkspaceHome from "@/components/workspace/components/layout-main/workspace-home"
 import { useWorkspace } from "@/components/workspace/hooks/useWorkspace"
 import { cn } from "@/lib/utils"
@@ -151,6 +151,10 @@ export default function LayoutMain({ resources = false }: { resources?: boolean 
             >
               {openFiles.map((file) => {
                 const active = !home && activeFilePath === file.path
+                const normRoot = workspace.path.replace(/\\/g, "/").replace(/\/+$/, "")
+                const normPath = file.path.replace(/\\/g, "/")
+                const rootName = normRoot.split("/").filter(Boolean).pop() || workspace.name || ""
+                const tabTitle = normRoot && normPath.startsWith(normRoot + "/") ? `${rootName ? `${rootName}/` : ""}${normPath.slice(normRoot.length + 1)}` : file.path
                 return (
                   <ContextMenu key={file.path}>
                     <ContextMenuTrigger asChild>
@@ -164,7 +168,8 @@ export default function LayoutMain({ resources = false }: { resources?: boolean 
                       >
                         <Button
                           variant="ghost"
-                          title={file.path}
+                          data-title={tabTitle}
+                          data-title-side="bottom"
                           aria-current={active ? "page" : undefined}
                           onClick={() => openWorkspaceFile(file)}
                           className={cn("h-[32px] min-w-0 max-w-[200px] gap-1.5 whitespace-nowrap px-2.5 text-[13px] text-inherit hover:bg-transparent hover:text-inherit", active ? "font-medium" : "font-normal")}
@@ -184,7 +189,7 @@ export default function LayoutMain({ resources = false }: { resources?: boolean 
                             size="icon"
                             aria-label={`关闭 ${file.name}`}
                             onClick={() => closeWorkspaceFile(file.path)}
-                            className={cn("size-[18px] rounded-[5px] text-[#8f959e] hover:bg-[#e4e6eb] hover:text-[#1f2329] group-hover:opacity-100 focus-visible:opacity-100", active ? "opacity-75" : "opacity-0")}
+                            className={cn("workspace-tab-close size-[18px] rounded-[5px] text-[#8f959e] hover:bg-transparent hover:text-inherit group-hover:opacity-100 focus-visible:opacity-100", active ? "opacity-75" : "opacity-0")}
                           >
                             <X className="!size-3" />
                           </Button>
@@ -385,7 +390,7 @@ export default function LayoutMain({ resources = false }: { resources?: boolean 
                       <File className="size-3.5" />
                       <span
                         className="min-w-0 flex-1 truncate"
-                        title={splitPath}
+                        data-title={splitPath}
                       >
                         {splitPath.split(/[\\/]/).pop()}
                       </span>
@@ -448,9 +453,10 @@ export default function LayoutMain({ resources = false }: { resources?: boolean 
                 minSize="15%"
               >
                 <TerminalPanel
-                  key={`${workspace.path}:${terminal.file || ""}`}
+                  key={resolveTerminalDirectory(workspace.path, home ? undefined : activeFilePath || undefined)}
                   root={workspace.path}
-                  file={terminal.file}
+                  file={home ? undefined : activeFilePath || undefined}
+                  onClose={() => setTerminal(null)}
                 />
               </ResizablePanel>
             </>

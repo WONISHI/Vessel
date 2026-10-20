@@ -49,7 +49,7 @@ export function CreateEntry({ kind, onStart }: { kind: EntryDraft["kind"]; onSta
               <Button
                 key={extension}
                 variant="ghost"
-                title={itemLabel}
+                data-title={itemLabel}
                 className="h-8 w-full justify-start gap-2 text-xs hover:bg-green-600 hover:!text-white min-w-0"
                 onClick={() => {
                   onStart(extension)

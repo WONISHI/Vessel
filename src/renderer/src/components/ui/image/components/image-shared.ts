@@ -9,13 +9,17 @@ import placeholderSquare from "@/assets/vessel-image-placeholder/placeholder-1x1
 import placeholder from "@/assets/vessel-image-placeholder/placeholder-4x3.svg"
 import { type ComponentPropsWithoutRef } from "react"
 export interface ImageProps extends Omit<ComponentPropsWithoutRef<"img">, "width"> {
+  /** Original URL or attachment path, independent of the decoded image data. */
+  sourceAddress?: string
   remote?: boolean
   onDownloadLocal?: () => Promise<void>
   onFocusAbove?: () => void
   onFocusBelow?: () => void
+  onCopyReference?: () => void
   onViewLink?: () => void
   onDelete?: () => void
   width?: number
+  defaultWidthPercent?: number
   resizable?: boolean
   onResizeEnd?: (width: number) => void
   /** 本地附件等异步来源，仅在进入可视区域后调用。 */

@@ -14,12 +14,16 @@ import { SearchPanel } from "@/pages/search/index"
 import { revealSearchHit, type ContentMatch } from "@/pages/search/reveal-hit"
 import { countFileNodes } from "@vessel/utils"
 import { ArrowDown, ArrowDownAZ, ArrowUp, ArrowUpDown, Calendar, Check, Clock, LocateFixed, Search, Sparkles, Wrench } from "lucide-react"
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
+
+const sidebarViewCache = new Map<string, { lastActiveFilePath: string; scrollTop: number }>()
 
 /** 根据活动显示工作区文件树、本次打开列表或开发工具。 */
 export default function LayoutWorkspaceSidebar({ activity }: LayoutWorkspaceSidebarProps) {
   const [revealPath, setRevealPath] = useState("")
+  const [revealCentered, setRevealCentered] = useState(false)
+  const treeOpenedPath = useRef<string | null>(null)
   const [addedFiles, setAddedFiles] = useState(0)
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchTarget, setSearchTarget] = useState("")
@@ -67,7 +71,7 @@ export default function LayoutWorkspaceSidebar({ activity }: LayoutWorkspaceSide
 
   /** Performs the reveal current file operation. */
   const revealCurrentFile = useCallback(
-    (targetPath?: string) => {
+    (targetPath?: string, centered = false) => {
       const path = targetPath || activeFilePath
       if (!path) return
       if (!sidebarOpen) setSidebarOpen(true)
@@ -79,6 +83,7 @@ export default function LayoutWorkspaceSidebar({ activity }: LayoutWorkspaceSide
         expandDirectory(directory)
       }
       setDraft(null)
+      setRevealCentered(centered)
       setRevealPath(path)
     },
     [activeFilePath, workspace.path, expandDirectory, sidebarOpen, setSidebarOpen]
@@ -94,9 +99,45 @@ export default function LayoutWorkspaceSidebar({ activity }: LayoutWorkspaceSide
     return () => window.removeEventListener("vessel:reveal-file", handleReveal)
   }, [revealCurrentFile])
   useEffect(() => {
-    if (activeFilePath) revealCurrentFile(activeFilePath)
-  }, [activeFilePath])
+    const cached = sidebarViewCache.get(workspace.path)
+    if (activeFilePath && cached?.lastActiveFilePath !== activeFilePath) {
+      revealCurrentFile(activeFilePath, treeOpenedPath.current !== activeFilePath)
+    }
+    sidebarViewCache.set(workspace.path, {
+      lastActiveFilePath: activeFilePath,
+      scrollTop: cached?.scrollTop ?? 0
+    })
+    treeOpenedPath.current = null
+  }, [activeFilePath, workspace.path, revealCurrentFile])
   const [viewport, setViewport] = useState<HTMLDivElement | null>(null)
+
+  /** Attaches the scroll viewport and restores its cached scroll position. */
+  const attachViewport = useCallback(
+    (element: HTMLDivElement | null) => {
+      if (element) {
+        const cached = sidebarViewCache.get(workspace.path)
+        if (cached && cached.scrollTop > 0) {
+          element.scrollTop = cached.scrollTop
+        }
+      }
+      setViewport(element)
+    },
+    [workspace.path]
+  )
+
+  useEffect(() => {
+    if (!viewport) return
+    /** Persists the current sidebar scroll offset for workspace re-expansion. */
+    const handleScroll = () => {
+      const cached = sidebarViewCache.get(workspace.path)
+      sidebarViewCache.set(workspace.path, {
+        lastActiveFilePath: cached?.lastActiveFilePath ?? activeFilePath,
+        scrollTop: viewport.scrollTop
+      })
+    }
+    viewport.addEventListener("scroll", handleScroll, { passive: true })
+    return () => viewport.removeEventListener("scroll", handleScroll)
+  }, [viewport, workspace.path, activeFilePath])
   const navigate = useNavigate()
   const workspaceName = workspace.path.split(/[\\/]/).filter(Boolean).pop() || workspace.name
 
@@ -256,7 +297,7 @@ export default function LayoutWorkspaceSidebar({ activity }: LayoutWorkspaceSide
                     disabled={!activeFilePath}
                     aria-label="定位当前文件"
                     className="size-6 text-stone-500 hover:bg-green-600 hover:text-white"
-                    onClick={() => revealCurrentFile()}
+                    onClick={() => revealCurrentFile(undefined, true)}
                   >
                     <LocateFixed className="!size-3.5" />
                   </Button>
@@ -276,7 +317,7 @@ export default function LayoutWorkspaceSidebar({ activity }: LayoutWorkspaceSide
         )}
       </header>
       <ScrollArea
-        viewportRef={setViewport}
+        viewportRef={attachViewport}
         className="min-h-0 flex-1 px-2 pb-3"
       >
         {activity !== "tools" ? (
@@ -288,7 +329,9 @@ export default function LayoutWorkspaceSidebar({ activity }: LayoutWorkspaceSide
               setSearchTarget(path)
               setSearchOpen(true)
             }}
+            onFileActivate={(path) => { if (path !== activeFilePath) treeOpenedPath.current = path }}
             revealPath={revealPath}
+            revealCentered={revealCentered}
             onRevealed={() => setRevealPath("")}
             onDraftFinish={(created) => {
               if (created && draft?.kind === "file") setAddedFiles((value) => value + 1)

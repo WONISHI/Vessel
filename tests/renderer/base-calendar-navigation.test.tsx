@@ -20,9 +20,10 @@ it("reveals root, folder and Base file through the same event as Markdown breadc
         path="/vault/工作/list.base"
       />
     )
-    fireEvent.click(screen.getByTitle("定位文件夹: vault"))
-    fireEvent.click(screen.getByTitle("定位文件夹: 工作"))
-    fireEvent.click(screen.getByTitle("定位文件: list.base"))
+    expect(document.querySelector("[data-title]")).toBeNull()
+    fireEvent.click(screen.getByRole("button", { name: "vault" }))
+    fireEvent.click(screen.getByRole("button", { name: "工作" }))
+    fireEvent.click(screen.getByRole("button", { name: "list.base" }))
     expect(reveal.mock.calls.map(([event]) => event.detail)).toEqual(["/vault", "/vault/工作", "/vault/工作/list.base"])
   } finally {
     window.removeEventListener("vessel:reveal-file", reveal)

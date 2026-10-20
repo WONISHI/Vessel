@@ -1,3 +1,4 @@
+import "@/components/image-preview/style.css"
 import { ImageEditorSheet } from "@/components/image-preview/editor-sheet"
 import { transformImage, type ImageOperation } from "@/components/image-preview/transform"
 import { Button } from "@/components/ui/button"
@@ -136,9 +137,9 @@ export default function ImagePreviewPage({ activeFilePath }: { activeFilePath: s
       ]
     : []
   return (
-    <div className="flex h-full min-h-0 flex-col bg-white">
+    <div className="vessel-image-viewer flex h-full min-h-0 flex-col bg-white">
       <div className="grid min-h-0 min-w-0 flex-1 grid-cols-[minmax(0,1fr)_minmax(200px,280px)] gap-4 overflow-hidden p-5">
-        <ScrollArea className="min-h-0 min-w-0 rounded-xl bg-stone-50 [&_[data-radix-scroll-area-viewport]>div]:!flex [&_[data-radix-scroll-area-viewport]>div]:min-h-full">
+        <ScrollArea className="image-viewer-canvas min-h-0 min-w-0 rounded-xl bg-stone-50 [&_[data-radix-scroll-area-viewport]>div]:!flex [&_[data-radix-scroll-area-viewport]>div]:min-h-full">
           <div className="flex min-w-0 flex-1 items-center justify-center p-4">
             <Image
               sourceKey={edited || activeFilePath}
@@ -163,9 +164,9 @@ export default function ImagePreviewPage({ activeFilePath }: { activeFilePath: s
           </div>
         </ScrollArea>
         <ScrollArea className="min-h-0 min-w-0 pr-2 [&_[data-radix-scroll-area-viewport]>div]:!block">
-          <Card>
+          <Card className="image-viewer-details">
             <CardHeader className="p-4">
-              <CardTitle className="text-sm">图片详细信息</CardTitle>
+              <CardTitle className="image-viewer-title text-sm">图片详细信息</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 px-4 pb-4">
               {!file && <p className="text-xs text-stone-400">等待加载图片…</p>}
@@ -173,12 +174,13 @@ export default function ImagePreviewPage({ activeFilePath }: { activeFilePath: s
                 <div
                   key={label}
                   className="text-xs"
+                  data-image-detail={label === "路径" ? "path" : undefined}
                 >
                   <dt className="mb-1 text-stone-400">{label}</dt>
                   <dd className="break-all">{value}</dd>
                 </div>
               ))}
-              <p className="text-[11px] text-stone-400">旋转和裁剪生成静态 PNG 副本，动图导出为单帧。</p>
+              <p className="image-viewer-note text-[11px] text-stone-400">旋转和裁剪生成静态 PNG 副本，动图导出为单帧。</p>
             </CardContent>
           </Card>
         </ScrollArea>

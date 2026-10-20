@@ -24,7 +24,8 @@
     "#vessel-obsidian/bases/query": "./src/bases/query.ts",
     "#vessel-obsidian/bases/index": "./src/bases/index.ts",
     "#vessel-obsidian/bases/note-properties": "./src/bases/note-properties.ts",
-    "#vessel-obsidian/bases/yaml": "./src/bases/yaml.ts"
+    "#vessel-obsidian/bases/yaml": "./src/bases/yaml.ts",
+    "#vessel-obsidian/tags": "./src/tags/index.ts"
   },
   "dependencies": {
     "yaml": "2.9.1"

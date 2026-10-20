@@ -91,7 +91,7 @@ export function OfficePage() {
         {url && (
           <iframe
             ref={frame}
-            title="ONLYOFFICE 本地编辑器"
+            data-title="ONLYOFFICE 本地编辑器" aria-label="ONLYOFFICE 本地编辑器"
             src={url}
             className="h-full w-full border-0"
           />

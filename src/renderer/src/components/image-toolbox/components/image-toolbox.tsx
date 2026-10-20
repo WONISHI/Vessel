@@ -1338,7 +1338,7 @@ export function ImageToolbox({ initialImage, initialTool = "ocr", embedded = fal
             <>
               <span
                 className="image-status-item image-status-filename"
-                title={meta.name}
+                data-title={meta.name}
               >
                 <ImageIcon />
                 <span>{meta.name}</span>

@@ -1,3 +1,4 @@
+import { installDataTitleTooltips } from "@/components/ui/data-title-tooltip"
 import "@/assets/main.css"
 
 import "@fontsource/plus-jakarta-sans"
@@ -22,6 +23,8 @@ window.addEventListener("error", (event) => {
 window.addEventListener("unhandledrejection", (event) => {
   console.error("Unhandled promise rejection:", event.reason)
 })
+
+installDataTitleTooltips()
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

@@ -16,7 +16,7 @@ export function BaseColumnFilter({ label, value, onChange }: { label: string; va
             data-base-action="filter"
             data-filtered={Boolean(value.trim())}
             aria-label={`筛选${label}`}
-            title={`筛选${label}`}
+            data-title={`筛选${label}`}
             className={`size-6 data-[state=open]:bg-green-600 data-[state=open]:!text-white data-[state=open]:[&_svg]:!text-white ${value.trim() ? "bg-green-600 !text-white [&_svg]:!text-white" : "text-stone-400"}`}
           >
             <Funnel className="!size-3" />

@@ -2,7 +2,7 @@ import type { TerminalAPI } from "@vessel/type"
 import { ipcRenderer } from "electron"
 export const terminalAPI: TerminalAPI = {
   /** Performs the terminal start operation. */
-  terminalStart: (root, file) => ipcRenderer.invoke("terminal:start", root, file),
+  terminalStart: (root, file, cols, rows) => ipcRenderer.invoke("terminal:start", root, file, cols, rows),
 
   /** Performs the terminal write operation. */
   terminalWrite: (id, data) => ipcRenderer.invoke("terminal:write", id, data),

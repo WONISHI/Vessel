@@ -1,7 +1,7 @@
 vi.mock("@vessel/react-router", () => ({ useRouter: () => ({ push: vi.fn() }) }))
 import React from "react"
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react"
-import { afterEach, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, expect, it, vi } from "vitest"
 const state = vi.hoisted(() => ({ after: undefined as undefined | (() => void), created: vi.fn(), destroy: vi.fn(), disabled: vi.fn(), options: undefined as undefined | { toolbar: unknown[]; input: (value: string) => void } }))
 vi.mock("vditor", () => ({
   default: class {
@@ -19,7 +19,8 @@ vi.mock("vditor", () => ({
   }
 }))
 import { VditorEditor } from "@/components/core/canvas/variants/markdown/vditor-editor"
-afterEach(cleanup)
+beforeEach(() => { vi.stubGlobal("ResizeObserver", class { observe() {} disconnect() {} unobserve() {} }) })
+afterEach(() => { cleanup(); vi.unstubAllGlobals() })
 it("paints document loading before initialization and dismisses it only when the editor is ready", async () => {
   render(
     <VditorEditor

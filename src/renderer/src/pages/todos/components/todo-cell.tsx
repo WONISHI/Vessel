@@ -62,7 +62,7 @@ export function TodoCell({
             <span
               onDoubleClick={onStartEditingTitle}
               className={cn("cursor-pointer font-normal text-stone-800 text-xs py-0.5 hover:text-green-700 transition-colors", row.completed && "line-through text-stone-400", !row.title && "text-stone-400 italic")}
-              title="双击修改标题名称"
+              data-title="双击修改标题名称"
             >
               {row.title || "输入任务名称..."}
             </span>
@@ -119,16 +119,16 @@ export function TodoCell({
       return (
         <div className="flex items-center gap-1">
           <button
-            title="编辑标题"
+            data-title="编辑标题"
             onClick={onStartEditingTitle}
-            className="flex size-7 items-center justify-center rounded hover:bg-stone-100 text-stone-400 hover:text-stone-700 transition-colors"
+            className="flex size-7 items-center justify-center rounded hover:bg-stone-100 text-stone-400 hover:text-stone-700 transition-colors" aria-label="编辑标题"
           >
             <Pencil className="size-3.5" />
           </button>
           <button
-            title="删除行"
+            data-title="删除行"
             onClick={onDeleteRow}
-            className="flex size-7 items-center justify-center rounded hover:bg-red-50 text-stone-400 hover:text-red-600 transition-colors"
+            className="flex size-7 items-center justify-center rounded hover:bg-red-50 text-stone-400 hover:text-red-600 transition-colors" aria-label="删除行"
           >
             <Trash2 className="size-3.5" />
           </button>

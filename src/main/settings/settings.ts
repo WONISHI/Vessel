@@ -3,7 +3,7 @@ import { createS3Storage } from "@main/sync/settings-s3"
 import { getSyncDiagnostics } from "@main/sync/sync-diagnostics"
 import { collectFiles, createSyncExcludeFilter, parseSyncExcludeRules, type SyncProgress } from "@vessel/sync"
 import type { AppSettings, BackupStatus } from "@vessel/type"
-import { defaultSettings, isIgnoredEntry, parseIgnoredPatterns } from "@vessel/utils"
+import { defaultSettings, isIgnoredEntry, isLegacyDefaultIgnoredFiles, parseIgnoredPatterns } from "@vessel/utils"
 import { app, safeStorage, type WebContents } from "electron"
 import { createHash } from "node:crypto"
 import { EventEmitter } from "node:events"
@@ -45,14 +45,16 @@ function notifyStatus(status: BackupStatus) {
 /** Performs the file operation. */
 const file = () => join(app.getPath("userData"), "settings.json")
 
+const LEGACY_SYNC_EXCLUDE_RULES = new Set(["", "{folder:.vessel,node-modules,.git,.obsidian}"])
+
 /** Loads load. */
 function load() {
   if (!stored) {
-    stored = { syncExcludeDefaultsVersion: 1, settings: structuredClone(defaultSettings), secret: "", status: { running: false }, profiles: {} }
+    stored = { syncExcludeDefaultsVersion: 2, settings: structuredClone(defaultSettings), secret: "", status: { running: false }, profiles: {} }
     if (existsSync(file())) {
       const parsed = JSON.parse(readFileSync(file(), "utf8"))
       stored = {
-        syncExcludeDefaultsVersion: 1,
+        syncExcludeDefaultsVersion: 2,
         settings: validate(parsed.settings),
         secret: typeof parsed.secret === "string" ? parsed.secret : "",
         status: { running: false },
@@ -63,7 +65,14 @@ function load() {
               root,
               {
                 ...p,
-                config: { ...defaultSettings.backup, ...p.config, syncExcludeRules: !parsed.syncExcludeDefaultsVersion && !p.config.syncExcludeRules?.trim() ? defaultSettings.backup.syncExcludeRules : (p.config.syncExcludeRules ?? defaultSettings.backup.syncExcludeRules) },
+                config: {
+                  ...defaultSettings.backup,
+                  ...p.config,
+                  syncExcludeRules:
+                    (parsed.syncExcludeDefaultsVersion ?? 0) < 2 && LEGACY_SYNC_EXCLUDE_RULES.has(p.config.syncExcludeRules?.trim() ?? "")
+                      ? defaultSettings.backup.syncExcludeRules
+                      : (p.config.syncExcludeRules ?? defaultSettings.backup.syncExcludeRules)
+                },
                 status: { ...p.status, running: false }
               }
             ]
@@ -116,7 +125,12 @@ function validate(value: AppSettings): AppSettings {
     externalPreview: value.externalPreview !== false,
     monitorNavigation: value.monitorNavigation === true,
     globalSearchEnabled: value.globalSearchEnabled === true,
-    ignoredFiles: typeof value.ignoredFiles === "string" ? (value.ignoredFiles.trim() === ".obsidian, .gut" ? ".obsidian, .git" : text(value.ignoredFiles, 2048)) : ".obsidian, .git",
+    ignoredFiles:
+      typeof value.ignoredFiles === "string"
+        ? isLegacyDefaultIgnoredFiles(value.ignoredFiles)
+          ? defaultSettings.ignoredFiles!
+          : text(value.ignoredFiles, 2048)
+        : defaultSettings.ignoredFiles!,
     name: text(value.name, 80) || "本地用户",
     email: text(value.email, 254),
     avatar,

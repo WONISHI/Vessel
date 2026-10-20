@@ -297,15 +297,14 @@ export default function ExcalidrawCanvas({ activeFilePath, workspacePath = "" }:
                 <BreadcrumbItem className="min-w-0">
                   {isLast ? (
                     <BreadcrumbPage
-                      className="cursor-pointer truncate max-w-64 hover:text-stone-900 transition-colors"
-                      title={part}
+                      className="cursor-pointer truncate rounded-md px-1.5 py-0.5 max-w-64 hover:bg-stone-100 hover:text-stone-900 dark:hover:bg-white/[0.08] dark:hover:text-white transition-colors"
                       onClick={() => handleJumpRoute(index)}
                     >
                       {part}
                     </BreadcrumbPage>
                   ) : (
                     <span
-                      className="cursor-pointer hover:text-stone-700 transition-colors"
+                      className="cursor-pointer truncate rounded-md px-1.5 py-0.5 text-stone-500 hover:bg-stone-100 hover:text-stone-800 dark:hover:bg-white/[0.08] dark:hover:text-white transition-colors"
                       onClick={() => handleJumpRoute(index)}
                     >
                       {part}

@@ -1,22 +1,10 @@
-import ActivityBar from "@/components/layout/activity-bar/index"
 import Layout from "@/components/layout/index"
 import { DiagnosticsContent } from "@/pages/debug/diagnostics/components/diagnostics-content"
-import { useRouter } from "@vessel/react-router"
 
-/** Renders the diagnostics page component. */
+/** Renders standalone diagnostics without the workspace activity rail. */
 export function DiagnosticsPage() {
-  const router = useRouter()
   return (
-    <Layout
-      aside={
-        <ActivityBar
-          activity="tools"
-          onActivityChange={(item) => {
-            void router.push(item === "tools" ? "/devtools" : item === "files" ? "/editor" : `/${item}`)
-          }}
-        />
-      }
-    >
+    <Layout aside={null}>
       <DiagnosticsContent />
     </Layout>
   )

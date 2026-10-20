@@ -1,4 +1,5 @@
 import { registerBrowserSiteCompatibility } from "@main/browser/browser-site-compatibility"
+import { installExtensionApiShim } from "@main/browser/extensions/extension-api-shim"
 import { importExtensionArchive } from "@main/browser/extensions/extension-archive"
 import { prepareExtensionLogin } from "@main/browser/extensions/extension-login-compatibility"
 import { extensionFile, extensionMetadata } from "@main/browser/extensions/extension-metadata"
@@ -53,6 +54,48 @@ async function load(record: BrowserExtension) {
   }
 }
 
+/** Keeps built-in extension paths aligned with the current package layout. */
+async function reconcileBuiltins() {
+  const builtins = [
+    {
+      key: "builtin-vessel-clipper",
+      name: "Vessel Clipper - 网页剪藏",
+      path: app.isPackaged ? join(process.resourcesPath, "extensions/clipper") : join(app.getAppPath(), "packages/@vessel/clipper/dist")
+    }
+  ]
+
+  let changed = false
+  for (const item of builtins) {
+    try {
+      await stat(join(item.path, "manifest.json"))
+      const found = records.find(
+        (r) =>
+          r.key === item.key ||
+          r.path === item.path ||
+          r.name === item.name ||
+          r.path.replace(/\\/g, "/").endsWith("/packages/clipper/dist")
+      )
+      if (!found) {
+        records.push({
+          key: item.key,
+          path: item.path,
+          name: item.name,
+          version: "1.0.0",
+          enabled: true,
+          pinned: true
+        })
+        changed = true
+      } else if (found.path !== item.path || found.key !== item.key) {
+        found.key = item.key
+        found.path = item.path
+        found.error = undefined
+        changed = true
+      }
+    } catch {}
+  }
+  if (changed) await persist()
+}
+
 /** Initializes initialize. */
 function initialize() {
   return (initialized ||= (async () => {
@@ -72,30 +115,7 @@ function initialize() {
     }
 
     // 自动扫描与预置内置扩展（仅保留 Clipper 网页剪藏）
-    const builtins = [
-      {
-        key: "builtin-vessel-clipper",
-        name: "Vessel Clipper - 网页剪藏",
-        path: app.isPackaged ? join(process.resourcesPath, "extensions/clipper") : join(app.getAppPath(), "packages/@vessel/clipper/dist")
-      }
-    ]
-
-    for (const item of builtins) {
-      try {
-        await stat(join(item.path, "manifest.json"))
-        const found = records.find((r) => r.key === item.key || r.path === item.path || r.name === item.name)
-        if (!found) {
-          records.push({
-            key: item.key,
-            path: item.path,
-            name: item.name,
-            version: "1.0.0",
-            enabled: true,
-            pinned: true
-          })
-        }
-      } catch {}
-    }
+    await reconcileBuiltins()
 
     for (const record of records) {
       record.extensionId = undefined
@@ -135,6 +155,7 @@ export function registerBrowserExtensions(host: WebContents) {
     if (background.isDestroyed() || background.getType() !== "backgroundPage") return
     const record = records.find((item) => item.extensionId && background.getURL().startsWith(`chrome-extension://${item.extensionId}/`))
     if (!record?.extensionId) return
+    void background.executeJavaScript(`(${installExtensionApiShim.toString()})()`).catch((error) => console.error("扩展 API 兼容注入失败", error))
     handleExtensionWindows(background, record.extensionId, (target) => {
       if (!host.isDestroyed()) host.send("browser:new-tab", target)
       closeOwned()
@@ -180,12 +201,13 @@ export function registerBrowserExtensions(host: WebContents) {
     if (!parent) throw new Error("窗口已关闭")
     closePopup(key)
     closeOwned()
-    const popup = new WebContentsView({ webPreferences: { partition: "persist:vessel-browser", sandbox: true, contextIsolation: true, nodeIntegration: false } })
+    const popup = new WebContentsView({ webPreferences: { preload: join(__dirname, "../preload/browser-guest.js"), partition: "persist:vessel-browser", sandbox: true, contextIsolation: true, nodeIntegration: false } })
     try {
       popup.setBackgroundColor("#00000000")
     } catch {}
     activePopup = popup.webContents
     popup.webContents.on("dom-ready", () => {
+      void popup.webContents.executeJavaScript(`(${installExtensionApiShim.toString()})()`).catch(() => {})
       void popup.webContents.insertCSS("::-webkit-scrollbar { display: none !important; } html { scrollbar-width: none !important; }")
       if (/iguge|igg/i.test(record.name) && new URL(popup.webContents.getURL()).pathname === "/welcome.html") void popup.webContents.insertCSS(igugeWelcomeStyle)
     })
@@ -270,6 +292,12 @@ export function registerBrowserExtensions(host: WebContents) {
   host.ipc.handle("browser:extensions:list", async () => {
     await initialize()
     await queue
+    await reconcileBuiltins()
+    for (const record of records) {
+      if (record.enabled && (!record.extensionId || record.error)) {
+        await load(record)
+      }
+    }
     return records
   })
   host.ipc.handle("browser:extensions:install", async (_event, kind: "archive" | "directory" = "directory") => {

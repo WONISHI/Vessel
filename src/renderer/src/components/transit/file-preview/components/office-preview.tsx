@@ -38,7 +38,7 @@ export function OfficePreview({ file }: { file: Extract<TransitFile, { bytes: Ui
   ) : url ? (
     <iframe
       ref={frame}
-      title={`预览 ${file.name}`}
+      data-title={`预览 ${file.name}`} aria-label={`预览 ${file.name}`}
       src={url}
       className="h-full w-full border-0"
     />

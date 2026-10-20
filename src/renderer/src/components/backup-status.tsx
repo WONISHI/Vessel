@@ -87,7 +87,7 @@ export function BackupStatus({ workspace, file }: { workspace: string; file?: st
 
   return (
     <button
-      title={status.error || (status.time ? `上次同步：${new Date(status.time).toLocaleString()}；点击同步当前文件` : "点击同步当前文件")}
+      data-title={status.error || (status.time ? `上次同步：${new Date(status.time).toLocaleString()}；点击同步当前文件` : "点击同步当前文件")}
       disabled={status.running || !file}
       data-sync-state={status.running ? "running" : status.error ? "error" : status.time ? (elapsed < 60_000 ? "success" : "last") : "idle"}
       className={`flex h-6 items-center gap-1 rounded px-2 hover:bg-stone-200 ${status.running ? "text-blue-600" : status.error ? "text-red-600" : status.time ? "text-green-700" : "text-stone-500"}`}

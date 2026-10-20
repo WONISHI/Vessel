@@ -8,7 +8,7 @@ import { codeLanguage } from "@/components/core/canvas/variants/code/language"
 import { StatusBar } from "@/components/ui/status-bar"
 import type { TransitItem } from "@/components/transit/state"
 import type { TransitFile } from "@vessel/type"
-import { Clipboard, Copy, Download, FileText, Globe, RotateCw, Search, Pencil, Type, List, ImageIcon } from "lucide-react"
+import { Clipboard, Copy, Download, FileText, Globe, RotateCw, Search, Pencil, Type, CaseSensitive, ImageIcon } from "lucide-react"
 import { toast } from "sonner"
 
 /** Shows metadata and working actions for the current transit item. */
@@ -48,17 +48,17 @@ export function TransitStatus({ item, file, onRefresh, onSearch }: { item: Trans
     <>
     <StatusBar className="transit-status-bar" left={
       <div className="transit-status-info">
-        <span title={item.kind === "file" ? item.content : label} className="transit-bar-static transit-status-name">{item.kind === "text" ? <Clipboard /> : item.kind === "url" ? <Globe /> : <FileText />}<span>{label}</span></span>
+        <span data-title={item.kind === "file" ? item.content : label} className="transit-bar-static transit-status-name">{item.kind === "text" ? <Clipboard /> : item.kind === "url" ? <Globe /> : <FileText />}<span>{label}</span></span>
         <span className="transit-bar-static">{detail}</span>
         {file?.kind === "text" && <span className="transit-bar-static">{file.content.split(/\r?\n/).length} 行</span>}
-        {stats && <><span className="transit-bar-static"><Type />{stats.words.toLocaleString()} 词</span><span className="transit-bar-static"><List />{stats.lines.toLocaleString()} 行</span></>}
+        {stats && <><span className="transit-bar-static"><Type />{stats.words.toLocaleString()} 词</span><span className="transit-bar-static"><CaseSensitive />{stats.characters.toLocaleString()} 字</span></>}
         {file?.kind === "image" && imageMeta?.source === file.content && <><span className="transit-bar-static"><ImageIcon />{imageMeta.width} × {imageMeta.height}</span><span className="transit-bar-static">{formatBytes(imageMeta.bytes)}</span></>}
       </div>
       } right={<div className="transit-status-actions">
-        {(item.kind === "text" || file?.kind === "image") && <button className="transit-bar-item" title={file?.kind === "image" ? "下载图片" : "复制"} aria-label={file?.kind === "image" ? "下载图片" : "复制中转文本"} onClick={() => void action()}>{file?.kind === "image" ? <Download /> : <Copy />}<span>{file?.kind === "image" ? "下载" : "复制"}</span></button>}
-        {item.kind === "url" && <button className="transit-bar-item" title="搜索网页" aria-label="搜索中转网页" onClick={onSearch}><Search /><span>搜索</span></button>}
-        {file?.kind === "image" && <button className="transit-bar-item" title="编辑图片" aria-label="编辑中转图片" onClick={() => { importToolboxImage(file.content); void router.push("/image"); selectTransit(null) }}><Pencil /><span>编辑</span></button>}
-        {item.kind === "url" && <button className="transit-bar-item" title="刷新网页" aria-label="刷新中转网页" onClick={onRefresh}><RotateCw /><span>刷新</span></button>}
+        {(item.kind === "text" || file?.kind === "image") && <button className="transit-bar-item" data-title={file?.kind === "image" ? "下载图片" : "复制"} aria-label={file?.kind === "image" ? "下载图片" : "复制中转文本"} onClick={() => void action()}>{file?.kind === "image" ? <Download /> : <Copy />}<span>{file?.kind === "image" ? "下载" : "复制"}</span></button>}
+        {item.kind === "url" && <button className="transit-bar-item" data-title="搜索网页" aria-label="搜索中转网页" onClick={onSearch}><Search /><span>搜索</span></button>}
+        {file?.kind === "image" && <button className="transit-bar-item" data-title="编辑图片" aria-label="编辑中转图片" onClick={() => { importToolboxImage(file.content); void router.push("/image"); selectTransit(null) }}><Pencil /><span>编辑</span></button>}
+        {item.kind === "url" && <button className="transit-bar-item" data-title="刷新网页" aria-label="刷新中转网页" onClick={onRefresh}><RotateCw /><span>刷新</span></button>}
       </div>} />
     </>
   )

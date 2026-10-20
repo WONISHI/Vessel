@@ -59,7 +59,7 @@ export function WorkspaceFilePicker({ workspace, onClose }: { workspace: FilePic
                 />
               )}
               <span className="flex min-w-0 flex-1 flex-col">
-                <span title={file.name} className="workspace-file-picker-name truncate text-xs leading-4">{file.name}</span>
+                <span data-title={file.name} className="workspace-file-picker-name truncate text-xs leading-4">{file.name}</span>
                 <span className="workspace-file-picker-path w-full truncate text-[10px] leading-4 text-stone-400">{file.path.startsWith((workspace?.root || "") + "/") ? file.path.slice(workspace!.root.length + 1) : file.path}</span>
               </span>
             </button>

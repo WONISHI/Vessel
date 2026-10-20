@@ -174,8 +174,8 @@ export function DeviceToolbar({ guest, tabId, onClose, onViewport }: { guest: ()
         </div>
         <button
           className={iconButton}
-          title="旋转设备"
-          onClick={() => setDevice({ ...device, width: device.height, height: device.width })}
+          data-title="旋转设备"
+          onClick={() => setDevice({ ...device, width: device.height, height: device.width })} aria-label="旋转设备"
         >
           <RotateCw size={15} />
         </button>
@@ -208,7 +208,7 @@ export function DeviceToolbar({ guest, tabId, onClose, onViewport }: { guest: ()
         <button
           className={iconButton}
           aria-label="添加设备页面到中转站"
-          title="添加到中转站"
+          data-title="添加到中转站"
           onClick={() => {
             try {
               const view = guest()

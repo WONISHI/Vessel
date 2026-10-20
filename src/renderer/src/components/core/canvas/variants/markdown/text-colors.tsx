@@ -67,7 +67,7 @@ export function TextColors({ anchor, onApply, onClose }: { anchor: { left: numbe
       <div className="grid grid-cols-6 gap-2">
         <button
           aria-label={background ? "取消背景颜色" : "取消文字颜色"}
-          title="取消颜色"
+          data-title="取消颜色"
           className="flex size-7 items-center justify-center rounded border border-stone-200 bg-white hover:ring-2 hover:ring-green-500"
           onClick={() => onApply(null, background)}
         >
@@ -80,7 +80,7 @@ export function TextColors({ anchor, onApply, onClose }: { anchor: { left: numbe
           <button
             key={color}
             aria-label={`${background ? "背景" : "文字"} ${color}`}
-            title={color}
+            data-title={color}
             className="size-7 rounded border border-stone-200 hover:ring-2 hover:ring-green-500"
             style={{ backgroundColor: color }}
             onClick={() => onApply(color, background)}

@@ -96,7 +96,7 @@ export function SearchPanel({
           {onClose && (
             <button
               aria-label="关闭搜索"
-              title="关闭搜索并返回文件列表"
+              data-title="关闭搜索并返回文件列表"
               onClick={onClose}
               className="rounded p-1 text-stone-400 hover:bg-stone-100 hover:text-stone-900"
             >
@@ -108,7 +108,7 @@ export function SearchPanel({
       {allowChangeFolder ? (
         <button
           className="search-folder"
-          title={root || "选择搜索文件夹"}
+          data-title={root || "选择搜索文件夹"}
           onClick={() => {
             void window.electronAPI
               .pickSearchFolder()
@@ -131,7 +131,7 @@ export function SearchPanel({
       ) : (
         <div
           className="search-folder !cursor-default !bg-stone-50 select-none"
-          title={root || "当前目录"}
+          data-title={root || "当前目录"}
         >
           <FolderOpen
             size={15}
@@ -141,7 +141,7 @@ export function SearchPanel({
             <strong className="block truncate text-xs">{root ? root.split(/[\\/]/).pop() : "当前目录"}</strong>
             <small
               className="block truncate text-[10px] text-stone-400"
-              title={root}
+              data-title={root}
             >
               {root || "仅限当前文件夹"}
             </small>
@@ -174,7 +174,7 @@ export function SearchPanel({
         ).map(([label, title, active, change]) => (
           <button
             key={title}
-            title={title}
+            data-title={title}
             aria-label={title}
             aria-pressed={active}
             className={active ? "selected" : ""}
@@ -235,7 +235,7 @@ export function SearchPanel({
                 <File className="size-3.5 shrink-0 text-stone-500" />
                 <span
                   className="min-w-0 flex-1 truncate"
-                  title={matches[0].relativePath}
+                  data-title={matches[0].relativePath}
                 >
                   {matches[0].relativePath}
                 </span>
@@ -245,7 +245,7 @@ export function SearchPanel({
                 {matches.map((match, index) => (
                   <button
                     key={`${match.line}:${index}`}
-                    title={match.text}
+                    data-title={match.text}
                     className={`search-match ${selected === match ? "active" : ""}`}
                     onClick={() => onSelect(match)}
                   >

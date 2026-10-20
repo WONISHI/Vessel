@@ -165,7 +165,7 @@ interface VesselAPI extends BrowserProxyAPI, BrowserToolsAPI, SettingsAPI, Brows
   copyImage: (source: string) => Promise<void>
   readImageFile: (root: string, path: string) => Promise<ImageFile>
   readWikiLink: (root: string, target: string) => Promise<{ path: string; content: string }>
-  saveObsidianImage: (root: string, documentPath: string, source: { bytes?: Uint8Array; url?: string }) => Promise<{ name: string; path: string; reference: string }>
+  saveObsidianImage: (root: string, documentPath: string, source: { bytes?: Uint8Array; url?: string; path?: string }) => Promise<{ name: string; path: string; reference: string }>
   readObsidianImage: (root: string, documentPath: string, reference: string) => Promise<string>
   transferWorkspaceFiles: (root: string, paths: string[], destination: string, external: boolean, duplicate?: boolean) => Promise<{ source: string; target: string }[]>
   mutateWorkspaceFile: (root: string, path: string, name?: string) => Promise<string>

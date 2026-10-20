@@ -79,7 +79,7 @@ export function ProgressCell({ progress, onUpdateProgressValue, onChangeAllProgr
               key={c.label}
               onClick={() => onChangeAllProgressColor(c.class)}
               className={cn("size-5 rounded-full border border-stone-300 hover:scale-110 transition-transform flex items-center justify-center", c.class)}
-              title={`整列改为${c.label}`}
+              data-title={`整列改为${c.label}`}
             >
               {color === c.class && <Check className="size-3 text-white" />}
             </button>

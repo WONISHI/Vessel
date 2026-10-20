@@ -196,7 +196,7 @@ export function ConsoleHistory({ logs, open, onOpenChange, onClear }: ConsoleHis
                         text-[10px]
                         text-stone-400
                       "
-                      title={log.source ? log.source.raw : undefined}
+                      data-title={log.source ? log.source.raw : undefined}
                     >
                       {sourceText}
                     </span>

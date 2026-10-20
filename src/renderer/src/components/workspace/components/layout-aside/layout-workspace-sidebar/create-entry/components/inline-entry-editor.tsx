@@ -110,7 +110,7 @@ export function InlineEntryEditor({ draft, onFinish }: { draft: EntryDraft; onFi
               onFinish(false)
             }
           }}
-          title={error || undefined}
+          data-title={error || undefined}
           aria-invalid={!!error}
         />
       </div>

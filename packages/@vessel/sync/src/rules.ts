@@ -27,10 +27,20 @@ export function parseSyncExcludeRules(input = ""): SyncExcludeRules {
     for (const section of body.split(";")) {
       const match = /^\s*(file|folder)\s*:\s*(.+?)\s*$/i.exec(section)
       if (!match) throw invalid()
-      const kind = match[1].toLowerCase() as SyncEntryKind
-      const names = match[2].split(",").map((name) => name.trim().replaceAll("\\", "/"))
-      if (names.some((name) => !name || /[{};:\0]/.test(name) || name.startsWith("/") || name.split("/").some((part) => !part || part === "." || part === ".."))) throw invalid()
-      result[kind].push(...names)
+      let kind = match[1].toLowerCase() as SyncEntryKind
+      for (const raw of match[2].split(",")) {
+        const prefix = /^\s*(file|folder)\s*:\s*(.*?)\s*$/i.exec(raw)
+        if (prefix) {
+          kind = prefix[1].toLowerCase() as SyncEntryKind
+          const name = prefix[2].trim().replaceAll("\\", "/")
+          if (!name || /[{};:\0]/.test(name) || name.startsWith("/") || name.split("/").some((part) => !part || part === "." || part === "..")) throw invalid()
+          result[kind].push(name)
+        } else {
+          const name = raw.trim().replaceAll("\\", "/")
+          if (!name || /[{};:\0]/.test(name) || name.startsWith("/") || name.split("/").some((part) => !part || part === "." || part === "..")) throw invalid()
+          result[kind].push(name)
+        }
+      }
     }
     cursor = end + 1
     groups++

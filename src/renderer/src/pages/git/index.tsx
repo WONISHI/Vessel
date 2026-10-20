@@ -13,7 +13,7 @@ import { CreateBranchDialog, MergeBranchDialog } from "@/pages/git/components/br
 import { DiffViewer } from "@/pages/git/components/diff-viewer"
 import { computeGitTopology, GitGraphSvg } from "@/pages/git/components/git-graph"
 import type { GitCommitDetail, GitCommitItem, GitFileStatus, GitStatusResult } from "@vessel/type"
-import { AlertCircle, Archive, ArrowDownUp, CheckCircle2, CheckSquare, Clock, Copy, Download, FileText, FolderGit2, FolderOpen, GitBranch, GitCommit, GitPullRequest, Layers, Minus, Plus, RefreshCw, RotateCcw, Tag, Trash2, Undo2, Upload } from "lucide-react"
+import { AlertCircle, Archive, ArrowDownUp, CheckCircle2, CheckSquare, Clock, Copy, Download, FileText, FolderGit2, FolderOpen, GitBranch, GitCommit, GitPullRequest, Globe, Layers, Minus, Plus, RefreshCw, RotateCcw, Tag, Trash2, Undo2, Upload } from "lucide-react"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
 
@@ -102,6 +102,7 @@ export default function SourceTreePage() {
     current: ""
   })
   const [commits, setCommits] = useState<GitCommitItem[]>([])
+  const [unpushedHashes, setUnpushedHashes] = useState<Set<string>>(new Set())
   const [commitTotal, setCommitTotal] = useState(0)
   const [historyLoading, setHistoryLoading] = useState(false)
   const historyVersion = useRef(0)
@@ -154,7 +155,14 @@ export default function SourceTreePage() {
         return
       }
 
-      const [statusRes, branchRes, logRes, stashRes, totalRes] = await Promise.all([git.getStatus(repoPath), git.getBranches(repoPath), git.getLog(repoPath, 150), git.getStashes(repoPath).catch(() => []), git.getLogCount(repoPath)])
+      const [statusRes, branchRes, logRes, stashRes, totalRes, unpushedRes] = await Promise.all([
+        git.getStatus(repoPath),
+        git.getBranches(repoPath),
+        git.getLog(repoPath, 150),
+        git.getStashes(repoPath).catch(() => []),
+        git.getLogCount(repoPath),
+        git.getUnpushedCommits(repoPath).catch(() => [])
+      ])
 
       if (version !== historyVersion.current) return
       setCommitTotal(totalRes)
@@ -162,6 +170,7 @@ export default function SourceTreePage() {
       setBranches(branchRes)
       setCommits(logRes)
       setStashes(stashRes || [])
+      setUnpushedHashes(new Set(unpushedRes || []))
 
       // 保持当前的多选列表中依然有效的文件
       setSelectedStagedPaths((prev) => prev.filter((p) => statusRes.staged.some((f) => f.path === p)))
@@ -652,6 +661,21 @@ export default function SourceTreePage() {
     }
   }
 
+  /** 打开远程仓库查看当前提交记录 */
+  const handleOpenRemoteCommit = async (hash: string) => {
+    if (!repoPath) return
+    try {
+      const url = await window.electronAPI.git.getRemoteCommitUrl(repoPath, hash)
+      if (!url) {
+        toast.error("未找到有效的远程仓库地址，请先关联远程仓库 (Remote)")
+        return
+      }
+      await window.electronAPI.openExternal(url)
+    } catch (e: any) {
+      toast.error("打开远程仓库失败", { description: cleanGitErrorMessage(e) })
+    }
+  }
+
   /** Handles commit events. */
   const handleCommit = async () => {
     const message = commitMessage.current
@@ -833,7 +857,7 @@ export default function SourceTreePage() {
               className="flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium text-stone-700 hover:bg-stone-200/70"
               onClick={handleStashAll}
               disabled={loading || !isRepo}
-              title="贮藏当前工作区所有修改 (git stash)"
+              data-title="贮藏当前工作区所有修改 (git stash)"
             >
               <Archive className="size-4 text-amber-600" />
               <span>贮藏</span>
@@ -882,7 +906,7 @@ export default function SourceTreePage() {
             ) : (
               <span
                 className="font-mono text-stone-600 truncate max-w-sm"
-                title={repoPath}
+                data-title={repoPath}
               >
                 {repoPath.split(/[\\/]/).pop() || "未选择仓库"}
               </span>
@@ -939,7 +963,7 @@ export default function SourceTreePage() {
                     <Clock className="size-3.5 text-stone-500" />
                     历史记录
                   </span>
-                  <span className="shrink-0 pl-2 text-[10px] text-stone-400" title="当前分支可达的全部提交">{commitTotal}</span>
+                  <span className="shrink-0 pl-2 text-[10px] text-stone-400" data-title="当前分支可达的全部提交">{commitTotal}</span>
                 </button>
               </div>
 
@@ -949,12 +973,12 @@ export default function SourceTreePage() {
                   <span>分支 (BRANCHES)</span>
                   <button
                     type="button"
-                    title="新建分支"
+                    data-title="新建分支"
                     className="hover:text-stone-700"
                     onClick={() => {
                       setBranchStartPoint(undefined)
                       setCreateBranchOpen(true)
-                    }}
+                    }} aria-label="新建分支"
                   >
                     <Plus className="size-3.5" />
                   </button>
@@ -965,7 +989,7 @@ export default function SourceTreePage() {
                     <div
                       key={b}
                       data-git-selected={isCurrent}
-                      title={b}
+                      data-title={b}
                       onDoubleClick={() => handleCheckoutBranch(b)}
                       onClick={() => handleCheckoutBranch(b)}
                       className={`flex cursor-pointer items-center justify-between rounded-md px-2.5 py-1.5 transition-colors ${isCurrent ? "bg-green-50 font-semibold text-green-800" : "text-stone-600 hover:bg-stone-100"}`}
@@ -989,7 +1013,7 @@ export default function SourceTreePage() {
                       key={r}
                       data-git-sidebar-hover
                       className="flex items-center gap-2 rounded-md px-2.5 py-1 text-stone-500 hover:bg-stone-100 truncate text-[11px]"
-                      title={r}
+                      data-title={r}
                     >
                       <Layers className="size-3 shrink-0 text-stone-400" />
                       <span className="truncate">{r}</span>
@@ -1015,7 +1039,7 @@ export default function SourceTreePage() {
                       key={s.index}
                       data-git-sidebar-hover
                       className="group flex items-center justify-between rounded-md px-2 py-1 text-stone-600 hover:bg-stone-100 text-[11px]"
-                      title={`stash@{${s.index}}: ${s.name}`}
+                      data-title={`stash@{${s.index}}: ${s.name}`}
                     >
                       <span className="truncate flex-1 mr-1">
                         <span className="font-mono text-stone-400 mr-1">#{s.index}</span>
@@ -1025,7 +1049,7 @@ export default function SourceTreePage() {
                         <button
                           type="button"
                           className="rounded px-1 py-0.5 text-green-700 hover:bg-green-100 text-[10px] font-medium"
-                          title="恢复并弹出此贮藏 (git stash pop)"
+                          data-title="恢复并弹出此贮藏 (git stash pop)"
                           onClick={() => handleStashPop(s.index)}
                         >
                           弹出
@@ -1033,7 +1057,7 @@ export default function SourceTreePage() {
                         <button
                           type="button"
                           className="rounded px-1 py-0.5 text-red-600 hover:bg-red-100 text-[10px] font-medium"
-                          title="丢弃此贮藏 (git stash drop)"
+                          data-title="丢弃此贮藏 (git stash drop)"
                           onClick={() => handleStashDrop(s.index)}
                         >
                           删除
@@ -1109,7 +1133,7 @@ export default function SourceTreePage() {
                                 type="button"
                                 className="text-[11px] font-normal text-blue-700 hover:text-blue-900 hover:underline flex items-center gap-0.5"
                                 onClick={() => void handleStashFiles(selectedStagedPaths)}
-                                title="贮藏所选已暂存文件修改"
+                                data-title="贮藏所选已暂存文件修改"
                               >
                                 <Archive className="size-3" />
                                 <span>贮藏所选 ({selectedStagedPaths.length})</span>
@@ -1118,7 +1142,7 @@ export default function SourceTreePage() {
                                 type="button"
                                 className="text-[11px] font-normal text-amber-700 hover:text-amber-900 hover:underline flex items-center gap-0.5"
                                 onClick={() => void handleUnstageMultiple(selectedStagedPaths)}
-                                title="取消暂存所选文件"
+                                data-title="取消暂存所选文件"
                               >
                                 <Minus className="size-3" />
                                 <span>取消所选 ({selectedStagedPaths.length})</span>
@@ -1157,19 +1181,19 @@ export default function SourceTreePage() {
                                       <span className="w-3.5 text-center font-bold text-green-600">{file.status}</span>
                                       <span
                                         className="truncate"
-                                        title={file.path}
+                                        data-title={file.path}
                                       >
                                         {file.path}
                                       </span>
                                     </span>
                                     <button
                                       type="button"
-                                      title="取消暂存"
+                                      data-title="取消暂存"
                                       className="opacity-0 group-hover:opacity-100 rounded p-1 text-stone-400 hover:bg-stone-200/80 hover:text-amber-700 transition-colors"
                                       onClick={(e) => {
                                         e.stopPropagation()
                                         void handleUnstageFile(file.path)
-                                      }}
+                                      }} aria-label="取消暂存"
                                     >
                                       <Minus className="size-3.5" />
                                     </button>
@@ -1290,7 +1314,7 @@ export default function SourceTreePage() {
                                 type="button"
                                 className="text-[11px] font-normal text-blue-700 hover:text-blue-900 hover:underline flex items-center gap-0.5"
                                 onClick={() => void handleStashFiles(selectedUnstagedPaths)}
-                                title="贮藏所选未暂存修改"
+                                data-title="贮藏所选未暂存修改"
                               >
                                 <Archive className="size-3" />
                                 <span>贮藏所选 ({selectedUnstagedPaths.length})</span>
@@ -1299,7 +1323,7 @@ export default function SourceTreePage() {
                                 type="button"
                                 className="text-[11px] font-normal text-green-700 hover:text-green-900 hover:underline flex items-center gap-0.5"
                                 onClick={() => void handleStageMultiple(selectedUnstagedPaths)}
-                                title="暂存所选文件"
+                                data-title="暂存所选文件"
                               >
                                 <Plus className="size-3" />
                                 <span>暂存所选 ({selectedUnstagedPaths.length})</span>
@@ -1339,7 +1363,7 @@ export default function SourceTreePage() {
                                       <span className={`w-3.5 text-center font-bold ${file.status === "?" ? "text-blue-500" : "text-amber-600"}`}>{file.status}</span>
                                       <span
                                         className="truncate"
-                                        title={file.path}
+                                        data-title={file.path}
                                       >
                                         {file.path}
                                       </span>
@@ -1347,23 +1371,23 @@ export default function SourceTreePage() {
                                     <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100">
                                       <button
                                         type="button"
-                                        title="暂存此文件"
+                                        data-title="暂存此文件"
                                         className="rounded p-1 text-stone-400 hover:bg-stone-200/80 hover:text-green-700 transition-colors"
                                         onClick={(e) => {
                                           e.stopPropagation()
                                           void handleStageFile(file.path)
-                                        }}
+                                        }} aria-label="暂存此文件"
                                       >
                                         <Plus className="size-3.5" />
                                       </button>
                                       <button
                                         type="button"
-                                        title="放弃修改"
+                                        data-title="放弃修改"
                                         className="rounded p-1 text-stone-400 hover:bg-stone-200/80 hover:text-red-600 transition-colors"
                                         onClick={(e) => {
                                           e.stopPropagation()
                                           void handleDiscard(file)
-                                        }}
+                                        }} aria-label="放弃修改"
                                       >
                                         <Trash2 className="size-3.5" />
                                       </button>
@@ -1485,7 +1509,7 @@ export default function SourceTreePage() {
                             type="button"
                             className="flex items-center gap-1 text-[11px] text-amber-600 hover:text-amber-800 hover:underline"
                             onClick={() => void handleUndoLastCommit("mixed")}
-                            title="撤销最后一次提交并将修改保留在工作区 (git reset HEAD~1)"
+                            data-title="撤销最后一次提交并将修改保留在工作区 (git reset HEAD~1)"
                           >
                             <Undo2 className="size-3" />
                             <span>撤销上次提交</span>
@@ -1570,7 +1594,7 @@ export default function SourceTreePage() {
                                   <span className="font-mono text-[11px] text-stone-400">{c.shortHash}</span>
                                   <span
                                     className="truncate flex-1"
-                                    title={c.message}
+                                    data-title={c.message}
                                   >
                                     {c.refs.map((r) => (
                                       <span
@@ -1679,6 +1703,12 @@ export default function SourceTreePage() {
                                   <Copy className="size-3.5 text-stone-500" />
                                   <span>复制提交信息</span>
                                 </ContextMenuItem>
+                                {branches.remote.length > 0 && !unpushedHashes.has(c.hash) && (
+                                  <ContextMenuItem onSelect={() => void handleOpenRemoteCommit(c.hash)}>
+                                    <Globe className="size-3.5 text-stone-500" />
+                                    <span>打开远程仓库</span>
+                                  </ContextMenuItem>
+                                )}
                               </ContextMenuContent>
                             </ContextMenu>
                           )
@@ -1716,11 +1746,11 @@ export default function SourceTreePage() {
                       <ScrollArea className="git-commit-files-scroll flex-1 min-h-0 min-w-0 p-3 text-xs">
                         {commitDetail ? (
                           <div>
-                            <div className="truncate font-semibold text-stone-800 mb-1" title={commitDetail.message}>{commitDetail.message}</div>
-                            <div className="truncate text-stone-400 text-[11px] mb-2" title={`${commitDetail.author} <${commitDetail.email}> • ${commitDetail.date}`}>
+                            <div className="truncate font-semibold text-stone-800 mb-1" data-title={commitDetail.message}>{commitDetail.message}</div>
+                            <div className="truncate text-stone-400 text-[11px] mb-2" data-title={`${commitDetail.author} <${commitDetail.email}> • ${commitDetail.date}`}>
                               {commitDetail.author} &lt;{commitDetail.email}&gt; • {commitDetail.date}
                             </div>
-                            <div className="truncate text-[11px] font-mono text-stone-400 mb-3" title={`Commit: ${commitDetail.hash}`}>Commit: {commitDetail.hash}</div>
+                            <div className="truncate text-[11px] font-mono text-stone-400 mb-3" data-title={`Commit: ${commitDetail.hash}`}>Commit: {commitDetail.hash}</div>
 
                             <div className="text-[11px] font-semibold text-stone-500 mb-1">修改的文件 ({commitDetail.files.length})</div>
                             <div className="space-y-1">
@@ -1742,7 +1772,7 @@ export default function SourceTreePage() {
                                         {/* 3号: 溢出显示省略号 */}
                                         <span
                                           className="truncate min-w-0 flex-1 text-stone-700"
-                                          title={f.path}
+                                          data-title={f.path}
                                         >
                                           {f.path}
                                         </span>

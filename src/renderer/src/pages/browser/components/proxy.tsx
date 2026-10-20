@@ -80,7 +80,7 @@ export function BrowserProxy({ showLabel = false }: { showLabel?: boolean }) {
     >
       <SheetTrigger asChild>
         <button
-          title="Clash 浏览器代理"
+          data-title="Clash 浏览器代理"
           aria-label="Clash 浏览器代理"
           className={`flex shrink-0 items-center gap-1 rounded px-2 py-1 hover:bg-stone-200 ${status?.connected ? "text-green-600" : "text-stone-400"}`}
         >

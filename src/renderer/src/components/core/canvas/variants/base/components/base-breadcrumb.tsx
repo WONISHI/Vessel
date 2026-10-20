@@ -25,7 +25,7 @@ export function BaseBreadcrumb({ root, path }: { root: string; path: string }) {
                   className="max-w-64 truncate"
                 >
                   <button
-                    title={`定位文件: ${segment}`}
+                    className="cursor-pointer truncate rounded-md px-1.5 py-0.5 transition-colors hover:bg-stone-100 hover:text-stone-900 dark:hover:bg-white/[0.08] dark:hover:text-white"
                     onClick={() => window.dispatchEvent(new CustomEvent("vessel:reveal-file", { detail: normalizedRoot + "/" + segments.slice(1).join("/") }))}
                   >
                     {segment}
@@ -33,8 +33,7 @@ export function BaseBreadcrumb({ root, path }: { root: string; path: string }) {
                 </BreadcrumbPage>
               ) : (
                 <button
-                  className="max-w-48 truncate text-stone-500 transition-colors hover:text-stone-800"
-                  title={`定位文件夹: ${segment}`}
+                  className="max-w-48 cursor-pointer truncate rounded-md px-1.5 py-0.5 text-stone-500 transition-colors hover:bg-stone-100 hover:text-stone-800 dark:hover:bg-white/[0.08] dark:hover:text-white"
                   onClick={() => window.dispatchEvent(new CustomEvent("vessel:reveal-file", { detail: index === 0 ? root : normalizedRoot + "/" + segments.slice(1, index + 1).join("/") }))}
                 >
                   {segment}

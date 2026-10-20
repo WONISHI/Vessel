@@ -1,0 +1,26 @@
+/* Dark appearance only: retain the viewer's existing geometry and tool sizes. */
+html.dark .vessel-image-viewer { background: #23272d !important; color: #e6e8eb; }
+html.dark .vessel-image-viewer .image-viewer-canvas { background: #23272d !important; }
+html.dark .vessel-image-viewer .image-viewer-details {
+  background: #23272d !important;
+  color: #e6e8eb !important;
+  border-color: #30353c !important;
+  box-shadow: none;
+}
+html.dark .vessel-image-viewer .image-viewer-details :is(.image-viewer-title, dd) { color: #e6e8eb !important; }
+html.dark .vessel-image-viewer .image-viewer-details dt { color: #9aa1a9 !important; }
+html.dark .vessel-image-viewer .image-viewer-details [data-image-detail="path"] dd { color: #a8aeb8 !important; }
+html.dark .vessel-image-viewer .image-viewer-note { color: #6b7280 !important; }
+html.dark .vessel-image-viewer :is([role="toolbar"], form) { background: #23272d !important; border-color: #30353c !important; }
+html.dark .vessel-image-viewer [role="toolbar"] button {
+  background: transparent !important;
+  border-color: #30353c !important;
+  color: #9aa1a9 !important;
+  box-shadow: none;
+}
+html.dark .vessel-image-viewer [role="toolbar"] button:not(:disabled):is(:hover, :focus-visible) { background: #ffffff12 !important; color: #fff !important; }
+html.dark .vessel-image-viewer [role="toolbar"] button:not(:disabled):active { background: #ffffff1c !important; color: #fff !important; }
+html.dark .vessel-image-viewer [role="toolbar"] button[aria-pressed="true"] { background: #22c55e2e !important; color: #22c55e !important; }
+html.dark .vessel-image-viewer [role="toolbar"] button[aria-pressed="true"] svg { color: #22c55e !important; }
+html.dark .vessel-image-viewer [role="toolbar"] button:disabled { opacity: .35; }
+html.dark .vessel-image-viewer input { background: #1a1d21 !important; border-color: #30353c !important; color: #e6e8eb !important; }

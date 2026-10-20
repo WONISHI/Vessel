@@ -20,7 +20,7 @@ export function StorageCell({ col, value }: { col: Column; value: unknown }) {
   if (col.primaryKey > 0)
     return (
       <span
-        title="主键"
+        data-title="主键"
         className="inline-block rounded-full bg-green-50 px-2 py-0.5 font-sans text-[11px] font-semibold text-green-700"
       >
         {text}
@@ -46,7 +46,7 @@ export function StorageCell({ col, value }: { col: Column; value: unknown }) {
     const formatted = text.replace(/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2}:\d{2})(?:\.\d+)?Z$/, "$1 $2")
     return (
       <span
-        title={text}
+        data-title={text}
         className="whitespace-nowrap font-sans text-[11px] text-purple-600"
       >
         {formatted}

@@ -1,5 +1,5 @@
 import { afterEach, expect, it, vi } from "vitest"
-import { bindImageParagraphs } from "@/components/core/canvas/variants/markdown/image-paragraph"
+import { bindImageParagraphs, focusImageParagraph } from "@/components/core/canvas/variants/markdown/image-paragraph"
 
 let unbind: (() => void) | undefined
 afterEach(() => { unbind?.(); unbind = undefined; document.body.innerHTML = ""; window.getSelection()?.removeAllRanges(); vi.restoreAllMocks() })
@@ -45,4 +45,23 @@ it("keeps Enter in ordinary text and IME input untouched", () => {
   window.getSelection()!.removeAllRanges(); window.getSelection()!.addRange(range)
   text.parentElement!.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", isComposing: true, bubbles: true }))
   expect(command).not.toHaveBeenCalled()
+})
+
+it("focuses the line directly below the image without inserting another paragraph", () => {
+  const { root, command } = fixture()
+  const image = root.firstElementChild as HTMLElement
+  const paragraph = document.createElement("p")
+  paragraph.textContent = "下一行"
+  image.after(paragraph)
+  expect(focusImageParagraph(image)).toBe(paragraph)
+  expect(window.getSelection()?.anchorNode).toBe(paragraph)
+  expect(window.getSelection()?.anchorOffset).toBe(0)
+  expect(command).not.toHaveBeenCalled()
+})
+it("creates and focuses an empty line when the image is followed by another block", () => {
+  const { root, command } = fixture()
+  const paragraph = focusImageParagraph(root.firstElementChild as HTMLElement)
+  expect(paragraph?.tagName).toBe("P")
+  expect(command).toHaveBeenCalledOnce()
+  expect(window.getSelection()?.anchorNode).toBe(paragraph)
 })

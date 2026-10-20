@@ -163,3 +163,26 @@ it("loads relative HTML image references through the workspace resolver and pres
   expect(restoreObsidianImages(prepareObsidianImages(source))).toBe(source)
   expect(resizeImageReference(reference, 128)).toContain('width="128"')
 })
+
+it("copies a filename-only Wiki embed instead of image bytes or Markdown data URLs", async () => {
+  const writeText = vi.fn().mockResolvedValue(undefined)
+  Object.assign(navigator, { clipboard: { writeText } })
+  window.electronAPI = { ...window.electronAPI, readObsidianImage: vi.fn().mockResolvedValue("data:image/png;base64,AAAA") } as any
+  render(<ObsidianImageLine source="![[attachments/photo.png]]" root="/workspace" documentPath="/workspace/note.md" onChange={vi.fn()} />)
+  const image = await screen.findByRole("img")
+  fireEvent.load(image)
+  fireEvent.contextMenu(image)
+  fireEvent.click(await screen.findByRole("menuitem", { name: "复制" }))
+  expect(writeText).toHaveBeenCalledWith("![[photo.png]]")
+})
+
+it("deletes only the selected occurrence of a Wiki image while retaining surrounding text and other references", async () => {
+  window.electronAPI = { ...window.electronAPI, readObsidianImage: vi.fn().mockResolvedValue("data:image/png;base64,AAAA") } as any
+  const onChange = vi.fn()
+  render(<ObsidianImageLine source="前文 ![[photo.png]] 中间 ![[photo.png]] 后文" root="/workspace" documentPath="/workspace/note.md" onChange={onChange} />)
+  const images = await screen.findAllByRole("img")
+  fireEvent.load(images[0])
+  fireEvent.contextMenu(images[0])
+  fireEvent.click(await screen.findByRole("menuitem", { name: "删除" }))
+  expect(onChange).toHaveBeenCalledWith("前文  中间 ![[photo.png]] 后文")
+})

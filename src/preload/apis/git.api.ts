@@ -84,5 +84,14 @@ export const gitAPI = {
   revert: (cwd: string, hash: string): Promise<void> => ipcRenderer.invoke("git:revert", cwd, hash),
 
   /** Creates tag. */
-  createTag: (cwd: string, tag: string, target?: string): Promise<void> => ipcRenderer.invoke("git:create-tag", cwd, tag, target)
+  createTag: (cwd: string, tag: string, target?: string): Promise<void> => ipcRenderer.invoke("git:create-tag", cwd, tag, target),
+
+  /** Returns the remote repository URL, prioritizing origin. */
+  getRemoteUrl: (cwd: string, remote?: string): Promise<string> => ipcRenderer.invoke("git:remote-url", cwd, remote),
+
+  /** Returns the web URL for viewing a commit in the remote repository. */
+  getRemoteCommitUrl: (cwd: string, hash: string, remote?: string): Promise<string> => ipcRenderer.invoke("git:remote-commit-url", cwd, hash, remote),
+
+  /** Returns the list of unpushed commit hashes. */
+  getUnpushedCommits: (cwd: string): Promise<string[]> => ipcRenderer.invoke("git:unpushed-commits", cwd)
 }

@@ -70,16 +70,16 @@ export function TransitPanel() {
       >
         <SheetTitle className="sr-only">{item.title}</SheetTitle>
         <SheetDescription className="sr-only">中转站预览：{item.kind === "text" ? "剪贴板文本" : item.content}</SheetDescription>
-        <button title={full ? "还原" : "展开"} aria-label={full ? "还原" : "展开"} onClick={() => setFull(!full)} className="transit-bar-item">{full ? <Minimize /> : <Maximize />}</button>
-        <button title="独立窗口" aria-label="独立窗口" onClick={() => void window.electronAPI.openTransitWindow(item).catch((error) => toast.error(String(error)))} className="transit-bar-item"><ExternalLink /></button>
+        <button data-title={full ? "还原" : "展开"} aria-label={full ? "还原" : "展开"} onClick={() => setFull(!full)} className="transit-bar-item">{full ? <Minimize /> : <Maximize />}</button>
+        <button data-title="独立窗口" aria-label="独立窗口" onClick={() => void window.electronAPI.openTransitWindow(item).catch((error) => toast.error(String(error)))} className="transit-bar-item"><ExternalLink /></button>
         <TransitDock value={dock} onChange={changeDock} />
-        <button title="关闭" aria-label="关闭中转站" onClick={() => selectTransit(null)} className="transit-bar-item transit-close"><X /></button>
+        <button data-title="关闭" aria-label="关闭中转站" onClick={() => selectTransit(null)} className="transit-bar-item transit-close"><X /></button>
       </header>
       <nav aria-label="中转项轮播" className="transit-bar transit-strip-bar">
         <button aria-label="上一个中转项" disabled={index <= 0} onClick={() => selectTransit(items[index - 1].id)} className="transit-bar-item"><ChevronLeft /></button>
         <div className="transit-strip-tabs" role="tablist" aria-label="中转项">
           {visibleItems.map((entry) => (
-            <button role="tab" aria-selected={entry.id === selected} aria-label={entry.title} title={entry.title} key={entry.id} className="transit-strip-tab" onClick={() => selectTransit(entry.id)}>
+            <button role="tab" aria-selected={entry.id === selected} aria-label={entry.title} data-title={entry.title} key={entry.id} className="transit-strip-tab" onClick={() => selectTransit(entry.id)}>
               {entry.kind === "url" ? <Globe /> : entry.kind === "text" ? <Clipboard /> : <FileText />}
             </button>
           ))}

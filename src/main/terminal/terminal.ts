@@ -25,13 +25,18 @@ export function registerTerminal(host: WebContents) {
     sessions.delete(id)
     terminal?.kill()
   }
-  host.ipc.handle("terminal:start", async (_event, root: string, file?: string) => {
+  host.ipc.handle("terminal:start", async (_event, root: string, file?: string, cols?: number, rows?: number) => {
     const cwd = await terminalDirectory(root, file)
     if (host.isDestroyed()) throw new Error("窗口已关闭")
-    if (sessions.size >= 8) throw new Error("最多同时打开 8 个终端")
+    if (sessions.size >= 64) throw new Error("最多同时打开 64 个终端")
     const shell = process.platform === "win32" ? "powershell.exe" : process.env.SHELL || "/bin/zsh"
-    const env = Object.fromEntries(Object.entries(process.env).filter(([key, value]) => value !== undefined && key !== "ELECTRON_RUN_AS_NODE")) as Record<string, string>
-    const terminal = spawn(shell, process.platform === "win32" ? ["-NoLogo"] : ["-l"], { cwd, env, name: "xterm-256color", cols: 80, rows: 24 })
+    const env: Record<string, string> = {
+      PROMPT_EOL_MARK: "",
+      ...(Object.fromEntries(Object.entries(process.env).filter(([key, value]) => value !== undefined && key !== "ELECTRON_RUN_AS_NODE")) as Record<string, string>)
+    }
+    const initialCols = Number.isInteger(cols) && cols! > 0 && cols! < 1000 ? cols! : 80
+    const initialRows = Number.isInteger(rows) && rows! > 0 && rows! < 1000 ? rows! : 24
+    const terminal = spawn(shell, process.platform === "win32" ? ["-NoLogo"] : ["-l"], { cwd, env, name: "xterm-256color", cols: initialCols, rows: initialRows })
     const id = randomUUID()
     sessions.set(id, terminal)
     terminal.onData((data) => {
@@ -47,7 +52,10 @@ export function registerTerminal(host: WebContents) {
     if (typeof data === "string" && data.length <= 1024 * 1024) sessions.get(id)?.write(data)
   })
   host.ipc.handle("terminal:resize", (_event, id: string, cols: number, rows: number) => {
-    if (Number.isInteger(cols) && Number.isInteger(rows) && cols > 0 && rows > 0 && cols < 1000 && rows < 1000) sessions.get(id)?.resize(cols, rows)
+    if (Number.isInteger(cols) && Number.isInteger(rows) && cols > 0 && rows > 0 && cols < 1000 && rows < 1000) {
+      const pty = sessions.get(id)
+      if (pty && (pty.cols !== cols || pty.rows !== rows)) pty.resize(cols, rows)
+    }
   })
   host.ipc.handle("terminal:close", (_event, id: string) => close(id))
   host.once("destroyed", () => {

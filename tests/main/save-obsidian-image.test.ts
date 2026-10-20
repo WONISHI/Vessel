@@ -63,3 +63,25 @@ it("downloads webp image with non-ASCII size bytes in RIFF header", async () => 
     await rm(root, { recursive: true, force: true })
   }
 })
+
+it("reuses vault images and imports external files without overwriting same-name attachments", async () => {
+  const root = await mkdtemp(join(tmpdir(), "vessel-image-vault-"))
+  const external = await mkdtemp(join(tmpdir(), "vessel-image-outside-"))
+  try {
+    const doc = join(root, "note.md"), inside = join(root, "photo.png"), outside = join(external, "photo.png")
+    await writeFile(doc, "")
+    await writeFile(inside, "existing image")
+    await writeFile(outside, "external image")
+    const reused = await saveObsidianImage(root, doc, { path: inside })
+    expect(reused.reference).toBe("![[photo.png]]")
+    expect((await readdir(root)).sort()).toEqual(["note.md", "photo.png"])
+    const imported = await saveObsidianImage(root, doc, { path: outside })
+    expect(imported.reference).toBe("![[photo (1).png]]")
+    expect(await readFile(imported.path, "utf8")).toBe("external image")
+    expect(await readFile(inside, "utf8")).toBe("existing image")
+    expect(await readFile(outside, "utf8")).toBe("external image")
+  } finally {
+    await rm(root, { recursive: true, force: true })
+    await rm(external, { recursive: true, force: true })
+  }
+})

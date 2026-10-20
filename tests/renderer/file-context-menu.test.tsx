@@ -35,3 +35,16 @@ it("creates a typed file from the folder submenu", async () => {
   fireEvent.click(screen.getByRole("menuitem", { name: "新建思维导图 (.mind)" }))
   expect(create).toHaveBeenCalledWith("file", "mind")
 })
+
+it("offers batch actions for a multi-selection and copies all selected names", async () => {
+  const nodes = [{ name: "a.png", path: "/workspace/a.png", type: "file" as const }, { name: "b.png", path: "/workspace/b.png", type: "file" as const }]
+  const writeText = vi.fn(async () => {})
+  Object.assign(navigator, { clipboard: { writeText } })
+  render(<FileActions node={nodes[0]} selectedNodes={nodes} onChanged={() => {}}><button>a.png</button></FileActions>)
+  fireEvent.contextMenu(screen.getByRole("button", { name: "a.png" }))
+  expect(screen.getByText("已选中 2 项")).toBeTruthy()
+  expect(screen.queryByRole("menuitem", { name: "重命名" })).toBeNull()
+  expect(screen.queryByRole("menuitem", { name: "在资源管理器中显示" })).toBeNull()
+  fireEvent.click(screen.getByRole("menuitem", { name: "复制文件名" }))
+  expect(writeText).toHaveBeenCalledWith("a.png\nb.png")
+})

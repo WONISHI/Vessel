@@ -1,7 +1,8 @@
+import { constants } from "node:fs"
 import { nativeImage, session } from "electron"
-import { realpath, stat, writeFile } from "node:fs/promises"
-import { isAbsolute, join, relative, sep } from "node:path"
-export type ImageImport = { bytes?: Uint8Array; url?: string }
+import { copyFile, realpath, stat, writeFile } from "node:fs/promises"
+import { basename, extname, isAbsolute, join, relative, sep } from "node:path"
+export type ImageImport = { bytes?: Uint8Array; url?: string; path?: string }
 const limit = 30 * 1024 * 1024
 /** Import attachments atomically into the vault root; never overwrite a same-second paste. */
 export async function saveObsidianImage(root: string, documentPath: string, source: ImageImport) {
@@ -9,6 +10,23 @@ export async function saveObsidianImage(root: string, documentPath: string, sour
     document = await realpath(documentPath)
   const offset = relative(base, document)
   if (!offset || offset === ".." || offset.startsWith(".." + sep) || isAbsolute(offset) || !(await stat(document)).isFile()) throw new Error("文档不在工作区")
+  if (source.path) {
+    const selected = await realpath(source.path)
+    const info = await stat(selected)
+    if (!info.isFile() || info.size > limit || !/\.(png|jpe?g|gif|webp|svg|avif|bmp)$/i.test(selected)) throw new Error("请选择不超过 30 MB 的图片文件")
+    const name = basename(selected), offset = relative(base, selected)
+    if (offset && offset !== ".." && !offset.startsWith(".." + sep) && !isAbsolute(offset)) return { name, path: selected, reference: `![[${name}]]` }
+    const extension = extname(name), stem = name.slice(0, -extension.length)
+    for (let attempt = 0; attempt < 10000; attempt++) {
+      const candidate = attempt ? `${stem} (${attempt})${extension}` : name
+      const destination = join(base, candidate)
+      try {
+        await copyFile(selected, destination, constants.COPYFILE_EXCL)
+        return { name: candidate, path: destination, reference: `![[${candidate}]]` }
+      } catch (error) { if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error }
+    }
+    throw new Error("图片文件名冲突过多")
+  }
   let bytes: Buffer,
     extension = "png"
   if (source.url) {

@@ -1,7 +1,7 @@
 import { fileEntryOptions } from "@/components/workspace/components/layout-aside/layout-workspace-sidebar/create-entry/components/file-entry-options"
 import { addTransitFile } from "@/components/transit/state"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
-import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSub, ContextMenuSubContent, ContextMenuSubTrigger, ContextMenuTrigger } from "@/components/ui/context-menu"
+import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuSub, ContextMenuSubContent, ContextMenuSubTrigger, ContextMenuTrigger } from "@/components/ui/context-menu"
 import { useWorkspace } from "@/components/workspace/hooks/useWorkspace"
 import type { WorkspaceNode } from "@/components/workspace/types/workspace"
 import { useRouter } from "@vessel/react-router"
@@ -10,11 +10,12 @@ import { Code, Copy, File, FilePlus2, FolderOpen, FolderPlus, Globe, Pencil, Pin
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { toast } from "sonner"
 
-let copiedFile: string | null = null
+let copiedFiles: string[] = []
 
 /** 普通文件右键菜单，成功后更新标签与目录缓存。删除使用系统废纸篓。 */
 export function FileActions({
   node,
+  selectedNodes,
   children,
   onChanged,
   onCreate,
@@ -22,6 +23,7 @@ export function FileActions({
   onRenamingChange
 }: {
   node: WorkspaceNode
+  selectedNodes?: WorkspaceNode[]
   children: ReactNode
   onChanged: () => void
   onCreate?: (kind: "file" | "directory", extension?: string) => void
@@ -29,6 +31,8 @@ export function FileActions({
   onRenamingChange?: (renaming: boolean) => void
 }) {
   const { workspace, renameWorkspaceTab, closeWorkspaceFiles, openFiles, openWorkspaceFile } = useWorkspace()
+  const targets = selectedNodes?.some((item) => item.path === node.path) ? selectedNodes : [node]
+  const multiple = targets.length > 1
   const router = useRouter()
   const [menuOpen, setMenuOpen] = useState(false)
   const inputRef = useRef<HTMLInputElement | null>(null)
@@ -125,10 +129,13 @@ export function FileActions({
     setBusy(true)
     setError("")
     try {
-      const path = await window.electronAPI.mutateWorkspaceFile(workspace.path, node.path, next)
-      const affected = openFiles.filter((file) => file.path === node.path || (node.type === "directory" && file.path.startsWith(node.path + (node.path.includes("\\") ? "\\" : "/"))))
-      if (next !== undefined) affected.forEach((file) => renameWorkspaceTab(file.path, path + file.path.slice(node.path.length), file.path === node.path ? next : file.name))
-      else closeWorkspaceFiles(affected.map((file) => file.path))
+      const operations = next !== undefined ? [node] : targets.filter((item) => !targets.some((parent) => parent !== item && parent.type === "directory" && item.path.startsWith(parent.path + (parent.path.includes("\\") ? "\\" : "/"))))
+      for (const target of operations) {
+        const path = await window.electronAPI.mutateWorkspaceFile(workspace.path, target.path, next)
+        const affected = openFiles.filter((file) => file.path === target.path || (target.type === "directory" && file.path.startsWith(target.path + (target.path.includes("\\") ? "\\" : "/"))))
+        if (next !== undefined) affected.forEach((file) => renameWorkspaceTab(file.path, path + file.path.slice(target.path.length), file.path === target.path ? next : file.name))
+        else closeWorkspaceFiles(affected.map((file) => file.path))
+      }
       setRenaming(false)
       setConfirmTrash(false)
       setConfirmRename(false)
@@ -137,6 +144,7 @@ export function FileActions({
     } catch (reason) {
       setError(String(reason))
     } finally {
+      onChanged()
       submitting.current = false
       setBusy(false)
     }
@@ -205,7 +213,8 @@ export function FileActions({
           onCloseAutoFocus={(event) => event.preventDefault()}
           className="workspace-file-context-menu w-48"
         >
-          {node.type !== "directory" && /\.(html?|xhtml)$/i.test(node.name) && (
+          {multiple && <><div className="px-2 py-1.5 text-xs text-muted-foreground">已选中 {targets.length} 项</div><ContextMenuSeparator /></>}
+          {!multiple && node.type !== "directory" && /\.(html?|xhtml)$/i.test(node.name) && (
             <ContextMenuSub>
               <ContextMenuSubTrigger>
                 <FolderOpen />
@@ -229,13 +238,13 @@ export function FileActions({
               </ContextMenuSubContent>
             </ContextMenuSub>
           )}
-          {node.type === "directory" && (
+          {!multiple && node.type === "directory" && (
             <>
               <ContextMenuSub>
                 <ContextMenuSubTrigger><FilePlus2 />新建文件</ContextMenuSubTrigger>
                 <ContextMenuSubContent className="workspace-file-context-menu w-52">
                   {fileEntryOptions.map(({ extension, label, icon: Icon }) => (
-                    <ContextMenuItem key={extension} title={label} onSelect={() => onCreate?.("file", extension)}>
+                    <ContextMenuItem key={extension} data-title={label} onSelect={() => onCreate?.("file", extension)}>
                       <Icon /><span className="min-w-0 truncate">{label}</span>
                     </ContextMenuItem>
                   ))}
@@ -244,7 +253,7 @@ export function FileActions({
               <ContextMenuItem onSelect={() => onCreate?.("directory")}><FolderPlus />新建文件夹</ContextMenuItem>
             </>
           )}
-          {node.type === "directory" && onSearchDirectory && (
+          {!multiple && node.type === "directory" && onSearchDirectory && (
             <ContextMenuItem onSelect={() => onSearchDirectory(node.path)}>
               <Search />
               在文件夹中搜索
@@ -252,23 +261,23 @@ export function FileActions({
           )}
           <ContextMenuItem
             onSelect={() => {
-              copiedFile = node.path
+              copiedFiles = targets.map((item) => item.path)
             }}
           >
             <Copy />
             复制
           </ContextMenuItem>
-          {copiedFile && (
+          {!multiple && copiedFiles.length > 0 && (
             <ContextMenuItem
               disabled={busy}
               onSelect={() => {
-                const source = copiedFile!
+                const sources = copiedFiles
                 const destination = node.type === "directory" ? node.path : node.path.replace(/[\\/][^\\/]+$/, "")
                 setBusy(true)
                 void window.electronAPI
-                  .transferWorkspaceFiles(workspace.path, [source], destination, true, true)
+                  .transferWorkspaceFiles(workspace.path, sources, destination, true, true)
                   .then(() => {
-                    if (copiedFile === source) copiedFile = null
+                    if (copiedFiles === sources) copiedFiles = []
                     onChanged()
                   })
                   .catch((error) => toast.error(String(error)))
@@ -285,14 +294,14 @@ export function FileActions({
               Icon: Copy,
 
               /** Runs run. */
-              run: () => navigator.clipboard.writeText(node.name)
+              run: () => navigator.clipboard.writeText(targets.map((item) => item.name).join("\n"))
             },
             {
               label: "复制路径",
               Icon: Copy,
 
               /** Runs run. */
-              run: () => navigator.clipboard.writeText(node.path)
+              run: () => navigator.clipboard.writeText(targets.map((item) => item.path).join("\n"))
             },
             {
               label: "在资源管理器中显示",
@@ -301,7 +310,7 @@ export function FileActions({
               /** Runs run. */
               run: () => window.electronAPI.revealWorkspaceFile(workspace.path, node.path)
             }
-          ].map(({ label, Icon, run }) => (
+          ].filter((item) => !multiple || item.label !== "在资源管理器中显示").map(({ label, Icon, run }) => (
             <ContextMenuItem
               key={label}
               onSelect={() => {
@@ -312,11 +321,11 @@ export function FileActions({
               {label}
             </ContextMenuItem>
           ))}
-          {node.type !== "directory" && (
+          {targets.every((item) => item.type !== "directory") && (
             <ContextMenuItem
               onSelect={() => {
                 try {
-                  addTransitFile(workspace.path, node.path, node.name)
+                  targets.forEach((item) => addTransitFile(workspace.path, item.path, item.name))
                 } catch (reason) {
                   setError(String(reason))
                 }
@@ -326,7 +335,7 @@ export function FileActions({
               加入中转站
             </ContextMenuItem>
           )}
-          <ContextMenuItem
+          {!multiple && <ContextMenuItem
             disabled={busy}
             onSelect={() => {
               cancelled.current = false
@@ -335,7 +344,7 @@ export function FileActions({
           >
             <Pencil />
             重命名
-          </ContextMenuItem>
+          </ContextMenuItem>}
           <ContextMenuItem
             disabled={busy}
             className="text-red-600 data-[highlighted]:bg-red-600"
@@ -369,7 +378,7 @@ export function FileActions({
         title="移到废纸篓？"
         description={
           <>
-            确定将“{node.name}”{node.type === "directory" ? "及其全部内容" : ""}移到系统废纸篓吗？之后可在废纸篓中恢复。
+            {multiple ? `确定将选中的 ${targets.length} 项及文件夹内全部内容移到系统废纸篓吗？` : `确定将“${node.name}”${node.type === "directory" ? "及其全部内容" : ""}移到系统废纸篓吗？`}之后可在废纸篓中恢复。
           </>
         }
         confirmText={busy ? "正在移动…" : "确认移到废纸篓"}

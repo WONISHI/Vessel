@@ -35,7 +35,7 @@ export function DevToolsMenu({ isSpyEnabled, enabledTypes, hasError, menuItems, 
       "
     >
       <DropdownMenuLabel
-        className="
+        className="dev-actions-heading
           flex
           items-center
           justify-between
@@ -75,6 +75,7 @@ export function DevToolsMenu({ isSpyEnabled, enabledTypes, hasError, menuItems, 
       </DropdownMenuLabel>
 
       <DropdownMenuItem
+        data-dev-master={isSpyEnabled ? "on" : "off"}
         onClick={onToggleSpy}
         className="
           cursor-pointer
@@ -135,7 +136,7 @@ export function DevToolsMenu({ isSpyEnabled, enabledTypes, hasError, menuItems, 
 
         <DropdownMenuSubContent
           className="
-            dev-actions-menu overflow-hidden
+            dev-actions-menu dev-actions-submenu overflow-hidden
             rounded-[10px]
             border
             border-[#e7e5e4]
@@ -232,6 +233,7 @@ export function DevToolsMenu({ isSpyEnabled, enabledTypes, hasError, menuItems, 
         return (
           <DropdownMenuItem
             key={item.key}
+            data-dev-action={item.key}
             onClick={item.onClick}
             className="
               cursor-pointer

@@ -90,7 +90,7 @@ export default function BaseCanvas({ activeFilePath, workspacePath }: { activeFi
               size="sm"
               key={index}
               disabled={item.type !== "table"}
-              title={item.type !== "table" ? `暂不支持 ${item.type} 视图` : undefined}
+              data-title={item.type !== "table" ? `暂不支持 ${item.type} 视图` : undefined}
               onClick={() => setView(index)}
             >
               {item.name}

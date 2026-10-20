@@ -7,7 +7,7 @@ export const defaultSettings: AppSettings = {
   externalPreview: true,
   monitorNavigation: false,
   globalSearchEnabled: false,
-  ignoredFiles: ".obsidian, .git",
+  ignoredFiles: ".obsidian, .git, .DS_Store, .vscode, .vessel",
   name: "本地用户",
   email: "",
   avatar: "",
@@ -16,7 +16,7 @@ export const defaultSettings: AppSettings = {
   fontSize: 14,
   accent: "#16a34a",
   backup: {
-    syncExcludeRules: "{folder:.vessel,node-modules,.git,.obsidian}",
+    syncExcludeRules: "{folder:.vessel,.vscode,node-modules,.git,.obsidian,file:.DS_Store}",
     logEnabled: false,
     direction: "bidirectional",
     concurrency: 8,
@@ -37,12 +37,25 @@ export const defaultSettings: AppSettings = {
   }
 }
 
+const LEGACY_DEFAULT_IGNORED_FILES = new Set([".obsidian,.gut", ".obsidian,.git", ".obsidian,.git,.ds_store"])
+
+/** Checks whether a stored ignoredFiles string matches a previous built-in default. */
+export function isLegacyDefaultIgnoredFiles(patternStr?: string): boolean {
+  if (typeof patternStr !== "string" || !patternStr.trim()) return true
+  const canonical = patternStr
+    .split(/[,，]+/)
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean)
+    .join(",")
+  return LEGACY_DEFAULT_IGNORED_FILES.has(canonical)
+}
+
 /** Parses ignored patterns. */
 export function parseIgnoredPatterns(patternStr?: string): string[] {
-  if (typeof patternStr !== "string" || !patternStr.trim() || patternStr.trim() === ".obsidian, .gut") {
-    return [".obsidian", ".git"]
+  if (isLegacyDefaultIgnoredFiles(patternStr)) {
+    return [".obsidian", ".git", ".DS_Store", ".vscode", ".vessel"]
   }
-  return patternStr
+  return patternStr!
     .split(/[,，\n]+/)
     .map((s) => (s.trim() === ".gut" ? ".git" : s.trim()))
     .filter(Boolean)

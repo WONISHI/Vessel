@@ -54,7 +54,7 @@ export function HistorySheet({ open, onOpenChange, entries, error, onDelete, onN
     return () => observer.disconnect()
   }, [hasMore, filteredEntries.length])
 
-  const actionClass = "flex size-7 shrink-0 items-center justify-center rounded-md text-stone-400 hover:bg-stone-100 hover:text-stone-700 disabled:opacity-30"
+  const actionClass = "flex size-7 shrink-0 items-center justify-center rounded-md text-stone-500 hover:!bg-[#f0efed] hover:!text-stone-500 disabled:opacity-30"
 
   return (
     <Sheet
@@ -84,6 +84,7 @@ export function HistorySheet({ open, onOpenChange, entries, error, onDelete, onN
             <span className="rounded-full bg-stone-100 px-1.5 text-[11px] font-semibold text-stone-500">{filteredEntries.length}</span>
             <div className="ml-auto flex gap-1">
               <button
+                data-activity-button
                 className={actionClass}
                 aria-label="清空历史记录"
                 disabled={!entries.length}
@@ -92,6 +93,7 @@ export function HistorySheet({ open, onOpenChange, entries, error, onDelete, onN
                 <Trash2 size={14} />
               </button>
               <button
+                data-activity-button
                 className={actionClass}
                 aria-label="关闭浏览历史"
                 onClick={() => onOpenChange(false)}
@@ -139,6 +141,7 @@ export function HistorySheet({ open, onOpenChange, entries, error, onDelete, onN
               {rows.map((entry) => (
                 <div
                   key={entry.id}
+                  data-dark-list-item
                   className="group flex min-w-0 max-w-full items-center gap-2 px-3.5 py-1.5 hover:bg-stone-50"
                 >
                   <SiteIcon
@@ -152,8 +155,8 @@ export function HistorySheet({ open, onOpenChange, entries, error, onDelete, onN
                       onOpenChange(false)
                     }}
                   >
-                    <span className="block truncate text-xs font-medium text-stone-800">{entry.title || entry.url}</span>
-                    <span className="block truncate font-mono text-[11px] text-stone-400">{entry.url.replace(/^https?:\/\//, "")}</span>
+                    <span className="dark-list-title block truncate text-xs font-medium text-stone-800">{entry.title || entry.url}</span>
+                    <span className="dark-list-description block truncate font-mono text-[11px] text-stone-400">{entry.url.replace(/^https?:\/\//, "")}</span>
                   </button>
                   {!!entry.bookmarked && (
                     <Bookmark
@@ -164,8 +167,9 @@ export function HistorySheet({ open, onOpenChange, entries, error, onDelete, onN
                   )}
                   <time className="text-[10px] tabular-nums text-stone-300 group-hover:hidden group-focus-within:hidden">{new Date(entry.visitedAt).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false })}</time>
                   <button
+                    data-activity-button
                     aria-label={`删除记录 ${entry.title}`}
-                    className="hidden size-7 shrink-0 items-center justify-center rounded text-stone-400 hover:bg-red-50 hover:text-red-600 group-hover:flex group-focus-within:flex focus:flex"
+                    className="hidden size-7 shrink-0 items-center justify-center rounded text-stone-500 hover:!bg-[#f0efed] hover:!text-stone-500 group-hover:flex group-focus-within:flex focus:flex"
                     onClick={() => onDelete(entry.id)}
                   >
                     <Trash2 size={13} />
