@@ -13,7 +13,7 @@ import { CreateBranchDialog, MergeBranchDialog } from "@/pages/git/components/br
 import { DiffViewer } from "@/pages/git/components/diff-viewer"
 import { computeGitTopology, getGraphWidth, GitGraphSvg } from "@/pages/git/components/git-graph"
 import type { GitCommitDetail, GitCommitItem, GitFileStatus, GitStatusResult } from "@vessel/type"
-import { AlertCircle, Archive, ArrowDownUp, CheckCircle2, CheckSquare, Clock, Copy, Download, FileText, FolderGit2, FolderOpen, GitBranch, GitCommit, GitPullRequest, Globe, Layers, Minus, Plus, RefreshCw, RotateCcw, Tag, Trash2, Undo2, Upload } from "lucide-react"
+import { AlertCircle, Archive, ArrowDown, ArrowDownUp, ArrowUp, CheckCircle2, CheckSquare, Clock, Copy, Download, FileText, FolderGit2, FolderOpen, GitBranch, GitCommit, GitPullRequest, Globe, Layers, Minus, Plus, RefreshCw, RotateCcw, Tag, Trash2, Undo2, Upload } from "lucide-react"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
 
@@ -104,6 +104,7 @@ export default function SourceTreePage() {
   const [commits, setCommits] = useState<GitCommitItem[]>([])
   const [unpushedHashes, setUnpushedHashes] = useState<Set<string>>(new Set())
   const [commitTotal, setCommitTotal] = useState(0)
+  const [remoteCommitTotal, setRemoteCommitTotal] = useState(0)
   const [historyLoading, setHistoryLoading] = useState(false)
   const historyVersion = useRef(0)
   const historyPending = useRef<number | null>(null)
@@ -157,17 +158,19 @@ export default function SourceTreePage() {
       }
 
       const isAll = historyScope === "all"
-      const [statusRes, branchRes, logRes, stashRes, totalRes, unpushedRes] = await Promise.all([
+      const [statusRes, branchRes, logRes, stashRes, totalRes, unpushedRes, remoteTotalRes] = await Promise.all([
         git.getStatus(repoPath),
         git.getBranches(repoPath),
         git.getLog(repoPath, 150, 0, isAll),
         git.getStashes(repoPath).catch(() => []),
         git.getLogCount(repoPath, isAll),
-        git.getUnpushedCommits(repoPath).catch(() => [])
+        git.getUnpushedCommits(repoPath).catch(() => []),
+        git.getRemoteLogCount(repoPath, isAll).catch(() => 0)
       ])
 
       if (version !== historyVersion.current) return
       setCommitTotal(totalRes)
+      setRemoteCommitTotal(remoteTotalRes)
       setStatus(statusRes)
       setBranches(branchRes)
       setCommits(logRes)
@@ -262,6 +265,10 @@ export default function SourceTreePage() {
 
   // 拓扑图计算
   const topology = computeGitTopology(commits)
+
+  // 待推送 (未推送到远程仓库的本地提交数) 与 待拉取 (远程仓库更新数)
+  const aheadCount = Math.max(status?.ahead || 0, unpushedHashes.size)
+  const behindCount = status?.behind || 0
 
   // 操作函数
 
@@ -966,7 +973,44 @@ export default function SourceTreePage() {
                     <Clock className="size-3.5 text-stone-500" />
                     历史记录
                   </span>
-                  <span className="shrink-0 pl-2 text-[10px] text-stone-400" data-title="当前分支可达的全部提交">{commitTotal}</span>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {/* 远程仓库已同步的提交数 (带 Globe 图标) */}
+                    {remoteCommitTotal > 0 && (
+                      <span
+                        className="inline-flex items-center gap-0.5 rounded-full bg-stone-100 px-1.5 py-0.5 text-[10px] font-medium text-stone-600"
+                        data-title={`远程仓库已同步 ${remoteCommitTotal} 次提交`}
+                      >
+                        <Globe className="size-2.5 text-stone-500" />
+                        <span>{remoteCommitTotal}</span>
+                      </span>
+                    )}
+                    {/* 未推送到远程仓库的记录 (ahead 待推送) */}
+                    {aheadCount > 0 && (
+                      <span
+                        className="inline-flex items-center gap-0.5 rounded-full bg-orange-100 px-1.5 py-0.5 text-[10px] font-bold text-orange-700"
+                        data-title={`${aheadCount} 次提交未推送到远程仓库`}
+                      >
+                        <ArrowUp className="size-2.5 stroke-[2.5]" />
+                        <span>{aheadCount}</span>
+                      </span>
+                    )}
+                    {/* 远程仓库有新提交待拉取 (behind 待拉取) */}
+                    {behindCount > 0 && (
+                      <span
+                        className="inline-flex items-center gap-0.5 rounded-full bg-blue-100 px-1.5 py-0.5 text-[10px] font-bold text-blue-700"
+                        data-title={`远程仓库有 ${behindCount} 次提交待拉取到本地`}
+                      >
+                        <ArrowDown className="size-2.5 stroke-[2.5]" />
+                        <span>{behindCount}</span>
+                      </span>
+                    )}
+                    <span
+                      className="text-[10px] text-stone-400 font-mono"
+                      data-title={`提交总数: ${commitTotal} 次（远程已同步: ${remoteCommitTotal} 次，未推送到远程: ${aheadCount} 次${behindCount > 0 ? `，待拉取: ${behindCount} 次` : ""}）`}
+                    >
+                      {commitTotal}
+                    </span>
+                  </div>
                 </button>
               </div>
 
@@ -1001,7 +1045,27 @@ export default function SourceTreePage() {
                         <GitBranch className={`size-3.5 shrink-0 ${isCurrent ? "text-green-600" : "text-stone-400"}`} />
                         <span className="min-w-0 flex-1 truncate">{b}</span>
                       </span>
-                      {isCurrent && <CheckCircle2 className="size-3.5 text-green-600 shrink-0" />}
+                      <div className="flex items-center gap-1 shrink-0">
+                        {isCurrent && aheadCount > 0 && (
+                          <span
+                            className="inline-flex items-center gap-0.5 rounded-full bg-orange-100 px-1 py-0.2 text-[9px] font-bold text-orange-700"
+                            data-title={`${aheadCount} 次提交待推送`}
+                          >
+                            <ArrowUp className="size-2 stroke-[2.5]" />
+                            <span>{aheadCount}</span>
+                          </span>
+                        )}
+                        {isCurrent && behindCount > 0 && (
+                          <span
+                            className="inline-flex items-center gap-0.5 rounded-full bg-blue-100 px-1 py-0.2 text-[9px] font-bold text-blue-700"
+                            data-title={`远程有 ${behindCount} 次提交待拉取`}
+                          >
+                            <ArrowDown className="size-2 stroke-[2.5]" />
+                            <span>{behindCount}</span>
+                          </span>
+                        )}
+                        {isCurrent && <CheckCircle2 className="size-3.5 text-green-600" />}
+                      </div>
                     </div>
                   )
                 })}
@@ -1597,8 +1661,40 @@ export default function SourceTreePage() {
                         </button>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 text-[11px] text-stone-400">
-                      <span>共 {commitTotal} 次提交</span>
+                    <div className="flex items-center gap-2 text-[11px] text-stone-500">
+                      {remoteCommitTotal > 0 && (
+                        <span
+                          className="inline-flex items-center gap-1 rounded-full bg-stone-100 px-2 py-0.5 text-[11px] font-medium text-stone-600"
+                          data-title={`远程仓库已同步 ${remoteCommitTotal} 次提交`}
+                        >
+                          <Globe className="size-3 text-stone-500" />
+                          <span>远程已同步 {remoteCommitTotal} 次</span>
+                        </span>
+                      )}
+                      {aheadCount > 0 && (
+                        <span
+                          className="inline-flex items-center gap-1 rounded-full bg-orange-100 px-2 py-0.5 text-[11px] font-medium text-orange-700"
+                          data-title={`${aheadCount} 次提交未推送到远程仓库`}
+                        >
+                          <ArrowUp className="size-3 text-orange-600 stroke-[2.2]" />
+                          <span>{aheadCount} 个未推送</span>
+                        </span>
+                      )}
+                      {behindCount > 0 && (
+                        <span
+                          className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-[11px] font-medium text-blue-700"
+                          data-title={`远程仓库有 ${behindCount} 次提交待拉取到本地`}
+                        >
+                          <ArrowDown className="size-3 text-blue-600 stroke-[2.2]" />
+                          <span>{behindCount} 个待拉取</span>
+                        </span>
+                      )}
+                      <span
+                        className="text-stone-400"
+                        data-title={`提交总数: ${commitTotal} 次（远程已同步: ${remoteCommitTotal} 次，未推送到远程: ${aheadCount} 次${behindCount > 0 ? `，待拉取: ${behindCount} 次` : ""}）`}
+                      >
+                        共 {commitTotal} 次提交
+                      </span>
                     </div>
                   </div>
 

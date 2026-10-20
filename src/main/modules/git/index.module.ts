@@ -24,6 +24,8 @@ export class GitModule extends BaseModule {
       "git:log": (_e, cwd: string, maxCount?: number, skip?: number, allBranches?: boolean) => gitService.getLog(cwd, maxCount, skip, allBranches),
       /** Counts repository history commits. */
       "git:log-count": (_e, cwd: string, allBranches?: boolean) => gitService.getLogCount(cwd, allBranches),
+      /** Counts commits in remote branches. */
+      "git:remote-log-count": (_e, cwd: string, allBranches?: boolean, upstream?: string) => gitService.getRemoteLogCount(cwd, allBranches, upstream),
 
       /** Performs the "git:commit detail" operation. */
       "git:commit-detail": (_e, cwd: string, hash: string) => gitService.getCommitDetail(cwd, hash),

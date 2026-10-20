@@ -191,6 +191,19 @@ export class GitService {
     return Number.parseInt(result.stdout.trim(), 10) || 0
   }
 
+  /** Counts commits reachable from remote branches. */
+  async getRemoteLogCount(cwd: string, allBranches = false, upstream?: string): Promise<number> {
+    const args = ["rev-list", "--count"]
+    if (allBranches || !upstream) {
+      args.push("--remotes")
+    } else {
+      args.push(upstream)
+    }
+    const result = await runGit(args, cwd)
+    if (result.exitCode !== 0) return 0
+    return Number.parseInt(result.stdout.trim(), 10) || 0
+  }
+
   /** Returns log. */
   async getLog(cwd: string, maxCount = 100, skip = 0, allBranches = false): Promise<GitCommitItem[]> {
     // 格式: hash|parents|author|email|timestamp|message|refs

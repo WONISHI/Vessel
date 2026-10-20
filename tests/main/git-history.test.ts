@@ -39,6 +39,13 @@ it("counts all commits and pages past the original 150-record limit without dupl
 
     const headLogs = await service.getLog(root, 200, 0, false)
     expect(headLogs.some((c) => c.message === "feature commit")).toBe(false)
+
+    // 此时无远程分支，getRemoteLogCount 应返回 0
+    expect(await service.getRemoteLogCount(root, true)).toBe(0)
+
+    // 创建模拟远程分支 refs/remotes/origin/master
+    execFileSync("git", ["update-ref", "refs/remotes/origin/master", "refs/heads/master~3"], { cwd: root })
+    expect(await service.getRemoteLogCount(root, true)).toBe(160)
   } finally {
     await rm(root, { recursive: true, force: true })
   }

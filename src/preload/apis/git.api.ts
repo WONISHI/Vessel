@@ -20,6 +20,9 @@ export const gitAPI = {
   /** Counts commits in repository history. */
   getLogCount: (cwd: string, allBranches?: boolean): Promise<number> => ipcRenderer.invoke("git:log-count", cwd, allBranches),
 
+  /** Counts commits in remote branches. */
+  getRemoteLogCount: (cwd: string, allBranches?: boolean, upstream?: string): Promise<number> => ipcRenderer.invoke("git:remote-log-count", cwd, allBranches, upstream),
+
   /** Returns commit detail. */
   getCommitDetail: (cwd: string, hash: string): Promise<GitCommitDetail> => ipcRenderer.invoke("git:commit-detail", cwd, hash),
 
