@@ -1,6 +1,6 @@
 import { afterEach, expect, it, vi } from "vitest"
 import { createHash } from "node:crypto"
-import { mkdtemp, mkdir, writeFile, readFile, readdir, rm, symlink } from "node:fs/promises"
+import { mkdtemp, mkdir, writeFile, readFile, readdir, rename, rm, symlink } from "node:fs/promises"
 import { join } from "node:path"
 import { tmpdir } from "node:os"
 import { collectFiles, syncFiles, SyncError, excludedBackupName, createSyncExcludeFilter, type StorageAdapter, type RemoteFile } from "#vessel-sync/index"
@@ -52,7 +52,7 @@ async function fixture() {
   }
 
   /** Runs run. */
-  const run = async (local = a, extra: Partial<Parameters<typeof syncFiles>[0]> = {}) => syncFiles({ root: local, files: await collectFiles({ root: local }), stateDirectory: join(root, local === a ? "state-a" : "state-b"), storage, direction: "bidirectional", exclude: excludedBackupName, ...extra })
+  const run = async (local = a, extra: Partial<Parameters<typeof syncFiles>[0]> = {}) => syncFiles({ root: local, files: await collectFiles({ root: local }), stateDirectory: join(root, local === a ? "state-a" : "state-b"), storage, direction: "bidirectional", exclude: excludedBackupName, conflictStrategy: "keep-both", ...extra })
   return { root, a, b, put, run, storage, objects }
 }
 it("syncs edits between two devices and needs no per-file HEAD on unchanged warm runs", async () => {
@@ -412,4 +412,48 @@ it("defers a file edited during download while continuing to synchronize other f
   expect(result.conflicts).toEqual([])
   expect(f.objects.get("stable.md")?.content.toString()).toBe("stable note")
   expect(await readFile(join(f.a, "note.md"), "utf8")).toBe("typing during sync")
+})
+
+it("detects local file renames and deletes old remote files without restoring old files locally", async () => {
+  const f = await fixture()
+  await writeFile(join(f.a, "第一章 说明.md"), "说明内容")
+  await writeFile(join(f.a, "第二章 python的注意.md"), "python注意内容")
+  await f.run()
+
+  expect(f.objects.has("第一章 说明.md")).toBe(true)
+  expect(f.objects.has("第二章 python的注意.md")).toBe(true)
+
+  // Rename locally (reproducing user scenario)
+  await rename(join(f.a, "第一章 说明.md"), join(f.a, "第二章 说明.md"))
+  await rename(join(f.a, "第二章 python的注意.md"), join(f.a, "第三章 python的注意.md"))
+
+  const syncResult = await f.run()
+  expect(syncResult.conflicts).toEqual([])
+
+  // Old remote files should be deleted from remote
+  expect(f.objects.has("第一章 说明.md")).toBe(false)
+  expect(f.objects.has("第二章 python的注意.md")).toBe(false)
+  expect(f.objects.has("第二章 说明.md")).toBe(true)
+  expect(f.objects.has("第三章 python的注意.md")).toBe(true)
+
+  // Local directory should NOT have old filenames resurrected
+  const localFiles = (await readdir(f.a)).filter((name) => !name.startsWith(".")).sort()
+  expect(localFiles).toEqual(["第三章 python的注意.md", "第二章 说明.md"])
+})
+
+it("handles local file renames without restoring old files even when propagateDeletes is false", async () => {
+  const f = await fixture()
+  await writeFile(join(f.a, "chapter1.md"), "content 1")
+  await f.run(f.a, { propagateDeletes: false })
+  expect(f.objects.has("chapter1.md")).toBe(true)
+
+  // Rename locally
+  await rename(join(f.a, "chapter1.md"), join(f.a, "chapter2.md"))
+
+  // Run sync with propagateDeletes = false
+  await f.run(f.a, { propagateDeletes: false })
+
+  // Old file must NOT be restored on local disk
+  const localFiles = (await readdir(f.a)).filter((name) => !name.startsWith(".")).sort()
+  expect(localFiles).toEqual(["chapter2.md"])
 })

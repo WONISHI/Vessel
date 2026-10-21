@@ -5,7 +5,7 @@ import { Fragment } from "react"
 /** Renders the obsidian image line component. */
 export function ObsidianImageLine({ source, root, documentPath, onChange, onFocusAbove, onFocusBelow, readOnly = false }: { onFocusAbove?: () => void; onFocusBelow?: () => void; readOnly?: boolean; source: string; root: string; documentPath: string; onChange: (source: string) => void }) {
   return (
-    <span className="block py-2">
+    <span className="block py-1">
       {source.split(/(!\[\[[^\]\n]+\]\]|!\[[^\]\n]*\]\([^\n]+?\)|<img\b[^>\n]*>)/g).map((part, index) => (
         <Fragment key={index}>
           {parseImageReference(part) ? (

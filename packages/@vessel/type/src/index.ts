@@ -9,6 +9,8 @@ export * from "#vessel-type/settings"
 export * from "#vessel-type/shortcuts"
 export * from "#vessel-type/terminal"
 export * from "#vessel-type/todos"
+export * from "#vessel-type/performance"
+export * from "#vessel-type/system-info"
 export * from "#vessel-type/transit"
 
 export * from "#vessel-type/file-tree"

@@ -1,6 +1,7 @@
 import { Switch } from "@/components/ui/switch"
 import { cn } from "@/lib/utils"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { PageBackButton } from "@/pages/debug/components/page-back-button"
 import { INITIAL_LOGS, LogEntry, LogLevel, levelStyle } from "@/pages/debug/console/components/devtools-console-shared"
 import { MonitorSwitch } from "@/pages/debug/console/components/monitor-switch"
 import { StatCard } from "@/pages/debug/console/components/stat-card"
@@ -37,9 +38,12 @@ export function ConsolePage() {
     <div className="dev-console-page flex h-full flex-col bg-[#faf9f7]">
       {/* 页面标题（高度固定 60px，参考 main-header） */}
       <div className="console-page-header flex h-[60px] shrink-0 items-center justify-between border-b border-[#f0efed] bg-white px-4">
-        <div className="flex flex-col items-start gap-0.5">
-          <h2 className="text-[16px] font-bold text-stone-900">控制台</h2>
-          <span className="text-[12px] text-stone-400">Console 日志查看与监听控制</span>
+        <div className="flex items-center gap-2">
+          <PageBackButton />
+          <div className="flex flex-col items-start gap-0.5">
+            <h2 className="text-[16px] font-bold text-stone-900">控制台</h2>
+            <span className="text-[12px] text-stone-400">Console 日志查看与监听控制</span>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <StatusBadge

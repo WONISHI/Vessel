@@ -122,7 +122,7 @@ export function StoragePage() {
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col bg-[#faf9f7]">
+    <div className="dev-storage-page flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-[#faf9f7]">
       {/* 页面标题（高度固定 60px，参考 main-header） */}
       <div className="flex h-[60px] shrink-0 items-center justify-between border-b border-[#f0efed] bg-white px-4">
         <div className="flex items-center gap-2.5">
@@ -137,7 +137,7 @@ export function StoragePage() {
       </div>
 
       {/* 主体：左表列表 + 右数据 */}
-      <div className="flex min-h-0 flex-1 gap-4 p-4">
+      <div className="flex min-h-0 flex-1 gap-4 overflow-hidden p-4">
         {/* 左侧数据表列表 */}
         <aside className="w-[224px] shrink-0 overflow-y-auto rounded-xl border border-[#e7e5e4] bg-white p-2 [scrollbar-width:thin]">
           <div className="flex items-center justify-between px-1.5 pb-2 pt-1">
@@ -154,6 +154,7 @@ export function StoragePage() {
                   key={t.name}
                   onClick={() => switchTable(t.name)}
                   data-title={`${t.name}：${getTableDescription(t.name)}`}
+                  data-title-side="right"
                   className={cn("flex h-auto w-full justify-start items-center gap-2.5 rounded-lg px-2 py-2 text-left transition-colors", active ? "bg-green-50 hover:bg-green-50" : "hover:bg-black/[0.03]")}
                 >
                   <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-lg", active ? "bg-green-100 text-green-600" : "bg-stone-100 text-stone-400")}>
@@ -175,7 +176,7 @@ export function StoragePage() {
         </aside>
 
         {/* 右侧数据卡片 */}
-        <section className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-[#e7e5e4] bg-white">
+        <section className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-[#e7e5e4] bg-white">
           {/* 表信息栏 */}
           <div className="flex shrink-0 items-center justify-between border-b border-[#f0efed] px-5 py-3">
             <div className="flex items-center gap-3">

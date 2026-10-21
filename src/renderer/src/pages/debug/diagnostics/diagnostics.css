@@ -1,5 +1,31 @@
 .diagnostics-layout { background: #faf9f7; }
 .diagnostics-breadcrumb { border-color: #f0efed; }
+
+/* Storage surfaces, pinned cells and controls share the diagnostic dark palette. */
+html.dark .dev-storage-page { background: #1a1d21 !important; color: #e6e8eb; }
+html.dark .dev-storage-page .bg-white { background-color: #23272d !important; }
+html.dark .dev-storage-page .bg-\[\#faf9f7\] { background-color: #262a30 !important; }
+html.dark .dev-storage-page :is(.border, .border-b, .border-t, .border-r) { border-color: #363c44 !important; }
+html.dark .dev-storage-page :is(.text-stone-900, .text-stone-800, .text-stone-700) { color: #e6e8eb !important; }
+html.dark .dev-storage-page :is(.text-stone-600, .text-stone-500) { color: #b1b7c0 !important; }
+html.dark .dev-storage-page :is(.text-stone-400, .text-stone-300) { color: #929aa5 !important; }
+html.dark .dev-storage-page :is(.bg-stone-100, .bg-stone-200\/60, .bg-stone-200\/70) { background-color: #30353c !important; }
+html.dark .dev-storage-page :is(.bg-green-50, .bg-green-100) { background-color: #173b2b !important; }
+html.dark .dev-storage-page :is(.text-green-600, .text-green-700) { color: #4ade80 !important; }
+html.dark .dev-storage-page .text-purple-600 { color: #c084fc !important; }
+html.dark .dev-storage-page :is(.text-blue-600, .text-blue-700) { color: #60a5fa !important; }
+html.dark .dev-storage-page .bg-blue-50 { background-color: #1c304b !important; }
+html.dark .dev-storage-page .text-amber-700 { color: #fbbf24 !important; }
+html.dark .dev-storage-page .bg-amber-50 { background-color: #3b321c !important; }
+html.dark .dev-storage-page input::placeholder { color: #929aa5; }
+html.dark .dev-storage-page :is(input, [role="combobox"]) { background-color: #1c2025 !important; color: #e6e8eb !important; border-color: #363c44 !important; }
+html.dark .dev-storage-page :is(button, a):not(:disabled):not([aria-disabled="true"]):hover { background-color: #30353c !important; color: #e6e8eb !important; }
+html.dark .dev-storage-page button[aria-pressed="true"]:hover { background-color: #204b36 !important; }
+html.dark .dev-storage-page a[aria-current="page"]:hover { background-color: #15803d !important; color: #fff !important; }
+html.dark .dev-storage-page tbody tr:hover { background-color: #2b3037 !important; }
+html.dark .dev-storage-page tbody tr:hover td.sticky { background-color: #2b3037 !important; }
+html.dark .dev-storage-page tbody tr.bg-amber-50:hover,
+html.dark .dev-storage-page tbody tr.bg-amber-50:hover td.sticky { background-color: #493c20 !important; }
 .diagnostics-console-grid { height: 380px; flex-shrink: 0; }
 .diagnostics-console-grid > div { min-width: 0; }
 .diagnostics-console-grid [data-slot="scroll-area-viewport"] > div { display: block !important; min-width: 0; }
@@ -9,3 +35,27 @@
   .diagnostics-console-grid > div { min-height: 340px; }
   .diagnostics-console-body > .grid:first-child { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+/* Three-level navigation from docs/devtools/debug.html. */
+.diagnostics-breadcrumb { display: flex; align-items: center; gap: 4px; flex-shrink: 0; padding: 8px 16px; border-bottom: 1px solid #f0efed; background: #fff; }
+.diagnostics-breadcrumb-trigger { display: flex; align-items: center; gap: 5px; padding: 5px 10px; border-radius: 6px; font-size: 13px; color: #78716c; transition: background .12s, color .12s; }
+.diagnostics-breadcrumb-trigger:hover { background: #faf9f7; color: #1c1917; }
+.diagnostics-breadcrumb-chevron { width: 12px; height: 12px; opacity: .6; transition: transform .15s; }
+.diagnostics-breadcrumb-trigger[data-state="open"] .diagnostics-breadcrumb-chevron { transform: rotate(180deg); }
+.diagnostics-breadcrumb-separator { font-size: 12px; color: #d6d3d1; user-select: none; }
+.diagnostics-breadcrumb-current { padding: 5px 10px; font-size: 13px; font-weight: 600; color: #16a34a; }
+.diagnostics-breadcrumb-menu { min-width: 180px; padding: 0; overflow: hidden; border: 1px solid #e7e5e4; border-radius: 10px; background: #fff; box-shadow: 0 10px 40px rgba(0,0,0,.12); }
+.diagnostics-menu-label { padding: 8px 12px 4px; font-size: 10px; font-weight: 700; letter-spacing: .5px; color: #a8a29e; }
+.diagnostics-menu-item { gap: 8px; padding: 8px 12px; border-radius: 0; font-size: 13px; color: #44403c; cursor: pointer; }
+.diagnostics-menu-item:is(:focus, [data-highlighted]) { background: #faf9f7; color: #1c1917; }
+.diagnostics-menu-item[aria-current="page"] { background: #f0fdf4; color: #15803d; font-weight: 600; }
+.diagnostics-menu-item .diagnostics-menu-icon { width: 16px; height: 16px; color: #78716c; }
+.diagnostics-menu-item .diagnostics-menu-check { width: 14px; height: 14px; margin-left: auto; opacity: 0; }
+.diagnostics-menu-item[aria-current="page"] .diagnostics-menu-check { opacity: 1; }
+html.dark .diagnostics-breadcrumb-menu { background: #23272d; border-color: #363c44; box-shadow: 0 10px 40px #0005; }
+html.dark .diagnostics-menu-label { color: #929aa5; }
+html.dark .diagnostics-menu-item { color: #e6e8eb; }
+html.dark .diagnostics-menu-item .diagnostics-menu-icon { color: #9aa1a9; }
+html.dark .diagnostics-menu-item:is(:focus, [data-highlighted]) { background: #30353c; color: #fff; }
+html.dark .diagnostics-menu-item[aria-current="page"] { background: #173b2b; color: #4ade80; }
+html.dark .diagnostics-breadcrumb-current { color: #4ade80; }

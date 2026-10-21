@@ -1,8 +1,30 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { afterEach, expect, it, vi } from "vitest"
 import { CodeLanguageDialog } from "@/components/core/canvas/variants/markdown/code-language-dialog"
+import { decorateCodeBlocks } from "@/components/core/canvas/variants/markdown/code-blocks"
+import { useEffect, useRef, useState } from "react"
+import userEvent from "@testing-library/user-event"
 
 afterEach(cleanup)
+it("keeps the language picker open after a complete code header click", async () => {
+  function Editor() {
+    const root = useRef<HTMLDivElement>(null)
+    const [block, setBlock] = useState<HTMLElement | null>(null)
+    useEffect(() => {
+      const element = root.current!
+      element.innerHTML = '<div data-type="code-block"><pre class="vditor-ir__marker"><code>plain text</code></pre></div>'
+      decorateCodeBlocks(element)
+      const open = (event: Event) => setBlock((event as CustomEvent<HTMLElement>).detail)
+      element.addEventListener("vessel-code-language", open)
+      return () => element.removeEventListener("vessel-code-language", open)
+    }, [])
+    return <><div ref={root} data-testid="editor" />{block && <CodeLanguageDialog anchor={block} value="text" onClose={() => setBlock(null)} onConfirm={() => setBlock(null)} />}</>
+  }
+  render(<Editor />)
+  await userEvent.click(screen.getByTestId("editor").querySelector("pre")!)
+  expect(screen.getByRole("dialog", { name: "代码语言" })).toBeTruthy()
+  expect(screen.getByRole("textbox", { name: "搜索语言" })).toBe(document.activeElement)
+})
 it("filters languages and applies the draft only on confirmation", () => {
   const confirm = vi.fn()
   render(<CodeLanguageDialog value="text" onClose={vi.fn()} onConfirm={confirm} />)

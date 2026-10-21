@@ -4,10 +4,11 @@ import Canvas from "@/components/workspace/components/layout-main/canvas"
 import WorkspaceHome from "@/components/workspace/components/layout-main/workspace-home"
 import { BrowserRoute } from "@/pages/browser"
 import { Base64Tool, ColorTool, JsonTool, URLTool } from "@/pages/debug/components/utility-tools"
-import DevtoolsConsole from "@/pages/debug/console/index"
 import DiagnosticsPage from "@/pages/debug/diagnostics/index"
 import DebugPage from "@/pages/debug/index"
 import DevtoolsStorage from "@/pages/debug/storage/index"
+import PerformancePage from "@/pages/debug/performance"
+import SystemInfoPage from "@/pages/debug/system-info"
 import { EditorRoute } from "@/pages/editor/index"
 import SourceTreePage from "@/pages/git/index"
 import ImageRoute from "@/pages/image/index"
@@ -98,8 +99,10 @@ export const routes: AppRouteRecordRaw[] = [
         index: true,
         redirect: { name: "devtools-json" }
       },
-      { path: "console", redirect: { name: "devtools-console" } },
-      { path: "storage", redirect: { name: "devtools-storage" } }
+      { path: "console", redirect: { name: "devtools-performance" } },
+      { path: "storage", redirect: { name: "devtools-storage" } },
+      { path: "performance", redirect: { name: "devtools-performance" } },
+      { path: "system", redirect: { name: "devtools-system" } }
     ]
   },
   {
@@ -108,18 +111,24 @@ export const routes: AppRouteRecordRaw[] = [
     component: DiagnosticsPage,
     meta: { title: "调试页面", hidden: true },
     children: [
-      { index: true, redirect: { name: "devtools-console" } },
+      { index: true, redirect: { name: "devtools-performance" } },
       {
         path: "console",
         name: "devtools-console",
-        component: DevtoolsConsole,
-        meta: {
-          title: "控制台",
-          icon: "Terminal",
-          description: "Console 日志查看与监听控制",
-          group: "主要功能",
-          order: 1
-        }
+        redirect: { name: "devtools-performance" },
+        meta: { hidden: true }
+      },
+      {
+        path: "performance",
+        name: "devtools-performance",
+        component: PerformancePage,
+        meta: { title: "性能监控", icon: "Activity", description: "CPU / 内存 / 帧率实时监控", group: "主要功能", order: 1 }
+      },
+      {
+        path: "system",
+        name: "devtools-system",
+        component: SystemInfoPage,
+        meta: { title: "系统信息", icon: "Monitor", description: "平台 / 分辨率 / 网络状态", group: "主要功能", order: 3 }
       },
       {
         path: "storage",

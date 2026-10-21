@@ -1,6 +1,9 @@
 import { ipcRenderer } from "electron"
+import type { PerformanceSnapshot, SystemInfo } from "@vessel/type"
 
 export const welcomeAPI = {
+  getSystemInfo: (): Promise<SystemInfo> => ipcRenderer.invoke("system:info"),
+  getPerformanceSnapshot: (): Promise<PerformanceSnapshot> => ipcRenderer.invoke("performance:snapshot"),
   /** Reads workspace directory. */
   readWorkspaceDirectory: (root: string, directory: string) => ipcRenderer.invoke("workspace:readDirectory", root, directory),
   /**

@@ -4,7 +4,11 @@ import { AppDatabase } from "@main/modules/welcome/database/index.database"
 import type { WorkspaceDataInput, WorkspaceFile } from "@main/modules/welcome/index.type"
 import { assertStateKey, isWorkspaceData } from "@main/modules/welcome/utils/index.util"
 import { generalSettings, isIgnoredEntry, parseIgnoredPatterns } from "@main/settings/settings"
-import { BrowserWindow, dialog, ipcMain } from "electron"
+import { app, BrowserWindow, dialog, ipcMain, screen } from "electron"
+import { release, totalmem } from "node:os"
+import { createPerformanceSampler } from "./performance"
+import { getDatabaseStorageBytes } from "./system-info"
+import type { SystemInfo } from "@vessel/type"
 import { readdir, realpath, stat } from "fs/promises"
 import { basename, extname, isAbsolute, join, relative } from "path"
 
@@ -161,6 +165,21 @@ export class WelcomeModule extends BaseModule {
 
       /** 获取数据库路径、数据库版本、设备 ID 和本次应用会话 ID。 */
       this.registerHandler("storage:getInfo", () => database.getInfo())
+      const samplePerformance = createPerformanceSampler(() => app.getAppMetrics(), totalmem)
+      this.registerHandler("performance:snapshot", () => samplePerformance())
+      this.registerHandler("system:info", async (event): Promise<SystemInfo> => {
+        const window = BrowserWindow.fromWebContents(event.sender)
+        const display = window ? screen.getDisplayMatching(window.getBounds()) : screen.getPrimaryDisplay()
+        return {
+          platform: process.platform,
+          arch: process.arch,
+          osRelease: release(),
+          locale: app.getLocale(),
+          electronVersion: process.versions.electron,
+          storageBytes: await getDatabaseStorageBytes(database.getInfo().databasePath),
+          display: { width: Math.round(display.size.width * display.scaleFactor), height: Math.round(display.size.height * display.scaleFactor), scaleFactor: display.scaleFactor }
+        }
+      })
 
       this.registerHandler("storage:listTables", () =>
         database.getTables().map((table) => ({

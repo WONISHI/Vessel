@@ -673,3 +673,37 @@ html.dark .dev-console-page [role="switch"] { background: #3a4049 !important; }
 html.dark .dev-console-page [role="switch"][data-state="checked"] { background: #22c55e !important; }
 html.dark .dev-console-page [role="switch"] > span { background: #a9aeb6 !important; }
 html.dark .dev-console-page [role="switch"][data-state="checked"] > span { background: #fff !important; }
+
+/* DEV ACTIONS light hover uses the subtle neutral surface from the reference. */
+html:not(.dark) .dev-actions-menu :is([role="menuitem"], [role="menuitemcheckbox"]):is(:hover, :focus, [data-highlighted], [data-state="open"]) {
+  background: #faf9f7 !important;
+  color: #44403c !important;
+}
+html:not(.dark) .dev-actions-menu :is([role="menuitem"], [role="menuitemcheckbox"]):is(:hover, :focus, [data-highlighted], [data-state="open"]) > svg {
+  color: #78716c !important;
+  stroke: currentColor !important;
+}
+
+/* Shortcut groups retain clear dark surfaces, muted separators and readable keycaps. */
+html.dark .settings-shortcuts .settings-shortcut-group {
+  background: #23272d !important;
+  border-color: #363c44 !important;
+}
+html.dark .settings-shortcuts .settings-shortcut-heading {
+  background: #262a30 !important;
+  color: #e6e8eb !important;
+}
+html.dark .settings-shortcuts .settings-shortcut-heading:hover {
+  background: #30353c !important;
+}
+html.dark .settings-shortcuts .settings-shortcut-rows > * {
+  border-color: #30353c !important;
+}
+html.dark .settings-shortcuts :is(.text-stone-800, .text-stone-700) { color: #e6e8eb !important; }
+html.dark .settings-shortcuts .text-stone-400 { color: #929aa5 !important; }
+html.dark .settings-shortcuts kbd {
+  background: #2b3037 !important;
+  border-color: #444c56 !important;
+  color: #cdd9e5 !important;
+  box-shadow: 0 1px 0 #1c2025;
+}

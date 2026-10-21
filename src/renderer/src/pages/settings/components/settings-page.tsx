@@ -603,18 +603,18 @@ export function SettingsPage() {
                     </Row>
                     <Row
                       title="冲突处理"
-                      description="双方都修改时，默认保留两个版本；双向模式会生成本地冲突副本。"
+                      description="双方都修改时，默认保留较新版本；也可以选择保留双方生成冲突副本。"
                     >
                       <Select
-                        value={draft.backup.conflictStrategy ?? "keep-both"}
+                        value={draft.backup.conflictStrategy ?? "keep-newer"}
                         onValueChange={(value) => backup("conflictStrategy", value as "keep-both" | "keep-newer" | "keep-larger" | "error")}
                       >
                         <SelectTrigger aria-label="冲突处理">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="keep-both">保留双方</SelectItem>
                           <SelectItem value="keep-newer">保留较新版本</SelectItem>
+                          <SelectItem value="keep-both">保留双方</SelectItem>
                           <SelectItem value="keep-larger">保留较大版本</SelectItem>
                           <SelectItem value="error">发现冲突时停止</SelectItem>
                         </SelectContent>

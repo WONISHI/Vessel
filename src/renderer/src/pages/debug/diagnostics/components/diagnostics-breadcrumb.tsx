@@ -1,48 +1,61 @@
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { useDevToolsRouteTree } from "@/pages/debug/components/hooks/useDevToolsRouteTree"
 import { useRouter } from "@vessel/react-router"
-import { CheckSquare, ChevronDown } from "lucide-react"
-import { Fragment } from "react"
+import { Check, CheckSquare, ChevronDown, Terminal, Wrench } from "lucide-react"
 
-/** Builds diagnostic navigation from route groups rather than duplicating page names. */
+/** Route-derived three-level breadcrumb matching the debug design. */
 export function DiagnosticsBreadcrumb() {
   const tree = useDevToolsRouteTree()
   const router = useRouter()
+  const groupTitle = String(tree?.currentGroup?.meta?.title ?? "主要功能")
   return (
-    <nav aria-label="调试页面导航" className="diagnostics-breadcrumb flex h-12 shrink-0 items-center gap-3 border-b bg-white px-5 text-[13px] text-stone-500">
+    <nav aria-label="调试页面导航" className="diagnostics-breadcrumb">
       <DropdownMenu>
-        <DropdownMenuTrigger className="flex items-center gap-1.5 rounded-md px-1 py-1 hover:bg-stone-100">
-          <CheckSquare className="size-3.5" />调试页面<ChevronDown className="size-3" />
+        <DropdownMenuTrigger className="diagnostics-breadcrumb-trigger">
+          <CheckSquare className="size-3.5" />调试页面<ChevronDown className="diagnostics-breadcrumb-chevron" />
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start">
-          {tree?.groups.map((group, index) => (
-            <Fragment key={group.name}>
-              {index > 0 && <DropdownMenuSeparator />}
-              <DropdownMenuLabel>{String(group.meta?.title ?? "")}</DropdownMenuLabel>
-              {group.children?.map((page) => (
-                <DropdownMenuItem key={page.name} onSelect={() => { void router.push({ name: page.name }) }}>
-                  {String(page.meta?.title ?? "")}
-                </DropdownMenuItem>
-              ))}
-            </Fragment>
-          ))}
+        <DropdownMenuContent align="start" className="diagnostics-breadcrumb-menu">
+          <DropdownMenuLabel className="diagnostics-menu-label">选择分组</DropdownMenuLabel>
+          {tree?.groups.map((group) => {
+            const title = String(group.meta?.title ?? "")
+            const Icon = title === "工具" ? Wrench : Terminal
+            return (
+              <DropdownMenuItem
+                className="diagnostics-menu-item"
+                key={group.name}
+                onSelect={() => {
+                  const page = group.children?.[0]
+                  if (page?.name) void router.push({ name: page.name })
+                }}
+              >
+                <Icon className="diagnostics-menu-icon" />{title}
+              </DropdownMenuItem>
+            )
+          })}
         </DropdownMenuContent>
       </DropdownMenu>
-      <span className="text-stone-300">/</span>
+      <span className="diagnostics-breadcrumb-separator">/</span>
       <DropdownMenu>
-        <DropdownMenuTrigger className="flex items-center gap-1.5 rounded-md px-1 py-1 hover:bg-stone-100">
-          {String(tree?.currentGroup?.meta?.title ?? "主要功能")}<ChevronDown className="size-3" />
+        <DropdownMenuTrigger className="diagnostics-breadcrumb-trigger">
+          {groupTitle}<ChevronDown className="diagnostics-breadcrumb-chevron" />
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start">
+        <DropdownMenuContent align="start" className="diagnostics-breadcrumb-menu">
+          <DropdownMenuLabel className="diagnostics-menu-label">{groupTitle}</DropdownMenuLabel>
           {tree?.currentGroup?.children?.map((page) => (
-            <DropdownMenuItem key={page.name} onSelect={() => { void router.push({ name: page.name }) }}>
+            <DropdownMenuItem
+              className="diagnostics-menu-item"
+              aria-current={page.name === tree.currentPage?.name ? "page" : undefined}
+              key={page.name}
+              onSelect={() => { void router.push({ name: page.name }) }}
+            >
               {String(page.meta?.title ?? "")}
+              <Check aria-hidden="true" className="diagnostics-menu-check" />
             </DropdownMenuItem>
           ))}
         </DropdownMenuContent>
       </DropdownMenu>
-      <span className="text-stone-300">/</span>
-      <span aria-current="page" className="font-semibold text-green-600">{String(tree?.currentPage?.meta?.title ?? "")}</span>
+      <span className="diagnostics-breadcrumb-separator">/</span>
+      <span aria-current="page" className="diagnostics-breadcrumb-current">{String(tree?.currentPage?.meta?.title ?? "性能监控")}</span>
     </nav>
   )
 }

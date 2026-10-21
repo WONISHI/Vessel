@@ -33,10 +33,15 @@ export interface StorageAdapter {
 }
 export type SyncDirection = "push" | "pull" | "bidirectional"
 export type ConflictStrategy = "keep-both" | "keep-newer" | "keep-larger" | "error"
+export const DEFAULT_CONFLICT_STRATEGY: ConflictStrategy = "keep-newer"
+export const DEFAULT_PROPAGATE_DELETES = true
 export interface SyncPlanItem {
   path: string
   action: "upload" | "download" | "delete-local" | "delete-remote" | "merge" | "conflict" | "equal" | "skip"
   reason: string
+  isRename?: boolean
+  renameSource?: string
+  renameTarget?: string
 }
 export interface SyncLogEvent {
   type: "start" | "phase" | "operation" | "finish" | "error"

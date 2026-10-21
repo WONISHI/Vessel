@@ -88,6 +88,8 @@ export interface StorageInfo {
 }
 
 export interface VesselAPI extends BrowserProxyAPI, BrowserToolsAPI, SettingsAPI, BrowserExtensionsAPI, TodosAPI, TerminalAPI, FileWatchAPI {
+  getPerformanceSnapshot: () => Promise<import("@vessel/type").PerformanceSnapshot>
+  getSystemInfo: () => Promise<import("@vessel/type").SystemInfo>
   searchContent(options: ContentSearchOptions): Promise<ContentSearchResult>
   cancelContentSearch(): void
   pickSearchFolder(): Promise<string | null>

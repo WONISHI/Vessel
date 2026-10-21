@@ -4,7 +4,7 @@ import { join } from "node:path"
 import { tmpdir } from "node:os"
 import { createHash } from "node:crypto"
 import { setTimeout as delay } from "node:timers/promises"
-import { syncFiles, collectFiles, SyncError, type StorageAdapter, type RemoteFile } from "#vessel-sync/index"
+import { syncFiles, collectFiles, SyncError, DEFAULT_CONFLICT_STRATEGY, type StorageAdapter, type RemoteFile } from "#vessel-sync/index"
 const roots: string[] = []
 afterEach(async () => {
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })))
@@ -65,13 +65,22 @@ it("reuses hashes, still checks the remote, and detects content changes with res
 it("keeps remote edits and caches repeatable local conflict copies separately from the baseline", async () => {
   const f = await fixture(2)
   f.objects.set("0.md", { digest: null, etag: '"remote"', content: Buffer.from("external") })
-  expect(await syncFiles(f.options)).toMatchObject({ changed: 2, conflicts: ["0.md"] })
+  expect(await syncFiles({ ...f.options, conflictStrategy: "keep-both" })).toMatchObject({ changed: 2, conflicts: ["0.md"] })
   const key = [...f.objects.keys()].find((key) => key.startsWith(".vessel/conflicts/"))!
   expect(key).toMatch(/0\.conflict-[a-f0-9]{64}\.md$/)
   expect(f.objects.get(key)!.content.toString()).toBe("file 0")
   expect(f.objects.get("0.md")!.content.toString()).toBe("external")
-  expect(await syncFiles(f.options)).toMatchObject({ changed: 0, cached: 2, conflicts: ["0.md"] })
+  expect(await syncFiles({ ...f.options, conflictStrategy: "keep-both" })).toMatchObject({ changed: 0, cached: 2, conflicts: ["0.md"] })
   expect(JSON.parse(await readFile(join(f.root, "state/backup-files-index.json"), "utf8")).files["0.md"]).toBeUndefined()
+})
+it("defaults conflictStrategy to DEFAULT_CONFLICT_STRATEGY (keep-newer) and avoids conflict files", async () => {
+  expect(DEFAULT_CONFLICT_STRATEGY).toBe("keep-newer")
+  const f = await fixture(1)
+  f.objects.set("0.md", { digest: null, etag: '"remote"', modifiedMs: 0, content: Buffer.from("older remote") })
+  const result = await syncFiles(f.options)
+  expect(result.changed).toBe(1)
+  expect([...f.objects.keys()].some((key) => key.includes(".conflict"))).toBe(false)
+  expect(f.objects.get("0.md")!.content.toString()).toBe("file 0")
 })
 it("settles in-flight work and checkpoints successes before reporting a failure", async () => {
   const f = await fixture(4),

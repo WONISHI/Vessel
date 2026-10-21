@@ -12,6 +12,8 @@
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "imports": {
+    "#vessel-type/system-info": "./src/system-info.ts",
+    "#vessel-type/performance": "./src/performance.ts",
     "#vessel-type/browser-extensions": "./src/browser-extensions.ts",
     "#vessel-type/browser-proxy": "./src/browser-proxy.ts",
     "#vessel-type/browser-tools": "./src/browser-tools.ts",

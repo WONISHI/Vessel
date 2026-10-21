@@ -69,6 +69,8 @@ export function decorateCodeBlocks(root: HTMLElement, readOnly = false) {
         frame.classList.remove("vessel-code-frame")
         delete frame.dataset.language
         frame.onmousedown = null
+        frame.onmouseup = null
+        frame.onclick = null
         frame.oncontextmenu = null
         frame.oncopy = null
       }
@@ -81,6 +83,8 @@ export function decorateCodeBlocks(root: HTMLElement, readOnly = false) {
         frame.classList.remove("vessel-code-frame")
         delete frame.dataset.language
         frame.onmousedown = null
+        frame.onmouseup = null
+        frame.onclick = null
         frame.oncontextmenu = null
         frame.oncopy = null
       }
@@ -94,14 +98,27 @@ export function decorateCodeBlocks(root: HTMLElement, readOnly = false) {
       const text = code.textContent
       code.replaceChildren(document.createTextNode(text || ""))
     }
-    if (!readOnly)
+    if (!readOnly) {
+      // Open after the complete click, so the initiating pointer event cannot dismiss the popover.
+      const isHeader = (event: MouseEvent) => {
+        const offset = event.clientY - pre.getBoundingClientRect().top
+        return offset >= 0 && offset <= 40
+      }
       pre.onmousedown = (event) => {
-        if (event.button !== 0) return
-        if (event.clientY - pre.getBoundingClientRect().top > 40) return
+        if (event.button !== 0 || !isHeader(event)) return
+        event.preventDefault()
+        event.stopPropagation()
+      }
+      pre.onmouseup = (event) => {
+        if (event.button === 0 && isHeader(event)) event.stopPropagation()
+      }
+      pre.onclick = (event) => {
+        if (event.button !== 0 || !isHeader(event)) return
         event.preventDefault()
         event.stopPropagation()
         root.dispatchEvent(new CustomEvent("vessel-code-language", { detail: block }))
       }
+    }
     pre.oncontextmenu = (event) => {
       if (event.clientY - pre.getBoundingClientRect().top > 40) return
       event.preventDefault()

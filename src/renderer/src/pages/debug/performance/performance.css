@@ -1,0 +1,36 @@
+.performance-page { --perf-bg: #faf9f7; --perf-surface: #fff; --perf-edge: #e7e5e4; --perf-rule: #f0efed; --perf-text: #292524; --perf-muted: #78716c; --perf-faint: #a8a29e; --perf-track: #f0efed; --perf-green: #16a34a; display: flex; flex-direction: column; width: 100%; height: 100%; min-height: 0; overflow: hidden; background: var(--perf-bg); color: var(--perf-text); }
+html.dark .performance-page { --perf-bg: #1a1d21; --perf-surface: #23272d; --perf-edge: #363c44; --perf-rule: #30353c; --perf-text: #e6e8eb; --perf-muted: #b1b7c0; --perf-faint: #929aa5; --perf-track: #30353c; --perf-green: #4ade80; }
+.performance-header { height: 60px; flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; border-bottom: 1px solid var(--perf-rule); background: var(--perf-surface); }
+.performance-header h2 { font-size: 16px; font-weight: 700; }
+.performance-header p { font-size: 12px; color: var(--perf-faint); }
+.performance-status { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 999px; font-size: 11px; background: var(--perf-track); color: var(--perf-muted); }
+.performance-status[data-live="true"] { background: #dcfce7; color: #15803d; }
+html.dark .performance-status[data-live="true"] { background: #173b2b; color: #4ade80; }
+.performance-body { flex: 1; min-height: 0; overflow: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.performance-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; flex-shrink: 0; }
+.performance-card { padding: 16px; background: var(--perf-surface); border: 1px solid var(--perf-edge); border-radius: 10px; }
+.performance-card h3 { font-size: 11px; font-weight: 600; color: var(--perf-faint); }
+.performance-value { font-size: 30px; font-weight: 700; line-height: 1.4; margin: 4px 0 8px; font-variant-numeric: tabular-nums; }
+.performance-value span { font-size: 14px; font-weight: 400; color: var(--perf-muted); }
+.performance-track { height: 6px; background: var(--perf-track); border-radius: 999px; overflow: hidden; }
+.performance-fill { height: 100%; border-radius: inherit; background: #16a34a; transition: width .3s; }
+.performance-fill.cyan { background: #0891b2; }
+.performance-processes { display: flex; flex-direction: column; min-height: 120px; max-height: 100%; border: 1px solid var(--perf-edge); border-radius: 12px; overflow: hidden; background: var(--perf-surface); }
+.performance-process-heading { display: flex; flex-shrink: 0; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid var(--perf-rule); background: var(--perf-bg); }
+.performance-process-heading h3 { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; }
+.performance-process-heading svg { color: var(--perf-muted); }
+.performance-process-heading > span { font-size: 11px; color: var(--perf-muted); border: 1px solid var(--perf-edge); border-radius: 4px; padding: 1px 8px; background: var(--perf-surface); }
+.performance-process-scroll { min-height: 0; overflow: auto; }
+.performance-processes table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.performance-processes th, .performance-processes td { padding: 11px 16px; border-bottom: 1px solid var(--perf-rule); }
+.performance-processes tr:last-child > * { border-bottom: 0; }
+.performance-processes th { text-align: left; font-weight: 500; color: var(--perf-text); }
+.performance-processes td { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; font-family: ui-monospace, monospace; font-weight: 600; }
+.performance-process-name, .performance-pid { margin-left: 8px; font-size: 10px; color: var(--perf-faint); }
+.performance-cpu { width: 90px; color: var(--perf-green); }
+.performance-cpu[data-busy="true"] { color: #d97706; }
+.performance-memory { width: 100px; color: var(--perf-muted); }
+.performance-empty { padding: 36px; text-align: center; color: var(--perf-muted); font-size: 12px; }
+.performance-error { color: #dc2626; background: #fef2f2; padding: 10px; border-radius: 8px; font-size: 12px; }
+html.dark .performance-error { color: #fca5a5; background: #421f26; }
+@media (max-width: 640px) { .performance-metrics { grid-template-columns: 1fr; } .performance-pid { display: block; margin-left: 0; } .performance-processes { flex-shrink: 0; max-height: 420px; } }

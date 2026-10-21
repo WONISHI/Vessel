@@ -1,7 +1,7 @@
 import { excludedBackupName, syncBackup } from "@main/sync/settings-backup"
 import { createS3Storage } from "@main/sync/settings-s3"
 import { getSyncDiagnostics } from "@main/sync/sync-diagnostics"
-import { collectFiles, createSyncExcludeFilter, parseSyncExcludeRules, type SyncProgress } from "@vessel/sync"
+import { collectFiles, createSyncExcludeFilter, parseSyncExcludeRules, DEFAULT_CONFLICT_STRATEGY, type SyncProgress } from "@vessel/sync"
 import type { AppSettings, BackupStatus } from "@vessel/type"
 import { defaultSettings, isIgnoredEntry, isLegacyDefaultIgnoredFiles, parseIgnoredPatterns } from "@vessel/utils"
 import { app, safeStorage, type WebContents } from "electron"
@@ -90,7 +90,7 @@ function validate(value: AppSettings): AppSettings {
   if (!["light", "dark", "system"].includes(value.theme) || ![5, 10, 30].includes(value.backup.minutes) || !Number.isInteger(value.fontSize) || value.fontSize < 12 || value.fontSize > 18) throw new Error("设置选项无效")
   if (!["Plus Jakarta Sans", "Inter", "system-ui", "PingFang SC", "Georgia"].includes(value.font) || !/^#[0-9a-f]{6}$/i.test(value.accent)) throw new Error("外观设置无效")
   const direction = value.backup.direction ?? "bidirectional",
-    conflictStrategy = value.backup.conflictStrategy ?? "keep-both"
+    conflictStrategy = value.backup.conflictStrategy ?? DEFAULT_CONFLICT_STRATEGY
   const concurrency = value.backup.concurrency ?? 8,
     deleteThresholdPercent = value.backup.deleteThresholdPercent ?? 20,
     maxFileSizeMB = value.backup.maxFileSizeMB ?? 0

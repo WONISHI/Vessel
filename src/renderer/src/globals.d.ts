@@ -90,6 +90,8 @@ interface StorageInfo {
 
 /** preload 暴露给 React 渲染进程的完整 API。 */
 interface VesselAPI extends BrowserProxyAPI, BrowserToolsAPI, SettingsAPI, BrowserExtensionsAPI, TodosAPI, TerminalAPI, FileWatchAPI {
+  getPerformanceSnapshot: () => Promise<import("@vessel/type").PerformanceSnapshot>
+  getSystemInfo: () => Promise<import("@vessel/type").SystemInfo>
   searchContent(options: import("@vessel/type").ContentSearchOptions): Promise<import("@vessel/type").ContentSearchResult>
   cancelContentSearch(): void
   pickSearchFolder(): Promise<string | null>

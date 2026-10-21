@@ -21,7 +21,7 @@ it("pushes readable files, compares content, repairs missing objects and protect
   try {
     const source = join(root, "large.bin")
     await writeFile(source, Buffer.alloc(9 * 1024 * 1024, 1))
-    const config = { ...defaultSettings.backup, propagateDeletes: false, prefix: "notes", endpoint: "https://example.com", bucket: "test" }
+    const config = { ...defaultSettings.backup, conflictStrategy: "keep-both" as const, propagateDeletes: false, prefix: "notes", endpoint: "https://example.com", bucket: "test" }
     const files = [{ path: "workspace/中文.bin", source }]
     expect(await syncBackup(root, config, "secret", files, undefined)).toMatchObject({ changed: 1 })
     expect(remote.get("notes/workspace/中文.bin")?.content.length).toBe(9 * 1024 * 1024)

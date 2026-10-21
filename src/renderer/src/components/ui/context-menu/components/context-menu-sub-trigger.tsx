@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils"
 import * as Primitive from "@radix-ui/react-context-menu"
 import * as React from "react"
-import { ChevronDown, ChevronRight } from "lucide-react"
+import { ChevronRight } from "lucide-react"
 
 /** Renders the context menu sub trigger component. */
 export const ContextMenuSubTrigger = React.forwardRef<React.ElementRef<typeof Primitive.SubTrigger>, React.ComponentPropsWithoutRef<typeof Primitive.SubTrigger>>(({ className, children, ...props }, ref) => (
@@ -14,8 +14,7 @@ export const ContextMenuSubTrigger = React.forwardRef<React.ElementRef<typeof Pr
     {...props}
   >
     {children}
-    <ChevronRight aria-hidden className="ml-auto shrink-0 group-data-[state=open]/context-submenu:hidden" />
-    <ChevronDown aria-hidden className="ml-auto hidden shrink-0 group-data-[state=open]/context-submenu:block" />
+    <ChevronRight aria-hidden className="ml-auto shrink-0 transition-transform duration-150 ease-out group-data-[state=open]/context-submenu:rotate-90 motion-reduce:transition-none" />
   </Primitive.SubTrigger>
 ))
 

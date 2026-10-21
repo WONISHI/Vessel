@@ -5,7 +5,7 @@ import { AlertCircle, AlertTriangle, CheckCircle2, FileText, Info, Play, Square 
 
 const checkboxItemClassName =
   "cursor-pointer rounded-md py-[6px] pr-2 text-[12.5px] text-stone-700 " +
-  "focus:bg-[#faf9f7] data-[state=checked]:text-stone-700 " +
+  "focus:bg-[#faf9f7] data-[highlighted]:bg-[#faf9f7] data-[highlighted]:text-stone-700 data-[state=checked]:text-stone-700 " +
   "[&>span:first-child]:h-[14px] " +
   "[&>span:first-child]:w-[14px] " +
   "[&>span:first-child]:rounded-[4px] " +
@@ -85,7 +85,7 @@ export function DevToolsMenu({ isSpyEnabled, enabledTypes, hasError, menuItems, 
           py-[7px]
           text-[13px]
           text-stone-700
-          focus:bg-[#faf9f7]
+          focus:bg-[#faf9f7] data-[highlighted]:bg-[#faf9f7] data-[highlighted]:text-stone-700
           focus:text-stone-700
         "
       >
@@ -119,7 +119,7 @@ export function DevToolsMenu({ isSpyEnabled, enabledTypes, hasError, menuItems, 
             py-[7px]
             text-[13px]
             text-stone-700
-            focus:bg-[#faf9f7]
+            focus:bg-[#faf9f7] data-[highlighted]:bg-[#faf9f7] data-[highlighted]:text-stone-700
             data-[state=open]:bg-[#faf9f7]
           "
         >
@@ -243,7 +243,7 @@ export function DevToolsMenu({ isSpyEnabled, enabledTypes, hasError, menuItems, 
               py-[7px]
               text-[13px]
               text-stone-700
-              focus:bg-[#faf9f7]
+              focus:bg-[#faf9f7] data-[highlighted]:bg-[#faf9f7] data-[highlighted]:text-stone-700
               focus:text-stone-700
             "
           >

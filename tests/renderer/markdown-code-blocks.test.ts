@@ -105,6 +105,10 @@ it("dispatches vessel-code-language only on left-click in header", () => {
 
   // Left-click should trigger code-language dialog
   pre.dispatchEvent(new MouseEvent("mousedown", { button: 0, clientY: 120, bubbles: true }))
+  expect(languageClicked).toBe(false)
+  pre.dispatchEvent(new MouseEvent("click", { button: 0, clientY: 160, bubbles: true }))
+  expect(languageClicked).toBe(false)
+  pre.dispatchEvent(new MouseEvent("click", { button: 0, clientY: 120, bubbles: true }))
   expect(languageClicked).toBe(true)
 
   root.remove()

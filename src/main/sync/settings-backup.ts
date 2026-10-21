@@ -1,5 +1,5 @@
 import { createS3Storage } from "@main/sync/settings-s3"
-import { syncFiles, type BackupFile, type SyncOptions, type SyncProgress } from "@vessel/sync"
+import { syncFiles, DEFAULT_CONFLICT_STRATEGY, DEFAULT_PROPAGATE_DELETES, type BackupFile, type SyncOptions, type SyncProgress } from "@vessel/sync"
 import type { AppSettings } from "@vessel/type"
 import { rm, writeFile } from "node:fs/promises"
 import { join } from "node:path"
@@ -28,8 +28,8 @@ export async function syncBackup(directory: string, config: AppSettings["backup"
       ...runtime,
       direction: runtime.root ? (config.direction ?? "bidirectional") : "push",
       concurrency: config.concurrency ?? 8,
-      conflictStrategy: config.conflictStrategy ?? "keep-both",
-      propagateDeletes: config.propagateDeletes ?? false,
+      conflictStrategy: config.conflictStrategy ?? DEFAULT_CONFLICT_STRATEGY,
+      propagateDeletes: config.propagateDeletes ?? DEFAULT_PROPAGATE_DELETES,
       deleteThresholdPercent: config.deleteThresholdPercent ?? 20,
       maxFileSize: (config.maxFileSizeMB ?? 0) * 1024 ** 2,
       prefix: config.prefix,

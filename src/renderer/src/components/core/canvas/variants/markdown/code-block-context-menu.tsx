@@ -9,8 +9,6 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu"
-import { cn } from "@/lib/utils"
-import { Copy, CornerLeftUp, CornerLeftDown, Focus, Trash2 } from "lucide-react"
 
 interface CodeBlockContextMenuProps {
   x: number
@@ -52,8 +50,8 @@ export function CodeBlockContextMenu({
         onFocusOutside={(event) => event.preventDefault()}
       >
         <DropdownMenuSub>
-          <DropdownMenuSubTrigger disabled={readOnly} className={cn(menuItemClass, "[&>svg]:size-3.5")}>
-            <Focus className="size-3.5 shrink-0" />
+          <DropdownMenuSubTrigger disabled={readOnly} className={menuItemClass}>
+
             <span>聚焦</span>
           </DropdownMenuSubTrigger>
           <DropdownMenuPortal>
@@ -66,7 +64,7 @@ export function CodeBlockContextMenu({
                   requestAnimationFrame(onFocusAbove)
                 }}
               >
-                <CornerLeftUp className="size-3.5 shrink-0" />
+
                 <span>在上方聚焦</span>
               </DropdownMenuItem>
               <DropdownMenuItem
@@ -77,7 +75,7 @@ export function CodeBlockContextMenu({
                   requestAnimationFrame(onFocusBelow)
                 }}
               >
-                <CornerLeftDown className="size-3.5 shrink-0" />
+
                 <span>在下方聚焦</span>
               </DropdownMenuItem>
             </DropdownMenuSubContent>
@@ -91,7 +89,7 @@ export function CodeBlockContextMenu({
             onCopy()
           }}
         >
-          <Copy className="size-3.5 shrink-0" />
+
           <span>复制</span>
         </DropdownMenuItem>
 
@@ -105,7 +103,7 @@ export function CodeBlockContextMenu({
                 onDelete()
               }}
             >
-              <Trash2 className="size-3.5 shrink-0" />
+
               <span>删除</span>
             </DropdownMenuItem>
           </>

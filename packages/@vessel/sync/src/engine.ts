@@ -1,5 +1,5 @@
 import { mergeMarkdown, mergeableMarkdown, MAX_MERGE_BYTES } from "#vessel-sync/merge-text"
-import { SyncError, type RemoteFile, type SyncLogEvent, type SyncOptions, type SyncPlanItem, type SyncResult } from "#vessel-sync/types"
+import { DEFAULT_CONFLICT_STRATEGY, DEFAULT_PROPAGATE_DELETES, SyncError, type RemoteFile, type SyncLogEvent, type SyncOptions, type SyncPlanItem, type SyncResult } from "#vessel-sync/types"
 import { createHash, randomUUID } from "node:crypto"
 import { constants, createReadStream } from "node:fs"
 import { copyFile, link, lstat, mkdir, open, readFile, readdir, realpath, rename, rm, utimes, writeFile } from "node:fs/promises"
@@ -153,7 +153,7 @@ async function run(options: SyncOptions, prefix: string, indexPath: string, conc
   const started = performance.now(),
     storage = options.storage,
     direction = options.direction ?? "push",
-    strategy = options.conflictStrategy ?? "keep-both"
+    strategy = options.conflictStrategy ?? DEFAULT_CONFLICT_STRATEGY
   if (!["push", "pull", "bidirectional"].includes(direction) || !["keep-both", "keep-newer", "keep-larger", "error"].includes(strategy)) throw new RangeError("Invalid sync direction or conflict strategy")
   const threshold = options.deleteThresholdPercent ?? 20
   if (!Number.isFinite(threshold) || threshold < 0 || threshold > 100) throw new RangeError("deleteThresholdPercent must be between 0 and 100")
@@ -346,11 +346,144 @@ async function run(options: SyncOptions, prefix: string, indexPath: string, conc
     return request
   }
   type Task = SyncPlanItem & { local?: { source: string; entry: Entry }; remote?: RemoteFile; merged?: string; winner?: "local" | "remote" }
+
+  // Detect local renames / moves
+  const localRenames = new Map<string, string>() // oldPath -> newPath
+  const localRenamedFrom = new Map<string, string>() // newPath -> oldPath
+
+  const deletedLocalCandidates: string[] = []
+  for (const path of Object.keys(previous.files)) {
+    if (!locals.has(path) && remotePaths.has(path) && included(path)) {
+      deletedLocalCandidates.push(path)
+    }
+  }
+
+  const addedLocalCandidates: string[] = []
+  for (const path of locals.keys()) {
+    if (!previous.files[path] && !remotePaths.has(path) && included(path)) {
+      addedLocalCandidates.push(path)
+    }
+  }
+
+  // 1. Match by inode and device (on macOS/Linux/APFS/NTFS hardlinks, exact physical file)
+  for (const newPath of addedLocalCandidates) {
+    if (localRenamedFrom.has(newPath)) continue
+    const newEntry = locals.get(newPath)?.entry
+    const newIno = newEntry?.fingerprint?.ino
+    const newDev = newEntry?.fingerprint?.dev
+    if (newIno && newDev && newIno !== 0) {
+      for (const oldPath of deletedLocalCandidates) {
+        if (localRenames.has(oldPath)) continue
+        const oldFp = previous.files[oldPath]?.fingerprint
+        if (oldFp?.ino === newIno && oldFp?.dev === newDev) {
+          localRenames.set(oldPath, newPath)
+          localRenamedFrom.set(newPath, oldPath)
+          break
+        }
+      }
+    }
+  }
+
+  // 2. Match by content SHA-256 digest
+  for (const newPath of addedLocalCandidates) {
+    if (localRenamedFrom.has(newPath)) continue
+    const newDigest = locals.get(newPath)?.entry.digest
+    if (!newDigest) continue
+    for (const oldPath of deletedLocalCandidates) {
+      if (localRenames.has(oldPath)) continue
+      if (previous.files[oldPath]?.digest === newDigest) {
+        localRenames.set(oldPath, newPath)
+        localRenamedFrom.set(newPath, oldPath)
+        break
+      }
+    }
+  }
+
+  // 3. Match by directory + common prefix/suffix
+  for (const newPath of addedLocalCandidates) {
+    if (localRenamedFrom.has(newPath)) continue
+    const newBase = posix.basename(newPath)
+    const newDir = posix.dirname(newPath)
+    let bestOld: string | undefined
+    let bestScore = 0
+    for (const oldPath of deletedLocalCandidates) {
+      if (localRenames.has(oldPath)) continue
+      if (posix.dirname(oldPath) !== newDir) continue
+      const oldBase = posix.basename(oldPath)
+      let suffixLen = 0
+      while (
+        suffixLen < oldBase.length &&
+        suffixLen < newBase.length &&
+        oldBase[oldBase.length - 1 - suffixLen] === newBase[newBase.length - 1 - suffixLen]
+      ) {
+        suffixLen++
+      }
+      if (suffixLen >= 3 && suffixLen > bestScore) {
+        bestScore = suffixLen
+        bestOld = oldPath
+      }
+    }
+    if (bestOld) {
+      localRenames.set(bestOld, newPath)
+      localRenamedFrom.set(newPath, bestOld)
+    }
+  }
+
+  // 4. Fallback: unique 1:1 match in the same directory with same extension
+  for (const newPath of addedLocalCandidates) {
+    if (localRenamedFrom.has(newPath)) continue
+    const newDir = posix.dirname(newPath)
+    const newExt = posix.extname(newPath)
+    const matchingOld = deletedLocalCandidates.filter(
+      (oldPath) => !localRenames.has(oldPath) && posix.dirname(oldPath) === newDir && posix.extname(oldPath) === newExt
+    )
+    const matchingNew = addedLocalCandidates.filter(
+      (p) => !localRenamedFrom.has(p) && posix.dirname(p) === newDir && posix.extname(p) === newExt
+    )
+    if (matchingOld.length === 1 && matchingNew.length === 1) {
+      localRenames.set(matchingOld[0], newPath)
+      localRenamedFrom.set(newPath, matchingOld[0])
+    }
+  }
+
+  // Detect remote renames / moves
+  const remoteRenames = new Map<string, string>() // oldPath -> newPath
+  const remoteRenamedFrom = new Map<string, string>() // newPath -> oldPath
+
+  const deletedRemoteCandidates: string[] = []
+  for (const path of Object.keys(previous.files)) {
+    if (locals.has(path) && !remotePaths.has(path) && included(path)) {
+      deletedRemoteCandidates.push(path)
+    }
+  }
+
+  const addedRemoteCandidates: string[] = []
+  for (const path of remotePaths) {
+    if (!previous.files[path] && !locals.has(path) && included(path)) {
+      addedRemoteCandidates.push(path)
+    }
+  }
+
+  for (const newPath of addedRemoteCandidates) {
+    const remoteDigest = snapshot?.get(keyFor(newPath))?.digest
+    if (!remoteDigest) continue
+    for (const oldPath of deletedRemoteCandidates) {
+      if (remoteRenames.has(oldPath)) continue
+      if (previous.files[oldPath]?.digest === remoteDigest) {
+        remoteRenames.set(oldPath, newPath)
+        remoteRenamedFrom.set(newPath, oldPath)
+        break
+      }
+    }
+  }
+
   const paths = new Set([...locals.keys(), ...result.skipped!])
   if (direction !== "push" || options.propagateDeletes) {
     for (const path of remotePaths) paths.add(path)
     for (const path of Object.keys(previous.files)) if (included(path)) paths.add(path)
   }
+  for (const oldPath of localRenames.keys()) paths.add(oldPath)
+  for (const newPath of remoteRenames.values()) paths.add(newPath)
   const tasks: Task[] = []
   const prefetched = new Map<string, { source: string; remote: RemoteFile }>()
   phase("planning", 0, paths.size)
@@ -362,6 +495,10 @@ async function run(options: SyncOptions, prefix: string, indexPath: string, conc
     }
     const local = locals.get(path),
       old = previous.files[path]
+    const renamedTo = localRenames.get(path),
+      renamedFrom = localRenamedFrom.get(path),
+      remoteRenamedTarget = remoteRenames.get(path),
+      remoteRenamedSource = remoteRenamedFrom.get(path)
     let remote = await remoteAt(path, old)
     // Missing provider-specific metadata is unknown content, not evidence of conflict.
     // Verify unknown content once and reuse these exact bytes if the plan later downloads it.
@@ -421,7 +558,30 @@ async function run(options: SyncOptions, prefix: string, indexPath: string, conc
         }
       }
     } else if (local) {
-      if (old && local.entry.digest === old.digest && options.propagateDeletes && direction !== "push") {
+      if (renamedFrom) {
+        if (direction !== "pull") {
+          task.action = "upload"
+          task.reason = `从 ${renamedFrom} 重命名`
+          task.isRename = true
+          task.renameSource = renamedFrom
+        } else {
+          task.action = "skip"
+          task.reason = "下载模式保留仅本地文件"
+          task.isRename = true
+        }
+      } else if (remoteRenamedTarget) {
+        if (options.propagateDeletes && direction !== "push") {
+          task.action = "delete-local"
+          task.reason = `远端已重命名为 ${remoteRenamedTarget}`
+          task.isRename = true
+          task.renameTarget = remoteRenamedTarget
+        } else {
+          task.action = "skip"
+          task.reason = `远端已重命名为 ${remoteRenamedTarget}`
+          task.isRename = true
+          task.renameTarget = remoteRenamedTarget
+        }
+      } else if (old && local.entry.digest === old.digest && options.propagateDeletes && direction !== "push") {
         task.action = "delete-local"
         task.reason = "远端已删除，本地未变化"
       } else if (direction !== "pull") {
@@ -432,7 +592,24 @@ async function run(options: SyncOptions, prefix: string, indexPath: string, conc
         task.reason = "下载模式保留仅本地文件"
       }
     } else if (remote) {
-      if (old && remote.digest === old.digest && options.propagateDeletes && direction !== "pull") {
+      if (renamedTo) {
+        if (direction !== "pull" && storage.remove) {
+          task.action = "delete-remote"
+          task.reason = `已重命名为 ${renamedTo}`
+          task.isRename = true
+          task.renameTarget = renamedTo
+        } else {
+          task.action = "skip"
+          task.reason = `已重命名为 ${renamedTo}，跳过下载旧文件`
+          task.isRename = true
+          task.renameTarget = renamedTo
+        }
+      } else if (remoteRenamedSource) {
+        task.action = "download"
+        task.reason = `从 ${remoteRenamedSource} 远端重命名`
+        task.isRename = true
+        task.renameSource = remoteRenamedSource
+      } else if (old && remote.digest === old.digest && options.propagateDeletes && direction !== "pull") {
         task.action = "delete-remote"
         task.reason = "本地已删除，远端未变化"
       } else if (direction !== "push") {
@@ -495,7 +672,7 @@ async function run(options: SyncOptions, prefix: string, indexPath: string, conc
   })
   tasks.sort((a, b) => a.path.localeCompare(b.path))
   const publicPlan = tasks.map(({ path, action, reason }) => ({ path, action, reason }))
-  const deletes = tasks.filter((task) => task.action.startsWith("delete-")).length
+  const deletes = tasks.filter((task) => task.action.startsWith("delete-") && !task.isRename).length
   const protectedDeletion = deletes > 0 && threshold < 100 && deletes * 100 > tasks.length * threshold
   options.signal?.throwIfAborted()
   if (options.dryRun) {
@@ -758,6 +935,8 @@ async function run(options: SyncOptions, prefix: string, indexPath: string, conc
       } else if (task.action === "equal") {
         if (task.local && task.remote) await establish(task.path, { ...task.local.entry, remote: task.remote }, task.local.source)
         else if (!task.local && !task.remote) record(task.path)
+      } else if (task.action === "skip") {
+        if (task.isRename && task.renameTarget) record(task.path)
       }
       if (transfers) completed++
       // Adopting thousands of unchanged legacy objects changes only receipts. Persist

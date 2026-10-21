@@ -17,7 +17,7 @@ const groups = [
     ] },
     { label: "引用", icon: Quote, value: "> 引用内容" },
     { label: "代码", icon: Code, children: [
-      { label: "代码块", icon: CodeXml, value: "```text\n代码内容\n```" },
+      { label: "代码块", icon: CodeXml, value: "code-block" },
       { label: "行内代码", icon: Code, value: "`代码`", inline: true }
     ] },
     { label: "插入表格", icon: Table2, value: "| 标题一 | 标题二 |\n| --- | --- |\n| 内容 | 内容 |" },

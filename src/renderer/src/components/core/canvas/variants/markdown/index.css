@@ -863,10 +863,26 @@ html.dark .document-outline-bar-row[aria-current="location"] { background: trans
 html.dark .document-outline-bar-row[aria-current="location"]:hover { background: transparent; box-shadow: none; }
 html.dark .document-outline-bar-row[aria-current="location"] .document-outline-bar { background: #4ade80; }
 
-/* Keep consecutive image blocks and multiple embeds within a block visually separated. */
+/* Image previews must not inherit code-fence placeholder lines or preserved whitespace. */
+.vessel-vditor .vessel-image-block {
+  display: block;
+  white-space: normal;
+  margin-top: 4px !important;
+  margin-bottom: 4px !important;
+}
+.vessel-vditor .vessel-image-block::before,
+.vessel-vditor .vessel-image-block::after { display: none !important; }
+
+/* Keep consecutive images separated without stacking large gaps. */
 .vessel-vditor .vessel-image-block + .vessel-image-block {
-  margin-top: 16px !important;
+  margin-top: 4px !important;
 }
 .vessel-obsidian-image + .vessel-obsidian-image {
-  margin-top: 16px !important;
+  margin-top: 8px !important;
+}
+
+/* A small gap separates code cards from adjacent document blocks. */
+.vessel-vditor [data-type="code-block"]:has(pre.vessel-code-frame) {
+  margin-top: 4px !important;
+  margin-bottom: 12px !important;
 }

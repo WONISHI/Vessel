@@ -74,8 +74,8 @@ select {
 }
 
 /* 按钮 hover 处于深绿/纯白文字背景时，图标与文字强制纯白（不影响浅色 active/hover 状态） */
-button[class*="hover:text-white"]:hover svg,
-button[class*="hover:!text-white"]:hover svg,
+button[class~="hover:text-white"]:hover svg,
+button[class~="hover:!text-white"]:hover svg,
 button[class*="hover:bg-emerald-6"]:hover svg,
 button[class*="hover:bg-emerald-7"]:hover svg,
 button[class*="hover:bg-emerald-8"]:hover svg,

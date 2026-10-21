@@ -2,6 +2,8 @@ import { MarkdownInsertMenu } from "@/components/core/canvas/variants/markdown/i
 import { bindMarkdownInsertMenu, type MarkdownInsertLocation } from "@/components/core/canvas/variants/markdown/insert-menu-selection"
 import { CodeBlockContextMenu } from "@/components/core/canvas/variants/markdown/code-block-context-menu"
 import { CodeLanguageDialog } from "@/components/core/canvas/variants/markdown/code-language-dialog"
+import { insertEmptyCodeBlock } from "@/components/core/canvas/variants/markdown/insert-code-block"
+import { changeCodeLanguage } from "@/components/core/canvas/variants/markdown/change-code-language"
 import { bindTaskCheckboxes } from "@/components/core/canvas/variants/markdown/task-checkboxes"
 import { renderSteps, escapeStepsText } from "@vessel/markdown-steps"
 import "@vessel/markdown-steps/style.css"
@@ -367,7 +369,8 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
       imageFrame = requestAnimationFrame(() => {
         if (disposed) return
         const value = editor.getValue()
-        editor.setValue(prepareObsidianImages(value))
+        // insertMD already renders the prepared image block; preserve the rest of the editor DOM.
+        decorate()
         changeHandler.current((properties?.raw ?? "") + restoreObsidianImages(value))
       })
     }
@@ -425,7 +428,8 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
           lang: "zh_CN",
           theme: "classic",
           image: { isPreview: false },
-          preview: { hljs: { style: "atom-one-light" }, math: { engine: "KaTeX" } },
+          // Language selection is handled by our explicit toolbar picker, not Vditor autocomplete.
+          preview: { hljs: { style: "atom-one-light", langs: [] }, math: { engine: "KaTeX" } },
           icon: "ant",
           height: "auto",
           value: prepareObsidianImages(initialValue.current),
@@ -680,6 +684,7 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
             }
             if (value === "image") imageInsertAction.current?.()
             else if (value === "link") triggerInsertLink(range)
+            else if (value === "code-block") insertEmptyCodeBlock(instance.current, editable)
             else instance.current.insertValue(inline ? value : `\n\n${value}\n\n`, true)
             setInsertLocation(null)
           }}
@@ -691,15 +696,7 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
           value={languageBlock.querySelector("pre code")?.className.match(/language-([^\s]+)/)?.[1] || "text"}
           onClose={() => setLanguageBlock(null)}
           onConfirm={(language) => {
-            const info = languageBlock.querySelector('[data-type="code-block-info"]')
-            const code = languageBlock.querySelector("pre.vditor-ir__marker code")
-            if (info && code && instance.current && languageBlock.isConnected) {
-              info.textContent = "\u200b" + language
-              code.className = "language-" + language
-              const next = instance.current.getValue()
-              instance.current.setValue(next)
-              changeHandler.current((properties?.raw ?? "") + restoreObsidianImages(next))
-            }
+            if (instance.current && !readOnly) changeCodeLanguage(instance.current, languageBlock, language)
             setLanguageBlock(null)
           }}
         />

@@ -27,7 +27,7 @@ const options = {
   prefix: "notes",
   direction: "bidirectional" as const,
   concurrency: 8,
-  conflictStrategy: "keep-both" as const,
+  conflictStrategy: "keep-newer" as const,
   propagateDeletes: false,
   signal: controller.signal,
   onProgress: ({ phase, completed, total, bytes }) => {
@@ -57,7 +57,7 @@ console.log(result.changed, result.downloaded, result.conflicts, result.duration
 | 一端删除，另一端修改             | 保留修改，不传播删除                        |
 | 双方不存在                       | 清理历史记录                                |
 
-冲突策略支持 `keep-both`（默认）、`keep-newer`、`keep-larger`、`error`。双向 `keep-both` 会先尝试对不超过 256 KiB 的 `.md` / `.markdown` 正文进行三方合并（先按行，再按 Unicode 字符细化同一行的独立修改）（排除 `.excalidraw.md`）：合并共同基线上的非重叠修改，相同改动只保留一次，连续输入的前缀版本保留完整版本。比较前统一 CRLF/LF，合并结果保留本地换行风格；即使没有共同基线，仅换行符不同的正文也不会生成冲突副本。成功时更新本地与远端，不生成冲突副本，预览计划显示 `merge`。共同基线保存在同步状态目录的 `<indexName>.merge-bases/`，仅保留当前版本；升级后需要一次成功同步来建立基线，缺少基线不会猜测覆盖。差异范围超出计算预算、非法 UTF-8、二进制内容、重叠修改或其他格式仍按原策略处理。
+冲突策略支持 `keep-newer`（默认）、`keep-both`、`keep-larger`、`error`。双向 `keep-both` 会先尝试对不超过 256 KiB 的 `.md` / `.markdown` 正文进行三方合并（先按行，再按 Unicode 字符细化同一行的独立修改）（排除 `.excalidraw.md`）：合并共同基线上的非重叠修改，相同改动只保留一次，连续输入的前缀版本保留完整版本。比较前统一 CRLF/LF，合并结果保留本地换行风格；即使没有共同基线，仅换行符不同的正文也不会生成冲突副本。成功时更新本地与远端，不生成冲突副本，预览计划显示 `merge`。共同基线保存在同步状态目录的 `<indexName>.merge-bases/`，仅保留当前版本；升级后需要一次成功同步来建立基线，缺少基线不会猜测覆盖。差异范围超出计算预算、非法 UTF-8、二进制内容、重叠修改或其他格式仍按原策略处理。
 
 无法安全合并时，双向 `keep-both` 保留远端原文件，把本地内容保存为同目录 `name.conflict-local-<sha256>.ext` 并同步到远端，再将远端原文件下载到本地。单向上传的冲突副本存放在远端 `.vessel/conflicts/`；单向下载的副本只保存在本地。相同副本不会重复生成。
 
@@ -114,7 +114,7 @@ Vessel 设置中的“同步排除规则”和“同步诊断日志”按工作�
 | `prefix`                             | 空                        | 远端相对前缀                                                 |
 | `direction`                          | `push`                    | `push`、`pull`、`bidirectional`；保持旧包调用的兼容性        |
 | `concurrency`                        | `8`                       | 1–32 个文件                                                  |
-| `conflictStrategy`                   | `keep-both`               | `keep-newer`、`keep-larger`、`error`                         |
+| `conflictStrategy`                   | `keep-newer`              | `keep-both`、`keep-larger`、`error`                          |
 | `propagateDeletes`                   | `false`                   | 本地清单必须完整，或通过 `paths` 明确限定范围                |
 | `deleteThresholdPercent`             | `20`                      | 删除比例超过阈值时整体中止；100 表示不限制比例               |
 | `maxFileSize`                        | `0`                       | 大小限制，字节；0 不限制；适配器自身上限仍生效               |
