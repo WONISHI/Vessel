@@ -180,6 +180,7 @@ async function run(options: SyncOptions, prefix: string, indexPath: string, conc
     if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw new SyncError("INVALID_STATE", "同步索引无法读取", { cause: error })
   }
   const next: Index = { version: 2, target, files: Object.assign(Object.create(null), previous.files), hashes: Object.assign(Object.create(null), previous.hashes), copies: Object.assign(Object.create(null), previous.copies) }
+  const skippedReasons = new Map<string, string>()
   const result: SyncResult = { time: "", size: 0, changed: 0, downloaded: 0, downloadSize: 0, deleted: 0, conflicts: [], skipped: [], checked: 0, hashed: 0, cached: 0, durationMs: 0, running: false }
   const activeBytes = new Map<string, number>()
   let loggedPhase: string | undefined
@@ -206,6 +207,16 @@ async function run(options: SyncOptions, prefix: string, indexPath: string, conc
             options.signal?.throwIfAborted()
             await operation(item)
           } catch (error) {
+            if (!options.signal?.aborted && error instanceof SyncError && error.code === "FILE_CHANGED") {
+              const path = typeof item === "string" ? item : (item as { path?: string }).path
+              if (path) {
+                if (!result.skipped!.includes(path)) result.skipped!.push(path)
+                skippedReasons.set(path, "文件正在编辑，已跳过，等待下次同步")
+                if (item && typeof item === "object" && "action" in item) Object.assign(item, { action: "skip", reason: skippedReasons.get(path) })
+                log(options, { type: "operation", path, action: "skip", code: "FILE_CHANGED", message: skippedReasons.get(path)! })
+                continue
+              }
+            }
             if (!failed) {
               failed = true
               failure = error
@@ -346,7 +357,7 @@ async function run(options: SyncOptions, prefix: string, indexPath: string, conc
   let planned = 0
   await parallel([...paths].sort(), async (path) => {
     if (result.skipped!.includes(path)) {
-      tasks.push({ path, action: "skip", reason: "文件超过大小限制" })
+      tasks.push({ path, action: "skip", reason: skippedReasons.get(path) ?? "文件超过大小限制" })
       return
     }
     const local = locals.get(path),
@@ -454,7 +465,6 @@ async function run(options: SyncOptions, prefix: string, indexPath: string, conc
       }
     }
     const base = (await readBase(task.remote.digest ?? undefined)) ?? (await readBase(old?.digest))
-    if (!base) return
     let verified = prefetched.get(task.path)
     if (!verified) {
       const source = join(await temporaryDirectory(), randomUUID())
@@ -473,8 +483,12 @@ async function run(options: SyncOptions, prefix: string, indexPath: string, conc
     let localText: string
     try {
       localText = decode(local)
-      task.merged = mergeMarkdown(decode(base), localText, decode(remote))
-    } catch { return } // Invalid UTF-8 is not Markdown prose.
+      const remoteText = decode(remote)
+      if (localText.replace(/\r\n/g, "\n") === remoteText.replace(/\r\n/g, "\n")) task.merged = localText
+      else if (base) task.merged = mergeMarkdown(decode(base), localText, remoteText)
+      else { task.reason = "缺少可验证的共同正文基线，保留双方版本"; return }
+    } catch { task.reason = "正文不是有效 UTF-8，保留双方版本"; return }
+    if (task.merged === undefined) task.reason = "同一位置的正文修改无法安全合并，保留双方版本"
     if (task.merged !== undefined && options.maxFileSize && Buffer.byteLength(task.merged) > options.maxFileSize) task.merged = undefined
     if (task.merged === localText) { task.merged = undefined; task.action = "upload"; task.reason = "本地修改已包含远端内容" }
     else if (task.merged !== undefined) { task.action = "merge"; task.reason = "自动合并双方不重叠的 Markdown 修改" }

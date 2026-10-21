@@ -8,6 +8,16 @@ export function mergeableMarkdown(path: string, size: number) {
 
 /** Computes line edits with a bounded LCS matrix; expensive inputs fall back to keep-both. */
 function edits(base: string[], target: string[]): Edit[] | undefined {
+  // Trim equal edges before allocating the matrix: typing in a large note is usually a tiny diff.
+  let prefix = 0
+  while (prefix < base.length && prefix < target.length && base[prefix] === target[prefix]) prefix++
+  let suffix = 0
+  while (suffix < base.length - prefix && suffix < target.length - prefix && base[base.length - suffix - 1] === target[target.length - suffix - 1]) suffix++
+  base = base.slice(prefix, base.length - suffix)
+  target = target.slice(prefix, target.length - suffix)
+  if (!base.length && !target.length) return []
+  if (!base.length) return [{ start: prefix, end: prefix, lines: target }]
+  if (!target.length) return [{ start: prefix, end: prefix + base.length, lines: [] }]
   if ((base.length + 1) * (target.length + 1) > 2_000_000) return
   const width = target.length + 1
   const matrix = new Uint32Array((base.length + 1) * width)
@@ -27,19 +37,12 @@ function edits(base: string[], target: string[]): Edit[] | undefined {
     }
   }
   if (current) result.push(current)
-  return result
+  return result.map((edit) => ({ ...edit, start: edit.start + prefix, end: edit.end + prefix }))
 }
 
-/** Merges disjoint line edits; overlapping changes are never silently resolved. */
-export function mergeMarkdown(base: string, local: string, remote: string): string | undefined {
-  if ([base, local, remote].some((value) => Buffer.byteLength(value) > MAX_MERGE_BYTES || value.includes("\0"))) return
-  if (local === remote) return local
-  if (base === local) return remote
-  if (base === remote) return local
-  // Keep original line endings and final newline exactly as supplied.
-  /** Splits without discarding line endings. */
-  const lines = (value: string) => value.match(/[^\n]*\n|[^\n]+$/g) ?? []
-  const original = lines(base), left = edits(original, lines(local)), right = edits(original, lines(remote))
+/** Combines disjoint edits, identical changes and progressive typing without choosing a timestamp winner. */
+function mergeSequences(original: string[], local: string[], remote: string[]): string | undefined {
+  const left = edits(original, local), right = edits(original, remote)
   if (!left || !right) return
   /** Removes a single trailing line ending for progressive prefix comparison. */
   const trimEnding = (value: string) => value.replace(/\r?\n$/, "")
@@ -61,15 +64,39 @@ export function mergeMarkdown(base: string, local: string, remote: string): stri
           continue
         }
       }
-      // Insertions at replacement boundaries are ambiguous: retain both originals instead.
-      const overlaps = a.start === a.end || b.start === b.end
-        ? a.start <= b.end && b.start <= a.end
+      // Boundary insertions commute with neighboring replacements; only interior overlaps conflict.
+      const overlaps = a.start === a.end && b.start === b.end ? a.start === b.start
+        : a.start === a.end ? a.start > b.start && a.start < b.end
+        : b.start === b.end ? b.start > a.start && b.start < a.end
         : a.start < b.end && b.start < a.end
       if (overlaps) return
     }
     if (!duplicate) combined.push(b)
   }
   const output = [...original]
-  for (const edit of combined.sort((a, b) => b.start - a.start)) output.splice(edit.start, edit.end - edit.start, ...edit.lines)
+  for (const edit of combined.sort((a, b) => b.start - a.start || b.end - a.end)) output.splice(edit.start, edit.end - edit.start, ...edit.lines)
   return output.join("")
+}
+
+
+/** Merges Markdown by lines first, then by Unicode characters for independent edits on the same line. */
+export function mergeMarkdown(base: string, local: string, remote: string): string | undefined {
+  if ([base, local, remote].some((value) => Buffer.byteLength(value) > MAX_MERGE_BYTES || value.includes("\0"))) return
+  if (local === remote) return local
+  if (base === local) return remote
+  if (base === remote) return local
+  const crlf = local.includes("\r\n") && !/(?<!\r)\n/.test(local)
+  const normalized = [base, local, remote].map((value) => value.replace(/\r\n/g, "\n"))
+  const [ancestor, ours, theirs] = normalized
+  let merged: string | undefined
+  if (ours === theirs) merged = ours
+  else if (ancestor === ours) merged = theirs
+  else if (ancestor === theirs) merged = ours
+  else {
+    /** Splits while retaining the trailing newline as editable content. */
+    const lines = (value: string) => value.match(/[^\n]*\n|[^\n]+$/g) ?? []
+    merged = mergeSequences(lines(ancestor), lines(ours), lines(theirs))
+      ?? mergeSequences(Array.from(ancestor), Array.from(ours), Array.from(theirs))
+  }
+  return merged === undefined ? undefined : crlf ? merged.replace(/\n/g, "\r\n") : merged
 }

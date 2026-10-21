@@ -57,7 +57,7 @@ console.log(result.changed, result.downloaded, result.conflicts, result.duration
 | 一端删除，另一端修改             | 保留修改，不传播删除                        |
 | 双方不存在                       | 清理历史记录                                |
 
-冲突策略支持 `keep-both`（默认）、`keep-newer`、`keep-larger`、`error`。双向 `keep-both` 会先尝试对不超过 256 KiB 的 `.md` / `.markdown` 正文进行三方行合并（排除 `.excalidraw.md`）：仅合并共同基线上的非重叠修改，相同改动只保留一次。成功时更新本地与远端，不生成冲突副本，预览计划显示 `merge`。共同基线保存在同步状态目录的 `<indexName>.merge-bases/`，仅保留当前版本；升级后需要一次成功同步来建立基线，缺少基线不会猜测覆盖。行数过多、非法 UTF-8、二进制内容、重叠修改或其他格式仍按原策略处理。
+冲突策略支持 `keep-both`（默认）、`keep-newer`、`keep-larger`、`error`。双向 `keep-both` 会先尝试对不超过 256 KiB 的 `.md` / `.markdown` 正文进行三方合并（先按行，再按 Unicode 字符细化同一行的独立修改）（排除 `.excalidraw.md`）：合并共同基线上的非重叠修改，相同改动只保留一次，连续输入的前缀版本保留完整版本。比较前统一 CRLF/LF，合并结果保留本地换行风格；即使没有共同基线，仅换行符不同的正文也不会生成冲突副本。成功时更新本地与远端，不生成冲突副本，预览计划显示 `merge`。共同基线保存在同步状态目录的 `<indexName>.merge-bases/`，仅保留当前版本；升级后需要一次成功同步来建立基线，缺少基线不会猜测覆盖。差异范围超出计算预算、非法 UTF-8、二进制内容、重叠修改或其他格式仍按原策略处理。
 
 无法安全合并时，双向 `keep-both` 保留远端原文件，把本地内容保存为同目录 `name.conflict-local-<sha256>.ext` 并同步到远端，再将远端原文件下载到本地。单向上传的冲突副本存放在远端 `.vessel/conflicts/`；单向下载的副本只保存在本地。相同副本不会重复生成。
 
@@ -179,8 +179,10 @@ npm pack --workspace=@vessel/sync
 
 此测试覆盖没有 SHA 元数据、仅有单段内容 ETag 的首次接入场景；不是实际 S3 网络测速。只有真实变化项进入传输进度，无变化文件的基线批量落盘。
 
-实现参考：[Remotely Save 同步策略](https://github.com/remotely-save/remotely-save/blob/master/docs/sync_algorithm/v3/intro.md)及其[小型 Markdown 智能冲突处理思路](https://github.com/remotely-save/remotely-save/blob/master/pro/README.md)。这里使用独立实现的保守三方行合并，不依赖该项目代码。
+实现参考：[Remotely Save 同步策略](https://github.com/remotely-save/remotely-save/blob/master/docs/sync_algorithm/v3/intro.md)及其[小型 Markdown 智能冲突处理思路](https://github.com/remotely-save/remotely-save/blob/master/pro/README.md)。这里使用独立实现的保守三方合并，不依赖该项目代码。
 
 ### 编辑期间同步
 
-Markdown 上传使用经过 SHA-256 校验的临时快照，不再直接上传编辑器正在改写的原文件。上传成功后记录该快照为共同基线；期间继续保存的本地内容不会被覆盖，下轮按本地新增修改上传，避免“远端已成功写入但未记录基线”的假冲突。快照创建过程中发生变化时仍中止该轮，不上传不一致内容。远端 ETag 条件写入、下载前本地版本检查及真实双方冲突保护仍保留。实现思路参考 [Remotely Save copyLogic.ts](https://github.com/remotely-save/remotely-save/blob/master/src/copyLogic.ts) 中先读取内容再写入远端的流程。
+Markdown 上传使用经过 SHA-256 校验的临时快照，不再直接上传编辑器正在改写的原文件。上传成功后记录该快照为共同基线；期间继续保存的本地内容不会被覆盖，下轮按本地新增修改上传，避免“远端已成功写入但未记录基线”的假冲突。快照创建、扫描或下载校验过程中发生本地变化时，只跳过该文件并记录 `FILE_CHANGED`，其他文件继续同步，不上传或覆盖不一致内容；变化文件留待下轮重试。远端 ETag 条件写入、下载前本地版本检查及真实双方冲突保护仍保留。实现思路参考 [Remotely Save copyLogic.ts](https://github.com/remotely-save/remotely-save/blob/master/src/copyLogic.ts) 中先读取内容再写入远端的流程。
+
+差异计算先去掉共同前缀和后缀，矩阵仅覆盖发生变化的范围；长笔记中的局部编辑不再因为整篇行数过多而直接判冲突。缺少基线或同一字符位置仍有互斥修改时，诊断日志记录具体原因并保留双方版本。

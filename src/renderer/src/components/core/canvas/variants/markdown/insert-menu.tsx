@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef } from "react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuPortal, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Code, CodeXml, Heading, ImagePlus, LayoutGrid, Link, List, ListChecks, ListOrdered, Milestone, Minus, Quote, Table2, TableProperties, Workflow } from "lucide-react"
@@ -36,7 +37,21 @@ const groups = [
 ]
 
 /** Shows the Markdown insertion actions at the saved context-menu position. */
-export function MarkdownInsertMenu({ x, y, onClose, onInsert }: { x: number; y: number; onClose: () => void; onInsert: (value: string, inline?: boolean) => void }) {
+export function MarkdownInsertMenu({ x, y, onClose, onInsert, preserveEditorFocus = false }: { preserveEditorFocus?: boolean; x: number; y: number; onClose: () => void; onInsert: (value: string, inline?: boolean) => void }) {
+  const editorFocus = useRef({ element: document.activeElement, range: window.getSelection()?.rangeCount ? window.getSelection()!.getRangeAt(0).cloneRange() : null })
+  useLayoutEffect(() => {
+    if (!preserveEditorFocus) return
+    const frame = requestAnimationFrame(() => {
+      const { element, range } = editorFocus.current
+      if (!(element instanceof HTMLElement) || !element.isConnected) return
+      element.focus({ preventScroll: true })
+      if (range?.startContainer.isConnected) {
+        window.getSelection()?.removeAllRanges()
+        window.getSelection()?.addRange(range)
+      }
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [preserveEditorFocus])
   return (
     <DropdownMenu open modal={false} onOpenChange={(open) => { if (!open) onClose() }}>
       <DropdownMenuTrigger aria-label="Markdown 插入菜单" style={{ position: "fixed", left: x, top: y, width: 0, height: 0, pointerEvents: "none" }} />

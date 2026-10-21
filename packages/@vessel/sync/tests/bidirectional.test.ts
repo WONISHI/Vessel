@@ -131,7 +131,7 @@ it("blocks local edits during downloads and symlink escapes", async () => {
     await writeFile(join(f.a, "note.md"), "edited during transfer")
     return remote
   }
-  await expect(f.run()).rejects.toMatchObject({ code: "FILE_CHANGED" })
+  expect(await f.run()).toMatchObject({ skipped: ["note.md"] })
   expect(await readFile(join(f.a, "note.md"), "utf8")).toBe("edited during transfer")
   f.storage.download = download
   f.objects.clear()
@@ -307,7 +307,7 @@ it("retains local edits made while an automatic merge is uploading", async () =>
     await writeFile(join(f.a, "note.md"), "new local edits during upload\n")
     return receipt
   })
-  await expect(f.run()).rejects.toMatchObject({ code: "FILE_CHANGED" })
+  expect(await f.run()).toMatchObject({ skipped: ["note.md"] })
   expect(await readFile(join(f.a, "note.md"), "utf8")).toBe("new local edits during upload\n")
 })
 
@@ -369,4 +369,47 @@ it("records the uploaded ancestor when a new file is edited before upload finish
   expect(await f.run()).toMatchObject({ changed: 1, conflicts: [] })
   expect(f.objects.get("note.md")?.content.toString()).toBe("second save\n")
   expect([...f.objects.keys()]).toEqual(["note.md"])
+})
+
+it("merges different edits within one paragraph and converges without any conflict files", async () => {
+  const f = await fixture()
+  await writeFile(join(f.a, "note.md"), "姓名 Alice，年龄 20。\n")
+  await f.run()
+  await f.run(f.b)
+  await writeFile(join(f.a, "note.md"), "姓名 Bob，年龄 20。\n")
+  await writeFile(join(f.b, "note.md"), "姓名 Alice，年龄 21。\n")
+  await f.run(f.b)
+  expect(await f.run()).toMatchObject({ conflicts: [] })
+  await f.run(f.b)
+  for (const root of [f.a, f.b]) {
+    expect(await readFile(join(root, "note.md"), "utf8")).toBe("姓名 Bob，年龄 21。\n")
+    expect(await readdir(root)).toEqual(["note.md"])
+  }
+})
+it("adopts equivalent line endings even on first sync without an ancestor", async () => {
+  const f = await fixture()
+  await writeFile(join(f.a, "note.md"), "# 笔记\r\n正文\r\n")
+  f.put("note.md", "# 笔记\n正文\n")
+  expect(await f.run()).toMatchObject({ conflicts: [], changed: 1 })
+  expect([...f.objects.keys()]).toEqual(["note.md"])
+  expect(await f.run()).toMatchObject({ conflicts: [], changed: 0 })
+})
+
+it("defers a file edited during download while continuing to synchronize other files", async () => {
+  const f = await fixture()
+  await writeFile(join(f.a, "note.md"), "base")
+  await f.run()
+  f.put("note.md", "remote edit")
+  await writeFile(join(f.a, "stable.md"), "stable note")
+  const download = f.storage.download!
+  vi.mocked(f.storage.download!).mockImplementationOnce(async (...args) => {
+    const receipt = await download(...args)
+    await writeFile(join(f.a, "note.md"), "typing during sync")
+    return receipt
+  })
+  const result = await f.run()
+  expect(result.skipped).toEqual(["note.md"])
+  expect(result.conflicts).toEqual([])
+  expect(f.objects.get("stable.md")?.content.toString()).toBe("stable note")
+  expect(await readFile(join(f.a, "note.md"), "utf8")).toBe("typing during sync")
 })

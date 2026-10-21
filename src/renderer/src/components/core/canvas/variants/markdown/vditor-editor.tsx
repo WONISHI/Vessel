@@ -213,7 +213,7 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
       }
     }
     element.addEventListener("keydown", handleKeyDown, true)
-    const unbindInsertMenu = readOnly ? () => {} : bindMarkdownInsertMenu(element, setInsertLocation)
+    const unbindInsertMenu = readOnly ? () => {} : bindMarkdownInsertMenu(element, setInsertLocation, () => setInsertLocation(null))
     const unbindTablePaste = readOnly ? () => {} : bindTablePaste(element)
     const unbindImageParagraphs = readOnly ? () => {} : bindImageParagraphs(element)
     const unbindListShortcuts = readOnly ? () => {} : bindListShortcuts(element)
@@ -663,6 +663,7 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
     <LinkInteractionArea className="relative flex h-full min-h-0 min-w-0 flex-col">
       {insertLocation && !readOnly && (
         <MarkdownInsertMenu
+          preserveEditorFocus={insertLocation.slash}
           x={insertLocation.x}
           y={insertLocation.y}
           onClose={() => setInsertLocation(null)}
