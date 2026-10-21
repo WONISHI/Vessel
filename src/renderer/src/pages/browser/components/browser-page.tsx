@@ -1,3 +1,4 @@
+import { useActivatedTabs } from "@/pages/browser/use-activated-tabs"
 import browserLoading from "@/assets/vessel-browser-loading/loading.svg"
 import ActivityBar from "@/components/layout/activity-bar/index"
 import Layout from "@/components/layout/index"
@@ -73,6 +74,7 @@ export function BrowserPage({ visible = true }: { visible?: boolean }) {
   useEffect(() => window.electronAPI.onBrowserDevtoolsClosed(() => setDevtoolsOpen(false)), [])
   const devtoolsHost = useRef<HTMLDivElement>(null)
   const [active, setActive] = useState<string>(() => initialTabsState.current!.activeId)
+  const activatedTabs = useActivatedTabs(active, tabs)
   useEffect(() => {
     /** Opens open. */
     const open = () => {
@@ -934,7 +936,7 @@ export function BrowserPage({ visible = true }: { visible?: boolean }) {
                       style={deviceMode && tab.url ? { width: deviceViewport.width, height: deviceViewport.height, transform: `scale(${deviceViewport.scale})`, transformOrigin: "top left" } : { width: "100%", height: "100%" }}
                     >
                       {tabs
-                        .filter((item) => item.url)
+                        .filter((item) => item.url && activatedTabs.has(item.id))
                         .map((item) => (
                           <Guest
                             key={item.id}

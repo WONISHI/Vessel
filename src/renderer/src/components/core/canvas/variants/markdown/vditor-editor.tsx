@@ -12,6 +12,7 @@ import { bindImageParagraphs, focusImageParagraph } from "@/components/core/canv
 import "@/components/core/canvas/variants/markdown/index.css"
 import { clearCodeHighlights, decorateCodeBlocks } from "@/components/core/canvas/variants/markdown/code-blocks"
 import { decorateMarkdownTags } from "@/components/core/canvas/variants/markdown/decorate-tags"
+import { decorateKeyboardShortcuts } from "@/components/core/canvas/variants/markdown/decorate-kbd"
 import { bindWikiLinkEditing, decorateWikiLinks } from "@/components/core/canvas/variants/markdown/decorate-wiki-links"
 import { DocumentProperties } from "@/components/core/canvas/variants/markdown/document-properties"
 import { prepareObsidianImages, restoreObsidianImages } from "@/components/core/canvas/variants/markdown/image-source"
@@ -322,6 +323,7 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
         decorateWikiLinks(content)
         decorateInlineHTML(content)
         if (readOnly || !content.contains(document.activeElement)) decorateMarkdownTags(content)
+        decorateKeyboardShortcuts(content)
         if (readOnly)
           content.querySelectorAll<HTMLInputElement>("input").forEach((input) => {
             input.disabled = true
