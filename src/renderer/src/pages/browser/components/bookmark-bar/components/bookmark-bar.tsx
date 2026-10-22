@@ -43,7 +43,7 @@ export function BookmarkBar({ items, onNavigate, onRemove, onReset }: { items: {
           onNavigate(item.url)
           setOpen(false)
         }}
-        className="flex max-w-40 shrink-0 items-center gap-1.5 rounded px-1.5 py-1 text-xs hover:bg-stone-100"
+        className="browser-bookmark-button flex max-w-40 shrink-0 items-center gap-1.5 rounded px-1.5 py-1 text-xs transition-colors duration-150 hover:bg-stone-100"
       >
         <BookmarkIcon
           url={item.url}

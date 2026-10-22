@@ -146,11 +146,12 @@ export function useWorkspaceController(workspace: WorkspaceData, initialFile?: s
     const provideFiles = (event: Event) => {
       if (!activeRef.current || preview) return
       const request = event as CustomEvent<(workspace: FilePickerWorkspace) => void>
-      request.detail({ root: workspace.path, files: openFiles, openFile: openWorkspaceFile })
+      request.detail({ scope, root: workspace.path, files: openFiles, openFile: openWorkspaceFile, activePath: activeFilePath, closeFile: closeWorkspaceFile })
     }
     window.addEventListener("vessel:request-workspace-files", provideFiles)
+    window.dispatchEvent(new Event("vessel:file-menu-refresh"))
     return () => window.removeEventListener("vessel:request-workspace-files", provideFiles)
-  }, [workspace.path, openFiles, preview, active])
+  }, [workspace.path, openFiles, preview, active, activeFilePath])
   /** 关闭指定标签；关闭当前标签时优先选择左侧标签，否则返回首页。
    * @param path 要关闭的文件路径。 */
   const closeWorkspaceFile = (path: string) => {

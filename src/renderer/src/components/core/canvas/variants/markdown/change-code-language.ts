@@ -14,7 +14,7 @@ export function changeCodeLanguage(editor: Vditor, block: HTMLElement, language:
   for (let element: HTMLElement | null = block.parentElement; element; element = element.parentElement) {
     scrollPositions.push({ element, top: element.scrollTop, left: element.scrollLeft })
   }
-  editor.vditor.undo.addToUndoStack(editor.vditor)
+  editor.vditor.undo?.addToUndoStack(editor.vditor)
   // Rebuild only this preview's raw code; the native renderer then applies the new language.
   const preview = block.querySelector<HTMLElement>(".vditor-ir__preview")
   if (preview) {

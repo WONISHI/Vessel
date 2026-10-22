@@ -1,3 +1,4 @@
+import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 import { Pencil, Trash2 } from "lucide-react"
@@ -39,11 +40,11 @@ export function TodoCell({
     case "text":
       return (
         <div className="flex items-center gap-2.5">
-          <input
-            type="checkbox"
+          <Checkbox
+            aria-label={`完成：${row.title || "未命名待办"}`}
             checked={row.completed}
-            onChange={() => onUpdateRow({ completed: !row.completed })}
-            className="size-4 rounded accent-green-600 cursor-pointer shrink-0"
+            onCheckedChange={(checked) => onUpdateRow({ completed: checked === true })}
+            className="cursor-pointer"
           />
           {isEditingTitle ? (
             <Input

@@ -111,10 +111,21 @@ export function secureBrowserGuests(contents: WebContents) {
       void guest
         .insertCSS(
           `
+        :root {
+          --vessel-scrollbar-track: transparent;
+          --vessel-scrollbar-thumb: #e4e4e7;
+          --vessel-scrollbar-hover: #a1a1aa;
+        }
+        :root[data-vessel-guest-theme="dark"] {
+          --vessel-scrollbar-track: #22272e;
+          --vessel-scrollbar-thumb: #555f6b;
+          --vessel-scrollbar-hover: #7d8997;
+        }
         ::-webkit-scrollbar { width: 10px; height: 10px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #e4e4e7; border: 2px solid transparent; background-clip: padding-box; border-radius: 999px; }
-        ::-webkit-scrollbar-thumb:hover { background-color: #a1a1aa; }
+        ::-webkit-scrollbar-track { background: var(--vessel-scrollbar-track) !important; }
+        ::-webkit-scrollbar-thumb { background: var(--vessel-scrollbar-thumb) !important; border: 2px solid transparent; background-clip: padding-box !important; border-radius: 999px; }
+        ::-webkit-scrollbar-corner { background: var(--vessel-scrollbar-track) !important; }
+        ::-webkit-scrollbar-thumb:hover { background-color: var(--vessel-scrollbar-hover) !important; }
       `
         )
         .catch(() => {})

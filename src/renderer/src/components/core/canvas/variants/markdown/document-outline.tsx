@@ -132,7 +132,7 @@ export function DocumentOutline({
                 aria-current={index === activeIndex ? "location" : undefined}
                 onClick={() => onSelect(index)}
                 className={cn(
-                  "group min-w-0 w-full overflow-hidden text-[11px] font-normal hover:bg-green-600 hover:text-white data-[state=open]:bg-green-600 data-[state=open]:text-white",
+                  "document-outline-heading group min-w-0 w-full overflow-hidden text-[11px] font-normal hover:bg-green-600 hover:text-white data-[state=open]:bg-green-600 data-[state=open]:text-white",
                   cn("min-h-8 justify-start py-1.5 text-left", wrapTitles ? "h-auto whitespace-normal" : "h-8 whitespace-nowrap"),
                   index === activeIndex ? "text-green-700" : "text-stone-500"
                 )}

@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./highlights": "./src/highlights/index.ts",
     ".": "./src/index.ts",
     "./frontmatter": "./src/frontmatter/index.ts",
     "./bases": "./src/bases/index.ts",
@@ -17,6 +18,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "imports": {
+    "#vessel-obsidian/highlights": "./src/highlights/index.ts",
     "#vessel-obsidian/links": "./src/links/index.ts",
     "#vessel-obsidian/links/markdown-link": "./src/links/markdown-link.ts",
     "#vessel-obsidian/links/link-tooltip": "./src/links/link-tooltip.tsx",

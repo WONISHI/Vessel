@@ -28,4 +28,18 @@ export const pdfKind = { type: "pdf", Icon: FileText, color: "#dc2626" } as cons
 /** Checks whether pdf. */
 export const isPdf = (name: string) => /\.pdf$/i.test(name)
 
+/** Strips IPC wrappers and extracts a clean user-facing error message. */
+export function formatOfficeError(error: unknown): string {
+  let message = error instanceof Error ? error.message : String(error ?? "")
+  let previous = ""
+  while (message !== previous) {
+    previous = message
+    message = message
+      .replace(/^Error:\s*/i, "")
+      .replace(/^Error invoking remote method '[^']+':\s*/i, "")
+      .trim()
+  }
+  return message || "操作失败，请重试"
+}
+
 export { PdfErrorBoundary } from "@/features/office/components/pdf-error-boundary"

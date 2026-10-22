@@ -1,7 +1,7 @@
 import { Toaster, toast } from "@/components/ui/sonner"
 import { useDarkAppearance } from "@/hooks/use-dark-appearance"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Doc, isPdf, kinds, pdfKind, requestHost } from "@/features/office/components/office-components-shared"
+import { Doc, formatOfficeError, isPdf, kinds, pdfKind, requestHost } from "@/features/office/components/office-components-shared"
 import { PdfPane } from "@/features/office/components/pdf-pane"
 import { FileDown, FileText, FolderOpen, Plus, Save, X } from "lucide-react"
 import { useEffect, useLayoutEffect, useRef, useState } from "react"
@@ -14,7 +14,6 @@ export function Office() {
   const [renameName, setRenameName] = useState<string | null>(null)
   const [converting, setConverting] = useState("")
   const dark = useDarkAppearance()
-  const [message, setMessage] = useState("")
   const frames = useRef(new Map<string, HTMLIFrameElement>())
   useEffect(() => {
     frames.current.forEach((frame) => frame.contentWindow?.postMessage({ type: "office:theme", dark }, location.origin))
@@ -57,8 +56,9 @@ export function Office() {
               port.postMessage(result)
             },
             (error) => {
-              setMessage(String(error))
-              port.postMessage({ error: String(error) })
+              const formatted = formatOfficeError(error)
+              toast.error(formatted)
+              port.postMessage({ error: formatted })
             }
           )
           .finally(() => {
@@ -200,7 +200,7 @@ export function Office() {
               .then((result) => {
                 if (result) add(new File([result.bytes as BlobPart], result.name), undefined, result.token)
               })
-              .catch((error) => setMessage(String(error)))
+              .catch((error) => toast.error(formatOfficeError(error)))
           }}
         >
           <FolderOpen size={15} />
@@ -218,14 +218,13 @@ export function Office() {
               disabled={!!converting || selected.status === "正在加载…"}
               className="flex items-center gap-1 rounded px-2 py-1 text-stone-600 hover:bg-stone-100 disabled:opacity-50"
               onClick={() => {
-                setMessage("")
                 setConverting(selected.id)
                 if (isPdf(selected.name)) {
                   void selected
                     .file!.arrayBuffer()
                     .then((bytes) => requestHost<{ saved: boolean; path?: string }>({ type: "office:convert-markdown", name: selected.name, bytes: new Uint8Array(bytes) }))
                     .then((result) => (result.saved ? toast.success("Markdown 已保存", { description: result.path }) : toast.info("已取消保存 Markdown")))
-                    .catch((error) => setMessage(String(error)))
+                    .catch((error) => toast.error(formatOfficeError(error)))
                     .finally(() => setConverting(""))
                 } else frames.current.get(selected.id)?.contentWindow?.postMessage({ type: "office:export", action: "markdown", format: /\.(xlsx?|ods|csv)$/i.test(selected.name) ? "XLSX" : /\.(pptx?|odp)$/i.test(selected.name) ? "PPTX" : "DOCX" }, location.origin)
               }}
@@ -253,7 +252,7 @@ export function Office() {
                         setDocs((items) => items.map((doc) => (doc.id === selected.id ? { ...doc, name } : doc)))
                         setRenameName(null)
                       })
-                      .catch((error) => setMessage(String(error)))
+                      .catch((error) => toast.error(formatOfficeError(error)))
                   }}
                 >
                   <input
@@ -281,15 +280,6 @@ export function Office() {
         </div>
       </div>
       <Toaster theme={dark ? "dark" : "light"} />
-      {message && (
-        <div
-          role="alert"
-          className="flex justify-between bg-red-50 px-4 py-2 text-xs text-red-600"
-        >
-          {message}
-          <button onClick={() => setMessage("")}>关闭</button>
-        </div>
-      )}
       {selected?.status && !["本地编辑", "已保存", "正在加载…", "PDF 预览"].includes(selected.status) && (
         <p
           role="alert"

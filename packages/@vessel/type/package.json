@@ -12,6 +12,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "imports": {
+    "#vessel-type/native-menu": "./src/native-menu.ts",
     "#vessel-type/system-info": "./src/system-info.ts",
     "#vessel-type/performance": "./src/performance.ts",
     "#vessel-type/browser-extensions": "./src/browser-extensions.ts",

@@ -1,3 +1,4 @@
+import { NativeFileMenu } from "@/components/native-file-menu"
 import type { WorkspaceData } from "@vessel/type"
 import { CommandPalette } from "@/components/command-palette"
 import { TransitPanel } from "@/components/transit/panel"
@@ -139,6 +140,7 @@ function App() {
 
       <DevTool />
       <CommandPalette />
+      <NativeFileMenu />
 
       <BrowserKeepAlive />
       <OfficeKeepAlive />

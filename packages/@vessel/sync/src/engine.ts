@@ -1,5 +1,5 @@
 import { mergeMarkdown, mergeableMarkdown, MAX_MERGE_BYTES } from "#vessel-sync/merge-text"
-import { DEFAULT_CONFLICT_STRATEGY, DEFAULT_PROPAGATE_DELETES, SyncError, type RemoteFile, type SyncLogEvent, type SyncOptions, type SyncPlanItem, type SyncResult } from "#vessel-sync/types"
+import { DEFAULT_CONFLICT_STRATEGY, SyncError, type RemoteFile, type SyncLogEvent, type SyncOptions, type SyncPlanItem, type SyncResult } from "#vessel-sync/types"
 import { createHash, randomUUID } from "node:crypto"
 import { constants, createReadStream } from "node:fs"
 import { copyFile, link, lstat, mkdir, open, readFile, readdir, realpath, rename, rm, utimes, writeFile } from "node:fs/promises"
@@ -411,11 +411,7 @@ async function run(options: SyncOptions, prefix: string, indexPath: string, conc
       if (posix.dirname(oldPath) !== newDir) continue
       const oldBase = posix.basename(oldPath)
       let suffixLen = 0
-      while (
-        suffixLen < oldBase.length &&
-        suffixLen < newBase.length &&
-        oldBase[oldBase.length - 1 - suffixLen] === newBase[newBase.length - 1 - suffixLen]
-      ) {
+      while (suffixLen < oldBase.length && suffixLen < newBase.length && oldBase[oldBase.length - 1 - suffixLen] === newBase[newBase.length - 1 - suffixLen]) {
         suffixLen++
       }
       if (suffixLen >= 3 && suffixLen > bestScore) {
@@ -434,12 +430,8 @@ async function run(options: SyncOptions, prefix: string, indexPath: string, conc
     if (localRenamedFrom.has(newPath)) continue
     const newDir = posix.dirname(newPath)
     const newExt = posix.extname(newPath)
-    const matchingOld = deletedLocalCandidates.filter(
-      (oldPath) => !localRenames.has(oldPath) && posix.dirname(oldPath) === newDir && posix.extname(oldPath) === newExt
-    )
-    const matchingNew = addedLocalCandidates.filter(
-      (p) => !localRenamedFrom.has(p) && posix.dirname(p) === newDir && posix.extname(p) === newExt
-    )
+    const matchingOld = deletedLocalCandidates.filter((oldPath) => !localRenames.has(oldPath) && posix.dirname(oldPath) === newDir && posix.extname(oldPath) === newExt)
+    const matchingNew = addedLocalCandidates.filter((p) => !localRenamedFrom.has(p) && posix.dirname(p) === newDir && posix.extname(p) === newExt)
     if (matchingOld.length === 1 && matchingNew.length === 1) {
       localRenames.set(matchingOld[0], newPath)
       localRenamedFrom.set(newPath, matchingOld[0])
@@ -648,12 +640,14 @@ async function run(options: SyncOptions, prefix: string, indexPath: string, conc
       const remote = await storage.download(keyFor(task.path), source, { etag: task.remote.etag, signal: options.signal })
       const size = (await lstat(source)).size
       const digest = await digestFile(source)
-      if ((task.remote.digest && task.remote.digest !== digest) || (remote.digest && remote.digest !== digest) || (remote.etag && remote.etag !== task.remote.etag) || (task.remote.size !== undefined && task.remote.size !== size)) throw new SyncError("REMOTE_CONFLICT", `合并前远端内容校验失败：${task.path}`)
+      if ((task.remote.digest && task.remote.digest !== digest) || (remote.digest && remote.digest !== digest) || (remote.etag && remote.etag !== task.remote.etag) || (task.remote.size !== undefined && task.remote.size !== size))
+        throw new SyncError("REMOTE_CONFLICT", `合并前远端内容校验失败：${task.path}`)
       verified = { source, remote: { ...task.remote, ...remote, digest, size } }
       prefetched.set(task.path, verified)
       result.downloadSize! += size
     }
-    const local = await readFile(task.local.source), remote = await readFile(verified.source)
+    const local = await readFile(task.local.source),
+      remote = await readFile(verified.source)
     if (createHash("sha256").update(local).digest("hex") !== task.local.entry.digest) throw new SyncError("FILE_CHANGED", `合并期间本地文件变化：${task.path}`)
     /** Decodes text strictly while preserving an existing BOM. */
     const decode = (value: Buffer) => new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(value)
@@ -663,12 +657,24 @@ async function run(options: SyncOptions, prefix: string, indexPath: string, conc
       const remoteText = decode(remote)
       if (localText.replace(/\r\n/g, "\n") === remoteText.replace(/\r\n/g, "\n")) task.merged = localText
       else if (base) task.merged = mergeMarkdown(decode(base), localText, remoteText)
-      else { task.reason = "缺少可验证的共同正文基线，保留双方版本"; return }
-    } catch { task.reason = "正文不是有效 UTF-8，保留双方版本"; return }
+      else {
+        task.reason = "缺少可验证的共同正文基线，保留双方版本"
+        return
+      }
+    } catch {
+      task.reason = "正文不是有效 UTF-8，保留双方版本"
+      return
+    }
     if (task.merged === undefined) task.reason = "同一位置的正文修改无法安全合并，保留双方版本"
     if (task.merged !== undefined && options.maxFileSize && Buffer.byteLength(task.merged) > options.maxFileSize) task.merged = undefined
-    if (task.merged === localText) { task.merged = undefined; task.action = "upload"; task.reason = "本地修改已包含远端内容" }
-    else if (task.merged !== undefined) { task.action = "merge"; task.reason = "自动合并双方不重叠的 Markdown 修改" }
+    if (task.merged === localText) {
+      task.merged = undefined
+      task.action = "upload"
+      task.reason = "本地修改已包含远端内容"
+    } else if (task.merged !== undefined) {
+      task.action = "merge"
+      task.reason = "自动合并双方不重叠的 Markdown 修改"
+    }
   })
   tasks.sort((a, b) => a.path.localeCompare(b.path))
   const publicPlan = tasks.map(({ path, action, reason }) => ({ path, action, reason }))
@@ -708,8 +714,11 @@ async function run(options: SyncOptions, prefix: string, indexPath: string, conc
   const cacheAncestor = async (path: string, entry: Entry, source: string) => {
     if (mergeableMarkdown(path, entry.size)) {
       let cached = false
-      try { cached = (await lstat(join(bases, entry.digest))).size === entry.size }
-      catch (error) { if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error }
+      try {
+        cached = (await lstat(join(bases, entry.digest))).size === entry.size
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error
+      }
       if (cached) return
       const bytes = await readFile(source)
       if (bytes.length <= MAX_MERGE_BYTES && createHash("sha256").update(bytes).digest("hex") === entry.digest) {
@@ -748,7 +757,7 @@ async function run(options: SyncOptions, prefix: string, indexPath: string, conc
       if (snapshot) {
         await copyFile(source, snapshot, constants.COPYFILE_EXCL)
         await stable(source, entry.fingerprint!)
-        if (await digestFile(snapshot) !== entry.digest) throw new SyncError("FILE_CHANGED", `创建上传快照期间文件变化：${path}`)
+        if ((await digestFile(snapshot)) !== entry.digest) throw new SyncError("FILE_CHANGED", `创建上传快照期间文件变化：${path}`)
         transferSource = snapshot
         transferVersion = fingerprint(await lstat(snapshot))
       }
@@ -878,9 +887,10 @@ async function run(options: SyncOptions, prefix: string, indexPath: string, conc
           await rename(temporary, destination)
           await establish(task.path, { ...receipt, fingerprint: fingerprint(await lstat(destination)) }, destination)
           result.downloaded!++
-        } finally { await rm(temporary, { force: true }) }
-      }
-      else if (task.action === "delete-remote") {
+        } finally {
+          await rm(temporary, { force: true })
+        }
+      } else if (task.action === "delete-remote") {
         if (!task.remote?.etag) throw new SyncError("REMOTE_CONFLICT", `删除缺少远端版本标识：${task.path}`)
         // Verify local absence again immediately before a remote deletion.
         if (root) {
@@ -964,8 +974,11 @@ async function run(options: SyncOptions, prefix: string, indexPath: string, conc
   options.signal?.throwIfAborted()
   // Retain only current ancestors; history is a merge cache, not an unbounded backup archive.
   let snapshots: string[] = []
-  try { snapshots = await readdir(bases) }
-  catch (error) { if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error }
+  try {
+    snapshots = await readdir(bases)
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error
+  }
   const retained = new Set(Object.values(next.files).map((entry) => entry.digest))
   await Promise.all(snapshots.filter((name) => /^[a-f0-9]{64}$/.test(name) && !retained.has(name)).map((name) => rm(join(bases, name), { force: true })))
   return result

@@ -143,7 +143,7 @@ export default function WorkspaceHome() {
         {/* Workspace Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3.5">
-            <span className="flex size-12 items-center justify-center rounded-2xl border border-emerald-100 bg-emerald-50 text-emerald-700 shadow-sm">
+            <span className="flex size-12 items-center justify-center rounded-2xl border border-emerald-100 bg-emerald-50 text-emerald-700 shadow-sm dark:border-[#28563d] dark:bg-[#173b2b] dark:text-[#4ade80]">
               <FolderOpen className="size-6" />
             </span>
             <div>
@@ -289,7 +289,7 @@ export default function WorkspaceHome() {
                               <TooltipContent
                                 side="top"
                                 sideOffset={6}
-                                className="z-[100] rounded-lg border border-stone-200/90 bg-white/95 px-3 py-2 text-xs text-stone-800 shadow-lg backdrop-blur-sm animate-in fade-in-0 zoom-in-95"
+                                className="workspace-activity-tooltip z-[100] rounded-lg border border-stone-200/90 bg-white/95 px-3 py-2 text-xs text-stone-800 shadow-lg backdrop-blur-sm animate-in fade-in-0 zoom-in-95"
                               >
                                 <p className="font-semibold text-stone-900">{activity.date}</p>
                                 {hasActivity ? (
@@ -423,14 +423,14 @@ export default function WorkspaceHome() {
               aria-label="查看热力图"
               aria-pressed={currentSlide === 0}
                 onClick={() => carouselApi?.scrollTo(0)}
-              className={cn("h-1.5 rounded-full transition-all", currentSlide === 0 ? "w-5 bg-emerald-600" : "w-1.5 bg-stone-200 hover:bg-stone-300")}
+              className={cn("h-1.5 rounded-full transition-all", currentSlide === 0 ? "w-5 bg-emerald-600" : "w-1.5 bg-stone-200 hover:bg-stone-300 dark:bg-[#555f6b] dark:hover:bg-[#7d8997]")}
             />
             <button
               type="button"
               aria-label="查看趋势图"
               aria-pressed={currentSlide === 1}
                 onClick={() => carouselApi?.scrollTo(1)}
-              className={cn("h-1.5 rounded-full transition-all", currentSlide === 1 ? "w-5 bg-emerald-600" : "w-1.5 bg-stone-200 hover:bg-stone-300")}
+              className={cn("h-1.5 rounded-full transition-all", currentSlide === 1 ? "w-5 bg-emerald-600" : "w-1.5 bg-stone-200 hover:bg-stone-300 dark:bg-[#555f6b] dark:hover:bg-[#7d8997]")}
             />
           </div>
         </section>

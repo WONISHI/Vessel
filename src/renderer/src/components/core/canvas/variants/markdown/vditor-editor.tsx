@@ -1,3 +1,4 @@
+import { markdownDocuments, printableMarkdown } from "@/components/native-file-menu/document-bridge"
 import { MarkdownInsertMenu } from "@/components/core/canvas/variants/markdown/insert-menu"
 import { bindMarkdownInsertMenu, type MarkdownInsertLocation } from "@/components/core/canvas/variants/markdown/insert-menu-selection"
 import { CodeBlockContextMenu } from "@/components/core/canvas/variants/markdown/code-block-context-menu"
@@ -15,6 +16,7 @@ import "@/components/core/canvas/variants/markdown/index.css"
 import { clearCodeHighlights, decorateCodeBlocks } from "@/components/core/canvas/variants/markdown/code-blocks"
 import { decorateMarkdownTags } from "@/components/core/canvas/variants/markdown/decorate-tags"
 import { decorateKeyboardShortcuts } from "@/components/core/canvas/variants/markdown/decorate-kbd"
+import { decorateHighlights } from "@/components/core/canvas/variants/markdown/decorate-highlights"
 import { bindWikiLinkEditing, decorateWikiLinks } from "@/components/core/canvas/variants/markdown/decorate-wiki-links"
 import { DocumentProperties } from "@/components/core/canvas/variants/markdown/document-properties"
 import { prepareObsidianImages, restoreObsidianImages } from "@/components/core/canvas/variants/markdown/image-source"
@@ -322,6 +324,7 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
       })
       const content = element.querySelector<HTMLElement>(".vditor-ir .vditor-reset")
       if (content) {
+        decorateHighlights(content)
         decorateWikiLinks(content)
         decorateInlineHTML(content)
         if (readOnly || !content.contains(document.activeElement)) decorateMarkdownTags(content)
@@ -596,6 +599,11 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
           /** Performs the after operation. */
           after: () => {
             instance.current = editor
+            if (!readOnly) markdownDocuments.set(documentPath, {
+              content: () => (properties?.raw ?? "") + restoreObsidianImages(editor.getValue()),
+              html: () => printableMarkdown(element.querySelector<HTMLElement>(".vditor-ir .vditor-reset")!)
+            })
+            window.dispatchEvent(new Event("vessel:file-menu-refresh"))
             const toolbar = host.current?.querySelector<HTMLElement>(".vditor-toolbar")
             if (!disposed && toolbar && toolbarHost.current) toolbarHost.current.appendChild(toolbar)
             const linkBtn = toolbar?.querySelector<HTMLElement>('[data-type="link"]')
@@ -643,6 +651,8 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
       observer.disconnect()
       clearCodeHighlights(element)
       instance.current = null
+      if (!readOnly) markdownDocuments.delete(documentPath)
+      window.dispatchEvent(new Event("vessel:file-menu-refresh"))
       element.removeEventListener("keydown", handleKeyDown, true)
       toolbarContainer?.removeEventListener("pointerdown", rememberSelection, true)
       unbindWikiEditing()

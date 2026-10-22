@@ -153,7 +153,7 @@ export default function HomePage({ onEnter }: HomePageProps) {
         <img
           src={Logo}
           alt="Vessel"
-          className="h-6 w-6 object-contain sm:h-7 sm:w-7"
+          className="h-6 w-6 object-contain dark:brightness-0 dark:invert sm:h-7 sm:w-7"
         />
 
         <span className="text-sm font-semibold text-stone-900">Vessel</span>
@@ -164,11 +164,11 @@ export default function HomePage({ onEnter }: HomePageProps) {
         <div className="grid w-full max-w-[520px] grid-cols-1 items-center gap-12 lg:max-w-[1000px] lg:grid-cols-2 lg:gap-16">
           {/* ========== 左栏：品牌展示（仅大屏显示） ========== */}
           <div className="hidden lg:flex lg:flex-col">
-            <div className="mb-10">
+            <div className="mb-4">
               <img
                 src={Logo}
                 alt="Vessel"
-                className="h-24 w-24 object-contain"
+                className="h-28 w-28 object-contain dark:brightness-0 dark:invert"
               />
             </div>
 

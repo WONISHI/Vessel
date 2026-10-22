@@ -14,3 +14,42 @@
     justify-content: start;
   }
 }
+
+/* Selected calendar/date surfaces retain the green accent without light fills. */
+html.dark .todo-calendar-day[aria-pressed="true"] {
+  background: #173b2b !important;
+  border-color: #22c55e !important;
+  color: #e6e8eb !important;
+}
+html.dark .todo-calendar-day[aria-pressed="true"] .text-stone-800,
+html.dark .todo-calendar-day[aria-pressed="true"] .text-stone-700 { color: #e6e8eb !important; }
+html.dark .todo-calendar-day[aria-pressed="true"] .text-stone-400 { color: #a7b9ad !important; }
+html.dark .todo-date-summary {
+  background: #173b2b !important;
+  border-color: #28563d !important;
+  color: #4ade80 !important;
+}
+html.dark .todo-status-badge[data-todo-status="doing"] {
+  background: #1c304b !important;
+  border-color: #304f76 !important;
+  color: #93c5fd !important;
+}
+html.dark .todo-status-badge[data-todo-status="doing"] > span { background: #60a5fa !important; }
+
+.todo-calendar-day, .todo-calendar-nav { transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease; }
+html.dark .todo-calendar-day:not([aria-pressed="true"]):hover {
+  background: #303942 !important;
+  border-color: #46535e !important;
+}
+html.dark .todo-calendar-day[aria-pressed="true"]:hover {
+  background: #214e37 !important;
+  border-color: #4ade80 !important;
+}
+html.dark .todo-calendar-nav:not([data-today="true"]):hover {
+  background: #303942 !important;
+  border-color: #52616d !important;
+  color: #fff !important;
+}
+html.dark .todo-calendar-nav[data-today="true"]:hover { background: #15803d !important; border-color: #22c55e !important; }
+html.dark .todo-calendar-day:focus-visible { outline: 2px solid #4ade80; outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .todo-calendar-day, .todo-calendar-nav { transition: none; } }

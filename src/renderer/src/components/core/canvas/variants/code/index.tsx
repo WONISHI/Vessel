@@ -310,6 +310,7 @@ export default function CodeCanvas({ activeFilePath, workspacePath, revealPositi
           onMount={(editor) => {
             editorRef.current = editor
             codeEditors.set(activeFilePath, editor)
+            window.dispatchEvent(new Event("vessel:file-menu-refresh"))
             reveal()
             editor.onDidFocusEditorText(() => codeEditors.set(activeFilePath, editor))
             editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => save(editor.getValue()))

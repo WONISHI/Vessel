@@ -417,27 +417,31 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
           </div>
         </Popover>
         <div className="mt-auto flex flex-col items-center gap-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            data-activity-button
-            aria-label="切换浅色或深色主题"
-            data-title="切换浅色或深色主题"
-            className="size-[38px] rounded-[10px] text-stone-500 hover:!bg-[#f0efed] hover:!text-stone-500"
-            onClick={() => {
-              void window.electronAPI
-                .getSettings()
-                .then(async (settings) => {
-                  const theme = document.documentElement.classList.contains("dark") ? "light" : "dark"
-                  const saved = await window.electronAPI.saveSettings({ ...settings, theme })
-                  applyAppearance(saved)
-                  window.dispatchEvent(new Event("vessel:settings-saved"))
-                })
-                .catch((error) => toast.error(String(error)))
-            }}
-          >
-            {dark ? <Sun className="size-5" /> : <Moon className="size-5" />}
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                data-activity-button
+                aria-label="切换浅色或深色主题"
+                className="size-[38px] rounded-[10px] text-stone-500 hover:!bg-[#f0efed] hover:!text-stone-500"
+                onClick={() => {
+                  void window.electronAPI
+                    .getSettings()
+                    .then(async (settings) => {
+                      const theme = document.documentElement.classList.contains("dark") ? "light" : "dark"
+                      const saved = await window.electronAPI.saveSettings({ ...settings, theme })
+                      applyAppearance(saved)
+                      window.dispatchEvent(new Event("vessel:settings-saved"))
+                    })
+                    .catch((error) => toast.error(String(error)))
+                }}
+              >
+                {dark ? <Sun className="size-5" /> : <Moon className="size-5" />}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right">切换浅色或深色主题</TooltipContent>
+          </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button

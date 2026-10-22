@@ -1,3 +1,4 @@
+import { Checkbox } from "@/components/ui/checkbox"
 import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -77,7 +78,8 @@ export default function TodoMain({
                       <TooltipTrigger asChild>
                         <Button
                           variant="outline"
-                          className={cn("h-8 px-2 hover:bg-green-700 active:bg-green-800 hover:!text-white active:!text-white", !Icon && "bg-green-700 !text-white hover:bg-green-800 hover:!text-white")}
+                          className={cn("todo-calendar-nav h-8 px-2 hover:bg-green-700 active:bg-green-800 hover:!text-white active:!text-white", !Icon && "bg-green-700 !text-white hover:bg-green-800 hover:!text-white")}
+                          data-today={!Icon ? "true" : undefined}
                           aria-label={label}
                           onClick={() => (delta ? move(delta) : onSelect(today))}
                         >
@@ -112,7 +114,7 @@ export default function TodoMain({
                       aria-pressed={key === selected}
                       onClick={() => onSelect(key)}
                       className={cn(
-                        "relative flex h-16 w-16 shrink-0 flex-col items-center justify-center overflow-hidden rounded-lg border border-transparent bg-white p-1 text-center hover:bg-emerald-50",
+                        "todo-calendar-day relative flex h-16 w-16 shrink-0 flex-col items-center justify-center overflow-hidden rounded-lg border border-transparent bg-white p-1 text-center hover:bg-emerald-50",
                         date.getMonth() !== month.getMonth() && "opacity-40",
                         key === selected && "border-green-600 bg-emerald-50"
                       )}
@@ -146,7 +148,7 @@ export default function TodoMain({
             aria-label="当天待办"
             className="space-y-4"
           >
-            <p className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-xs text-green-700">
+            <p className="todo-date-summary rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-xs text-green-700">
               {day.getMonth() + 1}月{day.getDate()}日 · 周{"日一二三四五六"[day.getDay()]} · 农历{lunarLabel(day, true)}
             </p>
             <div className="rounded-2xl border bg-white overflow-hidden">
@@ -186,13 +188,12 @@ export default function TodoMain({
                     key={todo.id}
                     className="flex items-start gap-2 border-b py-2"
                   >
-                    <input
-                      type="checkbox"
+                    <Checkbox
                       aria-label={`完成：${todo.title}`}
                       checked={todo.completed}
                       disabled={busy}
-                      onChange={() => onComplete(todo)}
-                      className="mt-1 accent-green-700"
+                      onCheckedChange={() => onComplete(todo)}
+                      className="mt-1"
                     />
                     <span className={cn("min-w-0 flex-1 break-words text-xs", todo.completed && "text-stone-400 line-through")}>{todo.title}</span>
                     <Button

@@ -1,3 +1,4 @@
+import { parseTextLinks } from "./parse-text-links"
 import { Button } from "@/components/ui/button"
 import { LinkAction, linkClassName } from "@/components/ui/link/components/link-shared"
 import { Popover, PopoverContent } from "@/components/ui/popover"
@@ -26,22 +27,22 @@ export function LinkInteractionArea({ children, actions = [], className, inline 
           const node = walker.currentNode as Text
           const selection = window.getSelection()
           if (element.contains(document.activeElement) && (selection?.anchorNode === node || selection?.focusNode === node)) continue
-          if (!node.parentElement?.closest('a,code,pre,button,[data-type="a"],[data-type="img"],[data-vessel-href],.vditor-ir__marker') && /https?:\/\/[^\s<>"'，。；）]+/.test(node.data)) nodes.push(node)
+          if (!node.parentElement?.closest('a,code,pre:not(.vditor-reset),button,[data-type="a"],[data-type="img"],[data-wiki-target],[data-vessel-href],.vditor-ir__marker') && parseTextLinks(node.data).length > 0) nodes.push(node)
         }
         for (const node of nodes) {
           const fragment = document.createDocumentFragment()
           let offset = 0
-          for (const match of node.data.matchAll(/https?:\/\/[^\s<>"'，。；）]+/g)) {
+          for (const match of parseTextLinks(node.data)) {
             fragment.append(node.data.slice(offset, match.index))
             const link = document.createElement("span")
-            link.dataset.vesselHref = match[0]
+            link.dataset.vesselHref = match.href
             link.dataset.vesselLink = "true"
             link.className = linkClassName + " cursor-pointer"
             link.setAttribute("role", "link")
             link.tabIndex = 0
-            link.textContent = match[0]
+            link.textContent = match.text
             fragment.append(link)
-            offset = match.index + match[0].length
+            offset = match.index + match.text.length
           }
           fragment.append(node.data.slice(offset))
           node.replaceWith(fragment)

@@ -707,3 +707,61 @@ html.dark .settings-shortcuts kbd {
   color: #cdd9e5 !important;
   box-shadow: 0 1px 0 #1c2025;
 }
+
+/* Compact date navigation: restrained surface with a small green selection marker. */
+html.dark .todo-date-sidebar { background-color: #22272e !important; }
+html.dark .todo-date-list-item { color: #e6e8eb; }
+html.dark .todo-date-list-item:hover { background: #30353c !important; }
+html.dark .todo-date-list-item[aria-current="date"],
+html.dark .todo-date-list-item[aria-current="date"]:hover { background: #26332e !important; border-color: #365143 !important; }
+html.dark .todo-date-list-item .todo-date-list-icon { background: #2b3037 !important; border-color: #3b424b !important; }
+html.dark .todo-date-list-item .text-stone-500 { color: #a7b9ad !important; }
+html.dark .todo-date-list-item .text-stone-400 { color: #929aa5 !important; }
+html.dark .todo-date-list-item[aria-current="date"] .text-stone-400 { color: #a7b9ad !important; }
+html.dark .todo-date-list-item .todo-date-list-count { background: #31463a !important; color: #86d9a2 !important; }
+
+.todo-date-list-item[aria-current="date"]::before { content: ""; position: absolute; left: -1px; top: 18px; bottom: 18px; width: 3px; border-radius: 2px; background: #16a34a; }
+html.dark .todo-date-list-item[aria-current="date"]::before { background: #4ade80; }
+
+/* Editable todo cells must not retain translucent light hover fills in dark mode. */
+html.dark .todo-table-scroll [data-todo-cell-trigger]:is(:hover, [data-state="open"]),
+html.dark .todo-table-scroll [class*="hover:bg-stone-"]:hover {
+  background-color: #3a414a !important;
+  border-color: #4b5563 !important;
+}
+html.dark .todo-table-scroll [data-todo-cell-trigger]:is(:hover, [data-state="open"]) :is(.text-stone-500, .text-stone-400, .text-stone-300) {
+  color: #cdd9e5 !important;
+}
+html.dark .todo-table-scroll .todo-progress-track { background-color: #444c56 !important; }
+
+/* Table toolbar and column controls need their own dark hover states too. */
+html.dark .todo-table-section button[class*="hover:bg-stone-"]:hover {
+  background-color: #3a414a !important;
+  border-color: #52616d !important;
+  color: #e6e8eb !important;
+}
+html.dark .todo-table-section button[class*="hover:bg-green-50"]:hover {
+  background-color: #214635 !important;
+  color: #86efac !important;
+}
+html.dark .todo-table-section button[class*="hover:bg-red-"]:hover {
+  background-color: #492b31 !important;
+  color: #fca5a5 !important;
+}
+html.dark .todo-table-section button[class*="hover:bg-red-"]:hover svg {
+  color: #fca5a5 !important;
+  stroke: currentColor !important;
+}
+
+/* Bookmark hover also applies to items rendered in the overflow popover. */
+html.dark .browser-bookmark-button { color: #b1b7c0; }
+html.dark .browser-bookmark-button:is(:hover, :focus-visible),
+html.dark .browser-bookmarks > button:is(:hover, :focus-visible, [data-state="open"]) {
+  background-color: #303942 !important;
+  color: #e6e8eb !important;
+}
+
+html.dark .workspace-activity-tooltip { background: #2b3037 !important; border-color: #444c56 !important; color: #e6e8eb !important; }
+html.dark .workspace-activity-tooltip .text-stone-900 { color: #e6e8eb !important; }
+html.dark .workspace-activity-tooltip .text-stone-400 { color: #9aa1a9 !important; }
+html.dark .workspace-activity-tooltip > svg { fill: #2b3037 !important; }

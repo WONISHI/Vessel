@@ -11,7 +11,7 @@ import { useEffect, useRef, useState } from "react"
 /** Renders the project library content component. */
 export function ProjectLibraryContent({ pinned, onPin, onSelect }: { pinned: boolean; onPin: () => void; onSelect: (project: Project) => void }) {
   const { workspace } = useWorkspace()
-  const [projects, setProjects] = useState<Project[]>([{ name: workspace.name, path: workspace.path }])
+  const [projects, setProjects] = useState<Project[]>([])
   const [error, setError] = useState("")
   const [ready, setReady] = useState(false)
   const [viewport, setViewport] = useState<HTMLDivElement | null>(null)
@@ -24,7 +24,7 @@ export function ProjectLibraryContent({ pinned, onPin, onSelect }: { pinned: boo
       .then((saved) => {
         if (cancelled) return
         const valid = Array.isArray(saved) ? saved.filter((p) => typeof p.path === "string" && typeof p.name === "string") : []
-        setProjects(valid.some((p) => p.path === workspace.path) ? valid : [...valid, { name: workspace.name, path: workspace.path }])
+        setProjects(valid)
         setReady(true)
       })
       .catch((reason) => {

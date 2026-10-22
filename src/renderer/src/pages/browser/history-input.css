@@ -125,3 +125,28 @@
 .history-completion-item > svg {
   flex-shrink: 0;
 }
+
+/* Address suggestions are portaled to body, so theme the popup directly. */
+html.dark .history-completion {
+  background: #23272d;
+  border-color: #444c56;
+  color: #e6e8eb;
+  box-shadow: 0 14px 40px #0006;
+}
+html.dark .history-completion-heading,
+html.dark .history-completion footer {
+  background: #262a30;
+  border-color: #363e48;
+  color: #9aa5b1;
+}
+html.dark .history-completion-item { color: #cdd9e5; }
+html.dark .history-completion-item[aria-selected="true"] { background: #1e3a2d; color: #86efac; }
+html.dark .history-completion-item[aria-selected="true"]::before { background: #4ade80; }
+html.dark .history-completion-copy strong { color: #e6e8eb; }
+html.dark .history-completion-copy small,
+html.dark .history-search-label { color: #9aa5b1; }
+html.dark .history-completion mark { background: #36553a; color: #bef6cb; }
+html.dark .history-site-icon { background: #303942; color: #9aa5b1; }
+html.dark .history-completion-item[aria-selected="true"] .history-site-icon { background: #28503a; color: #86efac; }
+html.dark .history-badge { background: #343b44; color: #b1bbc6; border-color: #444c56; }
+html.dark .history-badge.bookmark { background: #203f30; color: #86efac; border-color: #365743; }

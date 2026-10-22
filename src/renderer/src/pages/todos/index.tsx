@@ -58,7 +58,7 @@ export default function TodosPage() {
         selected={selected}
         onSelect={select}
       >
-        <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        <div aria-busy={busy} className="flex min-w-0 flex-1 flex-col overflow-hidden">
           {error && (
             <p
               role="alert"
@@ -70,7 +70,7 @@ export default function TodosPage() {
           {busy && (
             <p
               role="status"
-              className="px-6 pt-2 text-xs text-stone-400"
+              className="sr-only"
             >
               正在同步待办…
             </p>

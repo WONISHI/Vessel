@@ -17,8 +17,8 @@ export function ProgressCell({ progress, onUpdateProgressValue, onChangeAllProgr
       onOpenChange={setOpen}
     >
       <PopoverTrigger asChild>
-        <div className="group flex items-center gap-2 w-full cursor-pointer py-1 px-1 rounded hover:bg-stone-100/70 transition-colors">
-          <div className="h-2 min-w-[60px] flex-1 rounded-full bg-stone-100 overflow-hidden">
+        <div data-todo-cell-trigger className="group flex items-center gap-2 w-full cursor-pointer py-1 px-1 rounded hover:bg-stone-100/70 transition-colors">
+          <div className="todo-progress-track h-2 min-w-[60px] flex-1 rounded-full bg-stone-100 overflow-hidden">
             <div
               className={cn("h-full rounded-full transition-all", color)}
               style={{ width: `${val}%` }}

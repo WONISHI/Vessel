@@ -2,8 +2,9 @@ import darkReaderSource from "@resources/vendor/darkreader/darkreader.js?raw"
 
 /** Builds an idempotent page-theme update for an isolated WebView document. */
 export function guestAppearanceScript(dark: boolean) {
-  if (!dark) return "window.__vesselDarkReader?.disable();"
+  if (!dark) return "document.documentElement.dataset.vesselGuestTheme = 'light'; window.__vesselDarkReader?.disable();"
   return `(() => {
+    document.documentElement.dataset.vesselGuestTheme = 'dark';
     if (!window.__vesselDarkReader) {
       const exports = {};
       const module = { exports };

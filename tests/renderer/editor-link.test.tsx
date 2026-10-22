@@ -4,6 +4,22 @@ import { afterEach, expect, it, vi } from "vitest"
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { LinkInteractionArea } from "@/components/ui/link"
 afterEach(cleanup)
+it("recognizes links inside the Vditor pre root, including line-separated cell URLs and email", async () => {
+  const { container } = render(
+    <LinkInteractionArea>
+      <pre className="vditor-reset">
+        <table><tbody><tr><td>http://10.0.0.1:8080/login<br />https://example.com/#/home</td></tr></tbody></table>
+        <p>dev@example.com www.example.com</p>
+        <pre><code>https://code.example.com</code></pre>
+      </pre>
+    </LinkInteractionArea>
+  )
+  await waitFor(() => expect(container.querySelectorAll("[data-vessel-href]")).toHaveLength(4))
+  expect(Array.from(container.querySelectorAll<HTMLElement>("[data-vessel-href]")).map((node) => node.dataset.vesselHref)).toEqual([
+    "http://10.0.0.1:8080/login", "https://example.com/#/home", "mailto:dev@example.com", "https://www.example.com"
+  ])
+  expect(container.querySelector("code [data-vessel-href]")).toBeNull()
+})
 it("recognizes Vditor IR span links and exposes the shared link menu", async () => {
   const openExternal = vi.fn().mockResolvedValue(undefined)
   Object.defineProperty(window, "electronAPI", { configurable: true, value: { openExternal } })

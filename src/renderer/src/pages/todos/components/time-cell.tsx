@@ -27,7 +27,7 @@ export function TimeCell({ time, onUpdateTime }: { time?: string; onUpdateTime: 
       onOpenChange={setOpen}
     >
       <PopoverTrigger asChild>
-        <div className="group flex items-center gap-1.5 cursor-pointer py-1 px-1.5 rounded border border-transparent hover:border-stone-200 hover:bg-stone-100/70 transition-colors">
+        <div data-todo-cell-trigger className="group flex items-center gap-1.5 cursor-pointer py-1 px-1.5 rounded border border-transparent hover:border-stone-200 hover:bg-stone-100/70 transition-colors">
           <CalendarIcon className="size-3.5 shrink-0 text-stone-400" />
           <span className="text-stone-700 font-mono text-xs font-normal whitespace-nowrap">{time ? formatTodoDate(parseTodoDate(time)) : "选择日期"}</span>
           <MoreVertical className="size-3 text-stone-300 opacity-0 group-hover:opacity-100 transition-opacity ml-auto" />

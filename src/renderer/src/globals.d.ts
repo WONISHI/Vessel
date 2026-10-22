@@ -1,3 +1,4 @@
+import type { NativeMenuAPI } from "@vessel/type"
 import type { ElectronAPI } from "@electron-toolkit/preload"
 import type { BrowserExtensionsAPI, BrowserProxyAPI, BrowserToolsAPI, FileWatchAPI, ImageFile, SettingsAPI, TerminalAPI, TodosAPI, TransitFile } from "@vessel/type"
 
@@ -89,8 +90,9 @@ interface StorageInfo {
 }
 
 /** preload 暴露给 React 渲染进程的完整 API。 */
-interface VesselAPI extends BrowserProxyAPI, BrowserToolsAPI, SettingsAPI, BrowserExtensionsAPI, TodosAPI, TerminalAPI, FileWatchAPI {
+interface VesselAPI extends BrowserProxyAPI, BrowserToolsAPI, SettingsAPI, BrowserExtensionsAPI, TodosAPI, TerminalAPI, FileWatchAPI, NativeMenuAPI {
   getPerformanceSnapshot: () => Promise<import("@vessel/type").PerformanceSnapshot>
+  shareFilesToWechat: (root: string, paths: string[]) => Promise<{ opened: boolean }>
   getSystemInfo: () => Promise<import("@vessel/type").SystemInfo>
   searchContent(options: import("@vessel/type").ContentSearchOptions): Promise<import("@vessel/type").ContentSearchResult>
   cancelContentSearch(): void

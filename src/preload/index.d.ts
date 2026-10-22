@@ -1,3 +1,4 @@
+import type { NativeMenuAPI } from "@vessel/type"
 import type { ElectronAPI } from "@electron-toolkit/preload"
 import type { BrowserExtensionsAPI, BrowserProxyAPI, BrowserToolsAPI, CodeDiagnostic, ContentSearchOptions, ContentSearchResult, FileWatchAPI, ImageFile, SettingsAPI, TerminalAPI, TodosAPI, TransitFile } from "@vessel/type"
 
@@ -87,8 +88,9 @@ export interface StorageInfo {
   sessionId: string
 }
 
-export interface VesselAPI extends BrowserProxyAPI, BrowserToolsAPI, SettingsAPI, BrowserExtensionsAPI, TodosAPI, TerminalAPI, FileWatchAPI {
+export interface VesselAPI extends BrowserProxyAPI, BrowserToolsAPI, SettingsAPI, BrowserExtensionsAPI, TodosAPI, TerminalAPI, FileWatchAPI, NativeMenuAPI {
   getPerformanceSnapshot: () => Promise<import("@vessel/type").PerformanceSnapshot>
+  shareFilesToWechat: (root: string, paths: string[]) => Promise<{ opened: boolean }>
   getSystemInfo: () => Promise<import("@vessel/type").SystemInfo>
   searchContent(options: ContentSearchOptions): Promise<ContentSearchResult>
   cancelContentSearch(): void

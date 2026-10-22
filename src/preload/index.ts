@@ -2,6 +2,7 @@ import { electronAPI } from "@electron-toolkit/preload"
 import { browserExtensionsAPI } from "@preload/apis/browser-extensions.api"
 import { browserProxyAPI } from "@preload/apis/browser-proxy.api"
 import { developerAPI } from "@preload/apis/developer.api"
+import { nativeMenuAPI } from "@preload/apis/native-menu.api"
 import { fileWatchAPI } from "@preload/apis/file-watch.api"
 import { terminalAPI } from "@preload/apis/terminal.api"
 import { todosAPI } from "@preload/apis/todos.api"
@@ -207,6 +208,7 @@ const vesselAPI = {
   ...welcomeAPI,
   ...filesAPI,
   ...developerAPI,
+  ...nativeMenuAPI,
   git: gitAPI,
   apiClient: apiClientAPI,
   ...gitAPI,

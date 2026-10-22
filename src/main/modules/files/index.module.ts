@@ -1,3 +1,4 @@
+import { shareFilesToWechat } from "./share-wechat"
 import { disposeCodeDiagnostics, getCodeDiagnostics } from "@main/diagnostics/code-diagnostics"
 import { BaseModule } from "@main/modules/base/index"
 import { copyImage } from "@main/modules/files/copy-image"
@@ -124,6 +125,7 @@ export class FilesModule extends BaseModule {
       if (data.length > 30_000_000) throw new Error("剪贴板图片超过 30 MB")
       return `data:image/png;base64,${data.toString("base64")}`
     })
+    ipcMain.handle("file:share-wechat", (_event, root: string, paths: string[]) => shareFilesToWechat(root, paths))
     ipcMain.handle("image:copy", (_event, source) => copyImage(source))
     ipcMain.handle("image:readFile", (_event, root, path) => readImageFile(root, path))
     ipcMain.handle("obsidian:saveImage", (_event, root, documentPath, source) => saveObsidianImage(root, documentPath, source))
@@ -146,6 +148,7 @@ export class FilesModule extends BaseModule {
     disposeCodeDiagnostics()
     ipcMain.removeHandler("workspace:revealFile")
     ipcMain.removeHandler("obsidian:readWikiLink")
+    ipcMain.removeHandler("file:share-wechat")
     ipcMain.removeHandler("image:copy")
     ipcMain.removeHandler("image:readFile")
     ipcMain.removeHandler("obsidian:readImage")

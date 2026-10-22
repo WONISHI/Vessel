@@ -6,7 +6,7 @@ import { useWorkspace } from "@/components/workspace/hooks/useWorkspace"
 import type { WorkspaceNode } from "@/components/workspace/types/workspace"
 import { useRouter } from "@vessel/react-router"
 import { localFileURL } from "@vessel/utils"
-import { Code, Copy, File, FilePlus2, FolderOpen, FolderPlus, Globe, Pencil, Pin, Search, Trash2 } from "lucide-react"
+import { Code, Copy, File, FilePlus2, FolderOpen, FolderPlus, Globe, Send, Pencil, Pin, Search, Trash2 } from "lucide-react"
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { toast } from "sonner"
 
@@ -321,6 +321,20 @@ export function FileActions({
               {label}
             </ContextMenuItem>
           ))}
+          {!multiple && node.type !== "directory" && (
+            <ContextMenuItem
+              disabled={busy}
+              onSelect={() => {
+                setBusy(true)
+                void window.electronAPI.shareFilesToWechat(workspace.path, [node.path])
+                  .then(({ opened }) => toast.success(opened ? "文件已复制，请在微信中选择联系人后粘贴发送" : "文件已复制，请手动打开微信并粘贴发送"))
+                  .catch((reason) => setError(String(reason)))
+                  .finally(() => setBusy(false))
+              }}
+            >
+              <Send />发送文件到微信…
+            </ContextMenuItem>
+          )}
           {targets.every((item) => item.type !== "directory") && (
             <ContextMenuItem
               onSelect={() => {

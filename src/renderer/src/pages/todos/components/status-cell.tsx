@@ -11,8 +11,8 @@ export function StatusCell({ status, onUpdateStatus }: { status?: { key: string;
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <div className="group flex items-center gap-1.5 cursor-pointer">
-          <span className={cn("inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-normal border transition-colors", current.colorClass || "bg-blue-50 text-blue-600 border-blue-200")}>
+        <div data-todo-cell-trigger className="group flex items-center gap-1.5 cursor-pointer">
+          <span data-todo-status={current.key} className={cn("todo-status-badge inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-normal border transition-colors", current.colorClass || "bg-blue-50 text-blue-600 border-blue-200")}>
             <span className={cn("size-1.5 rounded-full", current.key === "done" ? "bg-emerald-600" : current.key === "doing" ? "bg-blue-600" : current.key === "overdue" ? "bg-red-600" : "bg-stone-400")} />
             {current.label}
           </span>

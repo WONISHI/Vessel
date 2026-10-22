@@ -11,6 +11,7 @@ export * from "#vessel-type/terminal"
 export * from "#vessel-type/todos"
 export * from "#vessel-type/performance"
 export * from "#vessel-type/system-info"
+export * from "#vessel-type/native-menu"
 export * from "#vessel-type/transit"
 
 export * from "#vessel-type/file-tree"

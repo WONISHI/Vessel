@@ -4,6 +4,7 @@ import { ipcRenderer } from "electron"
 
 /** 向渲染进程提供受控的文件 IPC 接口，不暴露 Node 文件系统对象。 */
 export const filesAPI = {
+  shareFilesToWechat: (root: string, paths: string[]): Promise<{ opened: boolean }> => ipcRenderer.invoke("file:share-wechat", root, paths),
   /** Parses and queries an Obsidian Base against the current workspace. */
   queryBase: (root: string, path: string, viewIndex?: number): Promise<BaseQueryResult> => ipcRenderer.invoke("obsidian:query-base", root, path, viewIndex),
   /** Performs the search content operation. */

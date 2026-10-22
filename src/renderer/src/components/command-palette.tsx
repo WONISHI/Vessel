@@ -6,7 +6,7 @@ import { openInAppBrowser, toURL } from "@/lib/app-browser"
 import { applyAppearance } from "@/pages/settings/appearance"
 import { useRouter } from "@vessel/react-router"
 import { matchesShortcut } from "@vessel/utils"
-import { ExternalLink, Eye, EyeOff, Globe, RotateCw, FileSearch, Moon, Sun } from "lucide-react"
+import { ExternalLink, Eye, EyeOff, Globe, RotateCw, FileSearch, FolderOpen, Moon, Sun } from "lucide-react"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
@@ -110,6 +110,16 @@ export function CommandPalette() {
             </CommandGroup>
           )}
           <CommandGroup heading="常用">
+            <CommandItem
+              value="选择工作区 切换工作区 欢迎页 workspace welcome"
+              onSelect={() => {
+                setOpen(false)
+                void router.push({ name: "welcome" })
+              }}
+            >
+              <FolderOpen />
+              选择工作区
+            </CommandItem>
             <CommandItem
               value="查找工作区文件 搜索文件 find file"
               onSelect={() => {

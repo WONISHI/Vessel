@@ -886,3 +886,17 @@ html.dark .document-outline-bar-row[aria-current="location"] .document-outline-b
   margin-top: 4px !important;
   margin-bottom: 12px !important;
 }
+
+.vessel-vditor [data-vessel-highlight] { background: #fef08a; color: #422006; border-radius: 2px; }
+.vessel-vditor [data-highlight-marker] { font-size: 0; }
+html.dark .vessel-vditor [data-vessel-highlight] { background: #80651f; color: #fff3bf; }
+
+/* Dark outline keeps inactive titles legible and selection distinct from hover. */
+html.dark .document-outline-panel { background-color: #23272d !important; border-color: #363e48 !important; }
+html.dark .document-outline-panel .text-stone-700 { color: #e6e8eb !important; }
+html.dark .document-outline-panel .text-stone-400 { color: #9aa5b1 !important; }
+html.dark .document-outline-panel .document-outline-heading { color: #b6c0cc !important; transition: background-color 150ms ease, color 150ms ease; }
+html.dark .document-outline-panel .document-outline-heading[aria-current="location"] { background: #203b2e !important; color: #6ee7a0 !important; }
+html.dark .document-outline-panel .document-outline-heading:is(:hover, [data-state="open"]) { background: #343e49 !important; color: #fff !important; }
+html.dark .document-outline-panel .document-outline-heading[aria-current="location"]:is(:hover, [data-state="open"]) { background: #2b4b39 !important; }
+html.dark .document-outline-panel > div:first-child button:hover { background: #343e49 !important; color: #fff !important; }

@@ -9,3 +9,4 @@ export * from "#vessel-obsidian/links"
 export * from "#vessel-obsidian/tags"
 
 export * from "#vessel-obsidian/kbd"
+export * from "#vessel-obsidian/highlights"
