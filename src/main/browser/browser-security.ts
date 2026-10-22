@@ -3,7 +3,7 @@ import { registerBrowserExtensions } from "@main/browser/browser-extensions"
 import { registerBrowserProxy } from "@main/browser/browser-proxy"
 import { registerBrowserTools } from "@main/browser/browser-tools"
 import { shouldMonitorNavigation } from "@main/settings/settings"
-import { matchesShortcut } from "@vessel/utils"
+import { commandShortcutIds, matchesShortcut } from "@vessel/utils"
 import { BrowserWindow, dialog, session, type WebContents } from "electron"
 import { join } from "node:path"
 
@@ -87,9 +87,10 @@ export function secureBrowserGuests(contents: WebContents) {
         event.preventDefault()
         contents.send("browser:toggle-devtools", guest.id)
       }
-      if (matchesShortcut(input, "command")) {
+      const command = commandShortcutIds.find((id) => matchesShortcut(input, id))
+      if (command) {
         event.preventDefault()
-        contents.send("app:command")
+        if (!input.isAutoRepeat) contents.send("app:command", command)
       }
     })
     guest.on("will-navigate", (event, url) => {

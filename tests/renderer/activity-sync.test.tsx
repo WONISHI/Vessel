@@ -130,3 +130,16 @@ it("switches dark and light appearance from the activity bar without changing ot
   await waitFor(() => expect(document.documentElement.classList.contains("dark")).toBe(false))
   expect(saveSettings).toHaveBeenLastCalledWith({ ...settings, theme: "light" })
 })
+
+it("does not restore the More tooltip when its hover popover closes", async () => {
+  vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} })
+  Object.defineProperty(window, "electronAPI", { configurable: true, value: { getSettings: vi.fn(async () => ({ backup: {} })), getBackupStatus: vi.fn(async () => ({})) } })
+  render(<LayoutActivityBar activity="files" onActivityChange={() => {}} />)
+  const trigger = screen.getByRole("button", { name: "更多开发工具" })
+  fireEvent.mouseEnter(trigger.parentElement!)
+  expect(await screen.findByRole("button", { name: /Git 代码版本管理/ })).toBeTruthy()
+  fireEvent.pointerLeave(trigger, { pointerType: "mouse" })
+  fireEvent.mouseLeave(trigger.parentElement!)
+  await waitFor(() => expect(screen.queryByRole("button", { name: /Git 代码版本管理/ })).toBeNull())
+  expect(screen.queryByRole("tooltip", { name: /更多工具/ })).toBeNull()
+})

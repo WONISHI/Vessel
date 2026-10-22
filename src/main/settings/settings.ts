@@ -391,9 +391,16 @@ export function registerSettings(host: WebContents) {
   host.ipc.handle("settings:get", () => publicSettings())
   host.ipc.handle("settings:info", () => ({ version: app.getVersion(), electron: process.versions.electron, node: process.versions.node }))
   host.ipc.handle("settings:save", async (_event, input: AppSettings, secret?: string) => {
-    if (syncing) throw new Error("正在备份，请完成后再修改设置")
     const settings = validate(input)
     if (input.backup.workspacePath !== (currentWorkspace ?? undefined)) throw new Error("工作区已切换，请重新打开设置")
+    const backupChanged = JSON.stringify(settings.backup) !== JSON.stringify(validate(publicSettings()).backup)
+    if (syncing && (backupChanged || secret !== undefined)) throw new Error("正在同步，请完成后再修改同步配置")
+    if (!backupChanged && secret === undefined) {
+      // Keep the running sync's profile and scheduler intact when only general settings change.
+      await persist({ ...load(), settings: { ...settings, backup: load().settings.backup } })
+      settingsEvents.emit("changed")
+      return publicSettings()
+    }
     const root = currentWorkspace
     let encrypted = profile().secret
     if (secret !== undefined) {

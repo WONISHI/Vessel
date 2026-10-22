@@ -3,8 +3,8 @@ import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
-import { AlignLeft, Pin, PinOff, WrapText } from "lucide-react"
-import { useEffect, useRef, useState } from "react"
+import { AlignLeft, ChevronRight, ListTree, Pin, PinOff, WrapText } from "lucide-react"
+import { useEffect, useMemo, useRef, useState } from "react"
 
 /** 固定时展示标题，取消固定后用静态横线展示标题层级和当前阅读位置。 */
 export function DocumentOutline({
@@ -24,6 +24,20 @@ export function DocumentOutline({
   workspacePath: string
   documentPath: string
 }) {
+  const [collapsed, setCollapsed] = useState<Set<number>>(() => new Set())
+  const tree = useMemo(() => {
+    const stack: number[] = []
+    const nodes = headings.map((heading, index) => {
+      while (stack.length && headings[stack[stack.length - 1]].level >= heading.level) stack.pop()
+      const ancestors = [...stack]
+      stack.push(index)
+      return { ancestors, depth: ancestors.length, descendants: 0 }
+    })
+    nodes.forEach((node) => node.ancestors.forEach((parent) => nodes[parent].descendants++))
+    return nodes
+  }, [headings])
+  useEffect(() => setCollapsed(new Set()), [documentPath])
+  const anyExpanded = tree.some((node, index) => node.descendants > 0 && !collapsed.has(index))
   const [wrapTitles, setWrapTitles] = useState(false)
   const [pinned, setPinned] = useState(false)
   const [hovered, setHovered] = useState(false)
@@ -91,6 +105,16 @@ export function DocumentOutline({
               {fileName}
             </span>
           )}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-7 shrink-0 text-stone-400"
+            aria-label={anyExpanded ? "折叠全部标题" : "展开全部标题"}
+            disabled={!tree.some((node) => node.descendants > 0)}
+            onClick={() => setCollapsed(anyExpanded ? new Set(tree.flatMap((node, index) => node.descendants ? [index] : [])) : new Set())}
+          >
+            <ListTree className="!size-3.5" />
+          </Button>
           {
             <Button
               variant="ghost"
@@ -117,36 +141,57 @@ export function DocumentOutline({
           </Button>
         </div>
         <ScrollArea className="min-h-0 flex-1 [&_[data-radix-scroll-area-viewport]>div]:!block">
-          {headings.map((heading, index) => (
-            <SectionPreview
-              enabled={expanded}
-              onOpenChange={(open) => setPreviewIndex((current) => (open ? index : current === index ? null : current))}
-              workspacePath={workspacePath}
-              documentPath={documentPath}
-              key={index}
-              source={sections[index] || heading.text}
-            >
-              <Button
-                variant="ghost"
-                aria-label={heading.text}
+          {headings.map((heading, index) => {
+            const node = tree[index]
+            if (node.ancestors.some((parent) => collapsed.has(parent))) return null
+            const folded = collapsed.has(index)
+            return (
+              <div
+                key={index}
+                className="document-outline-heading group flex min-h-7 w-full items-center rounded-md pr-1 text-stone-600 hover:bg-stone-100 aria-[current=location]:bg-green-50 aria-[current=location]:text-green-700"
                 aria-current={index === activeIndex ? "location" : undefined}
-                onClick={() => onSelect(index)}
-                className={cn(
-                  "document-outline-heading group min-w-0 w-full overflow-hidden text-[11px] font-normal hover:bg-green-600 hover:text-white data-[state=open]:bg-green-600 data-[state=open]:text-white",
-                  cn("min-h-8 justify-start py-1.5 text-left", wrapTitles ? "h-auto whitespace-normal" : "h-8 whitespace-nowrap"),
-                  index === activeIndex ? "text-green-700" : "text-stone-500"
-                )}
                 style={{ paddingLeft: 8 + (heading.level - 1) * 10 }}
               >
-                <span
-                  style={{ color: index === activeIndex ? undefined : heading.color }}
-                  className={cn("min-w-0 group-hover:!text-white group-data-[state=open]:!text-white", wrapTitles ? "break-words" : "truncate")}
+                {node.descendants > 0 ? (
+                  <button
+                    type="button"
+                    className="document-outline-fold flex h-6 w-4 shrink-0 items-center justify-center rounded text-stone-400 hover:bg-stone-200 hover:text-stone-600"
+                    aria-label={`${folded ? "展开" : "折叠"}${heading.text}`}
+                    aria-expanded={!folded}
+                    onClick={() => setCollapsed((current) => {
+                      const next = new Set(current)
+                      if (next.has(index)) next.delete(index)
+                      else next.add(index)
+                      return next
+                    })}
+                  >
+                    <ChevronRight className={cn("size-3.5 transition-transform duration-150 motion-reduce:transition-none", !folded && "rotate-90")} />
+                  </button>
+                ) : <span aria-hidden className="flex w-4 shrink-0 justify-center"><span className="size-1 rounded-full bg-stone-300" /></span>}
+                <SectionPreview
+                  enabled={expanded}
+                  onOpenChange={(open) => setPreviewIndex((current) => (open ? index : current === index ? null : current))}
+                  workspacePath={workspacePath}
+                  documentPath={documentPath}
+                  source={sections[index] || heading.text}
                 >
-                  {heading.text}
-                </span>
-              </Button>
-            </SectionPreview>
-          ))}
+                  <button
+                    type="button"
+                    aria-label={heading.text}
+                    aria-current={index === activeIndex ? "location" : undefined}
+                    onClick={() => onSelect(index)}
+                    className={cn("flex min-w-0 flex-1 items-center gap-1.5 py-1.5 text-left text-[11px]", wrapTitles ? "whitespace-normal" : "whitespace-nowrap", index === activeIndex && "font-semibold")}
+                  >
+                    <span aria-hidden data-level={heading.level} className="document-outline-level flex h-[15px] w-[21px] shrink-0 items-center justify-center rounded-[3px] bg-stone-100 font-mono text-[8.5px] font-bold text-stone-400 data-[level=1]:bg-green-100 data-[level=1]:text-green-700 data-[level=2]:bg-stone-200 data-[level=2]:text-stone-600">H{heading.level}</span>
+                    <span style={{ color: index === activeIndex ? undefined : heading.color }} className={cn("min-w-0", wrapTitles ? "break-words" : "truncate")}>
+                      {heading.text}
+                    </span>
+                    {folded && node.descendants > 0 && <span aria-label={`${node.descendants} 个子标题`} className="document-outline-count ml-auto shrink-0 rounded-full bg-stone-100 px-1.5 text-[10px] font-normal text-stone-400">{node.descendants}</span>}
+                  </button>
+                </SectionPreview>
+              </div>
+            )
+          })}
           {!headings.length && expanded && <p className="px-2 py-3 text-xs text-stone-400">暂无标题</p>}
         </ScrollArea>
       </div>

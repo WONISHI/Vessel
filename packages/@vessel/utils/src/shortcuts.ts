@@ -4,6 +4,13 @@ export { type KeyInput, type ShortcutId } from "@vessel/type"
 
 /** One registry for shortcut handlers and the settings reference. Editor-native keys are scoped explicitly. */
 export const shortcuts = {
+  selectWorkspace: { label: "选择工作区", key: "e", mod: true, shift: true, scope: "全局" },
+  findWorkspaceFiles: { label: "查找工作区文件", key: "f", mod: true, shift: true, scope: "全局" },
+  visitLink: { label: "访问链接", key: "l", mod: true, shift: true, scope: "全局" },
+  reloadApp: { label: "刷新页面", key: "r", mod: true, shift: true, scope: "全局" },
+  toggleTheme: { label: "切换主题", key: "d", mod: true, shift: true, scope: "全局" },
+  showControls: { label: "显示控制按钮", key: "y", mod: true, shift: true, scope: "全局" },
+  hideControls: { label: "关闭控制按钮", key: "u", mod: true, shift: true, scope: "全局" },
   command: { label: "命令菜单", key: "p", mod: true, scope: "全局" },
   find: { label: "页面 / 文档查找", key: "f", mod: true, scope: "浏览器、编辑器" },
   scrollTop: { label: "返回顶部", key: "a", ctrl: true, shift: true, scope: "悬停 / 聚焦的滚动区域" },
@@ -56,3 +63,6 @@ export function markdownHotkey(id: ShortcutId) {
   const item: { key: string; mod?: boolean; shift?: boolean } = shortcuts[id]
   return `${item.shift ? "⇧" : ""}${item.mod ? "⌘" : ""}${item.key.toUpperCase()}`
 }
+
+/** Commands available both in the app shell and focused browser guests. */
+export const commandShortcutIds = ["command", "selectWorkspace", "findWorkspaceFiles", "visitLink", "reloadApp", "toggleTheme", "showControls", "hideControls"] as const

@@ -156,9 +156,9 @@ const vesselAPI = {
   },
 
   /** Handles command palette events. */
-  onCommandPalette: (callback: () => void) => {
+  onCommandPalette: (callback: (command?: string) => void) => {
     /** Performs the listener operation. */
-    const listener = () => callback()
+    const listener = (_event: Electron.IpcRendererEvent, command?: string) => callback(command)
     ipcRenderer.on("app:command", listener)
     return () => ipcRenderer.removeListener("app:command", listener)
   },

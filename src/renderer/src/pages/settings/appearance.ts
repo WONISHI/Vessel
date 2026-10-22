@@ -1,10 +1,11 @@
 import "@/pages/settings/appearance.css"
 import type { AppSettings } from "@vessel/type"
 
-/** Applies appearance. */
-export function applyAppearance(settings: AppSettings) {
+let themeTransitionActive = false
+let latestAppearance: AppSettings | undefined
+
+function commitAppearance(settings: AppSettings, dark: boolean) {
   const root = document.documentElement
-  const dark = settings.theme === "dark" || (settings.theme === "system" && matchMedia("(prefers-color-scheme: dark)").matches)
   root.dataset.vesselAppearance = "true"
   root.classList.toggle("dark", dark)
   void window.electronAPI?.setWindowAppearance?.(dark)?.catch(() => {})
@@ -23,4 +24,39 @@ export function applyAppearance(settings: AppSettings) {
   const h = !d ? 0 : max === r ? ((g - b) / d + (g < b ? 6 : 0)) * 60 : max === g ? ((b - r) / d + 2) * 60 : ((r - g) / d + 4) * 60
   const s = !d ? 0 : d / (1 - Math.abs(2 * l - 1))
   root.style.setProperty("--accent-color", `${h} ${s * 100}% ${l * 100}%`)
+}
+
+/** Merge repeated settings notifications and finish each whole-page reveal before the next switch. */
+export function applyAppearance(settings: AppSettings) {
+  latestAppearance = settings
+  if (themeTransitionActive) return
+  const root = document.documentElement
+  const dark = settings.theme === "dark" || (settings.theme === "system" && matchMedia("(prefers-color-scheme: dark)").matches)
+  const themeChanged = root.classList.contains("dark") !== dark
+  const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
+  const update = () => commitAppearance(settings, dark)
+  if (!root.dataset.vesselAppearance || !themeChanged || reducedMotion || !document.startViewTransition) {
+    update()
+    return
+  }
+  themeTransitionActive = true
+  root.classList.add("vessel-theme-transition")
+  const finish = () => {
+    root.classList.remove("vessel-theme-transition")
+    themeTransitionActive = false
+    // The final notification may include updated sync metadata or another requested theme.
+    if (latestAppearance && latestAppearance !== settings) applyAppearance(latestAppearance)
+  }
+  try {
+    const transition = document.startViewTransition(async () => {
+      update()
+      // Let theme observers and embedded editors commit before capturing the new page.
+      await new Promise<void>((resolve) => setTimeout(resolve, 32))
+    })
+    void transition.ready.catch(() => {})
+    void transition.finished.catch(() => {}).finally(finish)
+  } catch {
+    update()
+    finish()
+  }
 }

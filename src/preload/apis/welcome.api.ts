@@ -5,7 +5,7 @@ export const welcomeAPI = {
   getSystemInfo: (): Promise<SystemInfo> => ipcRenderer.invoke("system:info"),
   getPerformanceSnapshot: (): Promise<PerformanceSnapshot> => ipcRenderer.invoke("performance:snapshot"),
   /** Reads workspace directory. */
-  readWorkspaceDirectory: (root: string, directory: string) => ipcRenderer.invoke("workspace:readDirectory", root, directory),
+  readWorkspaceDirectory: (root: string, directory: string, options?: { includeIgnored?: boolean }) => ipcRenderer.invoke("workspace:readDirectory", root, directory, options),
   /**
    * 选择文件夹，并将工作区打开信息保存到数据库。
    */

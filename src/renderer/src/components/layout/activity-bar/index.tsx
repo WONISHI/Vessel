@@ -25,6 +25,7 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
   const dark = useDarkAppearance()
   const location = useLocation()
   const [moreToolsOpen, setMoreToolsOpen] = useState(false)
+  const [moreToolsTooltipOpen, setMoreToolsTooltipOpen] = useState(false)
   const transitOpen = useRef(false)
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isMoreToolsActive = activity === "tools" || activity === "git" || activity === "postman" || ["/devtools", "/git", "/api-client"].some((p) => location.pathname.startsWith(p))
@@ -251,6 +252,7 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
             className="relative flex size-[38px] items-center justify-center"
             onMouseEnter={() => {
               if (closeTimer.current) clearTimeout(closeTimer.current)
+              setMoreToolsTooltipOpen(false)
               setMoreToolsOpen(true)
             }}
             onMouseLeave={() => {
@@ -259,7 +261,11 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
               }, 250)
             }}
           >
-            <Tooltip>
+            <Tooltip
+              open={moreToolsTooltipOpen && !moreToolsOpen}
+              onOpenChange={(next) => setMoreToolsTooltipOpen(next && !moreToolsOpen)}
+              disableHoverableContent
+            >
               <TooltipTrigger asChild>
                 <PopoverTrigger asChild>
                   <Button
@@ -267,6 +273,8 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
                     size="icon"
                     data-activity-button
                     aria-label="更多开发工具"
+                    onPointerLeave={() => setMoreToolsTooltipOpen(false)}
+                    onBlur={() => setMoreToolsTooltipOpen(false)}
                     aria-pressed={moreActive}
                     className={cn("relative h-[38px] w-[38px] rounded-[10px] text-stone-500 hover:!bg-[#f0efed] hover:!text-stone-500", (moreActive || moreToolsOpen) && "!bg-emerald-50 !text-green-700 hover:!bg-emerald-50 hover:!text-green-700")}
                   >
@@ -274,15 +282,13 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
                   </Button>
                 </PopoverTrigger>
               </TooltipTrigger>
-              {!moreToolsOpen && (
-                <TooltipContent
-                  side="right"
-                  sideOffset={10}
-                  className="border-stone-200 bg-white text-xs text-stone-700"
-                >
-                  更多工具 (Git / API / 开发工具)
-                </TooltipContent>
-              )}
+              <TooltipContent
+                side="right"
+                sideOffset={10}
+                className="border-stone-200 bg-white text-xs text-stone-700"
+              >
+                更多工具 (Git / API / 开发工具)
+              </TooltipContent>
             </Tooltip>
 
             {/* 悬停/点击浮层：显示三个合并按钮 */}
@@ -293,6 +299,10 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
                 sideOffset={6}
                 collisionPadding={8}
                 onOpenAutoFocus={(event) => event.preventDefault()}
+                onCloseAutoFocus={(event) => {
+                  event.preventDefault()
+                  setMoreToolsTooltipOpen(false)
+                }}
                 className="z-[300] max-h-[var(--radix-popover-content-available-height)] w-56 overflow-hidden rounded-xl border border-stone-200 bg-white p-0 shadow-xl"
                 onMouseEnter={() => {
                   if (closeTimer.current) clearTimeout(closeTimer.current)

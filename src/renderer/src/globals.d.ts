@@ -114,14 +114,14 @@ interface VesselAPI extends BrowserProxyAPI, BrowserToolsAPI, SettingsAPI, Brows
 
   onBrowserDevtoolsClosed: (callback: () => void) => () => void
   onOpenSettings: (callback: () => void) => () => void
-  onCommandPalette: (callback: () => void) => () => void
+  onCommandPalette: (callback: (command?: string) => void) => () => void
   onBrowserToggleDevtools: (callback: (id: number) => void) => () => void
   onBrowserFind: (callback: (id: number) => void) => () => void
   setBrowserDevtools: (id: number | null, bounds?: { x: number; y: number; width: number; height: number }, appearance?: { font: string; size: number; detached?: boolean }) => Promise<void>
   onBrowserNewTab: (callback: (url: string, opener?: number) => void) => () => void
   takePendingMarkdownFiles: () => Promise<string[]>
   onOpenMarkdown: (callback: (path: string) => void) => () => void
-  readWorkspaceDirectory: (root: string, directory: string) => Promise<Array<{ name: string; path: string; type: "file" | "directory"; ctime?: number; mtime?: number }>>
+  readWorkspaceDirectory: (root: string, directory: string, options?: { includeIgnored?: boolean }) => Promise<Array<{ name: string; path: string; type: "file" | "directory"; ctime?: number; mtime?: number }>>
   /** 选择文件夹并记录工作区打开信息。 */
   openDirectory: () => Promise<WorkspaceData | null>
 

@@ -1,3 +1,4 @@
+import { GitOperationLoading, type GitRemoteOperation } from "@/pages/git/components/operation-loading"
 import { HistoryLoadMore } from "@/pages/git/components/history-load-more"
 import { CommitMessageInput } from "@/pages/git/components/commit-message-input"
 import "@/pages/git/dark.css"
@@ -95,6 +96,8 @@ export default function SourceTreePage() {
   const [isRepo, setIsRepo] = useState<boolean | null>(null)
   const [activeTab, setActiveTab] = useState<"status" | "history">("status")
   const [loading, setLoading] = useState(false)
+  const [remoteOperation, setRemoteOperation] = useState<GitRemoteOperation | null>(null)
+  const remotePending = useRef(false)
   const [status, setStatus] = useState<GitStatusResult | null>(null)
   const [branches, setBranches] = useState<{ local: string[]; remote: string[]; current: string }>({
     local: [],
@@ -725,6 +728,9 @@ export default function SourceTreePage() {
 
   /** Handles pull events. */
   const handlePull = async () => {
+    if (remotePending.current) return
+    remotePending.current = true
+    setRemoteOperation("pull")
     setLoading(true)
     try {
       const res = await window.electronAPI.git.pull(repoPath)
@@ -733,12 +739,17 @@ export default function SourceTreePage() {
     } catch (e: any) {
       toast.error("拉取失败", { description: cleanGitErrorMessage(e) })
     } finally {
+      remotePending.current = false
+      setRemoteOperation(null)
       setLoading(false)
     }
   }
 
   /** Handles push events. */
   const handlePush = async () => {
+    if (remotePending.current) return
+    remotePending.current = true
+    setRemoteOperation("push")
     setLoading(true)
     try {
       const res = await window.electronAPI.git.push(repoPath)
@@ -747,12 +758,17 @@ export default function SourceTreePage() {
     } catch (e: any) {
       toast.error("推送失败", { description: cleanGitErrorMessage(e) })
     } finally {
+      remotePending.current = false
+      setRemoteOperation(null)
       setLoading(false)
     }
   }
 
   /** Handles fetch events. */
   const handleFetch = async () => {
+    if (remotePending.current) return
+    remotePending.current = true
+    setRemoteOperation("fetch")
     setLoading(true)
     try {
       await window.electronAPI.git.fetch(repoPath)
@@ -761,6 +777,8 @@ export default function SourceTreePage() {
     } catch (e: any) {
       toast.error("抓取失败", { description: cleanGitErrorMessage(e) })
     } finally {
+      remotePending.current = false
+      setRemoteOperation(null)
       setLoading(false)
     }
   }
@@ -785,9 +803,9 @@ export default function SourceTreePage() {
         />
       }
     >
-      <div className="vessel-git-page flex h-full min-w-0 flex-1 flex-col overflow-hidden bg-white text-stone-800">
+      <div className="vessel-git-page relative flex h-full min-w-0 flex-1 flex-col overflow-hidden bg-white text-stone-800">
         {/* 1. 顶部操作工具栏 (SourceTree 经典 Toolbar) */}
-        <header className="git-toolbar flex h-12 shrink-0 items-center justify-between border-b border-stone-200 bg-stone-50/70 px-3">
+        <header inert={remoteOperation !== null} className="git-toolbar flex h-12 shrink-0 items-center justify-between border-b border-stone-200 bg-stone-50/70 px-3">
           <div className="flex items-center gap-1">
             {/* Commit 按钮 */}
             <button
@@ -934,7 +952,9 @@ export default function SourceTreePage() {
           </div>
         </header>
 
+        {remoteOperation && <GitOperationLoading operation={remoteOperation} branch={branches.current} />}
         {/* 2. 主体区 (左右分栏，1号支持 Resizable 水平拖拽) */}
+        <div inert={remoteOperation !== null} aria-busy={remoteOperation !== null} className="flex min-h-0 flex-1">
         <ResizablePanelGroup
           orientation="horizontal"
           className="flex-1 min-h-0 h-full w-full"
@@ -2008,6 +2028,7 @@ export default function SourceTreePage() {
           </ResizablePanel>
         </ResizablePanelGroup>
 
+        </div>
         {/* 弹窗：新建分支 */}
         <CreateBranchDialog
           open={createBranchOpen}

@@ -91,7 +91,7 @@ export class WelcomeModule extends BaseModule {
         return database.recordWorkspaceOpened(workspace)
       })
 
-      this.registerHandler("workspace:readDirectory", async (_event, root: string, directory: string) => {
+      this.registerHandler("workspace:readDirectory", async (_event, root: string, directory: string, options?: { includeIgnored?: boolean }) => {
         if (typeof root !== "string" || typeof directory !== "string") throw new TypeError("目录路径必须为字符串")
         const rootPath = await realpath(root)
         const directoryPath = await realpath(directory)
@@ -99,7 +99,7 @@ export class WelcomeModule extends BaseModule {
         if (childPath === ".." || childPath.startsWith("../") || childPath.startsWith("..\\") || isAbsolute(childPath)) throw new Error("目录不属于当前工作区")
         const entries = await readdir(directoryPath, { withFileTypes: true })
         const ignoredPatterns = parseIgnoredPatterns(generalSettings().ignoredFiles)
-        const filtered = entries.filter((entry) => (entry.isDirectory() || entry.isFile()) && !isIgnoredEntry(entry.name, ignoredPatterns))
+        const filtered = entries.filter((entry) => (entry.isDirectory() || entry.isFile()) && (options?.includeIgnored === true || !isIgnoredEntry(entry.name, ignoredPatterns)))
         const nodes = await Promise.all(
           filtered.map(async (entry) => {
             const entryPath = join(directoryPath, entry.name)

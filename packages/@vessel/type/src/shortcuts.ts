@@ -9,6 +9,13 @@ export type ShortcutItem = {
 
 export type ShortcutId =
   | "command"
+  | "selectWorkspace"
+  | "findWorkspaceFiles"
+  | "visitLink"
+  | "reloadApp"
+  | "toggleTheme"
+  | "showControls"
+  | "hideControls"
   | "find"
   | "scrollTop"
   | "scrollBottom"

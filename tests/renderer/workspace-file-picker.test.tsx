@@ -35,7 +35,7 @@ it("lists current tabs first and searches filenames plus contained links before 
   expect(screen.getByRole("button", { name: /open.md/ })).toBeTruthy()
   expect(searchContent).not.toHaveBeenCalled()
   expect(await screen.findByRole("button", { name: /service.md/ })).toBeTruthy()
-  expect(screen.getByText("工作区全部文件（已打开优先）")).toBeTruthy()
+  expect(screen.getByRole("status").textContent).toContain("2 个结果")
   fireEvent.change(screen.getByRole("textbox", { name: "搜索工作区文件" }), { target: { value: "service" } })
   expect(await screen.findByRole("button", { name: /service.md/ })).toBeTruthy()
   fireEvent.click(await screen.findByRole("button", { name: /linked.md/ }))
@@ -88,6 +88,28 @@ it("indexes unopened nested files before typing and opens them", async () => {
   const openFile = vi.fn()
   render(<WorkspaceFilePicker workspace={{ root: "/vault", files: [], openFile }} onClose={() => {}} />)
   fireEvent.click(await screen.findByRole("button", { name: /unopened.md/ }))
-  expect(read).toHaveBeenCalledWith("/vault", "/vault/notes")
+  expect(read).toHaveBeenCalledWith("/vault", "/vault/notes", { includeIgnored: true })
   expect(openFile).toHaveBeenCalledWith({ name: "unopened.md", path: "/vault/notes/unopened.md", type: "file" })
+})
+
+
+it("keeps folders previously excluded by the picker and lets users reach results beyond the first 100", async () => {
+  vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} })
+  const read = vi.fn(async (_root: string, path: string) => path === "/vault"
+    ? [{ name: "node_modules", path: "/vault/node_modules", type: "directory" }]
+    : Array.from({ length: 105 }, (_, i) => ({ name: `file-${i}.md`, path: `/vault/node_modules/file-${i}.md`, type: "file" })))
+  Object.defineProperty(window, "electronAPI", { configurable: true, value: { readWorkspaceDirectory: read, searchContent: vi.fn() } })
+  render(<WorkspaceFilePicker workspace={{ root: "/vault", files: [], openFile: vi.fn() }} onClose={() => {}} />)
+  expect(await screen.findByText("继续向下滚动加载更多")).toBeTruthy()
+  expect(read).toHaveBeenCalledWith("/vault", "/vault/node_modules", { includeIgnored: true })
+  expect(screen.queryByRole("button", { name: /file-104.md/ })).toBeNull()
+  const viewport = document.querySelector("[data-radix-scroll-area-viewport]")!
+  Object.defineProperties(viewport, { scrollHeight: { configurable: true, value: 3000 }, clientHeight: { configurable: true, value: 300 }, scrollTop: { configurable: true, writable: true, value: 2700 } })
+  expect(screen.getByRole("status").textContent).toContain("106 个结果")
+  fireEvent.scroll(viewport)
+  expect(screen.getByRole("button", { name: /file-104.md/ })).toBeTruthy()
+  expect(screen.getByRole("status").textContent).toContain("已显示 106 个")
+  fireEvent.change(screen.getByRole("textbox", { name: "搜索工作区文件" }), { target: { value: "file-" } })
+  expect(viewport.scrollTop).toBe(0)
+  expect(screen.queryByRole("button", { name: /file-104.md/ })).toBeNull()
 })

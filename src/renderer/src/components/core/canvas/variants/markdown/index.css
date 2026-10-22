@@ -900,3 +900,11 @@ html.dark .document-outline-panel .document-outline-heading[aria-current="locati
 html.dark .document-outline-panel .document-outline-heading:is(:hover, [data-state="open"]) { background: #343e49 !important; color: #fff !important; }
 html.dark .document-outline-panel .document-outline-heading[aria-current="location"]:is(:hover, [data-state="open"]) { background: #2b4b39 !important; }
 html.dark .document-outline-panel > div:first-child button:hover { background: #343e49 !important; color: #fff !important; }
+
+.document-outline-panel .document-outline-heading[aria-current="location"] .document-outline-count { background: #dcfce7; color: #15803d; }
+html.dark .document-outline-panel .document-outline-level { background: #30363e; color: #9aa5b3; }
+html.dark .document-outline-panel .document-outline-level[data-level="1"] { background: #214634; color: #86d9a2; }
+html.dark .document-outline-panel .document-outline-level[data-level="2"] { background: #3a424d; color: #c1cbd7; }
+html.dark .document-outline-panel .document-outline-fold:hover { background: #46515e; color: #e2e8f0; }
+html.dark .document-outline-panel .document-outline-count { background: #343e49; color: #aab6c4; }
+html.dark .document-outline-panel .document-outline-heading[aria-current="location"] .document-outline-count { background: #28543b; color: #86d9a2; }

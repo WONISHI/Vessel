@@ -4,11 +4,13 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { useFileSearch } from "@/components/workspace-file-picker/hooks/use-file-search"
 import type { FilePickerWorkspace } from "@/components/workspace-file-picker/types"
 import { File, Folder } from "lucide-react"
-import { useState } from "react"
+import { useRef, useState } from "react"
 
 /** Opens current tabs or workspace files matched by name, path, content or a contained link. */
 export function WorkspaceFilePicker({ workspace, onClose }: { workspace: FilePickerWorkspace | null; onClose: () => void }) {
+  const viewportRef = useRef<HTMLDivElement>(null)
   const [query, setQuery] = useState("")
+  const [visibleCount, setVisibleCount] = useState(100)
   const result = useFileSearch(workspace?.root || "", query)
   const keyword = query.trim().toLocaleLowerCase()
   const openFiles = (workspace?.files || []).filter((file) => !keyword || file.path.toLocaleLowerCase().includes(keyword))
@@ -32,12 +34,29 @@ export function WorkspaceFilePicker({ workspace, onClose }: { workspace: FilePic
           aria-label="搜索工作区文件"
           placeholder="搜索文件、文件夹、关键词或链接…"
           value={query}
-          onChange={(event) => setQuery(event.target.value)}
+          onChange={(event) => {
+            setQuery(event.target.value)
+            setVisibleCount(100)
+            if (viewportRef.current) viewportRef.current.scrollTop = 0
+          }}
           className="h-8 text-xs md:text-xs rounded-lg bg-stone-50 focus-visible:border-green-600 focus-visible:ring-green-100 focus-visible:ring-offset-0"
         />
-        <p className="text-xs text-stone-400">{query.trim() ? "工作区搜索结果（包含未打开文件）" : "工作区全部文件（已打开优先）"}</p>
-        <ScrollArea className="max-h-[45vh] min-h-0 [&_[data-radix-scroll-area-viewport]]:max-h-[45vh]">
-          {files.slice(0, 100).map((file) => (
+        <p role="status" className="text-xs text-stone-400">
+          {result.busy ? `正在搜索，已找到 ${files.length} 个结果` : `共找到 ${files.length} 个结果`}
+          <span className="ml-2">已显示 {Math.min(visibleCount, files.length)} 个</span>
+        </p>
+        <ScrollArea
+          viewportRef={viewportRef}
+          onScrollCapture={(event) => {
+            const viewport = viewportRef.current
+            if (event.target !== viewport || !viewport || visibleCount >= files.length) return
+            if (viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight <= 40) {
+              setVisibleCount((count) => Math.min(count + 100, files.length))
+            }
+          }}
+          className="max-h-[45vh] min-h-0 [&_[data-radix-scroll-area-viewport]]:max-h-[45vh]"
+        >
+          {files.slice(0, visibleCount).map((file) => (
             <button
               key={file.path}
               className="workspace-file-picker-row flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left hover:bg-stone-100 focus:bg-stone-100 focus:outline-none"
@@ -64,6 +83,7 @@ export function WorkspaceFilePicker({ workspace, onClose }: { workspace: FilePic
               </span>
             </button>
           ))}
+          {files.length > visibleCount && <p className="py-2 text-center text-xs text-stone-400">继续向下滚动加载更多</p>}
           {!workspace && <p className="p-3 text-xs text-stone-400">请先打开工作区</p>}
           {workspace && !files.length && <p className="p-3 text-xs text-stone-400">{result.busy ? "正在搜索…" : query.trim() ? "没有匹配的文件" : "工作区暂无文件"}</p>}
         </ScrollArea>
@@ -75,7 +95,7 @@ export function WorkspaceFilePicker({ workspace, onClose }: { workspace: FilePic
             {result.error}
           </p>
         )}
-        {(result.limited || files.length > 100) && <p className="text-xs text-stone-400">结果较多，请输入更精确的关键词</p>}
+        {result.limited && <p className="text-xs text-stone-400">内容匹配结果较多，请输入更精确的关键词；文件名和文件夹搜索不受此限制。</p>}
       </DialogContent>
     </Dialog>
   )

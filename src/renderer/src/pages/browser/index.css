@@ -10,9 +10,6 @@
   overflow-x: hidden;
   flex-shrink: 0;
 }
-.browser-tabs > .browser-new-tab-container {
-  margin-inline-start: var(--browser-tab-gap);
-}
 .browser-tab {
   height: var(--browser-tab-height);
   display: flex;
@@ -217,7 +214,7 @@
   align-self: stretch;
   padding: 0 36px 0 12px;
 }
-.browser-tab > button[title="关闭标签页"] {
+.browser-tab > button[aria-label="关闭标签页"] {
   position: absolute;
   right: 10px;
   top: 50%;
@@ -499,11 +496,11 @@
 .browser-tab-select {
   overflow: hidden;
   padding-left: 8px;
-  padding-right: 22px;
+  padding-right: 30px;
   gap: 4px;
 }
-.browser-tab > button[title="关闭标签页"] {
-  right: 4px;
+.browser-tab > button[aria-label="关闭标签页"] {
+  right: 8px;
 }
 
 .browser-tab.selected {

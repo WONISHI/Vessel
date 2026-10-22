@@ -1,5 +1,6 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { ShortcutSettings } from "@/pages/settings/components/shortcuts/components/shortcut-settings"
 import { CommandPalette } from "@/components/command-palette"
 
 vi.mock("@vessel/react-router", () => ({ useRouter: () => ({ push: vi.fn() }) }))
@@ -85,4 +86,34 @@ describe("CommandPalette theme toggle", () => {
       expect(document.documentElement.classList.contains("dark")).toBe(false)
     })
   })
+  it("runs theme, control visibility, file search and link commands directly from shortcuts", async () => {
+    localStorage.removeItem("vessel-control-visible")
+    render(<CommandPalette />)
+    fireEvent.keyDown(window, { key: "d", ctrlKey: true, shiftKey: true })
+    await waitFor(() => expect(document.documentElement.classList.contains("dark")).toBe(true))
+    fireEvent.keyDown(window, { key: "u", ctrlKey: true, shiftKey: true })
+    expect(localStorage.getItem("vessel-control-visible")).toBe("false")
+    fireEvent.keyDown(window, { key: "y", ctrlKey: true, shiftKey: true })
+    expect(localStorage.getItem("vessel-control-visible")).toBe("true")
+    fireEvent.keyDown(window, { key: "f", ctrlKey: true, shiftKey: true })
+    expect(await screen.findByRole("textbox", { name: "搜索工作区文件" })).toBeTruthy()
+    fireEvent.keyDown(window, { key: "l", ctrlKey: true, shiftKey: true })
+    expect(await screen.findByPlaceholderText("输入命令或链接…")).toHaveProperty("value", "https://")
+  })
+  it("shows shortcuts in the menu and handles commands forwarded from browser guests", async () => {
+    render(<CommandPalette />)
+    fireEvent.keyDown(window, { key: "p", ctrlKey: true })
+    expect(await screen.findByText(/Shift.*E/)).toBeTruthy()
+    const callback = vi.mocked(window.electronAPI.onCommandPalette).mock.calls.at(-1)![0]
+    act(() => callback("hideControls"))
+    expect(localStorage.getItem("vessel-control-visible")).toBe("false")
+  })
+
+  it("lists all seven command shortcuts in settings", () => {
+    render(<ShortcutSettings />)
+    for (const label of ["选择工作区", "查找工作区文件", "访问链接", "刷新页面", "切换主题", "显示控制按钮", "关闭控制按钮"]) {
+      expect(screen.getByText(label)).toBeTruthy()
+    }
+  })
+
 })

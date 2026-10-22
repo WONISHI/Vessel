@@ -1,11 +1,11 @@
 import { WorkspaceFilePicker } from "@/components/workspace-file-picker"
 import type { FilePickerWorkspace } from "@/components/workspace-file-picker/types"
-import { CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
+import { CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandShortcut } from "@/components/ui/command"
 import { useDarkAppearance } from "@/hooks/use-dark-appearance"
 import { openInAppBrowser, toURL } from "@/lib/app-browser"
 import { applyAppearance } from "@/pages/settings/appearance"
 import { useRouter } from "@vessel/react-router"
-import { matchesShortcut } from "@vessel/utils"
+import { commandShortcutIds, matchesShortcut, shortcutLabel } from "@vessel/utils"
 import { ExternalLink, Eye, EyeOff, Globe, RotateCw, FileSearch, FolderOpen, Moon, Sun } from "lucide-react"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
@@ -19,25 +19,6 @@ export function CommandPalette() {
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState("")
   const [visible, setVisible] = useState(() => localStorage.getItem("vessel-control-visible") !== "false")
-  useEffect(() => {
-    /** Shows show. */
-    const show = () => setOpen((value) => !value)
-
-    /** Performs the key operation. */
-    const key = (event: KeyboardEvent) => {
-      if (matchesShortcut(event, "command")) {
-        event.preventDefault()
-        event.stopPropagation()
-        show()
-      }
-    }
-    window.addEventListener("keydown", key, true)
-    const off = window.electronAPI.onCommandPalette?.(show)
-    return () => {
-      window.removeEventListener("keydown", key, true)
-      off?.()
-    }
-  }, [])
   useEffect(() => {
     if (!open) setSearch("")
   }, [open])
@@ -63,6 +44,54 @@ export function CommandPalette() {
       })
       .catch((error) => toast.error(String(error)))
   }
+  const findWorkspaceFiles = () => {
+    setFinderWorkspace(null)
+    window.dispatchEvent(new CustomEvent("vessel:request-workspace-files", { detail: setFinderWorkspace }))
+    setOpen(false)
+    setFinderOpen(true)
+  }
+  const selectWorkspace = () => {
+    setOpen(false)
+    void router.push({ name: "welcome" })
+  }
+  const visitLink = () => {
+    setFinderOpen(false)
+    setSearch("https://")
+    setOpen(true)
+  }
+  const reloadApp = () => {
+    setOpen(false)
+    window.location.reload()
+  }
+  useEffect(() => {
+    const execute = (command = "command") => {
+      switch (command) {
+        case "command": setOpen((value) => !value); break
+        case "selectWorkspace": selectWorkspace(); break
+        case "findWorkspaceFiles": findWorkspaceFiles(); break
+        case "visitLink": visitLink(); break
+        case "reloadApp": reloadApp(); break
+        case "toggleTheme": toggleTheme(); break
+        case "showControls": choose(true); break
+        case "hideControls": choose(false); break
+      }
+    }
+    const key = (event: KeyboardEvent) => {
+      const command = commandShortcutIds.find((id) => matchesShortcut(event, id))
+      if (!command) return
+      event.preventDefault()
+      event.stopImmediatePropagation()
+      if (!event.repeat) execute(command)
+    }
+    window.addEventListener("keydown", key, true)
+    const off = window.electronAPI.onCommandPalette?.(execute)
+    return () => {
+      window.removeEventListener("keydown", key, true)
+      off?.()
+    }
+  })
+  const mac = /Mac|iPhone|iPad/.test(navigator.platform)
+  const keyHint = (id: typeof commandShortcutIds[number]) => <CommandShortcut>{shortcutLabel(id, mac)}</CommandShortcut>
   const url = toURL(search)
   return (
     <>
@@ -112,44 +141,37 @@ export function CommandPalette() {
           <CommandGroup heading="常用">
             <CommandItem
               value="选择工作区 切换工作区 欢迎页 workspace welcome"
-              onSelect={() => {
-                setOpen(false)
-                void router.push({ name: "welcome" })
-              }}
+              onSelect={selectWorkspace}
             >
               <FolderOpen />
               选择工作区
+              {keyHint("selectWorkspace")}
             </CommandItem>
             <CommandItem
               value="查找工作区文件 搜索文件 find file"
-              onSelect={() => {
-                setFinderWorkspace(null)
-                window.dispatchEvent(new CustomEvent("vessel:request-workspace-files", { detail: setFinderWorkspace }))
-                setOpen(false)
-                setFinderOpen(true)
-              }}
+              onSelect={findWorkspaceFiles}
             >
               <FileSearch />
               查找工作区文件
+              {keyHint("findWorkspaceFiles")}
             </CommandItem>
             {!url && (
               <CommandItem
                 value="访问链接 打开网址 url"
-                onSelect={() => setSearch("https://")}
+                onSelect={visitLink}
               >
                 <Globe />
                 访问链接…
+                {keyHint("visitLink")}
               </CommandItem>
             )}
             <CommandItem
               value="刷新页面 reload"
-              onSelect={() => {
-                setOpen(false)
-                window.location.reload()
-              }}
+              onSelect={reloadApp}
             >
               <RotateCw />
               刷新页面
+              {keyHint("reloadApp")}
             </CommandItem>
           </CommandGroup>
           <CommandGroup heading="界面">
@@ -159,6 +181,7 @@ export function CommandPalette() {
             >
               {dark ? <Sun /> : <Moon />}
               切换主题
+              {keyHint("toggleTheme")}
             </CommandItem>
             <CommandItem
               value="显示控制按钮"
@@ -167,6 +190,7 @@ export function CommandPalette() {
             >
               <Eye />
               显示控制按钮
+              {keyHint("showControls")}
             </CommandItem>
             <CommandItem
               value="关闭控制按钮"
@@ -175,6 +199,7 @@ export function CommandPalette() {
             >
               <EyeOff />
               关闭控制按钮
+              {keyHint("hideControls")}
             </CommandItem>
           </CommandGroup>
         </CommandList>

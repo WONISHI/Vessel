@@ -9,38 +9,34 @@ export function useFileSearch(root: string, query: string) {
   const [error, setError] = useState("")
   const [limited, setLimited] = useState(false)
   const [indexing, setIndexing] = useState(false)
-  const [indexLimited, setIndexLimited] = useState(false)
   useEffect(() => {
     setFiles([])
-    setIndexLimited(false)
     if (!root) { setIndexing(false); return }
     setIndexing(true)
     let cancelled = false
     const pending = [root]
     const collected: WorkspaceNode[] = []
 
-    /** Indexes filenames using the existing workspace directory reader and its configured exclusions. */
+    /** Indexes filenames across the entire workspace, independently of tree visibility settings. */
     const scan = async () => {
       try {
         let count = 0
-        while (pending.length && count++ < 10000 && collected.length < 20000 && !cancelled) {
+        while (pending.length && !cancelled) {
           const directory = pending.shift()!
-          const nodes = await window.electronAPI.readWorkspaceDirectory(root, directory).catch((reason) => {
+          count++
+          const nodes = await window.electronAPI.readWorkspaceDirectory(root, directory, { includeIgnored: true }).catch((reason) => {
             if (!cancelled) setError(String(reason))
             return []
           })
           for (const node of nodes) {
             if (node.type === "directory") {
-              if (!["node_modules", ".git", ".pnpm-store"].includes(node.name)) {
-                pending.push(node.path)
-                collected.push(node)
-              }
+              pending.push(node.path)
+              collected.push(node)
             } else collected.push(node)
           }
           if (!cancelled && count % 25 === 0) setFiles([...collected])
         }
         if (!cancelled) setFiles([...collected])
-        if (!cancelled && pending.length) setIndexLimited(true)
       } catch (reason) {
         if (!cancelled) setError(String(reason))
       } finally {
@@ -83,5 +79,5 @@ export function useFileSearch(root: string, query: string) {
     }
   }, [root, query])
   const keyword = query.trim().toLocaleLowerCase()
-  return { files: [...new Map([...files.filter((file) => file.path.toLocaleLowerCase().includes(keyword)), ...contentFiles].map((file) => [file.path, file])).values()], busy: busy || indexing, error, limited: limited || indexLimited }
+  return { files: [...new Map([...files.filter((file) => file.path.toLocaleLowerCase().includes(keyword)), ...contentFiles].map((file) => [file.path, file])).values()], busy: busy || indexing, error, limited }
 }

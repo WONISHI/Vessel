@@ -72,6 +72,30 @@ it("isolates workspace credentials, blocks resources, and only uploads the selec
     expect(await call("backup", join(notes, "note.md"), notes)).toMatchObject({ running: false, changed: 1 })
     expect(mocks.upload).toHaveBeenCalledTimes(1)
     expect(mocks.upload.mock.calls[0][2]).toBe("backups/note.md")
+    // Hold an upload open to exercise settings saves during an actual running sync.
+    await writeFile(join(notes, "note.md"), "# Changed during sync")
+    let releaseUpload!: () => void
+    let enteredUpload!: () => void
+    const uploadStarted = new Promise<void>((resolve) => { enteredUpload = resolve })
+    mocks.upload.mockImplementationOnce(async () => {
+      enteredUpload()
+      await new Promise<void>((resolve) => { releaseUpload = resolve })
+    })
+    const runningBackup = call("backup", join(notes, "note.md"), notes)
+    await uploadStarted
+    try {
+      const current = await call("get")
+      expect(await call("status")).toMatchObject({ running: true })
+      expect(await call("save", { ...current, theme: "dark" })).toMatchObject({ theme: "dark" })
+      expect(await call("status")).toMatchObject({ running: true })
+      await expect(call("save", { ...current, backup: { ...current.backup, bucket: "changed" } })).rejects.toThrow("同步配置")
+      await expect(call("save", current, "new-secret")).rejects.toThrow("同步配置")
+    } finally {
+      releaseUpload()
+      await runningBackup
+    }
+    expect(await call("get")).toMatchObject({ theme: "dark" })
+    expect(await call("status")).toMatchObject({ running: false })
     await expect(call("backup", join(other, "outside.md"), notes)).rejects.toThrow("当前工作区")
     await expect(call("backup", join(notes, "link.md"), notes)).rejects.toThrow("当前工作区")
     await expect(call("backup", join(notes, ".env"), notes)).rejects.toThrow("排除规则")
