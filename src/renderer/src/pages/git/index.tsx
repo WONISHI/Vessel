@@ -1,3 +1,4 @@
+import { TextWithArrows } from "@/components/ui/text-with-arrows"
 import { TerminalPanel } from "@/components/workspace/components/layout-main/terminal-panel"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { GitOperationLoading, type GitRemoteOperation } from "@/pages/git/components/operation-loading"
@@ -749,7 +750,7 @@ export default function SourceTreePage() {
     setLoading(true)
     try {
       const res = await window.electronAPI.git.pull(repoPath)
-      toast.success(res.output || "拉取成功")
+      toast.success(<TextWithArrows text={res.output || "拉取成功"} />)
       await refresh()
     } catch (e: any) {
       toast.error("拉取失败", { description: cleanGitErrorMessage(e) })
@@ -768,7 +769,7 @@ export default function SourceTreePage() {
     setLoading(true)
     try {
       const res = await window.electronAPI.git.push(repoPath)
-      toast.success(res.output || "推送成功")
+      toast.success(<TextWithArrows text={res.output || "推送成功"} />)
       await refresh()
     } catch (e: any) {
       toast.error("推送失败", { description: cleanGitErrorMessage(e) })
@@ -1840,7 +1841,7 @@ export default function SourceTreePage() {
                                           data-git-sidebar-hover
                                           className={`mr-1.5 rounded border px-1 py-0.5 text-[10px] font-medium ${badgeClass}`}
                                         >
-                                          {r}
+                                          <TextWithArrows text={r} />
                                         </span>
                                       )
                                     })}
