@@ -113,3 +113,22 @@ it("keeps folders previously excluded by the picker and lets users reach results
   expect(viewport.scrollTop).toBe(0)
   expect(screen.queryByRole("button", { name: /file-104.md/ })).toBeNull()
 })
+
+it("marks matching opened Markdown paths active without highlighting same-name files elsewhere", async () => {
+  vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} })
+  const opened = { name: "note.md", path: "/vault/open/note.md", type: "file" as const }
+  const unopened = { name: "note.md", path: "/vault/other/note.md", type: "file" as const }
+  Object.defineProperty(window, "electronAPI", { configurable: true, value: {
+    readWorkspaceDirectory: vi.fn(async () => [opened, unopened]),
+    searchContent: vi.fn(async () => ({ matches: [], truncated: false }))
+  } })
+  render(<WorkspaceFilePicker workspace={{ root: "/vault", files: [opened], activePath: opened.path, openFile: vi.fn() }} onClose={() => {}} />)
+  const row = await screen.findByRole("button", { name: /open\/note.md/ })
+  expect(row.getAttribute("data-active")).toBe("true")
+  expect(row.getAttribute("aria-current")).toBe("page")
+  expect(row.textContent).toContain("已打开")
+  const other = await screen.findByRole("button", { name: /other\/note.md/ })
+  expect(other.hasAttribute("data-active")).toBe(false)
+  fireEvent.change(screen.getByRole("textbox", { name: "搜索工作区文件" }), { target: { value: "note" } })
+  expect(document.querySelectorAll('.workspace-file-picker-row[data-active="true"]')).toHaveLength(1)
+})

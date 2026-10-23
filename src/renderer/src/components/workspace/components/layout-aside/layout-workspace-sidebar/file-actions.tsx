@@ -244,7 +244,7 @@ export function FileActions({
                 <ContextMenuSubTrigger><FilePlus2 />新建文件</ContextMenuSubTrigger>
                 <ContextMenuSubContent className="workspace-file-context-menu w-52">
                   {fileEntryOptions.map(({ extension, label, icon: Icon }) => (
-                    <ContextMenuItem key={extension} data-title={label} onSelect={() => onCreate?.("file", extension)}>
+                    <ContextMenuItem key={extension} data-title={label} data-title-side="right" onSelect={() => onCreate?.("file", extension)}>
                       <Icon /><span className="min-w-0 truncate">{label}</span>
                     </ContextMenuItem>
                   ))}

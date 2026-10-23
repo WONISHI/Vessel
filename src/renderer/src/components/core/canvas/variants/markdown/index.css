@@ -908,3 +908,20 @@ html.dark .document-outline-panel .document-outline-level[data-level="2"] { back
 html.dark .document-outline-panel .document-outline-fold:hover { background: #46515e; color: #e2e8f0; }
 html.dark .document-outline-panel .document-outline-count { background: #343e49; color: #aab6c4; }
 html.dark .document-outline-panel .document-outline-heading[aria-current="location"] .document-outline-count { background: #28543b; color: #86d9a2; }
+
+.vessel-vditor .vessel-footnote-tool button:disabled { opacity: .35; cursor: not-allowed; }
+.vessel-vditor .vessel-footnote-tool button:disabled:hover svg { color: #78716c; }
+
+.document-outline-panel .document-outline-action:is(:hover, :active) > svg { color: #fff !important; }
+
+.vessel-vditor [data-vessel-footnote-id] {
+  text-decoration-line: underline !important;
+  text-decoration-color: #111 !important;
+  text-decoration-thickness: 1px !important;
+  text-underline-offset: 3px;
+  cursor: help;
+}
+html.dark .vessel-vditor [data-vessel-footnote-id] { text-decoration-color: #d8dee9 !important; }
+
+/* Keep definitions for serialization and Hover Cards without showing a second footnote list. */
+.vessel-vditor .vditor-ir [data-type="footnotes-block"] { display: none !important; }

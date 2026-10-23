@@ -12,6 +12,7 @@ export function WorkspaceFilePicker({ workspace, onClose }: { workspace: FilePic
   const [query, setQuery] = useState("")
   const [visibleCount, setVisibleCount] = useState(100)
   const result = useFileSearch(workspace?.root || "", query)
+  const openedMarkdownPaths = new Set((workspace?.files || []).filter((file) => file.type !== "directory" && /\.(md|markdown)$/i.test(file.path)).map((file) => file.path))
   const keyword = query.trim().toLocaleLowerCase()
   const openFiles = (workspace?.files || []).filter((file) => !keyword || file.path.toLocaleLowerCase().includes(keyword))
   const files = [...new Map([...openFiles, ...result.files].map((file) => [file.path, file])).values()]
@@ -59,6 +60,8 @@ export function WorkspaceFilePicker({ workspace, onClose }: { workspace: FilePic
           {files.slice(0, visibleCount).map((file) => (
             <button
               key={file.path}
+              data-active={openedMarkdownPaths.has(file.path) ? "true" : undefined}
+              aria-current={openedMarkdownPaths.has(file.path) && workspace?.activePath === file.path ? "page" : undefined}
               className="workspace-file-picker-row flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left hover:bg-stone-100 focus:bg-stone-100 focus:outline-none"
               onClick={() => {
                 if (file.type === "directory") window.dispatchEvent(new CustomEvent("vessel:reveal-file", { detail: file.path }))
@@ -81,6 +84,7 @@ export function WorkspaceFilePicker({ workspace, onClose }: { workspace: FilePic
                 <span data-title={file.name} className="workspace-file-picker-name truncate text-xs leading-4">{file.name}</span>
                 <span className="workspace-file-picker-path w-full truncate text-[10px] leading-4 text-stone-400">{file.path.startsWith((workspace?.root || "") + "/") ? file.path.slice(workspace!.root.length + 1) : file.path}</span>
               </span>
+              {openedMarkdownPaths.has(file.path) && <span className="workspace-file-picker-opened shrink-0 text-[10px]">已打开</span>}
             </button>
           ))}
           {files.length > visibleCount && <p className="py-2 text-center text-xs text-stone-400">继续向下滚动加载更多</p>}

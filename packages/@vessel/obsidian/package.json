@@ -11,7 +11,8 @@
     "./links": "./src/links/index.ts",
     "./links/style.css": "./src/links/link-tooltip.css",
     "./src/links/link-tooltip.css": "./src/links/link-tooltip.css",
-    "./kbd": "./src/kbd/index.ts"
+    "./kbd": "./src/kbd/index.ts",
+    "./footnotes": "./src/footnotes/index.ts"
   },
   "types": "./src/index.ts",
   "scripts": {
@@ -34,7 +35,8 @@
     "#vessel-obsidian/bases/note-properties": "./src/bases/note-properties.ts",
     "#vessel-obsidian/bases/yaml": "./src/bases/yaml.ts",
     "#vessel-obsidian/tags": "./src/tags/index.ts",
-    "#vessel-obsidian/kbd": "./src/kbd/index.ts"
+    "#vessel-obsidian/kbd": "./src/kbd/index.ts",
+    "#vessel-obsidian/footnotes": "./src/footnotes/index.ts"
   },
   "dependencies": {
     "yaml": "2.9.1"

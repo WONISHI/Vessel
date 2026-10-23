@@ -24,6 +24,11 @@ export function decorateInlineHTML(root: HTMLElement) {
     const preview = document.createElement("span")
     preview.dataset.vesselInlineHtml = "true"
     preview.dataset.vesselInlineTag = tag
+    const footnoteId = original?.getAttribute("data-vessel-footnote")
+    if (footnoteId) {
+      preview.dataset.vesselFootnoteId = footnoteId
+      preview.tabIndex = 0
+    }
     for (const property of ["color", "backgroundColor", "fontWeight", "fontStyle", "textDecoration"] as const) preview.style[property] = original?.style[property] || ""
     if (tag === "font") preview.style.color = original?.getAttribute("color") || ""
     if (["b", "strong"].includes(tag)) preview.style.fontWeight = "bold"

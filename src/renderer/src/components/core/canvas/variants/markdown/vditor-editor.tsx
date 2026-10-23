@@ -1,3 +1,6 @@
+import { FootnoteHoverCard } from "@/components/core/canvas/variants/markdown/footnote-hover-card"
+import { bindFootnoteToolbar, insertFootnote, validFootnoteRange, decorateFootnoteReferences, deleteFootnote } from "@/components/core/canvas/variants/markdown/footnotes"
+import { FootnotePopover } from "@/components/core/canvas/variants/markdown/footnote-popover"
 import { markdownDocuments, printableMarkdown } from "@/components/native-file-menu/document-bridge"
 import { MarkdownInsertMenu } from "@/components/core/canvas/variants/markdown/insert-menu"
 import { bindMarkdownInsertMenu, type MarkdownInsertLocation } from "@/components/core/canvas/variants/markdown/insert-menu-selection"
@@ -34,7 +37,7 @@ import { parseFrontmatter } from "@vessel/obsidian/frontmatter"
 import { LinkTooltip, buildMarkdownLink, normalizeLinkUrl } from "@vessel/obsidian"
 import "@vessel/obsidian/links/style.css"
 import { markdownHotkey } from "@vessel/utils"
-import { Bold, Code, CodeXml, Heading, ImagePlus, Italic, Link as LinkIcon, List, ListChecks, ListOrdered, Minus, Palette, Quote, Redo2, Smile, Strikethrough, Table2, Undo2 } from "lucide-react"
+import { Bold, Code, CodeXml, Heading, ImagePlus, Italic, Link as LinkIcon, List, ListChecks, ListOrdered, Minus, Palette, Quote, Redo2, Smile, Strikethrough, Superscript, Table2, Undo2 } from "lucide-react"
 import { Fragment, useEffect, useRef, useState } from "react"
 import { createRoot, type Root } from "react-dom/client"
 import { renderToStaticMarkup } from "react-dom/server"
@@ -44,6 +47,7 @@ import "vditor/dist/index.css"
 
 /** 保留 Vditor 编辑能力，文档显示和大纲由外层 React 组件负责。 */
 export function VditorEditor({ value, onChange, workspacePath, documentPath, readOnly = false }: { readOnly?: boolean; workspacePath: string; documentPath: string; value: string; onChange: (value: string) => void }) {
+  const [footnoteTarget, setFootnoteTarget] = useState<{ range: Range; text: string; path: string } | null>(null)
   const [insertLocation, setInsertLocation] = useState<MarkdownInsertLocation | null>(null)
   const imageInsertAction = useRef<(() => void) | null>(null)
   const [languageBlock, setLanguageBlock] = useState<HTMLElement | null>(null)
@@ -177,7 +181,7 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
           const links = editable.querySelectorAll<HTMLElement>('[data-type="a"]')
           const lastLink = links.length > 0 ? links[links.length - 1] : null
           if (lastLink) {
-            const linkTextSpan = lastLink.querySelector<HTMLElement>('.vditor-ir__link')
+            const linkTextSpan = lastLink.querySelector<HTMLElement>(".vditor-ir__link")
             if (linkTextSpan) {
               const r = document.createRange()
               r.selectNodeContents(linkTextSpan)
@@ -229,6 +233,7 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
     const tableRoots = new Map<HTMLElement, Root>()
     let disposed = false
     let ready = false
+    let unbindFootnotes = () => {}
 
     const mountTable = (previewElement: HTMLElement) => {
       const block = previewElement.closest<HTMLElement>("[data-type=code-block]")
@@ -259,52 +264,132 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
       const root = createRoot(container)
       tableRoots.set(container, root)
 
-      const renderTable = (currentSource: string) => root.render(
-        <MarkdownTableEditor
-          readOnly={readOnly}
-          source={currentSource}
-          onChange={(updated) => {
-            if (readOnly) return
-            const sourceCode = block.querySelector("pre.vditor-ir__marker code")
-            if (!sourceCode) return
-            editor?.vditor?.undo?.addToUndoStack(editor.vditor)
-            sourceCode.textContent = updated + "\n"
-            const next = editor?.getValue() || ""
-            renderTable(updated)
-            editor?.vditor?.undo?.addToUndoStack(editor.vditor)
-            changeHandler.current((properties?.raw ?? "") + restoreObsidianImages(next))
-          }}
-          onFocusAbove={() => {
-            const editable = block.closest<HTMLElement>('[contenteditable="true"]')
-            if (!editable || readOnly) return
-            focusImageParagraph(block, false)?.scrollIntoView({ block: "nearest" })
-          }}
-          onFocusBelow={() => {
-            const editable = block.closest<HTMLElement>('[contenteditable="true"]')
-            if (!editable || readOnly) return
-            focusImageParagraph(block)?.scrollIntoView({ block: "nearest" })
-          }}
-          onCopy={() => {
-            const sourceCode = block.querySelector("pre.vditor-ir__marker code")
-            const textToCopy = sourceCode?.textContent?.trim() || currentSource || ""
-            if (textToCopy) {
-              void navigator.clipboard?.writeText(textToCopy)
-              toast.success("已复制表格数据")
-            }
-          }}
-          onDelete={() => {
-            if (readOnly) return
-            editor?.vditor?.undo?.addToUndoStack(editor.vditor)
-            block.remove()
-            const next = editor?.getValue() || ""
-            editor?.vditor?.undo?.addToUndoStack(editor.vditor)
-            changeHandler.current((properties?.raw ?? "") + restoreObsidianImages(next))
-            tableRoots.delete(container)
-            queueMicrotask(() => root.unmount())
-          }}
-        />
-      )
+      const renderTable = (currentSource: string) =>
+        root.render(
+          <MarkdownTableEditor
+            readOnly={readOnly}
+            source={currentSource}
+            onChange={(updated) => {
+              if (readOnly) return
+              const sourceCode = block.querySelector("pre.vditor-ir__marker code")
+              if (!sourceCode) return
+              editor?.vditor?.undo?.addToUndoStack(editor.vditor)
+              sourceCode.textContent = updated + "\n"
+              const next = editor?.getValue() || ""
+              renderTable(updated)
+              editor?.vditor?.undo?.addToUndoStack(editor.vditor)
+              changeHandler.current((properties?.raw ?? "") + restoreObsidianImages(next))
+            }}
+            onFocusAbove={() => {
+              const editable = block.closest<HTMLElement>('[contenteditable="true"]')
+              if (!editable || readOnly) return
+              focusImageParagraph(block, false)?.scrollIntoView({ block: "nearest" })
+            }}
+            onFocusBelow={() => {
+              const editable = block.closest<HTMLElement>('[contenteditable="true"]')
+              if (!editable || readOnly) return
+              focusImageParagraph(block)?.scrollIntoView({ block: "nearest" })
+            }}
+            onCopy={() => {
+              const sourceCode = block.querySelector("pre.vditor-ir__marker code")
+              const textToCopy = sourceCode?.textContent?.trim() || currentSource || ""
+              if (textToCopy) {
+                void navigator.clipboard?.writeText(textToCopy)
+                toast.success("已复制表格数据")
+              }
+            }}
+            onDelete={() => {
+              if (readOnly) return
+              editor?.vditor?.undo?.addToUndoStack(editor.vditor)
+              block.remove()
+              const next = editor?.getValue() || ""
+              editor?.vditor?.undo?.addToUndoStack(editor.vditor)
+              changeHandler.current((properties?.raw ?? "") + restoreObsidianImages(next))
+              tableRoots.delete(container)
+              queueMicrotask(() => root.unmount())
+            }}
+          />
+        )
       renderTable(source)
+    }
+
+    /** Mount newly inserted image previews without rebuilding the Markdown editor. */
+    const mountImage = (element: HTMLElement) => {
+      const code = element.closest('[data-type="code-block"]')?.querySelector("pre.vditor-ir__marker code.language-vessel-obsidian-image") || element.querySelector("code.language-vessel-obsidian-image")
+      if (!code) return
+      let source: string
+      try {
+        source = decodeURIComponent(code.textContent?.trim() || "")
+      } catch {
+        return
+      }
+      element.closest("[data-type=code-block]")?.classList.add("vessel-image-block")
+      const mounted = element.querySelector<HTMLElement>(".vessel-image-component")
+      if (mounted?.dataset.imageSource === source) return
+      const container = document.createElement("div")
+      container.className = "vessel-image-component"
+      container.contentEditable = "false"
+      container.addEventListener("mousedown", (event) => {
+        event.stopPropagation()
+        if ((event.target as HTMLElement).closest("img")) event.preventDefault()
+      })
+      container.addEventListener("click", (event) => event.stopPropagation())
+      container.addEventListener("mouseup", (event) => event.stopPropagation())
+      element.replaceChildren(container)
+      for (const [node, root] of imageRoots) {
+        if (!node.isConnected) {
+          queueMicrotask(() => root.unmount())
+          imageRoots.delete(node)
+        }
+      }
+      const root = createRoot(container)
+      imageRoots.set(container, root)
+      /** Updates only this React image root, retaining the surrounding editor DOM. */
+      const renderImage = (currentSource: string) => {
+        container.dataset.imageSource = currentSource
+        root.render(
+          <ObsidianImageLine
+            onFocusAbove={() => {
+              const block = element.closest<HTMLElement>("[data-type=code-block]")
+              const editable = block?.closest<HTMLElement>('[contenteditable="true"]')
+              if (!block || !editable || readOnly) return
+              focusImageParagraph(block, false)?.scrollIntoView({ block: "nearest" })
+            }}
+            onFocusBelow={() => {
+              const block = element.closest<HTMLElement>("[data-type=code-block]")
+              const editable = block?.closest<HTMLElement>('[contenteditable="true"]')
+              if (!block || !editable || readOnly) return
+              focusImageParagraph(block)?.scrollIntoView({ block: "nearest" })
+            }}
+            readOnly={readOnly}
+            source={currentSource}
+            onChange={(updated) => {
+              if (readOnly) return
+              const block = element.closest<HTMLElement>("[data-type=code-block]")
+              const sourceCode = block?.querySelector("pre.vditor-ir__marker code")
+              if (!sourceCode) return
+              editor.vditor.undo?.addToUndoStack(editor.vditor)
+              if (!updated.trim()) {
+                block?.remove()
+                const next = editor.getValue()
+                editor.vditor.undo?.addToUndoStack(editor.vditor)
+                changeHandler.current((properties?.raw ?? "") + restoreObsidianImages(next))
+                imageRoots.delete(container)
+                queueMicrotask(() => root.unmount())
+                return
+              }
+              sourceCode.textContent = encodeURIComponent(updated) + "\n"
+              const next = editor.getValue()
+              renderImage(updated)
+              editor.vditor.undo?.addToUndoStack(editor.vditor)
+              changeHandler.current((properties?.raw ?? "") + restoreObsidianImages(next))
+            }}
+            root={workspacePath}
+            documentPath={documentPath}
+          />
+        )
+      }
+      renderImage(source)
     }
 
     /** Performs the decorate operation. */
@@ -312,6 +397,10 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
       decorateCodeBlocks(element, readOnly)
       element.querySelectorAll<HTMLElement>('[data-type="code-block"]').forEach((block) => {
         const markerCode = block.querySelector<HTMLElement>("pre.vditor-ir__marker code")
+        if (markerCode?.classList.contains("language-vessel-obsidian-image")) {
+          const preview = block.querySelector<HTMLElement>(".vditor-ir__preview")
+          if (preview) mountImage(preview)
+        }
         const isTable = markerCode && Array.from(markerCode.classList).some((cls) => cls.includes("language-markdown-table"))
         if (isTable) {
           block.classList.add("vessel-table-block")
@@ -327,6 +416,7 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
         decorateHighlights(content)
         decorateWikiLinks(content)
         decorateInlineHTML(content)
+        decorateFootnoteReferences(content)
         if (readOnly || !content.contains(document.activeElement)) decorateMarkdownTags(content)
         decorateKeyboardShortcuts(content)
         if (readOnly)
@@ -352,9 +442,7 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
       const file = imagePicker.files?.[0]
       if (!file || !/\.(png|jpe?g|gif|webp|svg|avif|bmp)$/i.test(file.name)) return
       const path = window.electronAPI.getDroppedFilePath(file)
-      void (path
-        ? window.electronAPI.saveObsidianImage(workspacePath, documentPath, { path })
-        : file.arrayBuffer().then((bytes) => window.electronAPI.saveObsidianImage(workspacePath, documentPath, { bytes: new Uint8Array(bytes) })))
+      void (path ? window.electronAPI.saveObsidianImage(workspacePath, documentPath, { path }) : file.arrayBuffer().then((bytes) => window.electronAPI.saveObsidianImage(workspacePath, documentPath, { bytes: new Uint8Array(bytes) })))
         .then((saved) => {
           if (disposed) return
           editor.insertMD(prepareObsidianImages(saved.reference))
@@ -444,85 +532,17 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
                 const code = preview.querySelector(`code.language-${language}`)
                 if (!code) return
                 const source = code.textContent || ""
-                try { preview.innerHTML = renderSteps(source, language) }
-                catch (error) { preview.innerHTML = `<div role="alert">${escapeStepsText(String(error))}</div><pre>${escapeStepsText(source)}</pre>` }
+                try {
+                  preview.innerHTML = renderSteps(source, language)
+                } catch (error) {
+                  preview.innerHTML = `<div role="alert">${escapeStepsText(String(error))}</div><pre>${escapeStepsText(source)}</pre>`
+                }
               }
             })),
             {
               language: "vessel-obsidian-image",
 
-              /** Renders the current view. */
-              render: (element) => {
-                const code = element.querySelector("code.language-vessel-obsidian-image")
-                if (!code) return
-                let source: string
-                try {
-                  source = decodeURIComponent(code.textContent?.trim() || "")
-                } catch {
-                  return
-                }
-                element.closest("[data-type=code-block]")?.classList.add("vessel-image-block")
-                const container = document.createElement("div")
-                container.contentEditable = "false"
-                container.addEventListener("mousedown", (event) => {
-                  event.stopPropagation()
-                  if ((event.target as HTMLElement).closest("img")) event.preventDefault()
-                })
-                container.addEventListener("click", (event) => event.stopPropagation())
-                container.addEventListener("mouseup", (event) => event.stopPropagation())
-                element.replaceChildren(container)
-                for (const [node, root] of imageRoots) {
-                  if (!node.isConnected) {
-                    queueMicrotask(() => root.unmount())
-                    imageRoots.delete(node)
-                  }
-                }
-                const root = createRoot(container)
-                imageRoots.set(container, root)
-                /** Updates only this React image root, retaining the surrounding editor DOM. */
-                const renderImage = (currentSource: string) => root.render(
-                  <ObsidianImageLine
-                    onFocusAbove={() => {
-                      const block = element.closest<HTMLElement>("[data-type=code-block]")
-                      const editable = block?.closest<HTMLElement>('[contenteditable="true"]')
-                      if (!block || !editable || readOnly) return
-                      focusImageParagraph(block, false)?.scrollIntoView({ block: "nearest" })
-                    }}
-                    onFocusBelow={() => {
-                      const block = element.closest<HTMLElement>("[data-type=code-block]")
-                      const editable = block?.closest<HTMLElement>('[contenteditable="true"]')
-                      if (!block || !editable || readOnly) return
-                      focusImageParagraph(block)?.scrollIntoView({ block: "nearest" })
-                    }}
-                    readOnly={readOnly}
-                    source={currentSource}
-                    onChange={(updated) => {
-                      if (readOnly) return
-                      const block = element.closest<HTMLElement>("[data-type=code-block]")
-                      const sourceCode = block?.querySelector("pre.vditor-ir__marker code")
-                      if (!sourceCode) return
-                      editor.vditor.undo?.addToUndoStack(editor.vditor)
-                      if (!updated.trim()) {
-                        block?.remove()
-                        const next = editor.getValue()
-                        editor.vditor.undo?.addToUndoStack(editor.vditor)
-                        changeHandler.current((properties?.raw ?? "") + restoreObsidianImages(next))
-                        imageRoots.delete(container)
-                        queueMicrotask(() => root.unmount())
-                        return
-                      }
-                      sourceCode.textContent = encodeURIComponent(updated) + "\n"
-                      const next = editor.getValue()
-                      renderImage(updated)
-                      editor.vditor.undo?.addToUndoStack(editor.vditor)
-                      changeHandler.current((properties?.raw ?? "") + restoreObsidianImages(next))
-                    }}
-                    root={workspacePath}
-                    documentPath={documentPath}
-                  />
-                )
-                renderImage(source)
-              }
+              render: (preview) => mountImage(preview)
             },
             {
               language: "markdown-table",
@@ -556,6 +576,7 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
                 },
                 "|",
                 { name: "link", hotkey: markdownHotkey("link"), icon: renderToStaticMarkup(<LinkIcon />) },
+                { name: "footnote", tip: "添加脚注", className: "vessel-footnote-tool", icon: renderToStaticMarkup(<Superscript viewBox="2 2 20 20" />), click: () => {} },
                 {
                   name: "insert-image",
                   tip: "插入图片",
@@ -599,13 +620,15 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
           /** Performs the after operation. */
           after: () => {
             instance.current = editor
-            if (!readOnly) markdownDocuments.set(documentPath, {
-              content: () => (properties?.raw ?? "") + restoreObsidianImages(editor.getValue()),
-              html: () => printableMarkdown(element.querySelector<HTMLElement>(".vditor-ir .vditor-reset")!)
-            })
+            if (!readOnly)
+              markdownDocuments.set(documentPath, {
+                content: () => (properties?.raw ?? "") + restoreObsidianImages(editor.getValue()),
+                html: () => printableMarkdown(element.querySelector<HTMLElement>(".vditor-ir .vditor-reset")!)
+              })
             window.dispatchEvent(new Event("vessel:file-menu-refresh"))
             const toolbar = host.current?.querySelector<HTMLElement>(".vditor-toolbar")
             if (!disposed && toolbar && toolbarHost.current) toolbarHost.current.appendChild(toolbar)
+            if (!readOnly && toolbar) unbindFootnotes = bindFootnoteToolbar(element, toolbar, (range) => setFootnoteTarget({ range, text: range.toString(), path: documentPath }))
             const linkBtn = toolbar?.querySelector<HTMLElement>('[data-type="link"]')
             const handleLinkBtnClick = (event: Event) => {
               event.preventDefault()
@@ -655,6 +678,7 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
       window.dispatchEvent(new Event("vessel:file-menu-refresh"))
       element.removeEventListener("keydown", handleKeyDown, true)
       toolbarContainer?.removeEventListener("pointerdown", rememberSelection, true)
+      unbindFootnotes()
       unbindWikiEditing()
       unbindTableActions()
       unbindInsertMenu()
@@ -675,6 +699,34 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
   }, [properties, readOnly])
   return (
     <LinkInteractionArea className="relative flex h-full min-h-0 min-w-0 flex-col">
+      <FootnoteHoverCard host={host} source={() => restoreObsidianImages(instance.current?.getValue() || initialValue.current)} onDelete={readOnly ? undefined : (id) => {
+        if (instance.current && host.current && deleteFootnote(instance.current, host.current, id)) changeHandler.current((properties?.raw ?? "") + restoreObsidianImages(instance.current.getValue()))
+      }} />
+      {footnoteTarget && !readOnly && footnoteTarget.path === documentPath && (
+        <FootnotePopover
+          text={footnoteTarget.text}
+          range={footnoteTarget.range}
+          onCancel={(restoreSelection = true) => {
+            const range = footnoteTarget.range
+            if (restoreSelection && host.current && validFootnoteRange(host.current, range)) {
+              host.current.querySelector<HTMLElement>('.vditor-ir [contenteditable="true"]')?.focus({ preventScroll: true })
+              const selection = window.getSelection()
+              selection?.removeAllRanges()
+              selection?.addRange(range)
+            }
+            setFootnoteTarget(null)
+          }}
+          onInsert={(content) => {
+            if (!instance.current || !host.current || !insertFootnote(instance.current, host.current, footnoteTarget.range, footnoteTarget.text, content)) {
+              toast.error("选区已变化，请重新选中文字后添加脚注")
+              setFootnoteTarget(null)
+              return
+            }
+            changeHandler.current((properties?.raw ?? "") + restoreObsidianImages(instance.current.getValue()))
+            setFootnoteTarget(null)
+          }}
+        />
+      )}
       {insertLocation && !readOnly && (
         <MarkdownInsertMenu
           preserveEditorFocus={insertLocation.slash}

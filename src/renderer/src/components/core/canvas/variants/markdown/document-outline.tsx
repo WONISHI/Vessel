@@ -108,8 +108,9 @@ export function DocumentOutline({
           <Button
             variant="ghost"
             size="icon"
-            className="size-7 shrink-0 text-stone-400"
+            className="document-outline-action size-7 shrink-0 text-stone-400 hover:bg-green-600 hover:text-white active:bg-green-600 active:text-white"
             aria-label={anyExpanded ? "折叠全部标题" : "展开全部标题"}
+            data-title={anyExpanded ? "折叠全部标题" : "展开全部标题"}
             disabled={!tree.some((node) => node.descendants > 0)}
             onClick={() => setCollapsed(anyExpanded ? new Set(tree.flatMap((node, index) => node.descendants ? [index] : [])) : new Set())}
           >

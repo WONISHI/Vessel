@@ -116,7 +116,7 @@ export default function LayoutMain({ resources = false }: { resources?: boolean 
                   variant="ghost"
                   size="icon"
                   aria-label="上一个标签页"
-                  className="size-7 text-stone-500 hover:bg-emerald-700 hover:!text-white hover:[&_svg]:!text-white hover:[&_svg]:!stroke-white active:bg-emerald-700 active:!text-white"
+                  className="size-7 text-stone-500 hover:bg-green-600 hover:!text-white hover:[&_svg]:!text-white hover:[&_svg]:!stroke-white active:bg-green-600 active:!text-white"
                   disabled={activeIndex <= 0}
                   onClick={() => openWorkspaceFile(openFiles[activeIndex - 1])}
                 >
@@ -249,7 +249,7 @@ export default function LayoutMain({ resources = false }: { resources?: boolean 
                   variant="ghost"
                   size="icon"
                   aria-label="下一个标签页"
-                  className="size-7 text-stone-500 hover:bg-emerald-700 hover:!text-white hover:[&_svg]:!text-white hover:[&_svg]:!stroke-white active:bg-emerald-700 active:!text-white"
+                  className="size-7 text-stone-500 hover:bg-green-600 hover:!text-white hover:[&_svg]:!text-white hover:[&_svg]:!stroke-white active:bg-green-600 active:!text-white"
                   disabled={activeIndex < 0 || activeIndex >= openFiles.length - 1}
                   onClick={() => openWorkspaceFile(openFiles[activeIndex + 1])}
                 >
@@ -269,7 +269,7 @@ export default function LayoutMain({ resources = false }: { resources?: boolean 
             />
           )}
           <TabSwitcher
-            triggerClassName="[&:hover>button]:bg-emerald-700 [&:hover>button]:!text-white [&:hover>button_svg]:!text-white [&:hover>button_svg]:!stroke-white [&[data-state=open]>button]:bg-emerald-700 [&[data-state=open]>button]:!text-white [&[data-state=open]>button_svg]:!text-white [&[data-state=open]>button_svg]:!stroke-white"
+            triggerClassName="[&:hover>button]:bg-green-600 [&:hover>button]:!text-white [&:hover>button_svg]:!text-white [&:hover>button_svg]:!stroke-white [&[data-state=open]>button]:bg-green-600 [&[data-state=open]>button]:!text-white [&[data-state=open]>button_svg]:!text-white [&[data-state=open]>button_svg]:!stroke-white"
             tabs={openFiles.map((file) => ({ id: file.path, title: file.name, active: file.path === activeFilePath }))}
             onSelect={(id) => {
               const file = openFiles.find((file) => file.path === id)
@@ -280,7 +280,7 @@ export default function LayoutMain({ resources = false }: { resources?: boolean 
               variant="ghost"
               size="icon"
               aria-label="已打开的标签页"
-              className="size-7 shrink-0 text-stone-500 hover:bg-emerald-700 hover:!text-white hover:[&_svg]:!text-white hover:[&_svg]:!stroke-white active:bg-emerald-700 active:!text-white"
+              className="size-7 shrink-0 text-stone-500 hover:bg-green-600 hover:!text-white hover:[&_svg]:!text-white hover:[&_svg]:!stroke-white active:bg-green-600 active:!text-white"
             >
               <List className="!size-4" />
             </Button>
@@ -293,7 +293,7 @@ export default function LayoutMain({ resources = false }: { resources?: boolean 
                     variant="ghost"
                     size="icon"
                     aria-label="标签页操作"
-                    className="size-7 shrink-0 text-stone-500 hover:bg-emerald-700 hover:!text-white hover:[&_svg]:!text-white hover:[&_svg]:!stroke-white active:bg-emerald-700 active:!text-white data-[state=open]:bg-emerald-700 data-[state=open]:!text-white data-[state=open]:[&_svg]:!text-white data-[state=open]:[&_svg]:!stroke-white"
+                    className="size-7 shrink-0 text-stone-500 hover:bg-green-600 hover:!text-white hover:[&_svg]:!text-white hover:[&_svg]:!stroke-white active:bg-green-600 active:!text-white data-[state=open]:bg-green-600 data-[state=open]:!text-white data-[state=open]:[&_svg]:!text-white data-[state=open]:[&_svg]:!stroke-white"
                   >
                     <MoreHorizontal className="!size-4" />
                   </Button>

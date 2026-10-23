@@ -8,7 +8,8 @@ import { useCallback, useEffect, useRef, useState } from "react"
 /** Renders the inline entry editor component. */
 export function InlineEntryEditor({ draft, onFinish }: { draft: EntryDraft; onFinish: (created: boolean) => void }) {
   const { workspace, openWorkspaceFile } = useWorkspace()
-  const [name, setName] = useState(draft.kind === "file" && draft.extension ? `未命名.${draft.extension}` : "")
+  const suffix = draft.kind === "file" && draft.extension ? `.${draft.extension}` : ""
+  const [name, setName] = useState(suffix ? "未命名" : "")
   const [error, setError] = useState("")
   const [busy, setBusy] = useState(false)
   const touched = useRef(false)
@@ -64,12 +65,14 @@ export function InlineEntryEditor({ draft, onFinish }: { draft: EntryDraft; onFi
     setBusy(true)
     setError("")
     try {
-      const node = await window.electronAPI.createWorkspaceEntry(workspace.path, draft.parent, name.trim(), draft.kind)
-      if (draft.kind === "file" && name.toLowerCase().endsWith(".excalidraw.md")) {
-        await window.electronAPI.saveContent(node.path, createNewExcalidrawContent(name))
+      const trimmed = name.trim()
+      const filename = suffix && !trimmed.toLowerCase().endsWith(suffix.toLowerCase()) ? trimmed + suffix : trimmed
+      const node = await window.electronAPI.createWorkspaceEntry(workspace.path, draft.parent, filename, draft.kind)
+      if (draft.kind === "file" && filename.toLowerCase().endsWith(".excalidraw.md")) {
+        await window.electronAPI.saveContent(node.path, createNewExcalidrawContent(filename))
       }
-      if (draft.kind === "file" && name.toLowerCase().endsWith(".mind")) {
-        await window.electronAPI.saveContent(node.path, createMindmapDocument(name))
+      if (draft.kind === "file" && filename.toLowerCase().endsWith(".mind")) {
+        await window.electronAPI.saveContent(node.path, createMindmapDocument(filename))
       }
       onFinish(true)
       if (draft.kind === "file") openWorkspaceFile(node)
@@ -113,6 +116,7 @@ export function InlineEntryEditor({ draft, onFinish }: { draft: EntryDraft; onFi
           data-title={error || undefined}
           aria-invalid={!!error}
         />
+        {suffix && <span className="shrink-0 select-none pl-1 text-xs text-muted-foreground" aria-label="文件后缀">{suffix}</span>}
       </div>
       <AlertDialog
         open={!!error}

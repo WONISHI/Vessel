@@ -794,3 +794,12 @@ html.dark .workspace-activity-tooltip { background: #2b3037 !important; border-c
 html.dark .workspace-activity-tooltip .text-stone-900 { color: #e6e8eb !important; }
 html.dark .workspace-activity-tooltip .text-stone-400 { color: #9aa1a9 !important; }
 html.dark .workspace-activity-tooltip > svg { fill: #2b3037 !important; }
+
+.workspace-file-picker-row[data-active="true"] { background: #f0fdf4; }
+.workspace-file-picker-row[data-active="true"]:is(:hover, :focus) { background: #dcfce7; }
+.workspace-file-picker-row[data-active="true"] :is(.workspace-file-picker-name, .workspace-file-picker-opened),
+.workspace-file-picker-row[data-active="true"] > svg { color: #15803d; }
+html.dark .workspace-file-picker-row[data-active="true"] { background: #203b2e !important; }
+html.dark .workspace-file-picker-row[data-active="true"]:is(:hover, :focus, :active) { background: #2b4b39 !important; }
+html.dark .workspace-file-picker-row[data-active="true"] :is(.workspace-file-picker-name, .workspace-file-picker-opened),
+html.dark .workspace-file-picker-row[data-active="true"] > svg { color: #6ee7a0 !important; }
