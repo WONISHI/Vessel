@@ -1,3 +1,4 @@
+import "@/components/pdf-document/components/pdf-document.css"
 import { LazyPage } from "@/components/pdf-document/components/lazy-page"
 import { COLORS, Stroke, notifyError, readInkStrokes, writeInkStrokes } from "@/components/pdf-document/components/pdf-document-shared"
 import { Button } from "@/components/ui/button"
@@ -103,7 +104,7 @@ export function PdfDocument({ bytes, name }: { bytes: Uint8Array; name: string }
       className="flex h-full min-h-0 min-w-0 flex-1 flex-col"
       aria-label={name}
     >
-      <ScrollArea className="shrink-0 border-b bg-white">
+      <ScrollArea className="pdf-annotation-toolbar shrink-0 border-b bg-white">
         <div className="flex w-max min-w-full flex-nowrap items-center gap-1 whitespace-nowrap px-3 py-2 text-sm">
           {[
             ["view", MousePointer2, "浏览"],
@@ -124,7 +125,7 @@ export function PdfDocument({ bytes, name }: { bytes: Uint8Array; name: string }
               </button>
             )
           })}
-          <span className="mx-2 h-5 w-px shrink-0 bg-stone-200" />
+          <span className="pdf-toolbar-divider mx-2 h-5 w-px shrink-0 bg-stone-200" />
           <Popover>
             <PopoverTrigger asChild>
               <button
@@ -139,7 +140,7 @@ export function PdfDocument({ bytes, name }: { bytes: Uint8Array; name: string }
             </PopoverTrigger>
             <PopoverContent
               align="start"
-              className="w-64 p-3"
+              className="pdf-annotation-popover w-64 p-3"
             >
               <p className="mb-2 text-xs font-medium text-stone-500">笔迹颜色</p>
               <div className="grid grid-cols-6 gap-2">
@@ -179,7 +180,7 @@ export function PdfDocument({ bytes, name }: { bytes: Uint8Array; name: string }
                 className="flex h-8 shrink-0 items-center gap-1.5 rounded-md border border-transparent px-2 text-stone-700 hover:bg-stone-100 data-[state=open]:border-green-500"
               >
                 <span
-                  className="w-4 rounded-full bg-stone-700"
+                  className="pdf-pen-preview w-4 rounded-full bg-stone-700"
                   style={{ height: Math.min(penWidth, 4) }}
                 />
                 {penWidth}px
@@ -188,7 +189,7 @@ export function PdfDocument({ bytes, name }: { bytes: Uint8Array; name: string }
             </PopoverTrigger>
             <PopoverContent
               align="start"
-              className="w-48 p-2"
+              className="pdf-annotation-popover w-48 p-2"
             >
               <p className="mb-1 px-2 text-xs font-medium text-stone-500">笔迹粗细</p>
               {[1, 2, 3, 5, 8].map((size) => (
@@ -198,7 +199,7 @@ export function PdfDocument({ bytes, name }: { bytes: Uint8Array; name: string }
                   className={`flex w-full items-center gap-3 rounded-md px-2 py-2 text-sm ${penWidth === size ? "bg-green-50 text-green-700" : "text-stone-700 hover:bg-stone-100"}`}
                 >
                   <span
-                    className={`w-16 rounded-full ${penWidth === size ? "bg-green-600" : "bg-stone-700"}`}
+                    className={`pdf-pen-preview w-16 rounded-full ${penWidth === size ? "bg-green-600" : "bg-stone-700"}`}
                     style={{ height: size }}
                   />
                   <span className="flex-1 text-left">{size}px</span>
@@ -207,7 +208,7 @@ export function PdfDocument({ bytes, name }: { bytes: Uint8Array; name: string }
               ))}
             </PopoverContent>
           </Popover>
-          <span className="mx-2 h-5 w-px shrink-0 bg-stone-200" />
+          <span className="pdf-toolbar-divider mx-2 h-5 w-px shrink-0 bg-stone-200" />
           <button
             disabled={!undo.current.length}
             onClick={() => change(undo.current.pop()!, false)}
@@ -216,7 +217,7 @@ export function PdfDocument({ bytes, name }: { bytes: Uint8Array; name: string }
             <Undo2 className="size-4" />
             撤销
           </button>
-          <span className="mx-2 h-5 w-px shrink-0 bg-stone-200" />
+          <span className="pdf-toolbar-divider mx-2 h-5 w-px shrink-0 bg-stone-200" />
           <span className="flex shrink-0 items-center gap-1 text-xs text-stone-500">
             <FileText className="size-3.5" />共 {document?.numPages || "…"} 页 · <CheckSquare className="size-3.5" />
             标注自动保存在本机

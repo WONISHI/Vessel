@@ -1,0 +1,42 @@
+html.dark .pdf-annotation-toolbar {
+  background: #23272d !important;
+  border-color: #353b43 !important;
+  color: #e6e8eb;
+}
+html.dark :is(.pdf-annotation-toolbar, .pdf-annotation-popover) .text-stone-700 {
+  color: #c5cbd3 !important;
+}
+html.dark :is(.pdf-annotation-toolbar, .pdf-annotation-popover) .text-stone-500 {
+  color: #9aa1ab !important;
+}
+html.dark :is(.pdf-annotation-toolbar, .pdf-annotation-popover) .text-stone-400 {
+  color: #88919d !important;
+}
+html.dark .pdf-annotation-toolbar .pdf-toolbar-divider,
+html.dark .pdf-annotation-popover .bg-stone-100 {
+  background: #414954 !important;
+}
+html.dark .pdf-annotation-toolbar button[aria-pressed="true"],
+html.dark .pdf-annotation-popover button.bg-green-50 {
+  background: rgba(34, 197, 94, .18) !important;
+  color: #4ade80 !important;
+  --tw-ring-color: rgba(74, 222, 128, .28);
+}
+html.dark :is(.pdf-annotation-toolbar, .pdf-annotation-popover) button:not(:disabled):not([aria-pressed="true"]):not(.bg-green-600):hover {
+  background: #30363e !important;
+  color: #f3f4f6 !important;
+}
+html.dark :is(.pdf-annotation-toolbar, .pdf-annotation-popover) .pdf-pen-preview.bg-stone-700 {
+  background: #bdc5d0 !important;
+}
+html.dark .pdf-annotation-popover {
+  background: #262b32 !important;
+  color: #e6e8eb;
+  border-color: #414954 !important;
+}
+html.dark .pdf-annotation-toolbar button.bg-green-600 {
+  color: #fff !important;
+}
+html.dark .pdf-annotation-toolbar button.bg-green-600:hover {
+  background: #15803d !important;
+}
