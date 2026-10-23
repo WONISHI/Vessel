@@ -21,7 +21,9 @@ it("expands on hover, stays open only when pinned, and marks the active heading"
   expect(lines).toHaveLength(2)
   expect(parseInt(lines[0].style.width)).toBeGreaterThan(parseInt(lines[1].style.width))
   expect(screen.getByRole("button", { name: "标题二" }).getAttribute("aria-current")).toBe("location")
-  fireEvent.mouseEnter(outline)
+  fireEvent.mouseEnter(screen.getByRole("button", { name: "右侧栏目" }))
+  expect(screen.getByText("标题一").closest("[aria-hidden]")?.getAttribute("aria-hidden")).toBe("true")
+  fireEvent.mouseEnter(container.querySelector("[data-outline-preview-trigger]")!)
   expect(screen.getByText("标题一")).toBeTruthy()
   fireEvent.click(screen.getByRole("button", { name: "固定大纲" }))
   fireEvent.mouseLeave(outline)
@@ -35,8 +37,8 @@ it("expands on hover, stays open only when pinned, and marks the active heading"
 
 it("folds descendants by hierarchy without changing navigation indexes", () => {
   const onSelect = vi.fn()
-  render(<DocumentOutline headings={[{ text: "文档", level: 1 }, { text: "项目", level: 2 }, { text: "反查端", level: 3 }, { text: "远程办公", level: 2 }, { text: "附录", level: 1 }]} activeIndex={2} onSelect={onSelect} workspacePath="/vault" documentPath="/vault/note.md" />)
-  fireEvent.mouseEnter(screen.getByRole("complementary"))
+  const { container } = render(<DocumentOutline headings={[{ text: "文档", level: 1 }, { text: "项目", level: 2 }, { text: "反查端", level: 3 }, { text: "远程办公", level: 2 }, { text: "附录", level: 1 }]} activeIndex={2} onSelect={onSelect} workspacePath="/vault" documentPath="/vault/note.md" />)
+  fireEvent.mouseEnter(container.querySelector("[data-outline-preview-trigger]")!)
   expect(screen.getAllByText("H1")).toHaveLength(2)
   fireEvent.click(screen.getByRole("button", { name: "折叠项目" }))
   expect(screen.queryByText("反查端")).toBeNull()
@@ -50,4 +52,21 @@ it("folds descendants by hierarchy without changing navigation indexes", () => {
   fireEvent.click(screen.getByRole("button", { name: "展开全部标题" }))
   expect(screen.getByText("反查端")).toBeTruthy()
   expect(screen.getByRole("button", { name: "反查端" }).getAttribute("aria-current")).toBe("location")
+})
+
+it("keeps the horizontal icon menu open when the pointer enters it", async () => {
+  vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} })
+  try {
+    render(<DocumentOutline headings={[]} activeIndex={-1} onSelect={vi.fn()} workspacePath="/vault" documentPath="/vault/note.md" />)
+    fireEvent.click(screen.getByRole("button", { name: "右侧栏目" }))
+    const menu = await screen.findByRole("dialog")
+    fireEvent.mouseLeave(screen.getByRole("complementary"))
+    fireEvent.mouseEnter(menu)
+    expect(screen.getByRole("button", { name: "右侧栏目" }).getAttribute("data-menu-hovered")).toBe("true")
+    expect(screen.getByRole("button", { name: "目录" })).toBeTruthy()
+    expect(screen.getByRole("button", { name: "脚注" }).textContent).toBe("")
+    expect(screen.getByRole("button", { name: "右侧栏目" }).getAttribute("aria-expanded")).toBe("true")
+    fireEvent.click(screen.getByRole("button", { name: "脚注" }))
+    expect(await screen.findByText("暂无脚注")).toBeTruthy()
+  } finally { vi.unstubAllGlobals() }
 })

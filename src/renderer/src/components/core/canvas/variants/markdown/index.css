@@ -925,3 +925,57 @@ html.dark .vessel-vditor [data-vessel-footnote-id] { text-decoration-color: #d8d
 
 /* Keep definitions for serialization and Hover Cards without showing a second footnote list. */
 .vessel-vditor .vditor-ir [data-type="footnotes-block"] { display: none !important; }
+
+.document-outline-tool:not(:disabled):is(:hover, :active, :focus-visible),
+.document-outline-tool:not(:disabled):is(:hover, :active, :focus-visible) > svg {
+  color: #fff !important;
+  stroke: currentColor;
+}
+.document-outline-tool:not(:disabled):is(:hover, :active, :focus-visible) {
+  background-color: #16a34a !important;
+}
+
+.document-outline-tool[data-menu-hovered="true"],
+.document-outline-tool[data-menu-hovered="true"]:is(:hover, :active, :focus-visible) {
+  background-color: #f0efee !important;
+  color: #a8a29e !important;
+}
+.document-outline-tool[data-menu-hovered="true"] > svg,
+.document-outline-tool[data-menu-hovered="true"]:is(:hover, :active, :focus-visible) > svg {
+  color: #a8a29e !important;
+}
+html.dark .document-outline-tool[data-menu-hovered="true"] {
+  background-color: #30363e !important;
+  color: #9aa1ab !important;
+}
+html.dark .document-outline-tool[data-menu-hovered="true"] > svg {
+  color: #9aa1ab !important;
+}
+
+/* An open menu keeps its trigger neutral unless the pointer is on the trigger. */
+.document-outline-tool[data-menu-open="true"]:not(:hover) {
+  background-color: #f0efee !important;
+  color: #a8a29e !important;
+}
+.document-outline-tool[data-menu-open="true"]:not(:hover) > svg {
+  color: #a8a29e !important;
+}
+html.dark .document-outline-tool[data-menu-open="true"]:not(:hover) {
+  background-color: #30363e !important;
+  color: #9aa1ab !important;
+}
+html.dark .document-outline-tool[data-menu-open="true"]:not(:hover) > svg {
+  color: #9aa1ab !important;
+}
+
+/* Override the global open/green-button SVG stroke rule for this neutral trigger. */
+html button.document-outline-tool[data-menu-open="true"]:not(:hover) > svg,
+html button.document-outline-tool[data-menu-hovered="true"] > svg {
+  color: #a8a29e !important;
+  stroke: #a8a29e !important;
+}
+html.dark button.document-outline-tool[data-menu-open="true"]:not(:hover) > svg,
+html.dark button.document-outline-tool[data-menu-hovered="true"] > svg {
+  color: #9aa1ab !important;
+  stroke: #9aa1ab !important;
+}

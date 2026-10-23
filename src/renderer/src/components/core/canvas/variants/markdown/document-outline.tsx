@@ -1,9 +1,11 @@
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { parseFootnotes } from "@vessel/obsidian"
 import { SectionPreview } from "@/components/core/canvas/variants/markdown/section-preview"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
-import { AlignLeft, ChevronRight, ListTree, Pin, PinOff, WrapText } from "lucide-react"
+import { AlignLeft, ChevronRight, ListTree, Menu, Subscript, PanelRight, Pin, PinOff, WrapText } from "lucide-react"
 import { useEffect, useMemo, useRef, useState } from "react"
 
 /** 固定时展示标题，取消固定后用静态横线展示标题层级和当前阅读位置。 */
@@ -14,7 +16,9 @@ export function DocumentOutline({
   fileName,
   sections = [],
   workspacePath,
-  documentPath
+  documentPath,
+  source = "",
+  onSelectFootnote
 }: {
   headings: { text: string; level: number; color?: string }[]
   activeIndex: number
@@ -23,7 +27,20 @@ export function DocumentOutline({
   sections?: string[]
   workspacePath: string
   documentPath: string
+  source?: string
+  onSelectFootnote?: (id: string) => void
 }) {
+  const [toolsOpen, setToolsOpen] = useState(false)
+  const [toolsHovered, setToolsHovered] = useState(false)
+  const [section, setSection] = useState<"outline" | "footnotes">("outline")
+  const notes = useMemo(() => {
+    const parsed = parseFootnotes(source)
+    return parsed.definitions.map((note, index) => ({
+      ...note,
+      number: index + 1,
+      text: parsed.annotations.filter((annotation) => annotation.id === note.id).map((annotation) => annotation.content).join("") || note.content
+    }))
+  }, [source])
   const [collapsed, setCollapsed] = useState<Set<number>>(() => new Set())
   const tree = useMemo(() => {
     const stack: number[] = []
@@ -44,23 +61,36 @@ export function DocumentOutline({
   const closeTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   useEffect(() => () => clearTimeout(closeTimer.current), [])
   const [previewIndex, setPreviewIndex] = useState<number | null>(null)
-  const expanded = pinned || hovered || previewIndex !== null
+  const expanded = pinned || (!toolsOpen && (hovered || previewIndex !== null))
   return (
     <aside
       aria-label="文档大纲"
-      onMouseEnter={() => {
-        clearTimeout(closeTimer.current)
-        setHovered(true)
-      }}
       onMouseLeave={() => {
+        if (toolsOpen) return
         closeTimer.current = setTimeout(() => setHovered(false), 80)
       }}
-      onFocus={() => setHovered(true)}
+      onFocus={(event) => {
+        if (!(event.target as Element).closest("[data-outline-tools]")) setHovered(true)
+      }}
       onBlur={(event) => {
         if (!event.currentTarget.contains(event.relatedTarget)) setHovered(false)
       }}
       className={cn("relative z-20 flex min-h-0 shrink-0 flex-col py-2 transition-[width]", pinned ? "w-48 px-2" : "relative w-12 px-1")}
     >
+      <div className="absolute right-1 top-2 z-30" data-outline-tools>
+        <Popover open={toolsOpen} onOpenChange={(open) => { setToolsOpen(open); if (!open) setToolsHovered(false); if (open) setHovered(false) }}>
+          <PopoverTrigger asChild>
+            <Button variant="ghost" size="icon" className="document-outline-tool size-7 text-stone-400 hover:bg-green-600 hover:text-white" aria-label="右侧栏目" data-title="右侧栏目" data-menu-hovered={toolsHovered} data-menu-open={toolsOpen}>
+              <PanelRight className="!size-3.5" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent side="left" align="center" sideOffset={12} avoidCollisions={false} onOpenAutoFocus={(event) => event.preventDefault()} className="document-outline-tools-popover flex w-auto items-center gap-0.5 rounded-lg p-1" data-outline-tools onMouseEnter={(event) => { event.stopPropagation(); clearTimeout(closeTimer.current); setToolsHovered(true) }} onMouseLeave={() => setToolsHovered(false)} onFocusCapture={(event) => event.stopPropagation()} onPointerDown={(event) => event.stopPropagation()} onCloseAutoFocus={(event) => event.preventDefault()}>
+            {([ ["outline", Menu, "目录"], ["footnotes", Subscript, "脚注"] ] as const).map(([value, Icon, label]) => (
+              <Button key={value} variant="ghost" size="icon" aria-label={label} data-title={label} className={cn("document-outline-tool size-6 rounded-md hover:bg-green-600 hover:text-white", section === value && pinned && "bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-400")} onClick={() => { setSection(value); setPinned(true); setToolsOpen(false) }}><Icon className="!size-3.5" /></Button>
+            ))}
+          </PopoverContent>
+        </Popover>
+      </div>
       {!pinned && (
         <div
           aria-hidden={expanded}
@@ -68,9 +98,17 @@ export function DocumentOutline({
           className="flex min-h-0 flex-1 flex-col bg-transparent"
         >
           <div className="h-8 flex justify-end">
-            <Pin className="size-3.5 m-1.5 text-stone-400" />
+
           </div>
-          <ScrollArea className="min-h-0 flex-1">
+          <ScrollArea
+            data-outline-preview-trigger
+            className="min-h-0 flex-1"
+            onMouseEnter={() => {
+              clearTimeout(closeTimer.current)
+              setSection("outline")
+              setHovered(true)
+            }}
+          >
             {headings.map((heading, index) => (
               <button
                 key={index}
@@ -93,18 +131,11 @@ export function DocumentOutline({
       <div
         aria-hidden={!expanded}
         inert={!expanded}
+        onMouseEnter={() => { clearTimeout(closeTimer.current); setHovered(true) }}
         style={{ transition: "transform 400ms cubic-bezier(0.22,1,0.36,1), opacity 250ms ease", transform: expanded ? "translateX(0)" : "translateX(24px)", opacity: expanded ? 1 : 0 }}
         className={cn("document-outline-panel flex min-h-0 flex-1 flex-col overflow-hidden motion-reduce:!transition-none", pinned ? "w-full" : "absolute inset-y-0 right-0 z-20", !pinned && "w-48 rounded-lg bg-white p-2 shadow-lg ring-1 ring-stone-100")}
       >
-        <div className="flex h-8 shrink-0 items-center justify-end gap-2">
-          {fileName && (
-            <span
-              data-title={fileName}
-              className="min-w-0 flex-1 truncate px-2 text-xs font-semibold text-stone-700"
-            >
-              {fileName}
-            </span>
-          )}
+        <div className="flex h-8 shrink-0 items-center justify-end gap-2 pr-7">
           <Button
             variant="ghost"
             size="icon"
@@ -141,8 +172,17 @@ export function DocumentOutline({
             {pinned ? <PinOff className="!size-3.5" /> : <Pin className="!size-3.5" />}
           </Button>
         </div>
+        {fileName && (
+          <div data-title={fileName} className="shrink-0 break-words px-2 pb-2 pt-1 text-xs font-semibold leading-5 text-stone-700 dark:text-stone-200">
+            {fileName}
+          </div>
+        )}
         <ScrollArea className="min-h-0 flex-1 [&_[data-radix-scroll-area-viewport]>div]:!block">
-          {headings.map((heading, index) => {
+          {section === "footnotes" && <div className="space-y-1 px-1 py-2">
+            {notes.map((note) => <button key={note.id} className="w-full rounded-md p-2 text-left text-xs text-stone-600 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-white/5" onClick={() => onSelectFootnote?.(note.id)}><span className="flex items-start gap-1.5"><span aria-label={`第 ${note.number} 个脚注`} className="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded bg-green-50 font-mono text-[10px] font-medium text-green-700 dark:bg-green-950 dark:text-green-400">{note.number}</span><span className="min-w-0 break-words font-medium leading-5">{note.text}</span></span>{note.text !== note.content && <span className="mt-1 block whitespace-pre-wrap break-words pl-[22px] text-[11px] leading-5 text-stone-400">{note.content}</span>}</button>)}
+            {!notes.length && <p className="p-2 text-xs text-stone-400">暂无脚注</p>}
+          </div>}
+          {section === "outline" && headings.map((heading, index) => {
             const node = tree[index]
             if (node.ancestors.some((parent) => collapsed.has(parent))) return null
             const folded = collapsed.has(index)
@@ -193,7 +233,7 @@ export function DocumentOutline({
               </div>
             )
           })}
-          {!headings.length && expanded && <p className="px-2 py-3 text-xs text-stone-400">暂无标题</p>}
+          {section === "outline" && !headings.length && expanded && <p className="px-2 py-3 text-xs text-stone-400">暂无标题</p>}
         </ScrollArea>
       </div>
     </aside>

@@ -183,6 +183,11 @@ export default function MarkdownCanvas({ activeFilePath, workspacePath: customWo
           )}
         </div>
         <DocumentOutline
+          source={current?.content ?? ""}
+          onSelectFootnote={(id) => {
+            const node = Array.from(contentHost.current?.querySelectorAll<HTMLElement>("[data-vessel-footnote-id]") ?? []).find((item) => item.dataset.vesselFootnoteId === id)
+            node?.scrollIntoView({ behavior: "smooth", block: "center" })
+          }}
           workspacePath={workspacePath}
           documentPath={activeFilePath}
           sections={sections}
