@@ -3,7 +3,7 @@ import { mkdtemp, rm } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { expect, it } from "vitest"
-import { GitService } from "@main/modules/git/git-service"
+import { GitService, formatGitRemoteWebUrl, formatGitCommitWebUrl } from "@main/modules/git/git-service"
 
 it("counts all commits and pages past the original 150-record limit without duplicates", async () => {
   const root = await mkdtemp(join(tmpdir(), "vessel-git-history-"))
@@ -46,7 +46,22 @@ it("counts all commits and pages past the original 150-record limit without dupl
     // 创建模拟远程分支 refs/remotes/origin/master
     execFileSync("git", ["update-ref", "refs/remotes/origin/master", "refs/heads/master~3"], { cwd: root })
     expect(await service.getRemoteLogCount(root, true)).toBe(160)
+    // Other local branches must not inflate the current branch's pending push badge.
+    expect(await service.getUnpushedCommits(root)).toHaveLength(3)
+    execFileSync("git", ["update-ref", "refs/remotes/origin/master", "refs/heads/master"], { cwd: root })
+    expect(await service.getUnpushedCommits(root)).toEqual([])
+    execFileSync("git", ["symbolic-ref", "HEAD", "refs/heads/feature"], { cwd: root })
+    const featureHash = execFileSync("git", ["rev-parse", "feature"], { cwd: root, encoding: "utf8" }).trim()
+    expect(await service.getUnpushedCommits(root)).toEqual([featureHash])
   } finally {
     await rm(root, { recursive: true, force: true })
   }
+})
+
+it("converts remote transport URLs to repository web URLs without changing commit links", () => {
+  expect(formatGitRemoteWebUrl("git@github.com:owner/repo.git")).toBe("https://github.com/owner/repo")
+  expect(formatGitRemoteWebUrl("https://user:secret@gitlab.com/group/repo.git")).toBe("https://gitlab.com/group/repo")
+  expect(formatGitRemoteWebUrl("ssh://git@example.com:2222/team/repo.git")).toBe("https://example.com/team/repo")
+  expect(formatGitRemoteWebUrl("/local/repo")).toBe("")
+  expect(formatGitCommitWebUrl("git@gitlab.com:group/repo.git", "abc")).toBe("https://gitlab.com/group/repo/-/commit/abc")
 })

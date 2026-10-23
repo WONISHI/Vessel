@@ -89,6 +89,8 @@ export const gitAPI = {
   /** Creates tag. */
   createTag: (cwd: string, tag: string, target?: string): Promise<void> => ipcRenderer.invoke("git:create-tag", cwd, tag, target),
 
+  getRemoteWebUrl: (cwd: string): Promise<string> => ipcRenderer.invoke("git:remote-web-url", cwd),
+
   /** Returns the remote repository URL, prioritizing origin. */
   getRemoteUrl: (cwd: string, remote?: string): Promise<string> => ipcRenderer.invoke("git:remote-url", cwd, remote),
 

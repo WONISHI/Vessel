@@ -43,7 +43,7 @@ export function CreateBranchDialog({
       open={open}
       onOpenChange={onOpenChange}
     >
-      <DialogContent className="sm:max-w-[420px] bg-white">
+      <DialogContent className="git-dialog sm:max-w-[420px] bg-white">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-sm font-semibold text-stone-800">
             <GitBranch className="size-4 text-green-600" />

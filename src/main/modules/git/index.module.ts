@@ -94,6 +94,7 @@ export class GitModule extends BaseModule {
       "git:create-tag": (_e, cwd: string, tag: string, target?: string) => gitService.createTag(cwd, tag, target),
 
       /** Performs the "git:remote url" operation. */
+      "git:remote-web-url": (_e, cwd: string) => gitService.getRemoteWebUrl(cwd),
       "git:remote-url": (_e, cwd: string, remote?: string) => gitService.getRemoteUrl(cwd, remote),
 
       /** Performs the "git:remote commit url" operation. */

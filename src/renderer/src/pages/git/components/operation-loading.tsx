@@ -18,7 +18,7 @@ export function GitOperationLoading({ operation, branch }: { operation: GitRemot
   }, [operation])
   const { title, description, icon: Icon } = operations[operation]
   return (
-    <div className="git-operation-overlay absolute inset-x-0 bottom-0 top-12 z-50 flex items-center justify-center bg-stone-100/65 px-6 backdrop-blur-[3px] dark:bg-[#10151c]/65">
+    <div className="git-operation-overlay absolute inset-x-0 bottom-0 top-12 z-50 flex items-center justify-center bg-black/[.04] px-6 backdrop-blur-[3px]">
       <section role="status" aria-live="polite" aria-atomic="true" className="git-operation-card w-full max-w-[320px] rounded-2xl border border-white/90 bg-white/95 p-6 shadow-[0_16px_60px_-16px_rgba(28,25,23,0.25)] dark:border-[#414b58] dark:bg-[#272e38]/95 dark:shadow-black/30">
         <div className="mb-4 flex items-center justify-between">
           <span className="flex size-11 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-400/10 dark:text-emerald-400"><Icon className="size-5" /></span>

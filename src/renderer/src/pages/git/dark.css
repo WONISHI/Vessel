@@ -168,7 +168,61 @@ html.dark .vessel-git-page tr[class~="hover:bg-stone-50"]:hover > td {
 @media (prefers-reduced-motion: reduce) {
   .git-operation-progress { animation: none; width: 100%; opacity: .55; }
 }
-html.dark .vessel-git-page .git-operation-overlay { background: rgba(16, 21, 28, .65) !important; }
+html.dark .vessel-git-page .git-operation-overlay { background: rgba(0, 0, 0, .04) !important; }
 html.dark .vessel-git-page .git-operation-card { background: rgba(39, 46, 56, .96) !important; border-color: #414b58 !important; }
 html.dark .vessel-git-page .git-operation-card :is(.text-stone-500, .text-stone-400) { color: #9caabd !important; }
 html.dark .vessel-git-page .git-operation-card .bg-stone-100 { background: rgba(71, 85, 105, .5) !important; }
+
+/* Dialog portals live outside the Git page, so target their explicit scope. */
+html .git-dialog button:not(:disabled):is(:hover, :active, :focus-visible),
+html .git-dialog button:not(:disabled):is(:hover, :active, :focus-visible) :is(span, svg) {
+  color: #fff !important;
+}
+html .git-dialog button:not(:disabled):is(:hover, :active, :focus-visible) {
+  background-color: #16a34a;
+}
+
+.git-toolbar-tools {
+  transition: width 280ms cubic-bezier(.22, 1, .36, 1);
+}
+.git-toolbar-tools-content {
+  opacity: 1;
+  transform: translateX(0);
+  transition: opacity 200ms ease, transform 280ms cubic-bezier(.22, 1, .36, 1);
+}
+.git-toolbar-tools[data-open="false"] .git-toolbar-tools-content {
+  opacity: 0;
+  transform: translateX(12px);
+}
+html.dark .vessel-git-page .git-toolbar-divider { background: #414954; }
+@media (prefers-reduced-motion: reduce) {
+  .git-toolbar-tools, .git-toolbar-tools-content { transition: none; }
+}
+
+/* Lift the fixed toolbar above actions that scroll underneath its left edge. */
+.git-toolbar-tools-toggle {
+  position: relative;
+  z-index: 2;
+  background-color: #fcfcfc;
+}
+.git-toolbar-tools-toggle::before {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  right: calc(100% + 8px);
+  top: -8px;
+  bottom: -8px;
+  width: 16px;
+  background: linear-gradient(to right, transparent, rgba(0, 0, 0, .075));
+}
+.git-toolbar-tools {
+  position: relative;
+  z-index: 1;
+  background-color: #fcfcfc;
+}
+html.dark .vessel-git-page :is(.git-toolbar-tools-toggle, .git-toolbar-tools) {
+  background-color: #262a30;
+}
+html.dark .vessel-git-page .git-toolbar-tools-toggle::before {
+  background: linear-gradient(to right, transparent, rgba(0, 0, 0, .32));
+}

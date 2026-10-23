@@ -35,7 +35,7 @@ export function ConfirmDialog({
     >
       <AlertDialogContent
         className="todo-confirm-dialog"
-        overlayClassName="!z-[230] !bg-black/45"
+        overlayClassName="!z-[230] !bg-black/[.04] backdrop-blur-[3px]"
       >
         <div className="todo-confirm-heading">
           <span

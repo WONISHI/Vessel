@@ -1,3 +1,5 @@
+import { TerminalPanel } from "@/components/workspace/components/layout-main/terminal-panel"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { GitOperationLoading, type GitRemoteOperation } from "@/pages/git/components/operation-loading"
 import { HistoryLoadMore } from "@/pages/git/components/history-load-more"
 import { CommitMessageInput } from "@/pages/git/components/commit-message-input"
@@ -14,8 +16,8 @@ import { CreateBranchDialog, MergeBranchDialog } from "@/pages/git/components/br
 import { DiffViewer } from "@/pages/git/components/diff-viewer"
 import { computeGitTopology, getGraphWidth, GitGraphSvg } from "@/pages/git/components/git-graph"
 import type { GitCommitDetail, GitCommitItem, GitFileStatus, GitStatusResult } from "@vessel/type"
-import { AlertCircle, Archive, ArrowDown, ArrowDownUp, ArrowUp, CheckCircle2, CheckSquare, Clock, Copy, Download, FileText, FolderGit2, FolderOpen, GitBranch, GitCommit, GitPullRequest, Globe, Layers, Minus, Plus, RefreshCw, RotateCcw, Tag, Trash2, Undo2, Upload } from "lucide-react"
-import { useCallback, useEffect, useRef, useState } from "react"
+import { AlertCircle, Archive, ArrowDown, ArrowDownUp, ArrowUp, CheckCircle2, CheckSquare, Clock, Copy, Download, FileText, FolderGit2, FolderOpen, GitBranch, GitCommit, GitPullRequest, Globe, CloudCheck, GitFork, PanelRightClose, PanelRightOpen, Settings, SquareTerminal, Layers, Minus, Plus, RefreshCw, RotateCcw, Tag, Trash2, Undo2, Upload } from "lucide-react"
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
 
 /**
@@ -64,6 +66,19 @@ export default function SourceTreePage() {
     else navigate(`/${act}`)
   }
 
+  const [toolbarToolsOpen, setToolbarToolsOpen] = useState(true)
+  const toolbarToolsRef = useRef<HTMLDivElement>(null)
+  const [toolbarToolsWidth, setToolbarToolsWidth] = useState(0)
+  useLayoutEffect(() => {
+    const node = toolbarToolsRef.current
+    if (!node) return
+    const measure = () => setToolbarToolsWidth(node.getBoundingClientRect().width)
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [])
+  const [terminalOpen, setTerminalOpen] = useState(false)
   const [repoPath, setRepoPath] = useState<string>(getInitialRepoPath)
   const [libraryProjects, setLibraryProjects] = useState<{ name: string; path: string }[]>([])
 
@@ -805,8 +820,9 @@ export default function SourceTreePage() {
     >
       <div className="vessel-git-page relative flex h-full min-w-0 flex-1 flex-col overflow-hidden bg-white text-stone-800">
         {/* 1. 顶部操作工具栏 (SourceTree 经典 Toolbar) */}
-        <header inert={remoteOperation !== null} className="git-toolbar flex h-12 shrink-0 items-center justify-between border-b border-stone-200 bg-stone-50/70 px-3">
-          <div className="flex items-center gap-1">
+        <header inert={remoteOperation !== null} className="git-toolbar flex h-12 shrink-0 items-center gap-1 overflow-hidden border-b border-stone-200 bg-stone-50/70 px-3">
+          <ScrollArea type="hover" className="h-9 min-w-0 flex-1">
+          <div className="flex h-8 w-max items-center gap-1">
             {/* Commit 按钮 */}
             <button
               type="button"
@@ -852,7 +868,7 @@ export default function SourceTreePage() {
               <span>抓取</span>
             </button>
 
-            <div className="mx-1 h-4 w-px bg-stone-300" />
+            <div role="separator" aria-orientation="vertical" className="git-toolbar-divider mx-1 h-4 w-px shrink-0 bg-stone-300" />
 
             {/* Branch 按钮 */}
             <button
@@ -903,8 +919,41 @@ export default function SourceTreePage() {
             </button>
           </div>
 
+          <ScrollBar orientation="horizontal" className="h-1" />
+          </ScrollArea>
+
+          <button
+            type="button"
+            className="git-toolbar-tools-toggle ml-3 flex size-8 shrink-0 items-center justify-center rounded-md text-stone-500 hover:bg-stone-200/70"
+            aria-label={toolbarToolsOpen ? "收起右侧工具栏" : "展开右侧工具栏"}
+            data-title={toolbarToolsOpen ? "收起右侧工具栏" : "展开右侧工具栏"}
+            aria-expanded={toolbarToolsOpen}
+            aria-controls="git-toolbar-tools"
+            onClick={() => setToolbarToolsOpen((open) => !open)}
+          >
+            {toolbarToolsOpen ? <PanelRightClose className="size-4" /> : <PanelRightOpen className="size-4" />}
+          </button>
+          <div id="git-toolbar-tools" className="git-toolbar-tools shrink-0 overflow-hidden" data-open={toolbarToolsOpen} inert={!toolbarToolsOpen} aria-hidden={!toolbarToolsOpen} style={{ width: toolbarToolsOpen ? toolbarToolsWidth : 0 }}>
+          <div ref={toolbarToolsRef} className="git-toolbar-tools-content flex w-max items-center gap-2 pl-1">
+          <div role="separator" aria-orientation="vertical" className="git-toolbar-divider mr-1 h-5 w-px shrink-0 bg-stone-300" />
+          <div className="flex shrink-0 items-center gap-1">
+            <button type="button" disabled={!isRepo || loading} className="flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs text-stone-700 hover:bg-stone-200/70 disabled:opacity-40" data-title="在浏览器中打开远程仓库" onClick={async () => {
+              try {
+                const url = await window.electronAPI.git.getRemoteWebUrl(repoPath)
+                if (!url) { toast.error("未找到有效的远程仓库地址"); return }
+                await window.electronAPI.openExternal(url)
+              } catch (error) { toast.error("打开远程仓库失败", { description: cleanGitErrorMessage(error) }) }
+            }}><GitFork className="size-4" /><span>显示远程仓库</span></button>
+            <button type="button" disabled={!repoPath} className="flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs text-stone-700 hover:bg-stone-200/70 disabled:opacity-40" data-title="在文件管理器中显示当前仓库" onClick={async () => {
+              try { await window.electronAPI.revealWorkspaceFile(repoPath, repoPath) }
+              catch (error) { toast.error("显示仓库失败", { description: cleanGitErrorMessage(error) }) }
+            }}><FolderOpen className="size-4" /><span>在 Finder 中显示</span></button>
+            <button type="button" disabled={!isRepo} className="flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs text-stone-700 hover:bg-stone-200/70 disabled:opacity-40" data-title="打开当前仓库的终端" onClick={() => setTerminalOpen(true)}><SquareTerminal className="size-4" /><span>终端</span></button>
+            <button type="button" className="flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs text-stone-700 hover:bg-stone-200/70" data-title="打开 Vessel 设置" onClick={() => navigate("/settings")}><Settings className="size-4" /><span>设置</span></button>
+          </div>
+
           {/* 仓库路径指示与切换 */}
-          <div className="flex items-center gap-2 text-xs">
+          <div className="flex shrink-0 items-center gap-2 text-xs">
             <FolderGit2 className="size-4 text-stone-500" />
             {libraryProjects.length > 0 ? (
               <select
@@ -949,6 +998,8 @@ export default function SourceTreePage() {
             >
               浏览...
             </button>
+          </div>
+          </div>
           </div>
         </header>
 
@@ -1000,7 +1051,7 @@ export default function SourceTreePage() {
                         className="inline-flex items-center gap-0.5 rounded-full bg-stone-100 dark:bg-stone-800 px-1.5 py-0.5 text-[10px] font-medium text-stone-600 dark:text-stone-300"
                         data-title={`远程仓库已同步 ${remoteCommitTotal} 次提交`}
                       >
-                        <Globe className="size-2.5 text-stone-500 dark:text-stone-400" />
+                        <CloudCheck className="size-2.5 text-stone-500 dark:text-stone-400" />
                         <span>{remoteCommitTotal}</span>
                       </span>
                     )}
@@ -1689,7 +1740,7 @@ export default function SourceTreePage() {
                           className="inline-flex items-center gap-1 rounded-full bg-stone-100 dark:bg-stone-800 px-2 py-0.5 text-[11px] font-medium text-stone-600 dark:text-stone-300"
                           data-title={`远程仓库已同步 ${remoteCommitTotal} 次提交`}
                         >
-                          <Globe className="size-3 text-stone-500 dark:text-stone-400" />
+                          <CloudCheck className="size-3 text-stone-500 dark:text-stone-400" />
                           <span>远程已同步 {remoteCommitTotal} 次</span>
                         </span>
                       )}
@@ -2049,6 +2100,13 @@ export default function SourceTreePage() {
             }
           }}
         />
+
+        <Dialog open={terminalOpen} onOpenChange={setTerminalOpen}>
+          <DialogContent className="git-dialog flex h-[min(560px,80vh)] max-w-4xl flex-col gap-2 p-4">
+            <DialogHeader><DialogTitle className="text-sm">仓库终端</DialogTitle></DialogHeader>
+            <div className="min-h-0 flex-1 overflow-hidden rounded-md border"><TerminalPanel key={repoPath} root={repoPath} onClose={() => setTerminalOpen(false)} /></div>
+          </DialogContent>
+        </Dialog>
 
         {/* 弹窗：合并分支 */}
         <MergeBranchDialog

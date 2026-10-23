@@ -519,6 +519,11 @@ export class GitService {
     return ""
   }
 
+  /** Returns the browser URL of the remote repository. */
+  async getRemoteWebUrl(cwd: string): Promise<string> {
+    return formatGitRemoteWebUrl(await this.getRemoteUrl(cwd))
+  }
+
   /** Returns the web URL for viewing a commit in the remote repository. */
   async getRemoteCommitUrl(cwd: string, hash: string, remote = "origin"): Promise<string> {
     const remoteUrl = await this.getRemoteUrl(cwd, remote)
@@ -526,9 +531,9 @@ export class GitService {
     return formatGitCommitWebUrl(remoteUrl, hash)
   }
 
-  /** Returns the list of unpushed commit hashes. */
+  /** Returns unpushed commits reachable from the current branch, excluding other local branches. */
   async getUnpushedCommits(cwd: string): Promise<string[]> {
-    const res = await runGit(["rev-list", "--branches", "HEAD", "--not", "--remotes"], cwd)
+    const res = await runGit(["rev-list", "HEAD", "--not", "--remotes"], cwd)
     if (res.exitCode !== 0) return []
     return res.stdout
       .split("\n")
@@ -538,8 +543,8 @@ export class GitService {
 }
 
 /** Formats a Git remote repository URL into a web URL for viewing a commit. */
-export function formatGitCommitWebUrl(rawRemoteUrl: string, hash: string): string {
-  if (!rawRemoteUrl || !hash) return ""
+export function formatGitRemoteWebUrl(rawRemoteUrl: string): string {
+  if (!rawRemoteUrl) return ""
   let s = rawRemoteUrl.trim().replace(/\/+$/, "")
 
   let base = ""
@@ -561,7 +566,12 @@ export function formatGitCommitWebUrl(rawRemoteUrl: string, hash: string): strin
     }
   }
 
-  if (!base) return ""
+  return base
+}
+
+export function formatGitCommitWebUrl(rawRemoteUrl: string, hash: string): string {
+  const base = formatGitRemoteWebUrl(rawRemoteUrl)
+  if (!base || !hash) return ""
   const lower = base.toLowerCase()
   if (lower.includes("bitbucket.org")) {
     return `${base}/commits/${hash}`
