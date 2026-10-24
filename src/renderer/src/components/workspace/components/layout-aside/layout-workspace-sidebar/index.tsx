@@ -24,6 +24,7 @@ export default function LayoutWorkspaceSidebar({ activity }: LayoutWorkspaceSide
   const [revealPath, setRevealPath] = useState("")
   const [revealCentered, setRevealCentered] = useState(false)
   const treeOpenedPath = useRef<string | null>(null)
+  const movedActivePath = useRef<string | null>(null)
   const [addedFiles, setAddedFiles] = useState(0)
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchTarget, setSearchTarget] = useState("")
@@ -100,7 +101,7 @@ export default function LayoutWorkspaceSidebar({ activity }: LayoutWorkspaceSide
   }, [revealCurrentFile])
   useEffect(() => {
     const cached = sidebarViewCache.get(workspace.path)
-    if (activeFilePath && cached?.lastActiveFilePath !== activeFilePath) {
+    if (activeFilePath && cached?.lastActiveFilePath !== activeFilePath && movedActivePath.current !== activeFilePath) {
       revealCurrentFile(activeFilePath, treeOpenedPath.current !== activeFilePath)
     }
     sidebarViewCache.set(workspace.path, {
@@ -108,6 +109,7 @@ export default function LayoutWorkspaceSidebar({ activity }: LayoutWorkspaceSide
       scrollTop: cached?.scrollTop ?? 0
     })
     treeOpenedPath.current = null
+    if (movedActivePath.current === activeFilePath) movedActivePath.current = null
   }, [activeFilePath, workspace.path, revealCurrentFile])
   const [viewport, setViewport] = useState<HTMLDivElement | null>(null)
 
@@ -329,6 +331,7 @@ export default function LayoutWorkspaceSidebar({ activity }: LayoutWorkspaceSide
               setSearchTarget(path)
               setSearchOpen(true)
             }}
+            onActiveFileMoved={(path) => { movedActivePath.current = path }}
             onFileActivate={(path) => { if (path !== activeFilePath) treeOpenedPath.current = path }}
             revealPath={revealPath}
             revealCentered={revealCentered}

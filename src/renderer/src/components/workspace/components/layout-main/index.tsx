@@ -1,3 +1,4 @@
+import { getFilePresentation } from "@/components/workspace/components/layout-aside/layout-workspace-sidebar/utils"
 import { BackupStatus } from "@/components/backup-status"
 import CanvasContent from "@/components/core/canvas/index"
 import { TabSwitcher } from "@/components/tab-switcher"
@@ -270,7 +271,7 @@ export default function LayoutMain({ resources = false }: { resources?: boolean 
           )}
           <TabSwitcher
             triggerClassName="[&:hover>button]:bg-green-600 [&:hover>button]:!text-white [&:hover>button_svg]:!text-white [&:hover>button_svg]:!stroke-white [&[data-state=open]>button]:bg-green-600 [&[data-state=open]>button]:!text-white [&[data-state=open]>button_svg]:!text-white [&[data-state=open]>button_svg]:!stroke-white"
-            tabs={openFiles.map((file) => ({ id: file.path, title: file.name, active: file.path === activeFilePath }))}
+            tabs={openFiles.map((file) => ({ id: file.path, title: file.name, active: file.path === activeFilePath, icon: <File className={cn("size-3.5", getFilePresentation(file.name).color)} /> }))}
             onSelect={(id) => {
               const file = openFiles.find((file) => file.path === id)
               if (file) openWorkspaceFile(file)

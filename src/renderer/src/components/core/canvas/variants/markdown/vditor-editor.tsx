@@ -1,3 +1,4 @@
+import "@vessel/obsidian/links/style.css"
 import { FootnoteHoverCard } from "@/components/core/canvas/variants/markdown/footnote-hover-card"
 import { bindFootnoteToolbar, insertFootnote, validFootnoteRange, decorateFootnoteReferences, deleteFootnote } from "@/components/core/canvas/variants/markdown/footnotes"
 import { FootnotePopover } from "@/components/core/canvas/variants/markdown/footnote-popover"
@@ -14,7 +15,7 @@ import "@vessel/markdown-steps/style.css"
 import { MarkdownTableEditor } from "@vessel/markdown-table"
 import "@vessel/markdown-table/style.css"
 import { bindListShortcuts } from "@/components/core/canvas/variants/markdown/list-shortcuts"
-import { bindImageParagraphs, focusImageParagraph } from "@/components/core/canvas/variants/markdown/image-paragraph"
+import { bindImageParagraphs, focusImageParagraph, insertImageMarkdown } from "@/components/core/canvas/variants/markdown/image-paragraph"
 import "@/components/core/canvas/variants/markdown/index.css"
 import { clearCodeHighlights, decorateCodeBlocks } from "@/components/core/canvas/variants/markdown/code-blocks"
 import { decorateMarkdownTags } from "@/components/core/canvas/variants/markdown/decorate-tags"
@@ -49,6 +50,7 @@ import "vditor/dist/index.css"
 export function VditorEditor({ value, onChange, workspacePath, documentPath, readOnly = false }: { readOnly?: boolean; workspacePath: string; documentPath: string; value: string; onChange: (value: string) => void }) {
   const [footnoteTarget, setFootnoteTarget] = useState<{ range: Range; text: string; path: string } | null>(null)
   const [insertLocation, setInsertLocation] = useState<MarkdownInsertLocation | null>(null)
+  const clipboardImageInsertAction = useRef<(() => void) | null>(null)
   const imageInsertAction = useRef<(() => void) | null>(null)
   const [languageBlock, setLanguageBlock] = useState<HTMLElement | null>(null)
   const [codeContextMenu, setCodeContextMenu] = useState<{ block: HTMLElement; x: number; y: number } | null>(null)
@@ -67,10 +69,28 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
     initialUrl?: string
     initialText?: string
     targetElement?: HTMLElement | null
+    range?: Range
   } | null>(null)
-  const triggerInsertLinkRef = useRef<(customRange?: Range) => void>(() => {})
+  useEffect(() => {
+    const range = linkTooltip?.range
+    if (!range || range.collapsed || typeof Highlight === "undefined" || !CSS.highlights) return
+    // Keep the target visible after focus moves into the URL field, without editing document DOM.
+    const name = "vessel-link-target"
+    const highlight = new Highlight(range)
+    CSS.highlights.set(name, highlight)
+    return () => { if (CSS.highlights.get(name) === highlight) CSS.highlights.delete(name) }
+  }, [linkTooltip])
 
-  const triggerInsertLink = (customRange?: Range) => {
+  useEffect(() => {
+    const target = linkTooltip?.targetElement
+    if (!target) return
+    target.classList.add("vessel-link-edit-target")
+    return () => target.classList.remove("vessel-link-edit-target")
+  }, [linkTooltip])
+
+  const triggerInsertLinkRef = useRef<(customRange?: Range, anchor?: { left: number; top: number; width?: number; height?: number }) => void>(() => {})
+
+  const triggerInsertLink = (customRange?: Range, clickAnchor?: { left: number; top: number; width?: number; height?: number }) => {
     if (readOnly || !instance.current) return
     const editable = host.current?.querySelector<HTMLElement>('.vditor-ir [contenteditable="true"]')
     if (!editable) return
@@ -85,10 +105,10 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
     const range = selection && selection.rangeCount > 0 ? selection.getRangeAt(0) : null
     const selectedText = range ? range.toString() : ""
 
-    let anchorRect: { left: number; top: number; width?: number; height?: number } | null = null
-    if (range) {
-      const rect = range.getBoundingClientRect()
-      if (rect.top > 0 || rect.left > 0) {
+    let anchorRect: { left: number; top: number; width?: number; height?: number } | null = clickAnchor ?? null
+    if (range && !clickAnchor) {
+      const rect = range.getBoundingClientRect?.()
+      if (rect && rect.bottom > 0 && rect.top < window.innerHeight && (rect.width > 0 || rect.height > 0)) {
         anchorRect = {
           left: rect.left,
           top: rect.top,
@@ -98,55 +118,26 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
       }
     }
 
+    const existingLinks = new Set(editable.querySelectorAll('[data-type="a"]'))
     instance.current.insertValue(selectedText ? `[${selectedText}](https://)` : "[](https://)", true)
-
-    requestAnimationFrame(() => {
-      const sel = window.getSelection()
-      const activeRange = sel && sel.rangeCount > 0 ? sel.getRangeAt(0) : null
-      let linkEl: HTMLElement | null = null
-
-      if (activeRange) {
-        const container = activeRange.startContainer
-        linkEl = (container instanceof HTMLElement ? container : container.parentElement)?.closest<HTMLElement>('[data-type="a"]') || null
-      }
-
-      if (!linkEl) {
-        const allLinks = editable.querySelectorAll<HTMLElement>('[data-type="a"]')
-        if (allLinks.length > 0) {
-          linkEl = allLinks[allLinks.length - 1]
-        }
-      }
-
-      if (linkEl) {
-        const rect = linkEl.getBoundingClientRect()
-        if (rect.top > 0 || rect.left > 0) {
-          anchorRect = {
-            left: rect.left,
-            top: rect.top,
-            width: rect.width,
-            height: rect.height
-          }
-        }
-      }
-
-      if (!anchorRect) {
-        const edRect = editable.getBoundingClientRect()
-        anchorRect = {
-          left: edRect.left + 24,
-          top: edRect.top + 24,
-          width: 32,
-          height: 22
-        }
-      }
-
-      setLinkTooltip({
-        anchor: anchorRect,
-        initialUrl: "https://",
-        initialText: selectedText,
-        targetElement: linkEl
-      })
+    const targetElement = Array.from(editable.querySelectorAll<HTMLElement>('[data-type="a"]')).find((node) => !existingLinks.has(node)) ?? null
+    if (targetElement) {
+      // Keep the Markdown placeholder visible while the URL input owns focus.
+      targetElement.classList.add("vessel-link-edit-target")
+      const rect = targetElement.getBoundingClientRect()
+      if (rect.bottom > 0 && rect.top < window.innerHeight && rect.height > 0) anchorRect = rect
+    }
+    changeHandler.current((properties?.raw ?? "") + restoreObsidianImages(instance.current.getValue()))
+    const edRect = editable.getBoundingClientRect()
+    setLinkTooltip({
+      anchor: anchorRect || { left: edRect.left + 24, top: edRect.top + 24, width: 32, height: 22 },
+      initialUrl: "https://",
+      initialText: selectedText,
+      targetElement,
+      range: range?.cloneRange()
     })
   }
+
   triggerInsertLinkRef.current = triggerInsertLink
 
   const handleConfirmLink = (url: string) => {
@@ -170,6 +161,13 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
       sel?.addRange(range)
       instance.current.insertValue(updatedMd, true)
     } else {
+      const editable = host.current?.querySelector<HTMLElement>('.vditor-ir [contenteditable="true"]')
+      const range = linkTooltip?.range
+      if (!editable || !range || !editable.contains(range.commonAncestorContainer)) { setLinkTooltip(null); return }
+      editable.focus({ preventScroll: true })
+      const selection = window.getSelection()
+      selection?.removeAllRanges()
+      selection?.addRange(range)
       instance.current.insertValue(updatedMd, true)
     }
 
@@ -435,6 +433,24 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
     const observer = new MutationObserver(decorate)
     observer.observe(element, { childList: true, subtree: true })
     const imagePicker = document.createElement("input")
+    clipboardImageInsertAction.current = () => {
+      const selection = window.getSelection()
+      const range = selection?.rangeCount ? selection.getRangeAt(0).cloneRange() : null
+      void window.electronAPI.readClipboardImage().then(async (data) => {
+        if (!data) { toast.info("剪贴板中没有图片，请先复制一张图片"); return }
+        const encoded = data.split(",")[1]
+        const bytes = Uint8Array.from(atob(encoded), (character) => character.charCodeAt(0))
+        const saved = await window.electronAPI.saveObsidianImage(workspacePath, documentPath, { bytes })
+        if (disposed) return
+        element.querySelector<HTMLElement>('[contenteditable="true"]')?.focus({ preventScroll: true })
+        if (range && element.contains(range.commonAncestorContainer)) {
+          selection?.removeAllRanges()
+          selection?.addRange(range)
+        }
+        insertImageMarkdown(element, () => editor.insertMD(prepareObsidianImages(saved.reference)))
+        refreshImages()
+      }).catch((error) => toast.error("读取剪贴板图片失败", { description: String(error) }))
+    }
     imageInsertAction.current = () => imagePicker.click()
     imagePicker.type = "file"
     imagePicker.accept = "image/png,image/jpeg,image/gif,image/webp,image/svg+xml,image/avif,image/bmp"
@@ -445,7 +461,7 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
       void (path ? window.electronAPI.saveObsidianImage(workspacePath, documentPath, { path }) : file.arrayBuffer().then((bytes) => window.electronAPI.saveObsidianImage(workspacePath, documentPath, { bytes: new Uint8Array(bytes) })))
         .then((saved) => {
           if (disposed) return
-          editor.insertMD(prepareObsidianImages(saved.reference))
+          insertImageMarkdown(element, () => editor.insertMD(prepareObsidianImages(saved.reference)))
           refreshImages()
         })
         .catch((error) => toast.error(String(error)))
@@ -488,7 +504,7 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
               selection?.removeAllRanges()
               selection?.addRange(range)
             }
-            editor.insertMD(prepareObsidianImages(saved.reference))
+            insertImageMarkdown(element, () => editor.insertMD(prepareObsidianImages(saved.reference)))
             refreshImages()
           })
           .catch((error) => toast.error(String(error)))
@@ -498,7 +514,7 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
         if (prepared !== text) {
           event.preventDefault()
           event.stopImmediatePropagation()
-          editor.insertMD(prepared)
+          insertImageMarkdown(element, () => editor.insertMD(prepared))
           refreshImages()
         }
       }
@@ -633,8 +649,9 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
             const handleLinkBtnClick = (event: Event) => {
               event.preventDefault()
               event.stopPropagation()
-              triggerInsertLinkRef.current()
+              triggerInsertLinkRef.current(undefined, linkBtn?.getBoundingClientRect())
             }
+            linkBtn?.addEventListener("mousedown", (event) => { event.preventDefault(); event.stopImmediatePropagation() }, true)
             linkBtn?.addEventListener("click", handleLinkBtnClick, true)
             toolbar?.querySelectorAll<HTMLElement>('button[data-tag^="h"]').forEach((button, index) => {
               button.parentElement?.classList.add("vessel-heading-menu")
@@ -682,6 +699,7 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
       unbindWikiEditing()
       unbindTableActions()
       unbindInsertMenu()
+      clipboardImageInsertAction.current = null
       imageInsertAction.current = null
       unbindTablePaste()
       unbindImageParagraphs()
@@ -736,6 +754,18 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
           onInsert={(value, inline) => {
             const range = insertLocation.range
             const editable = host.current?.querySelector<HTMLElement>('.vditor-ir [contenteditable="true"]')
+            if (value === "link") {
+              // Let Radix finish closing/focus restoration before opening another input layer.
+              setInsertLocation(null)
+              requestAnimationFrame(() => {
+                if (!editable || !instance.current) return
+                const saved = editable.contains(range.commonAncestorContainer) ? range : document.createRange()
+                if (saved !== range) { saved.selectNodeContents(editable); saved.collapse(false) }
+                if (saved.toString() === "/" || saved.toString() === "、") saved.deleteContents()
+                triggerInsertLinkRef.current(saved, { left: insertLocation.x, top: insertLocation.y, width: 24, height: 20 })
+              })
+              return
+            }
             if (!editable?.contains(range.commonAncestorContainer) || !instance.current) return
             editable.focus({ preventScroll: true })
             const selection = window.getSelection()
@@ -744,8 +774,8 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
             if (range.toString() === "/" || range.toString() === "、") {
               range.deleteContents()
             }
-            if (value === "image") imageInsertAction.current?.()
-            else if (value === "link") triggerInsertLink(range)
+            if (value === "image-clipboard") clipboardImageInsertAction.current?.()
+            else if (value === "image") imageInsertAction.current?.()
             else if (value === "code-block") insertEmptyCodeBlock(instance.current, editable)
             else instance.current.insertValue(inline ? value : `\n\n${value}\n\n`, true)
             setInsertLocation(null)

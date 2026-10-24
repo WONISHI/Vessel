@@ -35,7 +35,8 @@ vi.mock("mind-elixir", () => ({ default: class {
   bus = { addListener: (name: string, handler: Function) => { this.listeners[name] = handler } }
   destroy = vi.fn(); undo = vi.fn(); redo = vi.fn(); changeTheme = vi.fn()
   options: any
-  constructor(options: any) { this.options = options; state.editors.push(this) }
+  container: HTMLElement
+  constructor(options: any) { this.container = options.el; this.options = options; state.editors.push(this) }
   init(data: any) { this.data = data }
   getData() { return this.data }
 } }))

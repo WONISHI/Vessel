@@ -30,6 +30,7 @@ export default function WorkspaceTree({
   revealCentered = false,
   onRevealed,
   onFileActivate,
+  onActiveFileMoved,
   onCreate,
   onSearchDirectory,
   sortBy = "auto",
@@ -43,6 +44,7 @@ export default function WorkspaceTree({
   revealCentered?: boolean
   onRevealed?: () => void
   onFileActivate?: (path: string) => void
+  onActiveFileMoved?: (path: string) => void
   draft?: EntryDraft | null
   onDraftFinish?: (created: boolean) => void
   sortBy?: FileSortBy
@@ -136,7 +138,11 @@ export default function WorkspaceTree({
       if (!external)
         for (const entry of moved)
           for (const file of openFiles) {
-            if (file.path === entry.source || file.path.startsWith(entry.source + (entry.source.includes("\\") ? "\\" : "/"))) renameWorkspaceTab(file.path, entry.target + file.path.slice(entry.source.length), file.name)
+            if (file.path === entry.source || file.path.startsWith(entry.source + (entry.source.includes("\\") ? "\\" : "/"))) {
+              const target = entry.target + file.path.slice(entry.source.length)
+              if (file.path === activeFilePath) onActiveFileMoved?.(target)
+              renameWorkspaceTab(file.path, target, file.name)
+            }
           }
       await Promise.all([...new Set([destination, ...paths.map(parentPath)])].filter((path) => path === workspace.path || directories[path]).map(loadDirectoryChildren))
       setSelection([])
@@ -189,7 +195,7 @@ export default function WorkspaceTree({
   const rows: VirtualTreeRow<WorkspaceNode>[] = []
   /** 仅展开已打开目录，将已加载节点转换成虚拟列表所需的可见行。 */
   const appendVisibleTreeRows = (nodes: WorkspaceNode[], depth = 0, parent = workspace.path) => {
-    if (draft?.parent === parent) rows.push({ id: "__draft__", item: { name: "", path: "__draft__" }, depth })
+    if (draft?.parent === parent && draft.kind === "directory") rows.push({ id: "__draft__", item: { name: "", path: "__draft__" }, depth })
     const sorted = sortWorkspaceNodes(nodes, sortBy, sortOrder)
     sorted.forEach((node) => {
       const folder = node.type === "directory"
@@ -197,6 +203,7 @@ export default function WorkspaceTree({
       rows.push({ id: node.path, item: node, depth, expanded: folder ? expanded : undefined })
       if (expanded) appendVisibleTreeRows(directories[node.path]?.nodes ?? [], depth + 1, node.path)
     })
+    if (draft?.parent === parent && draft.kind === "file") rows.push({ id: "__draft__", item: { name: "", path: "__draft__" }, depth })
   }
   const root = directories[workspace.path]
   appendVisibleTreeRows(recent ? openFiles : (root?.nodes ?? []))

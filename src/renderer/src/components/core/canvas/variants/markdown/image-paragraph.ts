@@ -91,3 +91,14 @@ export function bindImageParagraphs(root: HTMLElement) {
   root.addEventListener("keydown", key, true)
   return () => root.removeEventListener("keydown", key, true)
 }
+
+/** Vditor inserts block Markdown after the caret paragraph; consume an empty image-focus line. */
+export function insertImageMarkdown(root: HTMLElement, insert: () => void) {
+  const selection = window.getSelection()
+  const range = selection?.rangeCount ? selection.getRangeAt(0) : null
+  const element = range?.startContainer instanceof Element ? range.startContainer : range?.startContainer.parentElement
+  const paragraph = element?.closest("p")
+  const placeholder = range?.collapsed && paragraph && root.contains(paragraph) && isEmptyParagraph(paragraph) && paragraph.previousElementSibling?.classList.contains("vessel-image-block") ? paragraph : null
+  insert()
+  if (placeholder?.isConnected && isEmptyParagraph(placeholder) && placeholder.nextElementSibling?.matches('[data-type="code-block"], .vessel-image-block')) placeholder.remove()
+}

@@ -46,9 +46,15 @@ export async function collectFiles(options: ScanOptions): Promise<BackupFile[]> 
     cursor += batch.length
     const results = await Promise.all(
       batch.map(async (directory) => {
-        const canonical = await realpath(directory)
-        if (canonical !== root) inside(canonical)
-        return { directory: canonical, entries: await readdir(canonical, { withFileTypes: true }) }
+        try {
+          const canonical = await realpath(directory)
+          if (canonical !== root) inside(canonical)
+          return { directory: canonical, entries: await readdir(canonical, { withFileTypes: true }) }
+        } catch (error) {
+          // A child directory can be renamed after it was queued; rescan it next run.
+          if (directory !== root && ["ENOENT", "ENOTDIR"].includes((error as NodeJS.ErrnoException).code ?? "")) return { directory, entries: [] }
+          throw error
+        }
       })
     )
     for (const { directory, entries } of results)

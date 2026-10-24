@@ -1,13 +1,16 @@
 import { useLayoutEffect, useRef } from "react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuPortal, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Code, CodeXml, Heading, ImagePlus, LayoutGrid, Link, List, ListChecks, ListOrdered, Milestone, Minus, Quote, Table2, TableProperties, Workflow } from "lucide-react"
+import { ClipboardPaste, FolderOpen, Code, CodeXml, Heading, ImagePlus, LayoutGrid, Link, List, ListChecks, ListOrdered, Milestone, Minus, Quote, Table2, TableProperties, Workflow } from "lucide-react"
 
 const groups = [
   { label: "插入", items: [
     { label: "插入标题", icon: Heading, children: ["一级标题", "二级标题", "三级标题", "四级标题", "五级标题", "六级标题"].map((label, index) => ({ label, badge: `H${index + 1}`, value: `${"#".repeat(index + 1)} 标题` })) },
     { label: "插入链接", icon: Link, value: "link" },
-    { label: "插入图片", icon: ImagePlus, value: "image" }
+    { label: "插入图片", icon: ImagePlus, children: [
+      { label: "粘贴剪贴板图片", icon: ClipboardPaste, value: "image-clipboard" },
+      { label: "从本机选择图片", icon: FolderOpen, value: "image" }
+    ] }
   ] },
   { label: "块", items: [
     { label: "列表", icon: List, children: [

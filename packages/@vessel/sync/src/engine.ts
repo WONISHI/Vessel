@@ -207,11 +207,16 @@ async function run(options: SyncOptions, prefix: string, indexPath: string, conc
             options.signal?.throwIfAborted()
             await operation(item)
           } catch (error) {
-            if (!options.signal?.aborted && error instanceof SyncError && error.code === "FILE_CHANGED") {
+            const localSource = typeof item === "object" && item !== null
+              ? (item as { source?: string; local?: { source: string } }).source ?? (item as { local?: { source: string } }).local?.source
+              : typeof item === "string" ? locals.get(item)?.source : undefined
+            const fsError = error as NodeJS.ErrnoException
+            const movedLocally = localSource && ["ENOENT", "ENOTDIR"].includes(fsError?.code ?? "") && fsError.path === localSource
+            if (!options.signal?.aborted && ((error instanceof SyncError && error.code === "FILE_CHANGED") || movedLocally)) {
               const path = typeof item === "string" ? item : (item as { path?: string }).path
               if (path) {
                 if (!result.skipped!.includes(path)) result.skipped!.push(path)
-                skippedReasons.set(path, "文件正在编辑，已跳过，等待下次同步")
+                skippedReasons.set(path, "文件正在编辑或已重命名，已跳过，等待下次同步")
                 if (item && typeof item === "object" && "action" in item) Object.assign(item, { action: "skip", reason: skippedReasons.get(path) })
                 log(options, { type: "operation", path, action: "skip", code: "FILE_CHANGED", message: skippedReasons.get(path)! })
                 continue

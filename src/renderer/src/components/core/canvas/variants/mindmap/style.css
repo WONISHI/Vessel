@@ -42,3 +42,11 @@ html.dark .vessel-mindmap .mindmap-node-actions {
 /* Fullscreen belongs to the canvas wrapper so its floating toolbar stays visible. */
 .vessel-mindmap > div:fullscreen { background: #fff; width: 100vw; height: 100vh; }
 html.dark .vessel-mindmap > div:fullscreen { background: #30353c; }
+
+.vessel-mindmap me-tpc[data-vessel-branch-drop] { position: relative; }
+.vessel-mindmap me-tpc[data-vessel-branch-drop]::after {
+  content: ""; position: absolute; left: -8px; right: -8px; height: 3px;
+  border-radius: 2px; background: #16a34a; pointer-events: none;
+}
+.vessel-mindmap me-tpc[data-vessel-branch-drop="before"]::after { top: -7px; }
+.vessel-mindmap me-tpc[data-vessel-branch-drop="after"]::after { bottom: -7px; }

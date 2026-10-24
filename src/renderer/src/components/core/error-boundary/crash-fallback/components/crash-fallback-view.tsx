@@ -1,3 +1,5 @@
+import Logo from "@/assets/logo.png"
+import DarkLogo from "@/assets/logo-dark.svg"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Kbd } from "@/components/ui/kbd"
 import { CrashFallbackViewProps } from "@/components/core/error-boundary/crash-fallback/components/crash-fallback-shared"
@@ -82,7 +84,11 @@ export function CrashFallbackView({ error, onReset }: CrashFallbackViewProps) {
     <div className="flex h-screen w-screen flex-col overflow-hidden bg-background text-foreground select-none">
       {/* 顶部标题栏区域（保留原生红黄绿按键位置与窗口拖拽） */}
       <div className={`flex h-10 w-full shrink-0 items-center justify-between border-b border-border/40 bg-muted/30 px-4 drag-region ${isMac ? "pl-20" : ""}`}>
-        <span className="text-xs font-medium text-muted-foreground">Vessel - 应用异常</span>
+        <div className="flex items-center gap-2">
+          <img src={Logo} alt="Vessel" className="size-5 object-contain dark:hidden" />
+          <img src={DarkLogo} alt="" aria-hidden="true" className="hidden size-5 object-contain dark:block" />
+          <span className="text-xs font-medium text-muted-foreground">Vessel - 应用异常</span>
+        </div>
         <div className="flex items-center gap-1.5 no-drag">
           <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
           <span className="text-[11px] text-muted-foreground">页面已暂停</span>

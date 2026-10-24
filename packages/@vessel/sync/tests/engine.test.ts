@@ -1,5 +1,5 @@
 import { afterEach, expect, it, vi } from "vitest"
-import { mkdtemp, writeFile, readFile, rm, stat, utimes, mkdir, symlink } from "node:fs/promises"
+import { mkdtemp, writeFile, readFile, rm, stat, utimes, mkdir, symlink, rename } from "node:fs/promises"
 import { join } from "node:path"
 import { tmpdir } from "node:os"
 import { createHash } from "node:crypto"
@@ -183,4 +183,29 @@ it("scans with exclusions and blocks selected files outside the root", async () 
   expect((await collectFiles({ root: f.root })).map((file) => file.path)).toEqual(["0.md", "notes/a.md"])
   await expect(collectFiles({ root: f.root, selected: join(f.root, "link.md") })).rejects.toThrow("当前工作区")
   await expect(collectFiles({ root: f.root, selected: join(f.root, ".env") })).rejects.toThrow("排除规则")
+})
+
+it("skips a file renamed after scanning and discovers its new name on the next run", async () => {
+  const f = await fixture(2)
+  await rename(f.files[0].source, join(f.root, "renamed.md"))
+  const result = await syncFiles(f.options)
+  expect(result.skipped).toContain("0.md")
+  expect(result.changed).toBe(1)
+  expect(f.objects.has("0.md")).toBe(false)
+  const files = [{ path: "renamed.md", source: join(f.root, "renamed.md") }, f.files[1]]
+  await syncFiles({ ...f.options, files })
+  expect(f.objects.get("renamed.md")?.content.toString()).toBe("file 0")
+})
+
+it("does not fail the batch when a file is renamed between planning and upload", async () => {
+  const f = await fixture(2)
+  const head = f.storage.head
+  f.storage.head = async (key) => {
+    if (key === "0.md") await rename(f.files[0].source, join(f.root, "moved.md"))
+    return head(key)
+  }
+  const result = await syncFiles(f.options)
+  expect(result.skipped).toContain("0.md")
+  expect(result.changed).toBe(1)
+  expect(f.objects.has("0.md")).toBe(false)
 })

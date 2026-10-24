@@ -1,5 +1,5 @@
 import { afterEach, expect, it, vi } from "vitest"
-import { bindImageParagraphs, focusImageParagraph } from "@/components/core/canvas/variants/markdown/image-paragraph"
+import { bindImageParagraphs, focusImageParagraph, insertImageMarkdown } from "@/components/core/canvas/variants/markdown/image-paragraph"
 
 let unbind: (() => void) | undefined
 afterEach(() => { unbind?.(); unbind = undefined; document.body.innerHTML = ""; window.getSelection()?.removeAllRanges(); vi.restoreAllMocks() })
@@ -81,4 +81,30 @@ it("creates and focuses an empty line when the image is followed by another bloc
   expect(paragraph?.tagName).toBe("P")
   expect(image.nextElementSibling).toBe(paragraph)
   expect(window.getSelection()?.anchorNode).toBe(paragraph)
+})
+
+it("consumes the empty focus line when pasting another image beneath it", () => {
+  const { root } = fixture()
+  const first = root.querySelector<HTMLElement>(".vessel-image-block")!
+  const paragraph = focusImageParagraph(first)!
+  insertImageMarkdown(root, () => {
+    const image = document.createElement("div")
+    image.dataset.type = "code-block"
+    image.className = "vessel-image-block"
+    paragraph.after(image)
+  })
+  expect(root.querySelector("p[data-block]")).toBeNull()
+  expect(first.nextElementSibling?.classList.contains("vessel-image-block")).toBe(true)
+  expect(root.querySelector("blockquote")?.textContent).toBe("后面的正文")
+})
+
+it("preserves text entered on the focused line before pasting an image", () => {
+  const { root } = fixture()
+  const paragraph = focusImageParagraph(root.querySelector<HTMLElement>(".vessel-image-block")!)!
+  paragraph.textContent = "保留文字"
+  insertImageMarkdown(root, () => {
+    const image = document.createElement("div"); image.dataset.type = "code-block"; paragraph.after(image)
+  })
+  expect(paragraph.isConnected).toBe(true)
+  expect(paragraph.textContent).toBe("保留文字")
 })

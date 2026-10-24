@@ -24,3 +24,21 @@ it("inserts an empty fence and focuses its code without selecting an existing bl
   expect(selection.anchorOffset).toBe(0)
   expect(selection.isCollapsed).toBe(true)
 })
+
+it.each(["<br>", "保留正文"])("consumes only an empty caret paragraph before the inserted block: %s", (content) => {
+  const editable = document.createElement("div")
+  editable.contentEditable = "true"
+  editable.innerHTML = `<p>之前的内容</p><p>${content}</p>`
+  document.body.append(editable)
+  const paragraph = editable.lastElementChild!
+  const range = document.createRange()
+  range.selectNodeContents(paragraph)
+  range.collapse(true)
+  window.getSelection()!.removeAllRanges()
+  window.getSelection()!.addRange(range)
+  const insertMD = () => paragraph.insertAdjacentHTML("afterend", '<div data-type="code-block"><pre class="vditor-ir__marker"><code>\n</code></pre></div>')
+  insertEmptyCodeBlock({ insertMD } as unknown as Vditor, editable)
+  expect(paragraph.isConnected).toBe(content !== "<br>")
+  expect(editable.firstElementChild?.textContent).toBe("之前的内容")
+  expect(window.getSelection()?.anchorNode).toBe(editable.querySelector("code"))
+})

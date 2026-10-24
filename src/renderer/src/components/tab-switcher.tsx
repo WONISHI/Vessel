@@ -3,7 +3,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
 import { Globe, Plus, X } from "lucide-react"
 import { useEffect, useRef, useState, type ReactNode } from "react"
-type PreviewTab = { id: string; title: string; active?: boolean; url?: string; favicon?: string }
+type PreviewTab = { id: string; title: string; active?: boolean; url?: string; favicon?: string; icon?: ReactNode }
 
 /** Renders the tab switcher component. */
 export function TabSwitcher({
@@ -104,7 +104,7 @@ export function TabSwitcher({
               >
                 {preview && tab.active && <span className="absolute left-0 top-3 bottom-3 w-[3px] rounded-r bg-green-600" />}
                 <span className="flex size-4 shrink-0 items-center justify-center">
-                  {tab.favicon ? (
+                  {tab.icon ?? (tab.favicon ? (
                     <img
                       src={tab.favicon}
                       alt=""
@@ -118,7 +118,7 @@ export function TabSwitcher({
                       size={13}
                       className="text-stone-400"
                     />
-                  )}
+                  ))}
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className={`dark-list-title block truncate ${preview ? "font-semibold" : ""}`}>{tab.title}</span>

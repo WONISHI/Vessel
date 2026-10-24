@@ -150,6 +150,7 @@ export default defineConfig({
     optimizeDeps: { exclude: ["wasm-onlyoffice-sdk"] },
     build: { minify: "esbuild", reportCompressedSize: false, rollupOptions: { input: { index: resolveFromRoot("src/renderer/index.html"), office: resolveFromRoot("src/renderer/office.html"), screenshot: resolveFromRoot("src/renderer/screenshot.html") } } },
     resolve: {
+      dedupe: ["react", "react-dom"],
       alias: {
         "@resources": resolveFromRoot("resources"),
         "#vessel-clipper": resolveFromRoot("packages/@vessel/clipper/src"),

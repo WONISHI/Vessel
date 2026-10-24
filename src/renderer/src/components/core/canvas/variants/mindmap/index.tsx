@@ -1,3 +1,4 @@
+import { bindBranchDrop } from "./branch-drop"
 import { useToolbarDrag } from "@/components/core/canvas/variants/mindmap/use-toolbar-drag"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { GripVertical, Save, Undo2, Redo2, Scan, ImageDown, FileCode2, FileDown, GitFork, BetweenHorizontalEnd, BetweenHorizontalStart, Network, Pencil, Copy, ArrowUp, ArrowDown, UnfoldHorizontal, FoldHorizontal, UnfoldVertical, FoldVertical, Bold, Focus, Maximize, ListX, Trash2, AlignStartVertical, AlignEndVertical, ArrowLeftRight } from "lucide-react"
@@ -42,6 +43,7 @@ export default function MindmapCanvas({ activeFilePath }: { activeFilePath: stri
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
+    let disposeBranchDrop: (() => void) | undefined
     let disposed = false
     let editor: MindElixirInstance | null = null
     let timer: ReturnType<typeof setTimeout> | undefined
@@ -87,6 +89,7 @@ export default function MindmapCanvas({ activeFilePath }: { activeFilePath: stri
         void (document.fullscreenElement === canvas ? document.exitFullscreen() : canvas.requestFullscreen())
           .catch((reason) => toast.error("切换全屏失败", { description: String(reason) }))
       }
+      disposeBranchDrop = bindBranchDrop(editor, (error) => toast.error("移动分支失败", { description: String(error) }))
       editor.changeTheme(mindmapTheme(darkRef.current))
       instance.current = editor
       selectedId.current = data.nodeData.id
@@ -110,6 +113,7 @@ export default function MindmapCanvas({ activeFilePath }: { activeFilePath: stri
       disposed = true
       clearTimeout(timer)
       void save()
+      disposeBranchDrop?.()
       editor?.destroy()
       instance.current = null
     }

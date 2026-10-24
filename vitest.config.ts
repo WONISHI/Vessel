@@ -3,6 +3,7 @@ import { defineConfig } from "vitest/config"
 
 export default defineConfig({
   resolve: {
+    dedupe: ["react", "react-dom"],
     alias: {
       "@resources": resolve("resources"),
       "#vessel-clipper": resolve("packages/@vessel/clipper/src"),

@@ -17,7 +17,7 @@ export const LinkTooltip: React.FC<LinkTooltipProps> = ({
   initialText = "",
   onConfirm,
   onClose,
-  onOpenUrl
+  onOpenUrl: _onOpenUrl
 }) => {
   const [url, setUrl] = useState(initialUrl)
   const text = initialText
@@ -64,14 +64,16 @@ export const LinkTooltip: React.FC<LinkTooltipProps> = ({
   }
 
   // Calculate position: preferred above anchor
-  const popupHeight = 40
+  const popupHeight = 34
   const gap = 8
   const isNearTop = anchor.top - popupHeight - gap < 10
-  const top = isNearTop
+  const preferredTop = isNearTop
     ? anchor.top + (anchor.height || 22) + gap
     : Math.max(gap, anchor.top - popupHeight - gap)
-  const left = Math.max(gap, Math.min(window.innerWidth - 320, anchor.left))
-  const arrowLeft = Math.max(14, Math.min(290, (anchor.left + (anchor.width ? anchor.width / 2 : 12)) - left - 4))
+  const top = Math.max(gap, Math.min(window.innerHeight - popupHeight - gap, preferredTop))
+  const left = Math.max(gap, Math.min(window.innerWidth - 248, anchor.left))
+
+  const arrowLeft = Math.max(12, Math.min(220, anchor.left + (anchor.width ?? 24) / 2 - left - 4))
 
   if (typeof document === "undefined") return null
 
@@ -89,88 +91,25 @@ export const LinkTooltip: React.FC<LinkTooltipProps> = ({
       }}
       onMouseDown={(e) => e.stopPropagation()}
     >
-      <div className="vessel-link-tooltip-body">
-        <svg
-          className="vessel-link-tooltip-icon"
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-        </svg>
-
-        <input
-          ref={inputRef}
-          type="text"
-          className="vessel-link-tooltip-input"
-          placeholder="输入或粘贴链接 (https://...)"
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault()
-              handleConfirm()
-            }
-          }}
-        />
-
-        <button
-          type="button"
-          className="vessel-link-tooltip-btn vessel-link-tooltip-confirm"
-          title="确认链接 (Enter)"
-          onClick={handleConfirm}
-        >
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <polyline points="20 6 9 17 4 12" />
-          </svg>
-        </button>
-
-        {url.trim() && onOpenUrl && (
-          <button
-            type="button"
-            className="vessel-link-tooltip-btn vessel-link-tooltip-open"
-            title="在新标签页中打开"
-            onClick={() => onOpenUrl(normalizeLinkUrl(url))}
-          >
-            <svg
-              width="13"
-              height="13"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-              <polyline points="15 3 21 3 21 9" />
-              <line x1="10" y1="14" x2="21" y2="3" />
-            </svg>
-          </button>
-        )}
-      </div>
-      {/* Tooltip triangle tail */}
-      <div
-        className={`vessel-link-tooltip-arrow ${isNearTop ? "arrow-top" : "arrow-bottom"}`}
-        style={{
-          left: `${arrowLeft}px`
+      <input
+        ref={inputRef}
+        type="text"
+        aria-label="链接地址"
+        className="vessel-link-tooltip-input"
+        placeholder="输入链接，回车确认"
+        value={url}
+        onChange={(event) => setUrl(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" && !event.nativeEvent.isComposing) {
+            event.preventDefault()
+            handleConfirm()
+          }
         }}
       />
+      <svg aria-hidden="true" width="14" height="8" viewBox="0 0 14 8" className={`vessel-link-tooltip-arrow ${isNearTop ? "arrow-top" : "arrow-bottom"}`} style={{ left: arrowLeft }}>
+        <path d="M0 0H14L7 7Z" className="vessel-link-tooltip-arrow-fill" />
+        <path d="M0 0L7 7L14 0" className="vessel-link-tooltip-arrow-edge" fill="none" />
+      </svg>
     </div>,
     document.body
   )
