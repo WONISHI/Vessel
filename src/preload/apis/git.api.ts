@@ -1,7 +1,10 @@
+import type { GitRepositorySettings } from "@vessel/type/git"
 import type { GitCommitDetail, GitCommitItem, GitDiffResult, GitStatusResult } from "@vessel/type"
 import { ipcRenderer } from "electron"
 
 export const gitAPI = {
+  getRepositorySettings: (cwd: string): Promise<GitRepositorySettings> => ipcRenderer.invoke("git:repository-settings", cwd),
+  saveRepositorySettings: (cwd: string, settings: GitRepositorySettings): Promise<void> => ipcRenderer.invoke("git:save-repository-settings", cwd, settings),
   /** Checks whether repo. */
   isRepo: (cwd: string): Promise<boolean> => ipcRenderer.invoke("git:is-repo", cwd),
 

@@ -226,3 +226,14 @@ html.dark .vessel-git-page :is(.git-toolbar-tools-toggle, .git-toolbar-tools) {
 html.dark .vessel-git-page .git-toolbar-tools-toggle::before {
   background: linear-gradient(to right, transparent, rgba(0, 0, 0, .32));
 }
+
+.git-repository-settings .git-settings-input {
+  border: 1px solid #e5e7eb; border-radius: 7px; padding: 7px 9px;
+  background: #fff; color: #44403c; outline: none;
+}
+.git-repository-settings .git-settings-input:focus { border-color: #16a34a; box-shadow: 0 0 0 2px #16a34a18; }
+.git-repository-settings .git-settings-input:disabled { opacity: .5; }
+.git-repository-settings .git-settings-tab[aria-selected="true"] { background: #e8f7ee; color: #15803d; }
+html.dark .git-repository-settings { background: #23272d; color: #e6e8eb; border-color: #414954; }
+html.dark .git-repository-settings .git-settings-input { background: #1c2025; color: #e6e8eb; border-color: #414954; }
+html.dark .git-repository-settings .git-settings-tab[aria-selected="true"] { background: #214634; color: #4ade80; }

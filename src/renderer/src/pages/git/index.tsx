@@ -1,3 +1,4 @@
+import { RepositorySettingsDialog } from "@/pages/git/components/repository-settings-dialog"
 import { TextWithArrows } from "@/components/ui/text-with-arrows"
 import { TerminalPanel } from "@/components/workspace/components/layout-main/terminal-panel"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -79,6 +80,7 @@ export default function SourceTreePage() {
     observer.observe(node)
     return () => observer.disconnect()
   }, [])
+  const [repositorySettingsOpen, setRepositorySettingsOpen] = useState(false)
   const [terminalOpen, setTerminalOpen] = useState(false)
   const [repoPath, setRepoPath] = useState<string>(getInitialRepoPath)
   const [libraryProjects, setLibraryProjects] = useState<{ name: string; path: string }[]>([])
@@ -147,6 +149,17 @@ export default function SourceTreePage() {
   // Commit 表单
   const commitMessage = useRef("")
   const [commitMessageReset, setCommitMessageReset] = useState(0)
+  useEffect(() => {
+    if (!repoPath) return
+    let cancelled = false
+    window.electronAPI.git.getRepositorySettings(repoPath).then((settings) => {
+      if (!cancelled && !commitMessage.current && settings.templateMode !== "none" && settings.template) {
+        commitMessage.current = settings.template
+        setCommitMessageReset((value) => value + 1)
+      }
+    }).catch(() => {})
+    return () => { cancelled = true }
+  }, [repoPath, repositorySettingsOpen])
   const [isAmend, setIsAmend] = useState(false)
 
   // 弹窗状态
@@ -950,7 +963,7 @@ export default function SourceTreePage() {
               catch (error) { toast.error("显示仓库失败", { description: cleanGitErrorMessage(error) }) }
             }}><FolderOpen className="size-4" /><span>在 Finder 中显示</span></button>
             <button type="button" disabled={!isRepo} className="flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs text-stone-700 hover:bg-stone-200/70 disabled:opacity-40" data-title="打开当前仓库的终端" onClick={() => setTerminalOpen(true)}><SquareTerminal className="size-4" /><span>终端</span></button>
-            <button type="button" className="flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs text-stone-700 hover:bg-stone-200/70" data-title="打开 Vessel 设置" onClick={() => navigate("/settings")}><Settings className="size-4" /><span>设置</span></button>
+            <button type="button" className="flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs text-stone-700 hover:bg-stone-200/70" data-title="当前仓库设置" disabled={!isRepo || loading} onClick={() => setRepositorySettingsOpen(true)}><Settings className="size-4" /><span>设置</span></button>
           </div>
 
           {/* 仓库路径指示与切换 */}
@@ -2102,6 +2115,10 @@ export default function SourceTreePage() {
           }}
         />
 
+        <RepositorySettingsDialog open={repositorySettingsOpen} repoPath={repoPath} onOpenChange={setRepositorySettingsOpen} onSaved={() => {
+          toast.success("仓库设置已保存")
+          void refresh()
+        }} />
         <Dialog open={terminalOpen} onOpenChange={setTerminalOpen}>
           <DialogContent className="git-dialog flex h-[min(560px,80vh)] max-w-4xl flex-col gap-2 p-4">
             <DialogHeader><DialogTitle className="text-sm">仓库终端</DialogTitle></DialogHeader>

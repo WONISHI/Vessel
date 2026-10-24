@@ -1,3 +1,5 @@
+import { getRepositorySettings, saveRepositorySettings } from "@main/modules/git/repository-settings"
+import type { GitRepositorySettings } from "@vessel/type/git"
 import { BaseModule } from "@main/modules/base/index"
 import { gitService } from "@main/modules/git/git-service"
 import { ipcMain } from "electron"
@@ -9,6 +11,8 @@ export class GitModule extends BaseModule {
   protected onActivate(): void {
     const handlers: Record<string, (_event: Electron.IpcMainInvokeEvent, ...args: any[]) => Promise<any>> = {
       /** Performs the "git:is repo" operation. */
+      "git:repository-settings": (_e, cwd: string) => getRepositorySettings(cwd),
+      "git:save-repository-settings": (_e, cwd: string, settings: GitRepositorySettings) => saveRepositorySettings(cwd, settings),
       "git:is-repo": (_e, cwd: string) => gitService.isRepo(cwd),
 
       /** Performs the "git:init" operation. */

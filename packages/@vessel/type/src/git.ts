@@ -43,3 +43,17 @@ export interface GitDiffResult {
   oldContent?: string
   newContent?: string
 }
+
+export interface GitRepositorySettings {
+  templateMode: "none" | "default" | "custom"
+  template: string
+  remotes: { name: string; url: string }[]
+  signCommits: boolean
+  signingKey: string
+  useGlobalIdentity: boolean
+  userName: string
+  userEmail: string
+  globalName: string
+  globalEmail: string
+  ignore: string
+}
