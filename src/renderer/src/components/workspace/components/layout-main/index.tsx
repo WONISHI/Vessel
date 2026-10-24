@@ -9,7 +9,7 @@ import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/componen
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { StatusBar } from "@/components/ui/status-bar"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
-import Canvas from "@/components/workspace/components/layout-main/canvas"
+import { DocumentTabs } from "@/components/workspace/components/layout-main/document-tabs"
 import { FileSearch } from "@/components/workspace/components/layout-main/file-search"
 import { StatusTarget } from "@/components/workspace/components/layout-main/status-context"
 import { resolveTerminalDirectory, TerminalPanel } from "@/components/workspace/components/layout-main/terminal-panel"
@@ -375,7 +375,9 @@ export default function LayoutMain({ resources = false }: { resources?: boolean 
                   ref={contentHost}
                   className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
                 >
-                  {resources ? home ? <WorkspaceHome /> : <Canvas /> : <RouterView />}
+                  <DocumentTabs files={files} activePath={activeFilePath} workspacePath={workspace.path} home={home}>
+                    {resources ? <WorkspaceHome /> : <RouterView />}
+                  </DocumentTabs>
                 </div>
               </ResizablePanel>
               {splitPath && (

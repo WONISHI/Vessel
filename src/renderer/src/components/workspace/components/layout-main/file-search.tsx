@@ -35,7 +35,8 @@ export function FileSearch({ path, contentHost }: { path: string; contentHost: R
   useEffect(() => {
     if (!open) return
     let cancelled = false
-    const editor = contentHost.current?.querySelector<HTMLElement>(".vditor-ir .vditor-reset")
+    const activeDocument = contentHost.current?.querySelector<HTMLElement>('[data-document-tab][aria-hidden="false"]') ?? contentHost.current
+    const editor = activeDocument?.querySelector<HTMLElement>(".vditor-ir .vditor-reset")
     let nextBlocks: { text: string; element: HTMLElement }[] = []
     if (editor) {
       const elements = Array.from(editor.querySelectorAll<HTMLElement>("p,h1,h2,h3,h4,h5,h6,li,td,th,pre")).filter((node) => !node.querySelector("p,li,pre") && !node.closest(".vditor-ir__marker"))

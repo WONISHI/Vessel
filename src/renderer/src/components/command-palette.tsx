@@ -1,5 +1,5 @@
 import { WorkspaceFilePicker } from "@/components/workspace-file-picker"
-import type { FilePickerWorkspace } from "@/components/workspace-file-picker/types"
+import type { FilePickerWorkspace, FilePickerRequest } from "@/components/workspace-file-picker/types"
 import { CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandShortcut } from "@/components/ui/command"
 import { useDarkAppearance } from "@/hooks/use-dark-appearance"
 import { openInAppBrowser, toURL } from "@/lib/app-browser"
@@ -46,7 +46,10 @@ export function CommandPalette() {
   }
   const findWorkspaceFiles = () => {
     setFinderWorkspace(null)
-    window.dispatchEvent(new CustomEvent("vessel:request-workspace-files", { detail: setFinderWorkspace }))
+    const provide: FilePickerRequest = Object.assign((value: FilePickerWorkspace) => {
+      if ((value.scope ?? "workspace") === "workspace") setFinderWorkspace(value)
+    }, { scope: "workspace" as const })
+    window.dispatchEvent(new CustomEvent("vessel:request-workspace-files", { detail: provide }))
     setOpen(false)
     setFinderOpen(true)
   }

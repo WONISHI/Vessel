@@ -803,3 +803,12 @@ html.dark .workspace-file-picker-row[data-active="true"] { background: #203b2e !
 html.dark .workspace-file-picker-row[data-active="true"]:is(:hover, :focus, :active) { background: #2b4b39 !important; }
 html.dark .workspace-file-picker-row[data-active="true"] :is(.workspace-file-picker-name, .workspace-file-picker-opened),
 html.dark .workspace-file-picker-row[data-active="true"] > svg { color: #6ee7a0 !important; }
+
+.workspace-file-picker-row[data-keyboard-selected="true"] {
+  background: #f0efed !important;
+  box-shadow: inset 0 0 0 1px #d6d3d1;
+}
+html.dark .workspace-file-picker-row[data-keyboard-selected="true"] {
+  background: #353c45 !important;
+  box-shadow: inset 0 0 0 1px #566171;
+}

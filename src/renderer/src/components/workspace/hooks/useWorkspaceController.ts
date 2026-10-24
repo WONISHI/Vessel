@@ -1,4 +1,4 @@
-import type { FilePickerWorkspace } from "@/components/workspace-file-picker/types"
+import type { FilePickerRequest } from "@/components/workspace-file-picker/types"
 import { useDirectoryWatch, useFileChanges } from "@/components/workspace/hooks/file-changes"
 import type { WorkspaceContextType, WorkspaceData, WorkspaceNode } from "@/components/workspace/types/workspace"
 import { getFileExtension } from "@vessel/utils"
@@ -144,9 +144,12 @@ export function useWorkspaceController(workspace: WorkspaceData, initialFile?: s
   useEffect(() => {
     /** Supplies only the visible workspace's tabs and navigation callback to the global command palette. */
     const provideFiles = (event: Event) => {
-      if (!activeRef.current || preview) return
-      const request = event as CustomEvent<(workspace: FilePickerWorkspace) => void>
-      request.detail({ scope, root: workspace.path, files: openFiles, openFile: openWorkspaceFile, activePath: activeFilePath, closeFile: closeWorkspaceFile })
+      const request = event as CustomEvent<FilePickerRequest>
+      if (preview || (request.detail.scope ? request.detail.scope !== scope : !activeRef.current)) return
+      request.detail({ scope, root: workspace.path, files: openFiles, openFile: (file) => {
+        openWorkspaceFile(file)
+        if (!activeRef.current) navigate(getFileRoute(file.path))
+      }, activePath: activeFilePath, closeFile: closeWorkspaceFile })
     }
     window.addEventListener("vessel:request-workspace-files", provideFiles)
     window.dispatchEvent(new Event("vessel:file-menu-refresh"))

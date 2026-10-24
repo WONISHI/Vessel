@@ -114,7 +114,7 @@ it("keeps folders previously excluded by the picker and lets users reach results
   expect(screen.queryByRole("button", { name: /file-104.md/ })).toBeNull()
 })
 
-it("marks matching opened Markdown paths active without highlighting same-name files elsewhere", async () => {
+it("marks only the current tab active while retaining opened markers on other tabs", async () => {
   vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} })
   const opened = { name: "note.md", path: "/vault/open/note.md", type: "file" as const }
   const unopened = { name: "note.md", path: "/vault/other/note.md", type: "file" as const }
@@ -122,13 +122,30 @@ it("marks matching opened Markdown paths active without highlighting same-name f
     readWorkspaceDirectory: vi.fn(async () => [opened, unopened]),
     searchContent: vi.fn(async () => ({ matches: [], truncated: false }))
   } })
-  render(<WorkspaceFilePicker workspace={{ root: "/vault", files: [opened], activePath: opened.path, openFile: vi.fn() }} onClose={() => {}} />)
+  render(<WorkspaceFilePicker workspace={{ root: "/vault", files: [opened, unopened], activePath: opened.path, openFile: vi.fn() }} onClose={() => {}} />)
   const row = await screen.findByRole("button", { name: /open\/note.md/ })
   expect(row.getAttribute("data-active")).toBe("true")
   expect(row.getAttribute("aria-current")).toBe("page")
   expect(row.textContent).toContain("已打开")
   const other = await screen.findByRole("button", { name: /other\/note.md/ })
   expect(other.hasAttribute("data-active")).toBe(false)
+  expect(other.textContent).toContain("已打开")
   fireEvent.change(screen.getByRole("textbox", { name: "搜索工作区文件" }), { target: { value: "note" } })
   expect(document.querySelectorAll('.workspace-file-picker-row[data-active="true"]')).toHaveLength(1)
+})
+
+it("navigates results with arrow keys and opens the selected file with Enter", async () => {
+  vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} })
+  const files = [{ name: "first.md", path: "/vault/first.md", type: "file" as const }, { name: "second.md", path: "/vault/second.md", type: "file" as const }]
+  Object.defineProperty(window, "electronAPI", { configurable: true, value: { readWorkspaceDirectory: vi.fn(async () => files) } })
+  const openFile = vi.fn()
+  render(<WorkspaceFilePicker workspace={{ root: "/vault", files, activePath: files[0].path, openFile }} onClose={vi.fn()} />)
+  const input = screen.getByRole("textbox", { name: "搜索工作区文件" })
+  fireEvent.keyDown(input, { key: "ArrowDown" })
+  expect(screen.getByRole("button", { name: /first.md/ }).getAttribute("data-keyboard-selected")).toBe("true")
+  fireEvent.keyDown(input, { key: "ArrowDown" })
+  expect(screen.getByRole("button", { name: /second.md/ }).getAttribute("data-keyboard-selected")).toBe("true")
+  expect(screen.getByRole("button", { name: /second.md/ }).hasAttribute("data-active")).toBe(false)
+  fireEvent.keyDown(input, { key: "Enter" })
+  expect(openFile).toHaveBeenCalledWith(files[1])
 })

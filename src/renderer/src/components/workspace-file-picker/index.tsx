@@ -2,12 +2,15 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/compone
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useFileSearch } from "@/components/workspace-file-picker/hooks/use-file-search"
+import type { WorkspaceNode } from "@/components/workspace/types/workspace"
 import type { FilePickerWorkspace } from "@/components/workspace-file-picker/types"
 import { File, Folder } from "lucide-react"
-import { useRef, useState } from "react"
+import { useRef, useState, useEffect, useId } from "react"
 
 /** Opens current tabs or workspace files matched by name, path, content or a contained link. */
 export function WorkspaceFilePicker({ workspace, onClose }: { workspace: FilePickerWorkspace | null; onClose: () => void }) {
+  const listId = useId()
+  const [selectedPath, setSelectedPath] = useState<string | null>(null)
   const viewportRef = useRef<HTMLDivElement>(null)
   const [query, setQuery] = useState("")
   const [visibleCount, setVisibleCount] = useState(100)
@@ -16,6 +19,15 @@ export function WorkspaceFilePicker({ workspace, onClose }: { workspace: FilePic
   const keyword = query.trim().toLocaleLowerCase()
   const openFiles = (workspace?.files || []).filter((file) => !keyword || file.path.toLocaleLowerCase().includes(keyword))
   const files = [...new Map([...openFiles, ...result.files].map((file) => [file.path, file])).values()]
+  const openResult = (file: WorkspaceNode) => {
+    if (file.type === "directory") window.dispatchEvent(new CustomEvent("vessel:reveal-file", { detail: file.path }))
+    else workspace?.openFile(file)
+    onClose()
+  }
+  useEffect(() => {
+    const node = viewportRef.current?.querySelector<HTMLElement>('[data-keyboard-selected="true"]')
+    node?.scrollIntoView?.({ block: "nearest" })
+  }, [selectedPath, visibleCount])
   return (
     <Dialog
       open
@@ -24,6 +36,20 @@ export function WorkspaceFilePicker({ workspace, onClose }: { workspace: FilePic
       }}
     >
       <DialogContent
+        onKeyDown={(event) => {
+          if (event.nativeEvent.isComposing || event.ctrlKey || event.metaKey || event.altKey) return
+          if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+            event.preventDefault()
+            if (!files.length) return
+            const index = files.findIndex((file) => file.path === selectedPath)
+            const next = index < 0 ? (event.key === "ArrowDown" ? 0 : files.length - 1) : Math.max(0, Math.min(files.length - 1, index + (event.key === "ArrowDown" ? 1 : -1)))
+            setSelectedPath(files[next].path)
+            setVisibleCount((count) => Math.max(count, Math.ceil((next + 1) / 100) * 100))
+          } else if (event.key === "Enter" && selectedPath) {
+            const file = files.find((item) => item.path === selectedPath)
+            if (file) { event.preventDefault(); openResult(file) }
+          }
+        }}
         showCloseButton={false}
         overlayClassName="z-[281] bg-black/[.04] backdrop-blur-[3px]"
         className="workspace-file-picker z-[282] top-[14vh] w-[400px] max-w-[92vw] sm:max-w-[400px] translate-y-0 gap-3 rounded-2xl bg-white p-4 shadow-2xl"
@@ -35,7 +61,9 @@ export function WorkspaceFilePicker({ workspace, onClose }: { workspace: FilePic
           aria-label="搜索工作区文件"
           placeholder="搜索文件、文件夹、关键词或链接…"
           value={query}
+          aria-controls={listId}
           onChange={(event) => {
+            setSelectedPath(null)
             setQuery(event.target.value)
             setVisibleCount(100)
             if (viewportRef.current) viewportRef.current.scrollTop = 0
@@ -47,6 +75,7 @@ export function WorkspaceFilePicker({ workspace, onClose }: { workspace: FilePic
           <span className="ml-2">已显示 {Math.min(visibleCount, files.length)} 个</span>
         </p>
         <ScrollArea
+          id={listId}
           viewportRef={viewportRef}
           onScrollCapture={(event) => {
             const viewport = viewportRef.current
@@ -60,14 +89,11 @@ export function WorkspaceFilePicker({ workspace, onClose }: { workspace: FilePic
           {files.slice(0, visibleCount).map((file) => (
             <button
               key={file.path}
-              data-active={openedMarkdownPaths.has(file.path) ? "true" : undefined}
-              aria-current={openedMarkdownPaths.has(file.path) && workspace?.activePath === file.path ? "page" : undefined}
+              data-keyboard-selected={selectedPath === file.path ? "true" : undefined}
+              data-active={file.type !== "directory" && workspace?.activePath === file.path ? "true" : undefined}
+              aria-current={file.type !== "directory" && workspace?.activePath === file.path ? "page" : undefined}
               className="workspace-file-picker-row flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left hover:bg-stone-100 focus:bg-stone-100 focus:outline-none"
-              onClick={() => {
-                if (file.type === "directory") window.dispatchEvent(new CustomEvent("vessel:reveal-file", { detail: file.path }))
-                else workspace?.openFile(file)
-                onClose()
-              }}
+              onClick={() => openResult(file)}
             >
               {file.type === "directory" ? (
                 <Folder

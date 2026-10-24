@@ -116,4 +116,23 @@ describe("CommandPalette theme toggle", () => {
     }
   })
 
+  it("searches the workspace even when a resource project responds afterward", async () => {
+    const readWorkspaceDirectory = vi.fn(async (root: string) => [{ path: `${root}/note.md`, name: "note.md", type: "file" }])
+    Object.assign(window.electronAPI, { readWorkspaceDirectory })
+    const provide = (event: Event) => {
+      const callback = (event as CustomEvent).detail
+      expect(callback.scope).toBe("workspace")
+      callback({ scope: "workspace", root: "/notes", files: [], openFile: vi.fn() })
+      callback({ scope: "resources", root: "/project", files: [], openFile: vi.fn() })
+    }
+    window.addEventListener("vessel:request-workspace-files", provide)
+    try {
+      render(<CommandPalette />)
+      const execute = vi.mocked(window.electronAPI.onCommandPalette).mock.calls.at(-1)![0]
+      act(() => execute("findWorkspaceFiles"))
+      await waitFor(() => expect(readWorkspaceDirectory).toHaveBeenCalledWith("/notes", "/notes", { includeIgnored: true }))
+      expect(readWorkspaceDirectory.mock.calls.some(([root]) => root === "/project")).toBe(false)
+    } finally { window.removeEventListener("vessel:request-workspace-files", provide) }
+  })
+
 })
