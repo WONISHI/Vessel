@@ -4,56 +4,10 @@ import { Toaster as Sonner, toast as sonnerToast } from "sonner"
 
 type ToasterProps = React.ComponentProps<typeof Sonner>
 
-/** Extracts toast text. */
-const extractToastText = (message: any, data?: any): string => {
-  const parts: string[] = []
-  if (typeof message === "string" && message) parts.push(message)
-  if (typeof data?.description === "string" && data.description) parts.push(data.description)
-  return parts.join("\n") || String(message || "")
-}
-
-/** Copies toast text. */
-const copyToastText = (text: string) => {
-  if (!text) return
-  void navigator.clipboard
-    .writeText(text)
-    .then(() => {
-      sonnerToast.success("已复制到剪贴板")
-    })
-    .catch(() => {
-      try {
-        const textarea = document.createElement("textarea")
-        textarea.value = text
-        textarea.style.position = "fixed"
-        textarea.style.opacity = "0"
-        document.body.appendChild(textarea)
-        textarea.select()
-        document.execCommand("copy")
-        document.body.removeChild(textarea)
-        sonnerToast.success("已复制到剪贴板")
-      } catch {}
-    })
-}
-
-// 封装 toast，让 error 及带有 description 的提示自动提供快捷复制按钮
+// Keep expandable error details without adding automatic notification actions.
 const toast = Object.assign((message: any, data?: any) => sonnerToast(message, data), sonnerToast, {
   /** Performs the error operation. */
   error: (message: any, data?: any) => {
-    const textToCopy = extractToastText(message, data)
-    const action =
-      data?.action ??
-      (textToCopy
-        ? {
-            label: "复制",
-
-            /** Handles click events. */
-            onClick: (e: React.MouseEvent) => {
-              e.stopPropagation()
-              copyToastText(textToCopy)
-            }
-          }
-        : undefined)
-
     let id: string | number
     /** Refreshes Sonner's measured height when the nested log changes size. */
     const refreshDescription = () => {
@@ -67,58 +21,17 @@ const toast = Object.assign((message: any, data?: any) => sonnerToast(message, d
       duration: 8000,
       ...data,
       className: [data?.className, "vessel-error-toast"].filter(Boolean).join(" "),
-      description: makeDescription(),
-      action
+      description: makeDescription()
     })
     return id
   },
 
   /** Performs the warning operation. */
-  warning: (message: any, data?: any) => {
-    const textToCopy = extractToastText(message, data)
-    const action =
-      data?.action ??
-      (data?.description && textToCopy
-        ? {
-            label: "复制",
-
-            /** Handles click events. */
-            onClick: (e: React.MouseEvent) => {
-              e.stopPropagation()
-              copyToastText(textToCopy)
-            }
-          }
-        : undefined)
-
-    return sonnerToast.warning(message, {
-      duration: 6000,
-      ...data,
-      action
-    })
-  },
+  warning: (message: any, data?: any) => sonnerToast.warning(message, { duration: 6000, ...data }),
 
   /** Performs the info operation. */
-  info: (message: any, data?: any) => {
-    const textToCopy = extractToastText(message, data)
-    const action =
-      data?.action ??
-      (data?.description && textToCopy
-        ? {
-            label: "复制",
+  info: (message: any, data?: any) => sonnerToast.info(message, data)
 
-            /** Handles click events. */
-            onClick: (e: React.MouseEvent) => {
-              e.stopPropagation()
-              copyToastText(textToCopy)
-            }
-          }
-        : undefined)
-
-    return sonnerToast.info(message, {
-      ...data,
-      action
-    })
-  }
 })
 
 /** Renders the toaster component. */
