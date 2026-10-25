@@ -5,6 +5,7 @@ import { EditorLoading } from "@/components/ui/editor-loading"
 import { lazyWithRetry } from "@/lib/lazy-retry"
 import { Suspense, memo } from "react"
 const MindmapCanvas = lazyWithRetry(() => import("@/components/core/canvas/variants/mindmap"))
+const MarkdownTableCanvas = lazyWithRetry(() => import("@/components/core/canvas/variants/markdown-table"))
 const BaseCanvas = lazyWithRetry(() => import("@/components/core/canvas/variants/base"))
 const OfficeCanvas = lazyWithRetry(() => import("@/components/core/canvas/variants/office/index"))
 const CodeCanvas = lazyWithRetry(() => import("@/components/core/canvas/variants/code/index"))
@@ -24,6 +25,7 @@ interface EditorTabsProps {
 const EditorCanvas = ({ fileType, activeFilePath, workspacePath, revealPosition, highlightKeyword, revealLine }: EditorTabsProps) => {
   fileType = fileType?.toLowerCase()
   const lowerPath = activeFilePath.toLowerCase()
+  if (fileType === "markdowntable" || lowerPath.endsWith(".markdowntable")) return <Suspense fallback={<EditorLoading />}><MarkdownTableCanvas key={activeFilePath} activeFilePath={activeFilePath} workspacePath={workspacePath} /></Suspense>
   if (fileType === "mind" || lowerPath.endsWith(".mind")) return (
     <Suspense fallback={<EditorLoading />}>
       <MindmapCanvas key={activeFilePath} activeFilePath={activeFilePath} />

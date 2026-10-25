@@ -12,7 +12,9 @@ import { changeCodeLanguage } from "@/components/core/canvas/variants/markdown/c
 import { bindTaskCheckboxes } from "@/components/core/canvas/variants/markdown/task-checkboxes"
 import { renderSteps, escapeStepsText } from "@vessel/markdown-steps"
 import "@vessel/markdown-steps/style.css"
-import { MarkdownTableEditor } from "@vessel/markdown-table"
+import { LinkedTableEditor } from "@/components/core/canvas/variants/markdown-table/linked-editor"
+import { WorkspaceContext } from "@/components/workspace/types/workspace"
+import { useContext } from "react"
 import "@vessel/markdown-table/style.css"
 import { bindListShortcuts } from "@/components/core/canvas/variants/markdown/list-shortcuts"
 import { bindImageParagraphs, focusImageParagraph, insertImageMarkdown } from "@/components/core/canvas/variants/markdown/image-paragraph"
@@ -48,6 +50,7 @@ import "vditor/dist/index.css"
 
 /** 保留 Vditor 编辑能力，文档显示和大纲由外层 React 组件负责。 */
 export function VditorEditor({ value, onChange, workspacePath, documentPath, readOnly = false }: { readOnly?: boolean; workspacePath: string; documentPath: string; value: string; onChange: (value: string) => void }) {
+  const tableWorkspace = useContext(WorkspaceContext)
   const [footnoteTarget, setFootnoteTarget] = useState<{ range: Range; text: string; path: string } | null>(null)
   const [insertLocation, setInsertLocation] = useState<MarkdownInsertLocation | null>(null)
   const clipboardImageInsertAction = useRef<(() => void) | null>(null)
@@ -264,7 +267,9 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
 
       const renderTable = (currentSource: string) =>
         root.render(
-          <MarkdownTableEditor
+          <LinkedTableEditor
+            root={workspacePath}
+            onOpenFile={tableWorkspace?.openWorkspaceFile}
             readOnly={readOnly}
             source={currentSource}
             onChange={(updated) => {

@@ -10,56 +10,11 @@ export function createDefaultTable(): MarkdownTableData {
   return {
     version: 1,
     caption: "高级表格",
-    columns: [
-      { align: "left" },
-      { align: "left" },
-      { align: "right" }
-    ],
-    rows: [
-      {
-        isHeader: true,
-        cells: [
-          { id: generateCellId(), text: "Status", style: { bold: true } },
-          { id: generateCellId(), text: "Email", style: { bold: true } },
-          { id: generateCellId(), text: "Amount", style: { bold: true } }
-        ]
-      },
-      {
-        cells: [
-          { id: generateCellId(), text: "Success", style: {} },
-          { id: generateCellId(), text: "ken99@example.com", style: {} },
-          { id: generateCellId(), text: "$316.00", style: { bold: true } }
-        ]
-      },
-      {
-        cells: [
-          { id: generateCellId(), text: "Success", style: {} },
-          { id: generateCellId(), text: "abe45@example.com", style: {} },
-          { id: generateCellId(), text: "$242.00", style: { bold: true } }
-        ]
-      },
-      {
-        cells: [
-          { id: generateCellId(), text: "Processing", style: {} },
-          { id: generateCellId(), text: "monserrat44@example.com", style: {} },
-          { id: generateCellId(), text: "$837.00", style: { bold: true } }
-        ]
-      },
-      {
-        cells: [
-          { id: generateCellId(), text: "Success", style: {} },
-          { id: generateCellId(), text: "silas22@example.com", style: {} },
-          { id: generateCellId(), text: "$874.00", style: { bold: true } }
-        ]
-      },
-      {
-        cells: [
-          { id: generateCellId(), text: "Failed", style: {} },
-          { id: generateCellId(), text: "carmella@example.com", style: {} },
-          { id: generateCellId(), text: "$721.00", style: { bold: true } }
-        ]
-      }
-    ],
+    columns: Array.from({ length: 3 }, () => ({ align: "left" })),
+    rows: Array.from({ length: 2 }, (_, index) => ({
+      isHeader: index === 0,
+      cells: Array.from({ length: 3 }, () => ({ id: generateCellId(), text: "", style: {} }))
+    })),
     merges: []
   }
 }

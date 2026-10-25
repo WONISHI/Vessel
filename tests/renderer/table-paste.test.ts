@@ -90,3 +90,32 @@ it("clears only drag-selected cells with Delete as one undoable edit", () => {
     expect(document.querySelector(".vessel-table-cell-selection")).toBeNull()
   } finally { unbind(); root.remove() }
 })
+
+it("keeps column selection separate from native text selection in neighboring columns", () => {
+  const root = document.createElement("div")
+  root.innerHTML = "<table><tbody><tr><td>left A</td><td></td></tr><tr><td>left B</td><td></td></tr></tbody></table>"
+  document.body.append(root)
+  const unbind = bindTablePaste(root)
+  const cells = root.querySelectorAll("td")
+  const selection = window.getSelection()!
+  try {
+    cells[1].dispatchEvent(new MouseEvent("pointerdown", { bubbles: true, button: 0 }))
+    cells[3].dispatchEvent(new MouseEvent("pointermove", { bubbles: true, button: 0 }))
+    const range = document.createRange()
+    range.setStart(cells[1], 0)
+    range.setEnd(cells[3], 0)
+    selection.removeAllRanges()
+    selection.addRange(range)
+    expect(selection.toString()).toContain("left B")
+    document.dispatchEvent(new Event("selectionchange"))
+    expect(selection.isCollapsed).toBe(true)
+    expect(document.querySelectorAll(".vessel-table-cell-selection")).toHaveLength(2)
+    const start = new Event("selectstart", { bubbles: true, cancelable: true })
+    cells[3].dispatchEvent(start)
+    expect(start.defaultPrevented).toBe(true)
+    cells[0].dispatchEvent(new MouseEvent("pointerdown", { bubbles: true, button: 0 }))
+    const nativeStart = new Event("selectstart", { bubbles: true, cancelable: true })
+    cells[0].dispatchEvent(nativeStart)
+    expect(nativeStart.defaultPrevented).toBe(false)
+  } finally { unbind(); root.remove(); selection.removeAllRanges() }
+})

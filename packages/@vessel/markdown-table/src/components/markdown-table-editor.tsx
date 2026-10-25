@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { createPortal } from "react-dom"
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
 import {
   adjustMergesOnDeleteCol,
   adjustMergesOnDeleteRow,
@@ -34,6 +35,8 @@ import {
 } from "./icons.js"
 
 export interface MarkdownTableEditorProps {
+  renderCellEditor?: (input: React.ReactElement<React.InputHTMLAttributes<HTMLInputElement>>) => React.ReactNode
+  renderCellContent?: (text: string) => React.ReactNode
   source?: string
   data?: MarkdownTableData
   readOnly?: boolean
@@ -45,6 +48,8 @@ export interface MarkdownTableEditorProps {
 }
 
 export const MarkdownTableEditor: React.FC<MarkdownTableEditorProps> = ({
+  renderCellEditor = (input) => input,
+  renderCellContent = (text) => text,
   source = "",
   data: initialData,
   readOnly = false,
@@ -79,7 +84,62 @@ export const MarkdownTableEditor: React.FC<MarkdownTableEditorProps> = ({
   const containerRef = useRef<HTMLDivElement>(null)
   const toolbarRef = useRef<HTMLDivElement>(null)
   const tableRef = useRef<HTMLTableElement>(null)
+  const [cellMenu, setCellMenu] = useState<{ row: number; col: number; x: number; y: number } | null>(null)
+  const cellMenuRef = useRef<HTMLDivElement>(null)
+  useLayoutEffect(() => {
+    if (!cellMenu || !cellMenuRef.current) return
+    const menu = cellMenuRef.current
+    menu.style.left = `${Math.max(8, Math.min(cellMenu.x, window.innerWidth - menu.offsetWidth - 8))}px`
+    menu.style.top = `${Math.max(8, Math.min(cellMenu.y, window.innerHeight - menu.offsetHeight - 8))}px`
+    menu.querySelector<HTMLButtonElement>("button")?.focus({ preventScroll: true })
+    const close = () => setCellMenu(null)
+    const outside = (event: MouseEvent) => { if (!menu.contains(event.target as Node)) close() }
+    const key = (event: KeyboardEvent) => {
+      if (event.key === "Escape") { event.preventDefault(); close() }
+      if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+        event.preventDefault()
+        const items = Array.from(menu.querySelectorAll<HTMLButtonElement>("button:not(:disabled)"))
+        const index = items.indexOf(document.activeElement as HTMLButtonElement)
+        items[(index + (event.key === "ArrowDown" ? 1 : -1) + items.length) % items.length]?.focus()
+      }
+    }
+    const scroll = (event: Event) => { if (!menu.contains(event.target as Node)) close() }
+    document.addEventListener("mousedown", outside)
+    document.addEventListener("keydown", key)
+    window.addEventListener("scroll", scroll, true)
+    window.addEventListener("resize", close)
+    return () => { document.removeEventListener("mousedown", outside); document.removeEventListener("keydown", key); window.removeEventListener("scroll", scroll, true); window.removeEventListener("resize", close) }
+  }, [cellMenu])
   const moreMenuRef = useRef<HTMLDivElement>(null)
+  const menuPopupRef = useRef<HTMLDivElement>(null)
+  const submenuRef = useRef<HTMLDivElement>(null)
+  const [menuPosition, setMenuPosition] = useState({ left: 0, top: 0 })
+  useLayoutEffect(() => {
+    if (!showMoreMenu) return
+    const place = () => {
+      const trigger = moreMenuRef.current?.getBoundingClientRect()
+      const menu = menuPopupRef.current
+      if (!trigger || !menu) return
+      const width = menu.offsetWidth, height = menu.offsetHeight
+      setMenuPosition({ left: Math.max(8, Math.min(trigger.right - width, window.innerWidth - width - 8)), top: Math.max(8, Math.min(trigger.bottom + 4, window.innerHeight - height - 8)) })
+    }
+    place()
+    const close = () => { setShowMoreMenu(false); setShowFocusSub(false) }
+    const scroll = (event: Event) => { if (!menuPopupRef.current?.contains(event.target as Node)) close() }
+    window.addEventListener("resize", close)
+    window.addEventListener("scroll", scroll, true)
+    return () => { window.removeEventListener("resize", close); window.removeEventListener("scroll", scroll, true) }
+  }, [showMoreMenu])
+  useLayoutEffect(() => {
+    const sub = submenuRef.current
+    if (!showFocusSub || !sub) return
+    sub.style.marginRight = "0"
+    const parent = sub.parentElement!.getBoundingClientRect()
+    sub.style.right = parent.left >= sub.offsetWidth + 8 ? "100%" : "auto"
+    sub.style.left = parent.left >= sub.offsetWidth + 8 ? "auto" : "100%"
+    const rect = sub.getBoundingClientRect()
+    sub.style.top = `${-4 - Math.max(0, rect.bottom - window.innerHeight + 8)}px`
+  }, [showFocusSub])
   const dragStartCellRef = useRef<{ row: number; col: number; moved: boolean } | null>(null)
 
   const emitChange = useCallback(
@@ -206,13 +266,13 @@ export const MarkdownTableEditor: React.FC<MarkdownTableEditorProps> = ({
       if (!target) return
 
       // If clicked outside the more menu popover/trigger, close it
-      if (moreMenuRef.current && !moreMenuRef.current.contains(target)) {
+      if (moreMenuRef.current && !moreMenuRef.current.contains(target) && !menuPopupRef.current?.contains(target)) {
         setShowMoreMenu(false)
         setShowFocusSub(false)
       }
 
       // If clicked inside the toolbar (including color picker popovers), keep selection
-      if (toolbarRef.current && toolbarRef.current.contains(target)) {
+      if (menuPopupRef.current?.contains(target) || (toolbarRef.current && toolbarRef.current.contains(target))) {
         return
       }
 
@@ -578,6 +638,21 @@ export const MarkdownTableEditor: React.FC<MarkdownTableEditorProps> = ({
       onPointerUp={() => setIsDragging(false)}
       onMouseLeave={() => setIsDragging(false)}
     >
+      {cellMenu && !readOnly && createPortal(
+        <div ref={cellMenuRef} role="menu" aria-label="单元格操作" className="vessel-dropdown-menu" style={{ position: "fixed", left: cellMenu.x, top: cellMenu.y, right: "auto", marginTop: 0, zIndex: 350, minWidth: 180 }} onMouseDown={(event) => event.stopPropagation()} onContextMenu={(event) => event.preventDefault()}>
+          {([
+            ["↑", "在上方插入一行", () => insertRow(cellMenu.row), false],
+            ["↓", "在下方插入一行", () => insertRow(cellMenu.row + 1), false],
+            ["←", "在左边插入一列", () => insertCol(cellMenu.col), false],
+            ["→", "在右边插入一列", () => insertCol(cellMenu.col + 1), false],
+            ["", "删除当前行", () => deleteRow(cellMenu.row), tableData.rows.length <= 1],
+            ["", "删除当前列", () => deleteCol(cellMenu.col), tableData.columns.length <= 1]
+          ] as const).map(([icon, label, action, disabled], index) => <React.Fragment key={label}>
+            {index === 4 && <div className="vessel-menu-divider" />}
+            <button type="button" role="menuitem" disabled={disabled} className={`vessel-menu-item ${index >= 4 ? "vessel-menu-item-danger" : ""}`} style={{ border: 0, background: "transparent", justifyContent: "flex-start", gap: 8, opacity: disabled ? 0.4 : 1 }} onClick={() => { action(); setCellMenu(null) }}><span aria-hidden>{icon}</span>{label}</button>
+          </React.Fragment>)}
+        </div>, document.body
+      )}
       {!readOnly && (
         <div className="vessel-table-toolbar" ref={toolbarRef}>
           {/* Merge & Split */}
@@ -815,8 +890,8 @@ export const MarkdownTableEditor: React.FC<MarkdownTableEditorProps> = ({
               <EllipsisVerticalIcon />
             </button>
 
-            {showMoreMenu && (
-              <div className="vessel-dropdown-menu" onMouseDown={(e) => e.stopPropagation()}>
+            {showMoreMenu && createPortal(
+              <div ref={menuPopupRef} style={{ position: "fixed", left: menuPosition.left, top: menuPosition.top, right: "auto", marginTop: 0, zIndex: 350 }} className="vessel-dropdown-menu" onMouseDown={(e) => e.stopPropagation()}>
                 {/* 聚焦 with submenu */}
                 <div
                   className="vessel-menu-item vessel-menu-item-sub"
@@ -826,7 +901,7 @@ export const MarkdownTableEditor: React.FC<MarkdownTableEditorProps> = ({
                   <span>聚焦</span>
                   <ChevronRightIcon />
                   {showFocusSub && (
-                    <div className="vessel-dropdown-submenu">
+                    <div ref={submenuRef} className="vessel-dropdown-submenu">
                       <div className="vessel-menu-item" onClick={handleFocusAbove}>
                         在上方聚焦
                       </div>
@@ -848,7 +923,7 @@ export const MarkdownTableEditor: React.FC<MarkdownTableEditorProps> = ({
                 <div className="vessel-menu-item vessel-menu-item-danger" onClick={handleDelete}>
                   <span>删除</span>
                 </div>
-              </div>
+              </div>, document.body
             )}
           </div>
         </div>
@@ -957,11 +1032,21 @@ export const MarkdownTableEditor: React.FC<MarkdownTableEditorProps> = ({
                         onMouseDown={(e) => handleCellMouseDown(rIdx, cIdx, e)}
                         onMouseEnter={(e) => handleCellMouseEnter(rIdx, cIdx, e)}
                         onMouseUp={handleCellMouseUp}
+                        onContextMenu={(event) => {
+                          if (readOnly) return
+                          event.preventDefault()
+                          event.stopPropagation()
+                          setIsDragging(false)
+                          setActiveEdit(null)
+                          setSelection({ startRow: rIdx, endRow: rIdx, startCol: cIdx, endCol: cIdx })
+                          setShowMoreMenu(false)
+                          setCellMenu({ row: rIdx, col: cIdx, x: event.clientX, y: event.clientY })
+                        }}
                         onDoubleClick={() => {
                           if (!readOnly) setActiveEdit({ row: rIdx, col: cIdx })
                         }}
                       >
-                        {editing ? (
+                        {editing ? renderCellEditor(
                           <input
                             autoFocus
                             className="vessel-cell-editor"
@@ -995,7 +1080,7 @@ export const MarkdownTableEditor: React.FC<MarkdownTableEditorProps> = ({
                             className="vessel-cell-content"
                             style={{ color: cell.style?.textColor || undefined }}
                           >
-                            {cell.text || "\u00A0"}
+                            {cell.text ? renderCellContent(cell.text) : "\u00A0"}
                           </div>
                         )}
                       </CellTag>

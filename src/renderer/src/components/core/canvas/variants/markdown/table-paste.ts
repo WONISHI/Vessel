@@ -95,11 +95,33 @@ export function bindTablePaste(root: HTMLElement) {
     return { table: anchor.closest("table")!, top: Math.min(a, b), bottom: Math.max(a, b), left: Math.min(anchor.cellIndex, end.cellIndex), right: Math.max(anchor.cellIndex, end.cellIndex) }
   }
 
+  // Browser text selection is linear across rows, unlike our cell rectangle.
+  // Keep only a caret while the rectangle owns selection (including mouseup).
+  const collapseTextSelection = () => {
+    if (!end || !anchor?.isConnected) return
+    const selection = window.getSelection()
+    if (!selection || (selection.isCollapsed && anchor.contains(selection.anchorNode))) return
+    const range = document.createRange()
+    range.selectNodeContents(anchor)
+    range.collapse(true)
+    selection.removeAllRanges()
+    selection.addRange(range)
+  }
+  const selectionChanged = () => {
+    const selection = window.getSelection()
+    const table = bounds()?.table
+    if (table && selection && !selection.isCollapsed && table.contains(selection.anchorNode) && table.contains(selection.focusNode)) collapseTextSelection()
+  }
+  const selectStart = (event: Event) => {
+    if (end && cellAt(event.target)) event.preventDefault()
+  }
+
   /** Performs the paint operation. */
   const paint = () => {
     overlays.splice(0).forEach((element) => element.remove())
     const area = bounds()
     if (!area) return
+    collapseTextSelection()
     for (let y = area.top; y <= area.bottom; y++)
       for (let x = area.left; x <= area.right; x++) {
         const cell = area.table.rows[y]?.cells[x]
@@ -134,18 +156,13 @@ export function bindTablePaste(root: HTMLElement) {
     if (!dragging || !anchor || !cell || cell.closest("table") !== anchor.closest("table") || (cell === anchor && !end)) return
     event.preventDefault()
     end = cell
-    const range = document.createRange()
-    range.selectNodeContents(anchor)
-    range.collapse(true)
-    const selection = window.getSelection()
-    selection?.removeAllRanges()
-    selection?.addRange(range)
     paint()
   }
 
   /** Performs the up operation. */
   const up = () => {
     dragging = false
+    collapseTextSelection()
   }
 
   /** Performs the click operation. */
@@ -228,6 +245,8 @@ export function bindTablePaste(root: HTMLElement) {
   root.addEventListener("click", click, true)
   root.addEventListener("paste", paste, true)
   root.addEventListener("copy", copy, true)
+  root.addEventListener("selectstart", selectStart, true)
+  document.addEventListener("selectionchange", selectionChanged)
   document.addEventListener("pointerdown", down, true)
   document.addEventListener("pointermove", move, true)
   document.addEventListener("pointerup", up)
@@ -240,6 +259,8 @@ export function bindTablePaste(root: HTMLElement) {
     root.removeEventListener("click", click, true)
     root.removeEventListener("paste", paste, true)
     root.removeEventListener("copy", copy, true)
+    root.removeEventListener("selectstart", selectStart, true)
+    document.removeEventListener("selectionchange", selectionChanged)
     document.removeEventListener("pointerdown", down, true)
     document.removeEventListener("pointermove", move, true)
     document.removeEventListener("pointerup", up)

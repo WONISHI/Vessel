@@ -14,7 +14,8 @@ export function TabSwitcher({
   preview = false,
   onNew,
   onClose,
-  triggerClassName
+  triggerClassName,
+  contentClassName
 }: {
   children: ReactNode
   tabs: PreviewTab[]
@@ -24,6 +25,7 @@ export function TabSwitcher({
   onNew?: () => void
   onClose?: (id: string) => void
   triggerClassName?: string
+  contentClassName?: string
 }) {
   const [open, setOpen] = useState(false)
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
@@ -63,7 +65,7 @@ export function TabSwitcher({
         onCloseAutoFocus={(e) => e.preventDefault()}
         onMouseEnter={enter}
         onMouseLeave={leave}
-        className={preview ? "z-[70] w-[280px] overflow-hidden rounded-xl border-stone-200 bg-white p-0 shadow-xl" : "z-[70] w-64 p-1"}
+        className={cn(preview ? "z-[70] w-[280px] overflow-hidden rounded-xl border-stone-200 bg-white p-0 shadow-xl" : "z-[70] w-64 p-1", contentClassName)}
       >
         {preview ? (
           <div className="flex items-center gap-2 border-b border-stone-100 bg-[#faf9f7] px-3 py-2.5">

@@ -5,6 +5,7 @@ import { stat } from "node:fs/promises"
 import { basename, dirname, extname, isAbsolute, resolve } from "node:path"
 
 const supported = new Set([
+  ".markdowntable",
   ".base",
   ".md",
   ".markdown",

@@ -147,11 +147,13 @@ export default defineConfig({
       "process.env.IS_PREACT": JSON.stringify("false")
     },
     worker: { format: "es" },
-    optimizeDeps: { exclude: ["wasm-onlyoffice-sdk"] },
+    optimizeDeps: { exclude: ["wasm-onlyoffice-sdk", "@vessel/obsidian"] },
     build: { minify: "esbuild", reportCompressedSize: false, rollupOptions: { input: { index: resolveFromRoot("src/renderer/index.html"), office: resolveFromRoot("src/renderer/office.html"), screenshot: resolveFromRoot("src/renderer/screenshot.html") } } },
     resolve: {
       dedupe: ["react", "react-dom"],
-      alias: {
+      alias: [
+        { find: /^@vessel\/obsidian$/, replacement: resolveFromRoot("packages/@vessel/obsidian/src/index.ts") },
+        ...Object.entries({
         "@resources": resolveFromRoot("resources"),
         "#vessel-clipper": resolveFromRoot("packages/@vessel/clipper/src"),
         "#vessel-obsidian": resolveFromRoot("packages/@vessel/obsidian/src"),
@@ -162,7 +164,8 @@ export default defineConfig({
         moment: momentCommonJS,
         "@renderer": resolveFromRoot("src/renderer/src"),
         "@": resolveFromRoot("src/renderer/src")
-      }
+        }).map(([find, replacement]) => ({ find, replacement }))
+      ]
     },
     plugins: [localMattingAssets(), localOcrAssets(), localVditorAssets(), patchScreenShotPlugin(), react(), svgr()]
   }

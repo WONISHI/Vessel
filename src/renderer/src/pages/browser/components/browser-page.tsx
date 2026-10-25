@@ -553,6 +553,7 @@ export function BrowserPage({ visible = true }: { visible?: boolean }) {
           ))}
           <div className="flex h-[var(--browser-tab-height)] w-[var(--browser-tab-height)] shrink-0 items-center justify-center">
             <TabSwitcher
+              contentClassName="z-[310]"
               tabs={tabs.map((item) => ({ ...item, active: item.id === tab.id }))}
               onSelect={(id) => {
                 setActive(id)

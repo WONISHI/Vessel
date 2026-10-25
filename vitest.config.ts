@@ -4,7 +4,9 @@ import { defineConfig } from "vitest/config"
 export default defineConfig({
   resolve: {
     dedupe: ["react", "react-dom"],
-    alias: {
+    alias: [
+      { find: /^@vessel\/obsidian$/, replacement: resolve("packages/@vessel/obsidian/src/index.ts") },
+      ...Object.entries({
       "@resources": resolve("resources"),
       "#vessel-clipper": resolve("packages/@vessel/clipper/src"),
       "#vessel-obsidian": resolve("packages/@vessel/obsidian/src"),
@@ -17,7 +19,8 @@ export default defineConfig({
       "@vessel/sync": resolve("packages/@vessel/sync/src/index.ts"),
       "@main": resolve("src/main"),
       "@": resolve("src/renderer/src")
-    }
+      }).map(([find, replacement]) => ({ find, replacement }))
+    ]
   },
   test: {
     projects: [

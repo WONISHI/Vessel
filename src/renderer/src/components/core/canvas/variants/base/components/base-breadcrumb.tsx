@@ -1,9 +1,10 @@
 import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb"
 import { WorkspaceContext } from "@/components/workspace/types/workspace"
 import { Fragment, useContext } from "react"
+import { cn } from "@/lib/utils"
 
 /** Displays a Base's vault-relative location using the editor's breadcrumb geometry. */
-export function BaseBreadcrumb({ root, path }: { root: string; path: string }) {
+export function BaseBreadcrumb({ root, path, className, label = "当前 Base 文件路径" }: { root: string; path: string; className?: string; label?: string }) {
   const context = useContext(WorkspaceContext)
   const normalizedRoot = root.replace(/\\/g, "/").replace(/\/$/, "")
   const normalizedPath = path.replace(/\\/g, "/")
@@ -11,8 +12,8 @@ export function BaseBreadcrumb({ root, path }: { root: string; path: string }) {
   const segments = [context?.workspace?.name || normalizedRoot.split("/").pop() || "工作区", ...relative.split("/").filter(Boolean)]
   return (
     <Breadcrumb
-      className="shrink-0 border-b border-[#f0efed] bg-white px-4 pt-2 pb-1.5"
-      aria-label="当前 Base 文件路径"
+      className={cn("shrink-0 border-b border-[#f0efed] bg-white px-4 pt-2 pb-1.5", className)}
+      aria-label={label}
     >
       <BreadcrumbList className="text-xs">
         {segments.map((segment, index) => (

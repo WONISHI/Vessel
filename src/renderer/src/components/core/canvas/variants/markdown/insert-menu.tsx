@@ -1,3 +1,4 @@
+import { createMarkdownTableDocument } from "@/components/core/canvas/variants/markdown-table/document"
 import { useLayoutEffect, useRef } from "react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuPortal, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -33,7 +34,7 @@ const groups = [
       {
         label: "高级表格",
         icon: TableProperties,
-        value: "```markdown-table\n{\n  \"caption\": \"\",\n  \"columns\": [\n    { \"align\": \"left\" },\n    { \"align\": \"left\" },\n    { \"align\": \"right\" }\n  ],\n  \"rows\": [\n    {\n      \"isHeader\": true,\n      \"cells\": [\n        { \"id\": \"c_0_0\", \"text\": \"Status\", \"style\": { \"bold\": true } },\n        { \"id\": \"c_0_1\", \"text\": \"Email\", \"style\": { \"bold\": true } },\n        { \"id\": \"c_0_2\", \"text\": \"Amount\", \"style\": { \"bold\": true } }\n      ]\n    },\n    {\n      \"cells\": [\n        { \"id\": \"c_1_0\", \"text\": \"Success\", \"style\": {} },\n        { \"id\": \"c_1_1\", \"text\": \"ken99@example.com\", \"style\": {} },\n        { \"id\": \"c_1_2\", \"text\": \"$316.00\", \"style\": { \"bold\": true } }\n      ]\n    },\n    {\n      \"cells\": [\n        { \"id\": \"c_2_0\", \"text\": \"Success\", \"style\": {} },\n        { \"id\": \"c_2_1\", \"text\": \"abe45@example.com\", \"style\": {} },\n        { \"id\": \"c_2_2\", \"text\": \"$242.00\", \"style\": { \"bold\": true } }\n      ]\n    },\n    {\n      \"cells\": [\n        { \"id\": \"c_3_0\", \"text\": \"Processing\", \"style\": {} },\n        { \"id\": \"c_3_1\", \"text\": \"monserrat44@example.com\", \"style\": {} },\n        { \"id\": \"c_3_2\", \"text\": \"$837.00\", \"style\": { \"bold\": true } }\n      ]\n    },\n    {\n      \"cells\": [\n        { \"id\": \"c_4_0\", \"text\": \"Success\", \"style\": {} },\n        { \"id\": \"c_4_1\", \"text\": \"silas22@example.com\", \"style\": {} },\n        { \"id\": \"c_4_2\", \"text\": \"$874.00\", \"style\": { \"bold\": true } }\n      ]\n    },\n    {\n      \"cells\": [\n        { \"id\": \"c_5_0\", \"text\": \"Failed\", \"style\": {} },\n        { \"id\": \"c_5_1\", \"text\": \"carmella@example.com\", \"style\": {} },\n        { \"id\": \"c_5_2\", \"text\": \"$721.00\", \"style\": { \"bold\": true } }\n      ]\n    }\n  ],\n  \"merges\": []\n}\n```"
+        value: "```markdown-table\n" + createMarkdownTableDocument("表格标题.markdowntable") + "\n```"
       }
     ] }
   ] }

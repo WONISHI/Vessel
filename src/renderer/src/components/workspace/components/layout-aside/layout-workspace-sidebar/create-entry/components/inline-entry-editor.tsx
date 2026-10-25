@@ -1,4 +1,5 @@
 import { createMindmapDocument } from "@/components/core/canvas/variants/mindmap/document"
+import { createMarkdownTableDocument } from "@/components/core/canvas/variants/markdown-table/document"
 import { createNewExcalidrawContent } from "@/components/core/canvas/variants/excalidraw/parser"
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { EntryDraft } from "@/components/workspace/components/layout-aside/layout-workspace-sidebar/create-entry/components/create-entry-shared"
@@ -68,6 +69,9 @@ export function InlineEntryEditor({ draft, onFinish }: { draft: EntryDraft; onFi
       const trimmed = name.trim()
       const filename = suffix && !trimmed.toLowerCase().endsWith(suffix.toLowerCase()) ? trimmed + suffix : trimmed
       const node = await window.electronAPI.createWorkspaceEntry(workspace.path, draft.parent, filename, draft.kind)
+      if (draft.kind === "file" && filename.toLowerCase().endsWith(".markdowntable")) {
+        await window.electronAPI.saveContent(node.path, createMarkdownTableDocument(filename))
+      }
       if (draft.kind === "file" && filename.toLowerCase().endsWith(".excalidraw.md")) {
         await window.electronAPI.saveContent(node.path, createNewExcalidrawContent(filename))
       }

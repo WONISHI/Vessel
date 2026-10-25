@@ -13,6 +13,7 @@ export function getFilePresentation(name: string) {
     return { label: "LIB", color: "text-amber-500", badge: "bg-amber-100 text-amber-700" }
   }
   const extension = getFileExtension(name)
+  if (extension === "markdowntable") return { label: "TABLE", color: "text-green-600", badge: "bg-green-100 text-green-600" }
   if (["md", "markdown"].includes(extension)) return { label: "MD", color: "text-violet-500", badge: "bg-violet-100 text-violet-600" }
   if (["ts", "tsx"].includes(extension)) return { label: extension.toUpperCase(), color: "text-blue-500", badge: "bg-blue-100 text-blue-600" }
   if (["js", "jsx", "json"].includes(extension)) return { label: extension.toUpperCase(), color: "text-amber-500", badge: "bg-amber-100 text-amber-600" }

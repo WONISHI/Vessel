@@ -36,6 +36,9 @@
       ],
       "@preload/*": [
         "./src/preload/*"
+      ],
+      "@vessel/obsidian": [
+        "./packages/@vessel/obsidian/src/index.ts"
       ]
     }
   }
