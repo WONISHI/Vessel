@@ -1,5 +1,6 @@
+import { WikiLinkPreview } from "@/components/core/canvas/variants/markdown/wiki-link-preview"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { useCallback, useContext, type ComponentProps } from "react"
+import { useCallback, useContext, useRef, type ComponentProps } from "react"
 import { MarkdownTableEditor } from "@vessel/markdown-table"
 import { WikiLinkInput, WikiLinkText, type WikiFileSuggestion } from "@vessel/obsidian"
 import { WorkspaceContext, type WorkspaceNode } from "@/components/workspace/types/workspace"
@@ -8,6 +9,7 @@ import { toast } from "sonner"
 /** Table adapter supplies filesystem access; wikilink behavior belongs to @vessel/obsidian. */
 export function LinkedTableEditor({ root, onOpenFile, ...props }: ComponentProps<typeof MarkdownTableEditor> & { root: string; onOpenFile?: (file: WorkspaceNode) => void }) {
   const context = useContext(WorkspaceContext)
+  const previewHost = useRef<HTMLDivElement>(null)
   const search = useCallback(
     async (query: string, signal?: AbortSignal): Promise<WikiFileSuggestion[]> => {
       if (!root) return []
@@ -40,6 +42,7 @@ export function LinkedTableEditor({ root, onOpenFile, ...props }: ComponentProps
     }
   }
   return (
+    <div ref={previewHost} data-wiki-preview-owner style={{ display: "contents" }}>
     <MarkdownTableEditor
       {...props}
       renderCellEditor={(input) => (
@@ -56,5 +59,7 @@ export function LinkedTableEditor({ root, onOpenFile, ...props }: ComponentProps
         />
       )}
     />
+    <WikiLinkPreview host={previewHost} workspacePath={root} />
+    </div>
   )
 }

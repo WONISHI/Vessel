@@ -35,6 +35,8 @@ export function WikiLinkPreview({ host, workspacePath }: { host: RefObject<HTMLD
     const enter = (event: MouseEvent) => {
       const element = (event.target as Element).closest<HTMLElement>("[data-wiki-target]")
       if (!element || !root.contains(element)) return
+      const owner = element.closest("[data-wiki-preview-owner]")
+      if (owner && owner !== root) return
       keepOpen()
       if (element === hovered) return
       if (hovered?.dataset.wikiTarget === element.dataset.wikiTarget) {

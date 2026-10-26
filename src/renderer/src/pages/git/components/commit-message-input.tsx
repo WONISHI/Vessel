@@ -14,7 +14,7 @@ export function CommitMessageInput({ draft, resetVersion, onSubmit }: { draft: M
         setValue(event.target.value)
       }}
       placeholder="输入提交信息 (Commit message)…"
-      className="w-full resize-none rounded border border-stone-200 p-2 text-xs outline-none focus:border-green-600"
+      className="vessel-field w-full resize-none rounded border border-stone-200 p-2 text-xs outline-none focus:border-green-600"
       onKeyDown={(event) => {
         if ((event.metaKey || event.ctrlKey) && event.key === "Enter" && !event.nativeEvent.isComposing && event.keyCode !== 229) {
           event.preventDefault()

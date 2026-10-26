@@ -1,13 +1,16 @@
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { afterEach, expect, it, vi } from "vitest"
 import { wikiCompletionAt } from "@vessel/obsidian"
 import MarkdownTableCanvas from "@/components/core/canvas/variants/markdown-table"
 import { createMarkdownTableDocument } from "@/components/core/canvas/variants/markdown-table/document"
 import { WorkspaceContext, type WorkspaceContextType } from "@/components/workspace/types/workspace"
 
+vi.mock("@/components/core/canvas/variants/markdown/section-preview", () => ({ PreviewBody: ({ source }: { source: string }) => <div>{source}</div> }))
+
 afterEach(() => {
   cleanup()
   vi.unstubAllGlobals()
+  vi.useRealTimers()
 })
 
 it("detects a partial wikilink and replaces existing brackets without touching surrounding text", () => {
@@ -78,4 +81,21 @@ it("searches all workspace files and lazily reveals results beyond the first pag
   fireEvent.change(input, { target: { value: "[[note-64", selectionStart: 9 } })
   await screen.findByRole("option", { name: /note-64/ })
   expect(screen.getAllByRole("option")).toHaveLength(1)
+})
+
+
+it("previews table wikilinks in a hover card", async () => {
+  const data = JSON.parse(createMarkdownTableDocument())
+  data.rows[1].cells[0].text = "[[笔记/Python.md]]"
+  const readWikiLink = vi.fn().mockResolvedValue({ path: "/vault/笔记/Python.md", content: "Python 文件预览内容" })
+  vi.stubGlobal("electronAPI", { readContent: vi.fn().mockResolvedValue(JSON.stringify(data)), readWikiLink })
+  vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} })
+  render(<MarkdownTableCanvas activeFilePath="/vault/table.markdowntable" workspacePath="/vault" />)
+  const link = await screen.findByRole("button", { name: "Python" })
+  vi.useFakeTimers()
+  fireEvent.mouseOver(link)
+  await act(async () => { await vi.advanceTimersByTimeAsync(1500) })
+  expect(readWikiLink).toHaveBeenCalledWith("/vault", "笔记/Python.md")
+  expect(screen.getByText("Python 文件预览内容")).toBeTruthy()
+  expect(document.querySelector("[data-wiki-preview]")).toBeTruthy()
 })

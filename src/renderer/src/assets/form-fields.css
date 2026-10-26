@@ -1,0 +1,16 @@
+/* Evergreen field edge, shared by standard controls and the image toolbox's native fields. */
+:is(.vessel-field, .image-toolbox input:not([type="range"]):not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="file"]), .image-toolbox select, .image-toolbox textarea) {
+  border-radius: 10px;
+  outline: none !important;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+:is(.vessel-field, .image-toolbox input:not([type="range"]):not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="file"]), .image-toolbox select, .image-toolbox textarea):not(:disabled):is(:focus, :focus-visible, [data-state="open"]) {
+  border-color: #16a34a !important;
+  outline: none !important;
+  outline-offset: 0;
+  box-shadow: 0 0 0 3px #16a34a1a !important;
+}
+html.dark :is(.vessel-field, .image-toolbox input:not([type="range"]):not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="file"]), .image-toolbox select, .image-toolbox textarea):not(:disabled):is(:focus, :focus-visible, [data-state="open"]) {
+  border-color: #22c55e !important;
+  box-shadow: 0 0 0 3px #22c55e26 !important;
+}

@@ -62,3 +62,46 @@ it("opens a cell context menu and inserts a column at the clicked cell", async (
   fireEvent.keyDown(document, { key: "Escape" })
   expect(screen.queryByRole("menu")).toBeNull()
 })
+
+it("edits cells in a one-row textarea and preserves multiline text on save", async () => {
+  const saveContent = vi.fn().mockResolvedValue(undefined)
+  vi.stubGlobal("electronAPI", { readContent: vi.fn().mockResolvedValue(createMarkdownTableDocument()), saveContent })
+  render(<MarkdownTableCanvas activeFilePath="/workspace/表格.markdowntable" />)
+  fireEvent.doubleClick((await screen.findAllByRole("columnheader"))[0])
+  const editor = screen.getByRole("combobox") as HTMLTextAreaElement
+  expect(editor.tagName).toBe("TEXTAREA")
+  expect(editor.rows).toBe(1)
+  const enter = new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true })
+  fireEvent(editor, enter)
+  expect(enter.defaultPrevented).toBe(false)
+  expect(screen.getByRole("combobox")).toBe(editor)
+  fireEvent.change(editor, { target: { value: "第一行\n第二行" } })
+  await waitFor(() => expect(JSON.parse(saveContent.mock.calls.at(-1)![1]).rows[0].cells[0].text).toBe("第一行\n第二行"))
+  fireEvent.keyDown(editor, { key: "Enter", ctrlKey: true })
+  expect(screen.queryByRole("combobox")).toBeNull()
+  fireEvent.doubleClick(screen.getAllByRole("columnheader")[0])
+  expect((screen.getByRole("combobox") as HTMLTextAreaElement).value).toBe("第一行\n第二行")
+})
+
+it("converts selected cells to tasks, persists completion, and removes task formatting without losing text", async () => {
+  const document = JSON.parse(createMarkdownTableDocument())
+  document.rows[1].cells[0].text = "任务一\n任务二"
+  document.rows[1].cells[1].text = "任务三"
+  const saveContent = vi.fn().mockResolvedValue(undefined)
+  vi.stubGlobal("electronAPI", { readContent: vi.fn().mockResolvedValue(JSON.stringify(document)), saveContent })
+  render(<MarkdownTableCanvas activeFilePath="/workspace/任务.markdowntable" />)
+  const first = (await screen.findByText("任务一")).closest("td")!
+  const second = screen.getByText("任务三").closest("td")!
+  fireEvent.mouseDown(first, { button: 0 })
+  fireEvent.mouseUp(first)
+  fireEvent.mouseDown(second, { button: 0, shiftKey: true })
+  fireEvent.mouseUp(second)
+  fireEvent.click(screen.getByRole("button", { name: "任务列表" }))
+  expect(screen.getAllByRole("checkbox")).toHaveLength(3)
+  fireEvent.click(screen.getByRole("checkbox", { name: "任务二" }))
+  await waitFor(() => expect(JSON.parse(saveContent.mock.calls.at(-1)![1]).rows[1].cells[0].text).toBe("- [ ] 任务一\n- [x] 任务二"))
+  expect((screen.getByRole("checkbox", { name: "任务二" }) as HTMLInputElement).checked).toBe(true)
+  fireEvent.click(screen.getByRole("button", { name: "任务列表" }))
+  expect(screen.queryByRole("checkbox")).toBeNull()
+  await waitFor(() => expect(JSON.parse(saveContent.mock.calls.at(-1)![1]).rows[1].cells[0].text).toBe("任务一\n任务二"))
+})

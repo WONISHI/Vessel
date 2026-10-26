@@ -38,7 +38,7 @@
 .vessel-settings select {
   width: 200px;
   border: 1px solid hsl(var(--border));
-  border-radius: 7px;
+  border-radius: 10px;
   background: hsl(var(--background));
   color: hsl(var(--foreground));
   padding: 8px 10px;
@@ -70,19 +70,41 @@
   font-size: 12px;
 }
 
-.vessel-settings header button:not(:disabled):hover,
-.vessel-settings .settings-card button:not(:disabled):hover {
+.vessel-settings header button:not([role="combobox"]):not(:disabled):hover,
+.vessel-settings .settings-card button:not([role="combobox"]):not(:disabled):hover {
   color: #ffffff !important;
   background: #17a34a !important;
 }
 
-.vessel-settings header button:not(:disabled):hover *,
-.vessel-settings .settings-card button:not(:disabled):hover * {
+.vessel-settings header button:not([role="combobox"]):not(:disabled):hover *,
+.vessel-settings .settings-card button:not([role="combobox"]):not(:disabled):hover * {
   color: #ffffff !important;
 }
 
-.vessel-settings header button:not(:disabled):hover svg,
-.vessel-settings .settings-card button:not(:disabled):hover svg {
+.vessel-settings header button:not([role="combobox"]):not(:disabled):hover svg,
+.vessel-settings .settings-card button:not([role="combobox"]):not(:disabled):hover svg {
   color: #ffffff !important;
   stroke: #ffffff !important;
+}
+
+/* Match the address field: a thin green edge with a soft, contiguous focus halo. */
+.vessel-settings :is(input:not([type="file"]):not([type="range"]):not([type="checkbox"]):not([type="radio"]), select, button[role="combobox"]) {
+  border-radius: 10px;
+  outline: none !important;
+  box-shadow: none;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+.vessel-settings button[role="combobox"]:not(:disabled) {
+  background: hsl(var(--background)) !important;
+  color: hsl(var(--foreground)) !important;
+}
+.vessel-settings :is(input:not([type="file"]):not([type="range"]):not([type="checkbox"]):not([type="radio"]), select, button[role="combobox"]):not(:disabled):is(:focus, :focus-visible, [data-state="open"]) {
+  border-color: #16a34a !important;
+  outline: none !important;
+  outline-offset: 0;
+  box-shadow: 0 0 0 3px #16a34a1a !important;
+}
+html.dark .vessel-settings :is(input:not([type="file"]):not([type="range"]):not([type="checkbox"]):not([type="radio"]), select, button[role="combobox"]):not(:disabled):is(:focus, :focus-visible, [data-state="open"]) {
+  border-color: #22c55e !important;
+  box-shadow: 0 0 0 3px #22c55e26 !important;
 }

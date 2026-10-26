@@ -306,3 +306,5 @@ export const ChevronRightIcon: React.FC<{ size?: number; className?: string }> =
     <path d="m9 18 6-6-6-6" />
   </svg>
 )
+
+export const TaskListIcon = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m3 6 2 2 4-4M13 6h8M13 12h8M13 18h8" /><rect x="3" y="11" width="5" height="5" rx="1" /></svg>

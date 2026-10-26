@@ -1,3 +1,5 @@
+import { checkTableTask, isTableTaskList, parseTableTask, setTableTaskList } from "../tasks.js"
+import { CellTextarea } from "./cell-textarea.js"
 import { createPortal } from "react-dom"
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
 import {
@@ -15,6 +17,7 @@ import { serializeMarkdownTable } from "../serializer.js"
 import type { MarkdownTableCell, MarkdownTableColumn, MarkdownTableData, MarkdownTableRow, TableRange } from "../types.js"
 import { BG_COLORS, TEXT_COLORS } from "./color-palette.js"
 import {
+  TaskListIcon,
   AlignCenterIcon,
   AlignLeftIcon,
   AlignRightIcon,
@@ -35,7 +38,7 @@ import {
 } from "./icons.js"
 
 export interface MarkdownTableEditorProps {
-  renderCellEditor?: (input: React.ReactElement<React.InputHTMLAttributes<HTMLInputElement>>) => React.ReactNode
+  renderCellEditor?: (input: React.ReactElement<React.TextareaHTMLAttributes<HTMLTextAreaElement>>) => React.ReactNode
   renderCellContent?: (text: string) => React.ReactNode
   source?: string
   data?: MarkdownTableData
@@ -323,6 +326,15 @@ export const MarkdownTableEditor: React.FC<MarkdownTableEditorProps> = ({
       return { ...row, cells: nextCells }
     })
     emitChange({ ...tableData, rows: nextRows })
+  }
+
+  const selectedCells = activeRange ? tableData.rows.flatMap((row, y) => row.cells.filter((_, x) => y >= activeRange.startRow && y <= activeRange.endRow && x >= activeRange.startCol && x <= activeRange.endCol)) : []
+  const isTaskList = selectedCells.length > 0 && selectedCells.every((cell) => isTableTaskList(cell.text))
+  const toggleTaskList = () => {
+    if (!activeRange) return
+    const rows = tableData.rows.map((row, y) => ({ ...row, cells: row.cells.map((cell, x) => y >= activeRange.startRow && y <= activeRange.endRow && x >= activeRange.startCol && x <= activeRange.endCol ? { ...cell, text: setTableTaskList(cell.text, !isTaskList) } : cell) }))
+    setActiveEdit(null)
+    emitChange({ ...tableData, rows })
   }
 
   // Merge selected cells
@@ -819,6 +831,10 @@ export const MarkdownTableEditor: React.FC<MarkdownTableEditorProps> = ({
 
           <div className="vessel-table-toolbar-divider" />
 
+          <div className="vessel-table-toolbar-group">
+            <button type="button" className={`vessel-table-btn vessel-table-btn-icon ${isTaskList ? "active" : ""}`} title="任务列表" aria-label="任务列表" aria-pressed={isTaskList} disabled={!activeRange} onMouseDown={(event) => event.preventDefault()} onClick={toggleTaskList}><TaskListIcon /></button>
+          </div>
+          <div className="vessel-table-toolbar-divider" />
           {/* Rows & Columns Operations */}
           <div className="vessel-table-toolbar-group">
             <button
@@ -1047,7 +1063,7 @@ export const MarkdownTableEditor: React.FC<MarkdownTableEditorProps> = ({
                         }}
                       >
                         {editing ? renderCellEditor(
-                          <input
+                          <CellTextarea
                             autoFocus
                             className="vessel-cell-editor"
                             style={{ color: cell.style?.textColor || undefined }}
@@ -1059,7 +1075,9 @@ export const MarkdownTableEditor: React.FC<MarkdownTableEditorProps> = ({
                               e.currentTarget.setSelectionRange(len, len)
                             }}
                             onKeyDown={(e) => {
-                              if (e.key === "Enter") {
+                              if (e.nativeEvent.isComposing) return
+                              if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+                                e.preventDefault()
                                 setActiveEdit(null)
                               } else if (e.key === "Tab") {
                                 e.preventDefault()
@@ -1080,7 +1098,10 @@ export const MarkdownTableEditor: React.FC<MarkdownTableEditorProps> = ({
                             className="vessel-cell-content"
                             style={{ color: cell.style?.textColor || undefined }}
                           >
-                            {cell.text ? renderCellContent(cell.text) : "\u00A0"}
+                            {cell.text.split("\n").map((line, lineIndex) => {
+                              const task = parseTableTask(line)
+                              return task ? <div key={lineIndex} className="vessel-table-task"><input type="checkbox" checked={task.checked} disabled={readOnly} aria-label={task.text || "任务"} onMouseDown={(event) => event.stopPropagation()} onClick={(event) => event.stopPropagation()} onDoubleClick={(event) => event.stopPropagation()} onChange={(event) => handleCellChange(rIdx, cIdx, checkTableTask(cell.text, lineIndex, event.target.checked))} /><span className={task.checked ? "vessel-table-task-done" : undefined}>{task.text ? renderCellContent(task.text) : "\u00A0"}</span></div> : <div key={lineIndex}>{line ? renderCellContent(line) : "\u00A0"}</div>
+                            })}
                           </div>
                         )}
                       </CellTag>

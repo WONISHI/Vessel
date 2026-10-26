@@ -20,8 +20,8 @@ export function wikiCompletionAt(text: string, caret: number) {
 }
 
 /** Input adapter with a portal suggestion tooltip; callers supply workspace file access. */
-export function WikiLinkInput({ input, search, renderScrollArea = (children) => <div style={{ maxHeight: 192, overflowY: "auto", overflowX: "hidden" }}>{children}</div> }: { renderScrollArea?: (children: React.ReactNode) => React.ReactNode; input: ReactElement<InputHTMLAttributes<HTMLInputElement>>; search: (query: string, signal?: AbortSignal) => Promise<WikiFileSuggestion[]> }) {
-  const ref = useRef<HTMLInputElement>(null)
+export function WikiLinkInput<T extends HTMLInputElement | HTMLTextAreaElement>({ input, search, renderScrollArea = (children) => <div style={{ maxHeight: 192, overflowY: "auto", overflowX: "hidden" }}>{children}</div> }: { renderScrollArea?: (children: React.ReactNode) => React.ReactNode; input: ReactElement<InputHTMLAttributes<T>>; search: (query: string, signal?: AbortSignal) => Promise<WikiFileSuggestion[]> }) {
+  const ref = useRef<T>(null)
   const popup = useRef<HTMLDivElement>(null)
   const [range, setRange] = useState<ReturnType<typeof wikiCompletionAt>>(null)
   const [items, setItems] = useState<WikiFileSuggestion[]>([])
@@ -30,7 +30,7 @@ export function WikiLinkInput({ input, search, renderScrollArea = (children) => 
   const [error, setError] = useState("")
   const [busy, setBusy] = useState(false)
   const [position, setPosition] = useState({ left: 0, top: 0, above: false })
-  const update = (element: HTMLInputElement) => {
+  const update = (element: T) => {
     setRange(wikiCompletionAt(element.value, element.selectionStart ?? element.value.length))
     const rect = element.getBoundingClientRect()
     const above = window.innerHeight - rect.bottom < 210 && rect.top > 210
@@ -88,7 +88,7 @@ export function WikiLinkInput({ input, search, renderScrollArea = (children) => 
     const replacement = `[[${item.path}]]`
     const next = element.value.slice(0, range.start) + replacement + element.value.slice(range.end)
     // Invoke the original controlled input handler without mutating source outside its owner.
-    input.props.onChange?.({ target: { value: next }, currentTarget: element } as React.ChangeEvent<HTMLInputElement>)
+    input.props.onChange?.({ target: { value: next }, currentTarget: element } as React.ChangeEvent<T>)
     const caret = range.start + replacement.length
     setRange(null)
     requestAnimationFrame(() => {
@@ -103,23 +103,23 @@ export function WikiLinkInput({ input, search, renderScrollArea = (children) => 
         role: "combobox",
         "aria-expanded": Boolean(range),
         "aria-label": input.props["aria-label"] || "单元格内容",
-        onChange: (event: React.ChangeEvent<HTMLInputElement>) => {
+        onChange: (event: React.ChangeEvent<T>) => {
           input.props.onChange?.(event)
           if (!(event.nativeEvent as InputEvent).isComposing) update(event.currentTarget)
         },
-        onCompositionEnd: (event: React.CompositionEvent<HTMLInputElement>) => {
+        onCompositionEnd: (event: React.CompositionEvent<T>) => {
           input.props.onCompositionEnd?.(event)
           update(event.currentTarget)
         },
-        onClick: (event: React.MouseEvent<HTMLInputElement>) => {
+        onClick: (event: React.MouseEvent<T>) => {
           input.props.onClick?.(event)
           update(event.currentTarget)
         },
-        onBlur: (event: React.FocusEvent<HTMLInputElement>) => {
+        onBlur: (event: React.FocusEvent<T>) => {
           setRange(null)
           input.props.onBlur?.(event)
         },
-        onKeyDown: (event: React.KeyboardEvent<HTMLInputElement>) => {
+        onKeyDown: (event: React.KeyboardEvent<T>) => {
           if (event.nativeEvent.isComposing) return
           if (range && ["ArrowDown", "ArrowUp", "Enter", "Escape"].includes(event.key)) {
             event.preventDefault()
@@ -136,7 +136,7 @@ export function WikiLinkInput({ input, search, renderScrollArea = (children) => 
               if (ref.current) update(ref.current)
             })
         }
-      } as InputHTMLAttributes<HTMLInputElement>)}
+      } as InputHTMLAttributes<T>)}
       {range &&
         createPortal(
           <div
@@ -207,6 +207,8 @@ export function WikiLinkText({ text, onOpen }: { text: string; onOpen: (target: 
     parts.push(
       <button
         key={link.index}
+        data-wiki-target={link.target}
+        data-wiki-label={link.label}
         type="button"
         style={{ color: "#16a34a", textDecoration: "underline", border: 0, background: "transparent", padding: 0, font: "inherit", cursor: "pointer" }}
         onMouseDown={(event) => event.stopPropagation()}

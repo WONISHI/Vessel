@@ -37,14 +37,20 @@ export function FileActions({
   const [menuOpen, setMenuOpen] = useState(false)
   const inputRef = useRef<HTMLInputElement | null>(null)
 
+  const selectName = useCallback((input: HTMLInputElement) => {
+    const extensionStart = input.value.lastIndexOf(".")
+    const end = node.type === "file" && extensionStart > 0 ? extensionStart : input.value.length
+    input.setSelectionRange(0, end)
+  }, [node.type])
+
   /** Focuses input. */
   const focusInput = useCallback((input: HTMLInputElement | null) => {
     inputRef.current = input
     if (input) {
       input.focus({ preventScroll: true })
-      input.select()
+      selectName(input)
     }
-  }, [])
+  }, [selectName])
   const submitting = useRef(false)
   const cancelled = useRef(false)
   const [confirmRename, setConfirmRename] = useState(false)
@@ -55,27 +61,27 @@ export function FileActions({
     const el = inputRef.current
     if (el) {
       el.focus({ preventScroll: true })
-      el.select()
+      selectName(el)
     }
     const raf = requestAnimationFrame(() => {
       const el2 = inputRef.current
       if (el2) {
         el2.focus({ preventScroll: true })
-        el2.select()
+        selectName(el2)
       }
     })
     const timer = setTimeout(() => {
       const el3 = inputRef.current
       if (el3) {
         el3.focus({ preventScroll: true })
-        el3.select()
+        selectName(el3)
       }
     }, 50)
     return () => {
       cancelAnimationFrame(raf)
       clearTimeout(timer)
     }
-  }, [renaming])
+  }, [renaming, selectName])
 
   /** Sets renaming. */
   const setRenaming = useCallback(
@@ -191,7 +197,7 @@ export function FileActions({
                     aria-label="文件新名称"
                     value={name}
                     disabled={busy}
-                    onFocus={(event) => event.target.select()}
+                    onFocus={(event) => selectName(event.currentTarget)}
                     onChange={(event) => setName(event.target.value)}
                     onKeyDown={(event) => {
                       if (event.key === "Escape") {
