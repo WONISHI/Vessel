@@ -25,7 +25,7 @@ const groups = [
       { label: "行内代码", icon: Code, value: "`代码`", inline: true }
     ] },
     { label: "插入表格", icon: Table2, value: "| 标题一 | 标题二 |\n| --- | --- |\n| 内容 | 内容 |" },
-    { label: "插入分割线", icon: Minus, value: "---" }
+    { label: "插入分割线", icon: Minus, value: "***" }
   ] },
   { label: "", items: [
     { label: "添加组件", icon: LayoutGrid, children: [

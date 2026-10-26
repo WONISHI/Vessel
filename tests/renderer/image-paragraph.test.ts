@@ -108,3 +108,69 @@ it("preserves text entered on the focused line before pasting an image", () => {
   expect(paragraph.isConnected).toBe(true)
   expect(paragraph.textContent).toBe("保留文字")
 })
+
+it.each(["h1", "h2", "h3", "h4", "h5", "h6"])("consumes only the insertion paragraph after a %s when pasting an image", (heading) => {
+  const { root } = fixture()
+  root.innerHTML = `<${heading}>算术运算符</${heading}><p data-keep><br></p><p data-insert><br></p><p>保留后文</p>`
+  const paragraph = root.querySelector<HTMLElement>("[data-insert]")!
+  const range = document.createRange()
+  range.selectNodeContents(paragraph)
+  range.collapse(true)
+  window.getSelection()!.addRange(range)
+  insertImageMarkdown(root, () => {
+    const image = document.createElement("div")
+    image.dataset.type = "code-block"
+    image.className = "vessel-image-block"
+    paragraph.after(image)
+  })
+  expect(root.querySelector("[data-insert]")).toBeNull()
+  expect(root.querySelector("[data-keep]")).toBeTruthy()
+  expect(root.querySelector(heading)?.textContent).toBe("算术运算符")
+  expect(root.lastElementChild?.textContent).toBe("保留后文")
+})
+
+it("does not delete the insertion paragraph if image insertion fails before an existing block", () => {
+  const { root } = fixture()
+  root.innerHTML = '<h2>标题</h2><p><br></p><div class="vessel-image-block"></div>'
+  const paragraph = root.querySelector("p")!
+  const range = document.createRange()
+  range.selectNodeContents(paragraph)
+  range.collapse(true)
+  window.getSelection()!.addRange(range)
+  insertImageMarkdown(root, () => {})
+  expect(paragraph.isConnected).toBe(true)
+})
+
+it.each(["ul", "ol"])("consumes the empty insertion line after %s even when rendering replaces the paragraph", (list) => {
+  const { root } = fixture()
+  root.innerHTML = `<${list}><li>算术运算符一览</li></${list}><p data-insert><br></p><p>保留后文</p>`
+  const paragraph = root.querySelector("[data-insert]")!
+  const range = document.createRange()
+  range.selectNodeContents(paragraph)
+  range.collapse(true)
+  window.getSelection()!.addRange(range)
+  insertImageMarkdown(root, () => {
+    root.innerHTML = `<${list}><li>算术运算符一览</li></${list}><p data-insert><br></p><div class="vessel-image-block" data-type="code-block"></div><p>保留后文</p>`
+  })
+  expect(root.querySelector("[data-insert]")).toBeNull()
+  expect(root.querySelector(list)?.textContent).toBe("算术运算符一览")
+  expect(root.querySelector(list)?.nextElementSibling?.classList.contains("vessel-image-block")).toBe(true)
+  expect(root.lastElementChild?.textContent).toBe("保留后文")
+})
+
+it("consumes a list-adjacent insertion paragraph when the caret sits at its parent boundary", () => {
+  const { root } = fixture()
+  root.innerHTML = '<ul><li>列表内容</li></ul><p data-insert><br></p>'
+  const paragraph = root.querySelector("p")!
+  const range = document.createRange()
+  range.setStart(root, 1)
+  range.collapse(true)
+  window.getSelection()!.addRange(range)
+  insertImageMarkdown(root, () => {
+    const image = document.createElement("div")
+    image.className = "vessel-image-block"
+    paragraph.after(image)
+  })
+  expect(root.querySelector("[data-insert]")).toBeNull()
+  expect(root.firstElementChild?.tagName).toBe("UL")
+})

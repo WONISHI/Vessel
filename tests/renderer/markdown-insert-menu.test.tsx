@@ -1,3 +1,5 @@
+import { configureBodyLute } from "@/components/core/canvas/variants/markdown/body-lute"
+import { createRequire } from "node:module"
 import { cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { afterEach, expect, it, vi } from "vitest"
 import { MarkdownInsertMenu } from "@/components/core/canvas/variants/markdown/insert-menu"
@@ -75,4 +77,24 @@ it("triggers insert menu upon typing slash in editable markdown", () => {
   expect(open.mock.calls[0][0].range.startOffset).toBe(0)
   expect(open.mock.calls[0][0].range.endOffset).toBe(1)
   unbind()
+})
+
+
+it("inserts a thematic break instead of a YAML frontmatter block", () => {
+  const insert = vi.fn()
+  render(<MarkdownInsertMenu x={100} y={100} onClose={vi.fn()} onInsert={insert} />)
+  fireEvent.click(screen.getByRole("menuitem", { name: "插入分割线" }))
+  expect(insert).toHaveBeenCalledWith("***", false)
+  const require = createRequire(import.meta.url)
+  require("vditor/dist/js/lute/lute.min.js")
+  const lute = (globalThis as any).Lute.New()
+  configureBodyLute(lute)
+  const host = document.createElement("div")
+  host.innerHTML = lute.Md2VditorIRDOM(`\n\n${insert.mock.calls[0][0]}\n\n`)
+  // Vditor spins its DOM after insertion and serializes rules as `---` on save.
+  host.innerHTML = lute.SpinVditorIRDOM(host.innerHTML)
+  host.innerHTML = lute.Md2VditorIRDOM(lute.VditorIRDOM2Md(host.innerHTML))
+  host.innerHTML = lute.SpinVditorIRDOM(host.innerHTML)
+  expect(host.querySelector("hr")).toBeTruthy()
+  expect(host.querySelector('[data-type="yaml-front-matter"], pre')).toBeNull()
 })

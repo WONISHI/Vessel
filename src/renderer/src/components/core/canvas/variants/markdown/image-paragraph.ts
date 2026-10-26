@@ -92,13 +92,36 @@ export function bindImageParagraphs(root: HTMLElement) {
   return () => root.removeEventListener("keydown", key, true)
 }
 
-/** Vditor inserts block Markdown after the caret paragraph; consume an empty image-focus line. */
+/** Vditor inserts block Markdown after the caret paragraph; consume the empty insertion line. */
 export function insertImageMarkdown(root: HTMLElement, insert: () => void) {
   const selection = window.getSelection()
   const range = selection?.rangeCount ? selection.getRangeAt(0) : null
   const element = range?.startContainer instanceof Element ? range.startContainer : range?.startContainer.parentElement
-  const paragraph = element?.closest("p")
-  const placeholder = range?.collapsed && paragraph && root.contains(paragraph) && isEmptyParagraph(paragraph) && paragraph.previousElementSibling?.classList.contains("vessel-image-block") ? paragraph : null
+  // An empty line after exiting a list can have a caret on the editor boundary,
+  // rather than inside the paragraph itself.
+  const boundary = range?.startContainer instanceof Element ? range.startContainer.childNodes[range.startOffset] : null
+  const paragraph = element?.closest("p") || (isEmptyParagraph(boundary) ? boundary : null)
+  const placeholder = range?.collapsed && paragraph && root.contains(paragraph) && isEmptyParagraph(paragraph) ? paragraph : null
+  const path: number[] = []
+  if (placeholder) {
+    let node: Node = placeholder
+    while (node !== root && node.parentNode) {
+      path.unshift(Array.prototype.indexOf.call(node.parentNode.childNodes, node))
+      node = node.parentNode
+    }
+  }
+  const existingBlocks = new Set(root.querySelectorAll('[data-type="code-block"], .vessel-image-block'))
+  if (placeholder && range && !placeholder.contains(range.startContainer)) {
+    const caret = document.createRange()
+    caret.selectNodeContents(placeholder)
+    caret.collapse(true)
+    selection?.removeAllRanges()
+    selection?.addRange(caret)
+  }
   insert()
-  if (placeholder?.isConnected && isEmptyParagraph(placeholder) && placeholder.nextElementSibling?.matches('[data-type="code-block"], .vessel-image-block')) placeholder.remove()
+  // Rendering may replace the editor DOM. Resolve the same insertion line again
+  // rather than relying exclusively on the now-detached paragraph reference.
+  const current = placeholder?.isConnected ? placeholder : placeholder ? path.reduce<Node | null>((node, index) => node?.childNodes[index] ?? null, root) : null
+  const next = current instanceof Element ? current.nextElementSibling : null
+  if (isEmptyParagraph(current) && next?.matches('[data-type="code-block"], .vessel-image-block') && !existingBlocks.has(next)) current.remove()
 }

@@ -1,3 +1,4 @@
+import { bindRootSelection } from "./root-selection"
 import { bindBranchDrop } from "./branch-drop"
 import { useToolbarDrag } from "@/components/core/canvas/variants/mindmap/use-toolbar-drag"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
@@ -43,6 +44,7 @@ export default function MindmapCanvas({ activeFilePath }: { activeFilePath: stri
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
+    let disposeRootSelection: (() => void) | undefined
     let disposeBranchDrop: (() => void) | undefined
     let disposed = false
     let editor: MindElixirInstance | null = null
@@ -91,6 +93,7 @@ export default function MindmapCanvas({ activeFilePath }: { activeFilePath: stri
       }
       disposeBranchDrop = bindBranchDrop(editor, (error) => toast.error("移动分支失败", { description: String(error) }))
       editor.changeTheme(mindmapTheme(darkRef.current))
+      disposeRootSelection = bindRootSelection(editor)
       instance.current = editor
       selectedId.current = data.nodeData.id
       editor.bus.addListener("selectNodes", (nodes) => { if (nodes.length) selectedId.current = nodes[nodes.length - 1].id })
@@ -113,6 +116,7 @@ export default function MindmapCanvas({ activeFilePath }: { activeFilePath: stri
       disposed = true
       clearTimeout(timer)
       void save()
+      disposeRootSelection?.()
       disposeBranchDrop?.()
       editor?.destroy()
       instance.current = null

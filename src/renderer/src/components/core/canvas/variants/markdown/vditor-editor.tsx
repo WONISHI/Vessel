@@ -1,3 +1,4 @@
+import { configureBodyLute } from "@/components/core/canvas/variants/markdown/body-lute"
 import "@vessel/obsidian/links/style.css"
 import { FootnoteHoverCard } from "@/components/core/canvas/variants/markdown/footnote-hover-card"
 import { bindFootnoteToolbar, insertFootnote, validFootnoteRange, decorateFootnoteReferences, deleteFootnote } from "@/components/core/canvas/variants/markdown/footnotes"
@@ -640,6 +641,9 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
 
           /** Performs the after operation. */
           after: () => {
+            configureBodyLute(editor.vditor?.lute)
+            // Initial rendering happens before `after`; reparse any leading rule misread as YAML.
+            if (element.querySelector('[data-type="yaml-front-matter"]')) editor.setValue(prepareObsidianImages(initialValue.current), true)
             instance.current = editor
             if (!readOnly)
               markdownDocuments.set(documentPath, {
@@ -782,6 +786,7 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
             if (value === "image-clipboard") clipboardImageInsertAction.current?.()
             else if (value === "image") imageInsertAction.current?.()
             else if (value === "code-block") insertEmptyCodeBlock(instance.current, editable)
+            else if (value === "***") instance.current.insertMD("\n\n***\n\n")
             else instance.current.insertValue(inline ? value : `\n\n${value}\n\n`, true)
             setInsertLocation(null)
           }}
