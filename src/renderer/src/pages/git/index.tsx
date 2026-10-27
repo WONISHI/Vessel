@@ -1,3 +1,4 @@
+import { getFilePresentation } from "@/components/workspace/components/layout-aside/layout-workspace-sidebar/utils"
 import { RepositorySettingsDialog } from "@/pages/git/components/repository-settings-dialog"
 import { TextWithArrows } from "@/components/ui/text-with-arrows"
 import { TerminalPanel } from "@/components/workspace/components/layout-main/terminal-panel"
@@ -18,7 +19,7 @@ import { CreateBranchDialog, MergeBranchDialog } from "@/pages/git/components/br
 import { DiffViewer } from "@/pages/git/components/diff-viewer"
 import { computeGitTopology, getGraphWidth, GitGraphSvg } from "@/pages/git/components/git-graph"
 import type { GitCommitDetail, GitCommitItem, GitFileStatus, GitStatusResult } from "@vessel/type"
-import { AlertCircle, Archive, ArrowDown, ArrowDownUp, ArrowUp, CheckCircle2, CheckSquare, Clock, Copy, Download, FileText, FolderGit2, FolderOpen, GitBranch, GitCommit, GitPullRequest, Globe, CloudCheck, GitFork, PanelRightClose, PanelRightOpen, Settings, SquareTerminal, Layers, Minus, Plus, RefreshCw, RotateCcw, Tag, Trash2, Undo2, Upload } from "lucide-react"
+import { AlertCircle, Archive, ArrowDown, ArrowDownUp, ArrowUp, CheckCircle2, CheckSquare, Clock, Copy, Download, File, FileText, FolderGit2, FolderOpen, GitBranch, GitCommit, GitPullRequest, Globe, CloudCheck, GitFork, PanelRightClose, PanelRightOpen, Settings, SquareTerminal, Layers, Minus, Plus, RefreshCw, RotateCcw, Tag, Trash2, Undo2, Upload } from "lucide-react"
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
 
@@ -1329,7 +1330,7 @@ export default function SourceTreePage() {
                                     }`}
                                   >
                                     <span className="flex items-center gap-1.5 truncate">
-                                      <FileText className="size-3.5 shrink-0 text-stone-400 group-hover:text-stone-600" />
+                                      <File className={`size-3.5 shrink-0 ${getFilePresentation(file.path).color}`} />
                                       <span className="w-3.5 text-center font-bold text-green-600">{file.status}</span>
                                       <span
                                         className="truncate"
@@ -1511,7 +1512,7 @@ export default function SourceTreePage() {
                                     }`}
                                   >
                                     <span className="flex items-center gap-1.5 truncate">
-                                      <FileText className="size-3.5 shrink-0 text-stone-400 group-hover:text-stone-600" />
+                                      <File className={`size-3.5 shrink-0 ${getFilePresentation(file.path).color}`} />
                                       <span className={`w-3.5 text-center font-bold ${file.status === "?" ? "text-blue-500" : "text-amber-600"}`}>{file.status}</span>
                                       <span
                                         className="truncate"
@@ -2025,7 +2026,7 @@ export default function SourceTreePage() {
                                     >
                                       <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden">
                                         {/* 2号: 文件图标 */}
-                                        <FileText className="size-3.5 shrink-0 text-stone-400 group-hover:text-stone-600" />
+                                        <File className={`size-3.5 shrink-0 ${getFilePresentation(f.path).color}`} />
                                         {/* 3号: 溢出显示省略号 */}
                                         <span
                                           className="truncate min-w-0 flex-1 text-stone-700"
