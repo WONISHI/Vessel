@@ -47,6 +47,16 @@ export function useWorkspaceActivityTracker(workspacePath: string) {
   const [store, setStore] = useState<WorkspaceActivityStore>({})
   const [loading, setLoading] = useState(true)
   const sessionKeyRef = useRef("")
+  const [todayDate, setTodayDate] = useState(() => formatDate(new Date()))
+  useEffect(() => {
+    const refreshDate = () => setTodayDate(formatDate(new Date()))
+    const timer = window.setInterval(refreshDate, 60_000)
+    window.addEventListener("focus", refreshDate)
+    return () => {
+      window.clearInterval(timer)
+      window.removeEventListener("focus", refreshDate)
+    }
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -122,7 +132,7 @@ export function useWorkspaceActivityTracker(workspacePath: string) {
         if (!cancelled) {
           const todayStr = formatDate(new Date())
           initial[todayStr] = { date: todayStr, create: 0, update: 0, delete: 0 }
-          setStore(initial)
+          setStore({ ...initial, ...saved })
           setLoading(false)
         }
       }
@@ -132,7 +142,7 @@ export function useWorkspaceActivityTracker(workspacePath: string) {
     return () => {
       cancelled = true
     }
-  }, [workspacePath])
+  }, [workspacePath, todayDate])
 
   // Listen to file changes in real time and persist to SQLite
   useFileChanges((changes) => {

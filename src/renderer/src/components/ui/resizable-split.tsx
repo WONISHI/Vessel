@@ -23,6 +23,7 @@ export function ResizableSplit({ children, pane, side = "right", size, min, max,
   )
   const tool = pane ? (
     <ResizablePanel
+      key="dock"
       id="dock"
       defaultSize={`${initialSize}px`}
       minSize={`${min}px`}

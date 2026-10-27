@@ -36,6 +36,9 @@
   </head>
 
   <body>
+    <!-- Vditor otherwise fetches this sprite synchronously and injects it as inline JS,
+         which our CSP blocks. Its loader recognizes this ID and skips injection. -->
+    <script id="vditorIconScript" src="./vendor/vditor/dist/js/icons/ant.js"></script>
     <div id="root"></div>
 
     <script

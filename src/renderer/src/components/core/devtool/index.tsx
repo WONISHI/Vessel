@@ -308,7 +308,7 @@ export default function DevTool() {
       <div
         hidden={!controlVisible}
         data-vessel-control="true"
-        className={cn("fixed z-50 transition-shadow", !position && "bottom-4 right-4", position && "!bottom-auto !right-auto")}
+        className={cn("fixed z-[320] transition-shadow", !position && "bottom-4 right-4", position && "!bottom-auto !right-auto")}
         style={
           position
             ? {

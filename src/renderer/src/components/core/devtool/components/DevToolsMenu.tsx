@@ -24,7 +24,7 @@ export function DevToolsMenu({ isSpyEnabled, enabledTypes, hasError, menuItems, 
       align="end"
       sideOffset={8}
       className="
-        dev-actions-menu w-[240px]
+        dev-actions-menu z-[321] w-[240px]
         overflow-hidden
         rounded-xl
         border
@@ -136,7 +136,7 @@ export function DevToolsMenu({ isSpyEnabled, enabledTypes, hasError, menuItems, 
 
         <DropdownMenuSubContent
           className="
-            dev-actions-menu dev-actions-submenu overflow-hidden
+            dev-actions-menu dev-actions-submenu z-[322] overflow-hidden
             rounded-[10px]
             border
             border-[#e7e5e4]

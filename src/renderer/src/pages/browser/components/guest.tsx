@@ -10,12 +10,16 @@ import { memo, useCallback, useEffect, useRef, useState } from "react"
 /** Renders the guest component. */
 export const Guest = memo(function Guest({ tab, visible, register, update }: { tab: Tab; visible: boolean; register: (id: string, view: WebviewTag | null) => void; update: (id: string, patch: Partial<Tab>) => void }) {
   const dark = useDarkAppearance()
-  const darkRef = useRef(dark)
-  darkRef.current = dark
   const ref = useRef<WebviewTag | null>(null)
+  const [documentReady, setDocumentReady] = useState(0)
+  // Keep expensive theme processing out of first paint and inactive tabs.
   useEffect(() => {
-    withGuest(ref.current, (view) => void view.executeJavaScript(guestAppearanceScript(dark)).catch((error) => console.warn("网页主题切换失败", error)))
-  }, [dark])
+    if (!visible || !documentReady) return
+    const timer = window.setTimeout(() => {
+      withGuest(ref.current, (view) => void view.executeJavaScript(guestAppearanceScript(dark)).catch((error) => console.warn("网页主题切换失败", error)))
+    }, dark ? 150 : 0)
+    return () => window.clearTimeout(timer)
+  }, [dark, visible, documentReady])
   const [initialURL] = useState(tab.url)
   const updateRef = useRef(update)
   useEffect(() => {
@@ -32,7 +36,7 @@ export const Guest = memo(function Guest({ tab, visible, register, update }: { t
     const onReady = () => {
       void view.executeJavaScript(pageObserverScript).catch((error) => console.warn("页面监听注入失败", error))
       markGuestReady(view, true)
-      void view.executeJavaScript(guestAppearanceScript(darkRef.current)).catch((error) => console.warn("网页主题初始化失败", error))
+      setDocumentReady((revision) => revision + 1)
       if (tab.zoom && tab.zoom !== 1) {
         try {
           view.setZoomFactor(tab.zoom)
@@ -44,7 +48,10 @@ export const Guest = memo(function Guest({ tab, visible, register, update }: { t
 
     /** Starts start. */
     const start = (event: Electron.DidStartNavigationEvent) => {
-      if (event.isMainFrame && !event.isInPlace) updateRef.current(tab.id, { loading: true, error: "" })
+      if (event.isMainFrame && !event.isInPlace) {
+        setDocumentReady(0)
+        updateRef.current(tab.id, { loading: true, error: "" })
+      }
     }
 
     /** Stops stop. */

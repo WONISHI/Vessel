@@ -182,6 +182,7 @@ export function BrowserPage({ visible = true }: { visible?: boolean }) {
   useEffect(() => {
     publishBrowserTabs(tabs.filter((item) => Boolean(item.url)).map((item) => ({ id: item.id, title: item.title, url: item.url, favicon: item.favicon, active: item.id === tab.id })))
   }, [tabs, tab.id])
+  const lastSavedTabs = useRef("")
   useEffect(() => {
     try {
       const savedTabs: SavedBrowserTab[] = tabs.map((t) => ({
@@ -193,8 +194,12 @@ export function BrowserPage({ visible = true }: { visible?: boolean }) {
         openerId: t.openerId,
         zoom: t.zoom
       }))
-      localStorage.setItem(BROWSER_TABS_KEY, JSON.stringify(savedTabs))
-      localStorage.setItem(BROWSER_ACTIVE_TAB_KEY, tab.id)
+      const serialized = JSON.stringify(savedTabs)
+      if (lastSavedTabs.current !== serialized) {
+        localStorage.setItem(BROWSER_TABS_KEY, serialized)
+        lastSavedTabs.current = serialized
+      }
+      if (localStorage.getItem(BROWSER_ACTIVE_TAB_KEY) !== tab.id) localStorage.setItem(BROWSER_ACTIVE_TAB_KEY, tab.id)
     } catch (error) {
       console.error("Failed to save browser tabs:", error)
     }
