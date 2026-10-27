@@ -3,7 +3,7 @@ import { installExtensionApiShim } from "@main/browser/extensions/extension-api-
 import { importExtensionArchive } from "@main/browser/extensions/extension-archive"
 import { prepareExtensionLogin } from "@main/browser/extensions/extension-login-compatibility"
 import { extensionFile, extensionMetadata } from "@main/browser/extensions/extension-metadata"
-import { handleExtensionWindows, loadExtensionPage } from "@main/browser/extensions/extension-navigation"
+import { handleExtensionWindows, loadExtensionPage, registerExtensionNavigation } from "@main/browser/extensions/extension-navigation"
 import { igugeWelcomeStyle } from "@main/browser/extensions/extension-popup-style"
 import type { BrowserExtension } from "@vessel/type"
 import { app, BrowserWindow, dialog, session, webContents, WebContentsView, type WebContents } from "electron"
@@ -243,6 +243,7 @@ export function registerBrowserExtensions(host: WebContents) {
       host.send("browser:new-tab", target)
       close()
     }
+    registerExtensionNavigation(popup.webContents, record.extensionId, openTab)
     popup.webContents.on("before-input-event", (event, input) => {
       if (input.key === "Escape") {
         event.preventDefault()

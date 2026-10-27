@@ -163,7 +163,7 @@ export function BrowserExtensions({ onOpenDevtools, getActivePageData }: { onOpe
       >
         <DialogContent
           overlayClassName="bg-transparent"
-          className="gap-0 overflow-hidden rounded-2xl border-stone-200 p-0 !animate-none shadow-[0_8px_30px_rgba(0,0,0,0.12),0_2px_8px_rgba(0,0,0,0.06)] sm:max-w-[440px] [&>button]:right-[18px] [&>button]:top-[14px] [&>button]:flex [&>button]:size-7 [&>button]:items-center [&>button]:justify-center [&>button]:rounded-md [&>button]:text-stone-400 [&>button:hover]:bg-stone-100"
+          className="gap-0 overflow-hidden rounded-2xl border-stone-200 p-0 !animate-none shadow-[0_8px_30px_rgba(0,0,0,0.12),0_2px_8px_rgba(0,0,0,0.06)] sm:max-w-[440px] [&>button]:right-[18px] [&>button]:top-[14px] [&>button]:flex [&>button]:size-7 [&>button]:items-center [&>button]:justify-center [&>button]:rounded-md [&>button]:text-stone-400 [&>button:hover]:bg-stone-100 [&>button:focus]:ring-0 [&>button:focus]:ring-offset-0 [&>button:focus]:outline-none [&>button:focus-visible]:bg-stone-100"
           aria-describedby={undefined}
         >
           <DialogTitle className="flex h-14 items-center gap-2 border-b border-[#f0efed] px-[18px] text-[15px] font-bold text-stone-900">

@@ -1,5 +1,24 @@
 import type { WebContents } from "electron"
 
+/** The shared guest preload also runs in extension WebContentsViews, outside webview setup. */
+export function registerExtensionNavigation(contents: WebContents, id: string, openExternal: (url: string) => void) {
+  contents.ipc.on("vessel:anchor-navigation", (event) => {
+    event.returnValue = true
+  })
+  contents.ipc.on("vessel:navigation-choice", (event, target: unknown) => {
+    event.returnValue = false
+    if (typeof target !== "string" || target.length >= 16384) return
+    if (target.startsWith(`chrome-extension://${id}/`)) {
+      event.returnValue = true
+    } else if (/^(https?|file):\/\//.test(target)) {
+      // Reply before closing the view that issued the synchronous request.
+      setImmediate(() => {
+        if (!contents.isDestroyed()) openExternal(target)
+      })
+    }
+  })
+}
+
 /** A popup may redirect during its first script, aborting loadURL's original navigation. */
 export function loadExtensionPage(contents: WebContents, url: string): Promise<void> {
   const prefix = new URL(url).host

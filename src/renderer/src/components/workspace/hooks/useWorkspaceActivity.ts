@@ -1,5 +1,5 @@
 import { useFileChanges } from "@/components/workspace/hooks/file-changes"
-import { useEffect, useRef, useState } from "react"
+import { createContext, useContext, useEffect, useRef, useState } from "react"
 
 export type DayActivity = {
   date: string // "YYYY-MM-DD"
@@ -43,7 +43,7 @@ function calculateLevel(count: number): number {
 }
 
 /** Provides the workspace activity hook. */
-export function useWorkspaceActivity(workspacePath: string) {
+export function useWorkspaceActivityTracker(workspacePath: string) {
   const [store, setStore] = useState<WorkspaceActivityStore>({})
   const [loading, setLoading] = useState(true)
   const sessionKeyRef = useRef("")
@@ -51,6 +51,7 @@ export function useWorkspaceActivity(workspacePath: string) {
   useEffect(() => {
     let cancelled = false
     setLoading(true)
+    sessionKeyRef.current = ""
 
     /** Loads load. */
     const load = async () => {
@@ -64,26 +65,23 @@ export function useWorkspaceActivity(workspacePath: string) {
       const saved = await window.electronAPI.getAppState<WorkspaceActivityStore>(key)
       if (cancelled) return
 
-      if (saved && typeof saved === "object" && Object.keys(saved).length > 0) {
-        setStore(saved)
-        setLoading(false)
-        return
-      }
-
-      // Initial populate from workspace directory file stats if no SQLite record yet
       const initial: WorkspaceActivityStore = {}
       try {
-        const rootEntries = await window.electronAPI.readWorkspaceDirectory(workspacePath, workspacePath)
-        if (cancelled) return
-
-        const scanList = [...rootEntries]
-        // Also scan first level directories for more complete historical view
-        for (const entry of rootEntries) {
-          if (entry.type === "directory" && !entry.name.startsWith(".")) {
-            try {
-              const children = await window.electronAPI.readWorkspaceDirectory(workspacePath, entry.path)
-              scanList.push(...children)
-            } catch {}
+        // Scan nested notes too; saved records may predate edits made off the home screen.
+        const scanList: Awaited<ReturnType<typeof window.electronAPI.readWorkspaceDirectory>> = []
+        const pending = [workspacePath]
+        while (pending.length) {
+          const directory = pending.pop()!
+          try {
+            const entries = await window.electronAPI.readWorkspaceDirectory(workspacePath, directory)
+            if (cancelled) return
+            for (const entry of entries) {
+              if (entry.type === "directory") {
+                if (!entry.name.startsWith(".") && entry.name !== "node_modules") pending.push(entry.path)
+              } else scanList.push(entry)
+            }
+          } catch {
+            // One unreadable directory should not hide the rest of the workspace.
           }
         }
 
@@ -110,6 +108,11 @@ export function useWorkspaceActivity(workspacePath: string) {
           initial[todayStr] = { date: todayStr, create: 0, update: 0, delete: 0 }
         }
 
+        // File timestamps are a lower bound, not additional edit events.
+        for (const [date, record] of Object.entries(saved || {})) {
+          const inferred = initial[date]
+          initial[date] = { date, create: Math.max(record.create, inferred?.create || 0), update: Math.max(record.update, inferred?.update || 0), delete: record.delete }
+        }
         await window.electronAPI.setAppState(key, initial)
         if (!cancelled) {
           setStore(initial)
@@ -133,7 +136,8 @@ export function useWorkspaceActivity(workspacePath: string) {
 
   // Listen to file changes in real time and persist to SQLite
   useFileChanges((changes) => {
-    if (!sessionKeyRef.current || !changes.length) return
+    changes = changes.filter((change) => change.path.startsWith(workspacePath.replace(/[/\\]+$/, "") + "/"))
+    if (loading || !sessionKeyRef.current || !changes.length) return
     const today = formatDate(new Date())
 
     setStore((prev) => {
@@ -198,4 +202,12 @@ export function useWorkspaceActivity(workspacePath: string) {
     monthlyData,
     loading
   }
+}
+
+export const WorkspaceActivityContext = createContext<ReturnType<typeof useWorkspaceActivityTracker> | null>(null)
+
+export function useWorkspaceActivity(_workspacePath: string) {
+  const activity = useContext(WorkspaceActivityContext)
+  if (!activity) throw new Error("Workspace activity requires its workspace provider")
+  return activity
 }

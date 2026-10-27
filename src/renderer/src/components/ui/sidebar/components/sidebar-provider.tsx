@@ -52,6 +52,23 @@ export const SidebarProvider = React.forwardRef<
     return isMobile ? setOpenMobile((open) => !open) : setOpen((open) => !open)
   }, [isMobile, setOpen, setOpenMobile])
 
+  React.useEffect(() => {
+    const report = (event: Event) => {
+      const callback = (event as CustomEvent).detail
+      if (typeof callback === "function") callback(isMobile ? openMobile : open)
+    }
+    const change = (event: Event) => {
+      const expanded = (event as CustomEvent).detail
+      if (typeof expanded === "boolean") (isMobile ? setOpenMobile : setOpen)(expanded)
+    }
+    window.addEventListener("vessel:request-sidebar-state", report)
+    window.addEventListener("vessel:set-sidebar-open", change)
+    return () => {
+      window.removeEventListener("vessel:request-sidebar-state", report)
+      window.removeEventListener("vessel:set-sidebar-open", change)
+    }
+  }, [isMobile, openMobile, open, setOpen])
+
   // Adds a keyboard shortcut to toggle the sidebar.
   React.useEffect(() => {
     /** Handles key down events. */

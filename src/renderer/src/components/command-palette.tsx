@@ -6,7 +6,7 @@ import { openInAppBrowser, toURL } from "@/lib/app-browser"
 import { applyAppearance } from "@/pages/settings/appearance"
 import { useRouter } from "@vessel/react-router"
 import { commandShortcutIds, matchesShortcut, shortcutLabel } from "@vessel/utils"
-import { ExternalLink, Eye, EyeOff, Globe, RotateCw, FileSearch, FolderOpen, Moon, Sun } from "lucide-react"
+import { ExternalLink, Eye, EyeOff, Globe, RotateCw, FileSearch, FolderOpen, Moon, Sun, PanelLeftOpen, PanelLeftClose } from "lucide-react"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
@@ -17,6 +17,16 @@ export function CommandPalette() {
   const [finderOpen, setFinderOpen] = useState(false)
   const [finderWorkspace, setFinderWorkspace] = useState<FilePickerWorkspace | null>(null)
   const [open, setOpen] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState<boolean | null>(null)
+  useEffect(() => {
+    if (!open) return
+    setSidebarOpen(null)
+    window.dispatchEvent(new CustomEvent("vessel:request-sidebar-state", { detail: setSidebarOpen }))
+  }, [open])
+  const changeSidebar = (expanded: boolean) => {
+    window.dispatchEvent(new CustomEvent("vessel:set-sidebar-open", { detail: expanded }))
+    setOpen(false)
+  }
   const [search, setSearch] = useState("")
   const [visible, setVisible] = useState(() => localStorage.getItem("vessel-control-visible") !== "false")
   useEffect(() => {
@@ -178,6 +188,14 @@ export function CommandPalette() {
             </CommandItem>
           </CommandGroup>
           <CommandGroup heading="界面">
+            <CommandItem value="展开侧边栏 显示侧边栏 expand show sidebar" disabled={sidebarOpen === null || sidebarOpen} onSelect={() => changeSidebar(true)}>
+              <PanelLeftOpen />
+              展开侧边栏
+            </CommandItem>
+            <CommandItem value="收起侧边栏 隐藏侧边栏 collapse hide sidebar" disabled={sidebarOpen === null || !sidebarOpen} onSelect={() => changeSidebar(false)}>
+              <PanelLeftClose />
+              收起侧边栏
+            </CommandItem>
             <CommandItem
               value="切换主题 切换深色主题 切换浅色主题 theme dark light toggle"
               onSelect={toggleTheme}
