@@ -1,3 +1,4 @@
+import { lazyWithRetry } from "@/lib/lazy-retry"
 import { fileEntryOptions } from "@/components/workspace/components/layout-aside/layout-workspace-sidebar/create-entry/components/file-entry-options"
 import { addTransitFile } from "@/components/transit/state"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
@@ -6,9 +7,11 @@ import { useWorkspace } from "@/components/workspace/hooks/useWorkspace"
 import type { WorkspaceNode } from "@/components/workspace/types/workspace"
 import { useRouter } from "@vessel/react-router"
 import { localFileURL } from "@vessel/utils"
-import { Code, Copy, File, FilePlus2, FolderOpen, FolderPlus, Globe, Send, Pencil, Pin, Search, Trash2 } from "lucide-react"
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
+import { Code, Copy, FileDown, File, FilePlus2, FolderOpen, FolderPlus, Globe, Send, Pencil, Pin, Search, Trash2 } from "lucide-react"
+import { Suspense, useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { toast } from "sonner"
+
+const PdfExportDialog = lazyWithRetry(() => import("@/components/pdf-export/pdf-export-dialog"))
 
 let copiedFiles: string[] = []
 
@@ -34,6 +37,7 @@ export function FileActions({
   const targets = selectedNodes?.some((item) => item.path === node.path) ? selectedNodes : [node]
   const multiple = targets.length > 1
   const router = useRouter()
+  const [pdfExportOpen, setPdfExportOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const inputRef = useRef<HTMLInputElement | null>(null)
 
@@ -327,6 +331,9 @@ export function FileActions({
               {label}
             </ContextMenuItem>
           ))}
+          {!multiple && node.type === "file" && /\.(md|markdown)$/i.test(node.name) && !/\.excalidraw\.md$/i.test(node.name) && (
+            <ContextMenuItem disabled={busy} onSelect={() => setPdfExportOpen(true)}><FileDown />导出 PDF…</ContextMenuItem>
+          )}
           {!multiple && node.type !== "directory" && (
             <ContextMenuItem
               disabled={busy}
@@ -378,6 +385,7 @@ export function FileActions({
           </ContextMenuItem>
         </ContextMenuContent>
       </ContextMenu>
+      {pdfExportOpen && <Suspense fallback={null}><PdfExportDialog path={node.path} root={workspace.path} onClose={() => setPdfExportOpen(false)} /></Suspense>}
       <ConfirmDialog
         tone="primary"
         open={confirmRename}

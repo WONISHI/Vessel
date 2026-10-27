@@ -50,7 +50,7 @@ import Vditor from "vditor"
 import "vditor/dist/index.css"
 
 /** 保留 Vditor 编辑能力，文档显示和大纲由外层 React 组件负责。 */
-export function VditorEditor({ value, onChange, workspacePath, documentPath, readOnly = false }: { readOnly?: boolean; workspacePath: string; documentPath: string; value: string; onChange: (value: string) => void }) {
+export function VditorEditor({ value, onChange, workspacePath, documentPath, readOnly = false, onReady }: { onReady?: () => void; readOnly?: boolean; workspacePath: string; documentPath: string; value: string; onChange: (value: string) => void }) {
   const tableWorkspace = useContext(WorkspaceContext)
   const [footnoteTarget, setFootnoteTarget] = useState<{ range: Range; text: string; path: string } | null>(null)
   const [insertLocation, setInsertLocation] = useState<MarkdownInsertLocation | null>(null)
@@ -67,6 +67,8 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
   const toolbarHost = useRef<HTMLDivElement>(null)
   const [properties] = useState(() => parseFrontmatter(value))
   const initialValue = useRef(properties?.body ?? value)
+  const readyHandler = useRef(onReady)
+  readyHandler.current = onReady
   const changeHandler = useRef(onChange)
   const [linkTooltip, setLinkTooltip] = useState<{
     anchor: { left: number; top: number; width?: number; height?: number }
@@ -678,6 +680,7 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
                 if (!disposed) {
                   setLoading(false)
                   setLoadError("")
+                  readyHandler.current?.()
                 }
               })
           }

@@ -1,3 +1,4 @@
+import { preparePdfExport } from "@main/menu/pdf-options"
 import { BrowserWindow, dialog, ipcMain } from "electron"
 import { writeFile } from "node:fs/promises"
 import type { NativeMenuAPI } from "@vessel/type"
@@ -13,6 +14,7 @@ export function installFileMenuDialog() {
     }
     if (request.action === "save" && typeof request.content !== "string") throw new Error("缺少文档内容")
     if (request.action === "pdf" && typeof request.html !== "string") throw new Error("缺少 PDF 内容")
+    const prepared = request.action === "pdf" ? preparePdfExport(request.html!, request.pdfOptions) : null
     const result = await dialog.showSaveDialog(owner, {
       title: request.action === "pdf" ? "导出 PDF" : "保存文档",
       defaultPath: typeof request.defaultPath === "string" ? request.defaultPath : undefined,
@@ -26,8 +28,8 @@ export function installFileMenuDialog() {
     const printWindow = new BrowserWindow({ show: false, webPreferences: { sandbox: true, contextIsolation: true, nodeIntegration: false, javascript: false } })
     printWindow.webContents.setWindowOpenHandler(() => ({ action: "deny" }))
     try {
-      await printWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(request.html!)}`)
-      const pdf = await printWindow.webContents.printToPDF({ printBackground: true, preferCSSPageSize: true })
+      await printWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(prepared!.html)}`)
+      const pdf = await printWindow.webContents.printToPDF(prepared!.print)
       await writeFile(result.filePath, pdf)
       return result.filePath
     } finally { printWindow.destroy() }
