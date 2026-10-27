@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process"
-import { mkdtemp, rm } from "node:fs/promises"
+import { mkdtemp, rm, writeFile, rename } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { expect, it } from "vitest"
@@ -64,4 +64,32 @@ it("converts remote transport URLs to repository web URLs without changing commi
   expect(formatGitRemoteWebUrl("ssh://git@example.com:2222/team/repo.git")).toBe("https://example.com/team/repo")
   expect(formatGitRemoteWebUrl("/local/repo")).toBe("")
   expect(formatGitCommitWebUrl("git@gitlab.com:group/repo.git", "abc")).toBe("https://gitlab.com/group/repo/-/commit/abc")
+})
+
+it("preserves Chinese, quotes and whitespace in commit file paths, including renames", async () => {
+  const root = await mkdtemp(join(tmpdir(), "vessel-git-paths-"))
+  const git = (...args: string[]) => execFileSync("git", args, { cwd: root, encoding: "utf8" })
+  try {
+    git("init", "-b", "master")
+    const original = '面试题 \"测试\"\t记录.md'
+    await writeFile(join(root, original), "hello\n")
+    git("add", ".")
+    git("-c", "user.name=Test", "-c", "user.email=test@example.com", "commit", "-m", "add")
+    const service = new GitService()
+    expect((await service.getCommitDetail(root, "HEAD")).files[0]).toMatchObject({ path: original, additions: 1, status: "A" })
+    const target = "重命名后的笔记.md"
+    await rename(join(root, original), join(root, target))
+    git("add", "-A")
+    git("-c", "user.name=Test", "-c", "user.email=test@example.com", "commit", "-m", "rename")
+    expect((await service.getCommitDetail(root, "HEAD")).files[0]).toMatchObject({ path: target, status: "R" })
+    await writeFile(join(root, target), "hello\nupdated\n")
+    git("add", "-A")
+    git("-c", "user.name=Test", "-c", "user.email=test@example.com", "commit", "-m", "modify")
+    expect((await service.getCommitDetail(root, "HEAD")).files[0].status).toBe("M")
+    git("rm", "--", target)
+    git("-c", "user.name=Test", "-c", "user.email=test@example.com", "commit", "-m", "delete")
+    expect((await service.getCommitDetail(root, "HEAD")).files[0]).toMatchObject({ path: target, status: "D" })
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
 })

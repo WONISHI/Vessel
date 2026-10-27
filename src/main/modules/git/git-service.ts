@@ -21,6 +21,8 @@ export async function runGit(args: string[], cwd: string): Promise<{ stdout: str
       cwd,
       env: { ...process.env, LC_ALL: "C", GIT_TERMINAL_PROMPT: "0" }
     })
+    child.stdout.setEncoding("utf8")
+    child.stderr.setEncoding("utf8")
     let stdout = ""
     let stderr = ""
     child.stdout.on("data", (d) => {
@@ -268,15 +270,35 @@ export class GitService {
     const message = msgParts.join("|").trim()
     const date = new Date(parseInt(timestamp, 10) * 1000).toLocaleString("zh-CN")
 
-    const filesRes = await runGit(["show", "--numstat", "--format=", hash], cwd)
+    const [filesRes, statusRes] = await Promise.all([
+      runGit(["show", "--numstat", "-z", "--find-renames", "--format=", hash], cwd),
+      runGit(["show", "--name-status", "-z", "--find-renames", "--format=", hash], cwd)
+    ])
+    const statuses = new Map<string, string>()
+    const statusEntries = statusRes.stdout.split("\0")
+    for (let index = 0; index < statusEntries.length;) {
+      const status = statusEntries[index++]
+      if (!status) continue
+      const oldPath = statusEntries[index++]
+      const path = /^[RC]/.test(status) ? statusEntries[index++] : oldPath
+      if (path) statuses.set(path, status[0])
+    }
     const files: { path: string; status: string; additions: number; deletions: number }[] = []
 
-    for (const line of filesRes.stdout.split("\n")) {
-      const match = line.match(/^(\d+|-)\s+(\d+|-)\s+(.+)$/)
+    const entries = filesRes.stdout.split("\0")
+    for (let index = 0; index < entries.length; index++) {
+      const match = entries[index].match(/^(\d+|-)\t(\d+|-)\t([\s\S]*)$/)
       if (match) {
+        // -z leaves UTF-8 paths intact; renames carry old and new paths separately.
+        let path = match[3]
+        if (!path) {
+          index += 2
+          path = entries[index]
+        }
+        if (!path) continue
         files.push({
-          path: match[3],
-          status: "M",
+          path,
+          status: statuses.get(path) || "M",
           additions: match[1] === "-" ? 0 : parseInt(match[1], 10),
           deletions: match[2] === "-" ? 0 : parseInt(match[2], 10)
         })

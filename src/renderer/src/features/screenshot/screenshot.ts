@@ -75,7 +75,11 @@ void api
         const confirm = document.querySelector<HTMLElement>("#toolPanel .confirm")
         if (!confirm || document.querySelector("#toolPanel .shot-pin")) return
         const copy = confirm.parentElement?.classList.contains("item-panel") ? confirm.parentElement : confirm
-        copy.dataset.title = "完成并复制"
+        // data-title is the plugin's command key, not just its tooltip.
+        // completeScreenshot() looks up the literal "confirm" value.
+        copy.dataset.title = "confirm"
+        copy.title = "完成并复制"
+        copy.setAttribute("aria-label", "完成并复制")
         const heading = document.createElement("div")
         heading.className = "shot-toolbar-heading"
         const grip = document.createElement("span")
@@ -140,6 +144,8 @@ void api
         capture: { source: "image", imageSrc: image },
         level: 100,
         showScreenData: false,
+        writeBase64: false,
+        exportOptions: { type: "image/png" },
         useRatioArrow: true,
 
         /** Performs the trigger callback operation. */

@@ -94,23 +94,27 @@ export async function startScreenshot() {
       if (typeof data !== "string" || !data.startsWith("data:image/png;base64,") || data.length > 100 * 1024 * 1024) throw new Error("截图数据无效")
       if (finishing) return
       finishing = true
-      const img = nativeImage.createFromDataURL(data)
-      if (img.isEmpty()) throw new Error("截图为空")
-      clipboard.writeImage(img)
-      if (!pinned) {
+      try {
+        const img = nativeImage.createFromDataURL(data)
+        if (img.isEmpty()) throw new Error("截图为空")
+        clipboard.writeImage(img)
+        if (!pinned) {
+          if (!win.isDestroyed()) win.close()
+          return
+        }
+        const size = img.getSize()
+        const ratio = Math.min(1 / display.scaleFactor, display.workArea.width / size.width, (display.workArea.height - 28) / size.height)
+        const pin = create({ x: display.workArea.x + 40, y: display.workArea.y + 40, width: Math.max(180, Math.round(size.width * ratio)), height: Math.max(100, Math.round(size.height * ratio) + 28) })
+        pins.add(pin)
+        pin.on("closed", () => pins.delete(pin))
+        pin.webContents.ipc.handle("shot:data", () => ({ mode: "pin", image: data }))
+        pin.webContents.ipc.handle("shot:copy", () => clipboard.writeImage(img))
+        await load(pin)
+        pin.show()
         if (!win.isDestroyed()) win.close()
-        return
+      } finally {
+        finishing = false
       }
-      const size = img.getSize()
-      const ratio = Math.min(1 / display.scaleFactor, display.workArea.width / size.width, (display.workArea.height - 28) / size.height)
-      const pin = create({ x: display.workArea.x + 40, y: display.workArea.y + 40, width: Math.max(180, Math.round(size.width * ratio)), height: Math.max(100, Math.round(size.height * ratio) + 28) })
-      pins.add(pin)
-      pin.on("closed", () => pins.delete(pin))
-      pin.webContents.ipc.handle("shot:data", () => ({ mode: "pin", image: data }))
-      pin.webContents.ipc.handle("shot:copy", () => clipboard.writeImage(img))
-      await load(pin)
-      pin.show()
-      if (!win.isDestroyed()) win.close()
     })
     win.on("closed", () => {
       captureWindow = undefined

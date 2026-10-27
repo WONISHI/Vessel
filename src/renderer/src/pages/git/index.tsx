@@ -1,3 +1,4 @@
+import { FileChangeStatus } from "@/pages/git/components/file-change-status"
 import { getFilePresentation } from "@/components/workspace/components/layout-aside/layout-workspace-sidebar/utils"
 import { RepositorySettingsDialog } from "@/pages/git/components/repository-settings-dialog"
 import { TextWithArrows } from "@/components/ui/text-with-arrows"
@@ -2010,7 +2011,7 @@ export default function SourceTreePage() {
                             </div>
                             <div className="truncate text-[11px] font-mono text-stone-400 mb-3" data-title={`Commit: ${commitDetail.hash}`}>Commit: {commitDetail.hash}</div>
 
-                            <div className="text-[11px] font-semibold text-stone-500 mb-1">修改的文件 ({commitDetail.files.length})</div>
+                            <div className="text-[11px] font-semibold text-stone-500 mb-1">变更的文件 ({commitDetail.files.length})</div>
                             <div className="space-y-1">
                               {commitDetail.files.map((f) => (
                                 <ContextMenu key={f.path}>
@@ -2035,7 +2036,11 @@ export default function SourceTreePage() {
                                           {f.path}
                                         </span>
                                       </div>
-                                      <span className="shrink-0 text-[10px] font-mono font-medium text-green-600">+{f.additions}</span>
+                                      <div className="flex shrink-0 items-center gap-2">
+                                        {f.additions > 0 && <span className="text-[10px] font-mono text-green-600">+{f.additions}</span>}
+                                        {f.deletions > 0 && <span className="text-[10px] font-mono text-red-600">−{f.deletions}</span>}
+                                        <FileChangeStatus status={f.status} />
+                                      </div>
                                     </div>
                                   </ContextMenuTrigger>
                                   <ContextMenuContent className="w-52">
