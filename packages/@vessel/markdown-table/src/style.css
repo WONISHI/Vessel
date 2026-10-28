@@ -743,3 +743,35 @@ html.dark .vessel-dropdown-submenu {
 .vessel-table-task > input[type="checkbox"] { flex: none; width: 14px; height: 14px; margin: 2px 0; accent-color: #16a34a; cursor: pointer; }
 .vessel-table-task > span { min-width: 0; }
 .vessel-table-task-done { text-decoration: line-through; opacity: .6; }
+
+/* Reserved edge hit areas remain reachable without covering cell content. */
+.vessel-table-edge-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 20px;
+  grid-template-rows: auto 20px;
+}
+.vessel-table-edge-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: transparent;
+  cursor: pointer;
+  font: 18px/1 system-ui;
+}
+.vessel-table-edge-column { grid-column: 2; grid-row: 1; }
+.vessel-table-edge-row { grid-column: 1; grid-row: 2; }
+.vessel-table-edge-add:hover, .vessel-table-edge-add:focus-visible {
+  color: #16a34a;
+  background: #f0fdf4;
+  outline: 1px solid #bbf7d0;
+  outline-offset: -1px;
+  border-radius: 4px;
+}
+html.dark .vessel-table-edge-add:hover, html.dark .vessel-table-edge-add:focus-visible {
+  color: #4ade80;
+  background: #22c55e20;
+  outline-color: #22c55e60;
+}

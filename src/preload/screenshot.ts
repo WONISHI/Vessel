@@ -17,6 +17,14 @@ contextBridge.exposeInMainWorld("screenshotAPI", {
   /** Copies text. */
   copyText: (text: string) => ipcRenderer.invoke("shot:copy-text", text),
 
+  pinMenu: () => ipcRenderer.invoke("shot:pin-menu"),
+  pinStyle: (style: { opacity?: number; shadow?: boolean }) => ipcRenderer.invoke("shot:pin-style", style),
+  onPinStyleToggle: (callback: () => void) => {
+    const handler = () => callback()
+    ipcRenderer.on("shot:pin-style-toggle", handler)
+    return () => ipcRenderer.removeListener("shot:pin-style-toggle", handler)
+  },
+
   /** Copies copy. */
   copy: () => ipcRenderer.invoke("shot:copy")
 })

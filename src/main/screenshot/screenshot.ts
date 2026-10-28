@@ -1,3 +1,4 @@
+import { registerPinMenu, togglePins } from "@main/screenshot/pin-menu"
 import { translateScreenshot } from "@main/screenshot/translate"
 import { generalSettings, settingsEvents } from "@main/settings/settings"
 import { app, BrowserWindow, clipboard, desktopCapturer, dialog, globalShortcut, nativeImage, screen, shell, systemPreferences } from "electron"
@@ -22,7 +23,7 @@ function create(bounds: Electron.Rectangle, resizable = true) {
     ...bounds,
     show: false,
     frame: false,
-    hasShadow: false,
+    hasShadow: resizable,
     resizable,
     // Capture overlays must not activate Vessel or switch away from the current Space.
     ...(process.platform === "darwin" && !resizable ? { type: "panel" as const, fullscreenable: false, acceptFirstMouse: true } : {}),
@@ -110,8 +111,9 @@ export async function startScreenshot() {
           return
         }
         const size = img.getSize()
-        const ratio = Math.min(1 / display.scaleFactor, display.workArea.width / size.width, (display.workArea.height - 28) / size.height)
-        const pin = create({ x: display.workArea.x + 40, y: display.workArea.y + 40, width: Math.max(180, Math.round(size.width * ratio)), height: Math.max(100, Math.round(size.height * ratio) + 28) })
+        const ratio = Math.min(1 / display.scaleFactor, display.workArea.width / size.width, display.workArea.height / size.height)
+        const pin = create({ x: display.workArea.x + 40, y: display.workArea.y + 40, width: Math.max(180, Math.round(size.width * ratio)), height: Math.max(100, Math.round(size.height * ratio)) })
+        registerPinMenu(pin, img, pins)
         pins.add(pin)
         pin.on("closed", () => pins.delete(pin))
         pin.webContents.ipc.handle("shot:data", () => ({ mode: "pin", image: data }))
@@ -159,6 +161,7 @@ export function registerScreenshotShortcut() {
     for (const key of registered) globalShortcut.unregister(key)
     registered.clear()
     if (generalSettings().externalScreenshot === false) return
+    if (globalShortcut.register("Alt+Shift+P", () => togglePins(pins))) registered.add("Alt+Shift+P")
     for (const key of keys) {
       if (globalShortcut.register(key, () => void startScreenshot())) registered.add(key)
       else console.warn(`截图快捷键已被占用：${key}`)

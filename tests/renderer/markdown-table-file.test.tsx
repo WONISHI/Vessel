@@ -105,3 +105,14 @@ it("converts selected cells to tasks, persists completion, and removes task form
   expect(screen.queryByRole("checkbox")).toBeNull()
   await waitFor(() => expect(JSON.parse(saveContent.mock.calls.at(-1)![1]).rows[1].cells[0].text).toBe("任务一\n任务二"))
 })
+
+it("appends rows and columns from the table edge controls and saves their dimensions", async () => {
+  const saveContent = vi.fn().mockResolvedValue(undefined)
+  vi.stubGlobal("electronAPI", { readContent: vi.fn().mockResolvedValue(createMarkdownTableDocument("表格.markdowntable")), saveContent })
+  render(<MarkdownTableCanvas activeFilePath="/workspace/表格.markdowntable" />)
+  fireEvent.click(await screen.findByRole("button", { name: "在表格底部新增行" }))
+  await waitFor(() => expect(JSON.parse(saveContent.mock.calls.at(-1)![1]).rows).toHaveLength(3))
+  fireEvent.click(screen.getByRole("button", { name: "在表格右侧新增列" }))
+  await waitFor(() => expect(JSON.parse(saveContent.mock.calls.at(-1)![1]).columns).toHaveLength(4))
+  expect(JSON.parse(saveContent.mock.calls.at(-1)![1]).rows.every((row: any) => row.cells.length === 4)).toBe(true)
+})

@@ -953,6 +953,7 @@ export const MarkdownTableEditor: React.FC<MarkdownTableEditorProps> = ({
         />
       ) : (
         <div className="vessel-table-container">
+          <div className={readOnly ? undefined : "vessel-table-edge-layout"}>
           <table className="vessel-table-grid" ref={tableRef}>
             {(tableData.caption || !readOnly) && (
               <caption
@@ -1111,6 +1112,11 @@ export const MarkdownTableEditor: React.FC<MarkdownTableEditorProps> = ({
               ))}
             </tbody>
           </table>
+          {!readOnly && <>
+            <button type="button" className="vessel-table-edge-add vessel-table-edge-column" aria-label="在表格右侧新增列" title="在表格右侧新增列" onMouseDown={(event) => event.preventDefault()} onClick={() => insertCol(tableData.columns.length)}><span aria-hidden="true">+</span></button>
+            <button type="button" className="vessel-table-edge-add vessel-table-edge-row" aria-label="在表格底部新增行" title="在表格底部新增行" onMouseDown={(event) => event.preventDefault()} onClick={() => insertRow(tableData.rows.length)}><span aria-hidden="true">+</span></button>
+          </>}
+          </div>
         </div>
       )}
     </div>

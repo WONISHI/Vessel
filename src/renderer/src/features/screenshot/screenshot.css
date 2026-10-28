@@ -6,34 +6,50 @@ body,
   overflow: hidden;
   font-family: system-ui, sans-serif;
 }
-.pin-toolbar {
-  height: 28px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 0 8px;
-  box-sizing: border-box;
-  background: #fafaf9;
-  color: #78716c;
-  font-size: 11px;
-  -webkit-app-region: drag;
-}
-.pin-toolbar button {
-  border: 0;
-  background: transparent;
-  color: inherit;
-  cursor: pointer;
-  -webkit-app-region: no-drag;
-}
-.pin-toolbar button:first-child {
-  margin-left: auto;
-}
+.shot-pin-window { background: transparent; }
 .pin-image {
+  display: block;
   width: 100%;
-  height: calc(100% - 28px);
+  height: 100%;
   object-fit: contain;
   -webkit-app-region: drag;
 }
+.pin-more {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid #ffffff70;
+  border-radius: 50%;
+  color: #262626;
+  background: #e7e7e7c9;
+  backdrop-filter: blur(16px);
+  cursor: pointer;
+  -webkit-app-region: no-drag;
+}
+.pin-more:hover { background: #d4d4d4ed; }
+.pin-style-bar {
+  position: fixed;
+  bottom: 10px;
+  left: 10px;
+  right: 10px;
+  padding: 8px 12px;
+  border: 1px solid #ffffffb3;
+  border-radius: 12px;
+  background: #eeeeeed9;
+  backdrop-filter: blur(20px);
+  font: 12px system-ui;
+  -webkit-app-region: no-drag;
+}
+.pin-style-bar[hidden] { display: none; }
+.pin-style-bar label { display: flex; align-items: center; gap: 8px; }
+.pin-style-bar input { min-width: 0; flex: 1; accent-color: #168bfa; }
 body.shot-idle #screenShotContainer {
   opacity: 0;
 }
@@ -347,3 +363,31 @@ body[data-screenshot-mode="translate"] :is(#optionPanel, #optionIcoController) {
   transform: none !important;
 }
 #optionIcoController[data-side="top"] { transform: rotate(180deg) !important; }
+
+/* Reference toolbar: compact controls with equal spacing and a single mode divider. */
+#toolPanel {
+  padding: 5px 10px !important;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #ffffffa3, #e8e9e994) !important;
+}
+#toolPanel .shot-toolbar-heading { order: 0; gap: 8px; margin-right: 10px; }
+#toolPanel .item-panel:not(.separateLine) {
+  flex-basis: 30px;
+  width: 30px !important;
+  height: 32px !important;
+  margin-right: 6px !important;
+  border-radius: 9px;
+}
+#toolPanel .separateLine { display: none !important; }
+#toolPanel .shot-step { order: 1; }
+#toolPanel .item-panel:has(.square) { order: 2; }
+#toolPanel .item-panel:has(.round) { order: 3; }
+#toolPanel .item-panel:has(.right-top) { order: 4; }
+#toolPanel .item-panel:has(.text) { order: 5; }
+#toolPanel .item-panel:has(.mosaicPen) { order: 6; }
+#toolPanel .item-panel:has(.brush) { order: 7; }
+#toolPanel .item-panel:has(.undo, .undo-disabled) { order: 8; }
+#toolPanel .item-panel:has(.close) { order: 9; }
+#toolPanel .shot-pin { order: 10; }
+#toolPanel .item-panel:has(.save) { order: 11; }
+#toolPanel .item-panel:has(.confirm) { order: 12; margin-right: 0 !important; }
