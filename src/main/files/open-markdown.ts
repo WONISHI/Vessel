@@ -1,3 +1,4 @@
+import { openFilePreviewWindow, usesPreviewWindow } from "@main/files/preview-window"
 import { generalSettings } from "@main/settings/settings"
 import { app, BrowserWindow, ipcMain } from "electron"
 import { statSync } from "node:fs"
@@ -96,6 +97,10 @@ export function registerMarkdownOpening() {
     try {
       const info = await externalPathInfo(path)
       if (info.kind === "file" && !supported.has(extname(path).toLowerCase())) return
+      if (info.kind === "file" && usesPreviewWindow(path)) {
+        await openFilePreviewWindow(path)
+        return
+      }
       const window = receiver && !receiver.isDestroyed() ? BrowserWindow.fromWebContents(receiver) : BrowserWindow.getAllWindows()[0]
       if (window) {
         if (window.isMinimized()) window.restore()
@@ -113,7 +118,9 @@ export function registerMarkdownOpening() {
     void enqueue(path)
   })
   app.on("second-instance", (_event, argv, cwd) => {
-    for (const path of markdownArguments(argv.slice(app.isPackaged ? 1 : 2), cwd)) void enqueue(path)
+    const paths = markdownArguments(argv.slice(app.isPackaged ? 1 : 2), cwd)
+    for (const path of paths) void enqueue(path)
+    if (paths.length && paths.every(usesPreviewWindow)) return
     const window = receiver && !receiver.isDestroyed() ? BrowserWindow.fromWebContents(receiver) : BrowserWindow.getAllWindows()[0]
     if (window) {
       if (window.isMinimized()) window.restore()

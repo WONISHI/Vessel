@@ -1,3 +1,4 @@
+import { translateScreenshot } from "@main/screenshot/translate"
 import { generalSettings, settingsEvents } from "@main/settings/settings"
 import { app, BrowserWindow, clipboard, desktopCapturer, dialog, globalShortcut, nativeImage, screen, shell, systemPreferences } from "electron"
 import { execFile } from "node:child_process"
@@ -16,12 +17,15 @@ function load(win: BrowserWindow) {
 }
 
 /** Creates create. */
-function create(bounds: Electron.Rectangle) {
+function create(bounds: Electron.Rectangle, resizable = true) {
   const win = new BrowserWindow({
     ...bounds,
     show: false,
     frame: false,
     hasShadow: false,
+    resizable,
+    // Capture overlays must not activate Vessel or switch away from the current Space.
+    ...(process.platform === "darwin" && !resizable ? { type: "panel" as const, fullscreenable: false, acceptFirstMouse: true } : {}),
     enableLargerThanScreen: true,
     alwaysOnTop: true,
     skipTaskbar: true,
@@ -31,10 +35,12 @@ function create(bounds: Electron.Rectangle) {
   // macOS 会把普通窗口约束在菜单栏下方，导致截图窗口整体下移、露出系统菜单栏；放开约束后强制贴合屏幕边界。
   win.setBounds(bounds)
   win.setAlwaysOnTop(true, "screen-saver")
-  win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
+  // Avoid TransformProcessType: it briefly hides macOS windows and the Dock.
+  win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true, skipTransformProcessType: true })
   win.webContents.setWindowOpenHandler(() => ({ action: "deny" }))
   win.webContents.on("will-navigate", (e) => e.preventDefault())
   win.webContents.ipc.handle("shot:close", () => win.close())
+  win.webContents.ipc.handle("shot:translate", (_event, text: unknown, target: unknown) => translateScreenshot(text, target))
   win.webContents.ipc.handle("shot:copy-text", (_event, text: string) => {
     if (typeof text !== "string" || text.length > 1024 * 1024) throw new Error("文字数据无效")
     clipboard.writeText(text)
@@ -79,13 +85,14 @@ export async function startScreenshot() {
   try {
     const display = screen.getDisplayNearestPoint(screen.getCursorScreenPoint())
     const image = await captureDisplay(display)
-    const win = create(display.bounds)
+    const win = create(display.bounds, false)
     captureWindow = win
-    win.setResizable(false)
+    let shown = false
     win.webContents.ipc.handle("shot:ready", () => {
-      if (!win.isDestroyed()) {
+      if (!shown && !win.isDestroyed()) {
+        shown = true
+        // A macOS nonactivating panel can receive keyboard input without activating Vessel.
         win.show()
-        win.focus()
       }
     })
     win.webContents.ipc.handle("shot:data", () => ({ mode: "capture", image }))

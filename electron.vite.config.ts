@@ -91,8 +91,9 @@ function patchScreenShotPlugin() {
       )
       patched = patched.replace("!Jr.toolClickStatus||Nn.dragging?Jr.toolClickStatus&&Nn.dragging?Vs(", "!Jr.toolClickStatus||Nn.dragging?Jr.toolClickStatus&&Nn.dragging&&!Nn.draggingTrim?Vs(")
       patched = patched.replace("bs()&&(Is(t),Hs(t,n)||(Ss(),xs(),Ks(A)&&Ds(e)))", "bs()&&(Is(t),Gr.borderOption?(Ss(),xs(),Ds(e),Gr.updateBorderOption(null)):(Hs(t,n)||(Ss(),xs(),Ks(A)&&Ds(e))))")
-      patched = patched.replace("Gr.tempGraphPosition.height),!Jr.toolClickStatus){var A=Nn.drawGraphPosition", "Gr.tempGraphPosition.height)){var A=Nn.drawGraphPosition")
+      patched = patched.replace("Gr.tempGraphPosition.height),!Jr.toolClickStatus){var A=Nn.drawGraphPosition", "Gr.tempGraphPosition.height),(!Jr.toolClickStatus||Nn.draggingTrim)){var A=Nn.drawGraphPosition")
       patched = patched.replace("Nn.setCutOutBoxPosition(e,t,n,r)}}", "Nn.setCutOutBoxPosition(e,t,n,r);Gr.redrawCanvasElements()}}")
+      patched = patched.replace("Gr.tempGraphPosition.height)){var A=Nn.drawGraphPosition", "Gr.tempGraphPosition.height),(!Jr.toolClickStatus||Nn.draggingTrim)){var A=Nn.drawGraphPosition")
       return { code: patched, map: null }
     }
   }
@@ -124,7 +125,7 @@ export default defineConfig({
     root: projectRoot,
     build: {
       rollupOptions: { input: { index: resolveFromRoot("src/preload/index.ts"), screenshot: resolveFromRoot("src/preload/screenshot.ts"), "browser-guest": resolveFromRoot("src/preload/browser-guest.ts") } },
-      externalizeDeps: { exclude: ["@vessel/obsidian", "@vessel/utils", "@vessel/react-router", "@vessel/sync", "@vessel/type"] }
+      externalizeDeps: { exclude: ["@electron-toolkit/preload", "@vessel/obsidian", "@vessel/utils", "@vessel/react-router", "@vessel/sync", "@vessel/type"] }
     },
     resolve: {
       alias: {

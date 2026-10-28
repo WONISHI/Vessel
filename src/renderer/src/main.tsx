@@ -8,7 +8,7 @@ import "@fontsource/plus-jakarta-sans/500.css"
 import "@fontsource/plus-jakarta-sans/600.css"
 import "@fontsource/plus-jakarta-sans/700.css"
 
-import { StrictMode } from "react"
+import { StrictMode, lazy, Suspense } from "react"
 import { createRoot } from "react-dom/client"
 
 import { GlobalErrorBoundary } from "@/components/core/error-boundary/crash-fallback"
@@ -26,10 +26,13 @@ window.addEventListener("unhandledrejection", (event) => {
 
 installDataTitleTooltips()
 
+const StandalonePreview = lazy(() => import("@/components/transit/standalone-preview"))
+const standalonePreview = new URLSearchParams(window.location.search).has("standalonePreview")
+
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <GlobalErrorBoundary>
-      <RouterProvider router={router} />
+      {standalonePreview ? <Suspense fallback={null}><StandalonePreview /></Suspense> : <RouterProvider router={router} />}
     </GlobalErrorBoundary>
   </StrictMode>
 )

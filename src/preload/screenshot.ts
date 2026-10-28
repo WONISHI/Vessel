@@ -12,6 +12,8 @@ contextBridge.exposeInMainWorld("screenshotAPI", {
   /** Closes close. */
   close: () => ipcRenderer.invoke("shot:close"),
 
+  translate: (text: string, target: string) => ipcRenderer.invoke("shot:translate", text, target),
+
   /** Copies text. */
   copyText: (text: string) => ipcRenderer.invoke("shot:copy-text", text),
 

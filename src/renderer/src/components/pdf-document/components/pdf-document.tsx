@@ -1,3 +1,4 @@
+import { usePdfViewState } from "@/components/pdf-document/components/view-state"
 import "@/components/pdf-document/components/pdf-document.css"
 import { LazyPage } from "@/components/pdf-document/components/lazy-page"
 import { COLORS, Stroke, notifyError, readInkStrokes, writeInkStrokes } from "@/components/pdf-document/components/pdf-document-shared"
@@ -10,13 +11,13 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import { Document } from "react-pdf"
 
 /** Renders the pdf document component. */
-export function PdfDocument({ bytes, name }: { bytes: Uint8Array; name: string }) {
+export function PdfDocument({ bytes, name, viewStateKey = name }: { bytes: Uint8Array; name: string; viewStateKey?: string }) {
   const file = useMemo(() => ({ data: new Uint8Array(bytes) }), [bytes])
   const host = useRef<HTMLDivElement>(null)
-  const [width, setWidth] = useState(600),
-    [zoom, setZoom] = useState(1)
+  const [width, setWidth] = useState(600)
   const [document, setDocument] = useState<PDFDocumentProxy>(),
     [tool, setTool] = useState("view")
+  const { viewport, zoom, setZoom } = usePdfViewState(viewStateKey, !!document, width)
   const [color, setColor] = useState("#e11d48"),
     [penWidth, setPenWidth] = useState(3)
   const [strokes, setStrokes] = useState<Stroke[]>([]),
@@ -259,7 +260,7 @@ export function PdfDocument({ bytes, name }: { bytes: Uint8Array; name: string }
           className="h-1.5"
         />
       </ScrollArea>
-      <ScrollArea className="min-h-0 flex-1 bg-stone-100 [&_[data-radix-scroll-area-viewport]]:p-4">
+      <ScrollArea viewportRef={viewport} className="min-h-0 flex-1 bg-stone-100 [&_[data-radix-scroll-area-viewport]]:p-4">
         <div data-pdf-scroll>
           <Document
             file={file}

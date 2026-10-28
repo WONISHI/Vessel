@@ -1,3 +1,6 @@
+import { installToolbarDrag } from "@/features/screenshot/toolbar-drag"
+import { installScreenshotModes, updateScreenshotToolbar } from "@/features/screenshot/mode-menu"
+import { installOptionArrow } from "@/features/screenshot/option-arrow"
 import { installColorInspector, installSteps, mergeSteps, type CutBox } from "@/features/screenshot/screenshot-tools"
 import "@/features/screenshot/screenshot.css"
 import { recognizeImage } from "@/lib/image/image-ocr"
@@ -5,10 +8,10 @@ import "@fontsource/plus-jakarta-sans/400.css"
 import "@fontsource/plus-jakarta-sans/600.css"
 import { matchesShortcut } from "@vessel/utils"
 import ScreenShot from "js-web-screen-shot"
-import { Check, Circle, Copy, Download, Grid3x3, ListOrdered, MoveUpRight, Pencil, Pin, ScanText, Square, Type, Undo2, X } from "lucide-react"
+import { Check, Circle, Copy, DownloadSimple as Download, Translate as Languages, GridNine as Grid3x3, NumberCircleOne as ListOrdered, ArrowUpRight as MoveUpRight, PencilSimple as Pencil, PushPin as Pin, Scan as ScanText, Square, ChatTeardropDots as Type, ArrowUUpLeft as Undo2, X } from "@phosphor-icons/react/ssr"
 import { createElement } from "react"
 import { renderToStaticMarkup } from "react-dom/server"
-type ScreenshotAPI = { ready(): Promise<void>; data(): Promise<{ mode: "capture" | "pin"; image: string }>; finish(image: string, pin: boolean): Promise<void>; close(): Promise<void>; copy(): Promise<void>; copyText(text: string): Promise<void> }
+type ScreenshotAPI = { ready(): Promise<void>; data(): Promise<{ mode: "capture" | "pin"; image: string }>; finish(image: string, pin: boolean): Promise<void>; close(): Promise<void>; copy(): Promise<void>; copyText(text: string): Promise<void>; translate(text: string, target: string): Promise<string> }
 const api = (window as unknown as { screenshotAPI: ScreenshotAPI }).screenshotAPI
 const root = document.getElementById("root")!
 // The annotation library uses "none" as its canvas font family. Keep its size
@@ -24,8 +27,8 @@ Object.defineProperty(CanvasRenderingContext2D.prototype, "font", {
 })
 
 /** Performs the icon operation. */
-const icon = (Icon: typeof Copy, color = "#181f1c") => `url("data:image/svg+xml;utf8,${encodeURIComponent(renderToStaticMarkup(createElement(Icon, { size: 22, color, strokeWidth: 1.8 })))}")`
-/** 用 lucide-react 图标覆盖 js-web-screen-shot 自带的位图工具栏图标（普通 / 悬停·选中 / 禁用三态）。 */
+const icon = (Icon: typeof Copy, color = "#171717") => `url("data:image/svg+xml;utf8,${encodeURIComponent(renderToStaticMarkup(createElement(Icon, { size: 20, color, weight: "regular" })))}")`
+/** 用 Phosphor 图标覆盖 js-web-screen-shot 自带的位图工具栏图标（普通 / 悬停·选中 / 禁用三态）。 */
 function installToolbarIcons() {
   const tools: [string, typeof Copy][] = [
     ["square", Square],
@@ -37,16 +40,16 @@ function installToolbarIcons() {
     ["save", Download],
     ["close", X]
   ]
-  const base = "background-size:22px 22px !important;background-position:center !important;background-repeat:no-repeat !important;"
-  const rules = tools.map(([name, Icon]) => `#toolPanel .${name}{background-image:${icon(Icon)} !important;${base}}` + `#toolPanel .${name}:hover,#toolPanel .${name}-active,#toolPanel .${name}:active{background-image:${icon(Icon, "#16a34a")} !important;${base}}`)
+  const base = "background-size:20px 20px !important;background-position:center !important;background-repeat:no-repeat !important;"
+  const rules = tools.map(([name, Icon]) => `#toolPanel .${name}{background-image:${icon(Icon)} !important;${base}}` + `#toolPanel .${name}:hover,#toolPanel .${name}-active,#toolPanel .${name}:active{background-image:${icon(Icon, "#171717")} !important;${base}}`)
   rules.push(
-    `#toolPanel .close{background-image:${icon(X, "#ef4444")} !important;${base}}`,
-    `#toolPanel .save{background-image:${icon(Download, "#168bfa")} !important;${base}}`,
-    `#toolPanel .shot-step[aria-pressed=true]{background-image:${icon(ListOrdered, "#16a34a")} !important;${base}}`,
+    `#toolPanel .close,#toolPanel .close:hover,#toolPanel .close:active{background-image:${icon(X, "#ff454d")} !important;${base}}`,
+    `#toolPanel .save,#toolPanel .save:hover,#toolPanel .save:active{background-image:${icon(Download, "#168bfa")} !important;${base}}`,
+    `#toolPanel .shot-step[aria-pressed=true]{background-image:${icon(ListOrdered, "#171717")} !important;${base}}`,
     `#toolPanel .undo{background-image:${icon(Undo2)} !important;${base}}`,
-    `#toolPanel .undo:hover,#toolPanel .undo:active{background-image:${icon(Undo2, "#16a34a")} !important;${base}}`,
+    `#toolPanel .undo:hover,#toolPanel .undo:active{background-image:${icon(Undo2, "#171717")} !important;${base}}`,
     `#toolPanel .undo-disabled.shot-can-undo{background-image:${icon(Undo2)} !important;${base}}`,
-    `#toolPanel .undo-disabled{background-image:${icon(Undo2, "#d6d3d1")} !important;${base}}`
+    `#toolPanel .undo-disabled{background-image:${icon(Undo2, "#a9adaa")} !important;${base}}`
   )
   const style = document.createElement("style")
   style.textContent = rules.join("\n")
@@ -63,13 +66,16 @@ void api
     await bitmap.decode()
     await document.fonts.ready
     if (mode === "capture") {
-      let action: "copy" | "pin" | "ocr" | "save" = "copy"
+      let action: "copy" | "pin" | "ocr" | "save" | "translate" = "copy"
       let stepTools: ReturnType<typeof installSteps> | undefined
+      let stopToolbarDrag: (() => void) | undefined
+      let stopModeMenu: (() => void) | undefined
+      let stopOptionArrow: (() => void) | undefined
       let stopInspector: (() => void) | undefined
       document.body.style.background = `url("${image}") center / 100% 100% no-repeat`
       document.body.classList.add("shot-idle")
       window.addEventListener("mousedown", () => document.body.classList.remove("shot-idle"), { capture: true, once: true })
-      document.documentElement.style.setProperty("--shot-copy-icon", icon(Check, "#16a34a"))
+      document.documentElement.style.setProperty("--shot-copy-icon", icon(Check, "#00ba69"))
       installToolbarIcons()
       const observer = new MutationObserver(() => {
         const confirm = document.querySelector<HTMLElement>("#toolPanel .confirm")
@@ -84,13 +90,24 @@ void api
         heading.className = "shot-toolbar-heading"
         const grip = document.createElement("span")
         grip.className = "shot-toolbar-grip"
-        grip.setAttribute("aria-hidden", "true")
+        grip.title = "按住拖动工具栏"
+        grip.setAttribute("aria-label", "拖动工具栏")
         const dot = document.createElement("span")
         dot.className = "shot-toolbar-dot"
-        const label = document.createElement("span")
-        label.textContent = "截图"
-        heading.append(grip, dot, label)
-        copy.closest("#toolPanel")?.prepend(heading)
+        heading.append(grip, dot)
+        const toolbar = copy.closest<HTMLElement>("#toolPanel")
+        stopModeMenu = installScreenshotModes(heading, (mode) => {
+          action = mode
+          if (toolbar) updateScreenshotToolbar(toolbar, mode)
+          const Icon = mode === "ocr" ? ScanText : mode === "translate" ? Languages : Check
+          document.documentElement.style.setProperty("--shot-copy-icon", icon(Icon, "#00ba69"))
+        })
+        if (toolbar) updateScreenshotToolbar(toolbar, "copy")
+        toolbar?.prepend(heading)
+        if (toolbar) {
+          stopOptionArrow = installOptionArrow(toolbar)
+          stopToolbarDrag = installToolbarDrag(toolbar, grip)
+        }
 
         /** Performs the tool operation. */
         const tool = (className: string, title: string, Icon: typeof Copy, callback?: () => void) => {
@@ -117,10 +134,6 @@ void api
           },
           true
         )
-        tool("shot-recognize", "截图 OCR", ScanText, () => {
-          action = "ocr"
-          confirm.click()
-        })
         const pin = tool("shot-pin", "固定到屏幕", Pin, () => {
           action = "pin"
           confirm.click()
@@ -161,12 +174,15 @@ void api
         /** Performs the complete callback operation. */
         completeCallback: ({ base64, cutInfo }: { base64: string; cutInfo: CutBox }) => {
           observer.disconnect()
+          stopOptionArrow?.()
+          stopModeMenu?.()
+          stopToolbarDrag?.()
           stopInspector?.()
           stepTools?.hide()
           void mergeSteps(base64, cutInfo, stepTools?.steps || [])
             .then(async (result) => {
-              if (action === "ocr") {
-                await showOcr(result)
+              if (action === "ocr" || action === "translate") {
+                await showOcr(result, action === "translate")
                 return
               }
               if (action === "save") {
@@ -236,22 +252,54 @@ function showError(error: unknown) {
 }
 
 /** Shows ocr. */
-async function showOcr(image: string) {
+async function showOcr(image: string, translate = false) {
   const panel = document.createElement("section")
   panel.className = "shot-ocr"
   const title = document.createElement("h2")
-  title.textContent = "截图 OCR"
+  title.textContent = translate ? "截图翻译" : "截图 OCR"
   const status = document.createElement("p")
   status.textContent = "正在本地识别…"
   const text = document.createElement("textarea")
   text.setAttribute("aria-label", "截图识别结果")
   text.placeholder = "识别结果"
   text.readOnly = true
+  const translated = document.createElement("textarea")
+  translated.setAttribute("aria-label", "截图翻译结果")
+  translated.placeholder = "翻译结果"
+  translated.readOnly = true
+  const language = document.createElement("select")
+  language.setAttribute("aria-label", "目标语言")
+  for (const [value, label] of [["zh-CN", "简体中文"], ["en", "英语"], ["ja", "日语"], ["ko", "韩语"]]) {
+    const option = document.createElement("option")
+    option.value = value
+    option.textContent = label
+    language.append(option)
+  }
+  const retry = document.createElement("button")
+  retry.textContent = "翻译"
+  retry.disabled = true
+  const runTranslation = async () => {
+    retry.disabled = true
+    copy.disabled = true
+    translated.value = ""
+    status.textContent = "正在翻译…"
+    try {
+      translated.value = await api.translate(text.value, language.value)
+      copy.disabled = !translated.value
+      status.textContent = "翻译完成"
+    } catch (error) {
+      const message = (error instanceof Error ? error.message : String(error)).replace(/^Error invoking remote method '[^']+': (?:Error: )?/, "")
+      status.textContent = `翻译失败：${message}`
+    } finally {
+      retry.disabled = false
+    }
+  }
+  retry.onclick = () => void runTranslation()
   const copy = document.createElement("button")
-  copy.textContent = "复制文字"
+  copy.textContent = translate ? "复制译文" : "复制文字"
   copy.disabled = true
   copy.onclick = () => {
-    void api.copyText(text.value).then(
+    void api.copyText(translate ? translated.value : text.value).then(
       () => {
         status.textContent = "已复制"
       },
@@ -265,13 +313,21 @@ async function showOcr(image: string) {
   close.onclick = () => {
     void api.close()
   }
-  panel.append(title, status, text, copy, close)
+  panel.append(title, status, text)
+  if (translate) {
+    panel.classList.add("shot-translation")
+    panel.append(language, retry, translated)
+  }
+  panel.append(copy, close)
   root.append(panel)
   try {
     text.value = await recognizeImage(image)
     text.readOnly = false
-    copy.disabled = !text.value
+    copy.disabled = translate || !text.value
     status.textContent = text.value ? "识别完成 · 本地离线" : "未识别到文字"
+    if (translate && text.value) {
+      await runTranslation()
+    }
   } catch (error) {
     status.textContent = `识别失败：${error instanceof Error ? error.message : String(error)}`
   }

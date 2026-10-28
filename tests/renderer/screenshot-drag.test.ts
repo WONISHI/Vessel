@@ -25,6 +25,9 @@ it("ensures screenshot plugin retains drag handles and drag behavior during anno
   // 6. In ia: if borderOption was active on mouseup, update position and reposition tools
   expect(code).toContain("Gr.borderOption?(Ss(),xs(),Ds(e),Gr.updateBorderOption(null))")
 
+  // The update setter returns void: keep the comma condition so initial crop dimensions persist.
+  expect(code).toContain("Gr.tempGraphPosition.height),(!Jr.toolClickStatus||Nn.draggingTrim)){var A=Nn.drawGraphPosition")
+
   // 7. In Ss: update cutOutBoxPosition and redraw canvas elements
   expect(code).toContain("Nn.setCutOutBoxPosition(e,t,n,r);Gr.redrawCanvasElements()")
 })

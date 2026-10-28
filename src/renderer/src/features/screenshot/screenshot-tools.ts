@@ -172,8 +172,10 @@ export async function installColorInspector(src: string, copy: (value: string) =
   panel.className = "shot-color-inspector"
   panel.hidden = true
   const zoom = document.createElement("canvas")
-  zoom.width = 110
-  zoom.height = 110
+  const previewSize = 156
+  const pixelRatio = window.devicePixelRatio || 1
+  zoom.width = Math.round(previewSize * pixelRatio)
+  zoom.height = Math.round(previewSize * pixelRatio)
   const text = document.createElement("div")
   panel.append(zoom, text)
   document.body.append(panel)
@@ -194,20 +196,27 @@ export async function installColorInspector(src: string, copy: (value: string) =
         .join("")
         .toUpperCase()
     const view = zoom.getContext("2d")!
+    // Keep the preview at 3× the desktop size, independently of Retina scaling.
+    const sampleWidth = (previewSize / 3) * source.width / innerWidth
+    const sampleHeight = (previewSize / 3) * source.height / innerHeight
+    view.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0)
     view.imageSmoothingEnabled = false
-    view.clearRect(0, 0, 110, 110)
-    view.drawImage(source, x - 5, y - 5, 11, 11, 0, 0, 110, 110)
+    view.clearRect(0, 0, previewSize, previewSize)
+    view.drawImage(source, x - sampleWidth / 2, y - sampleHeight / 2, sampleWidth, sampleHeight, 0, 0, previewSize, previewSize)
     view.strokeStyle = "#60a5fa"
-    view.lineWidth = 1
+    // One physical pixel, rather than an upscaled canvas stroke.
+    view.lineWidth = 1 / pixelRatio
+    const center = (Math.floor(previewSize * pixelRatio / 2) + 0.5) / pixelRatio
+    const gap = 2
     view.beginPath()
-    view.moveTo(55, 0)
-    view.lineTo(55, 49)
-    view.moveTo(55, 61)
-    view.lineTo(55, 110)
-    view.moveTo(0, 55)
-    view.lineTo(49, 55)
-    view.moveTo(61, 55)
-    view.lineTo(110, 55)
+    view.moveTo(center, 0)
+    view.lineTo(center, center - gap)
+    view.moveTo(center, center + gap)
+    view.lineTo(center, previewSize)
+    view.moveTo(0, center)
+    view.lineTo(center - gap, center)
+    view.moveTo(center + gap, center)
+    view.lineTo(previewSize, center)
     view.stroke()
     text.replaceChildren()
     for (const [label, value] of [

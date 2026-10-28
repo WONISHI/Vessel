@@ -1,3 +1,5 @@
+const preview = vi.hoisted(() => ({ open: vi.fn().mockResolvedValue(undefined), accepts: vi.fn(() => false) }))
+vi.mock("@main/files/preview-window", () => ({ openFilePreviewWindow: preview.open, usesPreviewWindow: preview.accepts }))
 vi.mock("@main/settings/settings", () => ({ generalSettings: () => ({ ignoredFiles: "", externalPreview: true }), parseIgnoredPatterns: () => [] }))
 import { expect, it, vi } from "vitest"
 const mocks = vi.hoisted(() => ({ handlers: new Map<string, (...args: any[]) => any>(), events: new Map<string, (...args: any[]) => any>(), send: vi.fn() }))
@@ -45,4 +47,15 @@ it("classifies folders separately from files", async () => {
   const { externalPathInfo } = await import("@main/files/open-markdown")
   expect(await externalPathInfo("/notes/project")).toMatchObject({ kind: "directory", path: "/notes/project", name: "project" })
   expect(await externalPathInfo("/notes/Image.png")).toMatchObject({ kind: "file", root: "/notes", name: "Image.png" })
+})
+
+it("routes external documents to an independent preview without workspace delivery", async () => {
+  preview.accepts.mockReturnValue(true)
+  mocks.send.mockClear()
+  for (const path of ["/notes/笔记.md", "/notes/document.pdf", "/notes/sheet.xlsx", "/notes/photo.png"]) {
+    mocks.events.get("open-file")!({ preventDefault() {} }, path)
+    await vi.waitFor(() => expect(preview.open).toHaveBeenCalledWith(path))
+  }
+  expect(mocks.send).not.toHaveBeenCalled()
+  preview.accepts.mockReturnValue(false)
 })

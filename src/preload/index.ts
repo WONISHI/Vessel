@@ -17,6 +17,14 @@ import { gitAPI } from "@preload/apis/git.api"
 const api = {}
 
 const vesselAPI = {
+  onFilePreviewUpdated: (callback: (state: { items: { id: string; kind: "file"; title: string; root: string; content: string }[]; selected: string }) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, state: Parameters<typeof callback>[0]) => callback(state)
+    ipcRenderer.on("preview:updated", handler)
+    return () => ipcRenderer.removeListener("preview:updated", handler)
+  },
+  getFilePreviewTabs: () => ipcRenderer.invoke("preview:tabs"),
+  getFilePreview: () => ipcRenderer.invoke("preview:data"),
+  filePreviewAction: (action: "close" | "maximize" | "minimize") => ipcRenderer.invoke("preview:action", action),
   /** Synchronizes browser bookmarks. */
   syncBrowserBookmarks: (items: { url: string; title: string }[]) => ipcRenderer.invoke("browser:bookmarks:sync", items),
 
@@ -100,7 +108,7 @@ const vesselAPI = {
   readTransitClipboard: (): Promise<string | { root: string; path: string; title: string }> => ipcRenderer.invoke("transit:clipboard"),
 
   /** Opens transit window. */
-  openTransitWindow: (item: { kind: string; content: string; title: string; root?: string }): Promise<void> => ipcRenderer.invoke("transit:window", item),
+  openTransitWindow: (item: { kind: string; content: string; title: string; root?: string }, tabs?: { root: string; content: string }[]): Promise<void> => ipcRenderer.invoke("transit:window", item, tabs),
 
   /** Saves office. */
   saveOffice: (name: string, bytes: Uint8Array): Promise<boolean> => ipcRenderer.invoke("office:save", name, bytes),

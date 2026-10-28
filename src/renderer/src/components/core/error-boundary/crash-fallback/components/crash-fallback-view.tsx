@@ -18,11 +18,11 @@ export function CrashFallbackView({ error, onReset }: CrashFallbackViewProps) {
 
   useEffect(() => {
     // 立即向主进程标记当前处于崩溃状态
-    void window.electronAPI.reportCrash?.(true)
+    void window.electronAPI?.reportCrash?.(true)
 
     // 崩溃状态下如果收到主进程关闭请求（如菜单退出或红点），直接退出，绝不二次确认
-    const cleanup = window.electronAPI.onRequestClose?.(() => {
-      void window.electronAPI.confirmQuit?.()
+    const cleanup = window.electronAPI?.onRequestClose?.(() => {
+      void window.electronAPI?.confirmQuit?.()
     })
 
     // 快捷键支持：按 Cmd+R / Ctrl+R / F5 立即重新加载
@@ -39,16 +39,16 @@ export function CrashFallbackView({ error, onReset }: CrashFallbackViewProps) {
     return () => {
       cleanup?.()
       window.removeEventListener("keydown", onKeyDown)
-      void window.electronAPI.reportCrash?.(false)
+      void window.electronAPI?.reportCrash?.(false)
     }
   }, [])
 
   /** Handles reload events. */
   const handleReload = () => {
-    void window.electronAPI.reportCrash?.(false)
+    void window.electronAPI?.reportCrash?.(false)
     onReset?.()
-    if (window.electronAPI.reloadWindow) {
-      void window.electronAPI.reloadWindow()
+    if (window.electronAPI?.reloadWindow) {
+      void window.electronAPI?.reloadWindow()
     } else {
       window.location.reload()
     }
@@ -56,9 +56,9 @@ export function CrashFallbackView({ error, onReset }: CrashFallbackViewProps) {
 
   /** Handles relaunch events. */
   const handleRelaunch = () => {
-    void window.electronAPI.reportCrash?.(false)
-    if (window.electronAPI.relaunchApp) {
-      void window.electronAPI.relaunchApp()
+    void window.electronAPI?.reportCrash?.(false)
+    if (window.electronAPI?.relaunchApp) {
+      void window.electronAPI?.relaunchApp()
     } else {
       window.location.reload()
     }
@@ -66,7 +66,7 @@ export function CrashFallbackView({ error, onReset }: CrashFallbackViewProps) {
 
   /** Handles quit events. */
   const handleQuit = () => {
-    void window.electronAPI.confirmQuit?.()
+    void window.electronAPI?.confirmQuit?.()
   }
 
   /** Handles copy events. */

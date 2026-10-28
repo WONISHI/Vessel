@@ -46,6 +46,7 @@ export function FilePreview({ item, onLoaded }: { item: TransitItem; onLoaded?: 
       <PdfDocument
         bytes={file.bytes}
         name={file.name}
+        viewStateKey={`transit:${item.root}:${item.content}`}
       />
     )
   if (file.kind === "office")

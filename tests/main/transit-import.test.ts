@@ -2,7 +2,8 @@ import { expect, it, vi } from "vitest"
 import { mkdtemp, realpath, rm, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-const mocks = vi.hoisted(() => ({ pick: vi.fn() }))
+const mocks = vi.hoisted(() => ({ pick: vi.fn(), preview: vi.fn().mockResolvedValue(undefined) }))
+vi.mock("@main/files/preview-window", () => ({ openFilePreviewWindow: mocks.preview }))
 vi.mock("electron", () => ({ app: {}, BrowserWindow: { fromWebContents: () => ({}) }, clipboard: {}, dialog: { showOpenDialog: mocks.pick } }))
 vi.mock("@main/office/office", () => ({ serveOffice: vi.fn() }))
 it("imports selected local files for preview, cancels cleanly, and rejects unsupported formats", async () => {
@@ -18,6 +19,11 @@ it("imports selected local files for preview, cancels cleanly, and rejects unsup
     mocks.pick.mockResolvedValueOnce({ canceled: false, filePaths: [file] })
     expect(await handlers.get("transit:import-files")!()).toEqual([{ root: directory, path: file, title: "测试.md" }])
     expect(await handlers.get("transit:read-file")!(null, directory, file)).toEqual({ kind: "markdown", content: "# Imported" })
+    // Detaching a PDF must use Vessel's renderer, never Chromium's native PDF viewer.
+    const pdf = join(directory, "中文.pdf")
+    await writeFile(pdf, "%PDF-1.7")
+    await handlers.get("transit:window")!(null, { kind: "file", root: directory, content: pdf, title: "中文.pdf" })
+    expect(mocks.preview).toHaveBeenCalledWith(pdf, [pdf])
     const unknown = join(directory, "unknown.bin")
     await writeFile(unknown, "binary")
     mocks.pick.mockResolvedValueOnce({ canceled: false, filePaths: [unknown] })

@@ -4,6 +4,26 @@ export const pageObserverScript = `(() => {
   window.__vesselPageObserver = true;
   const bridge = window.vesselPageBridge;
   if (!bridge) return;
+  let lastIcon = '';
+  const reportIcon = () => {
+    const links = [...document.querySelectorAll('link[rel][href]')];
+    const icon = links.find(link => link.rel.toLowerCase().split(/\\s+/).includes('icon'))
+      || links.find(link => link.rel.toLowerCase().includes('apple-touch-icon'));
+    const href = icon?.href;
+    if (href && href !== lastIcon) {
+      lastIcon = href;
+      bridge.report('favicon', href);
+    }
+  };
+  reportIcon();
+  if (document.head) {
+    let scheduled = false;
+    new MutationObserver(() => {
+      if (scheduled) return;
+      scheduled = true;
+      queueMicrotask(() => { scheduled = false; reportIcon(); });
+    }).observe(document.head, { childList: true, subtree: true, attributes: true, attributeFilter: ['href', 'rel'] });
+  }
   const editable = () => {
     let element = document.activeElement;
     while (element && element.shadowRoot && element.shadowRoot.activeElement) element = element.shadowRoot.activeElement;

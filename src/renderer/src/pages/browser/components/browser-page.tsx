@@ -1,3 +1,4 @@
+import { BrowserFavicon } from "@/components/browser-favicon"
 import { useActivatedTabs } from "@/pages/browser/use-activated-tabs"
 import browserLoading from "@/assets/vessel-browser-loading/loading.svg"
 import ActivityBar from "@/components/layout/activity-bar/index"
@@ -508,19 +509,7 @@ export function BrowserPage({ visible = true }: { visible?: boolean }) {
                     className="browser-tab-select flex min-w-0 flex-1 items-center gap-2"
                     data-title={item.title}
                   >
-                    {item.favicon ? (
-                      <img
-                        src={item.favicon}
-                        alt=""
-                        className="size-4 shrink-0 object-contain"
-                        onError={() => update(item.id, { favicon: undefined })}
-                      />
-                    ) : (
-                      <Globe
-                        size={14}
-                        className="shrink-0 text-green-600"
-                      />
-                    )}
+                    <BrowserFavicon key={`${item.url}:${item.favicon || ""}`} url={item.url} favicon={item.favicon} />
                     {!item.pinned && <span className="truncate">{item.title}</span>}
                   </button>
                   {!item.pinned && (

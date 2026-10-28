@@ -1,3 +1,4 @@
+import { BrowserFavicon } from "@/components/browser-favicon"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
@@ -106,21 +107,7 @@ export function TabSwitcher({
               >
                 {preview && tab.active && <span className="absolute left-0 top-3 bottom-3 w-[3px] rounded-r bg-green-600" />}
                 <span className="flex size-4 shrink-0 items-center justify-center">
-                  {tab.icon ?? (tab.favicon ? (
-                    <img
-                      src={tab.favicon}
-                      alt=""
-                      className="size-3.5 object-contain"
-                      onError={(e) => {
-                        e.currentTarget.style.display = "none"
-                      }}
-                    />
-                  ) : (
-                    <Globe
-                      size={13}
-                      className="text-stone-400"
-                    />
-                  ))}
+                  {tab.icon ?? <BrowserFavicon key={`${tab.url}:${tab.favicon || ""}`} url={tab.url} favicon={tab.favicon} />}
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className={`dark-list-title block truncate ${preview ? "font-semibold" : ""}`}>{tab.title}</span>

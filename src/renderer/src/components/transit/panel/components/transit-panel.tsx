@@ -71,7 +71,7 @@ export function TransitPanel() {
         <SheetTitle className="sr-only">{item.title}</SheetTitle>
         <SheetDescription className="sr-only">中转站预览：{item.kind === "text" ? "剪贴板文本" : item.content}</SheetDescription>
         <button data-title={full ? "还原" : "展开"} aria-label={full ? "还原" : "展开"} onClick={() => setFull(!full)} className="transit-bar-item">{full ? <Minimize /> : <Maximize />}</button>
-        <button data-title="独立窗口" aria-label="独立窗口" onClick={() => void window.electronAPI.openTransitWindow(item).catch((error) => toast.error(String(error)))} className="transit-bar-item"><ExternalLink /></button>
+        <button data-title="独立窗口" aria-label="独立窗口" onClick={() => void window.electronAPI.openTransitWindow(item, items.filter((entry) => entry.kind === "file" && entry.root).map((entry) => ({ root: entry.root!, content: entry.content }))).catch((error) => toast.error(String(error)))} className="transit-bar-item"><ExternalLink /></button>
         <TransitDock value={dock} onChange={changeDock} />
         <button data-title="关闭" aria-label="关闭中转站" onClick={() => selectTransit(null)} className="transit-bar-item transit-close"><X /></button>
       </header>

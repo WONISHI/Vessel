@@ -8,6 +8,7 @@ contextBridge.exposeInMainWorld("vesselPageBridge", {
   /** Performs the report operation. */
   report: (kind: string, value: unknown) => {
     if (["focus", "search-handled", "find"].includes(kind) && typeof value === "boolean") ipcRenderer.sendToHost(`vessel-${kind}`, value)
+    if (kind === "favicon" && typeof value === "string" && value.length < 65536 && /^(https?:\/\/|data:image\/)/i.test(value)) ipcRenderer.sendToHost("vessel-favicon", value)
     if (kind === "navigation" && typeof value === "string" && value.length < 16384) ipcRenderer.sendToHost("vessel-navigation", value)
   },
 

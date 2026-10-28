@@ -44,7 +44,7 @@ body.shot-idle {
 #toolPanel .confirm:hover,
 #toolPanel .confirm:active {
   background-image: var(--shot-copy-icon) !important;
-  background-size: 22px 22px !important;
+  background-size: 20px 20px !important;
   background-position: center !important;
   background-repeat: no-repeat !important;
 }
@@ -62,30 +62,46 @@ body {
 #toolPanel {
   width: max-content !important;
   min-width: 0 !important;
-  height: 40px !important;
-  padding: 8px 12px !important;
-  border-radius: 18px;
-  background: rgba(229, 241, 234, 0.7) !important;
-  backdrop-filter: blur(24px) saturate(125%);
-  -webkit-backdrop-filter: blur(24px) saturate(125%);
+  box-sizing: border-box !important;
+  display: none !important;
+  align-items: center !important;
+  min-height: 44px !important;
+  max-height: 44px !important;
+  height: 44px !important;
+  padding: 6px 10px !important;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(255,255,255,.64), rgba(230,238,234,.38)) !important;
+  backdrop-filter: blur(28px) saturate(145%);
+  -webkit-backdrop-filter: blur(28px) saturate(145%);
   box-shadow:
     0 8px 30px #0002,
     inset 0 0 0 1px #ffffffb3;
 }
+/* The plugin owns visibility; only replace its visible block layout with flex. */
+#toolPanel[style*="display: block"],
+#toolPanel[style*="display:block"] {
+  display: flex !important;
+}
 #toolPanel .item-panel.separateLine {
+  flex: 0 0 1px;
   width: 1px !important;
   height: 24px !important;
-  margin: 8px 12px 8px 6px !important;
+  margin: 4px 10px 4px 4px !important;
   border-radius: 0;
   background: rgba(38, 61, 48, 0.18) !important;
   box-shadow: none;
   pointer-events: none;
 }
 #toolPanel .item-panel:not(.separateLine) {
-  width: 36px !important;
-  height: 40px !important;
+  box-sizing: border-box !important;
+  flex: 0 0 32px;
+  padding: 0 !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  width: 32px !important;
+  height: 32px !important;
   margin-right: 6px !important;
-  border-radius: 12px;
+  border-radius: 9px;
   background-position: center !important;
   background-repeat: no-repeat !important;
   transition:
@@ -99,7 +115,7 @@ body {
   padding: 0;
   border: 0;
   background-color: transparent;
-  background-size: 22px;
+  background-size: 20px;
   cursor: pointer;
 }
 #toolPanel .item-panel:hover {
@@ -107,19 +123,20 @@ body {
 }
 #toolPanel .item-panel[class*="-active"],
 #toolPanel button[aria-pressed="true"] {
-  background-color: rgba(119, 162, 137, 0.22);
+  background-color: rgba(23, 23, 23, 0.08);
   box-shadow: inset 0 1px 3px #294e3514;
 }
 #toolPanel .shot-toolbar-heading {
-  float: left;
+  float: none;
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
   gap: 9px;
   height: 28px;
-  margin: 6px 12px 6px 0;
-  padding-right: 16px;
+  margin: 0 10px 0 0;
+  padding-right: 12px;
   border-right: 1px solid #263d3026;
-  color: #181f1c;
+  color: #171717;
   font-size: 15px;
   font-weight: 600;
   pointer-events: none;
@@ -256,3 +273,77 @@ body,
   color: #a8a29e;
   margin-top: 5px;
 }
+
+#toolPanel .shot-toolbar-heading { pointer-events: auto; }
+.shot-mode-trigger { display: flex; align-items: center; gap: 10px; height: 28px; padding: 0; border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; }
+.shot-mode-chevron { display: inline-flex; align-items: center; justify-content: center; width: 14px; height: 14px; color: #53615a; transition: transform .15s ease; }
+.shot-mode-trigger[aria-expanded="true"] .shot-mode-chevron { transform: rotate(180deg); }
+.shot-mode-menu { position: fixed; z-index: 130; display: flex; gap: 4px; padding: 6px; border: 1px solid #ffffffb3; border-radius: 16px; --shot-menu-surface: #d6d9d7; background: var(--shot-menu-surface); backdrop-filter: blur(28px) saturate(145%); -webkit-backdrop-filter: blur(28px) saturate(145%); box-shadow: 0 8px 30px #0002, inset 0 0 0 1px #ffffff30; }
+.shot-mode-menu[hidden] { display: none; }
+.shot-mode-menu button { position: relative; min-height: 32px; display: flex; align-items: center; gap: 8px; padding: 8px 14px; border: 0; border-radius: 10px; font: 600 14px system-ui; color: #171717; background: transparent; cursor: pointer; }
+.shot-mode-menu button::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: #168bfa; }
+.shot-mode-menu button[data-mode="ocr"]::before { background: #14a3a3; }
+.shot-mode-menu button[data-mode="translate"]::before { background: #9163ff; }
+.shot-mode-menu button:hover { background: #ffffff40; }
+.shot-mode-menu button[aria-checked="true"] { background: rgba(107, 167, 242, .20); }
+.shot-mode-menu::before { content: ''; position: absolute; left: var(--shot-menu-arrow); top: -8px; width: 18px; height: 9px; transform: translateX(-50%); background: var(--shot-menu-surface); clip-path: polygon(50% 0, 100% 100%, 0 100%); }
+.shot-mode-menu[data-side="top"]::before { top: auto; bottom: -8px; transform: translateX(-50%) rotate(180deg); }
+.shot-mode-trigger[aria-expanded="true"] { border-radius: 10px; background: #17171708; }
+.shot-translation { max-height: calc(100vh - 48px); overflow-y: auto; }
+.shot-translation textarea { height: min(23vh, 180px); }
+.shot-translation select { padding: 6px 10px; border: 1px solid #ddd; border-radius: 6px; background: white; margin: 10px 8px 10px 0; }
+#toolPanel[data-mode="ocr"] .item-panel:not(.close):not(.confirm),
+#toolPanel[data-mode="translate"] .item-panel:not(.close):not(.confirm) { display: none !important; }
+#toolPanel[data-mode="ocr"] .confirm,
+#toolPanel[data-mode="translate"] .confirm { flex-basis: auto; width: auto !important; min-width: 92px; padding: 0 10px 0 36px !important; background-position: 8px center !important; color: #087b43; }
+#toolPanel[data-mode="ocr"] .confirm::after,
+#toolPanel[data-mode="translate"] .confirm::after { content: attr(data-action-label); font: 600 13px/32px system-ui; white-space: nowrap; }
+#toolPanel[data-mode="ocr"] .shot-toolbar-dot { background: #14a3a3; }
+#toolPanel[data-mode="translate"] .shot-toolbar-dot { background: #9163ff; }
+body[data-screenshot-mode="ocr"] :is(#optionPanel, #optionIcoController),
+body[data-screenshot-mode="translate"] :is(#optionPanel, #optionIcoController) { display: none !important; }
+
+#toolPanel .shot-toolbar-grip { pointer-events: auto; cursor: grab; touch-action: none; user-select: none; width: 14px; height: 28px; border-radius: 5px; background-position: center; }
+#toolPanel .shot-toolbar-grip:hover { background-color: #ffffff30; }
+#toolPanel .shot-toolbar-grip.is-dragging { cursor: grabbing; }
+
+/* Option surfaces share the mode menu's frosted rounded treatment. */
+#optionPanel {
+  position: fixed !important;
+  box-sizing: border-box !important;
+  height: auto !important;
+  min-height: 40px;
+  padding: 8px 10px !important;
+  border: 1px solid #ffffffb3;
+  border-radius: 16px !important;
+  background: #d6d9d7 !important;
+  backdrop-filter: blur(28px) saturate(145%);
+  -webkit-backdrop-filter: blur(28px) saturate(145%);
+  box-shadow: 0 8px 30px #0002, inset 0 0 0 1px #ffffff30;
+}
+#optionPanel .text-size-panel {
+  border-color: #ffffff80;
+  border-radius: 7px;
+  background: #ffffff45;
+  color: #171717;
+}
+#optionPanel .text-select-panel {
+  border: 1px solid #ffffffb3;
+  border-radius: 10px;
+  background: #d6d9d7;
+  box-shadow: 0 8px 24px #0002;
+}
+#optionPanel .text-select-panel .text-item:hover {
+  border-radius: 5px;
+  background: #ffffff60;
+}
+#optionIcoController {
+  position: fixed !important;
+  width: 18px !important;
+  height: 9px !important;
+  border: 0 !important;
+  background: #d6d9d7 !important;
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+  transform: none !important;
+}
+#optionIcoController[data-side="top"] { transform: rotate(180deg) !important; }

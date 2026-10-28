@@ -63,7 +63,7 @@ export const Guest = memo(function Guest({ tab, visible, register, update }: { t
     /** Performs the favicon operation. */
     const favicon = (event: Electron.PageFaviconUpdatedEvent) => {
       const url = event.favicons.find((value) => /^https?:\/\//i.test(value) || /^data:image\//i.test(value))
-      updateRef.current(tab.id, { favicon: url })
+      if (url) updateRef.current(tab.id, { favicon: url })
     }
 
     /** Performs the fail operation. */
@@ -76,6 +76,10 @@ export const Guest = memo(function Guest({ tab, visible, register, update }: { t
       if (event.channel === "vessel-focus" || event.channel === "vessel-search-handled") {
         const value = event.args[0]
         if (typeof value === "boolean") view.dataset[event.channel === "vessel-focus" ? "inputFocused" : "pageHandlesSearch"] = String(value)
+      }
+      if (event.channel === "vessel-favicon") {
+        const icon = event.args[0]
+        if (typeof icon === "string" && /^(https?:\/\/|data:image\/)/i.test(icon)) updateRef.current(tab.id, { favicon: icon })
       }
       if (event.channel === "vessel-navigation") sync()
       if (event.channel === "vessel-find") window.dispatchEvent(new CustomEvent("vessel-browser-find", { detail: view.getWebContentsId() }))

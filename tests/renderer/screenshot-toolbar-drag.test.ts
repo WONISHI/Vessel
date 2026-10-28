@@ -1,0 +1,33 @@
+import { expect, it, vi } from "vitest"
+import { installToolbarDrag } from "@/features/screenshot/toolbar-drag"
+it("moves only from the grip, clamps to screen, and notifies attached menus", () => {
+  const toolbar = document.createElement("div")
+  const grip = document.createElement("span")
+  toolbar.append(grip)
+  document.body.append(toolbar)
+  grip.setPointerCapture = vi.fn()
+  grip.hasPointerCapture = vi.fn(() => true)
+  grip.releasePointerCapture = vi.fn()
+  vi.spyOn(toolbar, "getBoundingClientRect").mockReturnValue({ left: 100, top: 100, width: 300, height: 44 } as DOMRect)
+  const moved = vi.fn()
+  window.addEventListener("vessel:screenshot-toolbar-moved", moved)
+  const dispose = installToolbarDrag(toolbar, grip)
+  const pointer = (type: string, x: number, y: number) => {
+    const event = new MouseEvent(type, { button: 0, clientX: x, clientY: y, bubbles: true, cancelable: true })
+    Object.defineProperty(event, "pointerId", { value: 1 })
+    grip.dispatchEvent(event)
+  }
+  pointer("pointerdown", 110, 110)
+  pointer("pointermove", 160, 180)
+  expect(toolbar.style.left).toBe("150px")
+  expect(toolbar.style.top).toBe("170px")
+  pointer("pointermove", -100, -100)
+  expect(toolbar.style.left).toBe("8px")
+  expect(toolbar.style.top).toBe("8px")
+  pointer("pointerup", -100, -100)
+  expect(grip.releasePointerCapture).toHaveBeenCalledWith(1)
+  expect(moved).toHaveBeenCalledTimes(2)
+  dispose()
+  toolbar.remove()
+  window.removeEventListener("vessel:screenshot-toolbar-moved", moved)
+})

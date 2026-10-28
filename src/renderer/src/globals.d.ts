@@ -98,7 +98,11 @@ interface VesselAPI extends BrowserProxyAPI, BrowserToolsAPI, SettingsAPI, Brows
   cancelContentSearch(): void
   pickSearchFolder(): Promise<string | null>
   readTransitClipboard(): Promise<string | { root: string; path: string; title: string }>
-  openTransitWindow(item: { kind: string; content: string; title: string; root?: string }): Promise<void>
+  onFilePreviewUpdated(callback: (state: { items: { id: string; kind: "file"; title: string; root: string; content: string }[]; selected: string }) => void): () => void
+  getFilePreviewTabs(): Promise<{ id: string; kind: "file"; title: string; root: string; content: string }[]>
+  getFilePreview(): Promise<{ id: string; kind: "file"; title: string; root: string; content: string }>
+  filePreviewAction(action: "close" | "maximize" | "minimize"): Promise<void>
+  openTransitWindow(item: { kind: string; content: string; title: string; root?: string }, tabs?: { root: string; content: string }[]): Promise<void>
   pickOfficeFile(): Promise<{ token: string; name: string; bytes: Uint8Array } | null>
   convertOfficeMarkdown(name: string, bytes: Uint8Array): Promise<{ saved: boolean; path?: string }>
   setWindowAppearance(dark: boolean): Promise<void>
