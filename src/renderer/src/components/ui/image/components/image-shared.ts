@@ -16,6 +16,7 @@ export interface ImageProps extends Omit<ComponentPropsWithoutRef<"img">, "width
   onFocusAbove?: () => void
   onFocusBelow?: () => void
   onCopyReference?: () => void
+  onLocateFile?: () => Promise<void>
   onViewLink?: () => void
   onDelete?: () => void
   width?: number

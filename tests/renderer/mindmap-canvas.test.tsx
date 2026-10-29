@@ -67,7 +67,13 @@ it("adds multiple levels of child topics and saves the resulting editable tree",
   const save = vi.fn(async () => {})
   Object.defineProperty(window, "electronAPI", { configurable: true, value: { readContent: vi.fn(async () => '{"nodeData":{"id":"root","topic":"中心主题"}}'), saveContent: save } })
   render(<MindmapCanvas activeFilePath="/vault/test.mind" />)
-  await waitFor(() => expect(screen.getByRole("button", { name: "添加子主题" }).hasAttribute("disabled")).toBe(false))
+  await waitFor(() => expect(screen.getByRole("button", { name: "保存" }).hasAttribute("disabled")).toBe(false))
+  expect(screen.getByRole("button", { name: "添加子主题" }).hasAttribute("disabled")).toBe(true)
+  act(() => {
+    const editor = state.editors[0]
+    editor.selectNode({ nodeObj: editor.data.nodeData })
+    editor.listeners.selectNodes([editor.data.nodeData])
+  })
   fireEvent.click(screen.getByRole("button", { name: "添加子主题" }))
   await waitFor(() => expect(state.editors[0].addChild).toHaveBeenCalledTimes(1))
   fireEvent.click(screen.getByRole("button", { name: "添加子主题" }))
@@ -82,11 +88,17 @@ it("adds multiple levels of child topics and saves the resulting editable tree",
 it("routes branch editing, folding, ordering and layout buttons to the editor", async () => {
   Object.defineProperty(window, "electronAPI", { configurable: true, value: { readContent: vi.fn(async () => '{"nodeData":{"id":"root","topic":"中心主题"}}'), saveContent: vi.fn(async () => {}) } })
   render(<MindmapCanvas activeFilePath="/vault/actions.mind" />)
-  await waitFor(() => expect(screen.getByRole("button", { name: "复制分支" }).hasAttribute("disabled")).toBe(false))
+  await waitFor(() => expect(screen.getByRole("button", { name: "保存" }).hasAttribute("disabled")).toBe(false))
+  expect(screen.getByRole("button", { name: "复制分支" }).hasAttribute("disabled")).toBe(true)
   const editor = state.editors[0]
   expect(editor.options).toMatchObject({ overflowHidden: false, mouseSelectionButton: 2, draggable: true, editable: true })
   const node = { nodeObj: { id: "branch", topic: "分支", children: [{ id: "nested", topic: "子主题" }], parent: { id: "root" } } }
-  editor.currentNode = node
+  node.nodeObj.parent = editor.data.nodeData
+  editor.data.nodeData.children = [{ id: "first" }, node.nodeObj, { id: "last", expanded: false, children: [{ id: "last-child" }] }]
+  act(() => {
+    editor.currentNode = node
+    editor.listeners.selectNodes([node.nodeObj])
+  })
   for (const label of ["前置同级主题", "插入父主题", "复制分支", "上移主题", "下移主题", "折叠分支", "展开全部", "加粗/取消加粗", "双向布局"]) {
     fireEvent.click(screen.getByRole("button", { name: label }))
   }

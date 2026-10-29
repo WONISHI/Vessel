@@ -3,7 +3,7 @@ import { disposeCodeDiagnostics, getCodeDiagnostics } from "@main/diagnostics/co
 import { BaseModule } from "@main/modules/base/index"
 import { copyImage } from "@main/modules/files/copy-image"
 import { readImageFile } from "@main/modules/files/image-file"
-import { readObsidianImage } from "@main/modules/files/obsidian-image"
+import { readObsidianImage, resolveObsidianImageFile } from "@main/modules/files/obsidian-image"
 import { saveObsidianImage } from "@main/modules/files/save-obsidian-image"
 import { transferWorkspaceFiles } from "@main/modules/files/transfer-workspace-files"
 import { readWikiLink } from "@main/modules/files/wiki-link"
@@ -129,6 +129,11 @@ export class FilesModule extends BaseModule {
     ipcMain.handle("image:copy", (_event, source) => copyImage(source))
     ipcMain.handle("image:readFile", (_event, root, path) => readImageFile(root, path))
     ipcMain.handle("obsidian:saveImage", (_event, root, documentPath, source) => saveObsidianImage(root, documentPath, source))
+    ipcMain.handle("obsidian:resolveImage", async (_event, root: string, documentPath: string, reference: string) => {
+      const image = await resolveObsidianImageFile(root, documentPath, reference)
+      // Preserve the workspace's logical root so file-tree IDs also match symlinked vaults.
+      return join(root, relative(await realpath(root), image))
+    })
     ipcMain.handle("obsidian:readImage", (_event, root, documentPath, reference) => readObsidianImage(root, documentPath, reference))
     ipcMain.handle("workspace:transferFiles", (_event, root, paths, destination, external, duplicate) => transferWorkspaceFiles(root, paths, destination, external, duplicate === true))
     ipcMain.handle("workspace:mutateFile", (_event, root, path, name) => mutateWorkspaceFile(root, path, name))
@@ -152,6 +157,7 @@ export class FilesModule extends BaseModule {
     ipcMain.removeHandler("image:copy")
     ipcMain.removeHandler("image:readFile")
     ipcMain.removeHandler("obsidian:readImage")
+    ipcMain.removeHandler("obsidian:resolveImage")
     ipcMain.removeHandler("obsidian:saveImage")
     ipcMain.removeHandler("workspace:transferFiles")
     ipcMain.removeHandler("workspace:mutateFile")

@@ -19,6 +19,25 @@ export async function readObsidianImage(root: string, documentPath: string, refe
     const { bytes, extension } = await fetchRemoteImage(embed.target)
     return `data:image/${extension === "svg" ? "svg+xml" : extension === "jpg" ? "jpeg" : extension};base64,${bytes.toString("base64")}`
   }
+  const path = await resolveObsidianImageFile(root, documentPath, reference)
+  if ((await stat(path)).size > 20 * 1024 * 1024) throw new Error("图片超过 20MB")
+  const mime: Record<string, string> = { ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".jfif": "image/jpeg", ".gif": "image/gif", ".webp": "image/webp", ".awebp": "image/webp", ".bmp": "image/bmp", ".svg": "image/svg+xml", ".avif": "image/avif" }
+  return "data:" + mime[extname(path).toLowerCase()] + ";base64," + (await readFile(path)).toString("base64")
+}
+
+/** Resolve a local attachment with the same workspace bounds as image loading. */
+export async function resolveObsidianImageFile(root: string, documentPath: string, reference: string): Promise<string> {
+  const embed = parseImageReference(reference)
+  if (!embed) throw new Error("不是有效的 Obsidian 图片引用")
+  const base = await realpath(root)
+
+  /** Performs the within operation. */
+  const within = (path: string) => {
+    const offset = relative(base, path)
+    return offset !== ".." && !offset.startsWith(".." + sep) && !isAbsolute(offset)
+  }
+  if (!within(await realpath(documentPath))) throw new Error("文档不在工作区")
+  if (/^(?:https?:|data:|blob:)/i.test(embed.target)) throw new Error("该图片不是本地文件")
   const candidates: string[] = []
 
   /** Performs the scan operation. */
@@ -34,7 +53,5 @@ export async function readObsidianImage(root: string, documentPath: string, refe
   if (!found) throw new Error("找不到图片：" + embed.target)
   const path = await realpath(resolve(base, found))
   if (!within(path)) throw new Error("图片不在工作区")
-  if ((await stat(path)).size > 20 * 1024 * 1024) throw new Error("图片超过 20MB")
-  const mime: Record<string, string> = { ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".jfif": "image/jpeg", ".gif": "image/gif", ".webp": "image/webp", ".awebp": "image/webp", ".bmp": "image/bmp", ".svg": "image/svg+xml", ".avif": "image/avif" }
-  return "data:" + mime[extname(path).toLowerCase()] + ";base64," + (await readFile(path)).toString("base64")
+  return path
 }

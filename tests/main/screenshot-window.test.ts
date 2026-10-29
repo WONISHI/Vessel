@@ -3,15 +3,16 @@ const mocks = vi.hoisted(() => ({ windows: [] as any[] }))
 vi.mock("@main/screenshot/translate", () => ({ translateScreenshot: vi.fn() }))
 vi.mock("@main/settings/settings", () => ({ generalSettings: () => ({}), settingsEvents: { on: vi.fn() } }))
 vi.mock("electron", () => ({
-  app: {}, clipboard: {}, dialog: {}, globalShortcut: {}, nativeImage: {}, shell: {},
+  app: {}, clipboard: { writeImage: vi.fn() }, dialog: {}, globalShortcut: {},
+  nativeImage: { createFromDataURL: () => ({ isEmpty: () => false, getSize: () => ({ width: 320, height: 200 }) }) }, shell: {},
   systemPreferences: { getMediaAccessStatus: () => "not-determined" },
-  screen: { getCursorScreenPoint: () => ({ x: 0, y: 0 }), getDisplayNearestPoint: () => ({ id: 1, bounds: { x: 0, y: 0, width: 1000, height: 800 }, size: { width: 1000, height: 800 }, scaleFactor: 1 }) },
+  screen: { getCursorScreenPoint: () => ({ x: 0, y: 0 }), getDisplayNearestPoint: () => ({ id: 1, bounds: { x: 0, y: 0, width: 1000, height: 800 }, size: { width: 1000, height: 800 }, workArea: { x: 0, y: 0, width: 1000, height: 800 }, scaleFactor: 1 }) },
   desktopCapturer: { getSources: async () => [{ display_id: "1", thumbnail: { isEmpty: () => false, toDataURL: () => "data:image/png;base64,AA" } }] },
   BrowserWindow: class {
     handlers = new Map(); options: any
     webContents = { ipc: { handle: (key: string, fn: Function) => this.handlers.set(key, fn) }, setWindowOpenHandler: vi.fn(), on: vi.fn() }
     setBounds = vi.fn(); setAlwaysOnTop = vi.fn(); setVisibleOnAllWorkspaces = vi.fn(); on = vi.fn()
-    show = vi.fn(); focus = vi.fn(); close = vi.fn(); isDestroyed = () => false
+    showInactive = vi.fn(); show = vi.fn(); focus = vi.fn(); close = vi.fn(); isDestroyed = () => false
     loadFile = vi.fn(async () => {}); loadURL = vi.fn(async () => {})
     constructor(options: any) { this.options = options; mocks.windows.push(this) }
   }
@@ -29,4 +30,12 @@ it("does not transform the macOS process or repeatedly activate the screenshot o
   win.handlers.get("shot:ready")()
   expect(win.show).toHaveBeenCalledTimes(1)
   expect(win.focus).not.toHaveBeenCalled()
+  await win.handlers.get("shot:finish")({}, "data:image/png;base64,AA", true)
+  const pin = mocks.windows[1]
+  expect(pin.options).toMatchObject({ resizable: true, hasShadow: true })
+  if (process.platform === "darwin") expect(pin.options).toMatchObject({ type: "panel", fullscreenable: false })
+  expect(pin.setAlwaysOnTop).toHaveBeenCalledWith(true, "screen-saver")
+  expect(pin.setVisibleOnAllWorkspaces).toHaveBeenCalledWith(true, expect.objectContaining({ visibleOnFullScreen: true }))
+  expect(pin.showInactive).toHaveBeenCalledOnce()
+  expect(pin.show).not.toHaveBeenCalled()
 })

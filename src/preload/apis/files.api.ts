@@ -40,6 +40,7 @@ export const filesAPI = {
   saveObsidianImage: (root: string, documentPath: string, source: { bytes?: Uint8Array; url?: string; path?: string }): Promise<{ name: string; path: string; reference: string }> => ipcRenderer.invoke("obsidian:saveImage", root, documentPath, source),
 
   /** Reads obsidian image. */
+  resolveObsidianImage: (root: string, documentPath: string, reference: string): Promise<string> => ipcRenderer.invoke("obsidian:resolveImage", root, documentPath, reference),
   readObsidianImage: (root: string, documentPath: string, reference: string): Promise<string> => ipcRenderer.invoke("obsidian:readImage", root, documentPath, reference),
 
   /** Performs the transfer workspace files operation. */

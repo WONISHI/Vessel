@@ -1,3 +1,4 @@
+import { mindmapActionState } from "./action-state"
 import { bindRootSelection } from "./root-selection"
 import { bindBranchDrop } from "./branch-drop"
 import { useToolbarDrag } from "@/components/core/canvas/variants/mindmap/use-toolbar-drag"
@@ -42,10 +43,15 @@ export default function MindmapCanvas({ activeFilePath }: { activeFilePath: stri
   const [status, setStatus] = useState("正在加载…")
   const [error, setError] = useState("")
   const [ready, setReady] = useState(false)
+  const [allowed, setAllowed] = useState<Record<string, boolean>>({})
+  const refreshActions = useRef<() => void>(() => {})
 
   useEffect(() => {
     let disposeRootSelection: (() => void) | undefined
     let disposeBranchDrop: (() => void) | undefined
+    setReady(false)
+    setAllowed({})
+    selectedId.current = null
     let disposed = false
     let editor: MindElixirInstance | null = null
     let timer: ReturnType<typeof setTimeout> | undefined
@@ -70,11 +76,20 @@ export default function MindmapCanvas({ activeFilePath }: { activeFilePath: stri
     /** Captures edits before debounce so switching files can flush the final operation. */
     const changed = () => {
       if (!editor || disposed) return
+      syncActions()
       pending = JSON.stringify(editor.getData(), null, 2)
       setStatus("待保存")
       clearTimeout(timer)
       timer = setTimeout(() => void save(), 500)
     }
+    const syncActions = () => {
+      if (!editor || disposed) return
+      const nodes = editor.currentNodes ?? (editor.currentNode ? [editor.currentNode] : [])
+      const node = nodes.length === 1 ? nodes[0].nodeObj : undefined
+      selectedId.current = node?.id || null
+      setAllowed(mindmapActionState(editor.nodeData || editor.getData().nodeData, node, nodes.length, !!editor.isFocusMode))
+    }
+    refreshActions.current = syncActions
     captureChange.current = changed
     void window.electronAPI.readContent(activeFilePath).then(async (raw) => {
       if (disposed || !host.current) return
@@ -95,9 +110,10 @@ export default function MindmapCanvas({ activeFilePath }: { activeFilePath: stri
       editor.changeTheme(mindmapTheme(darkRef.current))
       disposeRootSelection = bindRootSelection(editor)
       instance.current = editor
-      selectedId.current = data.nodeData.id
-      editor.bus.addListener("selectNodes", (nodes) => { if (nodes.length) selectedId.current = nodes[nodes.length - 1].id })
-      editor.bus.addListener("selectNewNode", (node) => { selectedId.current = node.id })
+      editor.bus.addListener("selectNodes", syncActions)
+      editor.bus.addListener("unselectNodes", syncActions)
+      editor.bus.addListener("selectNewNode", syncActions)
+      syncActions()
       editor.bus.addListener("operation", (operation) => { if (operation.name !== "beginEdit") changed() })
       const undo = editor.undo.bind(editor)
       const redo = editor.redo.bind(editor)
@@ -130,15 +146,15 @@ export default function MindmapCanvas({ activeFilePath }: { activeFilePath: stri
   /** Runs node editing against the selection retained while toolbar buttons are clicked. */
   const editNode = async (action: typeof nodeActions[number][0]) => {
     const editor = instance.current
-    if (!editor) return
+    if (!editor || !allowed[action]) return
     try {
       const rootId = editor.getData().nodeData.id
       let node = editor.currentNode
-      if (!node) {
-        try { node = editor.findEle(selectedId.current || rootId) }
-        catch { node = editor.findEle(rootId) }
-      }
-      editor.selectNode(node)
+      const globalAction = ["expand-all", "collapse-all", "left", "right", "both", "unfocus"].includes(action)
+      if (!node && selectedId.current) node = editor.findEle(selectedId.current)
+      if (!node && !globalAction) return
+      if (!node) node = editor.findEle(rootId)
+      if (!globalAction) editor.selectNode(node)
       if (action === "child") await editor.addChild(node)
       else if (action === "sibling") {
         if (node.nodeObj.id === rootId) await editor.addChild(node)
@@ -180,6 +196,7 @@ export default function MindmapCanvas({ activeFilePath }: { activeFilePath: stri
         selectedId.current = rootId
       }
     } catch (reason) { toast.error("节点操作失败", { description: String(reason) }) }
+    finally { refreshActions.current() }
   }
 
   /** Downloads a portable map or rendered diagram without changing the source file. */
@@ -236,7 +253,7 @@ export default function MindmapCanvas({ activeFilePath }: { activeFilePath: stri
           {nodeActions.map(([action, label, Icon]) => (
             <Tooltip key={action}>
               <TooltipTrigger asChild>
-                <Button size="icon" variant="ghost" aria-label={label} disabled={!ready} onMouseDown={(event) => event.preventDefault()} onClick={() => void editNode(action)}><Icon aria-hidden /></Button>
+                <Button size="icon" variant="ghost" aria-label={label} disabled={!ready || !allowed[action]} onMouseDown={(event) => event.preventDefault()} onClick={() => void editNode(action)}><Icon aria-hidden /></Button>
               </TooltipTrigger>
               <TooltipContent side="top">{label}</TooltipContent>
             </Tooltip>

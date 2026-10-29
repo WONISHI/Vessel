@@ -82,6 +82,8 @@ function patchScreenShotPlugin() {
     transform(code: string, id: string) {
       if (!id.includes("js-web-screen-shot")) return null
       let patched = code
+      // Round white selection handles and a thin blue outline; keep original hit areas.
+      patched = patched.replace("var h=o;r.fillRect(A-h/2,e-h/2,h,h),r.fillRect(A-h/2+t/2,e-h/2,h,h),r.fillRect(A-h/2+t,e-h/2,h,h),r.fillRect(A-h/2,e-h/2+n/2,h,h),r.fillRect(A-h/2+t,e-h/2+n/2,h,h),r.fillRect(A-h/2,e-h/2+n,h,h),r.fillRect(A-h/2+t/2,e-h/2+n,h,h),r.fillRect(A-h/2+t,e-h/2+n,h,h)", "r.strokeStyle=Hn.cutBoxBdColor,r.lineWidth=1,r.strokeRect(A,e,t,n),Wn(A,e,t,n).forEach(function(P){r.beginPath(),r.arc(P.x,P.y,3.5,0,2*Math.PI),r.fillStyle=\"#ffffff\",r.fill(),r.strokeStyle=\"#c7c9cc\",r.lineWidth=1,r.stroke()})")
       patched = patched.replace("setToolStatus(!0);var i=o.cutOutBoxPosition;Jn(i.startX,i.startY,i.width,i.height,A,o.borderSize,e,t,!1)", "setToolStatus(!0);var i=o.cutOutBoxPosition;Jn(i.startX,i.startY,i.width,i.height,A,o.borderSize,e,t,!0)")
       patched = patched.replace("var i=Nn.cutOutBoxPosition;Jn(i.startX,i.startY,i.width,i.height,A,Nn.borderSize,r,o,!1)", "var i=Nn.cutOutBoxPosition;Jn(i.startX,i.startY,i.width,i.height,A,Nn.borderSize,r,o,!0)")
       patched = patched.replace("Gr.selectionBorderNodes.length>0&&!Jr.toolClickStatus&&!Nn.draggingTrim&&ys(A,e,i)", "Gr.selectionBorderNodes.length>0&&!Nn.draggingTrim&&ys(A,e,i)")

@@ -1000,3 +1000,9 @@ html.dark ::highlight(vessel-link-target) {
   border-radius: 3px;
   background: rgba(34, 197, 94, .1);
 }
+
+/* Let the final paragraph scroll above the status bar with room to keep writing. */
+.vessel-editor-scroll .vessel-vditor .vditor-ir > .vditor-reset[contenteditable="true"],
+.vessel-editor-scroll .vessel-vditor .vditor-wysiwyg > .vditor-reset[contenteditable="true"] {
+  padding-bottom: clamp(240px, 40vh, 480px) !important;
+}

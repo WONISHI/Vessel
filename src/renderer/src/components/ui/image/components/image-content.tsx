@@ -26,6 +26,7 @@ export function ImageContent({
   onFocusAbove,
   onFocusBelow,
   onViewLink,
+  onLocateFile,
   onCopyReference,
   onDelete,
   onDownloadLocal,
@@ -227,6 +228,11 @@ export function ImageContent({
               ))}
             </ContextMenuSubContent>
           </ContextMenuSub>
+          <ContextMenuItem disabled={!onLocateFile} onSelect={() => {
+            if (onLocateFile) void onLocateFile().catch((error) => toast.error(String(error)))
+          }}>
+            查找文件位置
+          </ContextMenuItem>
           {(onViewLink || src || resolved) && (
             <ContextMenuItem
               onSelect={() => {

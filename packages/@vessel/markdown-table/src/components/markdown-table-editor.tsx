@@ -635,6 +635,29 @@ export const MarkdownTableEditor: React.FC<MarkdownTableEditorProps> = ({
     onFocusBelow?.()
   }
 
+  const [edgeHint, setEdgeHint] = useState<{ axis: "row" | "column"; x: number; y: number; offset: number } | null>(null)
+  const positionEdge = (button: HTMLButtonElement, axis: "row" | "column", x?: number, y?: number) => {
+    const rect = button.getBoundingClientRect()
+    let centerX = rect.left + rect.width / 2
+    let centerY = rect.top + rect.height / 2
+    if (axis === "row" && x !== undefined) {
+      const cells = Array.from(tableRef.current?.rows[tableRef.current.rows.length - 1]?.cells || [])
+      const cell = cells.find((cell) => { const r = cell.getBoundingClientRect(); return x >= r.left && x <= r.right })
+      if (cell) { const r = cell.getBoundingClientRect(); centerX = (r.left + r.right) / 2 }
+    } else if (axis === "column" && y !== undefined) {
+      const row = Array.from(tableRef.current?.rows || []).find((row) => { const r = row.getBoundingClientRect(); return y >= r.top && y <= r.bottom })
+      if (row) { const r = row.getBoundingClientRect(); centerY = (r.top + r.bottom) / 2 }
+    }
+    const next = { axis, x: centerX, y: centerY, offset: axis === "row" ? centerX - rect.left : centerY - rect.top }
+    setEdgeHint((previous) => previous?.axis === axis && previous.x === next.x && previous.y === next.y ? previous : next)
+  }
+  useEffect(() => {
+    const hide = () => setEdgeHint(null)
+    window.addEventListener("scroll", hide, true)
+    window.addEventListener("resize", hide)
+    return () => { window.removeEventListener("scroll", hide, true); window.removeEventListener("resize", hide) }
+  }, [])
+
   const curRow = selection?.startRow ?? activeEdit?.row ?? 0
   const curCol = selection?.startCol ?? activeEdit?.col ?? 0
   const currentCell = tableData.rows[curRow]?.cells[curCol]
@@ -1113,8 +1136,17 @@ export const MarkdownTableEditor: React.FC<MarkdownTableEditorProps> = ({
             </tbody>
           </table>
           {!readOnly && <>
-            <button type="button" className="vessel-table-edge-add vessel-table-edge-column" aria-label="在表格右侧新增列" title="在表格右侧新增列" onMouseDown={(event) => event.preventDefault()} onClick={() => insertCol(tableData.columns.length)}><span aria-hidden="true">+</span></button>
-            <button type="button" className="vessel-table-edge-add vessel-table-edge-row" aria-label="在表格底部新增行" title="在表格底部新增行" onMouseDown={(event) => event.preventDefault()} onClick={() => insertRow(tableData.rows.length)}><span aria-hidden="true">+</span></button>
+            {(["column", "row"] as const).map((axis) => <button key={axis} type="button" className={`vessel-table-edge-add vessel-table-edge-${axis}`} aria-label={axis === "row" ? "在表格底部新增行" : "在表格右侧新增列"}
+              onMouseEnter={(event) => positionEdge(event.currentTarget, axis, event.clientX, event.clientY)}
+              onMouseMove={(event) => positionEdge(event.currentTarget, axis, event.clientX, event.clientY)}
+              onMouseLeave={() => setEdgeHint(null)}
+              onFocus={(event) => positionEdge(event.currentTarget, axis)}
+              onBlur={() => setEdgeHint(null)}
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => { setEdgeHint(null); axis === "row" ? insertRow(tableData.rows.length) : insertCol(tableData.columns.length) }}>
+              <span aria-hidden="true" style={edgeHint?.axis === axis ? axis === "row" ? { left: edgeHint.offset } : { top: edgeHint.offset } : undefined}>+</span>
+            </button>)}
+            {edgeHint && createPortal(<div role="tooltip" className="vessel-table-edge-tooltip" style={{ left: Math.max(70, Math.min(window.innerWidth - 70, edgeHint.x)), top: Math.max(4, edgeHint.y - 34) }}>{edgeHint.axis === "row" ? "在下方新增行" : "在右侧新增列"}</div>, document.body)}
           </>}
           </div>
         </div>

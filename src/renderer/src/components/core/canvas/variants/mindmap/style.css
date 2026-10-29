@@ -50,3 +50,8 @@ html.dark .vessel-mindmap > div:fullscreen { background: #30353c; }
 }
 .vessel-mindmap me-tpc[data-vessel-branch-drop="before"]::after { top: -7px; }
 .vessel-mindmap me-tpc[data-vessel-branch-drop="after"]::after { bottom: -7px; }
+
+.vessel-mindmap .mindmap-node-actions button:hover:not(:disabled),
+.vessel-mindmap .mindmap-node-actions button:hover:not(:disabled) svg {
+  color: #fff;
+}

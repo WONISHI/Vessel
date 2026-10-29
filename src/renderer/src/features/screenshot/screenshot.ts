@@ -1,3 +1,6 @@
+import { createOcrDialog } from "@/features/screenshot/ocr-dialog"
+import { arrangeScreenshotToolbar } from "@/features/screenshot/toolbar-order"
+import { installToolbarTooltip } from "@/features/screenshot/toolbar-tooltip"
 import { installToolbarDrag } from "@/features/screenshot/toolbar-drag"
 import { installScreenshotModes, updateScreenshotToolbar } from "@/features/screenshot/mode-menu"
 import { installOptionArrow } from "@/features/screenshot/option-arrow"
@@ -8,7 +11,7 @@ import "@fontsource/plus-jakarta-sans/400.css"
 import "@fontsource/plus-jakarta-sans/600.css"
 import { matchesShortcut } from "@vessel/utils"
 import ScreenShot from "js-web-screen-shot"
-import { Check, Circle, Copy, DownloadSimple as Download, Translate as Languages, GridNine as Grid3x3, NumberCircleOne as ListOrdered, ArrowUpRight as MoveUpRight, PencilSimple as Pencil, PushPin as Pin, Scan as ScanText, Square, TextT as Type, ArrowUUpLeft as Undo2, DotsThree, X } from "@phosphor-icons/react/ssr"
+import { Check, Circle, Copy, DownloadSimple as Download, Translate as Languages, PencilLine, NumberCircleOne as ListOrdered, ArrowUpRight as MoveUpRight, PencilSimpleLine, PushPin as Pin, Scan as ScanText, Square, TextT as Type, ArrowUUpLeft as Undo2, DotsThree, X } from "@phosphor-icons/react/ssr"
 import { createElement } from "react"
 import { renderToStaticMarkup } from "react-dom/server"
 type ScreenshotAPI = { pinMenu(): Promise<void>; pinStyle(style: { opacity?: number; shadow?: boolean }): Promise<void>; onPinStyleToggle(callback: () => void): () => void; ready(): Promise<void>; data(): Promise<{ mode: "capture" | "pin"; image: string }>; finish(image: string, pin: boolean): Promise<void>; close(): Promise<void>; copy(): Promise<void>; copyText(text: string): Promise<void>; translate(text: string, target: string): Promise<string> }
@@ -34,8 +37,8 @@ function installToolbarIcons() {
     ["square", Square],
     ["round", Circle],
     ["right-top", MoveUpRight],
-    ["brush", Pencil],
-    ["mosaicPen", Grid3x3],
+    ["brush", PencilSimpleLine],
+    ["mosaicPen", PencilLine],
     ["text", Type],
     ["save", Download],
     ["close", X]
@@ -49,7 +52,7 @@ function installToolbarIcons() {
     `#toolPanel .undo{background-image:${icon(Undo2)} !important;${base}}`,
     `#toolPanel .undo:hover,#toolPanel .undo:active{background-image:${icon(Undo2, "#171717")} !important;${base}}`,
     `#toolPanel .undo-disabled.shot-can-undo{background-image:${icon(Undo2)} !important;${base}}`,
-    `#toolPanel .undo-disabled{background-image:${icon(Undo2, "#a9adaa")} !important;${base}}`
+    `#toolPanel .undo-disabled:not(.shot-can-undo),#toolPanel .undo-disabled:not(.shot-can-undo):hover,#toolPanel .undo-disabled:not(.shot-can-undo):active{background-image:${icon(Undo2, "#a8adaa")} !important;${base}}`
   )
   const style = document.createElement("style")
   style.textContent = rules.join("\n")
@@ -68,6 +71,7 @@ void api
     if (mode === "capture") {
       let action: "copy" | "pin" | "ocr" | "save" | "translate" = "copy"
       let stepTools: ReturnType<typeof installSteps> | undefined
+      let stopTooltip: (() => void) | undefined
       let stopToolbarDrag: (() => void) | undefined
       let stopModeMenu: (() => void) | undefined
       let stopOptionArrow: (() => void) | undefined
@@ -139,6 +143,8 @@ void api
           confirm.click()
         })
         copy.before(pin)
+        if (toolbar) arrangeScreenshotToolbar(toolbar)
+        if (toolbar) stopTooltip = installToolbarTooltip(toolbar)
         // Route downloads through the same compositor so numbered steps are included.
         const save = document.querySelector<HTMLElement>("#toolPanel .save")
         save?.addEventListener(
@@ -177,6 +183,7 @@ void api
           stopOptionArrow?.()
           stopModeMenu?.()
           stopToolbarDrag?.()
+          stopTooltip?.()
           stopInspector?.()
           stepTools?.hide()
           void mergeSteps(base64, cutInfo, stepTools?.steps || [])
@@ -261,82 +268,50 @@ function showError(error: unknown) {
 
 /** Shows ocr. */
 async function showOcr(image: string, translate = false) {
-  const panel = document.createElement("section")
-  panel.className = "shot-ocr"
-  const title = document.createElement("h2")
-  title.textContent = translate ? "截图翻译" : "截图 OCR"
-  const status = document.createElement("p")
-  status.textContent = "正在本地识别…"
-  const text = document.createElement("textarea")
-  text.setAttribute("aria-label", "截图识别结果")
-  text.placeholder = "识别结果"
-  text.readOnly = true
-  const translated = document.createElement("textarea")
-  translated.setAttribute("aria-label", "截图翻译结果")
-  translated.placeholder = "翻译结果"
-  translated.readOnly = true
-  const language = document.createElement("select")
-  language.setAttribute("aria-label", "目标语言")
-  for (const [value, label] of [["zh-CN", "简体中文"], ["en", "英语"], ["ja", "日语"], ["ko", "韩语"]]) {
-    const option = document.createElement("option")
-    option.value = value
-    option.textContent = label
-    language.append(option)
-  }
-  const retry = document.createElement("button")
-  retry.textContent = "翻译"
-  retry.disabled = true
+  const { overlay, text, translated, language, retry, copy, close, setStatus, setBusy } = createOcrDialog(translate)
   const runTranslation = async () => {
-    retry.disabled = true
+    setBusy(true)
     copy.disabled = true
     translated.value = ""
-    status.textContent = "正在翻译…"
+    setStatus("正在翻译…", "busy")
     try {
       translated.value = await api.translate(text.value, language.value)
       copy.disabled = !translated.value
-      status.textContent = "翻译完成"
+      setStatus("翻译完成")
     } catch (error) {
       const message = (error instanceof Error ? error.message : String(error)).replace(/^Error invoking remote method '[^']+': (?:Error: )?/, "")
-      status.textContent = `翻译失败：${message}`
+      setStatus(`翻译失败：${message}`, "error")
     } finally {
-      retry.disabled = false
+      setBusy(false, !!translated.value)
     }
   }
   retry.onclick = () => void runTranslation()
-  const copy = document.createElement("button")
-  copy.textContent = translate ? "复制译文" : "复制文字"
-  copy.disabled = true
   copy.onclick = () => {
     void api.copyText(translate ? translated.value : text.value).then(
       () => {
-        status.textContent = "已复制"
+        setStatus("已复制到剪贴板")
       },
       (error) => {
-        status.textContent = String(error)
+        setStatus(String(error), "error")
       }
     )
   }
-  const close = document.createElement("button")
-  close.textContent = "关闭"
-  close.onclick = () => {
-    void api.close()
+  close.onclick = () => { void api.close() }
+  text.oninput = () => {
+    if (translate) { translated.value = ""; copy.disabled = true; setStatus("原文已修改，请重新翻译") }
+    else copy.disabled = !text.value.trim()
   }
-  panel.append(title, status, text)
-  if (translate) {
-    panel.classList.add("shot-translation")
-    panel.append(language, retry, translated)
-  }
-  panel.append(copy, close)
-  root.append(panel)
+  root.append(overlay)
   try {
     text.value = await recognizeImage(image)
     text.readOnly = false
     copy.disabled = translate || !text.value
-    status.textContent = text.value ? "识别完成 · 本地离线" : "未识别到文字"
+    setStatus(text.value ? "识别完成 · 本地离线" : "未识别到文字")
+    retry.disabled = !text.value.trim()
     if (translate && text.value) {
       await runTranslation()
     }
   } catch (error) {
-    status.textContent = `识别失败：${error instanceof Error ? error.message : String(error)}`
+    setStatus(`识别失败：${error instanceof Error ? error.message : String(error)}`, "error")
   }
 }

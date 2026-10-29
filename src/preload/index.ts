@@ -22,6 +22,7 @@ const vesselAPI = {
     ipcRenderer.on("preview:updated", handler)
     return () => ipcRenderer.removeListener("preview:updated", handler)
   },
+  selectFilePreview: (id: string) => ipcRenderer.invoke("preview:select", id),
   getFilePreviewTabs: () => ipcRenderer.invoke("preview:tabs"),
   getFilePreview: () => ipcRenderer.invoke("preview:data"),
   filePreviewAction: (action: "close" | "maximize" | "minimize") => ipcRenderer.invoke("preview:action", action),

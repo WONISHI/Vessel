@@ -97,6 +97,7 @@ export interface VesselAPI extends BrowserProxyAPI, BrowserToolsAPI, SettingsAPI
   pickSearchFolder(): Promise<string | null>
   readTransitClipboard(): Promise<string | { root: string; path: string; title: string }>
   onFilePreviewUpdated(callback: (state: { items: { id: string; kind: "file"; title: string; root: string; content: string }[]; selected: string }) => void): () => void
+  selectFilePreview(id: string): Promise<void>
   getFilePreviewTabs(): Promise<{ id: string; kind: "file"; title: string; root: string; content: string }[]>
   getFilePreview(): Promise<{ id: string; kind: "file"; title: string; root: string; content: string }>
   filePreviewAction(action: "close" | "maximize" | "minimize"): Promise<void>
@@ -163,6 +164,7 @@ export interface VesselAPI extends BrowserProxyAPI, BrowserToolsAPI, SettingsAPI
   readImageFile: (root: string, path: string) => Promise<ImageFile>
   readWikiLink: (root: string, target: string) => Promise<{ path: string; content: string }>
   saveObsidianImage: (root: string, documentPath: string, source: { bytes?: Uint8Array; url?: string; path?: string }) => Promise<{ name: string; path: string; reference: string }>
+  resolveObsidianImage: (root: string, documentPath: string, reference: string) => Promise<string>
   readObsidianImage: (root: string, documentPath: string, reference: string) => Promise<string>
   transferWorkspaceFiles: (root: string, paths: string[], destination: string, external: boolean, duplicate?: boolean) => Promise<{ source: string; target: string }[]>
   mutateWorkspaceFile: (root: string, path: string, name?: string) => Promise<string>

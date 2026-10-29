@@ -27,6 +27,11 @@ export default function StandalonePreview() {
     }).catch((error) => { if (!disposed) setError(String(error)) })
     return () => { disposed = true; unsubscribe?.() }
   }, [])
+  useEffect(() => {
+    if (!item) return
+    document.title = item.title
+    void window.electronAPI.selectFilePreview?.(item.id)
+  }, [item?.id, item?.title])
   return <TooltipProvider><div className="transit-sheet fixed inset-0 flex h-dvh w-screen flex-col overflow-hidden bg-white text-stone-800">
     <nav className="transit-bar transit-strip-bar" aria-label="预览文件标签">
       <button className="transit-bar-item" aria-label="上一个文件" disabled={index <= 0} onClick={() => setSelected(items[index - 1].id)}><ChevronLeft /></button>

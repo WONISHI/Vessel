@@ -35,6 +35,15 @@ export async function openFilePreviewWindow(path: string, paths: string[] = [pat
   win.webContents.ipc.handle("app:report-crash", () => {})
   registerOffice(win.webContents)
   registerTransit(win.webContents)
+  win.on("page-title-updated", (event) => {
+    event.preventDefault()
+    win.setTitle(basename(state.selected))
+  })
+  win.webContents.ipc.handle("preview:select", (_event, id: unknown) => {
+    if (typeof id !== "string" || !state.tabs.some((tab) => tab.id === id)) return
+    state.selected = id
+    win.setTitle(basename(id))
+  })
   win.webContents.ipc.handle("preview:tabs", () => state.tabs)
   win.webContents.ipc.handle("preview:data", () => fileTab(state.selected))
   win.webContents.ipc.handle("preview:action", (_event, action: string) => {

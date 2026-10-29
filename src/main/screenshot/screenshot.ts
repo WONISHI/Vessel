@@ -25,8 +25,8 @@ function create(bounds: Electron.Rectangle, resizable = true) {
     frame: false,
     hasShadow: resizable,
     resizable,
-    // Capture overlays must not activate Vessel or switch away from the current Space.
-    ...(process.platform === "darwin" && !resizable ? { type: "panel" as const, fullscreenable: false, acceptFirstMouse: true } : {}),
+    // Both capture overlays and pins must float above other apps, including full-screen Spaces.
+    ...(process.platform === "darwin" ? { type: "panel" as const, fullscreenable: false, acceptFirstMouse: true } : {}),
     enableLargerThanScreen: true,
     alwaysOnTop: true,
     skipTaskbar: true,
@@ -119,7 +119,7 @@ export async function startScreenshot() {
         pin.webContents.ipc.handle("shot:data", () => ({ mode: "pin", image: data }))
         pin.webContents.ipc.handle("shot:copy", () => clipboard.writeImage(img))
         await load(pin)
-        pin.show()
+        pin.showInactive()
         if (!win.isDestroyed()) win.close()
       } finally {
         finishing = false

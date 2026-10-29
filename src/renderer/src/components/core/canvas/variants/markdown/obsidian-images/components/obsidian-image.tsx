@@ -259,6 +259,10 @@ export function ObsidianImage({ reference, root, documentPath, onChange, onFocus
         }
         onFocusAbove={readOnly ? undefined : onFocusAbove}
         onFocusBelow={readOnly ? undefined : onFocusBelow}
+        onLocateFile={/^(?:https?:|data:|blob:)/i.test(embed.target) ? undefined : async () => {
+          const path = await window.electronAPI.resolveObsidianImage(root, documentPath, reference)
+          window.dispatchEvent(new CustomEvent("vessel:reveal-file", { detail: path }))
+        }}
         onViewLink={handleOpenLink}
         onDelete={readOnly ? undefined : handleDelete}
         sourceKey={`${root}:${documentPath}:${reference}`}

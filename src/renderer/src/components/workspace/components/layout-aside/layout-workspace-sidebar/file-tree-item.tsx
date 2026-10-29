@@ -29,7 +29,7 @@ export default function FileTreeItem({ node, rootPath, selected, expanded, loadi
       data-title={error ? `${error}，点击重试` : tooltipPath}
       data-title-side="right"
       onClick={onActivate}
-      className={cn("h-8 w-full justify-start gap-2 rounded-md px-2 text-[11px] font-normal transition-none", selected ? "bg-emerald-50 text-green-700 font-medium hover:bg-emerald-50 hover:text-green-700 cursor-pointer shadow-none" : "text-stone-700 hover:bg-[#f0efed] hover:text-stone-900")}
+      className={cn("h-8 w-full justify-start gap-2 rounded-md px-2 text-[11px] font-normal transition-none focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:bg-emerald-50", selected ? "bg-emerald-50 text-green-700 font-medium hover:bg-emerald-50 hover:text-green-700 cursor-pointer shadow-none" : "text-stone-700 hover:bg-[#f0efed] hover:text-stone-900")}
     >
       <span
         aria-hidden
