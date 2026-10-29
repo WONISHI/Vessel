@@ -169,6 +169,7 @@ interface VesselAPI extends BrowserProxyAPI, BrowserToolsAPI, SettingsAPI, Brows
   getStorageInfo: () => Promise<StorageInfo>
 
   /** 读取文件内容。 */
+  openProjectInEditor(root: string): Promise<string>
   revealWorkspaceFile: (root: string, path: string) => Promise<void>
   readClipboardImage: () => Promise<string | null>
   copyImage: (source: string) => Promise<void>

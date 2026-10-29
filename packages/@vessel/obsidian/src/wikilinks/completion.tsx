@@ -1,5 +1,5 @@
 import { parseWikiLinks } from "./index.js"
-import React, { cloneElement, useEffect, useRef, useState, type InputHTMLAttributes, type ReactElement } from "react"
+import React, { cloneElement, useEffect, useId, useRef, useState, type InputHTMLAttributes, type ReactElement } from "react"
 import { createPortal } from "react-dom"
 
 export interface WikiFileSuggestion {
@@ -21,6 +21,8 @@ export function wikiCompletionAt(text: string, caret: number) {
 
 /** Input adapter with a portal suggestion tooltip; callers supply workspace file access. */
 export function WikiLinkInput<T extends HTMLInputElement | HTMLTextAreaElement>({ input, search, renderScrollArea = (children) => <div style={{ maxHeight: 192, overflowY: "auto", overflowX: "hidden" }}>{children}</div> }: { renderScrollArea?: (children: React.ReactNode) => React.ReactNode; input: ReactElement<InputHTMLAttributes<T>>; search: (query: string, signal?: AbortSignal) => Promise<WikiFileSuggestion[]> }) {
+  const generatedId = useId()
+  const inputId = input.props.id || generatedId
   const ref = useRef<T>(null)
   const popup = useRef<HTMLDivElement>(null)
   const [range, setRange] = useState<ReturnType<typeof wikiCompletionAt>>(null)
@@ -100,6 +102,7 @@ export function WikiLinkInput<T extends HTMLInputElement | HTMLTextAreaElement>(
     <>
       {cloneElement(input, {
         ref,
+        id: inputId,
         role: "combobox",
         "aria-expanded": Boolean(range),
         "aria-label": input.props["aria-label"] || "单元格内容",
@@ -141,6 +144,7 @@ export function WikiLinkInput<T extends HTMLInputElement | HTMLTextAreaElement>(
         createPortal(
           <div
             ref={popup}
+            data-cell-editor-anchor={inputId}
             onScrollCapture={(event) => {
               const viewport = event.target as HTMLElement
               if (viewport.clientHeight > 0 && viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight < 48) setVisibleCount((count) => Math.min(items.length, count + 30))

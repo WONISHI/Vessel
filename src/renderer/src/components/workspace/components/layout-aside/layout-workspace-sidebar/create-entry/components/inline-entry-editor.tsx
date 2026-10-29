@@ -88,7 +88,7 @@ export function InlineEntryEditor({ draft, onFinish }: { draft: EntryDraft; onFi
   }
   return (
     <form
-      className="flex w-full min-w-0 flex-1 flex-wrap items-center gap-1 pr-2"
+      className="flex w-full min-w-0 flex-1 flex-wrap items-center gap-1 pl-7 pr-2"
       onSubmit={(event) => {
         event.preventDefault()
         void submit()

@@ -267,6 +267,10 @@ export const MarkdownTableEditor: React.FC<MarkdownTableEditorProps> = ({
     const handleDocumentMouseDown = (e: MouseEvent) => {
       const target = e.target as Node | null
       if (!target) return
+      // A cell editor can render its completion menu in a document-level portal.
+      const popup = target instanceof Element ? target.closest<HTMLElement>("[data-cell-editor-anchor]") : null
+      const anchorId = popup?.dataset.cellEditorAnchor
+      if (anchorId && tableRef.current?.contains(document.getElementById(anchorId))) return
 
       // If clicked outside the more menu popover/trigger, close it
       if (moreMenuRef.current && !moreMenuRef.current.contains(target) && !menuPopupRef.current?.contains(target)) {

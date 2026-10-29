@@ -32,6 +32,7 @@ export const filesAPI = {
   readWikiLink: (root: string, target: string): Promise<{ path: string; content: string }> => ipcRenderer.invoke("obsidian:readWikiLink", root, target),
 
   /** Performs the reveal workspace file operation. */
+  openProjectInEditor: (root: string): Promise<string> => ipcRenderer.invoke("workspace:openInEditor", root),
   revealWorkspaceFile: (root: string, path: string): Promise<void> => ipcRenderer.invoke("workspace:revealFile", root, path),
 
   /** Reads image file. */

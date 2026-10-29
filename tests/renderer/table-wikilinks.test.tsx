@@ -99,3 +99,24 @@ it("previews table wikilinks in a hover card", async () => {
   expect(screen.getByText("Python 文件预览内容")).toBeTruthy()
   expect(document.querySelector("[data-wiki-preview]")).toBeTruthy()
 })
+
+it("keeps the cell editor alive during a real mouse selection in its portaled suggestions", async () => {
+  const saveContent = vi.fn().mockResolvedValue(undefined)
+  vi.stubGlobal("electronAPI", {
+    readContent: vi.fn().mockResolvedValue(createMarkdownTableDocument("表格.markdowntable")),
+    saveContent,
+    readWorkspaceDirectory: vi.fn().mockResolvedValue([{ name: "逻辑运算符.md", path: "/vault/逻辑运算符.md", type: "file" }])
+  })
+  render(<MarkdownTableCanvas activeFilePath="/vault/表格.markdowntable" workspacePath="/vault" />)
+  fireEvent.doubleClick((await screen.findAllByRole("columnheader"))[0])
+  const input = screen.getByRole("combobox") as HTMLTextAreaElement
+  fireEvent.change(input, { target: { value: "[[逻辑", selectionStart: 4 } })
+  const option = await screen.findByRole("option", { name: /逻辑运算符/ })
+  fireEvent.mouseDown(option)
+  expect(screen.getByRole("combobox")).toBe(input)
+  fireEvent.mouseUp(option)
+  fireEvent.click(option)
+  await waitFor(() => expect(input.value).toBe("[[逻辑运算符.md]]"))
+  expect(screen.queryByRole("listbox")).toBeNull()
+  await waitFor(() => expect(JSON.parse(saveContent.mock.calls.at(-1)![1]).rows[0].cells[0].text).toBe("[[逻辑运算符.md]]"))
+})

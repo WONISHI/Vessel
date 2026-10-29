@@ -5,12 +5,13 @@ import WorkspaceTree from "@/components/workspace/components/layout-aside/layout
 import { Project } from "@/components/workspace/components/layout-aside/project-library/components/project-library-shared"
 import { useWorkspace } from "@/components/workspace/hooks/useWorkspace"
 import { readLibraryMeta, updateLibraryMeta } from "@/pages/resources/library-state"
-import { Ellipsis, FolderOpen, HardDrive, HardDriveUpload, Plus, RefreshCw, X } from "lucide-react"
+import { Ellipsis, ExternalLink, FolderOpen, HardDrive, HardDriveUpload, Plus, RefreshCw, X } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 
 /** Renders the project library content component. */
 export function ProjectLibraryContent({ pinned, onPin, onSelect }: { pinned: boolean; onPin: () => void; onSelect: (project: Project) => void }) {
   const { workspace } = useWorkspace()
+  const [openingEditor, setOpeningEditor] = useState(false)
   const [projects, setProjects] = useState<Project[]>([])
   const [error, setError] = useState("")
   const [ready, setReady] = useState(false)
@@ -171,6 +172,22 @@ export function ProjectLibraryContent({ pinned, onPin, onSelect }: { pinned: boo
             {workspace.path}
           </p>
         </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-6 shrink-0 hover:bg-emerald-700 hover:!text-white"
+          aria-label="在编辑器中打开项目"
+          data-title="打开项目：优先 VS Code，其次 WebStorm"
+          disabled={openingEditor}
+          onClick={() => {
+            setOpeningEditor(true)
+            void window.electronAPI.openProjectInEditor(workspace.path)
+              .catch((reason) => setError(String(reason).replace(/^Error invoking remote method '[^']+': (?:Error: )?/, "")))
+              .finally(() => setOpeningEditor(false))
+          }}
+        >
+          <ExternalLink className="!size-3.5" />
+        </Button>
         <Button
           variant="ghost"
           size="icon"

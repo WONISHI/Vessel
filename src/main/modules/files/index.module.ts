@@ -1,3 +1,4 @@
+import { openProjectInEditor } from "@main/files/open-project-editor"
 import { shareFilesToWechat } from "./share-wechat"
 import { disposeCodeDiagnostics, getCodeDiagnostics } from "@main/diagnostics/code-diagnostics"
 import { BaseModule } from "@main/modules/base/index"
@@ -110,6 +111,7 @@ export class FilesModule extends BaseModule {
   /** Handles activate events. */
   protected onActivate(): void {
     ipcMain.handle("code:diagnostics", (_event, path, content) => getCodeDiagnostics(path, content))
+    ipcMain.handle("workspace:openInEditor", (_event, root: unknown) => openProjectInEditor(root))
     ipcMain.handle("workspace:revealFile", async (_event, root: string, path: string) => {
       const base = await realpath(root),
         source = await realpath(path),
@@ -151,6 +153,7 @@ export class FilesModule extends BaseModule {
   protected onDispose(): void {
     ipcMain.removeHandler("code:diagnostics")
     disposeCodeDiagnostics()
+    ipcMain.removeHandler("workspace:openInEditor")
     ipcMain.removeHandler("workspace:revealFile")
     ipcMain.removeHandler("obsidian:readWikiLink")
     ipcMain.removeHandler("file:share-wechat")
