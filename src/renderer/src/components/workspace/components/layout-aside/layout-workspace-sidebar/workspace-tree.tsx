@@ -10,7 +10,7 @@ import { sortWorkspaceNodes, type FileSortBy, type FileSortOrder } from "@/compo
 import { useFileChanges } from "@/components/workspace/hooks/file-changes"
 import { useWorkspace } from "@/components/workspace/hooks/useWorkspace"
 import type { WorkspaceNode } from "@/components/workspace/types/workspace"
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useLayoutEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 
 interface DirectoryState {
@@ -215,14 +215,15 @@ export default function WorkspaceTree({
   }, [viewport, draftIndex, draft])
   const isRootReveal = revealPath === workspace.path
   const revealIndex = rows.findIndex((row) => row.id === revealPath)
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (viewport && isRootReveal && !draft) {
-      viewport.scrollTo({ top: 0, behavior: "smooth" })
+      viewport.scrollTo({ top: 0, behavior: "instant" })
       setSelection([])
       onRevealed?.()
     } else if (viewport && revealIndex >= 0 && !draft && revealPath) {
       const top = revealCentered ? Math.max(0, revealIndex * 32 + 16 - viewport.clientHeight / 2) : treeRevealScrollTop(revealIndex, viewport.scrollTop, viewport.clientHeight)
-      if (top !== viewport.scrollTop) viewport.scrollTo({ top, behavior: "smooth" })
+      if (top !== viewport.scrollTop) viewport.scrollTo({ top, behavior: "instant" })
+      viewport.dispatchEvent(new Event("vessel:tree-reveal"))
       setSelection([revealPath])
       onRevealed?.()
     }

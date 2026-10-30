@@ -4,12 +4,14 @@
  * preserves the canonical CRX `runtime_id` when unpacked extensions lack a `manifest.json` `"key"`.
  * Must stay self-contained: it is serialized and executed inside extension pages and background pages.
  */
-export function installExtensionApiShim() {
+export function installExtensionApiShim(tabBridgeToken?: string) {
   const scope = globalThis as unknown as {
     chrome?: Record<string, any>
     fetch?: typeof fetch
     XMLHttpRequest?: typeof XMLHttpRequest
     __vesselExtensionShim?: boolean
+    open?: (url: string, target?: string) => unknown
+    clients?: { openWindow(url: string): Promise<unknown> }
   }
   const chrome = scope.chrome
   if (!chrome?.runtime?.id || scope.__vesselExtensionShim) return
@@ -25,32 +27,34 @@ export function installExtensionApiShim() {
   }
 
   const manifest = chrome.runtime.getManifest?.() || {}
-  const runtimeId =
-    manifest.author === "mzkeapp@gmail.com" || /iguge/i.test(String(manifest.homepage_url || ""))
-      ? "ncldcbhpeplkfijdhnoepdgdnmjkckij"
-      : chrome.runtime.id
-
-  // When an unpacked CRX was loaded without `manifest.key`, Chromium assigns a path-derived ID
-  // instead of the CRX public-key ID. iGuge's backend rejects sendcode_v2 / email_login with
-  // "验证超时，请刷新页面重试。Error 201" unless `runtime_id` matches its signed CRX ID.
-  if (runtimeId !== chrome.runtime.id) {
+  const runtimeId = chrome.runtime.id
+  // Keep request identity identical to Chromium's extension Origin. CRX identity belongs
+  // in manifest.key at import time, never in a rewritten authentication request body.
+  if (manifest.author === "mzkeapp@gmail.com" || /iguge/i.test(String(manifest.homepage_url || ""))) {
     if (typeof scope.fetch === "function") {
       const originalFetch = scope.fetch.bind(scope)
       scope.fetch = (input: RequestInfo | URL, init?: RequestInit) => {
-        if (init && typeof init.body === "string" && init.body.includes(chrome.runtime.id)) {
-          init = { ...init, body: init.body.replaceAll(chrome.runtime.id, runtimeId) }
+        const pending = originalFetch(input, init)
+        // Report only fixed endpoint names and booleans; never account, code, token or response bodies.
+        if (tabBridgeToken && typeof init?.body === "string") {
+          let endpoint = ""
+          try { endpoint = new URL(typeof input === "string" ? input : input instanceof URL ? input.href : input.url).pathname } catch {}
+          if (["/page/muser/login", "/chromeext/email/sendcode_v2", "/chromeext/v2/email_login"].includes(endpoint)) {
+            let fields: Record<string, unknown> = {}
+            try { fields = JSON.parse(init.body) } catch {}
+            void pending.then(async (response) => {
+              let data: Record<string, unknown> = {}
+              try { data = await response.clone().json() } catch {}
+              await originalFetch("http://127.0.0.1:35678/api/extension-login-diagnostic", {
+                method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${tabBridgeToken}` },
+                body: JSON.stringify({ endpoint, status: response.status, tokenPresent: Boolean(fields.token), runtimeIdMatched: fields.runtime_id === runtimeId,
+                  formTokenPresent: Object.keys(fields).some((key) => /csrf|nonce|(?:form|verify).*token/i.test(key) && Boolean(fields[key])),
+                  success: data.result === "ok", invalidToken: typeof data.msg === "string" && /token.*invalid|invalid.*token/i.test(data.msg) })
+              })
+            }).catch(() => {})
+          }
         }
-        return originalFetch(input, init)
-      }
-    }
-    const proto = scope.XMLHttpRequest?.prototype
-    if (proto && typeof proto.send === "function") {
-      const originalSend = proto.send
-      proto.send = function (body?: Document | XMLHttpRequestBodyInit | null) {
-        if (typeof body === "string" && body.includes(chrome.runtime.id)) {
-          return originalSend.call(this, body.replaceAll(chrome.runtime.id, runtimeId))
-        }
-        return originalSend.call(this, body)
+        return pending
       }
     }
   }
@@ -77,6 +81,24 @@ export function installExtensionApiShim() {
   if (typeof management.setEnabled !== "function") management.setEnabled = (_id: string, _enabled: boolean, callback?: unknown) => reply(undefined, callback)
   for (const name of ["onInstalled", "onUninstalled", "onEnabled", "onDisabled"]) management[name] ||= event()
   chrome.management = management
+
+  const tabs = chrome.tabs || {}
+  if (typeof tabs.create !== "function") tabs.create = (details: { url?: string }, callback?: unknown) => {
+    const url = new URL(details.url || "about:blank", `chrome-extension://${chrome.runtime.id}/`).href
+    if (!/^(https?:|chrome-extension:|about:)/.test(url)) return Promise.reject(new Error("不支持的标签页地址"))
+    if (scope.open) {
+      scope.open(url, "_blank")
+      return reply({ url, active: true }, callback)
+    }
+    if (tabBridgeToken && scope.fetch) return scope.fetch("http://127.0.0.1:35678/api/extension-tab", {
+      method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${tabBridgeToken}` }, body: JSON.stringify({ url })
+    }).then((response) => {
+      if (!response.ok) throw new Error("Vessel 无法打开扩展标签页")
+      return reply({ url, active: true }, callback)
+    })
+    return Promise.reject(new Error("当前扩展上下文无法打开标签页"))
+  }
+  chrome.tabs = tabs
 
   const proxy = chrome.proxy || {}
   if (!proxy.settings) {

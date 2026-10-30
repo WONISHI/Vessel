@@ -51,7 +51,7 @@ it("replaces the clicked Base selection after linked-file navigation and scrolls
   )
   expect(screen.getByRole("button", { name: "list.base" }).getAttribute("aria-pressed")).toBe("false")
   expect(screen.getByRole("button", { name: "note.md" }).getAttribute("aria-pressed")).toBe("true")
-  expect(viewport.scrollTo).toHaveBeenCalledWith(expect.objectContaining({ behavior: "smooth" }))
+  expect(viewport.scrollTo).toHaveBeenCalledWith(expect.objectContaining({ behavior: "instant" }))
 })
 
 

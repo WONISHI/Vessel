@@ -118,7 +118,7 @@ export function ProjectLibraryContent({ pinned, onPin, onSelect }: { pinned: boo
                 variant="ghost"
                 size="sm"
                 aria-label="更多项目"
-                className="size-6 p-0 hover:bg-green-600 hover:!text-white data-[state=open]:bg-green-600 data-[state=open]:!text-white"
+                className="size-6 p-0 hover:bg-green-600 hover:!text-white active:bg-green-600 active:!text-white data-[state=open]:bg-green-600 data-[state=open]:!text-white"
               >
                 <Ellipsis className="!size-4" />
               </Button>
@@ -144,7 +144,7 @@ export function ProjectLibraryContent({ pinned, onPin, onSelect }: { pinned: boo
         <Button
           variant="ghost"
           size="icon"
-          className="size-6 hover:bg-emerald-700 hover:!text-white active:bg-emerald-700 active:!text-white"
+          className="size-6 hover:bg-green-600 hover:!text-white active:bg-green-600 active:!text-white"
           aria-label="添加项目或附件目录"
           disabled={!ready}
           onClick={() => void add()}
@@ -154,7 +154,7 @@ export function ProjectLibraryContent({ pinned, onPin, onSelect }: { pinned: boo
         <Button
           variant="ghost"
           size="icon"
-          className={`size-6 hover:bg-emerald-700 hover:!text-white active:bg-emerald-700 active:!text-white ${pinned ? "bg-emerald-700 !text-white" : ""}`}
+          className={`size-6 hover:bg-green-600 hover:!text-white active:bg-green-600 active:!text-white ${pinned ? "bg-green-600 !text-white" : ""}`}
           aria-label={pinned ? "取消固定资源库" : "固定资源库"}
           onClick={onPin}
         >
@@ -175,7 +175,7 @@ export function ProjectLibraryContent({ pinned, onPin, onSelect }: { pinned: boo
         <Button
           variant="ghost"
           size="icon"
-          className="size-6 shrink-0 hover:bg-emerald-700 hover:!text-white"
+          className="size-6 shrink-0 hover:bg-green-600 hover:!text-white active:bg-green-600 active:!text-white"
           aria-label="在编辑器中打开项目"
           data-title="打开项目：优先 VS Code，其次 WebStorm"
           disabled={openingEditor}
@@ -191,7 +191,7 @@ export function ProjectLibraryContent({ pinned, onPin, onSelect }: { pinned: boo
         <Button
           variant="ghost"
           size="icon"
-          className="size-6 hover:bg-emerald-700 hover:!text-white active:bg-emerald-700 active:!text-white"
+          className="size-6 hover:bg-green-600 hover:!text-white active:bg-green-600 active:!text-white"
           aria-label="刷新资源库"
           onClick={() => setRevision((n) => n + 1)}
         >

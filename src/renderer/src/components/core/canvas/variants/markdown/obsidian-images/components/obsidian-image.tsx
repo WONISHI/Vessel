@@ -53,7 +53,7 @@ export function ObsidianImage({ reference, root, documentPath, onChange, onFocus
   }
 
   /** Loads source. */
-  const loadSource = useCallback(() => (/^data:image\//.test(embed.target) ? Promise.resolve(embed.target) : window.electronAPI.readObsidianImage(root, documentPath, reference)), [embed.target, root, documentPath, reference])
+  const loadSource = useCallback(() => (/^data:image\//.test(embed.target) ? Promise.resolve(embed.target) : (/^https?:/i.test(embed.target) || !window.electronAPI.getObsidianImageResource ? window.electronAPI.readObsidianImage(root, documentPath, reference) : window.electronAPI.getObsidianImageResource(root, documentPath, reference))), [embed.target, root, documentPath, reference])
 
   /** Performs the commit link operation. */
   const commitLink = () => {
@@ -265,6 +265,12 @@ export function ObsidianImage({ reference, root, documentPath, onChange, onFocus
         }}
         onViewLink={handleOpenLink}
         onDelete={readOnly ? undefined : handleDelete}
+        onDeleteFile={readOnly || /^(?:https?:|data:|blob:)/i.test(embed.target) ? undefined : async () => {
+          if (await window.electronAPI.deleteObsidianImage(root, documentPath, reference)) {
+            onChange("")
+            toast.success("已删除图片文件及当前引用")
+          }
+        }}
         sourceKey={`${root}:${documentPath}:${reference}`}
         loadSource={loadSource}
         alt={embed.alt}

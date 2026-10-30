@@ -31,6 +31,9 @@
       ],
       "@vessel/utils/*": [
         "./packages/@vessel/utils/src/*"
+      ],
+      "@vessel/obsidian": [
+        "./packages/@vessel/obsidian/src/index.ts"
       ]
     }
   }

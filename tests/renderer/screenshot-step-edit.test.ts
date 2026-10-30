@@ -2,7 +2,7 @@ import { expect, it, vi } from "vitest"
 import { drawStep, installSteps } from "@/features/screenshot/screenshot-tools"
 
 it("edits a step pointer and caption, renders both for export, and supports undo", () => {
-  const context = Object.fromEntries(["save", "restore", "beginPath", "moveTo", "quadraticCurveTo", "closePath", "fill", "arc", "stroke", "fillText", "clearRect", "rect", "clip"].map((name) => [name, vi.fn()])) as any
+  const context = Object.fromEntries(["save", "restore", "beginPath", "moveTo", "lineTo", "quadraticCurveTo", "closePath", "fill", "arc", "stroke", "fillText", "clearRect", "rect", "clip"].map((name) => [name, vi.fn()])) as any
   context.measureText = (text: string) => ({ width: text.length * 10 })
   vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(context)
   Object.defineProperty(HTMLCanvasElement.prototype, "setPointerCapture", { configurable: true, value: vi.fn() })
@@ -17,7 +17,13 @@ it("edits a step pointer and caption, renders both for export, and supports undo
   layer.onpointerdown!(pointer(123, 134))
   layer.onpointermove!(pointer(50, 160))
   layer.onpointerup!(pointer(50, 160))
-  expect(tools.steps[0]).toMatchObject({ x: 100, y: 100, tipX: 50, tipY: 160 })
+  expect(tools.steps[0]).toMatchObject({ x: 100, y: 100 })
+  const step = tools.steps[0]
+  expect(step.tipX).toBeCloseTo(50)
+  expect(step.tipY).toBeCloseTo(160)
+  expect(Math.hypot(step.tipX! - step.x, step.tipY! - step.y)).toBeGreaterThan(48)
+  expect(step.tipX).toBeLessThan(step.x)
+  expect(step.tipY).toBeGreaterThan(step.y)
   const editor = document.querySelector<HTMLTextAreaElement>(".shot-step-caption")!
   editor.focus()
   editor.value = "说明文字"
@@ -26,7 +32,8 @@ it("edits a step pointer and caption, renders both for export, and supports undo
   context.quadraticCurveTo.mockClear()
   context.fillText.mockClear()
   drawStep(context, tools.steps[0])
-  expect(context.quadraticCurveTo).toHaveBeenCalledWith(expect.any(Number), expect.any(Number), 50, 160)
+  expect(context.quadraticCurveTo).not.toHaveBeenCalled()
+  expect(context.lineTo).toHaveBeenCalledWith(step.tipX, step.tipY)
   expect(context.fillText).toHaveBeenCalledWith("说明文字", 127, 90)
   expect(tools.undo()).toBe(true)
   expect(tools.steps[0].text).toBeUndefined()

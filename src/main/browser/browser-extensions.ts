@@ -1,4 +1,6 @@
 import { registerBrowserSiteCompatibility } from "@main/browser/browser-site-compatibility"
+import { registerExtensionTabBridge } from "@main/browser/extensions/extension-tab-bridge"
+import { prepareExtensionRuntime } from "@main/browser/extensions/extension-runtime"
 import { installExtensionApiShim } from "@main/browser/extensions/extension-api-shim"
 import { importExtensionArchive } from "@main/browser/extensions/extension-archive"
 import { prepareExtensionLogin } from "@main/browser/extensions/extension-login-compatibility"
@@ -14,6 +16,7 @@ import { basename, dirname, join } from "node:path"
 let records: BrowserExtension[] = []
 let initialized: Promise<void> | undefined
 let queue = Promise.resolve()
+const tabHosts = new Set<WebContents>()
 
 /** Performs the extensions operation. */
 const extensions = () => session.fromPartition("persist:vessel-browser").extensions
@@ -46,7 +49,17 @@ const persist = async () => {
 async function load(record: BrowserExtension) {
   try {
     await extensionMetadata(record)
-    const extension = await extensions().loadExtension(record.path)
+    const tabBridgeToken = registerExtensionTabBridge((target) => {
+      if (!record.enabled || !record.extensionId) return false
+      const url = new URL(target)
+      if (url.protocol === "chrome-extension:" && url.host !== record.extensionId) return false
+      const host = [...tabHosts].find((item) => !item.isDestroyed())
+      if (!host) return false
+      host.send("browser:new-tab", target)
+      return true
+    })
+    const runtimePath = await prepareExtensionRuntime(record.path, join(app.getPath("userData"), "browser-extension-runtime"), tabBridgeToken)
+    const extension = await extensions().loadExtension(runtimePath)
     Object.assign(record, { extensionId: extension.id, name: extension.name, version: extension.version, error: undefined })
   } catch (error) {
     record.error = String(error)
@@ -127,6 +140,8 @@ function initialize() {
 
 /** Registers browser extensions. */
 export function registerBrowserExtensions(host: WebContents) {
+  tabHosts.add(host)
+  host.once("destroyed", () => tabHosts.delete(host))
   registerBrowserSiteCompatibility(session.fromPartition("persist:vessel-browser"))
   void initialize()
   const owned = new Set<() => void>()

@@ -15,7 +15,7 @@ export function DateCalendar({ date }: { date: Date }) {
   }
 
   return (
-    <div aria-label="只读日历">
+    <div className="vessel-date-calendar" aria-label="只读日历">
       <div className="mb-2 flex items-center justify-between border-b border-stone-100 pb-2">
         <button
           aria-label="上个月"
@@ -48,7 +48,7 @@ export function DateCalendar({ date }: { date: Date }) {
             aria-pressed={calendarDateKey(day) === calendarDateKey(selected)}
             onClick={() => selectDate(day)}
             className={cn(
-              "flex size-7 items-center justify-center rounded-lg text-xs hover:bg-green-50 hover:text-green-700",
+              "vessel-date-day flex size-7 items-center justify-center rounded-lg text-xs hover:bg-green-50 hover:text-green-700",
               day.getMonth() !== month.getMonth() && "text-stone-300",
               calendarDateKey(day) === calendarDateKey(selected) && "bg-green-600 text-white hover:bg-green-700 hover:text-white"
             )}
@@ -65,7 +65,7 @@ export function DateCalendar({ date }: { date: Date }) {
         ].map((item) => (
           <button
             key={item.label}
-            className="rounded bg-stone-100 px-2.5 py-1 text-[11px] hover:bg-green-50 hover:text-green-700"
+            className="vessel-date-shortcut rounded bg-stone-100 px-2.5 py-1 text-[11px] hover:bg-green-50 hover:text-green-700"
             onClick={() => {
               const day = new Date()
               day.setDate(day.getDate() + item.offset)

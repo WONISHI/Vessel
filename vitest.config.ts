@@ -5,6 +5,7 @@ export default defineConfig({
   resolve: {
     dedupe: ["react", "react-dom"],
     alias: [
+      { find: /^@vessel\/obsidian\/callouts\/style\.css/, replacement: resolve("packages/@vessel/obsidian/src/callouts/style.css") },
       { find: /^@vessel\/obsidian$/, replacement: resolve("packages/@vessel/obsidian/src/index.ts") },
       ...Object.entries({
       "@resources": resolve("resources"),

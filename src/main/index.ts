@@ -1,3 +1,4 @@
+import { registerImageResources } from "@main/modules/files/image-resource"
 import { installApplicationMenu } from "@main/menu"
 import { registerBases } from "@main/modules/bases"
 import { electronApp, is, optimizer } from "@electron-toolkit/utils"
@@ -7,15 +8,17 @@ import { registerContentSearch } from "@main/files/content-search"
 import { registerFileWatch } from "@main/files/file-watch"
 import { registerMarkdownOpening } from "@main/files/open-markdown"
 import { registerOffice } from "@main/office/office"
-import { registerScreenshotShortcut } from "@main/screenshot/screenshot"
+import { registerScreenshotShortcut, startScreenshot } from "@main/screenshot/screenshot"
 import { registerSettings } from "@main/settings/settings"
 import { registerTerminal } from "@main/terminal/terminal"
 import { registerTransit } from "@main/transit/transit"
 import icon from "@resources/icon.png?asset"
 import dockIconPath from "@resources/icon_108x108.png?asset"
-import { app, BrowserWindow, ipcMain, nativeImage, nativeTheme, shell } from "electron"
+import { app, BrowserWindow, ipcMain, nativeImage, nativeTheme, protocol, shell } from "electron"
 import { mkdirSync } from "node:fs"
 import { join } from "path"
+
+protocol.registerSchemesAsPrivileged([{ scheme: "vessel-image", privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true } }])
 
 // Development must not contend with the installed app's lock or databases.
 if (!app.isPackaged) {
@@ -114,6 +117,8 @@ function createWindow(): void {
   })
 
   ipcMain.removeHandler("open-devtools")
+  ipcMain.removeHandler("preview-screenshot")
+  ipcMain.handle("preview-screenshot", (event) => startScreenshot(event.sender))
   ipcMain.handle("open-devtools", (event) => {
     const contents = event.sender
     if (contents.isDevToolsOpened()) {
@@ -136,6 +141,7 @@ function createWindow(): void {
 }
 
 app.whenReady().then(() => {
+  registerImageResources()
   electronApp.setAppUserModelId("com.your.app")
 
   mainApps.activate()

@@ -15,6 +15,7 @@ export function canvasFor(width: number, height: number) {
 /** Loads image. */
 export async function loadImage(src: string) {
   const image = new Image()
+  if (src.startsWith("vessel-image:")) image.crossOrigin = "anonymous"
   image.src = src
   await image.decode()
   if (image.naturalWidth * image.naturalHeight > 32_000_000) throw new Error("图片不能超过 3200 万像素")

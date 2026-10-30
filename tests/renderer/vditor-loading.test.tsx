@@ -58,3 +58,25 @@ it("uses the same renderer with no toolbar and suppresses writes in read-only pr
   expect(change).not.toHaveBeenCalled()
   expect(screen.queryByLabelText("当前文件路径")).toBeNull()
 })
+
+it("decorates changed paragraphs without traversing unrelated paragraphs", async () => {
+  state.created.mockClear()
+  const { container } = render(<VditorEditor readOnly value="paragraphs" onChange={() => {}} workspacePath="/notes" documentPath="/notes/test.md" />)
+  await waitFor(() => expect(state.created).toHaveBeenCalledTimes(1))
+  act(() => state.after?.())
+  await waitFor(() => expect(screen.queryByRole("status")).toBeNull())
+  const host = container.querySelector(".vditor") || container.querySelector(".vessel-vditor")!
+  const ir = document.createElement("div")
+  ir.className = "vditor-ir"
+  ir.innerHTML = '<div class="vditor-reset"><p>unchanged</p><p>changed</p></div>'
+  act(() => host.append(ir))
+  await new Promise((resolve) => setTimeout(resolve, 60))
+  const paragraphs = ir.querySelectorAll("p")
+  const walker = vi.spyOn(document, "createTreeWalker")
+  try {
+    act(() => { paragraphs[1].firstChild!.textContent = "[[target]]" })
+    await waitFor(() => expect(paragraphs[1].querySelector('[data-wiki-target="target"]')).toBeTruthy())
+    expect(walker.mock.calls.some(([root]) => root === paragraphs[0] || root === ir.querySelector(".vditor-reset"))).toBe(false)
+    expect(walker.mock.calls.some(([root]) => root === paragraphs[1])).toBe(true)
+  } finally { walker.mockRestore() }
+})

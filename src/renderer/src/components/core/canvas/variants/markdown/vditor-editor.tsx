@@ -1,9 +1,15 @@
+import { CalloutBlockMenu } from "./callout-block-menu"
+import { CalloutTypeMenu } from "./callout-type-menu"
+import { pdfDocumentHtml } from "@/components/pdf-export/export-html"
+import { lazyPreviews } from "./lazy-previews"
+import { decorateCallouts, bindCallouts, changeCalloutType } from "./callouts"
+import "@vessel/obsidian/callouts/style.css"
 import { configureBodyLute } from "@/components/core/canvas/variants/markdown/body-lute"
 import "@vessel/obsidian/links/style.css"
 import { FootnoteHoverCard } from "@/components/core/canvas/variants/markdown/footnote-hover-card"
 import { bindFootnoteToolbar, insertFootnote, validFootnoteRange, decorateFootnoteReferences, deleteFootnote } from "@/components/core/canvas/variants/markdown/footnotes"
 import { FootnotePopover } from "@/components/core/canvas/variants/markdown/footnote-popover"
-import { markdownDocuments, printableMarkdown } from "@/components/native-file-menu/document-bridge"
+import { markdownDocuments } from "@/components/native-file-menu/document-bridge"
 import { MarkdownInsertMenu } from "@/components/core/canvas/variants/markdown/insert-menu"
 import { bindMarkdownInsertMenu, type MarkdownInsertLocation } from "@/components/core/canvas/variants/markdown/insert-menu-selection"
 import { CodeBlockContextMenu } from "@/components/core/canvas/variants/markdown/code-block-context-menu"
@@ -18,7 +24,7 @@ import { WorkspaceContext } from "@/components/workspace/types/workspace"
 import { useContext } from "react"
 import "@vessel/markdown-table/style.css"
 import { bindListShortcuts } from "@/components/core/canvas/variants/markdown/list-shortcuts"
-import { bindImageParagraphs, focusImageParagraph, insertImageMarkdown } from "@/components/core/canvas/variants/markdown/image-paragraph"
+import { bindImageParagraphs, focusImageParagraph, focusImageSourceBoundary, insertImageMarkdown } from "@/components/core/canvas/variants/markdown/image-paragraph"
 import "@/components/core/canvas/variants/markdown/index.css"
 import { clearCodeHighlights, decorateCodeBlocks } from "@/components/core/canvas/variants/markdown/code-blocks"
 import { decorateMarkdownTags } from "@/components/core/canvas/variants/markdown/decorate-tags"
@@ -31,6 +37,7 @@ import { decorateInlineHTML } from "@/components/core/canvas/variants/markdown/i
 import { ObsidianImageLine } from "@/components/core/canvas/variants/markdown/obsidian-images"
 import { bindTableActions } from "@/components/core/canvas/variants/markdown/table-actions"
 import { bindTablePaste } from "@/components/core/canvas/variants/markdown/table-paste"
+import { clipboardMathMarkdown, normalizeClipboardMath } from "./math-paste"
 import { TextColors } from "@/components/core/canvas/variants/markdown/text-colors"
 import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb"
 import { LinkInteractionArea } from "@/components/ui/link"
@@ -61,6 +68,8 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
   const [colorAnchor, setColorAnchor] = useState<{ left: number; top: number } | null>(null)
   const colorRange = useRef<Range | null>(null)
   const instance = useRef<Vditor | null>(null)
+  const [calloutBlockMenu, setCalloutBlockMenu] = useState<{ quote: HTMLElement; x: number; y: number } | null>(null)
+  const [calloutMenu, setCalloutMenu] = useState<{ quote: HTMLElement; x: number; y: number } | null>(null)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState("")
   const host = useRef<HTMLDivElement>(null)
@@ -225,6 +234,14 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
       }
     }
     element.addEventListener("keydown", handleKeyDown, true)
+    const unbindCallouts = bindCallouts(element, readOnly ? undefined : (target) => { setInsertLocation(null); setCalloutBlockMenu(null); setCalloutMenu(target) }, readOnly ? undefined : (target) => { setInsertLocation(null); setCalloutMenu(null); setCalloutBlockMenu(target) }, (apply) => {
+      const current = instance.current
+      if (!current || readOnly) return
+      current.vditor.undo?.addToUndoStack(current.vditor)
+      apply()
+      current.vditor.undo?.addToUndoStack(current.vditor)
+      changeHandler.current((properties?.raw ?? "") + restoreObsidianImages(current.getValue()))
+    })
     const unbindInsertMenu = readOnly ? () => {} : bindMarkdownInsertMenu(element, setInsertLocation, () => setInsertLocation(null))
     const unbindTablePaste = readOnly ? () => {} : bindTablePaste(element)
     const unbindImageParagraphs = readOnly ? () => {} : bindImageParagraphs(element)
@@ -320,7 +337,7 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
     }
 
     /** Mount newly inserted image previews without rebuilding the Markdown editor. */
-    const mountImage = (element: HTMLElement) => {
+    const mountImageNow = (element: HTMLElement) => {
       const code = element.closest('[data-type="code-block"]')?.querySelector("pre.vditor-ir__marker code.language-vessel-obsidian-image") || element.querySelector("code.language-vessel-obsidian-image")
       if (!code) return
       let source: string
@@ -353,20 +370,27 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
       /** Updates only this React image root, retaining the surrounding editor DOM. */
       const renderImage = (currentSource: string) => {
         container.dataset.imageSource = currentSource
+        const focusAt = (offset: number) => {
+          const block = element.closest<HTMLElement>('[data-type="code-block"]')
+          if (!block || readOnly) return
+          editor.vditor.undo?.addToUndoStack(editor.vditor)
+          const paragraph = focusImageSourceBoundary(block, currentSource, offset, (source) => editor.vditor.lute.Md2VditorIRDOM(prepareObsidianImages(source)))
+          if (!paragraph) return
+          // Ordinary neighboring-line focus keeps every existing image subtree intact.
+          if (!block.isConnected) {
+            for (const neighbor of [paragraph.previousElementSibling, paragraph.nextElementSibling]) {
+              const preview = neighbor?.querySelector<HTMLElement>('.vditor-ir__preview')
+              if (preview) mountImage(preview)
+            }
+          }
+          editor.vditor.undo?.addToUndoStack(editor.vditor)
+          changeHandler.current((properties?.raw ?? "") + restoreObsidianImages(editor.getValue()))
+          paragraph.scrollIntoView({ block: "nearest" })
+        }
         root.render(
           <ObsidianImageLine
-            onFocusAbove={() => {
-              const block = element.closest<HTMLElement>("[data-type=code-block]")
-              const editable = block?.closest<HTMLElement>('[contenteditable="true"]')
-              if (!block || !editable || readOnly) return
-              focusImageParagraph(block, false)?.scrollIntoView({ block: "nearest" })
-            }}
-            onFocusBelow={() => {
-              const block = element.closest<HTMLElement>("[data-type=code-block]")
-              const editable = block?.closest<HTMLElement>('[contenteditable="true"]')
-              if (!block || !editable || readOnly) return
-              focusImageParagraph(block)?.scrollIntoView({ block: "nearest" })
-            }}
+            onFocusAbove={(offset) => focusAt(offset)}
+            onFocusBelow={(offset) => focusAt(offset)}
             readOnly={readOnly}
             source={currentSource}
             onChange={(updated) => {
@@ -398,10 +422,16 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
       renderImage(source)
     }
 
+    const imagePreviews = lazyPreviews(mountImageNow)
+    const mountImage = (preview: HTMLElement) => {
+      preview.closest('[data-type="code-block"]')?.classList.add("vessel-image-block")
+      imagePreviews.enqueue(preview)
+    }
+
     /** Performs the decorate operation. */
-    const decorate = () => {
-      decorateCodeBlocks(element, readOnly)
-      element.querySelectorAll<HTMLElement>('[data-type="code-block"]').forEach((block) => {
+    const decorate = (scope: HTMLElement = element) => {
+      if (scope === element) decorateCodeBlocks(element, readOnly)
+      scope.querySelectorAll<HTMLElement>('[data-type="code-block"]').forEach((block) => {
         const markerCode = block.querySelector<HTMLElement>("pre.vditor-ir__marker code")
         if (markerCode?.classList.contains("language-vessel-obsidian-image")) {
           const preview = block.querySelector<HTMLElement>(".vditor-ir__preview")
@@ -417,8 +447,9 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
           }
         }
       })
-      const content = element.querySelector<HTMLElement>(".vditor-ir .vditor-reset")
+      const content = scope === element ? element.querySelector<HTMLElement>(".vditor-ir .vditor-reset") : scope
       if (content) {
+        decorateCallouts(content)
         decorateHighlights(content)
         decorateWikiLinks(content)
         decorateInlineHTML(content)
@@ -437,9 +468,51 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
     element.addEventListener("vessel-code-language", chooseLanguage)
     const handleCodeContextMenu = (event: Event) => setCodeContextMenu((event as CustomEvent<{ block: HTMLElement; x: number; y: number }>).detail)
     element.addEventListener("vessel-code-context-menu", handleCodeContextMenu)
-    element.addEventListener("focusout", decorate)
-    const observer = new MutationObserver(decorate)
-    observer.observe(element, { childList: true, subtree: true })
+    const onDecorationFocusOut = () => decorate()
+    element.addEventListener("focusout", onDecorationFocusOut)
+    let decorateFrame = 0
+    const dirty = new Set<HTMLElement>()
+    let fullDecoration = false
+    const observer = new MutationObserver((mutations) => {
+      const content = element.querySelector<HTMLElement>(".vditor-ir .vditor-reset")
+      for (const mutation of mutations) {
+        let block = mutation.target instanceof HTMLElement ? mutation.target : mutation.target.parentElement
+        if (!block || !content?.contains(block)) continue
+        if (block.closest(".vessel-table-container, .vessel-image-component, .vessel-image-block .vditor-ir__preview")) continue
+        if (block === content) {
+          for (const node of mutation.addedNodes) {
+            if (node instanceof HTMLElement) dirty.add(node)
+            else fullDecoration = true
+          }
+          continue
+        }
+        while (block.parentElement && block.parentElement !== content) block = block.parentElement
+        dirty.add(block)
+      }
+      if (decorateFrame || (!dirty.size && !fullDecoration)) return
+      decorateFrame = requestAnimationFrame(() => {
+        decorateFrame = 0
+        if (disposed) return
+        observer.disconnect()
+        try {
+          const blocks = [...dirty].filter((block) => content?.contains(block))
+          const isImageSource = (block: HTMLElement) => block.matches('[data-type="code-block"]') && Boolean(block.querySelector('pre.vditor-ir__marker code.language-vessel-obsidian-image'))
+          const needsFull = blocks.some((block) => !isImageSource(block) && (block.matches('[data-type="code-block"]') || block.querySelector('[data-type="code-block"]')))
+          if (fullDecoration || needsFull) decorate()
+          else for (const block of blocks) {
+            if (isImageSource(block)) {
+              const preview = block.querySelector<HTMLElement>(".vditor-ir__preview")
+              if (preview) mountImage(preview)
+            } else decorate(block)
+          }
+        } finally {
+          dirty.clear()
+          fullDecoration = false
+          observer.observe(element, { childList: true, characterData: true, subtree: true })
+        }
+      })
+    })
+    observer.observe(element, { childList: true, characterData: true, subtree: true })
     const imagePicker = document.createElement("input")
     clipboardImageInsertAction.current = () => {
       const selection = window.getSelection()
@@ -517,8 +590,16 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
           })
           .catch((error) => toast.error(String(error)))
       } else {
+        const mathMarkdown = clipboardMathMarkdown(event.clipboardData.getData("text/html"), (html) => editor.vditor.lute.HTML2Md(html))
+        if (mathMarkdown !== null) {
+          event.preventDefault()
+          event.stopImmediatePropagation()
+          editor.insertMD(prepareObsidianImages(mathMarkdown))
+          refreshImages()
+          return
+        }
         const text = event.clipboardData.getData("text/plain")
-        const prepared = prepareObsidianImages(text)
+        const prepared = prepareObsidianImages(normalizeClipboardMath(text))
         if (prepared !== text) {
           event.preventDefault()
           event.stopImmediatePropagation()
@@ -544,7 +625,7 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
           theme: "classic",
           image: { isPreview: false },
           // Language selection is handled by our explicit toolbar picker, not Vditor autocomplete.
-          preview: { hljs: { style: "atom-one-light", langs: [] }, math: { engine: "KaTeX" } },
+          preview: { hljs: { style: "atom-one-light", langs: [] }, math: { engine: "KaTeX", inlineDigit: true } },
           icon: "ant",
           height: "auto",
           value: prepareObsidianImages(initialValue.current),
@@ -650,7 +731,7 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
             if (!readOnly)
               markdownDocuments.set(documentPath, {
                 content: () => (properties?.raw ?? "") + restoreObsidianImages(editor.getValue()),
-                html: () => printableMarkdown(element.querySelector<HTMLElement>(".vditor-ir .vditor-reset")!)
+                html: () => pdfDocumentHtml(element.querySelector<HTMLElement>(".vditor-ir .vditor-reset")!, workspacePath, documentPath)
               })
             window.dispatchEvent(new Event("vessel:file-menu-refresh"))
             const toolbar = host.current?.querySelector<HTMLElement>(".vditor-toolbar")
@@ -698,9 +779,11 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
       clearTimeout(timeout)
       cancelAnimationFrame(initFrame)
       cancelAnimationFrame(paintFrame)
+      imagePreviews.dispose()
       imageRoots.forEach((root) => queueMicrotask(() => root.unmount()))
       tableRoots.forEach((root) => queueMicrotask(() => root.unmount()))
       observer.disconnect()
+      cancelAnimationFrame(decorateFrame)
       clearCodeHighlights(element)
       instance.current = null
       if (!readOnly) markdownDocuments.delete(documentPath)
@@ -708,6 +791,7 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
       element.removeEventListener("keydown", handleKeyDown, true)
       toolbarContainer?.removeEventListener("pointerdown", rememberSelection, true)
       unbindFootnotes()
+      unbindCallouts()
       unbindWikiEditing()
       unbindTableActions()
       unbindInsertMenu()
@@ -717,7 +801,7 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
       unbindImageParagraphs()
       unbindListShortcuts()
       unbindTaskCheckboxes()
-      element.removeEventListener("focusout", decorate)
+      element.removeEventListener("focusout", onDecorationFocusOut)
       element.removeEventListener("vessel-code-language", chooseLanguage)
       element.removeEventListener("vessel-code-context-menu", handleCodeContextMenu)
       element.removeEventListener("paste", pasteImage, true)
@@ -756,6 +840,46 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
             setFootnoteTarget(null)
           }}
         />
+      )}
+      {calloutBlockMenu && !readOnly && (
+        <CalloutBlockMenu x={calloutBlockMenu.x} y={calloutBlockMenu.y} onClose={() => setCalloutBlockMenu(null)} onFocus={(below) => {
+          const editor = instance.current, quote = calloutBlockMenu.quote
+          if (!editor || !host.current?.contains(quote)) return
+          editor.vditor.undo?.addToUndoStack(editor.vditor)
+          focusImageParagraph(quote, below)?.scrollIntoView({ block: "nearest" })
+          editor.vditor.undo?.addToUndoStack(editor.vditor)
+          changeHandler.current((properties?.raw ?? "") + restoreObsidianImages(editor.getValue()))
+          setCalloutBlockMenu(null)
+        }} onCopy={() => {
+          const quote = calloutBlockMenu.quote, editor = instance.current
+          if (editor && host.current?.contains(quote)) {
+            const source = restoreObsidianImages(editor.vditor.lute.VditorIRDOM2Md(quote.outerHTML))
+            void navigator.clipboard.writeText(source).then(() => toast.success("已复制标注")).catch((error) => toast.error(String(error)))
+          }
+          setCalloutBlockMenu(null)
+        }} onDelete={() => {
+          const editor = instance.current, quote = calloutBlockMenu.quote
+          if (!editor || !host.current?.contains(quote)) return
+          editor.vditor.undo?.addToUndoStack(editor.vditor)
+          focusImageParagraph(quote, true)
+          quote.remove()
+          editor.vditor.undo?.addToUndoStack(editor.vditor)
+          changeHandler.current((properties?.raw ?? "") + restoreObsidianImages(editor.getValue()))
+          setCalloutBlockMenu(null)
+        }} />
+      )}
+      {calloutMenu && !readOnly && (
+        <CalloutTypeMenu x={calloutMenu.x} y={calloutMenu.y} currentType={calloutMenu.quote.dataset.calloutType} onClose={() => setCalloutMenu(null)} onSelect={(name) => {
+          const editor = instance.current
+          if (editor && host.current?.contains(calloutMenu.quote)) {
+            editor.vditor.undo?.addToUndoStack(editor.vditor)
+            if (changeCalloutType(calloutMenu.quote, name)) {
+              editor.vditor.undo?.addToUndoStack(editor.vditor)
+              changeHandler.current((properties?.raw ?? "") + restoreObsidianImages(editor.getValue()))
+            }
+          }
+          setCalloutMenu(null)
+        }} />
       )}
       {insertLocation && !readOnly && (
         <MarkdownInsertMenu

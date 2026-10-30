@@ -22,11 +22,13 @@ export function VirtualTree<T>({ rows, viewport, indent = 12, rowHeight = 32, ov
     const scroll = () => {
       if (virtualRangeNeedsUpdate(current.current, viewport.scrollTop, viewport.clientHeight, rows.length, rowHeight, Math.max(1, overscan))) update(true)
     }
+    const reveal = () => update(false)
+    viewport.addEventListener("vessel:tree-reveal", reveal)
     const observer = new ResizeObserver(() => update(false))
     observer.observe(viewport)
     viewport.addEventListener("scroll", scroll, { passive: true })
     update(false)
-    return () => { observer.disconnect(); viewport.removeEventListener("scroll", scroll) }
+    return () => { viewport.removeEventListener("vessel:tree-reveal", reveal); observer.disconnect(); viewport.removeEventListener("scroll", scroll) }
   }, [viewport, rows.length, rowHeight, overscan])
   const start = Math.min(range.start, Math.max(0, rows.length - 1))
   const end = Math.min(rows.length, Math.max(start + 1, range.end))

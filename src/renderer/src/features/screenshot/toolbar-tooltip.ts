@@ -1,3 +1,4 @@
+import { installLiquidGlass } from "./liquid-glass"
 /** Delegated hints keep the library's data-title command keys intact. */
 export function installToolbarTooltip(toolbar: HTMLElement) {
   const tip = document.createElement("div")
@@ -6,6 +7,7 @@ export function installToolbarTooltip(toolbar: HTMLElement) {
   tip.setAttribute("role", "tooltip")
   tip.hidden = true
   document.body.append(tip)
+  const stopGlass = installLiquidGlass(tip)
   let active: HTMLElement | null = null
   let timer: ReturnType<typeof setTimeout> | undefined
   let previousDescription: string | null = null
@@ -64,6 +66,7 @@ export function installToolbarTooltip(toolbar: HTMLElement) {
   window.addEventListener("vessel:screenshot-toolbar-moved", hide)
   return () => {
     hide()
+    stopGlass()
     tip.remove()
     toolbar.removeEventListener("mouseover", enter)
     toolbar.removeEventListener("focusin", enter)

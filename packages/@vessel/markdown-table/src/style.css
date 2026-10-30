@@ -15,10 +15,27 @@
   transition: border-color 0.15s ease;
 }
 
+.vessel-markdown-table-wrapper table.vessel-table-grid[data-sized-columns="true"] {
+  table-layout: fixed !important;
+  width: 100% !important;
+}
+.vessel-markdown-table-wrapper .vessel-table-th { position: relative; }
+.vessel-column-resizer {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: -4px;
+  width: 8px;
+  z-index: 5;
+  cursor: col-resize;
+  touch-action: none;
+  user-select: none;
+}
+.vessel-column-resizer:hover, .vessel-column-resizer:active { background: #60a5fa66; }
 html.dark .vessel-markdown-table-wrapper {
-  background-color: #18181b;
-  border-color: #27272a;
-  color: #f4f4f5;
+  background-color: #22272e;
+  border-color: #3b434e;
+  color: #e6edf3;
   box-shadow: none !important;
 }
 
@@ -37,8 +54,8 @@ html.dark .vessel-markdown-table-wrapper {
 }
 
 html.dark .vessel-table-toolbar {
-  background-color: #141416;
-  border-bottom-color: #27272a;
+  background-color: #2d333b;
+  border-bottom-color: #3b434e;
 }
 
 .vessel-table-toolbar-group {
@@ -55,7 +72,7 @@ html.dark .vessel-table-toolbar {
 }
 
 html.dark .vessel-table-toolbar-divider {
-  background-color: #27272a;
+  background-color: #3b434e;
 }
 
 /* Shadcn Button Style */
@@ -92,13 +109,13 @@ html.dark .vessel-table-toolbar-divider {
 }
 
 html.dark .vessel-table-btn-icon {
-  color: #71717a;
+  color: #9aa4b2;
 }
 
 html.dark .vessel-table-btn {
-  background-color: #1f1f23;
-  border-color: #27272a;
-  color: #d4d4d8;
+  background-color: #303740;
+  border-color: #3b434e;
+  color: #d1d7e0;
   box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.15);
 }
 
@@ -117,8 +134,8 @@ html.dark .vessel-table-btn {
 }
 
 html.dark .vessel-table-btn:hover:not(:disabled) {
-  background-color: #27272a;
-  border-color: #3f3f46;
+  background-color: #3b434e;
+  border-color: #4b5563;
   color: #ffffff;
 }
 
@@ -148,9 +165,9 @@ html.dark .vessel-table-btn-icon:hover:not(:disabled) {
 
 html.dark .vessel-table-btn.active,
 html.dark .vessel-table-btn-icon.active {
-  background-color: #1f1f23;
+  background-color: #303740;
   color: #ffffff !important;
-  border-color: #27272a;
+  border-color: #3b434e;
 }
 
 .vessel-table-btn.active svg,
@@ -210,9 +227,9 @@ html.dark .vessel-table-btn-icon.active svg {
 }
 
 html.dark .vessel-table-caption-input {
-  background-color: #1f1f23;
-  border-color: #27272a;
-  color: #f4f4f5;
+  background-color: #303740;
+  border-color: #3b434e;
+  color: #e6edf3;
   box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.15);
 }
 
@@ -222,7 +239,7 @@ html.dark .vessel-table-caption-input {
 }
 
 html.dark .vessel-table-caption-input::placeholder {
-  color: #71717a;
+  color: #9aa4b2;
 }
 
 .vessel-table-caption-input:focus {
@@ -268,8 +285,8 @@ html.dark .vessel-table-caption-input:focus {
 }
 
 html.dark .vessel-color-popover {
-  background-color: #18181b;
-  border-color: #27272a;
+  background-color: #22272e;
+  border-color: #3b434e;
   box-shadow: 0 10px 20px -3px rgba(0, 0, 0, 0.5);
 }
 
@@ -331,7 +348,7 @@ html.dark .vessel-color-popover {
 }
 
 html.dark .vessel-table-caption {
-  color: #f4f4f5;
+  color: #e6edf3;
   border: none !important;
   border-bottom: none !important;
 }
@@ -355,7 +372,7 @@ html.dark .vessel-table-caption {
 html.dark .vessel-caption-editor {
   background: transparent !important;
   border: none !important;
-  color: #f4f4f5;
+  color: #e6edf3;
 }
 
 .vessel-caption-text {
@@ -376,7 +393,7 @@ html.dark .vessel-caption-editor {
 
 html.dark .vessel-markdown-table-wrapper table.vessel-table-grid tr.vessel-table-row,
 html.dark .vditor-reset .vessel-markdown-table-wrapper table.vessel-table-grid tr.vessel-table-row {
-  border-bottom-color: #27272a !important;
+  border-bottom-color: #3b434e !important;
 }
 
 .vessel-markdown-table-wrapper table.vessel-table-grid tr.vessel-table-row:hover,
@@ -424,9 +441,9 @@ html.dark .vditor-reset .vessel-markdown-table-wrapper table.vessel-table-grid t
 
 html.dark .vessel-markdown-table-wrapper table.vessel-table-grid th.vessel-table-th,
 html.dark .vditor-reset .vessel-markdown-table-wrapper table.vessel-table-grid th.vessel-table-th {
-  background-color: #1a1a1e;
-  color: #f4f4f5;
-  border-color: #27272a !important;
+  background-color: #29313a;
+  color: #e6edf3;
+  border-color: #3b434e !important;
 }
 
 /* Data Cells (td) */
@@ -448,8 +465,8 @@ html.dark .vditor-reset .vessel-markdown-table-wrapper table.vessel-table-grid t
 
 html.dark .vessel-markdown-table-wrapper table.vessel-table-grid td.vessel-table-td,
 html.dark .vditor-reset .vessel-markdown-table-wrapper table.vessel-table-grid td.vessel-table-td {
-  color: #f4f4f5;
-  border-color: #27272a !important;
+  color: #e6edf3;
+  border-color: #3b434e !important;
 }
 
 .vessel-cell-content {
@@ -624,9 +641,11 @@ html.dark .vessel-cell-editor {
   resize: vertical;
 }
 
+.vessel-table-raw-container { min-width: 0; width: 100%; }
+.vessel-table-raw-error { padding: 8px 12px; color: #ef4444; font-size: 12px; }
 html.dark .vessel-table-raw-editor {
-  background-color: #141416;
-  color: #f4f4f5;
+  background-color: #2d333b;
+  color: #e6edf3;
 }
 
 /* --------------------------------------------------------------------------
@@ -650,8 +669,8 @@ html.dark .vessel-table-raw-editor {
 }
 
 html.dark .vessel-dropdown-menu {
-  background-color: #18181b;
-  border-color: #27272a;
+  background-color: #22272e;
+  border-color: #3b434e;
   box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.5);
 }
 
@@ -672,7 +691,7 @@ html.dark .vessel-dropdown-menu {
 }
 
 html.dark .vessel-menu-item {
-  color: #f4f4f5;
+  color: #e6edf3;
 }
 
 .vessel-menu-item:hover {
@@ -681,7 +700,7 @@ html.dark .vessel-menu-item {
 }
 
 html.dark .vessel-menu-item:hover {
-  background-color: #27272a;
+  background-color: #3b434e;
   color: #ffffff;
 }
 
@@ -714,7 +733,7 @@ html.dark .vessel-menu-item-danger:hover {
 }
 
 html.dark .vessel-menu-divider {
-  background-color: #27272a;
+  background-color: #3b434e;
 }
 
 /* Submenu flyout */
@@ -734,8 +753,8 @@ html.dark .vessel-menu-divider {
 }
 
 html.dark .vessel-dropdown-submenu {
-  background-color: #18181b;
-  border-color: #27272a;
+  background-color: #22272e;
+  border-color: #3b434e;
   box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.5);
 }
 
@@ -760,27 +779,25 @@ html.dark .vessel-dropdown-submenu {
 }
 .vessel-table-edge-column { right: 0; top: 0; bottom: 0; width: 6px; }
 .vessel-table-edge-row { left: 0; right: 0; bottom: 0; height: 6px; }
-.vessel-table-edge-add > span {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
+.vessel-table-edge-float {
+  position: fixed;
+  z-index: 401;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 18px;
-  height: 18px;
-  border: 1px solid #ffffff80;
-  border-radius: 4px;
-  background: #16a34a;
-  color: white;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid #bbf7d0;
+  border-radius: 5px;
+  background: #f0fdf4;
+  color: #16a34a;
   font: 18px/1 system-ui;
-  opacity: 0;
+  cursor: pointer;
 }
-.vessel-table-edge-column > span { left: calc(50% - 6px); }
-.vessel-table-edge-row > span { top: calc(50% - 6px); }
-.vessel-table-edge-add:hover > span,
-.vessel-table-edge-add:focus-visible > span { opacity: 1; }
+.vessel-table-edge-float:hover { background: #dcfce7; }
+.vessel-table-edge-float:focus-visible { outline: 2px solid #16a34a; outline-offset: 2px; }
+html.dark .vessel-table-edge-float { background: #233d2e; border-color: #34794b; color: #4ade80; }
 .vessel-table-edge-tooltip {
   position: fixed;
   z-index: 400;

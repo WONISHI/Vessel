@@ -2,7 +2,7 @@ import { expect, it } from "vitest"
 import { mkdtemp, mkdir, writeFile, rm, realpath } from "node:fs/promises"
 import { join } from "node:path"
 import { tmpdir } from "node:os"
-import { readObsidianImage, resolveObsidianImageFile } from "@main/modules/files/obsidian-image"
+import { invalidateObsidianImageIndex, readObsidianImage, resolveObsidianImageFile } from "@main/modules/files/obsidian-image"
 it("loads a named workspace attachment and rejects missing references", async () => {
   const root = await mkdtemp(join(tmpdir(), "vessel-obsidian-"))
   try {
@@ -19,4 +19,24 @@ it("loads a named workspace attachment and rejects missing references", async ()
   } finally {
     await rm(root, { recursive: true, force: true })
   }
+})
+
+it("shares attachment lookup and refreshes after file changes while preferring exact paths", async () => {
+  const root = await mkdtemp(join(tmpdir(), "vessel-image-index-"))
+  try {
+    await mkdir(join(root, "notes"))
+    await mkdir(join(root, "attachments"))
+    const note = join(root, "notes/note.md")
+    await writeFile(note, "")
+    await writeFile(join(root, "attachments/a.png"), "a")
+    const expected = await realpath(join(root, "attachments/a.png"))
+    expect(await Promise.all(Array.from({ length: 20 }, () => resolveObsidianImageFile(root, note, "![[a.png]]")))).toEqual(Array(20).fill(expected))
+    // Exact same-directory files must override a previously built fallback index.
+    await writeFile(join(root, "notes/a.png"), "local")
+    expect(await resolveObsidianImageFile(root, note, "![[a.png]]")).toBe(await realpath(join(root, "notes/a.png")))
+    await writeFile(join(root, "attachments/new.png"), "new")
+    invalidateObsidianImageIndex(await realpath(root))
+    expect(await resolveObsidianImageFile(root, note, "![[new.png]]")).toBe(await realpath(join(root, "attachments/new.png")))
+    expect(await resolveObsidianImageFile(root, note, "![a](../attachments/a.png)")).toBe(expected)
+  } finally { await rm(root, { recursive: true, force: true }) }
 })

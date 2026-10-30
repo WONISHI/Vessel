@@ -1,4 +1,5 @@
 import { getBrowserBookmarks, setBrowserBookmarks } from "@main/browser/browser-tools"
+import { hasExtensionBridgeToken, openExtensionTab } from "@main/browser/extensions/extension-tab-bridge"
 import { BaseModule } from "@main/modules/base/index"
 import { getCurrentWorkspace } from "@main/settings/settings"
 import { BrowserWindow } from "electron"
@@ -151,6 +152,31 @@ export class ExtensionBridgeModule extends BaseModule {
 
     const parsedUrl = new URL(req.url || "/", `http://127.0.0.1:${BRIDGE_PORT}`)
     const pathname = parsedUrl.pathname
+    if (pathname === "/api/extension-login-diagnostic" && req.method === "POST") {
+      const authorized = hasExtensionBridgeToken(req.headers.authorization?.replace(/^Bearer /, ""))
+      if (!authorized) { res.writeHead(403); res.end(); return }
+      const data = await this.parseBody<Record<string, unknown>>(req)
+      const endpoints = ["/page/muser/login", "/chromeext/email/sendcode_v2", "/chromeext/v2/email_login"]
+      if (endpoints.includes(String(data.endpoint))) console.info("[IGG Login]", {
+        endpoint: data.endpoint,
+        status: typeof data.status === "number" ? data.status : 0,
+        tokenPresent: data.tokenPresent === true,
+        runtimeIdMatched: data.runtimeIdMatched === true,
+        formTokenPresent: data.formTokenPresent === true,
+        success: data.success === true,
+        invalidToken: data.invalidToken === true
+      })
+      res.writeHead(200); res.end()
+      return
+    }
+    if (pathname === "/api/extension-tab" && req.method === "POST") {
+      const body = await this.parseBody<{ url?: unknown }>(req)
+      const token = req.headers.authorization?.replace(/^Bearer /, "")
+      const ok = openExtensionTab(token, body.url)
+      res.writeHead(ok ? 200 : 403, { "Content-Type": "application/json" })
+      res.end(JSON.stringify({ ok }))
+      return
+    }
 
     if (pathname === "/api/status" || pathname === "/api/ping") {
       const workspace = getCurrentWorkspace()

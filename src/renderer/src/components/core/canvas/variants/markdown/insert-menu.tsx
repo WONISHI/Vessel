@@ -1,8 +1,11 @@
+import { MarkdownContextMenuAnchor } from "./context-menu-anchor"
+import { CalloutTypeItems } from "./callout-type-menu"
 import { createMarkdownTableDocument } from "@/components/core/canvas/variants/markdown-table/document"
 import { useLayoutEffect, useRef } from "react"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuPortal, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuSub, ContextMenuSubContent, ContextMenuSubTrigger } from "@/components/ui/context-menu"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { ClipboardPaste, FolderOpen, Code, CodeXml, Heading, ImagePlus, LayoutGrid, Link, List, ListChecks, ListOrdered, Milestone, Minus, Quote, Table2, TableProperties, Workflow } from "lucide-react"
+import { StickyNote, ClipboardPaste, FolderOpen, Code, CodeXml, Heading, ImagePlus, LayoutGrid, Link, List, ListChecks, ListOrdered, Milestone, Minus, Quote, Table2, TableProperties, Workflow } from "lucide-react"
+
 
 const groups = [
   { label: "插入", items: [
@@ -29,6 +32,7 @@ const groups = [
   ] },
   { label: "", items: [
     { label: "添加组件", icon: LayoutGrid, children: [
+      { label: "Callout 标注", icon: StickyNote, value: "> [!note]+ 标题\n> 标注内容" },
       { label: "时间线", icon: Milestone, value: "```timeline\n- 第一个事件\n  - 事件说明\n- 第二个事件\n  - 事件说明\n```" },
       { label: "步骤条", icon: Workflow, value: "```steps\n1. 第一步\n   - 步骤说明\n2. 第二步\n   - 步骤说明\n```" },
       {
@@ -57,35 +61,44 @@ export function MarkdownInsertMenu({ x, y, onClose, onInsert, preserveEditorFocu
     return () => cancelAnimationFrame(frame)
   }, [preserveEditorFocus])
   return (
-    <DropdownMenu open modal={false} onOpenChange={(open) => { if (!open) onClose() }}>
-      <DropdownMenuTrigger aria-label="Markdown 插入菜单" style={{ position: "fixed", left: x, top: y, width: 0, height: 0, pointerEvents: "none" }} />
-      <DropdownMenuContent className="markdown-insert-menu markdown-insert-menu-scroll" align="start" sideOffset={4} collisionPadding={8} onCloseAutoFocus={(event) => event.preventDefault()} onFocusOutside={(event) => event.preventDefault()}>
+    <ContextMenu modal={false} onOpenChange={(open) => { if (!open) onClose() }}>
+      <MarkdownContextMenuAnchor x={x} y={y} label="Markdown 插入菜单" />
+      <ContextMenuContent className="markdown-insert-menu markdown-insert-menu-scroll" collisionPadding={8} onCloseAutoFocus={(event) => event.preventDefault()} onFocusOutside={(event) => event.preventDefault()}>
         <ScrollArea className="markdown-insert-scroll">
         <div className="markdown-insert-scroll-inner">
         {groups.map((group, index) => (
           <div key={index}>
-            {index > 0 && <DropdownMenuSeparator />}
-            {group.label && <DropdownMenuLabel className="markdown-insert-category">{group.label}</DropdownMenuLabel>}
+            {index > 0 && <ContextMenuSeparator />}
+            {group.label && <div className="markdown-insert-category">{group.label}</div>}
             {group.items.map((item) => "children" in item ? (
-              <DropdownMenuSub key={item.label}>
-                <DropdownMenuSubTrigger><item.icon /><span>{item.label}</span></DropdownMenuSubTrigger>
-                <DropdownMenuPortal>
-                  <DropdownMenuSubContent className="markdown-insert-menu markdown-insert-submenu" collisionPadding={8}>
-                    {item.children.map((child) => (
-                      <DropdownMenuItem key={child.label} onSelect={() => onInsert(child.value, "inline" in child && child.inline === true)}>
+              <ContextMenuSub key={item.label}>
+                <ContextMenuSubTrigger><item.icon /><span>{item.label}</span></ContextMenuSubTrigger>
+
+                  <ContextMenuSubContent className="markdown-insert-menu markdown-insert-submenu" collisionPadding={8}>
+                    {item.children.map((child) => child.label === "Callout 标注" ? (
+                      <ContextMenuSub key={child.label}>
+                        <ContextMenuSubTrigger><StickyNote /><span>{child.label}</span></ContextMenuSubTrigger>
+
+                          <ContextMenuSubContent className="markdown-insert-menu markdown-callout-picker" collisionPadding={8} aria-label="Callout 类型">
+                            <CalloutTypeItems onSelect={(name) => onInsert(`> [!${name}]+ 标题\n> 标注内容`, false)} />
+                          </ContextMenuSubContent>
+
+                      </ContextMenuSub>
+                    ) : (
+                      <ContextMenuItem key={child.label} onSelect={() => onInsert(child.value, "inline" in child && child.inline === true)}>
                         {"badge" in child ? <span className="markdown-insert-heading">{child.badge}</span> : <child.icon />}
                         {child.label}
-                      </DropdownMenuItem>
+                      </ContextMenuItem>
                     ))}
-                  </DropdownMenuSubContent>
-                </DropdownMenuPortal>
-              </DropdownMenuSub>
-            ) : <DropdownMenuItem key={item.label} onSelect={() => onInsert(item.value, item.label === "插入链接")}><item.icon />{item.label}</DropdownMenuItem>)}
+                  </ContextMenuSubContent>
+
+              </ContextMenuSub>
+            ) : <ContextMenuItem key={item.label} onSelect={() => onInsert(item.value, item.label === "插入链接")}><item.icon />{item.label}</ContextMenuItem>)}
           </div>
         ))}
         </div>
         </ScrollArea>
-      </DropdownMenuContent>
-    </DropdownMenu>
+      </ContextMenuContent>
+    </ContextMenu>
   )
 }

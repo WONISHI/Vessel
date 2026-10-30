@@ -19,6 +19,7 @@ export interface ImageProps extends Omit<ComponentPropsWithoutRef<"img">, "width
   onLocateFile?: () => Promise<void>
   onViewLink?: () => void
   onDelete?: () => void
+  onDeleteFile?: () => Promise<void>
   width?: number
   defaultWidthPercent?: number
   resizable?: boolean

@@ -812,3 +812,68 @@ html.dark .workspace-file-picker-row[data-keyboard-selected="true"] {
   background: #353c45 !important;
   box-shadow: inset 0 0 0 1px #566171;
 }
+
+/* Native scroll containers, including the browser/device viewport, share the dark palette. */
+html.dark {
+  color-scheme: dark;
+}
+html.dark,
+html.dark * {
+  scrollbar-color: #555f6b #22272e;
+}
+html.dark ::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+html.dark ::-webkit-scrollbar-track,
+html.dark ::-webkit-scrollbar-corner {
+  background: #22272e;
+}
+html.dark ::-webkit-scrollbar-thumb {
+  background: #555f6b;
+  border: 2px solid #22272e;
+  border-radius: 999px;
+}
+html.dark ::-webkit-scrollbar-thumb:hover {
+  background: #7d8997;
+}
+
+/* Portalled file suggestions inherit these from html rather than editor containers. */
+html.dark {
+  --wiki-completion-background: #2d333b;
+  --wiki-completion-foreground: #cdd9e5;
+  --wiki-completion-border: #444c56;
+  --wiki-completion-selected: #173f32;
+  --wiki-completion-selected-text: #7ee2a8;
+  --wiki-completion-shadow: 0 6px 24px #0006;
+}
+
+/* Raise context menus above the workspace surface, including portalled submenus. */
+html.dark [data-radix-context-menu-content] {
+  background-color: #2d333b !important;
+  border-color: #444c56 !important;
+  color: #cdd9e5;
+  box-shadow: 0 8px 28px #0006;
+}
+html.dark .workspace-file-context-menu [role="menuitem"]:is([data-highlighted], [data-state="open"]) {
+  background-color: #3a424d !important;
+  color: #fff !important;
+}
+
+html.dark .vessel-date-popover {
+  background: #2d333b !important;
+  border-color: #444c56 !important;
+  color: #cdd9e5;
+}
+html.dark .vessel-date-calendar :is(.border-b, .border-t) { border-color: #444c56 !important; }
+html.dark .vessel-date-calendar :is(.text-stone-400, .text-stone-500) { color: #9da7b3 !important; }
+html.dark .vessel-date-day.text-stone-300 { color: #768390 !important; }
+html.dark .vessel-date-day:not([aria-pressed="true"]):is(:hover, :focus-visible) {
+  background: #173f32 !important;
+  color: #7ee2a8 !important;
+}
+html.dark .vessel-date-day[aria-pressed="true"] { background: #16a34a !important; color: #fff !important; }
+html.dark .vessel-date-day[aria-pressed="true"]:hover { background: #15803d !important; }
+html.dark .vessel-date-shortcut { background: #373e47 !important; color: #cdd9e5 !important; }
+html.dark .vessel-date-shortcut:is(:hover, :focus-visible) { background: #173f32 !important; color: #7ee2a8 !important; }
+html.dark .vessel-date-calendar button[aria-label$="个月"]:hover { background: #3a424d !important; color: #fff !important; }

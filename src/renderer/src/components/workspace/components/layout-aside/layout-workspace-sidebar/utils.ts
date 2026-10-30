@@ -149,6 +149,9 @@ export function tokenizeFilename(name: string): SmartSortToken[] {
   return tokens
 }
 
+const naturalCollator = new Intl.Collator("zh-CN", { numeric: true })
+const textCollator = new Intl.Collator("zh-CN")
+
 /** 智能自然排序比较器：优先匹配相同前缀开头字，随后的数字按数值大小比较。 */
 export function compareSmartFileNames(a: string, b: string): number {
   const tokensA = tokenizeFilename(a)
@@ -166,16 +169,16 @@ export function compareSmartFileNames(a: string, b: string): number {
       if (tA.raw !== tB.raw && tA.raw && tB.raw) {
         const lenDiff = tA.raw.length - tB.raw.length
         if (lenDiff !== 0) return lenDiff
-        const rawDiff = tA.raw.localeCompare(tB.raw, "zh-CN")
+        const rawDiff = textCollator.compare(tA.raw, tB.raw)
         if (rawDiff !== 0) return rawDiff
       }
     } else if (tA.type === "text" && tB.type === "text") {
-      const cmp = (tA.text ?? "").localeCompare(tB.text ?? "", "zh-CN", { numeric: true })
+      const cmp = naturalCollator.compare(tA.text ?? "", tB.text ?? "")
       if (cmp !== 0) return cmp
     } else {
       const strA = tA.type === "number" ? (tA.raw ?? "") : (tA.text ?? "")
       const strB = tB.type === "number" ? (tB.raw ?? "") : (tB.text ?? "")
-      const cmp = strA.localeCompare(strB, "zh-CN", { numeric: true })
+      const cmp = naturalCollator.compare(strA, strB)
       if (cmp !== 0) return cmp
     }
   }
@@ -183,9 +186,15 @@ export function compareSmartFileNames(a: string, b: string): number {
   return tokensA.length - tokensB.length
 }
 
+const sortedDirectories = new WeakMap<WorkspaceNode[], Map<string, WorkspaceNode[]>>()
+
 /** 按选择的规则对工作区节点进行排序，默认文件夹置顶。 */
 export function sortWorkspaceNodes(nodes: WorkspaceNode[], sortBy: FileSortBy = "auto", sortOrder: FileSortOrder = "asc"): WorkspaceNode[] {
-  return [...nodes].sort((a, b) => {
+  const key = `${sortBy}:${sortOrder}`
+  let cached = sortedDirectories.get(nodes)
+  if (cached?.has(key)) return cached.get(key)!
+  if (!cached) { cached = new Map(); sortedDirectories.set(nodes, cached) }
+  const sorted = [...nodes].sort((a, b) => {
     // 文件夹始终置顶
     const folderDiff = Number(b.type === "directory") - Number(a.type === "directory")
     if (folderDiff !== 0) return folderDiff
@@ -213,7 +222,9 @@ export function sortWorkspaceNodes(nodes: WorkspaceNode[], sortBy: FileSortBy = 
       return compareSmartFileNames(a.name, b.name)
     }
 
-    const nameDiff = a.name.localeCompare(b.name, "zh-CN", { numeric: true })
+    const nameDiff = naturalCollator.compare(a.name, b.name)
     return sortOrder === "desc" ? -nameDiff : nameDiff
   })
+  cached.set(key, sorted)
+  return sorted
 }

@@ -127,3 +127,13 @@ it("handles mixed numeral formats seamlessly", () => {
   const sorted = sortWorkspaceNodes(nodes, "auto", "asc")
   expect(sorted.map((n) => n.name)).toEqual(["第一章 介绍", "第2章 基础", "第三章 进阶", "第9章 案例", "第10章 总结", "第拾贰章 深入"])
 })
+
+it("reuses sorted snapshots but invalidates for directory contents and sort rules", () => {
+  const nodes: WorkspaceNode[] = [{ name: "b.md", path: "/w/b.md", type: "file" }, { name: "a.md", path: "/w/a.md", type: "file" }]
+  const sorted = sortWorkspaceNodes(nodes)
+  expect(sortWorkspaceNodes(nodes)).toBe(sorted)
+  expect(sortWorkspaceNodes(nodes, "auto", "desc").map((node) => node.name)).toEqual(["b.md", "a.md"])
+  const changed = [...nodes, { name: "c.md", path: "/w/c.md", type: "file" as const }]
+  expect(sortWorkspaceNodes(changed)).not.toBe(sorted)
+  expect(sortWorkspaceNodes(changed)).toHaveLength(3)
+})

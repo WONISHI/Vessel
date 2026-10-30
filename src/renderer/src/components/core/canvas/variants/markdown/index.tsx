@@ -1,3 +1,4 @@
+import { saveMarkdownContent, waitForMarkdownWrites } from "./local-writes"
 import { DocumentOutline } from "@/components/core/canvas/variants/markdown/document-outline"
 import { DocumentStats } from "@/components/core/canvas/variants/markdown/document-stats"
 import { headingSections } from "@/components/core/canvas/variants/markdown/heading-sections"
@@ -44,7 +45,7 @@ export default function MarkdownCanvas({ activeFilePath, workspacePath: customWo
     setLoaded({ path: activeFilePath, content })
     setExternalRevision((value) => value + 1)
     setSaveState({ path: activeFilePath, message: "已从磁盘更新" })
-  })
+  }, waitForMarkdownWrites)
   const current = loaded?.path === activeFilePath ? loaded : null
   const sections = useMemo(() => headingSections(current?.content ?? ""), [current?.content])
   const [headings, setHeadings] = useState<{ text: string; level: number; color?: string }[]>([])
@@ -53,26 +54,39 @@ export default function MarkdownCanvas({ activeFilePath, workspacePath: customWo
     const host = contentHost.current
     if (!host) return
     let frame = 0
+    let headingsDirty = true
+    let nodes: HTMLElement[] = []
+    const headingSelector = "h1,h2,h3,h4,h5,h6"
 
-    /** Refreshes the current state. */
     const update = () => {
       cancelAnimationFrame(frame)
       frame = requestAnimationFrame(() => {
-        const nodes = Array.from(host.querySelectorAll<HTMLElement>(".vditor-ir .vditor-reset h1, .vditor-ir .vditor-reset h2, .vditor-ir .vditor-reset h3, .vditor-ir .vditor-reset h4, .vditor-ir .vditor-reset h5, .vditor-ir .vditor-reset h6"))
-        const next = nodes.map((node) => {
-          return { ...outlineHeading(node.textContent ?? ""), level: Number(node.tagName[1]) }
-        })
-        setHeadings((previous) => (JSON.stringify(previous) === JSON.stringify(next) ? previous : next))
+        if (headingsDirty) {
+          nodes = Array.from(host.querySelectorAll<HTMLElement>(".vditor-ir .vditor-reset h1, .vditor-ir .vditor-reset h2, .vditor-ir .vditor-reset h3, .vditor-ir .vditor-reset h4, .vditor-ir .vditor-reset h5, .vditor-ir .vditor-reset h6"))
+          const next = nodes.map((node) => ({ ...outlineHeading(node.textContent ?? ""), level: Number(node.tagName[1]) }))
+          setHeadings((previous) => (JSON.stringify(previous) === JSON.stringify(next) ? previous : next))
+          headingsDirty = false
+        }
         const bounds = host.getBoundingClientRect()
         const center = bounds.top + bounds.height / 2
-        let active = nodes.length ? 0 : -1
-        nodes.forEach((node, index) => {
-          if (node.getBoundingClientRect().top <= center) active = index
-        })
+        // Headings follow document order: locate the active section without measuring every heading.
+        let low = 0, high = nodes.length - 1, active = nodes.length ? 0 : -1
+        while (low <= high) {
+          const middle = (low + high) >>> 1
+          if (nodes[middle].getBoundingClientRect().top <= center) { active = middle; low = middle + 1 }
+          else high = middle - 1
+        }
         setActiveHeading(active)
       })
     }
-    const observer = new MutationObserver(update)
+    const observer = new MutationObserver((mutations) => {
+      if (mutations.some((mutation) => {
+        const target = mutation.target instanceof Element ? mutation.target : mutation.target.parentElement
+        if (target?.closest(headingSelector)) return true
+        return [...mutation.addedNodes, ...mutation.removedNodes].some((node) => node instanceof Element && (node.matches(headingSelector) || node.querySelector(headingSelector)))
+      })) headingsDirty = true
+      update()
+    })
     observer.observe(host, { childList: true, subtree: true, characterData: true })
     const resize = new ResizeObserver(update)
     resize.observe(host)
@@ -170,8 +184,7 @@ export default function MarkdownCanvas({ activeFilePath, workspacePath: customWo
                 setLoaded({ path: activeFilePath, content })
                 const revision = ++saveRevision.current
                 setSaveState({ path: activeFilePath, message: "正在保存…" })
-                void window.electronAPI
-                  .saveContent(activeFilePath, content)
+                void saveMarkdownContent(activeFilePath, content)
                   .then(() => {
                     if (revision === saveRevision.current) setSaveState({ path: activeFilePath, message: "已保存" })
                   })

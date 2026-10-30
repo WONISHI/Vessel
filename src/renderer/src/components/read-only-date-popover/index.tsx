@@ -17,7 +17,7 @@ export function ReadOnlyDatePopover({ date, children, label, className }: { date
       </PopoverTrigger>
       <PopoverContent
         align="end"
-        className="z-[300] w-[260px] bg-white p-3 shadow-2xl"
+        className="vessel-date-popover z-[300] w-[260px] bg-white p-3 shadow-2xl"
       >
         <DateCalendar date={date} />
       </PopoverContent>

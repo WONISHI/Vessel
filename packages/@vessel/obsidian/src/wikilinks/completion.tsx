@@ -165,12 +165,12 @@ export function WikiLinkInput<T extends HTMLInputElement | HTMLTextAreaElement>(
               maxWidth: "calc(100vw - 16px)",
               maxHeight: 200,
               overflow: "hidden",
-              background: "var(--background, #fff)",
-              color: "var(--foreground, #292524)",
-              border: "1px solid #d6d3d1",
+              background: "var(--wiki-completion-background, #fff)",
+              color: "var(--wiki-completion-foreground, #292524)",
+              border: "1px solid var(--wiki-completion-border, #d6d3d1)",
               borderRadius: 8,
               padding: 4,
-              boxShadow: "0 4px 18px #0002",
+              boxShadow: "var(--wiki-completion-shadow, 0 4px 18px #0002)",
               fontSize: 12
             }}
           >
@@ -188,7 +188,7 @@ export function WikiLinkInput<T extends HTMLInputElement | HTMLTextAreaElement>(
                   aria-selected={index === active}
                   onMouseEnter={() => setActive(index)}
                   onClick={() => choose(item)}
-                  style={{ padding: "6px 8px", borderRadius: 4, cursor: "pointer", background: active === index ? "#e8f7ee" : undefined, color: active === index ? "#15803d" : undefined }}
+                  style={{ padding: "6px 8px", borderRadius: 4, cursor: "pointer", background: active === index ? "var(--wiki-completion-selected, #e8f7ee)" : undefined, color: active === index ? "var(--wiki-completion-selected-text, #15803d)" : undefined }}
                 >
                   <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.label}</div>
                   <small style={{ display: "block", opacity: 0.6, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.path}</small>

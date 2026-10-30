@@ -183,6 +183,7 @@ it("deletes only the selected occurrence of a Wiki image while retaining surroun
   const images = await screen.findAllByRole("img")
   fireEvent.load(images[0])
   fireEvent.contextMenu(images[0])
-  fireEvent.click(await screen.findByRole("menuitem", { name: "删除" }))
+  fireEvent.keyDown(await screen.findByRole("menuitem", { name: "删除" }), { key: "ArrowRight" })
+  fireEvent.click(await screen.findByRole("menuitem", { name: "引用删除" }))
   expect(onChange).toHaveBeenCalledWith("前文  中间 ![[photo.png]] 后文")
 })

@@ -63,6 +63,14 @@ export function useWorkspaceController(workspace: WorkspaceData, initialFile?: s
       if (saved && Array.isArray(saved.files)) {
         let files = saved.files.filter((file) => typeof file.path === "string" && typeof file.name === "string")
         files = files.filter((file) => !file.path.replace(/\\/g, "/").includes("/src/shared/"))
+        const recovered = await window.electronAPI.restoreWorkspaceTabs?.(workspace.path, files.map((file) => file.path))
+        if (cancelled) return
+        if (recovered) {
+          files = files.flatMap((file) => {
+            const path = recovered[file.path]
+            return path ? [{ ...file, path, name: path.split(/[\\/]/).pop() || file.name }] : []
+          }).filter((file, index, all) => all.findIndex((item) => item.path === file.path) === index)
+        }
         const expanded = (saved.expanded || []).filter((folder) => !folder.replace(/\\/g, "/").includes("/src/shared/"))
         setExpandedFolders(expanded)
 
@@ -75,7 +83,7 @@ export function useWorkspaceController(workspace: WorkspaceData, initialFile?: s
           if (!preview && activeRef.current) navigateRef.current(getFileRoute(pendingInitialFile), { replace: true })
         } else {
           setOpenFiles(files)
-          let activePath = saved.active
+          let activePath = recovered ? recovered[saved.active] || "" : saved.active
           if (activePath && activePath.replace(/\\/g, "/").includes("/src/shared/")) {
             activePath = files[0]?.path || ""
           }

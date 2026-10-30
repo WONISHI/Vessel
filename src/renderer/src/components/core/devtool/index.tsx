@@ -8,7 +8,7 @@ import type { DevToolsMenuItem, LogType } from "@/components/core/devtool/src/ty
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
-import { Bug, Cog, RefreshCcw, Terminal, Trash2, Wrench } from "lucide-react"
+import { Bug, Cog, RefreshCcw, Terminal, Trash2, Wrench, ScanLine } from "lucide-react"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { toast } from "sonner"
@@ -292,6 +292,17 @@ export default function DevTool() {
         label: "刷新页面",
         icon: RefreshCcw,
         onClick: refreshPage
+      },
+      {
+        key: "preview-screenshot",
+        label: "模拟端外截图",
+        icon: ScanLine,
+        onClick: () => {
+          // Let the developer menu close before capturing this renderer's surface.
+          setTimeout(() => {
+            void window.electronAPI.previewScreenshot().catch((error) => toast.error(String(error)))
+          }, 150)
+        }
       },
       {
         key: "debug",

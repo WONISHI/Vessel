@@ -94,7 +94,7 @@ export function NativeFileMenu() {
       if (content === undefined) return
       if (command === "save") { await window.electronAPI.saveContent(path, content); toast.success("已保存"); return }
       if (command === "export-pdf" && markdown) {
-        const selected = await window.electronAPI.fileMenuDialog({ action: "pdf", defaultPath: path.replace(/\.[^.\\/]+$/, ".pdf"), html: markdown.html() })
+        const selected = await window.electronAPI.fileMenuDialog({ action: "pdf", defaultPath: path.replace(/\.[^.\\/]+$/, ".pdf"), html: await markdown.html() })
         if (selected) toast.success("PDF 已导出")
         return
       }

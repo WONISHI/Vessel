@@ -14,3 +14,5 @@ export * from "#vessel-obsidian/highlights"
 export { parseFootnotes, type FootnoteDefinition, type FootnoteReference, type FootnoteAnnotation } from "#vessel-obsidian/footnotes"
 
 export { WikiLinkInput, WikiLinkText, wikiCompletionAt, type WikiFileSuggestion } from "./wikilinks/completion.js"
+
+export * from "#vessel-obsidian/callouts/index"

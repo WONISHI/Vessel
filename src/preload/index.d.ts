@@ -158,6 +158,7 @@ export interface VesselAPI extends BrowserProxyAPI, BrowserToolsAPI, SettingsAPI
   }>
   getStorageInfo: () => Promise<StorageInfo>
 
+  restoreWorkspaceTabs(root: string, paths: string[]): Promise<Record<string, string | null>>
   openProjectInEditor(root: string): Promise<string>
   revealWorkspaceFile: (root: string, path: string) => Promise<void>
   readClipboardImage: () => Promise<string | null>
@@ -166,6 +167,7 @@ export interface VesselAPI extends BrowserProxyAPI, BrowserToolsAPI, SettingsAPI
   readWikiLink: (root: string, target: string) => Promise<{ path: string; content: string }>
   saveObsidianImage: (root: string, documentPath: string, source: { bytes?: Uint8Array; url?: string; path?: string }) => Promise<{ name: string; path: string; reference: string }>
   resolveObsidianImage: (root: string, documentPath: string, reference: string) => Promise<string>
+  getObsidianImageResource: (root: string, documentPath: string, reference: string) => Promise<string>
   readObsidianImage: (root: string, documentPath: string, reference: string) => Promise<string>
   transferWorkspaceFiles: (root: string, paths: string[], destination: string, external: boolean, duplicate?: boolean) => Promise<{ source: string; target: string }[]>
   mutateWorkspaceFile: (root: string, path: string, name?: string) => Promise<string>
@@ -177,7 +179,9 @@ export interface VesselAPI extends BrowserProxyAPI, BrowserToolsAPI, SettingsAPI
 
   saveContent: (path: string, content: string) => Promise<void>
 
+  deleteObsidianImage: (root: string, documentPath: string, reference: string) => Promise<boolean>
   openDevTool: () => Promise<void>
+  previewScreenshot: () => Promise<void>
   onRequestClose?: (callback: () => void) => () => void
   confirmQuit?: () => Promise<void>
   reportCrash?: (crashed: boolean) => Promise<void>

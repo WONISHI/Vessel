@@ -823,7 +823,7 @@ html.dark .markdown-insert-menu {
 /* Root menu scrolls through shadcn ScrollArea instead of the native scrollbar. */
 .markdown-insert-menu.markdown-insert-menu-scroll { padding: 0; overflow: hidden !important; }
 .markdown-insert-scroll > [data-radix-scroll-area-viewport] {
-  max-height: min(420px, calc(var(--radix-dropdown-menu-content-available-height, 420px) - 2px));
+  max-height: min(420px, calc(var(--radix-context-menu-content-available-height, 420px) - 2px));
 }
 .markdown-insert-scroll-inner { padding: 4px; }
 .markdown-insert-menu [role="menuitem"] { height: 29px; gap: 8px; border-radius: 6px; padding: 0 8px; font-size: 12px; }
@@ -1005,4 +1005,42 @@ html.dark ::highlight(vessel-link-target) {
 .vessel-editor-scroll .vessel-vditor .vditor-ir > .vditor-reset[contenteditable="true"],
 .vessel-editor-scroll .vessel-vditor .vditor-wysiwyg > .vditor-reset[contenteditable="true"] {
   padding-bottom: clamp(240px, 40vh, 480px) !important;
+}
+
+/* Reserve a stable slot while off-screen images have no React subtree yet. */
+.vessel-image-block .vessel-preview-pending {
+  min-height: 180px;
+  border-radius: 10px;
+  background: rgba(128, 128, 128, .06);
+  overflow: hidden;
+}
+.vessel-image-block .vessel-preview-pending > * { visibility: hidden; }
+
+.markdown-insert-menu.markdown-callout-picker {
+  display: block;
+  width: 220px;
+  min-width: 0;
+  max-height: min(420px, var(--radix-context-menu-content-available-height, 420px));
+  overflow-y: auto;
+  padding: 4px;
+}
+.markdown-callout-picker [role="menuitem"] { height: 30px; padding: 0 8px; gap: 8px; }
+.markdown-callout-picker [role="menuitem"] svg { width: 15px; height: 15px; flex-shrink: 0; }
+.markdown-callout-choice-text { display: flex; align-items: center; justify-content: space-between; gap: 18px; flex: 1; min-width: 0; }
+.markdown-callout-choice-text strong { font-size: 12px; font-weight: 400; }
+.markdown-callout-choice-text small { font-size: 10px; color: var(--insert-faint); }
+.markdown-callout-picker [role="menuitem"][data-highlighted] { background: var(--insert-active); }
+
+.markdown-callout-picker [role="menuitem"][data-selected="true"] { background:var(--insert-active); color:var(--insert-green); }
+
+/* Match Context Menu's white foreground with a solid, readable active background. */
+.markdown-insert-menu [role="menuitem"]:not([data-disabled]):is([data-highlighted], [data-state="open"]) {
+  background: #16a34a !important;
+  color: #fff !important;
+}
+.markdown-insert-menu [role="menuitem"]:not([data-disabled]):is([data-highlighted], [data-state="open"]) :is(span, strong, small, svg) {
+  color: #fff !important;
+}
+.markdown-insert-menu [role="menuitem"]:is([data-highlighted], [data-state="open"]) .markdown-insert-heading {
+  background: #ffffff26;
 }

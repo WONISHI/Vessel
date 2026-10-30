@@ -44,3 +44,15 @@ it("clamps buffers after a directory collapses and covers fractional rows", () =
   expect(virtualTreeRange(321, 320, 10000, 32, 6)).toEqual({ start: 0, end: 31 })
   expect(virtualTreeRange(0, 320, 0, 32, 6)).toEqual({ start: 0, end: 0 })
 })
+
+it("refreshes a programmatic reveal before a native scroll event arrives", () => {
+  const viewport = viewportFixture()
+  const rows = Array.from({ length: 10000 }, (_, index) => ({ id: String(index), depth: 0, item: index }))
+  render(<VirtualTree rows={rows} viewport={viewport} renderRow={(row) => <span>文件{row.item}</span>} />, { container: viewport })
+  act(() => {
+    viewport.scrollTop = 240000
+    viewport.dispatchEvent(new Event("vessel:tree-reveal"))
+  })
+  expect(screen.getByText("文件7500")).toBeTruthy()
+  expect(screen.getAllByRole("treeitem").length).toBeLessThanOrEqual(32)
+})

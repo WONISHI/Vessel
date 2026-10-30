@@ -117,17 +117,19 @@ export function secureBrowserGuests(contents: WebContents) {
           --vessel-scrollbar-thumb: #e4e4e7;
           --vessel-scrollbar-hover: #a1a1aa;
         }
-        :root[data-vessel-guest-theme="dark"] {
+        @media (prefers-color-scheme: dark) { :root {
           --vessel-scrollbar-track: #22272e;
           --vessel-scrollbar-thumb: #555f6b;
           --vessel-scrollbar-hover: #7d8997;
-        }
-        ::-webkit-scrollbar { width: 10px; height: 10px; }
+        } }
+        * { scrollbar-color: var(--vessel-scrollbar-thumb) var(--vessel-scrollbar-track) !important; }
+        ::-webkit-scrollbar { width: 10px !important; height: 10px !important; }
         ::-webkit-scrollbar-track { background: var(--vessel-scrollbar-track) !important; }
         ::-webkit-scrollbar-thumb { background: var(--vessel-scrollbar-thumb) !important; border: 2px solid transparent; background-clip: padding-box !important; border-radius: 999px; }
         ::-webkit-scrollbar-corner { background: var(--vessel-scrollbar-track) !important; }
         ::-webkit-scrollbar-thumb:hover { background-color: var(--vessel-scrollbar-hover) !important; }
-      `
+      `,
+          { cssOrigin: "user" }
         )
         .catch(() => {})
     })

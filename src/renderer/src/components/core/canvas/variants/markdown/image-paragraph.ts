@@ -125,3 +125,23 @@ export function insertImageMarkdown(root: HTMLElement, insert: () => void) {
   const next = current instanceof Element ? current.nextElementSibling : null
   if (isEmptyParagraph(current) && next?.matches('[data-type="code-block"], .vessel-image-block') && !existingBlocks.has(next)) current.remove()
 }
+
+
+/** Split a multi-image source block at the clicked image, not at the group's outer edge. */
+export function focusImageSourceBoundary(block: HTMLElement, source: string, offset: number, render: (source: string) => string): HTMLElement | null {
+  if (offset <= 0) return focusImageParagraph(block, false)
+  if (offset >= source.length) return focusImageParagraph(block, true)
+  const editor = block.closest<HTMLElement>('[contenteditable="true"]')
+  if (!editor) return null
+  const before = document.createElement("template"), after = document.createElement("template")
+  before.innerHTML = render(source.slice(0, offset))
+  after.innerHTML = render(source.slice(offset))
+  const next = after.content.firstElementChild as HTMLElement | null
+  if (!next) return focusImageParagraph(block, true)
+  const paragraph = document.createElement("p")
+  paragraph.dataset.block = "0"
+  paragraph.innerHTML = "<br>"
+  block.replaceWith(before.content, paragraph, after.content)
+  // Reuse the caret restoration that survives the context menu's closing frame.
+  return focusImageParagraph(next, false)
+}

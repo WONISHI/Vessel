@@ -1,3 +1,5 @@
+import { installLiquidGlass } from "@/features/screenshot/liquid-glass"
+import { installTextOptions, screenshotTextFont, drawScreenshotTextDecoration } from "./text-options"
 import { createOcrDialog } from "@/features/screenshot/ocr-dialog"
 import { arrangeScreenshotToolbar } from "@/features/screenshot/toolbar-order"
 import { installToolbarTooltip } from "@/features/screenshot/toolbar-tooltip"
@@ -25,9 +27,15 @@ Object.defineProperty(CanvasRenderingContext2D.prototype, "font", {
 
   /** Sets set. */
   set(value: string) {
-    canvasFont.set!.call(this, value.replace(/\bnone$/, '"Plus Jakarta Sans", "PingFang SC", sans-serif'))
+    canvasFont.set!.call(this, screenshotTextFont(value))
   }
 })
+const canvasFillText = CanvasRenderingContext2D.prototype.fillText
+CanvasRenderingContext2D.prototype.fillText = function (text, x, y, maxWidth) {
+  if (maxWidth === undefined) canvasFillText.call(this, text, x, y)
+  else canvasFillText.call(this, text, x, y, maxWidth)
+  drawScreenshotTextDecoration(this, text, x, y)
+}
 
 /** Performs the icon operation. */
 const icon = (Icon: typeof Copy, color = "#171717") => `url("data:image/svg+xml;utf8,${encodeURIComponent(renderToStaticMarkup(createElement(Icon, { size: 20, color, weight: "regular" })))}")`
@@ -55,7 +63,9 @@ function installToolbarIcons() {
     `#toolPanel .undo-disabled:not(.shot-can-undo),#toolPanel .undo-disabled:not(.shot-can-undo):hover,#toolPanel .undo-disabled:not(.shot-can-undo):active{background-image:${icon(Undo2, "#a8adaa")} !important;${base}}`
   )
   const style = document.createElement("style")
-  style.textContent = rules.join("\n")
+  const darkTools: [string, typeof Copy][] = [...tools.filter(([name]) => name !== "save" && name !== "close"), ["shot-step", ListOrdered], ["shot-pin", Pin], ["undo", Undo2], ["undo-disabled.shot-can-undo", Undo2]]
+  const darkRules = darkTools.map(([name, Icon]) => `#toolPanel .${name},#toolPanel .${name}:hover,#toolPanel .${name}:active,#toolPanel .${name}-active,#toolPanel .${name}[aria-pressed=true]{background-image:${icon(Icon, "#f1f5f9")} !important;${base}}`)
+  style.textContent = rules.join("\n") + `\n@media(prefers-color-scheme:dark){${darkRules.join("\n")}}`
   document.head.append(style)
 }
 window.addEventListener("keydown", (event) => {
@@ -71,6 +81,7 @@ void api
     if (mode === "capture") {
       let action: "copy" | "pin" | "ocr" | "save" | "translate" = "copy"
       let stepTools: ReturnType<typeof installSteps> | undefined
+      let stopGlass: (() => void) | undefined
       let stopTooltip: (() => void) | undefined
       let stopToolbarDrag: (() => void) | undefined
       let stopModeMenu: (() => void) | undefined
@@ -144,7 +155,16 @@ void api
         })
         copy.before(pin)
         if (toolbar) arrangeScreenshotToolbar(toolbar)
-        if (toolbar) stopTooltip = installToolbarTooltip(toolbar)
+        if (toolbar) {
+          stopTooltip = installToolbarTooltip(toolbar)
+          const stopToolbarGlass = installLiquidGlass(toolbar)
+          const options = document.getElementById("optionPanel")
+          const stopOptionsGlass = options ? installLiquidGlass(options) : undefined
+          const sizeMenu = options?.querySelector<HTMLElement>(".text-select-panel")
+          const stopSizeGlass = sizeMenu ? installLiquidGlass(sizeMenu) : undefined
+          const stopTextOptions = options ? installTextOptions(toolbar, options) : undefined
+          stopGlass = () => { stopTextOptions?.(); stopSizeGlass?.(); stopOptionsGlass?.(); stopToolbarGlass() }
+        }
         // Route downloads through the same compositor so numbered steps are included.
         const save = document.querySelector<HTMLElement>("#toolPanel .save")
         save?.addEventListener(
@@ -184,6 +204,7 @@ void api
           stopModeMenu?.()
           stopToolbarDrag?.()
           stopTooltip?.()
+          stopGlass?.()
           stopInspector?.()
           stepTools?.hide()
           void mergeSteps(base64, cutInfo, stepTools?.steps || [])

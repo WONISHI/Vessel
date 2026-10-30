@@ -4,19 +4,27 @@ import type ScreenShot from "js-web-screen-shot"
 export type Step = { x: number; y: number; number: number; tipX?: number; tipY?: number; text?: string }
 export type CutBox = { startX: number; startY: number; width: number; height: number }
 
+/** Keep a default tail, while allowing its tip to be dragged independently of the badge. */
+function stepPointer(step: Step) {
+  const angle = Math.atan2((step.tipY ?? step.y + 34) - step.y, (step.tipX ?? step.x + 23) - step.x)
+  const length = step.tipX !== undefined && step.tipY !== undefined
+    ? Math.max(26, Math.hypot(step.tipX - step.x, step.tipY - step.y))
+    : 48
+  return { x: step.x + Math.cos(angle) * length, y: step.y + Math.sin(angle) * length }
+}
+
 /** Draws step. */
 export function drawStep(context: CanvasRenderingContext2D, step: Step) {
   const { x, y, number } = step
   context.save()
   context.fillStyle = "#ef4444"
-  const tipX = step.tipX ?? x + 23
-  const tipY = step.tipY ?? y + 34
+  const { x: tipX, y: tipY } = stepPointer(step)
   const angle = Math.atan2(tipY - y, tipX - x)
   const side = 0.58
   context.beginPath()
   context.moveTo(x + Math.cos(angle - side) * 15, y + Math.sin(angle - side) * 15)
-  context.quadraticCurveTo(x + Math.cos(angle) * 19, y + Math.sin(angle) * 19, tipX, tipY)
-  context.quadraticCurveTo(x + Math.cos(angle + side) * 22, y + Math.sin(angle + side) * 22, x + Math.cos(angle + side) * 15, y + Math.sin(angle + side) * 15)
+  context.lineTo(tipX, tipY)
+  context.lineTo(x + Math.cos(angle + side) * 15, y + Math.sin(angle + side) * 15)
   context.closePath()
   context.fill()
   context.beginPath()
@@ -87,7 +95,7 @@ export function installSteps(plugin: ScreenShot, button: HTMLButtonElement) {
   let dragTip = false
   let focusText = ""
   const snapshot = () => history.push(steps.map((step) => ({ ...step })))
-  const tip = (step: Step) => ({ x: step.tipX ?? step.x + 23, y: step.tipY ?? step.y + 34 })
+  const tip = stepPointer
   const redraw = () => {
     const context = layer.getContext("2d")!
     context.clearRect(0, 0, layer.width, layer.height)
@@ -164,7 +172,11 @@ export function installSteps(plugin: ScreenShot, button: HTMLButtonElement) {
     const box = plugin.getCutBoxInfo()
     const x = Math.max(box.startX, Math.min(box.startX + box.width, event.clientX))
     const y = Math.max(box.startY, Math.min(box.startY + box.height, event.clientY))
-    if (dragTip) { moving.tipX = x; moving.tipY = y }
+    if (dragTip) {
+      const end = stepPointer({ ...moving, tipX: x, tipY: y })
+      moving.tipX = end.x
+      moving.tipY = end.y
+    }
     else {
       if (moving.tipX !== undefined) moving.tipX += x - moving.x
       if (moving.tipY !== undefined) moving.tipY += y - moving.y

@@ -1,3 +1,4 @@
+import { invalidateObsidianImageIndex } from "@main/modules/files/obsidian-image"
 import { subscribe, type AsyncSubscription } from "@parcel/watcher"
 import type { WebContents } from "electron"
 import { randomUUID } from "node:crypto"
@@ -31,6 +32,7 @@ export function registerFileWatch(host: WebContents) {
     const pending = subscribe(
       directory,
       (error, events) => {
+        if (error || events.some((event) => event.type !== "update")) invalidateObsidianImageIndex(directory)
         if (!host.isDestroyed() && generation === currentGeneration)
           host.send(
             "files:changed",

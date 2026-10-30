@@ -20,9 +20,9 @@
     script-src 'self' blob: 'wasm-unsafe-eval';
     worker-src 'self' blob:;
     style-src 'self' 'unsafe-inline';
-    img-src 'self' data: blob: https: http:;
+    img-src 'self' data: blob: https: http: vessel-image:;
     font-src 'self' data: https://at.alicdn.com;
-    connect-src 'self' blob: http://localhost:* ws://localhost:*;
+    connect-src vessel-image: 'self' blob: http://localhost:* ws://localhost:*;
   "
     />
 

@@ -32,6 +32,7 @@ export const filesAPI = {
   readWikiLink: (root: string, target: string): Promise<{ path: string; content: string }> => ipcRenderer.invoke("obsidian:readWikiLink", root, target),
 
   /** Performs the reveal workspace file operation. */
+  restoreWorkspaceTabs: (root: string, paths: string[]): Promise<Record<string, string | null>> => ipcRenderer.invoke("workspace:restoreTabs", root, paths),
   openProjectInEditor: (root: string): Promise<string> => ipcRenderer.invoke("workspace:openInEditor", root),
   revealWorkspaceFile: (root: string, path: string): Promise<void> => ipcRenderer.invoke("workspace:revealFile", root, path),
 
@@ -42,6 +43,8 @@ export const filesAPI = {
 
   /** Reads obsidian image. */
   resolveObsidianImage: (root: string, documentPath: string, reference: string): Promise<string> => ipcRenderer.invoke("obsidian:resolveImage", root, documentPath, reference),
+  deleteObsidianImage: (root: string, documentPath: string, reference: string): Promise<boolean> => ipcRenderer.invoke("obsidian:deleteImage", root, documentPath, reference),
+  getObsidianImageResource: (root: string, documentPath: string, reference: string): Promise<string> => ipcRenderer.invoke("obsidian:imageResource", root, documentPath, reference),
   readObsidianImage: (root: string, documentPath: string, reference: string): Promise<string> => ipcRenderer.invoke("obsidian:readImage", root, documentPath, reference),
 
   /** Performs the transfer workspace files operation. */

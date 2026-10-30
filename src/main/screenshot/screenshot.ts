@@ -1,4 +1,5 @@
 import { registerPinMenu, togglePins } from "@main/screenshot/pin-menu"
+import { fullscreenPreviewWindow } from "./preview-fullscreen"
 import { translateScreenshot } from "@main/screenshot/translate"
 import { generalSettings, settingsEvents } from "@main/settings/settings"
 import { app, BrowserWindow, clipboard, desktopCapturer, dialog, globalShortcut, nativeImage, screen, shell, systemPreferences } from "electron"
@@ -76,7 +77,7 @@ async function captureDisplay(display: Electron.Display): Promise<string> {
 }
 
 /** Starts screenshot. */
-export async function startScreenshot() {
+export async function startScreenshot(previewSource?: Electron.WebContents) {
   if (capturing) return
   if (captureWindow && !captureWindow.isDestroyed()) {
     captureWindow.focus()
@@ -84,8 +85,10 @@ export async function startScreenshot() {
   }
   capturing = true
   try {
-    const display = screen.getDisplayNearestPoint(screen.getCursorScreenPoint())
-    const image = await captureDisplay(display)
+    const previewBounds = previewSource ? await fullscreenPreviewWindow(previewSource) : undefined
+    const display = previewBounds ? screen.getDisplayMatching(previewBounds) : screen.getDisplayNearestPoint(screen.getCursorScreenPoint())
+    // capturePage reads our own renderer surface and never requests desktop recording permission.
+    const image = previewSource ? (await previewSource.capturePage()).toDataURL() : await captureDisplay(display)
     const win = create(display.bounds, false)
     captureWindow = win
     let shown = false
@@ -131,6 +134,11 @@ export async function startScreenshot() {
     await load(win)
   } catch (error) {
     captureWindow?.close()
+    if (previewSource) {
+      console.error("[screenshot] Preview failed", error)
+      dialog.showErrorBox("模拟截图失败", error instanceof Error ? error.message : String(error))
+      return
+    }
     const permission = process.platform === "darwin" ? systemPreferences.getMediaAccessStatus("screen") : undefined
     console.error("[screenshot] Capture failed", { permission, error })
     if (permission && permission !== "granted") {

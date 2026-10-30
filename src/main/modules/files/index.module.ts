@@ -1,3 +1,5 @@
+import { createImageResource } from "./image-resource"
+import { restoreWorkspaceTabs } from "@main/files/restore-tabs"
 import { openProjectInEditor } from "@main/files/open-project-editor"
 import { shareFilesToWechat } from "./share-wechat"
 import { disposeCodeDiagnostics, getCodeDiagnostics } from "@main/diagnostics/code-diagnostics"
@@ -8,7 +10,7 @@ import { readObsidianImage, resolveObsidianImageFile } from "@main/modules/files
 import { saveObsidianImage } from "@main/modules/files/save-obsidian-image"
 import { transferWorkspaceFiles } from "@main/modules/files/transfer-workspace-files"
 import { readWikiLink } from "@main/modules/files/wiki-link"
-import { clipboard, ipcMain, shell } from "electron"
+import { BrowserWindow, clipboard, dialog, ipcMain, shell } from "electron"
 import { link, lstat, mkdir, readFile, realpath, rename, stat, unlink, writeFile } from "node:fs/promises"
 import { dirname, isAbsolute, join, relative, sep } from "node:path"
 
@@ -111,6 +113,7 @@ export class FilesModule extends BaseModule {
   /** Handles activate events. */
   protected onActivate(): void {
     ipcMain.handle("code:diagnostics", (_event, path, content) => getCodeDiagnostics(path, content))
+    ipcMain.handle("workspace:restoreTabs", (_event, root: string, paths: string[]) => restoreWorkspaceTabs(root, paths))
     ipcMain.handle("workspace:openInEditor", (_event, root: unknown) => openProjectInEditor(root))
     ipcMain.handle("workspace:revealFile", async (_event, root: string, path: string) => {
       const base = await realpath(root),
@@ -131,11 +134,28 @@ export class FilesModule extends BaseModule {
     ipcMain.handle("image:copy", (_event, source) => copyImage(source))
     ipcMain.handle("image:readFile", (_event, root, path) => readImageFile(root, path))
     ipcMain.handle("obsidian:saveImage", (_event, root, documentPath, source) => saveObsidianImage(root, documentPath, source))
+    ipcMain.handle("obsidian:deleteImage", async (event, root: string, documentPath: string, reference: string) => {
+      const path = await resolveObsidianImageFile(root, documentPath, reference)
+      if (path === await realpath(documentPath)) throw new Error("不能删除当前文档")
+      const options: Electron.MessageBoxOptions = {
+        type: "warning", title: "物理删除图片", message: "确定永久删除这个图片文件？",
+        detail: `${path}\n\n同时移除当前文档中的这处图片引用。文件不会移入废纸篓，其他文档对它的引用也将失效。`,
+        buttons: ["取消", "永久删除"], defaultId: 0, cancelId: 0, noLink: true
+      }
+      const parent = BrowserWindow.fromWebContents(event.sender)
+      const result = parent ? await dialog.showMessageBox(parent, options) : await dialog.showMessageBox(options)
+      if (result.response !== 1) return false
+      // Recheck canonical workspace containment after the confirmation dialog.
+      if (await resolveObsidianImageFile(root, documentPath, reference) !== path) throw new Error("图片路径已变化，请重试")
+      await unlink(path)
+      return true
+    })
     ipcMain.handle("obsidian:resolveImage", async (_event, root: string, documentPath: string, reference: string) => {
       const image = await resolveObsidianImageFile(root, documentPath, reference)
       // Preserve the workspace's logical root so file-tree IDs also match symlinked vaults.
       return join(root, relative(await realpath(root), image))
     })
+    ipcMain.handle("obsidian:imageResource", (_event, root: string, documentPath: string, reference: string) => createImageResource(root, documentPath, reference))
     ipcMain.handle("obsidian:readImage", (_event, root, documentPath, reference) => readObsidianImage(root, documentPath, reference))
     ipcMain.handle("workspace:transferFiles", (_event, root, paths, destination, external, duplicate) => transferWorkspaceFiles(root, paths, destination, external, duplicate === true))
     ipcMain.handle("workspace:mutateFile", (_event, root, path, name) => mutateWorkspaceFile(root, path, name))
@@ -153,6 +173,7 @@ export class FilesModule extends BaseModule {
   protected onDispose(): void {
     ipcMain.removeHandler("code:diagnostics")
     disposeCodeDiagnostics()
+    ipcMain.removeHandler("workspace:restoreTabs")
     ipcMain.removeHandler("workspace:openInEditor")
     ipcMain.removeHandler("workspace:revealFile")
     ipcMain.removeHandler("obsidian:readWikiLink")
@@ -160,6 +181,7 @@ export class FilesModule extends BaseModule {
     ipcMain.removeHandler("image:copy")
     ipcMain.removeHandler("image:readFile")
     ipcMain.removeHandler("obsidian:readImage")
+    ipcMain.removeHandler("obsidian:imageResource")
     ipcMain.removeHandler("obsidian:resolveImage")
     ipcMain.removeHandler("obsidian:saveImage")
     ipcMain.removeHandler("workspace:transferFiles")

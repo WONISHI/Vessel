@@ -59,20 +59,23 @@ export function useFileChanges(callback: (changes: FileChange[]) => void) {
   }, [])
 }
 /** Keep programmatic reloads distinct from edits; reject reads superseded by local input. */
-export function useExternalContent(path: string, content: string | undefined, apply: (content: string) => void) {
-  const latest = useRef({ path, content, apply })
+export function useExternalContent(path: string, content: string | undefined, apply: (content: string) => void, waitForWrites?: (path: string) => Promise<void>) {
+  const latest = useRef({ path, content, apply, waitForWrites })
   useLayoutEffect(() => {
-    latest.current = { path, content, apply }
-  }, [path, content, apply])
+    latest.current = { path, content, apply, waitForWrites }
+  }, [path, content, apply, waitForWrites])
   const request = useRef(0)
   useFileChanges((changes) => {
     if (!changes.some((change) => change.path === path && change.type !== "delete")) return
     const snapshot = latest.current
     const revision = ++request.current
-    void window.electronAPI
-      .readContent(path)
+    void Promise.resolve(snapshot.waitForWrites?.(path))
+      .then(() => {
+        if (request.current !== revision || latest.current.path !== path || latest.current.content !== snapshot.content) return undefined
+        return window.electronAPI.readContent(path)
+      })
       .then((value) => {
-        if (request.current === revision && latest.current.path === path && latest.current.content === snapshot.content && value !== latest.current.content) latest.current.apply(value)
+        if (value !== undefined && request.current === revision && latest.current.path === path && latest.current.content === snapshot.content && value !== latest.current.content) latest.current.apply(value)
       })
       .catch(() => {})
   })

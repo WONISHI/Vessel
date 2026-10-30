@@ -1,10 +1,11 @@
 import { WikiLinkPreview } from "@/components/core/canvas/variants/markdown/wiki-link-preview"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { useCallback, useContext, useRef, type ComponentProps } from "react"
+import { lazy, Suspense, useCallback, useContext, useRef, type ComponentProps } from "react"
 import { MarkdownTableEditor } from "@vessel/markdown-table"
 import { WikiLinkInput, WikiLinkText, type WikiFileSuggestion } from "@vessel/obsidian"
 import { WorkspaceContext, type WorkspaceNode } from "@/components/workspace/types/workspace"
 import { toast } from "sonner"
+const TableJsonEditor = lazy(() => import("./json-editor"))
 
 /** Table adapter supplies filesystem access; wikilink behavior belongs to @vessel/obsidian. */
 export function LinkedTableEditor({ root, onOpenFile, ...props }: ComponentProps<typeof MarkdownTableEditor> & { root: string; onOpenFile?: (file: WorkspaceNode) => void }) {
@@ -45,6 +46,7 @@ export function LinkedTableEditor({ root, onOpenFile, ...props }: ComponentProps
     <div ref={previewHost} data-wiki-preview-owner style={{ display: "contents" }}>
     <MarkdownTableEditor
       {...props}
+      renderRawEditor={(editorProps) => <Suspense fallback={<div style={{ height: 360, padding: 16 }}>正在加载 JSON 编辑器…</div>}><TableJsonEditor {...editorProps} /></Suspense>}
       renderCellEditor={(input) => (
         <WikiLinkInput
           input={input}

@@ -353,12 +353,191 @@ body[data-screenshot-mode="translate"] :is(#optionPanel, #optionIcoController) {
   border-radius: 5px;
   background: #ffffff60;
 }
+/* Draw width samples directly so the library's selected bitmap cannot add a white square. */
+#optionPanel.shot-liquid-glass {
+  width: max-content !important;
+  max-width: calc(100vw - 16px);
+  padding: 6px 10px !important;
+  min-height: 40px;
+  border-radius: 14px !important;
+}
+#optionPanel .brush-select-panel {
+  height: 28px !important;
+  align-items: center;
+}
+#optionPanel .brush-select-panel .item-panel {
+  width: 28px !important;
+  height: 28px !important;
+  margin-right: 4px !important;
+}
+#optionPanel .right-panel {
+  min-height: 28px;
+  gap: 7px;
+  margin-left: 10px !important;
+  padding-left: 10px;
+  border-left: 1px solid #7773;
+}
+#optionPanel .right-panel .color-panel {
+  position: static !important;
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  align-items: center;
+  gap: 6px;
+  width: auto !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none;
+}
+#optionPanel .right-panel .color-panel .color-item {
+  box-sizing: border-box;
+  flex: 0 0 18px;
+  width: 18px !important;
+  height: 18px !important;
+  margin: 0 !important;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: transform .12s ease, box-shadow .12s ease;
+}
+#optionPanel .right-panel .color-panel .color-item:hover {
+  transform: scale(1.12);
+  box-shadow: 0 0 0 3px #ffffff59;
+}
+#optionPanel .right-panel .color-select-panel {
+  width: 22px !important;
+  height: 22px !important;
+  border: 0 !important;
+  border-radius: 6px;
+  margin-left: 0 !important;
+  box-shadow: 0 0 0 3px #ffffff59;
+}
+#optionPanel .right-panel .pull-down-arrow { display: none !important; }
+#optionPanel .text-size-panel {
+  height: 28px !important; width: 64px !important; gap: 7px;
+  border: 0 !important; border-radius: 7px; background: transparent !important;
+  color: #262626; font: 500 13px system-ui;
+}
+#optionPanel .text-size-panel::after {
+  content: ""; width: 5px; height: 5px; border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor; transform: translateY(-2px) rotate(45deg); opacity: .7;
+  transition: transform .2s ease;
+}
+#optionPanel .text-size-panel[aria-expanded="true"]::after { transform: translateY(1px) rotate(225deg); }
+.shot-text-more { display: flex; align-items: center; justify-content: center; }
+.shot-text-more svg { transition: transform .2s ease; }
+.shot-text-more[aria-expanded="true"] svg { transform: rotate(180deg); }
+#optionPanel .text-size-panel:hover { background: #ffffff30 !important; }
+#optionPanel .text-select-panel {
+  box-sizing: border-box;
+  top: auto !important; bottom: calc(100% + 8px) !important; left: 8px !important;
+  width: 92px !important; max-height: min(300px, 55vh); overflow-y: auto;
+  padding: 5px; border: 0 !important; border-radius: 12px !important;
+  color: #262626 !important;
+  background: linear-gradient(135deg, #f4f6f5e6, #e8edf1bf) !important;
+  backdrop-filter: blur(18px) saturate(135%); -webkit-backdrop-filter: blur(18px) saturate(135%);
+  box-shadow: 0 8px 24px #17212d26;
+}
+#optionPanel .text-select-panel .text-item {
+  box-sizing: border-box; display: flex; align-items: center; width: 100% !important;
+  height: 28px !important; margin: 0 !important; padding: 0 10px;
+  border-radius: 7px; color: inherit !important; font: 13px system-ui;
+}
+#optionPanel .text-select-panel .text-item:hover { background: #ffffff45 !important; }
+@media (prefers-color-scheme: dark) {
+  #optionPanel .text-size-panel { color: #f1f5f9; }
+  #optionPanel .text-size-panel:hover { background: #ffffff1f !important; }
+  #optionPanel .text-select-panel { color: #f1f5f9 !important; background: linear-gradient(135deg, #303841ed, #20262ed9) !important; }
+  #optionPanel .text-select-panel .text-item:hover { background: #ffffff1f !important; }
+}
+.shot-text-controls { display: none; }
+#optionPanel[data-text-options="true"] .shot-text-controls { display: flex; float: left; align-items: center; gap: 6px; margin-left: 10px; }
+.shot-text-controls button, .shot-text-controls select, .shot-text-format summary {
+  height: 28px; border: 0; border-radius: 7px; background: transparent;
+  color: #262626; font: 12px system-ui; padding: 0 8px; cursor: pointer;
+}
+.shot-text-controls > button { font-size: 23px; }
+.shot-text-advanced { display: flex; align-items: center; gap: 6px; border-left: 1px solid #7773; padding-left: 8px; }
+.shot-text-advanced[hidden] { display: none; }
+.shot-text-format { position: relative; }
+.shot-text-format summary { display: flex; align-items: center; list-style: none; }
+.shot-text-format summary::-webkit-details-marker { display: none; }
+.shot-text-controls button:hover, .shot-text-format[open] summary { background: #ffffff45; }
+.shot-text-format-menu {
+  position: absolute; bottom: calc(100% + 12px); left: 50%; transform: translateX(-50%);
+  display: grid; width: 140px; padding: 6px; border-radius: 12px;
+  background: #edf0efc9; backdrop-filter: blur(18px) saturate(135%); box-shadow: 0 8px 24px #0002;
+}
+.shot-text-format-menu button { height: 34px; text-align: left; }
+.shot-text-format-menu button[aria-pressed="true"] { background: #ffffff70; color: #168bfa; }
+.shot-font-menu { width: 148px; padding: 6px; gap: 2px; z-index: 10; }
+.shot-font-menu button { display: flex; align-items: center; gap: 8px; }
+.shot-font-menu button::before { content: ""; width: 14px; flex: 0 0 14px; }
+.shot-font-menu button[aria-checked="true"]::before { content: "✓"; }
+.shot-font-menu button[aria-checked="true"] { background: #ffffff45; color: #168bfa; }
+.shot-font-menu button:focus-visible { outline: none; background: #ffffff59; }
+.shot-format-icon { gap: 7px; }
+.shot-menu-chevron {
+  display: block; width: 5px; height: 5px; border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor; transform: translateY(-2px) rotate(45deg);
+  transition: transform .18s ease;
+}
+.shot-text-format[open] .shot-menu-chevron { transform: translateY(1px) rotate(225deg); }
+.shot-text-format summary { transition: background-color .18s ease, box-shadow .18s ease; }
+.shot-text-format[open] > .shot-text-format-menu {
+  transform-origin: bottom center;
+  animation: shot-text-menu-in .18s cubic-bezier(.2,.8,.2,1) both;
+}
+@keyframes shot-text-menu-in {
+  from { opacity: 0; transform: translate(-50%, 6px) scale(.96); }
+  to { opacity: 1; transform: translate(-50%, 0) scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .shot-text-format[open] > .shot-text-format-menu { animation: none; }
+  .shot-menu-chevron { transition: none; }
+}
+@media (prefers-color-scheme: dark) {
+  .shot-text-controls button, .shot-text-controls select, .shot-text-format summary { color: #f1f5f9; }
+  .shot-text-format-menu { background: #303841e6; }
+  .shot-text-controls button:hover, .shot-text-format[open] summary { background: #ffffff1f; }
+  .shot-text-format-menu button[aria-pressed="true"] { background: #ffffff29; color: #60a5fa; }
+  .shot-font-menu button[aria-checked="true"] { background: #ffffff1f; color: #93c5fd; }
+  .shot-font-menu button:focus-visible { background: #ffffff29; }
+}
+#optionPanel .brush-select-panel :is(.brush-small, .brush-medium, .brush-big) {
+  --shot-width-dot: 2px;
+  color: #54515c;
+  border: 0 !important;
+  border-radius: 10px !important;
+  background-image: radial-gradient(circle at center, currentColor 0 var(--shot-width-dot), transparent calc(var(--shot-width-dot) + .5px)) !important;
+  background-size: 100% 100% !important;
+  background-color: transparent;
+  transition: background-color .15s ease, color .15s ease;
+}
+#optionPanel .brush-select-panel .brush-medium { --shot-width-dot: 5px; }
+#optionPanel .brush-select-panel .brush-big { --shot-width-dot: 9px; }
+#optionPanel .brush-select-panel :is(.brush-small, .brush-medium, .brush-big):hover {
+  background-color: #ffffff30;
+}
+#optionPanel .brush-select-panel :is(.brush-small-active, .brush-medium-active, .brush-big-active) {
+  color: #171717;
+  background-color: #ffffff59;
+  box-shadow: 0 2px 6px #0000000f;
+}
+@media (prefers-color-scheme: dark) {
+  #optionPanel .brush-select-panel :is(.brush-small, .brush-medium, .brush-big) { color: #b8bec8; }
+  #optionPanel .brush-select-panel :is(.brush-small, .brush-medium, .brush-big):hover { background-color: #ffffff14; }
+  #optionPanel .brush-select-panel :is(.brush-small-active, .brush-medium-active, .brush-big-active) {
+    color: #f1f5f9;
+    background-color: #ffffff29;
+  }
+}
 #optionIcoController {
   position: fixed !important;
   width: 18px !important;
   height: 9px !important;
   border: 0 !important;
-  background: #d6d9d7 !important;
+  background: #ffffff70 !important;
+  backdrop-filter: blur(18px) saturate(135%);
+  -webkit-backdrop-filter: blur(18px) saturate(135%);
   clip-path: polygon(50% 0, 100% 100%, 0 100%);
   transform: none !important;
 }
@@ -438,6 +617,18 @@ body[data-screenshot-mode="translate"] :is(#optionPanel, #optionIcoController) {
   background: #f0f0f0;
   color: #737373;
   font: 600 11px/18px system-ui;
+}
+.shot-toolbar-tooltip:not([hidden]) { animation: shot-tooltip-in .15s ease-out; }
+@keyframes shot-tooltip-in {
+  from { opacity: 0; transform: translateY(3px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-color-scheme: dark) {
+  .shot-toolbar-tooltip { color: #f1f5f9; }
+  .shot-toolbar-tooltip kbd { background: #ffffff1a; color: #cbd5e1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .shot-toolbar-tooltip:not([hidden]) { animation: none; }
 }
 
 /* Disabled actions use a quiet gray stroke and never acquire an active tile. */
@@ -659,4 +850,93 @@ body[data-screenshot-mode="translate"] :is(#optionPanel, #optionIcoController) {
   .shot-dialog .shot-dialog-select select { width: 100%; }
   .shot-dialog .shot-dialog-field textarea { min-height: 120px; font-size: 16px; }
   .shot-dialog-foot button { flex: 1; }
+}
+
+/* Refraction stays behind the library's controls and cannot intercept input. */
+:is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip).shot-liquid-glass {
+  isolation: isolate;
+  border: 0 !important;
+  outline: none;
+  background: linear-gradient(135deg, #ffffff70, #e8edf145 55%, #ffffff59) !important;
+  backdrop-filter: blur(18px) saturate(135%) !important;
+  -webkit-backdrop-filter: blur(18px) saturate(135%) !important;
+  box-shadow: 0 8px 24px #17212d26;
+}
+:is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip).shot-liquid-glass::before,
+:is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip).shot-liquid-glass::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  box-sizing: border-box;
+  border: 0;
+  border-radius: inherit;
+  pointer-events: none;
+}
+:is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip).shot-liquid-glass::before {
+  z-index: -2;
+  /* Keep the full frosted surface above; displacement must not erode its edges. */
+  background: linear-gradient(180deg, #ffffff24, #ffffff00 45%, #ffffff0d);
+}
+:is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip).shot-liquid-glass::after {
+  z-index: -1;
+  background: radial-gradient(ellipse 150px 70px at var(--glass-x, 25%) var(--glass-y, 0px), #ffffff70, #ffffff00 75%);
+  box-shadow: none;
+}
+:is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip).shot-liquid-glass .item-panel:hover { background-color: #ffffff59; }
+:is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip).shot-liquid-glass .item-panel[class*="-active"],
+:is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip).shot-liquid-glass button[aria-pressed="true"] {
+  background-color: #ffffff45;
+  box-shadow: inset 0 1px 1px #ffffffa6, 0 1px 4px #19202b14;
+}
+@media (prefers-color-scheme: dark) {
+  :is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip).shot-liquid-glass {
+    color-scheme: dark;
+    color: #f1f5f9;
+    background: linear-gradient(135deg, #303841d9, #20262ecc 55%, #343c46d9) !important;
+    box-shadow: 0 8px 24px #0005;
+  }
+  :is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip).shot-liquid-glass::before {
+    background: linear-gradient(180deg, #ffffff0f, #ffffff00 45%, #ffffff04);
+  }
+  :is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip).shot-liquid-glass::after {
+    background: radial-gradient(ellipse 150px 70px at var(--glass-x, 25%) var(--glass-y, 0px), #ffffff1f, #ffffff00 75%);
+    box-shadow: none;
+  }
+  :is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip).shot-liquid-glass .shot-toolbar-heading {
+    color: #f1f5f9;
+    border-right-color: #ffffff26;
+  }
+  .shot-mode-chevron { color: #cbd5e1; }
+  #optionPanel .text-size-panel {
+    color: #f1f5f9;
+    border-color: #ffffff26;
+    background: #ffffff0f;
+  }
+  #optionPanel .text-select-panel {
+    color: #f1f5f9;
+    border: 0;
+    background: #303740ed;
+  }
+  #optionPanel .text-select-panel .text-item:hover { background: #ffffff1f; }
+  #optionIcoController {
+    background: #303841d9 !important;
+    backdrop-filter: blur(18px) saturate(135%);
+  }
+  .shot-mode-menu {
+    --shot-menu-surface: #303740;
+    border-color: #ffffff30;
+    box-shadow: 0 8px 30px #0005, inset 0 1px 0 #ffffff1a;
+  }
+  .shot-mode-menu button { color: #f1f5f9; }
+  .shot-mode-menu button:hover,
+  .shot-mode-trigger[aria-expanded="true"] { background: #ffffff1f; }
+  :is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip).shot-liquid-glass .shot-toolbar-grip {
+    background-image: radial-gradient(circle, #cbd5e180 1px, transparent 1.5px);
+  }
+  :is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip).shot-liquid-glass .item-panel:hover { background-color: #ffffff1f; }
+  :is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip).shot-liquid-glass .item-panel[class*="-active"],
+  :is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip).shot-liquid-glass button[aria-pressed="true"] {
+    background-color: #ffffff29;
+    box-shadow: inset 0 1px 1px #ffffff26, 0 1px 4px #0002;
+  }
 }

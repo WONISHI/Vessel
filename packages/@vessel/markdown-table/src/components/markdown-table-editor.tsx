@@ -38,6 +38,7 @@ import {
 } from "./icons.js"
 
 export interface MarkdownTableEditorProps {
+  renderRawEditor?: (props: { value: string; onChange: (value: string) => void; readOnly: boolean }) => React.ReactNode
   renderCellEditor?: (input: React.ReactElement<React.TextareaHTMLAttributes<HTMLTextAreaElement>>) => React.ReactNode
   renderCellContent?: (text: string) => React.ReactNode
   source?: string
@@ -51,6 +52,7 @@ export interface MarkdownTableEditorProps {
 }
 
 export const MarkdownTableEditor: React.FC<MarkdownTableEditorProps> = ({
+  renderRawEditor,
   renderCellEditor = (input) => input,
   renderCellContent = (text) => text,
   source = "",
@@ -80,6 +82,7 @@ export const MarkdownTableEditor: React.FC<MarkdownTableEditorProps> = ({
   const [showTextPicker, setShowTextPicker] = useState(false)
   const [showRaw, setShowRaw] = useState(false)
   const [rawText, setRawText] = useState("")
+  const [rawError, setRawError] = useState("")
   const [isEditingCaption, setIsEditingCaption] = useState(false)
   const [showMoreMenu, setShowMoreMenu] = useState(false)
   const [showFocusSub, setShowFocusSub] = useState(false)
@@ -87,6 +90,8 @@ export const MarkdownTableEditor: React.FC<MarkdownTableEditorProps> = ({
   const containerRef = useRef<HTMLDivElement>(null)
   const toolbarRef = useRef<HTMLDivElement>(null)
   const tableRef = useRef<HTMLTableElement>(null)
+  const [resizeWidths, setResizeWidths] = useState<number[] | null>(null)
+  const columnDrag = useRef<{ index: number; x: number; widths: number[]; current: number[] } | null>(null)
   const [cellMenu, setCellMenu] = useState<{ row: number; col: number; x: number; y: number } | null>(null)
   const cellMenuRef = useRef<HTMLDivElement>(null)
   useLayoutEffect(() => {
@@ -602,8 +607,16 @@ export const MarkdownTableEditor: React.FC<MarkdownTableEditorProps> = ({
       setRawText(serializeMarkdownTable(tableData))
       setShowRaw(true)
     } else {
+      try {
+        const data = JSON.parse(rawText)
+        if (!data || !Array.isArray(data.columns) || !Array.isArray(data.rows)) throw new Error("缺少 columns 或 rows 数组")
+      } catch (error) {
+        setRawError(`JSON 无效：${error instanceof Error ? error.message : String(error)}`)
+        return
+      }
       const parsed = parseMarkdownTable(rawText)
       emitChange(parsed)
+      setRawError("")
       setShowRaw(false)
     }
   }
@@ -639,9 +652,17 @@ export const MarkdownTableEditor: React.FC<MarkdownTableEditorProps> = ({
     onFocusBelow?.()
   }
 
-  const [edgeHint, setEdgeHint] = useState<{ axis: "row" | "column"; x: number; y: number; offset: number } | null>(null)
+  const [edgeHint, setEdgeHint] = useState<{ axis: "row" | "column"; x: number; y: number } | null>(null)
+  const edgeHideTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const keepEdge = () => clearTimeout(edgeHideTimer.current)
+  const hideEdgeLater = () => {
+    keepEdge()
+    edgeHideTimer.current = setTimeout(() => setEdgeHint(null), 180)
+  }
   const positionEdge = (button: HTMLButtonElement, axis: "row" | "column", x?: number, y?: number) => {
+    keepEdge()
     const rect = button.getBoundingClientRect()
+    const bounds = tableRef.current?.getBoundingClientRect() || rect
     let centerX = rect.left + rect.width / 2
     let centerY = rect.top + rect.height / 2
     if (axis === "row" && x !== undefined) {
@@ -652,14 +673,16 @@ export const MarkdownTableEditor: React.FC<MarkdownTableEditorProps> = ({
       const row = Array.from(tableRef.current?.rows || []).find((row) => { const r = row.getBoundingClientRect(); return y >= r.top && y <= r.bottom })
       if (row) { const r = row.getBoundingClientRect(); centerY = (r.top + r.bottom) / 2 }
     }
-    const next = { axis, x: centerX, y: centerY, offset: axis === "row" ? centerX - rect.left : centerY - rect.top }
+    if (axis === "row") centerY = bounds.bottom + 13
+    else centerX = bounds.right + 13
+    const next = { axis, x: centerX, y: centerY }
     setEdgeHint((previous) => previous?.axis === axis && previous.x === next.x && previous.y === next.y ? previous : next)
   }
   useEffect(() => {
-    const hide = () => setEdgeHint(null)
+    const hide = () => { keepEdge(); setEdgeHint(null) }
     window.addEventListener("scroll", hide, true)
     window.addEventListener("resize", hide)
-    return () => { window.removeEventListener("scroll", hide, true); window.removeEventListener("resize", hide) }
+    return () => { keepEdge(); window.removeEventListener("scroll", hide, true); window.removeEventListener("resize", hide) }
   }, [])
 
   const curRow = selection?.startRow ?? activeEdit?.row ?? 0
@@ -973,15 +996,22 @@ export const MarkdownTableEditor: React.FC<MarkdownTableEditorProps> = ({
       )}
 
       {showRaw ? (
+        <div className="vessel-table-raw-container">
+        {renderRawEditor ? renderRawEditor({ value: rawText, onChange: setRawText, readOnly }) : (
         <textarea
           className="vessel-table-raw-editor"
           value={rawText}
           onChange={(e) => setRawText(e.target.value)}
+          readOnly={readOnly}
         />
+        )}
+        {rawError && <div role="alert" className="vessel-table-raw-error">{rawError}</div>}
+        </div>
       ) : (
         <div className="vessel-table-container">
           <div className={readOnly ? undefined : "vessel-table-edge-layout"}>
-          <table className="vessel-table-grid" ref={tableRef}>
+          <table className="vessel-table-grid" ref={tableRef}
+            data-sized-columns={resizeWidths || tableData.columns.some((column) => !!column.width) ? "true" : undefined}>
             {(tableData.caption || !readOnly) && (
               <caption
                 className="vessel-table-caption"
@@ -1016,7 +1046,9 @@ export const MarkdownTableEditor: React.FC<MarkdownTableEditorProps> = ({
             )}
             <colgroup>
               {tableData.columns.map((col, idx) => (
-                <col key={idx} style={{ width: col.width ? `${col.width}px` : "auto" }} />
+                <col key={idx} style={{ width: resizeWidths || tableData.columns.some((column) => !!column.width)
+                  ? `${((resizeWidths?.[idx] ?? col.width ?? 140) / (resizeWidths || tableData.columns.map((column) => column.width || 140)).reduce((sum, width) => sum + width, 0)) * 100}%`
+                  : "auto" }} />
               ))}
             </colgroup>
             <tbody>
@@ -1090,6 +1122,38 @@ export const MarkdownTableEditor: React.FC<MarkdownTableEditorProps> = ({
                           if (!readOnly) setActiveEdit({ row: rIdx, col: cIdx })
                         }}
                       >
+                        {isHeaderCell && !readOnly && !isLastCol && mergeInfo.colSpan === 1 && (
+                          <span className="vessel-column-resizer" role="separator" aria-orientation="vertical" aria-label={`调整第 ${cIdx + 1} 列宽度`}
+                            onMouseDown={(event) => event.stopPropagation()}
+                            onClick={(event) => event.stopPropagation()}
+                            onDoubleClick={(event) => event.stopPropagation()}
+                            onPointerDown={(event) => {
+                              if (event.button !== 0) return
+                              event.preventDefault(); event.stopPropagation()
+                              const widths = Array.from(tableRef.current!.querySelectorAll("col"), (col) => col.getBoundingClientRect().width)
+                              columnDrag.current = { index: cIdx, x: event.clientX, widths, current: widths }
+                              setResizeWidths(widths)
+                              event.currentTarget.setPointerCapture(event.pointerId)
+                            }}
+                            onPointerMove={(event) => {
+                              const drag = columnDrag.current
+                              if (!drag) return
+                              const delta = Math.max(64 - drag.widths[drag.index], Math.min(drag.widths[drag.index + 1] - 64, event.clientX - drag.x))
+                              const widths = [...drag.widths]
+                              widths[drag.index] += delta; widths[drag.index + 1] -= delta
+                              drag.current = widths; setResizeWidths(widths)
+                            }}
+                            onPointerUp={(event) => {
+                              const drag = columnDrag.current
+                              if (!drag) return
+                              columnDrag.current = null
+                              event.currentTarget.releasePointerCapture(event.pointerId)
+                              emitChange({ ...tableData, columns: tableData.columns.map((column, index) => ({ ...column, width: drag.current[index] })) })
+                              setResizeWidths(null)
+                            }}
+                            onPointerCancel={() => { columnDrag.current = null; setResizeWidths(null) }}
+                          />
+                        )}
                         {editing ? renderCellEditor(
                           <CellTextarea
                             autoFocus
@@ -1143,14 +1207,23 @@ export const MarkdownTableEditor: React.FC<MarkdownTableEditorProps> = ({
             {(["column", "row"] as const).map((axis) => <button key={axis} type="button" className={`vessel-table-edge-add vessel-table-edge-${axis}`} aria-label={axis === "row" ? "在表格底部新增行" : "在表格右侧新增列"}
               onMouseEnter={(event) => positionEdge(event.currentTarget, axis, event.clientX, event.clientY)}
               onMouseMove={(event) => positionEdge(event.currentTarget, axis, event.clientX, event.clientY)}
-              onMouseLeave={() => setEdgeHint(null)}
+              onMouseLeave={hideEdgeLater}
               onFocus={(event) => positionEdge(event.currentTarget, axis)}
               onBlur={() => setEdgeHint(null)}
               onMouseDown={(event) => event.preventDefault()}
               onClick={() => { setEdgeHint(null); axis === "row" ? insertRow(tableData.rows.length) : insertCol(tableData.columns.length) }}>
-              <span aria-hidden="true" style={edgeHint?.axis === axis ? axis === "row" ? { left: edgeHint.offset } : { top: edgeHint.offset } : undefined}>+</span>
             </button>)}
-            {edgeHint && createPortal(<div role="tooltip" className="vessel-table-edge-tooltip" style={{ left: Math.max(70, Math.min(window.innerWidth - 70, edgeHint.x)), top: Math.max(4, edgeHint.y - 34) }}>{edgeHint.axis === "row" ? "在下方新增行" : "在右侧新增列"}</div>, document.body)}
+            {edgeHint && createPortal(<>
+              <button type="button" className="vessel-table-edge-float"
+                style={{ left: edgeHint.x - 10, top: edgeHint.y - 10 }}
+                aria-label={edgeHint.axis === "row" ? "新增行" : "新增列"}
+                onMouseEnter={keepEdge} onMouseLeave={hideEdgeLater}
+                onFocus={keepEdge} onBlur={() => setEdgeHint(null)}
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => { keepEdge(); setEdgeHint(null); edgeHint.axis === "row" ? insertRow(tableData.rows.length) : insertCol(tableData.columns.length) }}
+              >+</button>
+              <div role="tooltip" className="vessel-table-edge-tooltip" style={{ left: Math.max(70, Math.min(window.innerWidth - 70, edgeHint.x)), top: Math.max(4, edgeHint.y - 40) }}>{edgeHint.axis === "row" ? "在下方新增行" : "在右侧新增列"}</div>
+            </>, document.body)}
           </>}
           </div>
         </div>

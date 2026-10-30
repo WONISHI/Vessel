@@ -1,8 +1,10 @@
+import calloutStyles from "@vessel/obsidian/callouts/style.css?inline"
 /** Mounted Markdown editors expose current drafts for native save/export commands. */
-export const markdownDocuments = new Map<string, { content(): string; html(): string }>()
+export const markdownDocuments = new Map<string, { content(): string; html(): string | Promise<string> }>()
 
 export function printableMarkdown(root: HTMLElement): string {
   const clone = root.cloneNode(true) as HTMLElement
+  clone.querySelectorAll(".vessel-callout-editing").forEach((node) => node.classList.remove("vessel-callout-editing"))
   // Read-only Vditor previews have no `vessel-direct-code` class. Normalize both
   // variants before cleaning markers, so preview copy buttons/SVGs cannot be printed.
   const originals = root.querySelectorAll('[data-type="code-block"], .vessel-direct-code')
@@ -26,5 +28,5 @@ export function printableMarkdown(root: HTMLElement): string {
   // Export rendered content, without Vditor source fences and editing controls.
   clone.querySelectorAll('.vditor-ir__marker, .vessel-html-marker, .vessel-image-block > :not(.vditor-ir__preview), .vessel-table-block > :not(.vditor-ir__preview), [data-highlight-marker], [data-type="code-block-open-marker"], [data-type="code-block-close-marker"], .vditor-copy, button, input, textarea, script, iframe').forEach((node) => node.remove())
   clone.querySelectorAll<HTMLElement>('[contenteditable]').forEach((node) => node.removeAttribute('contenteditable'))
-  return `<!doctype html><html><head><meta charset="UTF-8"><title>Vessel 文档</title><meta http-equiv="Content-Security-Policy" content="script-src 'none'; object-src 'none'"><style>@page{size:A4;margin:18mm}body{font:14px/1.65 sans-serif;color:#222;overflow-wrap:anywhere}img{max-width:100%;height:auto}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ddd;padding:6px}pre{white-space:pre-wrap;background:#f5f5f5;padding:12px;border-radius:6px;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.9em;line-height:1.5;overflow-wrap:anywhere;tab-size:4;break-inside:auto;orphans:3;widows:3}pre code{display:block;font:inherit;white-space:pre-wrap;tab-size:inherit}a,[data-vessel-link]{color:#15803d;text-decoration:underline}[data-vessel-highlight]{background:#fef08a}h1,h2,h3{break-after:avoid}img,tr{break-inside:avoid}</style></head><body>${clone.innerHTML}</body></html>`
+  return `<!doctype html><html><head><meta charset="UTF-8"><title>Vessel 文档</title><meta http-equiv="Content-Security-Policy" content="script-src 'none'; object-src 'none'"><style>${calloutStyles}@page{size:A4;margin:18mm}body{font:14px/1.65 sans-serif;color:#222;overflow-wrap:anywhere}img{max-width:100%;height:auto}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ddd;padding:6px}pre{white-space:pre-wrap;background:#f5f5f5;padding:12px;border-radius:6px;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.9em;line-height:1.5;overflow-wrap:anywhere;tab-size:4;break-inside:auto;orphans:3;widows:3}pre code{display:block;font:inherit;white-space:pre-wrap;tab-size:inherit}a,[data-vessel-link]{color:#15803d;text-decoration:underline}[data-vessel-highlight]{background:#fef08a}h1,h2,h3{break-after:avoid}img,tr{break-inside:avoid}</style></head><body>${clone.innerHTML}</body></html>`
 }

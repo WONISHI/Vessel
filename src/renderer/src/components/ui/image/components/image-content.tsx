@@ -29,6 +29,7 @@ export function ImageContent({
   onLocateFile,
   onCopyReference,
   onDelete,
+  onDeleteFile,
   onDownloadLocal,
   sourceKey: _sourceKey,
   placeholderRatio = "4x3",
@@ -249,12 +250,15 @@ export function ImageContent({
           {onDelete && (
             <>
               <ContextMenuSeparator />
-              <ContextMenuItem
-                className="text-red-600 focus:bg-red-600 focus:text-white data-[highlighted]:bg-red-600 data-[highlighted]:!text-white"
-                onSelect={onDelete}
-              >
-                删除
-              </ContextMenuItem>
+              <ContextMenuSub>
+                <ContextMenuSubTrigger className="text-red-600">删除</ContextMenuSubTrigger>
+                <ContextMenuSubContent className="z-[260]">
+                  <ContextMenuItem disabled={!onDeleteFile} className="text-red-600" onSelect={() => {
+                    if (onDeleteFile) void onDeleteFile().catch((error) => toast.error(String(error)))
+                  }}>物理删除</ContextMenuItem>
+                  <ContextMenuItem className="text-red-600" onSelect={onDelete}>引用删除</ContextMenuItem>
+                </ContextMenuSubContent>
+              </ContextMenuSub>
             </>
           )}
         </ContextMenuContent>

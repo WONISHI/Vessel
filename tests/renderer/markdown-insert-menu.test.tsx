@@ -98,3 +98,32 @@ it("inserts a thematic break instead of a YAML frontmatter block", () => {
   expect(host.querySelector("hr")).toBeTruthy()
   expect(host.querySelector('[data-type="yaml-front-matter"], pre')).toBeNull()
 })
+
+it("inserts an expanded Obsidian callout from the component submenu", async () => {
+  const insert = vi.fn()
+  render(<MarkdownInsertMenu x={100} y={100} onClose={vi.fn()} onInsert={insert} />)
+  const item = screen.getByRole("menuitem", { name: "添加组件" })
+  item.focus()
+  fireEvent.keyDown(item, { key: "ArrowRight" })
+  const callout = await screen.findByRole("menuitem", { name: "Callout 标注" })
+  callout.focus()
+  fireEvent.keyDown(callout, { key: "ArrowRight" })
+  for (const label of ["备注", "摘要", "信息", "待办", "技巧", "成功", "疑问", "警告", "失败", "危险", "缺陷", "示例", "引用"]) {
+    expect(screen.getAllByRole("menuitem", { name: label }).length).toBeGreaterThan(0)
+  }
+  fireEvent.click(await screen.findByRole("menuitem", { name: "备注" }))
+  expect(insert).toHaveBeenCalledWith("> [!note]+ 标题\n> 标注内容", false)
+})
+
+it("inserts the selected warning alias instead of a default note", async () => {
+  const insert = vi.fn()
+  render(<MarkdownInsertMenu x={100} y={100} onClose={vi.fn()} onInsert={insert} />)
+  const components = screen.getByRole("menuitem", { name: "添加组件" })
+  components.focus()
+  fireEvent.keyDown(components, { key: "ArrowRight" })
+  const callout = await screen.findByRole("menuitem", { name: "Callout 标注" })
+  callout.focus()
+  fireEvent.keyDown(callout, { key: "ArrowRight" })
+  fireEvent.click(await screen.findByRole("menuitem", { name: "警告" }))
+  expect(insert).toHaveBeenCalledWith("> [!caution]+ 标题\n> 标注内容", false)
+})

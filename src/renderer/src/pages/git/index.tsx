@@ -1,4 +1,4 @@
-import { FileChangeStatus } from "@/pages/git/components/file-change-status"
+import { FileChangeStatus, gitChangeStatusTitle } from "@/pages/git/components/file-change-status"
 import { getFilePresentation } from "@/components/workspace/components/layout-aside/layout-workspace-sidebar/utils"
 import { RepositorySettingsDialog } from "@/pages/git/components/repository-settings-dialog"
 import { TextWithArrows } from "@/components/ui/text-with-arrows"
@@ -1312,7 +1312,7 @@ export default function SourceTreePage() {
                           </button>
                         </div>
                       </div>
-                      <ScrollArea className="flex-1 min-h-0 p-1">
+                      <ScrollArea className="git-changes-scroll flex-1 min-h-0 min-w-0 p-1">
                         <div className="space-y-0.5">
                           {status?.staged.map((file, idx) => {
                             const isSelected = selectedStagedPaths.includes(file.path)
@@ -1326,13 +1326,13 @@ export default function SourceTreePage() {
                                     data-git-file-selected={isSelected}
                                     onClick={(e) => handleStagedItemClick(e, file, idx)}
                                     onContextMenu={() => handleStagedContextMenu(file, idx)}
-                                    className={`group flex items-center justify-between rounded px-2 py-1 text-xs cursor-pointer select-none transition-colors ${
+                                    className={`group flex w-full min-w-0 items-center justify-between gap-1 rounded px-2 py-1 text-xs cursor-pointer select-none transition-colors ${
                                       isSelected ? (isPrimary ? "bg-stone-200 font-semibold text-stone-900 shadow-xs" : "bg-stone-200/70 text-stone-800") : "hover:bg-stone-100 text-stone-700"
                                     }`}
                                   >
-                                    <span className="flex items-center gap-1.5 truncate">
+                                    <span className="flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden">
                                       <File className={`size-3.5 shrink-0 ${getFilePresentation(file.path).color}`} />
-                                      <span className="w-3.5 text-center font-bold text-green-600">{file.status}</span>
+                                      <span className="w-3.5 shrink-0 text-center font-bold text-green-600" data-title={gitChangeStatusTitle(file.status)} aria-label={gitChangeStatusTitle(file.status)}>{file.status}</span>
                                       <span
                                         className="truncate"
                                         data-title={file.path}
@@ -1343,7 +1343,7 @@ export default function SourceTreePage() {
                                     <button
                                       type="button"
                                       data-title="取消暂存"
-                                      className="opacity-0 group-hover:opacity-100 rounded p-1 text-stone-400 hover:bg-stone-200/80 hover:text-amber-700 transition-colors"
+                                      className="shrink-0 opacity-0 group-hover:opacity-100 rounded p-1 text-stone-400 hover:bg-stone-200/80 hover:text-amber-700 transition-colors"
                                       onClick={(e) => {
                                         e.stopPropagation()
                                         void handleUnstageFile(file.path)
@@ -1493,7 +1493,7 @@ export default function SourceTreePage() {
                           </button>
                         </div>
                       </div>
-                      <ScrollArea className="flex-1 min-h-0 p-1">
+                      <ScrollArea className="git-changes-scroll flex-1 min-h-0 min-w-0 p-1">
                         <div className="space-y-0.5">
                           {[...(status?.unstaged || []), ...(status?.untracked || [])].map((file, idx) => {
                             const allUnstaged = [...(status?.unstaged || []), ...(status?.untracked || [])]
@@ -1508,13 +1508,13 @@ export default function SourceTreePage() {
                                     data-git-file-selected={isSelected}
                                     onClick={(e) => handleUnstagedItemClick(e, file, idx)}
                                     onContextMenu={() => handleUnstagedContextMenu(file, idx)}
-                                    className={`group flex items-center justify-between rounded px-2 py-1 text-xs cursor-pointer select-none transition-colors ${
+                                    className={`group flex w-full min-w-0 items-center justify-between gap-1 rounded px-2 py-1 text-xs cursor-pointer select-none transition-colors ${
                                       isSelected ? (isPrimary ? "bg-stone-200 font-semibold text-stone-900 shadow-xs" : "bg-stone-200/70 text-stone-800") : "hover:bg-stone-100 text-stone-700"
                                     }`}
                                   >
-                                    <span className="flex items-center gap-1.5 truncate">
+                                    <span className="flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden">
                                       <File className={`size-3.5 shrink-0 ${getFilePresentation(file.path).color}`} />
-                                      <span className={`w-3.5 text-center font-bold ${file.status === "?" ? "text-blue-500" : "text-amber-600"}`}>{file.status}</span>
+                                      <span data-title={gitChangeStatusTitle(file.status)} aria-label={gitChangeStatusTitle(file.status)} className={`w-3.5 shrink-0 text-center font-bold ${file.status === "?" ? "text-blue-500" : "text-amber-600"}`}>{file.status}</span>
                                       <span
                                         className="truncate"
                                         data-title={file.path}
@@ -1522,7 +1522,7 @@ export default function SourceTreePage() {
                                         {file.path}
                                       </span>
                                     </span>
-                                    <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100">
+                                    <div className="flex shrink-0 items-center gap-0.5 opacity-0 group-hover:opacity-100">
                                       <button
                                         type="button"
                                         data-title="暂存此文件"

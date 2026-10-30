@@ -155,7 +155,8 @@ export default defineConfig({
     resolve: {
       dedupe: ["react", "react-dom"],
       alias: [
-        { find: /^@vessel\/obsidian$/, replacement: resolveFromRoot("packages/@vessel/obsidian/src/index.ts") },
+        { find: /^@vessel\/obsidian\/callouts\/style\.css/, replacement: resolveFromRoot("packages/@vessel/obsidian/src/callouts/style.css") },
+      { find: /^@vessel\/obsidian$/, replacement: resolveFromRoot("packages/@vessel/obsidian/src/index.ts") },
         ...Object.entries({
         "@resources": resolveFromRoot("resources"),
         "#vessel-clipper": resolveFromRoot("packages/@vessel/clipper/src"),
