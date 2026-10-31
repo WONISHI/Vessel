@@ -142,7 +142,7 @@ function createWindow(): void {
 
 app.whenReady().then(() => {
   registerImageResources()
-  electronApp.setAppUserModelId("com.your.app")
+  electronApp.setAppUserModelId("com.wonishi.vessel")
 
   mainApps.activate()
 

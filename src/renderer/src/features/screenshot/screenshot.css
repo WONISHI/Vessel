@@ -428,7 +428,7 @@ body[data-screenshot-mode="translate"] :is(#optionPanel, #optionIcoController) {
 #optionPanel .text-size-panel:hover { background: #ffffff30 !important; }
 #optionPanel .text-select-panel {
   box-sizing: border-box;
-  top: auto !important; bottom: calc(100% + 8px) !important; left: 8px !important;
+  top: calc(100% + 8px) !important; bottom: auto !important; left: 8px !important;
   width: 92px !important; max-height: min(300px, 55vh); overflow-y: auto;
   padding: 5px; border: 0 !important; border-radius: 12px !important;
   color: #262626 !important;
@@ -462,7 +462,7 @@ body[data-screenshot-mode="translate"] :is(#optionPanel, #optionIcoController) {
 .shot-text-format summary::-webkit-details-marker { display: none; }
 .shot-text-controls button:hover, .shot-text-format[open] summary { background: #ffffff45; }
 .shot-text-format-menu {
-  position: absolute; bottom: calc(100% + 12px); left: 50%; transform: translateX(-50%);
+  position: absolute; top: calc(100% + 12px); bottom: auto; left: 50%; transform: translateX(-50%);
   display: grid; width: 140px; padding: 6px; border-radius: 12px;
   background: #edf0efc9; backdrop-filter: blur(18px) saturate(135%); box-shadow: 0 8px 24px #0002;
 }
@@ -483,11 +483,11 @@ body[data-screenshot-mode="translate"] :is(#optionPanel, #optionIcoController) {
 .shot-text-format[open] .shot-menu-chevron { transform: translateY(1px) rotate(225deg); }
 .shot-text-format summary { transition: background-color .18s ease, box-shadow .18s ease; }
 .shot-text-format[open] > .shot-text-format-menu {
-  transform-origin: bottom center;
+  transform-origin: top center;
   animation: shot-text-menu-in .18s cubic-bezier(.2,.8,.2,1) both;
 }
 @keyframes shot-text-menu-in {
-  from { opacity: 0; transform: translate(-50%, 6px) scale(.96); }
+  from { opacity: 0; transform: translate(-50%, -6px) scale(.96); }
   to { opacity: 1; transform: translate(-50%, 0) scale(1); }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -939,4 +939,37 @@ body[data-screenshot-mode="translate"] :is(#optionPanel, #optionIcoController) {
     background-color: #ffffff29;
     box-shadow: inset 0 1px 1px #ffffff26, 0 1px 4px #0002;
   }
+}
+
+/* Menus open below by default; flip above only when there is not enough room underneath. */
+#optionPanel .text-select-panel[data-placement="top"] { top: auto !important; bottom: calc(100% + 8px) !important; }
+.shot-text-format-menu[data-placement="top"] { top: auto; bottom: calc(100% + 12px); }
+.shot-text-format[open] > .shot-text-format-menu[data-placement="top"] { transform-origin: bottom center; }
+
+/* Menus nested inside #optionPanel sit under its backdrop-filter, which stops them from blurring
+   the page behind. Give them a denser surface so they read like the toolbar instead of see-through. */
+#optionPanel .text-select-panel.shot-liquid-glass,
+.shot-text-format-menu.shot-liquid-glass {
+  background: linear-gradient(135deg, #f7f9f8f2, #eaeef1eb 55%, #f4f6f7f2) !important;
+}
+@media (prefers-color-scheme: dark) {
+  #optionPanel .text-select-panel.shot-liquid-glass,
+  .shot-text-format-menu.shot-liquid-glass {
+    background: linear-gradient(135deg, #343c46f5, #252b33f2 55%, #38414bf5) !important;
+  }
+}
+
+/* Thin rounded scrollbar that floats inside the menu padding. */
+#optionPanel .text-select-panel { scrollbar-width: thin; scrollbar-color: #0000002e transparent; }
+#optionPanel .text-select-panel::-webkit-scrollbar { width: 10px; }
+#optionPanel .text-select-panel::-webkit-scrollbar-track { background: transparent; margin: 8px 0; }
+#optionPanel .text-select-panel::-webkit-scrollbar-thumb {
+  border: 3px solid transparent; border-radius: 999px;
+  background: #0000002e padding-box;
+}
+#optionPanel .text-select-panel::-webkit-scrollbar-thumb:hover { background: #00000052 padding-box; }
+@media (prefers-color-scheme: dark) {
+  #optionPanel .text-select-panel { scrollbar-color: #ffffff38 transparent; }
+  #optionPanel .text-select-panel::-webkit-scrollbar-thumb { background: #ffffff38 padding-box; }
+  #optionPanel .text-select-panel::-webkit-scrollbar-thumb:hover { background: #ffffff5c padding-box; }
 }

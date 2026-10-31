@@ -877,3 +877,12 @@ html.dark .vessel-date-day[aria-pressed="true"]:hover { background: #15803d !imp
 html.dark .vessel-date-shortcut { background: #373e47 !important; color: #cdd9e5 !important; }
 html.dark .vessel-date-shortcut:is(:hover, :focus-visible) { background: #173f32 !important; color: #7ee2a8 !important; }
 html.dark .vessel-date-calendar button[aria-label$="个月"]:hover { background: #3a424d !important; color: #fff !important; }
+
+/* Destructive file actions keep a red hover in dark mode instead of the shared grey/white highlight. */
+html.dark .workspace-file-context-menu [role="menuitem"][data-menu-danger],
+html.dark .workspace-file-context-menu [role="menuitem"][data-menu-danger] svg { color: #f87171 !important; }
+html.dark .workspace-file-context-menu [role="menuitem"][data-menu-danger]:is([data-highlighted], [data-state="open"]) {
+  background: rgba(239, 68, 68, .16) !important;
+  color: #fca5a5 !important;
+}
+html.dark .workspace-file-context-menu [role="menuitem"][data-menu-danger]:is([data-highlighted], [data-state="open"]) :is(*, svg) { color: #fca5a5 !important; }

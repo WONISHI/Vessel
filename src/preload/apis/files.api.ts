@@ -45,6 +45,7 @@ export const filesAPI = {
   resolveObsidianImage: (root: string, documentPath: string, reference: string): Promise<string> => ipcRenderer.invoke("obsidian:resolveImage", root, documentPath, reference),
   deleteObsidianImage: (root: string, documentPath: string, reference: string): Promise<boolean> => ipcRenderer.invoke("obsidian:deleteImage", root, documentPath, reference),
   getObsidianImageResource: (root: string, documentPath: string, reference: string): Promise<string> => ipcRenderer.invoke("obsidian:imageResource", root, documentPath, reference),
+  collectMarkdownImages: (root: string, documentPath: string): Promise<string[]> => ipcRenderer.invoke("obsidian:collectImages", root, documentPath),
   readObsidianImage: (root: string, documentPath: string, reference: string): Promise<string> => ipcRenderer.invoke("obsidian:readImage", root, documentPath, reference),
 
   /** Performs the transfer workspace files operation. */

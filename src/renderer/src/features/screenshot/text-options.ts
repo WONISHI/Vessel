@@ -22,6 +22,14 @@ export function drawScreenshotTextDecoration(context: CanvasRenderingContext2D, 
   context.restore()
 }
 
+// Prefer opening below the anchor; flip above only when the viewport bottom would clip it.
+function placeMenu(menu: HTMLElement, anchor: HTMLElement, gap: number) {
+  menu.dataset.placement = "bottom"
+  const below = window.innerHeight - anchor.getBoundingClientRect().bottom - gap
+  const above = anchor.getBoundingClientRect().top - gap
+  if (menu.offsetHeight > below && above > below) menu.dataset.placement = "top"
+}
+
 export function installTextOptions(toolbar: HTMLElement, panel: HTMLElement) {
   const controls = document.createElement("div")
   controls.className = "shot-text-controls"
@@ -33,7 +41,9 @@ export function installTextOptions(toolbar: HTMLElement, panel: HTMLElement) {
   const family = document.createElement("details")
   family.className = "shot-text-format shot-font-picker"
   const familySummary = document.createElement("summary")
-  familySummary.textContent = "默认字体 ⌄"; familySummary.setAttribute("aria-label", "选择字体")
+  const fontIcon = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19 9.5 5h1L16 19M6.3 14h7.4"/><path d="M17 11h4m-2-2v8"/></svg><span class="shot-menu-chevron" aria-hidden="true"></span>'
+  familySummary.className = "shot-format-icon"; familySummary.innerHTML = fontIcon
+  familySummary.setAttribute("aria-label", "选择字体：默认字体"); familySummary.title = "默认字体"
   const familyList = document.createElement("div")
   familyList.className = "shot-text-format-menu shot-font-menu"
   familyList.setAttribute("role", "menu"); familyList.setAttribute("aria-label", "字体")
@@ -58,16 +68,16 @@ export function installTextOptions(toolbar: HTMLElement, panel: HTMLElement) {
     const option = document.createElement("button")
     option.type = "button"; option.textContent = label; option.setAttribute("role", "menuitemradio")
     option.setAttribute("aria-checked", String(format.family === value))
-    if (format.family === value) familySummary.textContent = `${label} ⌄`
+    if (format.family === value) { familySummary.title = label; familySummary.setAttribute("aria-label", `选择字体：${label}`) }
     option.onclick = () => {
-      format.family = value; updateInput(); familySummary.textContent = `${label} ⌄`
+      format.family = value; updateInput(); familySummary.title = label; familySummary.setAttribute("aria-label", `选择字体：${label}`)
       familyList.querySelectorAll("button").forEach((item) => item.setAttribute("aria-checked", String(item === option)))
       family.open = false; familySummary.focus()
     }
     familyList.append(option)
   }
   family.addEventListener("toggle", () => {
-    if (family.open) { menu.open = false; familyList.querySelector<HTMLElement>('[aria-checked="true"]')?.focus() }
+    if (family.open) { placeMenu(familyList, family, 12); menu.open = false; familyList.querySelector<HTMLElement>('[aria-checked="true"]')?.focus() }
   })
   familyList.onkeydown = (event) => {
     const items = Array.from(familyList.querySelectorAll("button"))
@@ -76,12 +86,27 @@ export function installTextOptions(toolbar: HTMLElement, panel: HTMLElement) {
       event.preventDefault(); items[(index + (event.key === "ArrowDown" ? 1 : -1) + items.length) % items.length].focus()
     }
   }
+  const sizeMenu = panel.querySelector<HTMLElement>(".text-select-panel")
+  const sizeButton = panel.querySelector<HTMLElement>(".text-size-panel")
+  const sizeOpen = () => !!sizeMenu && !sizeMenu.hidden && getComputedStyle(sizeMenu).display !== "none"
+  const closeSize = () => { if (sizeMenu && sizeOpen()) sizeMenu.style.display = "none" }
+  // The library only opens the size menu; clicking the button again should close it.
+  const toggleSize = (event: Event) => {
+    if (!sizeOpen()) return
+    event.preventDefault(); event.stopImmediatePropagation(); closeSize()
+  }
+  sizeButton?.addEventListener("click", toggleSize, true)
   const dismiss = (event: Event) => {
     if (event instanceof KeyboardEvent) {
       if (event.key !== "Escape") return
+      if (sizeOpen()) { event.preventDefault(); event.stopImmediatePropagation(); closeSize(); sizeButton?.focus(); return }
       if (family.open) { event.preventDefault(); event.stopImmediatePropagation(); family.open = false; familySummary.focus() }
       else if (menu.open) { event.preventDefault(); event.stopImmediatePropagation(); menu.open = false; summary.focus() }
-    } else if (!controls.contains(event.target as Node)) { family.open = false; menu.open = false }
+    } else {
+      const target = event.target as Node
+      if (!controls.contains(target)) { family.open = false; menu.open = false }
+      if (!sizeMenu?.contains(target) && !sizeButton?.contains(target)) closeSize()
+    }
   }
   document.addEventListener("pointerdown", dismiss, true)
   window.addEventListener("keydown", dismiss, true)
@@ -95,7 +120,7 @@ export function installTextOptions(toolbar: HTMLElement, panel: HTMLElement) {
   familyList.id = "shot-font-menu"; list.id = "shot-format-menu"
   const stopFontGlass = installLiquidGlass(familyList)
   const stopFormatGlass = installLiquidGlass(list)
-  menu.addEventListener("toggle", () => { if (menu.open) family.open = false })
+  menu.addEventListener("toggle", () => { if (menu.open) { placeMenu(list, menu, 12); family.open = false } })
   more.onclick = () => { advanced.hidden = !advanced.hidden; more.setAttribute("aria-expanded", String(!advanced.hidden)); window.dispatchEvent(new Event("vessel:screenshot-toolbar-moved")) }
   controls.append(advanced, more); panel.append(controls)
   controls.addEventListener("pointerdown", (event) => event.stopPropagation())
@@ -103,14 +128,18 @@ export function installTextOptions(toolbar: HTMLElement, panel: HTMLElement) {
   const sync = () => { panel.dataset.textOptions = String(!!toolbar.querySelector(".text-active")) }
   const observer = new MutationObserver(sync)
   observer.observe(toolbar, { attributes: true, subtree: true, attributeFilter: ["class"] })
-  const sizeMenu = panel.querySelector<HTMLElement>(".text-select-panel")
-  const sizeButton = panel.querySelector<HTMLElement>(".text-size-panel")
   const syncSize = () => {
-    if (sizeMenu && sizeButton) sizeButton.setAttribute("aria-expanded", String(!sizeMenu.hidden && getComputedStyle(sizeMenu).display !== "none"))
+    if (!sizeMenu || !sizeButton) return
+    const open = !sizeMenu.hidden && getComputedStyle(sizeMenu).display !== "none"
+    sizeButton.setAttribute("aria-expanded", String(open))
+    if (open && sizeMenu.dataset.placing !== "1") { sizeMenu.dataset.placing = "1"; placeMenu(sizeMenu, sizeButton, 8); queueMicrotask(() => delete sizeMenu.dataset.placing) }
   }
   const sizeObserver = new MutationObserver(syncSize)
   if (sizeMenu) sizeObserver.observe(sizeMenu, { attributes: true, attributeFilter: ["style", "hidden", "class"] })
+  // Re-check placement after the toolbar is dragged or the window resizes.
+  const replace = () => { if (sizeMenu && sizeButton && sizeOpen()) placeMenu(sizeMenu, sizeButton, 8); if (family.open) placeMenu(familyList, family, 12); if (menu.open) placeMenu(list, menu, 12) }
+  window.addEventListener("vessel:screenshot-toolbar-moved", replace); window.addEventListener("resize", replace)
   syncSize()
   sync()
-  return () => { sizeObserver.disconnect(); stopFontGlass(); stopFormatGlass(); document.removeEventListener("pointerdown", dismiss, true); window.removeEventListener("keydown", dismiss, true); observer.disconnect(); controls.remove(); delete panel.dataset.textOptions }
+  return () => { window.removeEventListener("vessel:screenshot-toolbar-moved", replace); window.removeEventListener("resize", replace); sizeButton?.removeEventListener("click", toggleSize, true); sizeObserver.disconnect(); stopFontGlass(); stopFormatGlass(); document.removeEventListener("pointerdown", dismiss, true); window.removeEventListener("keydown", dismiss, true); observer.disconnect(); controls.remove(); delete panel.dataset.textOptions }
 }

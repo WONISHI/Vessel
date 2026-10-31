@@ -7,7 +7,7 @@ import { useWorkspace } from "@/components/workspace/hooks/useWorkspace"
 import type { WorkspaceNode } from "@/components/workspace/types/workspace"
 import { useRouter } from "@vessel/react-router"
 import { localFileURL } from "@vessel/utils"
-import { Code, Copy, FileDown, File, FilePlus2, FolderOpen, FolderPlus, Globe, Send, Pencil, Pin, Search, Trash2 } from "lucide-react"
+import { Code, Copy, FileDown, File, FilePlus2, FolderOpen, FolderPlus, Globe, Send, Pencil, Pin, Search, Trash2, Images } from "lucide-react"
 import { Suspense, useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { toast } from "sonner"
 
@@ -127,13 +127,32 @@ export function FileActions({
       validating.current = false
     }
   }
-  const [confirmTrash, setConfirmTrash] = useState(false)
+  const [confirmTrash, setConfirmTrash] = useState<false | "file" | "images">(false)
+  const [trashImages, setTrashImages] = useState<string[]>([])
+  const [collecting, setCollecting] = useState(false)
+  const markdownTargets = targets.filter((item) => item.type !== "directory" && /\.(md|markdown)$/i.test(item.path))
+
+  /** 找出所选 Markdown 引用的本地图片，再打开二次确认。 */
+  const prepareTrashWithImages = async () => {
+    setError("")
+    setCollecting(true)
+    try {
+      const found = new Set<string>()
+      for (const item of markdownTargets) (await window.electronAPI.collectMarkdownImages(workspace.path, item.path)).forEach((path) => found.add(path))
+      setTrashImages([...found].filter((path) => !targets.some((item) => item.path === path)))
+      setConfirmTrash("images")
+    } catch (reason) {
+      toast.error("查找引用图片失败", { description: String(reason) })
+    } finally {
+      setCollecting(false)
+    }
+  }
   const [name, setName] = useState(node.name)
   const [error, setError] = useState("")
   const [busy, setBusy] = useState(false)
 
   /** Performs the mutate operation. */
-  const mutate = async (next?: string) => {
+  const mutate = async (next?: string, images: string[] = []) => {
     if (submitting.current) return
     submitting.current = true
     setBusy(true)
@@ -146,6 +165,21 @@ export function FileActions({
         if (next !== undefined) affected.forEach((file) => renameWorkspaceTab(file.path, path + file.path.slice(target.path.length), file.path === target.path ? next : file.name))
         else closeWorkspaceFiles(affected.map((file) => file.path))
       }
+      if (next === undefined && confirmTrash === "images") {
+        let removed = 0
+        const failed: string[] = []
+        for (const image of images) {
+          try {
+            await window.electronAPI.mutateWorkspaceFile(workspace.path, image)
+            closeWorkspaceFiles([image])
+            removed += 1
+          } catch {
+            failed.push(image)
+          }
+        }
+        if (failed.length) toast.warning(`已移到废纸篓，${removed} 张图片已删除，${failed.length} 张删除失败`)
+        else toast.success(removed ? `已移到废纸篓，并清理了 ${removed} 张引用图片` : "已移到废纸篓，没有找到可清理的引用图片")
+      } else if (next === undefined) toast.success("已移到废纸篓，引用图片已保留")
       setRenaming(false)
       setConfirmTrash(false)
       setConfirmRename(false)
@@ -372,17 +406,35 @@ export function FileActions({
             <Pencil />
             重命名
           </ContextMenuItem>}
-          <ContextMenuItem
-            disabled={busy}
-            className="text-red-600 data-[highlighted]:bg-red-600"
-            onSelect={() => {
-              setError("")
-              setConfirmTrash(true)
-            }}
-          >
-            <Trash2 />
-            移到废纸篓
-          </ContextMenuItem>
+          <ContextMenuSub>
+            <ContextMenuSubTrigger disabled={busy || collecting} data-menu-danger className="text-red-600">
+              <Trash2 />
+              移到废纸篓
+            </ContextMenuSubTrigger>
+            <ContextMenuSubContent className="workspace-file-context-menu">
+              <ContextMenuItem
+                disabled={busy}
+                data-menu-danger
+                className="text-red-600"
+                onSelect={() => {
+                  setError("")
+                  setConfirmTrash("file")
+                }}
+              >
+                <Trash2 />
+                仅删除文件（保留图片）
+              </ContextMenuItem>
+              <ContextMenuItem
+                disabled={busy || collecting || markdownTargets.length === 0}
+                data-menu-danger
+                className="text-red-600"
+                onSelect={() => void prepareTrashWithImages()}
+              >
+                <Images />
+                删除文件及引用图片
+              </ContextMenuItem>
+            </ContextMenuSubContent>
+          </ContextMenuSub>
         </ContextMenuContent>
       </ContextMenu>
       {pdfExportOpen && <Suspense fallback={null}><PdfExportDialog path={node.path} root={workspace.path} onClose={() => setPdfExportOpen(false)} /></Suspense>}
@@ -401,18 +453,20 @@ export function FileActions({
         onConfirm={() => void mutate(name.trim())}
       />
       <ConfirmDialog
-        open={confirmTrash}
-        onOpenChange={setConfirmTrash}
-        title="移到废纸篓？"
+        open={confirmTrash !== false}
+        onOpenChange={(open) => { if (!open) setConfirmTrash(false) }}
+        title={confirmTrash === "images" ? "删除文件及引用图片？" : "移到废纸篓？"}
         description={
           <>
-            {multiple ? `确定将选中的 ${targets.length} 项及文件夹内全部内容移到系统废纸篓吗？` : `确定将“${node.name}”${node.type === "directory" ? "及其全部内容" : ""}移到系统废纸篓吗？`}之后可在废纸篓中恢复。
+            {multiple ? `确定将选中的 ${targets.length} 项及文件夹内全部内容移到系统废纸篓吗？` : `确定将“${node.name}”${node.type === "directory" ? "及其全部内容" : ""}移到系统废纸篓吗？`}
+            {confirmTrash === "images" ? (trashImages.length ? `同时会删除文档中引用的 ${trashImages.length} 张本地图片，其他文档若也引用这些图片将无法显示。` : "文档中没有找到可删除的本地图片，只会删除文件。") : "文档中引用的图片会保留。"}
+            之后可在废纸篓中恢复。
           </>
         }
-        confirmText={busy ? "正在移动…" : "确认移到废纸篓"}
+        confirmText={busy ? "正在移动…" : confirmTrash === "images" && trashImages.length ? `删除文件和 ${trashImages.length} 张图片` : "确认移到废纸篓"}
         busy={busy}
         error={error ? `移动失败：${error}` : undefined}
-        onConfirm={() => void mutate()}
+        onConfirm={() => void mutate(undefined, confirmTrash === "images" ? trashImages : [])}
       />
     </>
   )

@@ -12,6 +12,7 @@ import type { AsideActivity } from "@/components/layout/activity-bar/activity"
 import LayoutActivityBar from "@/components/layout/activity-bar/index"
 import Layout from "@/components/layout/index"
 import { Button } from "@/components/ui/button"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuSub, ContextMenuSubContent, ContextMenuSubTrigger, ContextMenuTrigger } from "@/components/ui/context-menu"
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable-panels"
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
@@ -20,7 +21,7 @@ import { CreateBranchDialog, MergeBranchDialog } from "@/pages/git/components/br
 import { DiffViewer } from "@/pages/git/components/diff-viewer"
 import { computeGitTopology, getGraphWidth, GitGraphSvg } from "@/pages/git/components/git-graph"
 import type { GitCommitDetail, GitCommitItem, GitFileStatus, GitStatusResult } from "@vessel/type"
-import { AlertCircle, Archive, ArrowDown, ArrowDownUp, ArrowUp, CheckCircle2, CheckSquare, Clock, Copy, Download, File, FileText, FolderGit2, FolderOpen, GitBranch, GitCommit, GitPullRequest, Globe, CloudCheck, GitFork, PanelRightClose, PanelRightOpen, Settings, SquareTerminal, Layers, Minus, Plus, RefreshCw, RotateCcw, Tag, Trash2, Undo2, Upload } from "lucide-react"
+import { AlertCircle, ChevronDown, Archive, ArrowDown, ArrowDownUp, ArrowUp, CheckCircle2, CheckSquare, Clock, Copy, Download, File, FileText, FolderGit2, FolderOpen, GitBranch, GitCommit, GitPullRequest, Globe, CloudCheck, GitFork, PanelRightClose, PanelRightOpen, Settings, SquareTerminal, Layers, Minus, Plus, RefreshCw, RotateCcw, Tag, Trash2, Undo2, Upload } from "lucide-react"
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
 
@@ -127,7 +128,8 @@ export default function SourceTreePage() {
   const [commits, setCommits] = useState<GitCommitItem[]>([])
   const [unpushedHashes, setUnpushedHashes] = useState<Set<string>>(new Set())
   const [commitTotal, setCommitTotal] = useState(0)
-  const [remoteCommitTotal, setRemoteCommitTotal] = useState(0)
+  // Badges count only the current branch, independent of the history list scope.
+  const [branchCommitTotal, setBranchCommitTotal] = useState(0)
   const [historyLoading, setHistoryLoading] = useState(false)
   const historyVersion = useRef(0)
   const historyPending = useRef<number | null>(null)
@@ -192,19 +194,19 @@ export default function SourceTreePage() {
       }
 
       const isAll = historyScope === "all"
-      const [statusRes, branchRes, logRes, stashRes, totalRes, unpushedRes, remoteTotalRes] = await Promise.all([
+      const [statusRes, branchRes, logRes, stashRes, totalRes, unpushedRes, branchTotalRes] = await Promise.all([
         git.getStatus(repoPath),
         git.getBranches(repoPath),
         git.getLog(repoPath, 150, 0, isAll),
         git.getStashes(repoPath).catch(() => []),
         git.getLogCount(repoPath, isAll),
         git.getUnpushedCommits(repoPath).catch(() => []),
-        git.getRemoteLogCount(repoPath, isAll).catch(() => 0)
+        git.getLogCount(repoPath, false).catch(() => 0)
       ])
 
       if (version !== historyVersion.current) return
       setCommitTotal(totalRes)
-      setRemoteCommitTotal(remoteTotalRes)
+      setBranchCommitTotal(branchTotalRes)
       setStatus(statusRes)
       setBranches(branchRes)
       setCommits(logRes)
@@ -302,6 +304,7 @@ export default function SourceTreePage() {
 
   // 待推送 (未推送到远程仓库的本地提交数) 与 待拉取 (远程仓库更新数)
   const aheadCount = Math.max(status?.ahead || 0, unpushedHashes.size)
+  const branchSyncedTotal = Math.max(0, branchCommitTotal - aheadCount)
   const behindCount = status?.behind || 0
 
   // 操作函数
@@ -972,30 +975,44 @@ export default function SourceTreePage() {
           <div className="flex shrink-0 items-center gap-2 text-xs">
             <FolderGit2 className="size-4 text-stone-500" />
             {libraryProjects.length > 0 ? (
-              <select
-                value={libraryProjects.some((p) => p.path === repoPath) ? repoPath : ""}
-                onChange={(e) => {
-                  if (e.target.value === "__open_new__") {
-                    void window.electronAPI.openDirectory().then((res) => {
-                      if (res?.path) setRepoPath(res.path)
-                    })
-                  } else if (e.target.value) {
-                    setRepoPath(e.target.value)
-                  }
-                }}
-                className="h-7 max-w-[200px] truncate rounded border border-stone-200 bg-white px-2 py-0.5 text-xs text-stone-700 focus:border-green-500 focus:outline-none"
-              >
-                {!libraryProjects.some((p) => p.path === repoPath) && repoPath && <option value={repoPath}>{repoPath.split(/[\\/]/).pop()} (当前)</option>}
-                {libraryProjects.map((p) => (
-                  <option
-                    key={p.path}
-                    value={p.path}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    className="git-repo-switcher flex h-7 max-w-[200px] items-center gap-1.5 rounded-md border border-stone-200 bg-white px-2 text-xs text-stone-700 outline-none hover:bg-stone-50 focus-visible:border-green-500"
+                    data-title={repoPath}
                   >
-                    {p.name}
-                  </option>
-                ))}
-                <option value="__open_new__">+ 打开本地其他目录...</option>
-              </select>
+                    <span className="truncate">{libraryProjects.find((p) => p.path === repoPath)?.name || repoPath.split(/[\\/]/).pop() || "选择仓库"}</span>
+                    <ChevronDown className="size-3.5 shrink-0 text-stone-400" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="max-h-[60vh] w-56 overflow-y-auto">
+                  <DropdownMenuRadioGroup value={repoPath} onValueChange={(value) => value && setRepoPath(value)}>
+                    {!libraryProjects.some((p) => p.path === repoPath) && repoPath && (
+                      <DropdownMenuRadioItem value={repoPath} className="text-xs">
+                        <span className="truncate">{repoPath.split(/[\\/]/).pop()} (当前)</span>
+                      </DropdownMenuRadioItem>
+                    )}
+                    {libraryProjects.map((p) => (
+                      <DropdownMenuRadioItem key={p.path} value={p.path} className="text-xs" data-title={p.path}>
+                        <span className="truncate">{p.name}</span>
+                      </DropdownMenuRadioItem>
+                    ))}
+                  </DropdownMenuRadioGroup>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    className="text-xs"
+                    onSelect={() => {
+                      void window.electronAPI.openDirectory().then((res) => {
+                        if (res?.path) setRepoPath(res.path)
+                      })
+                    }}
+                  >
+                    <FolderOpen className="size-3.5" />
+                    打开本地其他目录...
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             ) : (
               <span
                 className="font-mono text-stone-600 truncate max-w-sm"
@@ -1062,13 +1079,13 @@ export default function SourceTreePage() {
                   </span>
                   <div className="flex items-center gap-1.5 shrink-0">
                     {/* 远程仓库已同步的提交数 (带 Globe 图标) */}
-                    {remoteCommitTotal > 0 && (
+                    {branchSyncedTotal > 0 && (
                       <span
                         className="inline-flex items-center gap-0.5 rounded-full bg-stone-100 dark:bg-stone-800 px-1.5 py-0.5 text-[10px] font-medium text-stone-600 dark:text-stone-300"
-                        data-title={`远程仓库已同步 ${remoteCommitTotal} 次提交`}
+                        data-title={`远程仓库已同步 ${branchSyncedTotal} 次提交`}
                       >
                         <CloudCheck className="size-2.5 text-stone-500 dark:text-stone-400" />
-                        <span>{remoteCommitTotal}</span>
+                        <span>{branchSyncedTotal}</span>
                       </span>
                     )}
                     {/* 未推送到远程仓库的记录 (ahead 待推送) */}
@@ -1093,9 +1110,9 @@ export default function SourceTreePage() {
                     )}
                     <span
                       className="text-[10px] text-stone-400 dark:text-stone-500 font-mono"
-                      data-title={`提交总数: ${commitTotal} 次（远程已同步: ${remoteCommitTotal} 次，未推送到远程: ${aheadCount} 次${behindCount > 0 ? `，待拉取: ${behindCount} 次` : ""}）`}
+                      data-title={`提交总数: ${branchCommitTotal} 次（远程已同步: ${branchSyncedTotal} 次，未推送到远程: ${aheadCount} 次${behindCount > 0 ? `，待拉取: ${behindCount} 次` : ""}）`}
                     >
-                      {commitTotal}
+                      {branchCommitTotal}
                     </span>
                   </div>
                 </button>
@@ -1751,13 +1768,13 @@ export default function SourceTreePage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2 text-[11px] text-stone-500 dark:text-stone-400">
-                      {remoteCommitTotal > 0 && (
+                      {branchSyncedTotal > 0 && (
                         <span
                           className="inline-flex items-center gap-1 rounded-full bg-stone-100 dark:bg-stone-800 px-2 py-0.5 text-[11px] font-medium text-stone-600 dark:text-stone-300"
-                          data-title={`远程仓库已同步 ${remoteCommitTotal} 次提交`}
+                          data-title={`远程仓库已同步 ${branchSyncedTotal} 次提交`}
                         >
                           <CloudCheck className="size-3 text-stone-500 dark:text-stone-400" />
-                          <span>远程已同步 {remoteCommitTotal} 次</span>
+                          <span>远程已同步 {branchSyncedTotal} 次</span>
                         </span>
                       )}
                       {aheadCount > 0 && (
@@ -1780,9 +1797,9 @@ export default function SourceTreePage() {
                       )}
                       <span
                         className="text-stone-400 dark:text-stone-500"
-                        data-title={`提交总数: ${commitTotal} 次（远程已同步: ${remoteCommitTotal} 次，未推送到远程: ${aheadCount} 次${behindCount > 0 ? `，待拉取: ${behindCount} 次` : ""}）`}
+                        data-title={`提交总数: ${branchCommitTotal} 次（远程已同步: ${branchSyncedTotal} 次，未推送到远程: ${aheadCount} 次${behindCount > 0 ? `，待拉取: ${behindCount} 次` : ""}）`}
                       >
-                        共 {commitTotal} 次提交
+                        共 {branchCommitTotal} 次提交
                       </span>
                     </div>
                   </div>

@@ -9,6 +9,28 @@ import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 
 /** Renders the image content component. */
+/** Turn any displayable image source into a data URL so the main process can put the original bytes on the clipboard. */
+async function imageDataUrl(source: string, image?: HTMLImageElement | null): Promise<string> {
+  if (source.startsWith("data:")) return source
+  try {
+    const blob = await (await fetch(source)).blob()
+    if (!blob.type.startsWith("image/")) throw new Error("不是图片")
+    return await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(String(reader.result))
+      reader.onerror = () => reject(reader.error)
+      reader.readAsDataURL(blob)
+    })
+  } catch (error) {
+    // Fall back to the rendered pixels when the source cannot be fetched directly.
+    if (!image?.naturalWidth) throw error
+    const canvas = document.createElement("canvas")
+    canvas.width = image.naturalWidth; canvas.height = image.naturalHeight
+    canvas.getContext("2d")!.drawImage(image, 0, 0)
+    return canvas.toDataURL("image/png")
+  }
+}
+
 export function ImageContent({
   remote = false,
   src,
@@ -164,18 +186,34 @@ export function ImageContent({
           onCloseAutoFocus={(event) => event.preventDefault()}
           className="z-[260]"
         >
-          <ContextMenuItem
-            disabled={!onCopyReference && !(sourceAddress || src)}
-            onSelect={() => {
-              if (onCopyReference) { onCopyReference(); return }
-              const address = sourceAddress || src
-              if (address) void navigator.clipboard.writeText(address)
-                .then(() => toast.success("已复制图片地址"))
-                .catch((error) => toast.error(String(error)))
-            }}
-          >
-            复制
-          </ContextMenuItem>
+          <ContextMenuSub>
+            <ContextMenuSubTrigger>复制</ContextMenuSubTrigger>
+            <ContextMenuSubContent className="z-[260]">
+              <ContextMenuItem
+                disabled={!onCopyReference && !(sourceAddress || src)}
+                onSelect={() => {
+                  if (onCopyReference) { onCopyReference(); return }
+                  const address = sourceAddress || src
+                  if (address) void navigator.clipboard.writeText(address)
+                    .then(() => toast.success("已复制图片引用"))
+                    .catch((error) => toast.error(String(error)))
+                }}
+              >
+                复制图片引用
+              </ContextMenuItem>
+              <ContextMenuItem
+                disabled={!loaded || !resolved || failed}
+                onSelect={() => {
+                  void imageDataUrl(resolved!, host.current?.querySelector<HTMLImageElement>("img:last-of-type"))
+                    .then((data) => window.electronAPI.copyImage(data))
+                    .then(() => toast.success("已复制图片，可直接粘贴"))
+                    .catch((error) => toast.error("复制图片失败", { description: String(error) }))
+                }}
+              >
+                复制图片
+              </ContextMenuItem>
+            </ContextMenuSubContent>
+          </ContextMenuSub>
           <ContextMenuItem
             disabled={!onDownloadLocal || downloading}
             onSelect={() => {

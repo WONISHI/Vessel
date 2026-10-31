@@ -303,7 +303,7 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
                   event.preventDefault()
                   setMoreToolsTooltipOpen(false)
                 }}
-                className="z-[300] max-h-[var(--radix-popover-content-available-height)] w-56 overflow-hidden rounded-xl border border-stone-200 bg-white p-0 shadow-xl"
+                className="z-[300] max-h-[var(--radix-popover-content-available-height)] w-56 overflow-hidden rounded-xl border border-stone-200 bg-white p-0 shadow-xl dark:!border-white/10 dark:!bg-[#1f2329] dark:shadow-[0_12px_32px_rgba(0,0,0,.5)]"
                 onMouseEnter={() => {
                   if (closeTimer.current) clearTimeout(closeTimer.current)
                 }}
@@ -316,8 +316,8 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
                 <ScrollArea className="max-h-[calc(var(--radix-popover-content-available-height)-2px)] [&_[data-radix-scroll-area-viewport]]:max-h-[calc(var(--radix-popover-content-available-height)-2px)]">
                   <div className="p-1.5">
                     {(overflowItems.length > 0 || !showTransit) && (
-                      <div className="border-b border-stone-100 pb-1 mb-1">
-                        <div className="px-2 py-1 text-[11px] font-semibold text-stone-400">工作台</div>
+                      <div className="border-b border-stone-100 pb-1 mb-1 dark:border-white/10">
+                        <div className="px-2 py-1 text-[11px] font-semibold text-stone-400 dark:text-stone-500">工作台</div>
                         {overflowItems.map(({ id, label, icon: Icon }) => (
                           <button
                             key={id}
@@ -326,7 +326,7 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
                             onClick={() => openActivity(id)}
                             onMouseEnter={id === "resources" && activity === "resources" ? onResourceEnter : undefined}
                             onMouseLeave={id === "resources" ? onResourceLeave : undefined}
-                            className={cn("flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-xs hover:bg-stone-100", activity === id && "bg-emerald-50 text-green-700")}
+                            className={cn("flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-xs hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-white/[.06]", activity === id && "bg-emerald-50 text-green-700 dark:bg-green-500/15 dark:text-green-400")}
                           >
                             <Icon className="size-4" />
                             {label}
@@ -348,7 +348,7 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
                             onClick={() => {
                               void syncWorkspace()
                             }}
-                            className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-xs hover:bg-stone-100 disabled:opacity-50"
+                            className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-xs hover:bg-stone-100 disabled:opacity-50 dark:text-stone-300 dark:hover:bg-white/[.06]"
                           >
                             <RefreshCcw className={cn("size-4", syncRunning && "animate-spin")} />
                             {syncRunning ? "正在同步…" : "同步工作区"}
@@ -356,26 +356,26 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
                         )}
                       </div>
                     )}
-                    <div className="px-2 py-1 text-[11px] font-semibold text-stone-400">开发与接口工具</div>
+                    <div className="px-2 py-1 text-[11px] font-semibold text-stone-400 dark:text-stone-500">开发与接口工具</div>
 
                     {/* 1. Git (代码版本管理) */}
                     <button
                       type="button"
                       data-developer-tool-card
                       data-active={location.pathname === "/git"}
-                      className={cn("flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-stone-100", location.pathname === "/git" && "bg-green-50 text-green-700 font-medium")}
+                      className={cn("flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-stone-100 dark:hover:bg-white/[.06]", location.pathname === "/git" && "bg-green-50 text-green-700 font-medium dark:bg-green-500/15 dark:text-green-400 dark:hover:bg-green-500/20")}
                       onClick={() => {
                         setMoreToolsOpen(false)
                         onActivityChange("git")
                         void router.push("/git")
                       }}
                     >
-                      <div className="flex size-7 shrink-0 items-center justify-center rounded-md bg-orange-50 text-orange-600">
+                      <div className="flex size-7 shrink-0 items-center justify-center rounded-md bg-orange-50 text-orange-600 dark:bg-orange-500/15 dark:text-orange-400">
                         <GitBranch className="size-4" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div className="developer-tool-title text-xs font-medium text-stone-800">Git</div>
-                        <div className="developer-tool-description truncate text-[10px] text-stone-400">代码版本管理与分支</div>
+                        <div className="developer-tool-title text-xs font-medium text-stone-800 dark:text-stone-100">Git</div>
+                        <div className="developer-tool-description truncate text-[10px] text-stone-400 dark:text-stone-500">代码版本管理与分支</div>
                       </div>
                     </button>
 
@@ -384,19 +384,19 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
                       type="button"
                       data-developer-tool-card
                       data-active={location.pathname === "/api-client"}
-                      className={cn("flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-stone-100", location.pathname === "/api-client" && "bg-green-50 text-green-700 font-medium")}
+                      className={cn("flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-stone-100 dark:hover:bg-white/[.06]", location.pathname === "/api-client" && "bg-green-50 text-green-700 font-medium dark:bg-green-500/15 dark:text-green-400 dark:hover:bg-green-500/20")}
                       onClick={() => {
                         setMoreToolsOpen(false)
                         onActivityChange("postman")
                         void router.push("/api-client")
                       }}
                     >
-                      <div className="flex size-7 shrink-0 items-center justify-center rounded-md bg-amber-50 text-amber-600">
+                      <div className="flex size-7 shrink-0 items-center justify-center rounded-md bg-amber-50 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400">
                         <Send className="size-4" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div className="developer-tool-title text-xs font-medium text-stone-800">API</div>
-                        <div className="developer-tool-description truncate text-[10px] text-stone-400">接口调试与请求管理</div>
+                        <div className="developer-tool-title text-xs font-medium text-stone-800 dark:text-stone-100">API</div>
+                        <div className="developer-tool-description truncate text-[10px] text-stone-400 dark:text-stone-500">接口调试与请求管理</div>
                       </div>
                     </button>
 
@@ -405,19 +405,19 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
                       type="button"
                       data-developer-tool-card
                       data-active={location.pathname.startsWith("/devtools")}
-                      className={cn("flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-stone-100", location.pathname.startsWith("/devtools") && "bg-green-50 text-green-700 font-medium")}
+                      className={cn("flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-stone-100 dark:hover:bg-white/[.06]", location.pathname.startsWith("/devtools") && "bg-green-50 text-green-700 font-medium dark:bg-green-500/15 dark:text-green-400 dark:hover:bg-green-500/20")}
                       onClick={() => {
                         setMoreToolsOpen(false)
                         onActivityChange("tools")
                         void router.push("/devtools")
                       }}
                     >
-                      <div className="flex size-7 shrink-0 items-center justify-center rounded-md bg-blue-50 text-blue-600">
+                      <div className="flex size-7 shrink-0 items-center justify-center rounded-md bg-blue-50 text-blue-600 dark:bg-blue-500/15 dark:text-blue-400">
                         <Wrench className="size-4" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div className="developer-tool-title text-xs font-medium text-stone-800">开发工具</div>
-                        <div className="developer-tool-description truncate text-[10px] text-stone-400">Console / 存储 / 调试工具</div>
+                        <div className="developer-tool-title text-xs font-medium text-stone-800 dark:text-stone-100">开发工具</div>
+                        <div className="developer-tool-description truncate text-[10px] text-stone-400 dark:text-stone-500">Console / 存储 / 调试工具</div>
                       </div>
                     </button>
                   </div>

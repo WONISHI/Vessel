@@ -6,7 +6,7 @@ import { disposeCodeDiagnostics, getCodeDiagnostics } from "@main/diagnostics/co
 import { BaseModule } from "@main/modules/base/index"
 import { copyImage } from "@main/modules/files/copy-image"
 import { readImageFile } from "@main/modules/files/image-file"
-import { readObsidianImage, resolveObsidianImageFile } from "@main/modules/files/obsidian-image"
+import { collectMarkdownImages, readObsidianImage, resolveObsidianImageFile } from "@main/modules/files/obsidian-image"
 import { saveObsidianImage } from "@main/modules/files/save-obsidian-image"
 import { transferWorkspaceFiles } from "@main/modules/files/transfer-workspace-files"
 import { readWikiLink } from "@main/modules/files/wiki-link"
@@ -156,6 +156,7 @@ export class FilesModule extends BaseModule {
       return join(root, relative(await realpath(root), image))
     })
     ipcMain.handle("obsidian:imageResource", (_event, root: string, documentPath: string, reference: string) => createImageResource(root, documentPath, reference))
+    ipcMain.handle("obsidian:collectImages", (_event, root: string, documentPath: string) => collectMarkdownImages(root, documentPath))
     ipcMain.handle("obsidian:readImage", (_event, root, documentPath, reference) => readObsidianImage(root, documentPath, reference))
     ipcMain.handle("workspace:transferFiles", (_event, root, paths, destination, external, duplicate) => transferWorkspaceFiles(root, paths, destination, external, duplicate === true))
     ipcMain.handle("workspace:mutateFile", (_event, root, path, name) => mutateWorkspaceFile(root, path, name))

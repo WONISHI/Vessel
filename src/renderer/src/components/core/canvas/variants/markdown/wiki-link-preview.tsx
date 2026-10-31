@@ -5,7 +5,7 @@ import { useEffect, useRef, useState, type RefObject } from "react"
 
 /** Renders the wiki link preview component. */
 export function WikiLinkPreview({ host, workspacePath }: { host: RefObject<HTMLDivElement | null>; workspacePath: string }) {
-  const [preview, setPreview] = useState<{ rect: DOMRect; target: string; content?: string; path?: string; error?: string } | null>(null)
+  const [preview, setPreview] = useState<{ rect: DOMRect; target: string; content?: string; path?: string } | null>(null)
   const closeTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const generation = useRef(0)
   const insideCard = useRef(false)
@@ -50,14 +50,17 @@ export function WikiLinkPreview({ host, workspacePath }: { host: RefObject<HTMLD
       timer = setTimeout(() => {
         const target = element.dataset.wikiTarget!
         activeTarget.current = target
-        setPreview({ rect: element.getBoundingClientRect(), target })
         void window.electronAPI
           .readWikiLink(workspacePath, target)
           .then((result) => {
             if (generation.current === request) setPreview({ rect: element.getBoundingClientRect(), target, content: result.content, path: result.path })
           })
           .catch((error) => {
-            if (generation.current === request) setPreview({ rect: element.getBoundingClientRect(), target, error: String(error) })
+            // Missing or unreadable targets get no card at all.
+            if (generation.current !== request) return
+            console.warn("[wiki-link] preview unavailable", target, error)
+            activeTarget.current = null
+            setPreview(null)
           })
       }, 1500)
     }
@@ -80,7 +83,7 @@ export function WikiLinkPreview({ host, workspacePath }: { host: RefObject<HTMLD
     }
   }, [host, workspacePath])
   return (
-    <HoverCard open={Boolean(preview)}>
+    <HoverCard open={preview?.content !== undefined}>
       <HoverCardTrigger asChild>
         <span
           aria-hidden
@@ -108,17 +111,13 @@ export function WikiLinkPreview({ host, workspacePath }: { host: RefObject<HTMLD
           className="w-[min(480px,80vw)]"
         >
           <p className="mb-2 text-center font-semibold">{preview?.target}</p>
-          {preview?.error ? (
-            <p className="text-red-500">找不到或无法读取链接文件：{preview.error}</p>
-          ) : preview?.content !== undefined ? (
+          {preview?.content !== undefined ? (
             <PreviewBody
               source={preview.content}
               workspacePath={workspacePath}
               documentPath={preview.path!}
             />
-          ) : (
-            <p>正在读取…</p>
-          )}
+          ) : null}
         </HoverCardContent>
       </HoverCardPortal>
     </HoverCard>

@@ -244,3 +244,17 @@ html.dark .git-repository-settings .git-settings-tab[aria-selected="true"] { bac
   min-width: 0 !important;
   width: 100%;
 }
+
+/* Sidebar rows only carry hover:bg-stone-100, which the [class*="bg-stone-100"] rules above
+   matched as a resting background. Keep idle rows flat and show the surface on hover only. */
+html.dark .vessel-git-page .git-navigation :is([data-git-selected="false"], [data-git-sidebar-hover]) {
+  background: transparent !important;
+  color: #9aa1a9 !important;
+}
+html.dark .vessel-git-page .git-navigation :is([data-git-selected="false"], [data-git-sidebar-hover]):hover {
+  background: rgba(255, 255, 255, 0.06) !important;
+  color: #e6e8eb !important;
+}
+html.dark .vessel-git-page .git-navigation :is([data-git-selected="false"], [data-git-sidebar-hover]):hover > span:first-child :is(span, svg), html.dark .vessel-git-page .git-navigation [data-git-sidebar-hover]:hover > :is(span, svg) {
+  color: #e6e8eb !important;
+}

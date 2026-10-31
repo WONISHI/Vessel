@@ -1,12 +1,13 @@
 {
   "name": "vessel",
   "version": "1.0.0",
-  "description": "An Electron application with React and TypeScript",
+  "description": "Vessel — 集 Markdown 笔记、Git、截图与开发工具于一体的桌面工作台",
   "main": "./out/main/index.js",
   "author": "WONISHI",
   "homepage": "https://electron-vite.org",
   "build": {
-    "appId": "com.your.app",
+    "appId": "com.wonishi.vessel",
+    "productName": "Vessel",
     "asarUnpack": [
       "**/node_modules/@vscode/ripgrep*/bin/**/*",
       "**/node_modules/better-sqlite3/**/*",

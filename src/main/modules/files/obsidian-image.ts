@@ -94,3 +94,21 @@ export async function resolveObsidianImageFile(root: string, documentPath: strin
   if (!within(path)) throw new Error("图片不在工作区")
   return path
 }
+
+/** 收集 Markdown 中引用的本地图片（去重，跳过远程与找不到的图片），返回工作区内的逻辑路径。 */
+export async function collectMarkdownImages(root: string, documentPath: string): Promise<string[]> {
+  if (!/\.(md|markdown)$/i.test(documentPath)) return []
+  const content = await readFile(documentPath, "utf8")
+  const references = content.match(/!\[\[[^\]\n]+\]\]|!\[[^\]\n]*\]\((?:<[^>\n]+>|[^)\n]+)\)/g) ?? []
+  const base = await realpath(root)
+  const found = new Set<string>()
+  for (const reference of references) {
+    try {
+      const path = await resolveObsidianImageFile(root, documentPath, reference)
+      found.add(join(root, relative(base, path)))
+    } catch {
+      // 远程、不存在或不在工作区内的图片直接忽略
+    }
+  }
+  return [...found]
+}
