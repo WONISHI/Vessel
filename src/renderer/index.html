@@ -28,14 +28,10 @@
 
     <title>Vessel</title>
 
-    <!-- Boot splash: painted before the JS bundle loads; React replaces #root's content on mount. -->
+    <!-- Match window backgroundColor while the bundle boots — no spinner on the home path. -->
     <style>
-      html, body { margin: 0; height: 100%; background: #ffffff; }
-      @media (prefers-color-scheme: dark) { html, body { background: #22272e; } }
-      #root:empty { height: 100%; display: flex; align-items: center; justify-content: center; }
-      #root:empty::after { content: ""; width: 22px; height: 22px; border-radius: 50%; border: 2px solid #d6d3d1; border-top-color: #327f73; animation: vessel-boot-spin 0.8s linear infinite; }
-      @media (prefers-color-scheme: dark) { #root:empty::after { border-color: #444c56; border-top-color: #4fa394; } }
-      @keyframes vessel-boot-spin { to { transform: rotate(360deg); } }
+      html, body, #root { margin: 0; height: 100%; background: #ffffff; }
+      @media (prefers-color-scheme: dark) { html, body, #root { background: #22272e; } }
     </style>
 
     <link

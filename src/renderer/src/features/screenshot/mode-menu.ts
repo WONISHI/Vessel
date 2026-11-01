@@ -4,6 +4,17 @@ import { renderToStaticMarkup } from "react-dom/server"
 
 export type ScreenshotMode = "copy" | "ocr" | "translate"
 
+const SECONDARY_MODE = "mode"
+
+/** Hide the plugin option panel while our mode menu is the open secondary popup. */
+function claimSecondarySlot() {
+  document.body.dataset.shotSecondary = SECONDARY_MODE
+}
+
+function releaseSecondarySlot() {
+  if (document.body.dataset.shotSecondary === SECONDARY_MODE) delete document.body.dataset.shotSecondary
+}
+
 /** A separate menu keeps custom modes out of the screenshot library's command dispatch. */
 export function installScreenshotModes(heading: HTMLElement, onSelect: (mode: ScreenshotMode) => void) {
   const trigger = document.createElement("button")
@@ -24,7 +35,11 @@ export function installScreenshotModes(heading: HTMLElement, onSelect: (mode: Sc
   menu.hidden = true
   menu.setAttribute("role", "menu")
   document.body.append(menu)
-  const close = () => { menu.hidden = true; trigger.setAttribute("aria-expanded", "false") }
+  const close = () => {
+    menu.hidden = true
+    trigger.setAttribute("aria-expanded", "false")
+    releaseSecondarySlot()
+  }
   for (const [mode, title] of [["copy", "截图"], ["ocr", "OCR"], ["translate", "翻译"]] as const) {
     const button = document.createElement("button")
     button.type = "button"
@@ -45,6 +60,7 @@ export function installScreenshotModes(heading: HTMLElement, onSelect: (mode: Sc
     const toolbar = heading.closest("#toolPanel")?.getBoundingClientRect() || rect
     const button = trigger.getBoundingClientRect()
     menu.hidden = false
+    claimSecondarySlot()
     const left = Math.max(8, Math.min(button.left + button.width / 2 - menu.offsetWidth / 2, innerWidth - menu.offsetWidth - 8))
     const above = toolbar.bottom + menu.offsetHeight + 10 > innerHeight
     menu.dataset.side = above ? "top" : "bottom"
@@ -58,12 +74,27 @@ export function installScreenshotModes(heading: HTMLElement, onSelect: (mode: Sc
     positionMenu()
     trigger.setAttribute("aria-expanded", "true")
   }
+  /** Opening a drawing-tool option panel closes the mode menu (single secondary popup). */
+  const toolClick = (event: MouseEvent) => {
+    if (menu.hidden) return
+    const tool = (event.target as Element | null)?.closest?.("#toolPanel .item-panel")
+    if (!tool || heading.contains(tool)) return
+    close()
+  }
   window.addEventListener("vessel:screenshot-toolbar-moved", moved)
   const outside = (event: PointerEvent) => { if (!menu.contains(event.target as Node) && !heading.contains(event.target as Node)) close() }
   const key = (event: KeyboardEvent) => { if (event.key === "Escape" && !menu.hidden) { event.stopImmediatePropagation(); close(); trigger.focus() } }
   window.addEventListener("pointerdown", outside, true)
   window.addEventListener("keydown", key, true)
-  return () => { window.removeEventListener("vessel:screenshot-toolbar-moved", moved); menu.remove(); window.removeEventListener("pointerdown", outside, true); window.removeEventListener("keydown", key, true) }
+  document.addEventListener("click", toolClick, true)
+  return () => {
+    window.removeEventListener("vessel:screenshot-toolbar-moved", moved)
+    menu.remove()
+    releaseSecondarySlot()
+    window.removeEventListener("pointerdown", outside, true)
+    window.removeEventListener("keydown", key, true)
+    document.removeEventListener("click", toolClick, true)
+  }
 }
 
 export function updateScreenshotToolbar(toolbar: HTMLElement, mode: ScreenshotMode) {

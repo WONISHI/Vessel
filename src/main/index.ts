@@ -209,7 +209,7 @@ function createWindow(): void {
   registerFileWatch(mainWindow.webContents)
   registerBases(mainWindow.webContents)
 
-  // maximize() shows a hidden window on macOS, so defer it until the first frame is ready.
+  // maximize() shows a hidden window on macOS, so defer it until ready-to-show — show ASAP for welcome.
   let shown = false
   const reveal = () => {
     if (shown || mainWindow.isDestroyed()) return

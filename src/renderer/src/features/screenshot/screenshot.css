@@ -294,9 +294,42 @@ body,
 .shot-mode-trigger { display: flex; align-items: center; gap: 10px; height: 28px; padding: 0; border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; }
 .shot-mode-chevron { display: inline-flex; align-items: center; justify-content: center; width: 14px; height: 14px; color: #53615a; transition: transform .15s ease; }
 .shot-mode-trigger[aria-expanded="true"] .shot-mode-chevron { transform: rotate(180deg); }
-.shot-mode-menu { position: fixed; z-index: 130; display: flex; gap: 4px; padding: 6px; border: 1px solid #ffffffb3; border-radius: 16px; --shot-menu-surface: #d6d9d7; background: var(--shot-menu-surface); backdrop-filter: blur(28px) saturate(145%); -webkit-backdrop-filter: blur(28px) saturate(145%); box-shadow: 0 8px 30px #0002, inset 0 0 0 1px #ffffff30; }
+.shot-mode-menu {
+  position: fixed;
+  z-index: 130;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 40px;
+  min-height: 40px;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 14px;
+  /* Match #toolPanel / #optionPanel liquid-glass without stealing ::before/::after for the arrow. */
+  --shot-menu-surface: #ffffff70;
+  background: linear-gradient(135deg, #ffffff70, #e8edf145 55%, #ffffff59);
+  backdrop-filter: blur(18px) saturate(135%);
+  -webkit-backdrop-filter: blur(18px) saturate(135%);
+  box-shadow: 0 8px 24px #17212d26;
+}
 .shot-mode-menu[hidden] { display: none; }
-.shot-mode-menu button { position: relative; min-height: 32px; display: flex; align-items: center; gap: 8px; padding: 8px 14px; border: 0; border-radius: 10px; font: 600 14px system-ui; color: #171717; background: transparent; cursor: pointer; }
+.shot-mode-menu button {
+  position: relative;
+  box-sizing: border-box;
+  min-height: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 9px;
+  font: 600 13px system-ui;
+  color: #171717;
+  background: transparent;
+  cursor: pointer;
+}
 .shot-mode-menu button::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: #168bfa; }
 .shot-mode-menu button[data-mode="ocr"]::before { background: #14a3a3; }
 .shot-mode-menu button[data-mode="translate"]::before { background: #9163ff; }
@@ -318,6 +351,8 @@ body,
 #toolPanel[data-mode="translate"] .shot-toolbar-dot { background: #9163ff; }
 body[data-screenshot-mode="ocr"] :is(#optionPanel, #optionIcoController),
 body[data-screenshot-mode="translate"] :is(#optionPanel, #optionIcoController) { display: none !important; }
+/* Mode menu and the plugin option surface are mutually exclusive secondary popups. */
+body[data-shot-secondary="mode"] :is(#optionPanel, #optionIcoController) { display: none !important; }
 
 #toolPanel .shot-toolbar-grip { pointer-events: auto; cursor: grab; touch-action: none; user-select: none; width: 14px; height: 28px; border-radius: 5px; background-position: center; }
 #toolPanel .shot-toolbar-grip:hover { background-color: #ffffff30; }
@@ -923,9 +958,11 @@ body[data-screenshot-mode="translate"] :is(#optionPanel, #optionIcoController) {
     backdrop-filter: blur(18px) saturate(135%);
   }
   .shot-mode-menu {
-    --shot-menu-surface: #303740;
-    border-color: #ffffff30;
-    box-shadow: 0 8px 30px #0005, inset 0 1px 0 #ffffff1a;
+    color-scheme: dark;
+    --shot-menu-surface: #303841d9;
+    color: #f1f5f9;
+    background: linear-gradient(135deg, #303841d9, #20262ecc 55%, #343c46d9);
+    box-shadow: 0 8px 24px #0005;
   }
   .shot-mode-menu button { color: #f1f5f9; }
   .shot-mode-menu button:hover,
