@@ -85,7 +85,7 @@ export function secureBrowserGuests(contents: WebContents) {
       }
       if (matchesShortcut(input, "devtools")) {
         event.preventDefault()
-        contents.send("browser:toggle-devtools", guest.id)
+        if (!input.isAutoRepeat) contents.send("browser:toggle-devtools", guest.id)
       }
       const command = commandShortcutIds.find((id) => matchesShortcut(input, id))
       if (command) {

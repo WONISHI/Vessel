@@ -27,6 +27,8 @@ html {
 }
 
 :root {
+  /* 右键菜单高亮项文字色；危险项等可在菜单项上覆盖该变量 */
+  --vs-menu-active-text: #ffffff;
   --font-sans: "Plus Jakarta Sans", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
 }
 html,
@@ -62,14 +64,14 @@ select {
 .vessel-code-block-menu [data-highlighted] *,
 .vessel-code-block-menu [role="menuitem"][data-state="open"],
 .vessel-code-block-menu [role="menuitem"][data-state="open"] * {
-  color: #ffffff !important;
+  color: var(--vs-menu-active-text, #ffffff) !important;
 }
 
 [data-radix-context-menu-content] [data-highlighted] svg,
 [data-radix-context-menu-content] [role="menuitem"][data-state="open"] svg,
 .vessel-code-block-menu [data-highlighted] svg,
 .vessel-code-block-menu [role="menuitem"][data-state="open"] svg {
-  color: #ffffff !important;
+  color: var(--vs-menu-active-text, #ffffff) !important;
   stroke: currentColor !important;
 }
 

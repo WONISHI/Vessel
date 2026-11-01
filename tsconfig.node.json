@@ -3,7 +3,11 @@
   "include": [
     "electron.vite.config.*",
     "src/main/**/*",
-    "src/preload/**/*"
+    "src/preload/**/*",
+    "packages/@vessel/sync/src/**/*",
+    "packages/@vessel/type/src/**/*",
+    "packages/@vessel/utils/src/**/*",
+    "packages/@vessel/obsidian/src/**/*"
   ],
   "compilerOptions": {
     "composite": true,

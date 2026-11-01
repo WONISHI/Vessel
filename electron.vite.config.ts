@@ -155,6 +155,8 @@ export default defineConfig({
     resolve: {
       dedupe: ["react", "react-dom"],
       alias: [
+        // IMG.LY runs on CPU and supplies its own wasm URLs; the WASM-only build avoids shipping an unused 23MB JSEP/WebGPU wasm.
+        { find: /^onnxruntime-web(\/webgpu)?$/, replacement: "onnxruntime-web/wasm" },
         { find: /^@vessel\/obsidian\/callouts\/style\.css/, replacement: resolveFromRoot("packages/@vessel/obsidian/src/callouts/style.css") },
       { find: /^@vessel\/obsidian$/, replacement: resolveFromRoot("packages/@vessel/obsidian/src/index.ts") },
         ...Object.entries({

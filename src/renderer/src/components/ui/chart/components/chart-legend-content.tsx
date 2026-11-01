@@ -1,17 +1,16 @@
 import { getPayloadConfigFromPayload, useChart } from "@/components/ui/chart/components/chart-shared"
 import { cn } from "@/lib/utils"
 import * as React from "react"
-import * as RechartsPrimitive from "recharts"
+import type { DefaultLegendContentProps } from "recharts"
+
+export type ChartLegendContentProps = React.ComponentProps<"div"> &
+  DefaultLegendContentProps & {
+    hideIcon?: boolean
+    nameKey?: string
+  }
 
 /** Renders the chart legend content component. */
-export const ChartLegendContent = React.forwardRef<
-  HTMLDivElement,
-  React.ComponentProps<"div"> &
-    React.ComponentProps<typeof RechartsPrimitive.DefaultLegendContent> & {
-      hideIcon?: boolean
-      nameKey?: string
-    }
->(({ className, hideIcon = false, payload, verticalAlign = "bottom", nameKey }, ref) => {
+export const ChartLegendContent: React.ForwardRefExoticComponent<Omit<ChartLegendContentProps, "ref"> & React.RefAttributes<HTMLDivElement>> = React.forwardRef<HTMLDivElement, ChartLegendContentProps>(({ className, hideIcon = false, payload, verticalAlign = "bottom", nameKey }, ref) => {
   const { config } = useChart()
 
   if (!payload?.length) {

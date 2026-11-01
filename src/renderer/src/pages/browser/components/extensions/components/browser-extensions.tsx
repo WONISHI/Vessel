@@ -10,11 +10,44 @@ import { Box, Folder, Pin, Puzzle, Shield, Trash2, TriangleAlert, Upload } from 
 import { useEffect, useRef, useState } from "react"
 
 /** Renders the browser extensions component. */
+const POPUP_SIZE_KEY = "browser-extension-popup-sizes"
+const popupSizes = new Map<string, { width?: number; height?: number }>()
+
+/** Reads the last locked popup size for an extension (memory first, then localStorage). */
+function readPopupSize(key: string) {
+  if (popupSizes.has(key)) return popupSizes.get(key)
+  try {
+    const saved = JSON.parse(localStorage.getItem(POPUP_SIZE_KEY) || "{}")[key]
+    if (saved && typeof saved.width === "number") {
+      popupSizes.set(key, saved)
+      return saved as { width?: number; height?: number }
+    }
+  } catch {}
+  return undefined
+}
+
+/** Remembers a locked popup size so reopening shows instantly at the right size. */
+function writePopupSize(key: string, size: { width?: number; height?: number }) {
+  popupSizes.set(key, size)
+  try {
+    const all = JSON.parse(localStorage.getItem(POPUP_SIZE_KEY) || "{}")
+    all[key] = size
+    localStorage.setItem(POPUP_SIZE_KEY, JSON.stringify(all))
+  } catch {}
+}
+
 export function BrowserExtensions({ onOpenDevtools, getActivePageData }: { onOpenDevtools?: () => void; getActivePageData?: () => Promise<any> }) {
   const [popup, setPopup] = useState<BrowserExtension | null>(null)
   const popupArea = useRef<HTMLDivElement>(null)
   const scrollViewport = useRef<HTMLDivElement>(null)
   const [scrollHeight, setScrollHeight] = useState(0)
+  // Preferred popup size reported by the extension document (Chrome clamps action popups to 25..800 x 25..600).
+  const [preferred, setPreferred] = useState<{ width?: number; height?: number }>({})
+  // Width locks after two equal readings; height only grows. Both prevent resize feedback loops.
+  const sizing = useRef<{ lastWidth?: number; locked: boolean }>({ locked: false })
+  // The dialog and native view stay hidden until the final size is known, so the popup appears in one step.
+  const [sized, setSized] = useState(false)
+  const sizedRef = useRef(false)
   const [items, setItems] = useState<BrowserExtension[]>([])
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -58,39 +91,79 @@ export function BrowserExtensions({ onOpenDevtools, getActivePageData }: { onOpe
     }
   }, [])
   useEffect(() => {
+    const cached = popup ? readPopupSize(popup.key) : undefined
+    setPreferred(cached ?? {})
+    sizing.current = { locked: !!cached }
+    sizedRef.current = !!cached
+    setSized(!!cached)
     if (!popup) return
 
-    /** Resizes resize. */
+    /** Positions the native view over the popup area once the final size is known. */
     const resize = () => {
+      if (!sizedRef.current) return
       const rect = popupArea.current?.getBoundingClientRect()
       if (rect) void window.electronAPI.resizeBrowserExtension({ x: rect.x, y: rect.y, width: rect.width, height: rect.height })
     }
+    /** Reveals the dialog at its final size (measured, cached, or the 440x360 fallback). */
+    const reveal = () => {
+      if (sizedRef.current) return
+      sizedRef.current = true
+      setSized(true)
+    }
     const observer = new ResizeObserver(resize)
+    let viewport: HTMLDivElement | null = null
     const frame = requestAnimationFrame(() => {
       if (popupArea.current) observer.observe(popupArea.current)
       viewport = scrollViewport.current
       viewport?.addEventListener("scroll", onScroll)
       resize()
     })
+    const fallback = window.setTimeout(reveal, 600)
     let alive = true
     let syncing = false
+    let timer = 0
 
-    /** Updates scroll. */
+    /** Updates scroll and, until locked, the measured size. */
     const updateScroll = async () => {
       if (syncing) return
       syncing = true
       try {
         const metrics = await window.electronAPI.extensionScroll()
-        if (alive) {
-          setScrollHeight(metrics.height)
-          if (scrollViewport.current && Math.abs(scrollViewport.current.scrollTop - metrics.top) > 1) scrollViewport.current.scrollTop = metrics.top
+        if (!alive) return
+        setScrollHeight(metrics.height)
+        const lock = sizing.current
+        const height = metrics.naturalHeight ? Math.min(metrics.naturalHeight, 600) : undefined
+        if (!lock.locked && metrics.width && metrics.width >= 25) {
+          if (lock.lastWidth !== undefined && Math.abs(lock.lastWidth - metrics.width) <= 1) {
+            lock.locked = true
+            const size = { width: metrics.width, height }
+            setPreferred(size)
+            writePopupSize(popup.key, size)
+            reveal()
+          }
+          lock.lastWidth = metrics.width
+        } else if (lock.locked && height) {
+          setPreferred((current) => {
+            if (current.height && height <= current.height + 4) return current
+            const next = { ...current, height }
+            writePopupSize(popup.key, next)
+            return next
+          })
         }
+        if (scrollViewport.current && Math.abs(scrollViewport.current.scrollTop - metrics.top) > 1) scrollViewport.current.scrollTop = metrics.top
       } finally {
         syncing = false
       }
     }
-    const timer = setInterval(() => void updateScroll().catch(() => {}), 150)
-    let viewport: HTMLDivElement | null = null
+    /** Polls quickly until the width locks, then at the normal scroll-sync rate. */
+    const tick = () => {
+      void updateScroll()
+        .catch(() => {})
+        .finally(() => {
+          if (alive) timer = window.setTimeout(tick, sizing.current.locked ? 150 : 50)
+        })
+    }
+    tick()
 
     /** Handles scroll events. */
     const onScroll = () => {
@@ -99,13 +172,23 @@ export function BrowserExtensions({ onOpenDevtools, getActivePageData }: { onOpe
     window.addEventListener("resize", resize)
     return () => {
       alive = false
-      clearInterval(timer)
+      window.clearTimeout(timer)
+      window.clearTimeout(fallback)
       viewport?.removeEventListener("scroll", onScroll)
       cancelAnimationFrame(frame)
       observer.disconnect()
       window.removeEventListener("resize", resize)
     }
   }, [popup])
+  // Once revealed, place the native view at the final bounds (the observer may not fire if the area size is unchanged).
+  useEffect(() => {
+    if (!sized || !popup) return
+    const frame = requestAnimationFrame(() => {
+      const rect = popupArea.current?.getBoundingClientRect()
+      if (rect) void window.electronAPI.resizeBrowserExtension({ x: rect.x, y: rect.y, width: rect.width, height: rect.height })
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [sized, popup])
 
   /** Performs the launch operation. */
   const launch = async (item: BrowserExtension, mode: "open" | "options" | "inspect" = "open") => {
@@ -150,6 +233,8 @@ export function BrowserExtensions({ onOpenDevtools, getActivePageData }: { onOpe
     setPosition({ x: event.clientX, y: event.clientY })
     setMenu(item)
   }
+  // Scrollbar column depends on height only, with a few px of hysteresis.
+  const scrollable = scrollHeight > (preferred.height ? Math.min(preferred.height, 600) : (popupArea.current?.clientHeight ?? Infinity)) + 4
   return (
     <>
       <Dialog
@@ -163,16 +248,17 @@ export function BrowserExtensions({ onOpenDevtools, getActivePageData }: { onOpe
       >
         <DialogContent
           overlayClassName="bg-transparent"
-          className="gap-0 overflow-hidden rounded-2xl border-stone-200 p-0 !animate-none shadow-[0_8px_30px_rgba(0,0,0,0.12),0_2px_8px_rgba(0,0,0,0.06)] sm:max-w-[440px] [&>button]:right-[18px] [&>button]:top-[14px] [&>button]:flex [&>button]:size-7 [&>button]:items-center [&>button]:justify-center [&>button]:rounded-md [&>button]:text-stone-400 [&>button:hover]:bg-stone-100 [&>button:focus]:ring-0 [&>button:focus]:ring-offset-0 [&>button:focus]:outline-none [&>button:focus-visible]:bg-stone-100"
+          className="gap-0 overflow-hidden rounded-2xl border-stone-200 p-0 !animate-none shadow-[0_8px_30px_rgba(0,0,0,0.12),0_2px_8px_rgba(0,0,0,0.06)] sm:max-w-[440px] [&>button]:right-[18px] [&>button]:top-[14px] [&>button]:flex [&>button]:size-7 [&>button]:items-center [&>button]:justify-center [&>button]:rounded-md [&>button]:text-stone-400 [&>button:hover]:bg-stone-100 [&>button:focus]:ring-0 [&>button:focus]:ring-offset-0 [&>button:focus]:outline-none [&>button:focus-visible]:bg-stone-100 dark:border-border dark:bg-background dark:shadow-[0_8px_30px_rgba(0,0,0,0.45)] dark:[&>button]:text-muted-foreground dark:[&>button:hover]:bg-muted dark:[&>button:hover]:text-foreground dark:[&>button:focus-visible]:bg-muted"
           aria-describedby={undefined}
+          style={{ ...(preferred.width ? { width: Math.min(Math.max(preferred.width, 25), 800) + (scrollable ? 14 : 0), maxWidth: "calc(100vw - 32px)" } : {}), visibility: sized ? "visible" : "hidden", transition: "none" }}
         >
-          <DialogTitle className="flex h-14 items-center gap-2 border-b border-[#f0efed] px-[18px] text-[15px] font-bold text-stone-900">
-            <span className="flex size-[22px] items-center justify-center rounded-md bg-green-50">
-              <Shield className="size-[13px] text-green-600" />
+          <DialogTitle className="flex h-14 items-center gap-2 border-b border-[#f0efed] px-[18px] text-[15px] font-bold text-stone-900 dark:border-border dark:text-foreground">
+            <span className="flex size-[22px] items-center justify-center rounded-md bg-green-50 dark:bg-green-500/15">
+              <Shield className="size-[13px] text-green-600 dark:text-green-400" />
             </span>
             {popup?.name}
           </DialogTitle>
-          <div className="relative h-[360px] max-h-[70vh] w-full pb-2">
+          <div className="relative max-h-[70vh] w-full dark:bg-background" style={{ height: preferred.height ? Math.min(Math.max(preferred.height, 25), 600) : 360 }}>
             <ScrollArea
               type="auto"
               viewportRef={scrollViewport}
@@ -182,7 +268,7 @@ export function BrowserExtensions({ onOpenDevtools, getActivePageData }: { onOpe
             </ScrollArea>
             <div
               ref={popupArea}
-              className="pointer-events-none absolute left-0 right-3.5 top-0 bottom-2.5"
+              className={`pointer-events-none absolute left-0 top-0 bottom-0 ${scrollable ? "right-3.5" : "right-0"}`}
             />
           </div>
         </DialogContent>

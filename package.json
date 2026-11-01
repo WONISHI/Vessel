@@ -30,8 +30,7 @@
       "icon": "build/icon.icns",
       "category": "public.app-category.productivity",
       "target": [
-        "dmg",
-        "zip"
+        "dmg"
       ]
     },
     "win": {
@@ -105,16 +104,26 @@
     "extraResources": [
       {
         "from": "resources/office",
-        "to": "office"
+        "to": "office",
+        "filter": [
+          "**/*",
+          "!**/*.gz"
+        ]
       }
     ],
     "files": [
       "out/**/*",
       "package.json",
-      "!**/*.map"
+      "!**/*.map",
+      "!out/renderer/ocr/runtime/*.jsep.*"
     ],
     "compression": "maximum",
-    "afterPack": "scripts/verify-office-package.cjs"
+    "afterPack": "scripts/verify-office-package.cjs",
+    "electronLanguages": [
+      "zh_CN",
+      "zh_TW",
+      "en"
+    ]
   },
   "pnpm": {
     "onlyBuiltDependencies": [
@@ -164,14 +173,12 @@
     "@electron-toolkit/preload": "^3.0.2",
     "@electron-toolkit/utils": "^4.0.0",
     "@parcel/watcher": "^2.6.0",
-    "@phosphor-icons/react": "^2.1.10",
     "@vessel/clipper": "file:packages/@vessel/clipper",
     "@vessel/sync": "file:packages/@vessel/sync",
     "@vitalets/google-translate-api": "^9.2.1",
     "@vscode/ripgrep": "^1.18.0",
     "better-sqlite3": "^12.4.1",
     "dugite": "^3.2.3",
-    "mind-elixir": "5.4.0",
     "node-pty": "^1.1.0",
     "typescript": "^5.9.3",
     "yaml": "^2.9.1",
@@ -190,6 +197,7 @@
     "@monaco-editor/loader": "^1.7.0",
     "@monaco-editor/react": "^4.7.0",
     "@oovz/esearch-ocr": "8.4.4",
+    "@phosphor-icons/react": "^2.1.10",
     "@radix-ui/react-alert-dialog": "^1.1.23",
     "@radix-ui/react-avatar": "^1.2.6",
     "@radix-ui/react-checkbox": "^1.3.11",
@@ -249,6 +257,7 @@
     "lucide-react": "^0.562.0",
     "lz-string": "^1.5.0",
     "marked": "^17.0.1",
+    "mind-elixir": "5.4.0",
     "monaco-editor": "^0.55.1",
     "onnxruntime-web": "1.22.0",
     "pdfjs-dist": "5.4.296",

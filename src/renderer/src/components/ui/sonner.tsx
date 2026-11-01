@@ -5,7 +5,8 @@ import { Toaster as Sonner, toast as sonnerToast } from "sonner"
 type ToasterProps = React.ComponentProps<typeof Sonner>
 
 // Keep expandable error details without adding automatic notification actions.
-const toast = Object.assign((message: any, data?: any) => sonnerToast(message, data), sonnerToast, {
+// 显式标注类型：sonner 未导出内部的 PromiseIExtendedResult，推断类型无法在声明文件中命名 (TS4023)
+const toast: typeof sonnerToast = Object.assign((message: any, data?: any) => sonnerToast(message, data), sonnerToast, {
   /** Performs the error operation. */
   error: (message: any, data?: any) => {
     let id: string | number

@@ -28,6 +28,16 @@
 
     <title>Vessel</title>
 
+    <!-- Boot splash: painted before the JS bundle loads; React replaces #root's content on mount. -->
+    <style>
+      html, body { margin: 0; height: 100%; background: #ffffff; }
+      @media (prefers-color-scheme: dark) { html, body { background: #22272e; } }
+      #root:empty { height: 100%; display: flex; align-items: center; justify-content: center; }
+      #root:empty::after { content: ""; width: 22px; height: 22px; border-radius: 50%; border: 2px solid #d6d3d1; border-top-color: #327f73; animation: vessel-boot-spin 0.8s linear infinite; }
+      @media (prefers-color-scheme: dark) { #root:empty::after { border-color: #444c56; border-top-color: #4fa394; } }
+      @keyframes vessel-boot-spin { to { transform: rotate(360deg); } }
+    </style>
+
     <link
       rel="shortcut icon"
       href="./src/assets/icon_32x32.png"

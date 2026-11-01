@@ -160,3 +160,8 @@
     width: 50%;
   }
 }
+
+/* Dark theme text/track for the loading overlay (background comes from the --vs-bg rule in appearance.css). */
+html.dark .loading-editor-overlay strong { color: var(--vs-text-strong); }
+html.dark .loading-editor-overlay span { color: hsl(var(--muted-foreground)); }
+html.dark .loading-office-progress { background: var(--vs-border); }

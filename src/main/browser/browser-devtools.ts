@@ -1,4 +1,5 @@
 import jakartaPath from "@fontsource/plus-jakarta-sans/files/plus-jakarta-sans-latin-400-normal.woff2?asset"
+import { matchesShortcut } from "@vessel/utils"
 import { BrowserWindow, WebContentsView, webContents, type WebContents } from "electron"
 import { readFileSync } from "node:fs"
 
@@ -58,6 +59,13 @@ export function registerBrowserDevtools(host: WebContents) {
       panel = new WebContentsView({ webPreferences: { session: guest.session, sandbox: true, contextIsolation: true, nodeIntegration: false } })
       panel.webContents.on("did-finish-load", () => {
         void applyAppearance().catch(console.error)
+      })
+      // F12 inside the DevTools panel itself toggles (closes) it through the same renderer path as the page/toolbar.
+      const inspectedId = guest.id
+      panel.webContents.on("before-input-event", (event, input) => {
+        if (input.type !== "keyDown" || !matchesShortcut(input, "devtools")) return
+        event.preventDefault()
+        if (!input.isAutoRepeat && !host.isDestroyed()) host.send("browser:toggle-devtools", inspectedId)
       })
       if (options?.detached) {
         detachedWindow = new BrowserWindow({ width: 1000, height: 600, title: "Vessel · 网页控制台", parent: window, skipTaskbar: true, autoHideMenuBar: true, webPreferences: { sandbox: true, nodeIntegration: false } })

@@ -2,25 +2,47 @@ import App from "@/components/app/index"
 import { RouterCrashFallback } from "@/components/core/error-boundary/crash-fallback"
 import Canvas from "@/components/workspace/components/layout-main/canvas"
 import WorkspaceHome from "@/components/workspace/components/layout-main/workspace-home"
-import { BrowserRoute } from "@/pages/browser"
 import { Base64Tool, ColorTool, JsonTool, URLTool } from "@/pages/debug/components/utility-tools"
-import DiagnosticsPage from "@/pages/debug/diagnostics/index"
-import DebugPage from "@/pages/debug/index"
-import DevtoolsStorage from "@/pages/debug/storage/index"
-import PerformancePage from "@/pages/debug/performance"
-import SystemInfoPage from "@/pages/debug/system-info"
 import { EditorRoute } from "@/pages/editor/index"
-import SourceTreePage from "@/pages/git/index"
-import ImageRoute from "@/pages/image/index"
 import { OfficeRoute } from "@/pages/office/index"
-import PostmanPage from "@/pages/postman/index"
 import { ResourceRoute } from "@/pages/resources/index"
 import SearchPage from "@/pages/search/index"
-import SettingsPage from "@/pages/settings/index"
-import TodosPage from "@/pages/todos/index"
 import { WelcomeRoute } from "@/pages/welcome/index"
 import { createRouter, createWebHashHistory, type AppRouteRecordRaw } from "@vessel/react-router"
 import type { WorkspaceData } from "@vessel/type"
+import { RouteLoading, type RouteLoadingOptions } from "@/components/ui/route-loading"
+import { lazyWithRetry } from "@/lib/lazy-retry"
+import { Suspense, type ComponentType } from "react"
+import { Bug, GitBranch, Image as ImageIcon, ListTodo, Send, Settings } from "lucide-react"
+
+/** 按路由懒加载重页面，加载期间显示统一的满宽加载蒙层（RouteLoading），各路由只传图标与文案 */
+function lazyPage<P extends object>(factory: () => Promise<{ default: ComponentType<P> }>, loading: RouteLoadingOptions = {}): ComponentType<P> {
+  const fallback = <RouteLoading {...loading} />
+  const Page = lazyWithRetry(factory)
+  return function LazyPage(props: P) {
+    return (
+      <Suspense fallback={fallback}>
+        <Page {...(props as any)} />
+      </Suspense>
+    )
+  }
+}
+
+const debugLoading: RouteLoadingOptions = { icon: <Bug />, title: "正在加载调试工具", label: "正在准备开发者工具，请稍候…" }
+const DiagnosticsPage = lazyPage(() => import("@/pages/debug/diagnostics/index"), debugLoading)
+const DebugPage = lazyPage(() => import("@/pages/debug/index"), { ...debugLoading, activity: "tools" })
+const DevtoolsStorage = lazyPage(() => import("@/pages/debug/storage/index"), debugLoading)
+const PerformancePage = lazyPage(() => import("@/pages/debug/performance"), debugLoading)
+const SystemInfoPage = lazyPage(() => import("@/pages/debug/system-info"), debugLoading)
+/** 浏览器页由 BrowserKeepAlive 懒加载并常驻；路由本身不渲染内容（同 @/pages/browser 的 BrowserRoute），避免静态引入整个浏览器模块 */
+function BrowserRoute() {
+  return null
+}
+const SourceTreePage = lazyPage(() => import("@/pages/git/index"), { activity: "git", icon: <GitBranch />, title: "正在加载 Git", label: "正在读取仓库与提交记录，请稍候…" })
+const ImageRoute = lazyPage(() => import("@/pages/image/index"), { activity: "image", icon: <ImageIcon />, title: "正在加载图片工具", label: "正在准备图片处理工作区，请稍候…" })
+const PostmanPage = lazyPage(() => import("@/pages/postman/index"), { activity: "postman", icon: <Send />, title: "正在加载 API 调试", label: "正在准备请求工作区，请稍候…" })
+const SettingsPage = lazyPage(() => import("@/pages/settings/index"), { icon: <Settings />, title: "正在加载设置", label: "正在读取偏好设置，请稍候…" })
+const TodosPage = lazyPage(() => import("@/pages/todos/index"), { activity: "todos", icon: <ListTodo />, title: "正在加载待办", label: "正在读取待办事项，请稍候…" })
 export const STORAGE_KEY = "app_current_workspace"
 
 /** Reads current workspace. */

@@ -1,3 +1,4 @@
+import { applyBrowserIdentity } from "@main/browser/browser-identity"
 import { registerBrowserSiteCompatibility } from "@main/browser/browser-site-compatibility"
 import { registerExtensionTabBridge } from "@main/browser/extensions/extension-tab-bridge"
 import { prepareExtensionRuntime } from "@main/browser/extensions/extension-runtime"
@@ -130,11 +131,9 @@ function initialize() {
     // 自动扫描与预置内置扩展（仅保留 Clipper 网页剪藏）
     await reconcileBuiltins()
 
-    for (const record of records) {
-      record.extensionId = undefined
-      if (record.enabled) await load(record)
-      else await extensionMetadata(record).catch(() => {})
-    }
+    // Independent extensions load in parallel so one slow extension does not delay the rest.
+    for (const record of records) record.extensionId = undefined
+    await Promise.all(records.map((record) => (record.enabled ? load(record) : extensionMetadata(record).catch(() => {}))))
   })())
 }
 
@@ -142,6 +141,9 @@ function initialize() {
 export function registerBrowserExtensions(host: WebContents) {
   tabHosts.add(host)
   host.once("destroyed", () => tabHosts.delete(host))
+  // Identity must be applied before extensions load so background pages inherit the Chrome UA.
+  applyBrowserIdentity(session.fromPartition("persist:vessel-browser"))
+  applyBrowserIdentity(session.fromPartition("persist:vessel-transit"))
   registerBrowserSiteCompatibility(session.fromPartition("persist:vessel-browser"))
   void initialize()
   const owned = new Set<() => void>()
@@ -151,8 +153,11 @@ export function registerBrowserExtensions(host: WebContents) {
     if (!target || target.isDestroyed()) return { height: 0, top: 0 }
     const scale = host.getZoomFactor()
     const scroll = typeof top === "number" && Number.isFinite(top) ? `window.scrollTo(0,${Math.max(0, top) * scale});` : ""
-    const result = await target.executeJavaScript(`(() => {${scroll} const el=document.scrollingElement;return {height:el?.scrollHeight||0,top:el?.scrollTop||0}})()`)
-    return { height: result.height / scale, top: result.top / scale }
+    // Also report the document's preferred size (max-content width, independent of the current view width) like Chrome's action popup.
+    const result = await target.executeJavaScript(
+      `(() => {${scroll} const el=document.scrollingElement,b=document.body;let width=0,natural=0;if(b){const s=getComputedStyle(b),r=b.getBoundingClientRect(),m=(k)=>parseFloat(s[k])||0;const d=document.documentElement,w0=d.style.width;d.style.width="max-content";width=document.readyState==="complete"?Math.min(d.getBoundingClientRect().width,800):0;d.style.width=w0;natural=r.height<innerHeight-1?r.height+m("marginTop")+m("marginBottom"):(el?.scrollHeight||0)}return {height:el?.scrollHeight||0,top:el?.scrollTop||0,width:Math.ceil(width),natural:Math.ceil(natural)}})()`
+    )
+    return { height: result.height / scale, top: result.top / scale, width: result.width / scale || undefined, naturalHeight: result.natural / scale || undefined }
   })
   let resizePopup: ((bounds: { x: number; y: number; width: number; height: number }) => void) | undefined
   host.ipc.handle("browser:extensions:bounds", (_event, bounds) => {

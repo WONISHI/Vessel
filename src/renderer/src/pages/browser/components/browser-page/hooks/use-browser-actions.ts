@@ -36,7 +36,7 @@ export function useBrowserActions(state: BrowserState, visible: boolean) {
       }
       if (matchesShortcut(event, "devtools")) {
         event.preventDefault()
-        setDevtoolsOpen((open) => !open)
+        if (!event.repeat) setDevtoolsOpen((open) => !open)
       }
       if (!event.defaultPrevented && matchesShortcut(event, "refreshBrowser")) {
         event.preventDefault()

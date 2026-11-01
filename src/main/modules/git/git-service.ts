@@ -180,6 +180,37 @@ export class GitService {
     return { local, remote, current }
   }
 
+  /** rev-list 计数缓存：键为 仓库 + 参数 + 相关引用的 sha 指纹，引用变化后自动失效 */
+  private countCache = new Map<string, { fingerprint: string; value: Promise<number> }>()
+
+  /** 读取相关引用的 sha 指纹（远比 rev-list --count 便宜） */
+  private async refFingerprint(cwd: string, scope: "head" | "all" | "remotes" | string): Promise<string> {
+    const args = scope === "head" ? ["rev-parse", "HEAD"] : scope === "all" ? ["show-ref", "--head", "-s"] : scope === "remotes" ? ["for-each-ref", "--format=%(objectname)", "refs/remotes"] : ["rev-parse", scope]
+    try {
+      const res = await runGit(args, cwd)
+      return `${res.exitCode}:${res.stdout.trim()}`
+    } catch {
+      return ""
+    }
+  }
+
+  /** Runs a rev-list count, reusing the cached result while the referenced shas are unchanged. */
+  private async cachedCount(cwd: string, args: string[], scope: string): Promise<number> {
+    const key = `${cwd}\0${args.join(" ")}`
+    const fingerprint = await this.refFingerprint(cwd, scope)
+    const cached = this.countCache.get(key)
+    if (fingerprint && cached && cached.fingerprint === fingerprint) return cached.value
+    const value = runGit(args, cwd).then((result) => {
+      if (result.exitCode !== 0) return 0
+      return Number.parseInt(result.stdout.trim(), 10) || 0
+    })
+    if (fingerprint) {
+      this.countCache.set(key, { fingerprint, value })
+      value.catch(() => { if (this.countCache.get(key)?.value === value) this.countCache.delete(key) })
+    }
+    return value
+  }
+
   /** Counts commits reachable from HEAD or all branches, matching the history list scope. */
   async getLogCount(cwd: string, allBranches = false): Promise<number> {
     const args = ["rev-list", "--count"]
@@ -188,9 +219,7 @@ export class GitService {
     } else {
       args.push("HEAD")
     }
-    const result = await runGit(args, cwd)
-    if (result.exitCode !== 0) return 0
-    return Number.parseInt(result.stdout.trim(), 10) || 0
+    return this.cachedCount(cwd, args, allBranches ? "all" : "head")
   }
 
   /** Counts commits reachable from remote branches. */
@@ -201,9 +230,7 @@ export class GitService {
     } else {
       args.push(upstream)
     }
-    const result = await runGit(args, cwd)
-    if (result.exitCode !== 0) return 0
-    return Number.parseInt(result.stdout.trim(), 10) || 0
+    return this.cachedCount(cwd, args, allBranches || !upstream ? "remotes" : upstream)
   }
 
   /** Returns log. */

@@ -1,7 +1,7 @@
 import { registerImageResources } from "@main/modules/files/image-resource"
 import { installApplicationMenu } from "@main/menu"
 import { registerBases } from "@main/modules/bases"
-import { electronApp, is, optimizer } from "@electron-toolkit/utils"
+import { electronApp, is } from "@electron-toolkit/utils"
 import { mainApps } from "@main/app/index"
 import { secureBrowserGuests } from "@main/browser/browser-security"
 import { registerContentSearch } from "@main/files/content-search"
@@ -14,8 +14,8 @@ import { registerTerminal } from "@main/terminal/terminal"
 import { registerTransit } from "@main/transit/transit"
 import icon from "@resources/icon.png?asset"
 import dockIconPath from "@resources/icon_108x108.png?asset"
-import { app, BrowserWindow, ipcMain, nativeImage, nativeTheme, protocol, shell } from "electron"
-import { mkdirSync } from "node:fs"
+import { app, BrowserWindow, ipcMain, nativeImage, nativeTheme, protocol, screen, shell, type Rectangle } from "electron"
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import { join } from "path"
 
 protocol.registerSchemesAsPrivileged([{ scheme: "vessel-image", privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true } }])
@@ -43,12 +43,102 @@ export function setAppCrashed(crashed: boolean): void {
 
 let applicationWindow: BrowserWindow | undefined
 
+type WindowState = Rectangle & { maximized?: boolean }
+const MIN_WIDTH = 900
+const MIN_HEIGHT = 600
+
+/** 读取上次关闭时的窗口位置与大小；不在任何屏幕内时忽略。 */
+function loadWindowState(): WindowState | undefined {
+  try {
+    const state = JSON.parse(readFileSync(join(app.getPath("userData"), "window-state.json"), "utf8")) as WindowState
+    if (![state.x, state.y, state.width, state.height].every(Number.isFinite)) return undefined
+    const visible = screen.getAllDisplays().some(({ workArea: area }) => state.x < area.x + area.width - 100 && state.x + state.width > area.x + 100 && state.y >= area.y - 20 && state.y < area.y + area.height - 100)
+    return visible ? state : undefined
+  } catch {
+    return undefined
+  }
+}
+
+/** 首次启动参考 VS Code：按鼠标所在屏幕工作区取接近全屏的尺寸并居中。 */
+function defaultWindowBounds(): Rectangle {
+  const { workArea } = screen.getDisplayNearestPoint(screen.getCursorScreenPoint())
+  // VS Code 在 1512 宽的屏幕上默认约 1440×(工作区高度)，这里取宽 95%、高铺满工作区
+  const width = Math.min(workArea.width, Math.max(MIN_WIDTH, Math.round(workArea.width * 0.95)))
+  const height = Math.min(workArea.height, Math.max(MIN_HEIGHT, workArea.height))
+  return { x: workArea.x + Math.round((workArea.width - width) / 2), y: workArea.y + Math.round((workArea.height - height) / 2), width, height }
+}
+
+/** 关闭前记录窗口状态，下次启动按原样恢复。 */
+function trackWindowState(window: BrowserWindow): void {
+  let timer: NodeJS.Timeout | undefined
+  const save = () => {
+    if (window.isDestroyed() || window.isMinimized()) return
+    try {
+      const bounds = window.isMaximized() || window.isFullScreen() ? window.getNormalBounds() : window.getBounds()
+      writeFileSync(join(app.getPath("userData"), "window-state.json"), JSON.stringify({ ...bounds, maximized: window.isMaximized() }))
+    } catch {
+      // 写入失败不影响退出
+    }
+  }
+  // 窗口调整后防抖保存，避免进程被直接结束时丢失状态
+  const schedule = () => {
+    clearTimeout(timer)
+    timer = setTimeout(save, 500)
+  }
+  window.on("resize", schedule)
+  window.on("move", schedule)
+  window.on("close", () => {
+    clearTimeout(timer)
+    save()
+  })
+}
+
+/** Applies the saved theme before the first paint so the window never flashes the wrong color. */
+function initialDark(): boolean {
+  try {
+    const theme = JSON.parse(readFileSync(join(app.getPath("userData"), "settings.json"), "utf8"))?.theme
+    if (theme === "dark" || theme === "light") nativeTheme.themeSource = theme
+  } catch {}
+  return nativeTheme.shouldUseDarkColors
+}
+
+/**
+ * Same behavior as @electron-toolkit's optimizer.watchWindowShortcuts, except that in dev F12 does not
+ * toggle Vessel's own DevTools while the in-app Browser page is visible (F12 there opens the tab's DevTools).
+ */
+function watchWindowShortcuts(window: BrowserWindow) {
+  const { webContents } = window
+  webContents.on("before-input-event", (event, input) => {
+    if (input.type !== "keyDown") return
+    if (!is.dev) {
+      if (input.code === "KeyR" && (input.control || input.meta)) event.preventDefault()
+      if (input.code === "KeyI" && ((input.alt && input.meta) || (input.control && input.shift))) event.preventDefault()
+    } else if (input.code === "F12" && !input.isAutoRepeat) {
+      void webContents
+        .executeJavaScript(`!!document.querySelector("[data-vessel-browser-page]:not([hidden])")`)
+        .catch(() => false)
+        .then((browserVisible) => {
+          if (browserVisible || webContents.isDestroyed()) return
+          if (webContents.isDevToolsOpened()) webContents.closeDevTools()
+          else webContents.openDevTools({ mode: "undocked" })
+        })
+    }
+    if (input.code === "Minus" && (input.control || input.meta)) event.preventDefault()
+    if (input.code === "Equal" && input.shift && (input.control || input.meta)) event.preventDefault()
+  })
+}
+
 /** Creates window. */
 function createWindow(): void {
+  const dark = initialDark()
+  const savedState = loadWindowState()
+  const bounds = savedState ?? defaultWindowBounds()
   const mainWindow = new BrowserWindow({
-    width: 1174,
-    height: 682,
+    ...bounds,
+    minWidth: MIN_WIDTH,
+    minHeight: MIN_HEIGHT,
     show: false,
+    backgroundColor: dark ? "#22272E" : "#FFFFFF",
     autoHideMenuBar: true,
     icon: icon,
     webPreferences: {
@@ -59,6 +149,13 @@ function createWindow(): void {
       nodeIntegration: true
     }
   })
+  trackWindowState(mainWindow)
+  // Start loading immediately; every handler below is registered synchronously before any renderer IPC can arrive.
+  if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
+    void mainWindow.loadURL(process.env["ELECTRON_RENDERER_URL"])
+  } else {
+    void mainWindow.loadFile(join(__dirname, "../renderer/index.html"))
+  }
 
   mainWindow.webContents.ipc.handle("app:appearance", (_event, dark: boolean) => {
     if (typeof dark !== "boolean") return
@@ -112,9 +209,17 @@ function createWindow(): void {
   registerFileWatch(mainWindow.webContents)
   registerBases(mainWindow.webContents)
 
-  mainWindow.on("ready-to-show", () => {
+  // maximize() shows a hidden window on macOS, so defer it until the first frame is ready.
+  let shown = false
+  const reveal = () => {
+    if (shown || mainWindow.isDestroyed()) return
+    shown = true
+    clearTimeout(fallback)
+    if (savedState?.maximized) mainWindow.maximize()
     mainWindow.show()
-  })
+  }
+  const fallback = setTimeout(reveal, 3000)
+  mainWindow.once("ready-to-show", reveal)
 
   ipcMain.removeHandler("open-devtools")
   ipcMain.removeHandler("preview-screenshot")
@@ -132,12 +237,6 @@ function createWindow(): void {
     shell.openExternal(details.url)
     return { action: "deny" }
   })
-
-  if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
-    mainWindow.loadURL(process.env["ELECTRON_RENDERER_URL"])
-  } else {
-    mainWindow.loadFile(join(__dirname, "../renderer/index.html"))
-  }
 }
 
 app.whenReady().then(() => {
@@ -163,7 +262,7 @@ app.whenReady().then(() => {
   }
 
   app.on("browser-window-created", (_, window) => {
-    optimizer.watchWindowShortcuts(window)
+    watchWindowShortcuts(window)
   })
 
   ipcMain.on("ping", () => console.log("pong"))

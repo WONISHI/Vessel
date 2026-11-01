@@ -1,8 +1,9 @@
 import "@/components/ui/editor-loading.css"
 import { FileText } from "lucide-react"
+import type { ReactNode } from "react"
 
 /** Renders the editor loading component. */
-export function EditorLoading({ kind = "code", label }: { kind?: "code" | "office"; label?: string }) {
+export function EditorLoading({ kind = "code", label, title, icon }: { kind?: "code" | "office"; label?: string; title?: string; icon?: ReactNode }) {
   return (
     <div
       role="status"
@@ -51,9 +52,9 @@ export function EditorLoading({ kind = "code", label }: { kind?: "code" | "offic
         {kind === "office" ? (
           <>
             <div className="loading-office-icon">
-              <FileText />
+              {icon ?? <FileText />}
             </div>
-            <strong>正在加载 ONLYOFFICE</strong>
+            <strong>{title ?? "正在加载 ONLYOFFICE"}</strong>
           </>
         ) : (
           <div className="loading-code-spinner" />

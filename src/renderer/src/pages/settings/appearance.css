@@ -66,54 +66,84 @@ html.dark .browser-status {
   border-color: hsl(var(--border));
 }
 
+/* Theme tokens: semantic dark palette shared by the overrides below (values identical to the previous literals). */
+html.dark {
+  --vs-bg: hsl(var(--background)); /* #22272e */
+  --vs-bg-elevated: #2d333b;
+  --vs-bg-panel: #23272d;
+  --vs-bg-panel-alt: #262a30;
+  --vs-bg-sunken: #1c2025;
+  --vs-bg-row-hover: #2f343b;
+  --vs-border: hsl(var(--border)); /* #444c56 */
+  --vs-border-subtle: #30353c;
+  --vs-text: #cdd9e5;
+  --vs-text-strong: #e6e8eb;
+  --vs-text-muted: #9aa1a9;
+  --vs-text-subtle: #6b7280;
+  --vs-text-inverse: #ffffff;
+  --vs-hover: rgba(255, 255, 255, .06);
+  --vs-hover-strong: rgba(255, 255, 255, .08);
+  --vs-selected: rgba(34, 197, 94, .18);
+  --vs-selected-hover: rgba(34, 197, 94, .27);
+  --vs-accent: #22c55e;
+  --vs-accent-text: #4ade80;
+  --vs-danger-text: #f87171;
+  --vs-danger-text-strong: #fca5a5;
+  --vs-danger-bg: rgba(239, 68, 68, .16);
+  --vs-menu-bg: var(--vs-bg-elevated);
+  --vs-menu-border: var(--vs-border);
+  --vs-menu-hover-bg: #3a424d;
+  --vs-menu-shadow: 0 8px 28px #0006;
+}
+
 /* Dark surfaces and separators are isolated from light appearance. */
 html.dark {
-  background-color: #22272e;
+  background-color: var(--vs-bg);
 }
 html.dark :is(.border-stone-100, .border-stone-200, .border-stone-300, .border-zinc-200, .border-gray-200, [class~="border-[#f0efed]"]) {
-  border-color: #444c56;
+  border-color: var(--vs-border);
 }
 html.dark .vessel-vditor,
 html.dark .vessel-vditor :is(.vditor-content, .vditor-ir, .vditor-reset, .vditor-toolbar),
 html.dark .vessel-typography {
-  background-color: #22272e !important;
-  color: #cdd9e5 !important;
+  background-color: var(--vs-bg) !important;
+  color: var(--vs-text) !important;
 }
 html.dark .vessel-vditor :is(h1, h2, h3, h4, h5, h6, p, li),
 html.dark .vditor-ir pre.vditor-reset[contenteditable="false"] {
-  color: #cdd9e5 !important;
+  color: var(--vs-text) !important;
 }
 html.dark .vessel-vditor :is(table, th, td, hr, blockquote, .vditor-toolbar) {
-  border-color: #444c56 !important;
+  border-color: var(--vs-border) !important;
 }
 html.dark .vessel-vditor :is(blockquote, th, pre),
 html.dark .vessel-vditor tr:nth-child(2n) {
-  background-color: #2d333b !important;
+  background-color: var(--vs-bg-elevated) !important;
 }
 
 /* Workspace chrome: scoped dark separators and selected-tab contrast. */
 html.dark [data-workspace-tab="true"][data-active="true"],
 html.dark [data-workspace-tab="true"][data-active="true"] :is(button, span, svg) {
-  color: #fff !important;
+  color: var(--vs-text-inverse) !important;
 }
 html.dark [data-workspace-tab="true"][data-active="true"] {
-  border-color: #444c56;
+  border-color: var(--vs-border);
   box-shadow: none;
 }
 html.dark .vessel-resize-handle::before {
-  background-color: #444c56;
+  background-color: var(--vs-border);
 }
 html.dark [data-sidebar="sidebar"] {
-  border-color: #444c56;
+  border-color: var(--vs-border);
 }
 
 /* Base action icons must keep their contrast in all active dark-mode states. */
 html.dark [data-base-action]:is(:hover, :active, [data-state="open"], [data-filtered="true"], [aria-busy="true"]),
 html.dark [data-base-action]:is(:hover, :active, [data-state="open"], [data-filtered="true"], [aria-busy="true"]) svg {
-  color: #fff !important;
+  color: var(--vs-text-inverse) !important;
 }
 html.dark [data-base-action]:is(:hover, :active, [data-state="open"], [data-filtered="true"], [aria-busy="true"]) svg {
-  stroke: #fff !important;
+  stroke: var(--vs-text-inverse) !important;
 }
 
 /* Tool-page shells keep their light palette untouched. */
@@ -123,41 +153,41 @@ html.dark .dev-tools,
 html.dark .dev-tools aside,
 html.dark [data-office-shell],
 html.dark [data-office-shell] :is(.bg-white, .bg-stone-50, .bg-stone-100) {
-  background-color: #22272e !important;
-  color: #cdd9e5;
+  background-color: var(--vs-bg) !important;
+  color: var(--vs-text);
 }
 html.dark .todo-table-scroll :is(th, .todo-sticky-action, .todo-sticky-add),
 html.dark .todo-calendar :is(thead, tfoot) {
-  background-color: #22272e !important;
+  background-color: var(--vs-bg) !important;
 }
 
 /* Dark interaction tokens from the supplied file-tree, activity-bar and table designs. */
 html.dark [data-workspace-tree-row] {
-  color: #e6e8eb !important;
+  color: var(--vs-text-strong) !important;
 }
 html.dark [data-workspace-tree-row]:hover {
   background-color: rgba(255, 255, 255, 0.07) !important;
-  color: #fff !important;
+  color: var(--vs-text-inverse) !important;
 }
 html.dark [data-workspace-tree-row] [data-tree-icon="folder"] {
   color: #e9a23b !important;
 }
 html.dark [data-workspace-tree-row] [data-tree-icon="file"] {
-  color: #9aa1a9 !important;
+  color: var(--vs-text-muted) !important;
 }
 html.dark [data-workspace-tree-row][data-selected="true"] {
-  background-color: rgba(34, 197, 94, 0.18) !important;
-  color: #4ade80 !important;
+  background-color: var(--vs-selected) !important;
+  color: var(--vs-accent-text) !important;
   font-weight: 600;
 }
 html.dark [data-workspace-tree-row][data-selected="true"]:hover {
-  background-color: rgba(34, 197, 94, 0.27) !important;
+  background-color: var(--vs-selected-hover) !important;
 }
 html.dark [data-workspace-tree-row] [data-tree-label] {
   color: inherit !important;
 }
 html.dark [data-workspace-tree-row][data-selected="true"] [data-tree-icon] {
-  color: #22c55e !important;
+  color: var(--vs-accent) !important;
 }
 html.dark [data-tree-badge] {
   background-color: #3c424a !important;
@@ -175,67 +205,67 @@ html.dark [data-activity-button] > svg {
   color: inherit !important;
 }
 html.dark [data-activity-button]:hover {
-  background-color: rgba(255, 255, 255, 0.08) !important;
+  background-color: var(--vs-hover-strong) !important;
   color: #d6d9de !important;
 }
 html.dark [data-activity-button][data-state="open"],
 html.dark [data-activity-button][aria-pressed="true"] {
-  background-color: rgba(34, 197, 94, 0.18) !important;
-  color: #4ade80 !important;
+  background-color: var(--vs-selected) !important;
+  color: var(--vs-accent-text) !important;
 }
 html.dark [data-activity-button][data-state="open"]:hover,
 html.dark [data-activity-button][aria-pressed="true"]:hover {
-  background-color: rgba(34, 197, 94, 0.27) !important;
+  background-color: var(--vs-selected-hover) !important;
 }
 html.dark [data-base-table] tbody tr:hover {
-  background-color: rgba(255, 255, 255, 0.06) !important;
+  background-color: var(--vs-hover) !important;
 }
 html.dark [data-base-table] tbody td {
-  color: #e6e8eb;
+  color: var(--vs-text-strong);
 }
 html.dark [data-base-table] tbody tr:hover td {
-  color: #fff;
+  color: var(--vs-text-inverse);
 }
 html.dark [data-base-table] tbody :is(a, .text-green-700) {
-  color: #4ade80 !important;
+  color: var(--vs-accent-text) !important;
   text-decoration-color: rgba(74, 222, 128, 0.45);
 }
 html.dark [data-base-table] tbody a:hover {
-  text-decoration-color: #4ade80;
+  text-decoration-color: var(--vs-accent-text);
 }
 
 /* Browser dark palette from the supplied tab design; website content remains untouched. */
 html.dark .browser-home {
-  background: #22272e;
-  color: #e6e8eb;
+  background: var(--vs-bg);
+  color: var(--vs-text-strong);
 }
 html.dark .browser-home form {
-  background: #2d333b;
-  border-color: #444c56;
-  color: #9aa1a9;
+  background: var(--vs-bg-elevated);
+  border-color: var(--vs-border);
+  color: var(--vs-text-muted);
 }
 html.dark .browser-home input {
   background: transparent;
-  color: #e6e8eb;
+  color: var(--vs-text-strong);
 }
 html.dark .browser-tabs {
   background: #1e2126;
-  border-color: #30353c;
+  border-color: var(--vs-border-subtle);
 }
 html.dark .browser-tab {
   background: transparent;
-  color: #9aa1a9;
+  color: var(--vs-text-muted);
   border-color: transparent;
 }
 html.dark .browser-tab:hover {
-  background: rgba(255, 255, 255, 0.06);
-  color: #e6e8eb;
+  background: var(--vs-hover);
+  color: var(--vs-text-strong);
 }
 html.dark .browser-tab.selected,
 html.dark .browser-tab.selected:hover {
-  background: #23272d;
-  color: #fff;
-  border-color: #30353c;
+  background: var(--vs-bg-panel);
+  color: var(--vs-text-inverse);
+  border-color: var(--vs-border-subtle);
 }
 html.dark .browser-tab :is(button, svg) {
   color: inherit !important;
@@ -254,16 +284,16 @@ html.dark .browser-tab.selected > button[aria-label="关闭标签页"]:hover {
   background: rgba(255, 255, 255, 0.14);
 }
 html.dark .browser-tabs > button {
-  color: #9aa1a9;
+  color: var(--vs-text-muted);
 }
 html.dark .browser-tabs > button:hover {
-  background: rgba(255, 255, 255, 0.06);
-  color: #fff;
+  background: var(--vs-hover);
+  color: var(--vs-text-inverse);
 }
 
 html.dark [data-workspace-activity-switch] {
-  background-color: #22272e;
-  border-color: #444c56;
+  background-color: var(--vs-bg);
+  border-color: var(--vs-border);
 }
 
 /* Active Base controls need the same contrast in light appearance. */
@@ -278,32 +308,32 @@ html:not(.dark) [data-base-action]:is(:hover, :active) {
   background-color: var(--settings-accent, #16a34a);
 }
 html.dark .todo-table-scroll > div {
-  scrollbar-color: #444c56 #22272e;
+  scrollbar-color: var(--vs-border) var(--vs-bg);
 }
 html.dark .todo-table-scroll > div::-webkit-scrollbar-track {
-  background: #22272e;
+  background: var(--vs-bg);
 }
 html.dark .todo-table-scroll > div::-webkit-scrollbar-thumb {
-  background: #444c56;
-  border-color: #22272e;
+  background: var(--vs-border);
+  border-color: var(--vs-bg);
 }
 
 html.dark .vessel-settings > .tool-page-header {
-  border-bottom-color: #444c56;
+  border-bottom-color: var(--vs-border);
 }
 
 html.dark .todo-table-scroll tbody tr:hover,
 html.dark .todo-table-scroll tbody tr:hover > td,
 html.dark .todo-table-scroll tbody tr:hover .todo-sticky-action,
 html.dark .todo-table-scroll tbody tr:hover .todo-sticky-add {
-  background-color: #2f343b !important;
+  background-color: var(--vs-bg-row-hover) !important;
 }
 
 /* Keep the workspace heading and selected home tab readable in dark mode. */
 html.dark .workspace-home-title,
 html.dark .workspace-home-tab[aria-current="page"],
 html.dark .workspace-home-tab[aria-current="page"] svg {
-  color: #ffffff !important;
+  color: var(--vs-text-inverse) !important;
 }
 
 /* Base pagination keeps white foreground on its green interaction state. */
@@ -312,67 +342,61 @@ html.dark .base-pagination-button:not(:disabled):is(:hover, :active, :focus-visi
 html .base-pagination-button:not(:disabled):is(:hover, :active, :focus-visible) svg {
   color: #ffffff !important;
 }
-html.dark .dev-actions-menu,
-html.dark .dev-actions-menu [role="separator"],
-html.dark .dev-actions-menu > div {
-  border-color: #444c56 !important;
+/* .dev-actions-menu / > div borders, separator fill and console background are defined in the DEV ACTIONS / Console sections below. */
+html.dark .dev-actions-menu [role="separator"] {
+  border-color: var(--vs-border) !important;
 }
-html.dark .dev-actions-menu [role="separator"] { background: #444c56 !important; }
-html.dark .dev-console-page { background: #22272e !important; }
 
 /* Console page chrome follows the dark palette without changing other debug pages. */
-html.dark .dev-console-page h2 { color: #ffffff !important; }
-html.dark .dev-console-page :is(.border, .border-b, .border-t) {
-  border-color: #444c56 !important;
-}
+html.dark .dev-console-page h2 { color: var(--vs-text-inverse) !important; }
 
 /* Developer cards use translucent dark interaction states from the design. */
 html.dark [data-developer-tool-card] { background: transparent !important; }
-html.dark [data-developer-tool-card] .developer-tool-title { color: #e6e8eb !important; }
-html.dark [data-developer-tool-card] .developer-tool-description { color: #9aa1a9 !important; }
-html.dark [data-developer-tool-card]:hover { background: rgba(255, 255, 255, .06) !important; }
-html.dark [data-developer-tool-card]:hover .developer-tool-title { color: #fff !important; }
-html.dark [data-developer-tool-card][data-active="true"] { background: rgba(34, 197, 94, .18) !important; }
-html.dark [data-developer-tool-card][data-active="true"] .developer-tool-title { color: #4ade80 !important; }
-html.dark [data-developer-tool-card][data-active="true"]:hover { background: rgba(34, 197, 94, .27) !important; }
+html.dark [data-developer-tool-card] .developer-tool-title { color: var(--vs-text-strong) !important; }
+html.dark [data-developer-tool-card] .developer-tool-description { color: var(--vs-text-muted) !important; }
+html.dark [data-developer-tool-card]:hover { background: var(--vs-hover) !important; }
+html.dark [data-developer-tool-card]:hover .developer-tool-title { color: var(--vs-text-inverse) !important; }
+html.dark [data-developer-tool-card][data-active="true"] { background: var(--vs-selected) !important; }
+html.dark [data-developer-tool-card][data-active="true"] .developer-tool-title { color: var(--vs-accent-text) !important; }
+html.dark [data-developer-tool-card][data-active="true"]:hover { background: var(--vs-selected-hover) !important; }
 html.dark [data-developer-tool-card] > .bg-orange-50,
 html.dark [data-developer-tool-card] > .bg-amber-50 { background: rgba(217, 98, 43, .13) !important; color: #e8743b !important; }
 html.dark [data-developer-tool-card] > .bg-blue-50 { background: rgba(55, 98, 227, .13) !important; color: #5a7ff0 !important; }
 html.dark [data-developer-tool-card] > div > svg { color: inherit !important; }
 
 /* Transit and tab lists share the developer-card dark interaction palette. */
-html.dark [data-dark-list-item] { background: transparent !important; color: #e6e8eb !important; }
-html.dark [data-dark-list-item] .dark-list-title { color: #e6e8eb !important; }
-html.dark [data-dark-list-item] .dark-list-description { color: #9aa1a9 !important; }
-html.dark [data-dark-list-item]:is(:hover, :focus, :focus-within, [data-highlighted]) { background: rgba(255, 255, 255, .06) !important; color: #fff !important; }
-html.dark [data-dark-list-item]:is(:hover, :focus, :focus-within, [data-highlighted]) .dark-list-title { color: #fff !important; }
-html.dark [data-dark-list-item][data-active="true"] { background: rgba(34, 197, 94, .18) !important; color: #4ade80 !important; }
-html.dark [data-dark-list-item][data-active="true"] .dark-list-title { color: #4ade80 !important; }
-html.dark [data-dark-list-item][data-active="true"]:is(:hover, :focus, :focus-within, [data-highlighted]) { background: rgba(34, 197, 94, .27) !important; }
+html.dark [data-dark-list-item] { background: transparent !important; color: var(--vs-text-strong) !important; }
+html.dark [data-dark-list-item] .dark-list-title { color: var(--vs-text-strong) !important; }
+html.dark [data-dark-list-item] .dark-list-description { color: var(--vs-text-muted) !important; }
+html.dark [data-dark-list-item]:is(:hover, :focus, :focus-within, [data-highlighted]) { background: var(--vs-hover) !important; color: var(--vs-text-inverse) !important; }
+html.dark [data-dark-list-item]:is(:hover, :focus, :focus-within, [data-highlighted]) .dark-list-title { color: var(--vs-text-inverse) !important; }
+html.dark [data-dark-list-item][data-active="true"] { background: var(--vs-selected) !important; color: var(--vs-accent-text) !important; }
+html.dark [data-dark-list-item][data-active="true"] .dark-list-title { color: var(--vs-accent-text) !important; }
+html.dark [data-dark-list-item][data-active="true"]:is(:hover, :focus, :focus-within, [data-highlighted]) { background: var(--vs-selected-hover) !important; }
 html.dark [data-dark-list-item] svg.text-stone-400 { color: inherit !important; }
 
 html.dark .transit-read-clipboard {
-  background: #22272e !important;
-  border-color: #444c56 !important;
-  color: #9aa1a9 !important;
+  background: var(--vs-bg) !important;
+  border-color: var(--vs-border) !important;
+  color: var(--vs-text-muted) !important;
 }
 html.dark .transit-read-clipboard:is(:hover, :focus-visible) {
-  background: #2f343b !important;
-  color: #ffffff !important;
+  background: var(--vs-bg-row-hover) !important;
+  color: var(--vs-text-inverse) !important;
 }
 
 html.dark [data-workspace-tab="true"]:hover {
-  background: rgba(255,255,255,.06) !important;
+  background: var(--vs-hover) !important;
 }
 
 html.dark .workspace-tab-edge-left {
-  background-image: linear-gradient(to right, #1c2025, transparent) !important;
+  background-image: linear-gradient(to right, var(--vs-bg-sunken), transparent) !important;
 }
 html.dark .workspace-tab-edge-right {
-  background-image: linear-gradient(to left, #1c2025, transparent) !important;
+  background-image: linear-gradient(to left, var(--vs-bg-sunken), transparent) !important;
 }
 html.dark .workspace-home-tab:hover {
-  background: rgba(255,255,255,.06) !important;
+  background: var(--vs-hover) !important;
   color: #646a73 !important;
 }
 html.dark .workspace-home-tab:hover svg {
@@ -381,80 +405,80 @@ html.dark .workspace-home-tab:hover svg {
 
 html.dark .document-properties tr:hover,
 html.dark .document-properties tr:hover > :is(th, td) {
-  background: #2f343b !important;
+  background: var(--vs-bg-row-hover) !important;
 }
 
 html.dark .browser-new-tab:is(:hover, :active),
 html.dark [data-office-hover]:is(:hover, :focus-visible) {
-  background: rgba(255,255,255,.06) !important;
-  color: #ffffff !important;
+  background: var(--vs-hover) !important;
+  color: var(--vs-text-inverse) !important;
 }
 
 /* Markdown's odd rows also need a dark fill instead of Vditor's white default. */
 html.dark .vessel-vditor table tbody tr:nth-child(2n + 1),
 html.dark .vessel-vditor table tbody tr:nth-child(2n + 1) > td {
-  background: #2f343b !important;
+  background: var(--vs-bg-row-hover) !important;
 }
 
 /* Native horizontal table scrolling matches the shared dark ScrollArea thumb. */
 html.dark .vessel-vditor :is(table, .vditor-reset) {
-  scrollbar-color: #444c56 #22272e;
+  scrollbar-color: var(--vs-border) var(--vs-bg);
 }
 html.dark .vessel-vditor table::-webkit-scrollbar { height: 10px; }
-html.dark .vessel-vditor table::-webkit-scrollbar-track { background: #22272e; }
+html.dark .vessel-vditor table::-webkit-scrollbar-track { background: var(--vs-bg); }
 html.dark .vessel-vditor table::-webkit-scrollbar-thumb {
-  background: #444c56;
-  border: 2px solid #22272e;
+  background: var(--vs-border);
+  border: 2px solid var(--vs-bg);
   border-radius: 999px;
 }
 html.dark .vessel-vditor table::-webkit-scrollbar-thumb:hover { background: #57606a; }
 html.dark .browser-address input {
-  color: #e6e8eb !important;
-  -webkit-text-fill-color: #e6e8eb;
-  caret-color: #e6e8eb;
+  color: var(--vs-text-strong) !important;
+  -webkit-text-fill-color: var(--vs-text-strong);
+  caret-color: var(--vs-text-strong);
 }
 
 /* Guest surface color applies while loading and wherever the page is transparent. */
 html.dark .browser-page webview,
 html.dark webview[partition="persist:vessel-browser"] {
-  background-color: #22272e !important;
+  background-color: var(--vs-bg) !important;
 }
 
-html.dark .transit-navigation-bar { background: rgba(255,255,255,.06) !important; }
-html.dark :is(.editor-loading, .loading-editor-overlay, .loading-office-toolbar, .loading-office-paper, .vessel-page-loading) { background: #22272e !important; }
-html.dark .loading-shimmer { background: linear-gradient(90deg, #2d333b, #444c56, #2d333b); background-size: 200% 100%; }
-html.dark .loading-office-paper { border-color: #444c56; box-shadow: none; }
+html.dark .transit-navigation-bar { background: var(--vs-hover) !important; }
+html.dark :is(.editor-loading, .loading-editor-overlay, .loading-office-toolbar, .loading-office-paper, .vessel-page-loading) { background: var(--vs-bg) !important; }
+html.dark .loading-shimmer { background: linear-gradient(90deg, var(--vs-bg-elevated), var(--vs-border), var(--vs-bg-elevated)); background-size: 200% 100%; }
+html.dark .loading-office-paper { border-color: var(--vs-border); box-shadow: none; }
 /* Full-text search palette from the supplied dark design. */
 html.dark .vessel-search-sheet,
-html.dark .vessel-search-sidebar { background: #23272d !important; color: #e6e8eb !important; border-color: #30353c !important; }
-html.dark .vessel-search-sidebar h1 { color: #e6e8eb !important; }
-html.dark .vessel-search-sidebar .search-folder { background: #20242a !important; border-color: #30353c !important; color: #e6e8eb !important; }
+html.dark .vessel-search-sidebar { background: var(--vs-bg-panel) !important; color: var(--vs-text-strong) !important; border-color: var(--vs-border-subtle) !important; }
+html.dark .vessel-search-sidebar h1 { color: var(--vs-text-strong) !important; }
+html.dark .vessel-search-sidebar .search-folder { background: #20242a !important; border-color: var(--vs-border-subtle) !important; color: var(--vs-text-strong) !important; }
 html.dark .vessel-search-sidebar .search-folder small,
-html.dark .vessel-search-sidebar label { color: #9aa1a9 !important; }
-html.dark .vessel-search-sidebar .search-folder > svg:first-child { color: #4ade80 !important; }
+html.dark .vessel-search-sidebar label { color: var(--vs-text-muted) !important; }
+html.dark .vessel-search-sidebar .search-folder > svg:first-child { color: var(--vs-accent-text) !important; }
 html.dark .vessel-search-sidebar .search-input-row,
-html.dark .vessel-search-sidebar .search-filter { background: #1c2025 !important; border-color: #30353c !important; color: #e6e8eb !important; }
-html.dark .vessel-search-sidebar .search-input-row input { background: transparent !important; color: #e6e8eb !important; }
-html.dark .vessel-search-sidebar input::placeholder { color: #6b7280 !important; }
+html.dark .vessel-search-sidebar .search-filter { background: var(--vs-bg-sunken) !important; border-color: var(--vs-border-subtle) !important; color: var(--vs-text-strong) !important; }
+html.dark .vessel-search-sidebar .search-input-row input { background: transparent !important; color: var(--vs-text-strong) !important; }
+html.dark .vessel-search-sidebar input::placeholder { color: var(--vs-text-subtle) !important; }
 html.dark .vessel-search-sidebar .search-input-row:focus-within,
-html.dark .vessel-search-sidebar .search-filter:focus { border-color: #22c55e !important; outline: none; box-shadow: 0 0 0 3px rgba(34,197,94,.18); }
-html.dark .vessel-search-sidebar :is(.search-input-row > svg, .search-input-row button, [role="status"], .search-file-heading svg, .search-file-heading > span:last-child) { color: #6b7280 !important; }
-html.dark .vessel-search-sidebar button:hover { background: rgba(255,255,255,.06) !important; color: #fff !important; }
-html.dark .vessel-search-sidebar .search-input-row button.selected { background: rgba(34,197,94,.18) !important; color: #4ade80 !important; }
+html.dark .vessel-search-sidebar .search-filter:focus { border-color: var(--vs-accent) !important; outline: none; box-shadow: 0 0 0 3px var(--vs-selected); }
+html.dark .vessel-search-sidebar :is(.search-input-row > svg, .search-input-row button, [role="status"], .search-file-heading svg, .search-file-heading > span:last-child) { color: var(--vs-text-subtle) !important; }
+html.dark .vessel-search-sidebar button:hover { background: var(--vs-hover) !important; color: var(--vs-text-inverse) !important; }
+html.dark .vessel-search-sidebar .search-input-row button.selected { background: var(--vs-selected) !important; color: var(--vs-accent-text) !important; }
 html.dark .vessel-search-sidebar input[type="checkbox"] { color-scheme: dark; accent-color: #16a34a; }
-html.dark .vessel-search-sidebar .search-file-heading { color: #e6e8eb !important; }
-html.dark .vessel-search-sidebar .search-match { color: #9aa1a9 !important; }
-html.dark .vessel-search-sidebar .search-match > span:first-child { color: #6b7280 !important; }
-html.dark .vessel-search-sidebar .search-match.active { background: rgba(34,197,94,.18) !important; color: #e6e8eb !important; }
-html.dark .vessel-search-sidebar .search-match.active:hover { background: rgba(34,197,94,.27) !important; }
-html.dark .vessel-search-sidebar .search-match.active > span:first-child { color: #4ade80 !important; }
-html.dark .vessel-search-sidebar .search-match mark { background: transparent !important; color: #4ade80 !important; font-weight: 700; }
+html.dark .vessel-search-sidebar .search-file-heading { color: var(--vs-text-strong) !important; }
+html.dark .vessel-search-sidebar .search-match { color: var(--vs-text-muted) !important; }
+html.dark .vessel-search-sidebar .search-match > span:first-child { color: var(--vs-text-subtle) !important; }
+html.dark .vessel-search-sidebar .search-match.active { background: var(--vs-selected) !important; color: var(--vs-text-strong) !important; }
+html.dark .vessel-search-sidebar .search-match.active:hover { background: var(--vs-selected-hover) !important; }
+html.dark .vessel-search-sidebar .search-match.active > span:first-child { color: var(--vs-accent-text) !important; }
+html.dark .vessel-search-sidebar .search-match mark { background: transparent !important; color: var(--vs-accent-text) !important; font-weight: 700; }
 html:not(.dark) webview[partition="persist:vessel-browser"] { background: #ffffff !important; }
 
 /* Debug menus use the same dark hover fill as developer-tool cards. */
 html.dark .dev-actions-menu :is([role="menuitem"], [role="menuitemcheckbox"]):is(:hover, :focus, [data-highlighted], [data-state="open"]) {
-  background: rgba(255,255,255,.06) !important;
-  color: #ffffff !important;
+  background: var(--vs-hover) !important;
+  color: var(--vs-text-inverse) !important;
 }
 html.dark .dev-actions-menu :is([role="menuitem"], [role="menuitemcheckbox"]):is(:hover, :focus, [data-highlighted], [data-state="open"]) > svg {
   color: inherit !important;
@@ -467,69 +491,69 @@ html.dark .dev-actions-menu :is([role="menuitem"], [role="menuitemcheckbox"]):is
   width: 100%;
   min-width: 0 !important;
 }
-html.dark .workspace-file-picker { background: #23272d !important; border-color: #30353c !important; color: #e6e8eb !important; }
-html.dark .workspace-file-picker h2 { color: #e6e8eb !important; }
-html.dark .workspace-file-picker input { background: #1c2025 !important; color: #e6e8eb !important; border-color: #30353c !important; }
-html.dark .workspace-file-picker input::placeholder { color: #6b7280 !important; }
+html.dark .workspace-file-picker { background: var(--vs-bg-panel) !important; border-color: var(--vs-border-subtle) !important; color: var(--vs-text-strong) !important; }
+html.dark .workspace-file-picker h2 { color: var(--vs-text-strong) !important; }
+html.dark .workspace-file-picker input { background: var(--vs-bg-sunken) !important; color: var(--vs-text-strong) !important; border-color: var(--vs-border-subtle) !important; }
+html.dark .workspace-file-picker input::placeholder { color: var(--vs-text-subtle) !important; }
 html.dark .workspace-file-picker input:focus-visible {
-  border-color: #22c55e !important;
+  border-color: var(--vs-accent) !important;
   outline: none !important;
-  box-shadow: 0 0 0 3px rgba(34,197,94,.18) !important;
+  box-shadow: 0 0 0 3px var(--vs-selected) !important;
 }
-html.dark .workspace-file-picker > p { color: #6b7280; }
-html.dark .workspace-file-picker-row { color: #e6e8eb !important; }
-html.dark .workspace-file-picker-name { color: #e6e8eb !important; }
+html.dark .workspace-file-picker > p { color: var(--vs-text-subtle); }
+html.dark .workspace-file-picker-row { color: var(--vs-text-strong) !important; }
+html.dark .workspace-file-picker-name { color: var(--vs-text-strong) !important; }
 html.dark .workspace-file-picker-path { color: #7d838c !important; }
-html.dark .workspace-file-picker-row > svg { color: #9aa1a9 !important; }
+html.dark .workspace-file-picker-row > svg { color: var(--vs-text-muted) !important; }
 html.dark .workspace-file-picker-row:hover { background: rgba(255,255,255,.07) !important; }
-html.dark .workspace-file-picker-row:hover :is(.workspace-file-picker-name, svg) { color: #fff !important; }
-html.dark .workspace-file-picker-row:is(:focus, :active) { background: rgba(34,197,94,.18) !important; }
-html.dark .workspace-file-picker-row:is(:focus, :active) :is(.workspace-file-picker-name, svg) { color: #4ade80 !important; }
-html.dark .workspace-file-picker-row:is(:focus, :active):hover { background: rgba(34,197,94,.27) !important; }
+html.dark .workspace-file-picker-row:hover :is(.workspace-file-picker-name, svg) { color: var(--vs-text-inverse) !important; }
+html.dark .workspace-file-picker-row:is(:focus, :active) { background: var(--vs-selected) !important; }
+html.dark .workspace-file-picker-row:is(:focus, :active) :is(.workspace-file-picker-name, svg) { color: var(--vs-accent-text) !important; }
+html.dark .workspace-file-picker-row:is(:focus, :active):hover { background: var(--vs-selected-hover) !important; }
 
 /* Project drawer edge follows the dark tab-strip edge. */
 html.dark .project-library-sheet {
-  border-right: 1px solid #444c56;
-  box-shadow: 8px 0 12px -8px #1c2025;
+  border-right: 1px solid var(--vs-border);
+  box-shadow: 8px 0 12px -8px var(--vs-bg-sunken);
 }
 html.dark [data-project-tab][data-active="true"] {
-  background: rgba(34,197,94,.18) !important;
-  color: #4ade80 !important;
+  background: var(--vs-selected) !important;
+  color: var(--vs-accent-text) !important;
 }
 html.dark [data-project-tab][data-active="true"] button { color: inherit !important; }
 
 /* Document find: straight result-row edges, with the supplied dark palette. */
-html.dark .document-find-panel { background: #23272d !important; border-color: #30353c !important; color: #e6e8eb !important; box-shadow: 0 24px 60px #00000080; }
-html.dark .document-find-panel input { background: transparent !important; color: #e6e8eb !important; }
-html.dark .document-find-panel input::placeholder { color: #6b7280 !important; }
-html.dark .document-find-panel :is(svg, .text-stone-400) { color: #6b7280 !important; }
-html.dark .document-find-panel button { color: #9aa1a9 !important; }
-html.dark .document-find-panel button:hover { background: rgba(255,255,255,.06) !important; color: #fff !important; }
-html.dark .document-find-panel button[aria-pressed] { border-color: #30353c !important; }
-html.dark .document-find-panel button[aria-pressed="true"] { background: rgba(34,197,94,.18) !important; border-color: transparent !important; color: #4ade80 !important; }
-html.dark .document-find-panel [role="status"] { background: #262a30 !important; color: #9aa1a9 !important; border-color: #30353c !important; }
-html.dark .document-find-panel .document-find-match { border-radius: 0 !important; color: #9aa1a9 !important; }
-html.dark .document-find-panel .document-find-match[data-active="true"] { background: rgba(34,197,94,.18) !important; color: #e6e8eb !important; border-left-color: #22c55e !important; }
-html.dark .document-find-panel .document-find-match[data-active="true"]:hover { background: rgba(34,197,94,.27) !important; }
-html.dark .document-find-panel mark { background: rgba(34,197,94,.14) !important; color: #4ade80 !important; }
+html.dark .document-find-panel { background: var(--vs-bg-panel) !important; border-color: var(--vs-border-subtle) !important; color: var(--vs-text-strong) !important; box-shadow: 0 24px 60px #00000080; }
+html.dark .document-find-panel input { background: transparent !important; color: var(--vs-text-strong) !important; }
+html.dark .document-find-panel input::placeholder { color: var(--vs-text-subtle) !important; }
+html.dark .document-find-panel :is(svg, .text-stone-400) { color: var(--vs-text-subtle) !important; }
+html.dark .document-find-panel button { color: var(--vs-text-muted) !important; }
+html.dark .document-find-panel button:hover { background: var(--vs-hover) !important; color: var(--vs-text-inverse) !important; }
+html.dark .document-find-panel button[aria-pressed] { border-color: var(--vs-border-subtle) !important; }
+html.dark .document-find-panel button[aria-pressed="true"] { background: var(--vs-selected) !important; border-color: transparent !important; color: var(--vs-accent-text) !important; }
+html.dark .document-find-panel [role="status"] { background: var(--vs-bg-panel-alt) !important; color: var(--vs-text-muted) !important; border-color: var(--vs-border-subtle) !important; }
+html.dark .document-find-panel .document-find-match { border-radius: 0 !important; color: var(--vs-text-muted) !important; }
+html.dark .document-find-panel .document-find-match[data-active="true"] { background: var(--vs-selected) !important; color: var(--vs-text-strong) !important; border-left-color: var(--vs-accent) !important; }
+html.dark .document-find-panel .document-find-match[data-active="true"]:hover { background: var(--vs-selected-hover) !important; }
+html.dark .document-find-panel mark { background: rgba(34,197,94,.14) !important; color: var(--vs-accent-text) !important; }
 html.dark .document-find-panel .document-find-match[data-active="true"] mark { background: rgba(34,197,94,.24) !important; }
 
 /* Open-file cards follow the supplied dark grid design. */
-html.dark .workspace-open-files { background: #20242a !important; border-color: #30353c !important; box-shadow: none; }
-html.dark .workspace-open-files h2 { color: #e6e8eb !important; }
-html.dark .workspace-open-files > div > div > svg { color: #4ade80 !important; }
-html.dark .workspace-open-files .workspace-open-count { background: #262a30 !important; color: #4ade80 !important; border: 1px solid #30353c; }
-html.dark .workspace-open-files .workspace-file-card { background: #262a30 !important; border-color: #30353c !important; box-shadow: none; }
+html.dark .workspace-open-files { background: #20242a !important; border-color: var(--vs-border-subtle) !important; box-shadow: none; }
+html.dark .workspace-open-files h2 { color: var(--vs-text-strong) !important; }
+html.dark .workspace-open-files > div > div > svg { color: var(--vs-accent-text) !important; }
+html.dark .workspace-open-files .workspace-open-count { background: var(--vs-bg-panel-alt) !important; color: var(--vs-accent-text) !important; border: 1px solid var(--vs-border-subtle); }
+html.dark .workspace-open-files .workspace-file-card { background: var(--vs-bg-panel-alt) !important; border-color: var(--vs-border-subtle) !important; box-shadow: none; }
 html.dark .workspace-open-files .workspace-file-card:hover { background: #2b3037 !important; border-color: #3f4650 !important; }
-html.dark .workspace-open-files .workspace-file-name { color: #e6e8eb !important; }
-html.dark .workspace-open-files .workspace-file-card:hover .workspace-file-name { color: #fff !important; }
+html.dark .workspace-open-files .workspace-file-name { color: var(--vs-text-strong) !important; }
+html.dark .workspace-open-files .workspace-file-card:hover .workspace-file-name { color: var(--vs-text-inverse) !important; }
 html.dark .workspace-open-files .workspace-file-path { color: #7d838c !important; }
-html.dark .workspace-open-files .workspace-file-type { color: #6b7280 !important; }
-html.dark .workspace-open-files .workspace-file-card[data-active="true"] { background: rgba(34,197,94,.18) !important; border-color: transparent !important; }
-html.dark .workspace-open-files .workspace-file-card[data-active="true"]:hover { background: rgba(34,197,94,.27) !important; }
-html.dark .workspace-open-files .workspace-file-card[data-active="true"] .workspace-file-name { color: #4ade80 !important; }
-html.dark .workspace-open-files .workspace-file-icon { background: rgba(255,255,255,.08) !important; border-color: transparent !important; color: #c9ccd1 !important; }
-html.dark .workspace-open-files .workspace-file-icon.text-emerald-600 { background: rgba(34,197,94,.15) !important; color: #4ade80 !important; }
+html.dark .workspace-open-files .workspace-file-type { color: var(--vs-text-subtle) !important; }
+html.dark .workspace-open-files .workspace-file-card[data-active="true"] { background: var(--vs-selected) !important; border-color: transparent !important; }
+html.dark .workspace-open-files .workspace-file-card[data-active="true"]:hover { background: var(--vs-selected-hover) !important; }
+html.dark .workspace-open-files .workspace-file-card[data-active="true"] .workspace-file-name { color: var(--vs-accent-text) !important; }
+html.dark .workspace-open-files .workspace-file-icon { background: var(--vs-hover-strong) !important; border-color: transparent !important; color: #c9ccd1 !important; }
+html.dark .workspace-open-files .workspace-file-icon.text-emerald-600 { background: rgba(34,197,94,.15) !important; color: var(--vs-accent-text) !important; }
 html.dark .workspace-open-files .workspace-file-icon:is(.text-blue-600,.text-indigo-600) { background: rgba(96,165,250,.15) !important; color: #60a5fa !important; }
 html.dark .workspace-open-files .workspace-file-icon.text-pink-600 { background: rgba(244,114,182,.16) !important; color: #f472b6 !important; }
 html.dark .workspace-open-files .workspace-file-icon.text-cyan-600 { background: rgba(34,211,238,.15) !important; color: #22d3ee !important; }
@@ -539,7 +563,7 @@ html.dark .workspace-open-files .workspace-file-icon svg { color: inherit !impor
 
 /* Match the activity folder button when revealing the sidebar toggle. */
 html.dark [data-activity-sidebar-toggle]:is(:hover, :active, :focus-visible) {
-  background-color: rgba(255,255,255,.08) !important;
+  background-color: var(--vs-hover-strong) !important;
   color: #d6d9de !important;
 }
 html.dark [data-activity-sidebar-toggle]:is(:hover, :active, :focus-visible) > svg {
@@ -548,22 +572,22 @@ html.dark [data-activity-sidebar-toggle]:is(:hover, :active, :focus-visible) > s
 
 html.dark [data-workspace-activity-switch] button:not([aria-pressed="true"]):hover,
 html.dark [data-workspace-activity-switch] button:not([aria-pressed="true"]):hover svg {
-  color: #ffffff !important;
+  color: var(--vs-text-inverse) !important;
 }
 
 /* Error notifications use the supplied push-failure dark palette. */
 html.dark [data-sonner-toast][data-type="error"] {
-  background: #23272d !important;
-  color: #e6e8eb !important;
-  border-color: #30353c !important;
+  background: var(--vs-bg-panel) !important;
+  color: var(--vs-text-strong) !important;
+  border-color: var(--vs-border-subtle) !important;
   box-shadow: 0 24px 60px #00000080 !important;
 }
 html.dark [data-sonner-toast][data-type="error"] [data-content] { min-width: 0; }
-html.dark [data-sonner-toast][data-type="error"] [data-title] { color: #e6e8eb !important; }
+html.dark [data-sonner-toast][data-type="error"] [data-title] { color: var(--vs-text-strong) !important; }
 html.dark [data-sonner-toast][data-type="error"] [data-description] {
-  background: #1c2025 !important;
-  color: #9aa1a9 !important;
-  border: 1px solid #30353c;
+  background: var(--vs-bg-sunken) !important;
+  color: var(--vs-text-muted) !important;
+  border: 1px solid var(--vs-border-subtle);
   border-radius: 8px;
   padding: 10px 12px;
   margin-top: 8px;
@@ -573,15 +597,15 @@ html.dark [data-sonner-toast][data-type="error"] [data-description] {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   line-height: 1.7;
 }
-html.dark [data-sonner-toast][data-type="error"] [data-icon] { color: #f87171 !important; }
+html.dark [data-sonner-toast][data-type="error"] [data-icon] { color: var(--vs-danger-text) !important; }
 html.dark [data-sonner-toast][data-type="error"] :is([data-button], [data-close-button]) {
-  background: #262a30 !important;
-  color: #9aa1a9 !important;
-  border: 1px solid #30353c !important;
+  background: var(--vs-bg-panel-alt) !important;
+  color: var(--vs-text-muted) !important;
+  border: 1px solid var(--vs-border-subtle) !important;
 }
 html.dark [data-sonner-toast][data-type="error"] :is([data-button], [data-close-button]):hover {
   background: #2b3037 !important;
-  color: #fff !important;
+  color: var(--vs-text-inverse) !important;
 }
 
 /* Wide error logs with a six-line preview and Radix scrolling after expansion. */
@@ -599,7 +623,7 @@ html.dark [data-sonner-toast][data-type="error"] :is([data-button], [data-close-
 .toast-error-scroll .toast-error-text { padding-right: 12px; }
 .toast-error-scroll [data-radix-scroll-area-viewport] > div { display: block !important; }
 [data-sonner-toast] .toast-error-toggle { display: block; margin-top: 8px; padding: 3px 0; color: #15803d; font-size: 12px; cursor: pointer; }
-html.dark [data-sonner-toast] .toast-error-toggle { color: #4ade80; }
+html.dark [data-sonner-toast] .toast-error-toggle { color: var(--vs-accent-text); }
 
 /* Let the visible error shell grow immediately while Sonner refreshes stack offsets. */
 [data-sonner-toast].vessel-error-toast[data-front="true"],
@@ -609,56 +633,52 @@ html.dark [data-sonner-toast] .toast-error-toggle { color: #4ade80; }
 
 /* Replace the floating outline's light ring with the workspace dark edge. */
 html.dark .document-outline-panel.ring-1 {
-  --tw-ring-color: #444c56;
-  --tw-ring-shadow: 0 0 0 1px #444c56;
-  --tw-shadow: -8px 0 12px -8px #1c2025;
-  box-shadow: 0 0 0 1px #444c56, -8px 0 12px -8px #1c2025 !important;
-  border-color: #444c56 !important;
+  --tw-ring-color: var(--vs-border);
+  --tw-ring-shadow: 0 0 0 1px var(--vs-border);
+  --tw-shadow: -8px 0 12px -8px var(--vs-bg-sunken);
+  box-shadow: 0 0 0 1px var(--vs-border), -8px 0 12px -8px var(--vs-bg-sunken) !important;
+  border-color: var(--vs-border) !important;
 }
 
 html.dark [data-file-context-open="true"] [data-workspace-tree-row] {
-  background-color: #30353c !important;
-  color: #fff !important;
-}
-html.dark .workspace-file-context-menu [role="menuitem"]:is([data-highlighted], [data-state="open"]) {
-  background-color: #30353c !important;
-  color: #fff !important;
+  background-color: var(--vs-border-subtle) !important;
+  color: var(--vs-text-inverse) !important;
 }
 
 /* DEV ACTIONS dark palette from the supplied design. */
 html.dark .dev-actions-menu {
-  background: #23272d !important;
-  border-color: #30353c !important;
+  background: var(--vs-bg-panel) !important;
+  border-color: var(--vs-border-subtle) !important;
 
 }
-html.dark .dev-actions-menu > div { border-color: #30353c !important; }
+html.dark .dev-actions-menu > div { border-color: var(--vs-border-subtle) !important; }
 html.dark .dev-actions-menu > .dev-actions-heading {
-  background: #262a30;
+  background: var(--vs-bg-panel-alt);
 }
-html.dark .dev-actions-menu > .dev-actions-heading > span:first-child { color: #9aa1a9 !important; }
+html.dark .dev-actions-menu > .dev-actions-heading > span:first-child { color: var(--vs-text-muted) !important; }
 html.dark .dev-actions-menu [role="menuitem"] {
-  color: #e6e8eb !important;
+  color: var(--vs-text-strong) !important;
 }
 html.dark .dev-actions-menu [role="menuitem"] > svg { color: #8a8f98 !important; }
-html.dark .dev-actions-menu [data-dev-master="on"] > svg { color: #22c55e !important; }
-html.dark .dev-actions-menu [role="separator"] { background: #30353c !important; }
-html.dark .dev-actions-submenu [role="menuitemcheckbox"] { color: #e6e8eb !important; }
-html.dark .dev-actions-submenu [role="menuitemcheckbox"] > span:first-child { background: #2d333b !important; border-color: #3f454d !important; }
+html.dark .dev-actions-menu [data-dev-master="on"] > svg { color: var(--vs-accent) !important; }
+html.dark .dev-actions-menu [role="separator"] { background: var(--vs-border-subtle) !important; }
+html.dark .dev-actions-submenu [role="menuitemcheckbox"] { color: var(--vs-text-strong) !important; }
+html.dark .dev-actions-submenu [role="menuitemcheckbox"] > span:first-child { background: var(--vs-bg-elevated) !important; border-color: #3f454d !important; }
 html.dark .dev-actions-submenu [role="menuitemcheckbox"][data-state="checked"] > span:first-child { background: #eef0f3 !important; border-color: #eef0f3 !important; color: #1f2328 !important; }
 html.dark .dev-actions-submenu .text-teal-600 { color: #5bb0b0 !important; }
 html.dark .dev-actions-submenu .text-cyan-600 { color: #60a5fa !important; }
 html.dark .dev-actions-submenu .text-amber-600 { color: #fbbf24 !important; }
-html.dark .dev-actions-submenu .text-red-600 { color: #f87171 !important; }
-html.dark .dev-actions-trigger { background: transparent !important; border-color: #30353c !important; color: #8a8f98 !important; box-shadow: none; }
-html.dark .dev-actions-trigger:hover { background: #ffffff14 !important; color: #fff !important; }
-html.dark .dev-actions-trigger[data-state="open"] { background: #30353c !important; color: #fff !important; border-color: #30353c !important; }
+html.dark .dev-actions-submenu .text-red-600 { color: var(--vs-danger-text) !important; }
+html.dark .dev-actions-trigger { background: transparent !important; border-color: var(--vs-border-subtle) !important; color: #8a8f98 !important; box-shadow: none; }
+html.dark .dev-actions-trigger:hover { background: #ffffff14 !important; color: var(--vs-text-inverse) !important; }
+html.dark .dev-actions-trigger[data-state="open"] { background: var(--vs-border-subtle) !important; color: var(--vs-text-inverse) !important; border-color: var(--vs-border-subtle) !important; }
 
-html.dark .dev-actions-menu [role="menuitem"]:is(:hover, :focus, [data-highlighted], [data-state="open"]) > svg { color: #fff !important; }
+html.dark .dev-actions-menu [role="menuitem"]:is(:hover, :focus, [data-highlighted], [data-state="open"]) > svg { color: var(--vs-text-inverse) !important; }
 
 /* Keep the floating DEV ACTIONS gear white in dark mode, including its open state. */
 html.dark .dev-actions-trigger,
 html.dark .dev-actions-trigger:hover,
-html.dark .dev-actions-trigger[data-state="open"] { color: #fff !important; }
+html.dark .dev-actions-trigger[data-state="open"] { color: var(--vs-text-inverse) !important; }
 
 /* Tab close hover follows the tab label without a separate button surface. */
 .workspace-tab-close:is(:hover, :active, :focus-visible) { background: transparent !important; color: inherit !important; opacity: 1; box-shadow: none !important; }
@@ -666,42 +686,42 @@ html.dark .dev-actions-trigger[data-state="open"] { color: #fff !important; }
 
 /* Path breadcrumb segments share the same rounded pill hover state across folders and current file. */
 html.dark nav[aria-label*="路径"] ol > li :is(span.cursor-pointer, button):hover {
-  background-color: rgba(255, 255, 255, 0.08) !important;
-  color: #ffffff !important;
+  background-color: var(--vs-hover-strong) !important;
+  color: var(--vs-text-inverse) !important;
 }
 
 
 /* Console dark design: colors only; preserve existing panel and control geometry. */
-html.dark .diagnostics-breadcrumb { background: #23272d !important; border-color: #30353c !important; color: #9aa1a9 !important; }
-html.dark .diagnostics-breadcrumb button:hover { background: #ffffff0f !important; color: #e6e8eb !important; }
-html.dark .diagnostics-breadcrumb [aria-current="page"] { color: #4ade80 !important; }
-html.dark .dev-console-page { background: #1a1d21 !important; color: #e6e8eb; }
-html.dark .dev-console-page .console-page-header { background: #23272d !important; }
-html.dark .dev-console-page :is(.border, .border-b, .border-t) { border-color: #30353c !important; }
-html.dark .dev-console-page .bg-white { background: #23272d !important; }
-html.dark .dev-console-page :is(.text-stone-900, .text-stone-800, .text-stone-700) { color: #e6e8eb !important; }
-html.dark .dev-console-page :is(.text-stone-500, .text-stone-400) { color: #9aa1a9 !important; }
+html.dark .diagnostics-breadcrumb { background: var(--vs-bg-panel) !important; border-color: var(--vs-border-subtle) !important; color: var(--vs-text-muted) !important; }
+html.dark .diagnostics-breadcrumb button:hover { background: #ffffff0f !important; color: var(--vs-text-strong) !important; }
+html.dark .diagnostics-breadcrumb [aria-current="page"] { color: var(--vs-accent-text) !important; }
+html.dark .dev-console-page { background: #1a1d21 !important; color: var(--vs-text-strong); }
+html.dark .dev-console-page .console-page-header { background: var(--vs-bg-panel) !important; }
+html.dark .dev-console-page :is(.border, .border-b, .border-t) { border-color: var(--vs-border-subtle) !important; }
+html.dark .dev-console-page .bg-white { background: var(--vs-bg-panel) !important; }
+html.dark .dev-console-page :is(.text-stone-900, .text-stone-800, .text-stone-700) { color: var(--vs-text-strong) !important; }
+html.dark .dev-console-page :is(.text-stone-500, .text-stone-400) { color: var(--vs-text-muted) !important; }
 html.dark .dev-console-page .text-teal-600 { color: #5bb0b0 !important; }
 html.dark .dev-console-page .text-teal-700 { color: #4ca1a1 !important; }
 html.dark .dev-console-page .text-cyan-600 { color: #60a5fa !important; }
 html.dark .dev-console-page .text-amber-600 { color: #fbbf24 !important; }
-html.dark .dev-console-page .text-red-600 { color: #f87171 !important; }
+html.dark .dev-console-page .text-red-600 { color: var(--vs-danger-text) !important; }
 html.dark .dev-console-page .bg-stone-100 { background: #ffffff0f !important; }
 html.dark .dev-console-page .bg-teal-50 { background: #4ca1a129 !important; }
 html.dark .dev-console-page .bg-cyan-50 { background: #60a5fa29 !important; }
 html.dark .dev-console-page .bg-amber-50 { background: #f59e0b29 !important; }
 html.dark .dev-console-page .bg-red-50 { background: #f8717129 !important; }
-html.dark .dev-console-page .bg-green-50 { background: #22c55e26 !important; color: #4ade80 !important; }
-html.dark .dev-console-page .console-panel > .border-b { background: #262a30 !important; }
-html.dark .dev-console-page .console-panel .bg-\[\#faf9f7\] { background: #ffffff14 !important; color: #9aa1a9 !important; }
+html.dark .dev-console-page .bg-green-50 { background: #22c55e26 !important; color: var(--vs-accent-text) !important; }
+html.dark .dev-console-page .console-panel > .border-b { background: var(--vs-bg-panel-alt) !important; }
+html.dark .dev-console-page .console-panel .bg-\[\#faf9f7\] { background: #ffffff14 !important; color: var(--vs-text-muted) !important; }
 html.dark .dev-console-page [data-log-level="warn"] { background: #f59e0b1a !important; color: #f0a93b !important; }
-html.dark .dev-console-page [data-log-level="error"] { background: #f871711a !important; color: #f87171 !important; }
-html.dark .dev-console-page [data-log-level] > span:first-child { color: #6b7280 !important; }
-html.dark .dev-console-page .console-panel button:not([role="switch"]):hover { background: #ffffff0f !important; color: #e6e8eb !important; }
+html.dark .dev-console-page [data-log-level="error"] { background: #f871711a !important; color: var(--vs-danger-text) !important; }
+html.dark .dev-console-page [data-log-level] > span:first-child { color: var(--vs-text-subtle) !important; }
+html.dark .dev-console-page .console-panel button:not([role="switch"]):hover { background: #ffffff0f !important; color: var(--vs-text-strong) !important; }
 html.dark .dev-console-page [role="switch"] { background: #3a4049 !important; }
-html.dark .dev-console-page [role="switch"][data-state="checked"] { background: #22c55e !important; }
+html.dark .dev-console-page [role="switch"][data-state="checked"] { background: var(--vs-accent) !important; }
 html.dark .dev-console-page [role="switch"] > span { background: #a9aeb6 !important; }
-html.dark .dev-console-page [role="switch"][data-state="checked"] > span { background: #fff !important; }
+html.dark .dev-console-page [role="switch"][data-state="checked"] > span { background: var(--vs-text-inverse) !important; }
 
 /* DEV ACTIONS light hover uses the subtle neutral surface from the reference. */
 html:not(.dark) .dev-actions-menu :is([role="menuitem"], [role="menuitemcheckbox"]):is(:hover, :focus, [data-highlighted], [data-state="open"]) {
@@ -715,32 +735,32 @@ html:not(.dark) .dev-actions-menu :is([role="menuitem"], [role="menuitemcheckbox
 
 /* Shortcut groups retain clear dark surfaces, muted separators and readable keycaps. */
 html.dark .settings-shortcuts .settings-shortcut-group {
-  background: #23272d !important;
+  background: var(--vs-bg-panel) !important;
   border-color: #363c44 !important;
 }
 html.dark .settings-shortcuts .settings-shortcut-heading {
-  background: #262a30 !important;
-  color: #e6e8eb !important;
+  background: var(--vs-bg-panel-alt) !important;
+  color: var(--vs-text-strong) !important;
 }
 html.dark .settings-shortcuts .settings-shortcut-heading:hover {
-  background: #30353c !important;
+  background: var(--vs-border-subtle) !important;
 }
 html.dark .settings-shortcuts .settings-shortcut-rows > * {
-  border-color: #30353c !important;
+  border-color: var(--vs-border-subtle) !important;
 }
-html.dark .settings-shortcuts :is(.text-stone-800, .text-stone-700) { color: #e6e8eb !important; }
+html.dark .settings-shortcuts :is(.text-stone-800, .text-stone-700) { color: var(--vs-text-strong) !important; }
 html.dark .settings-shortcuts .text-stone-400 { color: #929aa5 !important; }
 html.dark .settings-shortcuts kbd {
   background: #2b3037 !important;
-  border-color: #444c56 !important;
-  color: #cdd9e5 !important;
-  box-shadow: 0 1px 0 #1c2025;
+  border-color: var(--vs-border) !important;
+  color: var(--vs-text) !important;
+  box-shadow: 0 1px 0 var(--vs-bg-sunken);
 }
 
 /* Compact date navigation: restrained surface with a small green selection marker. */
-html.dark .todo-date-sidebar { background-color: #22272e !important; }
-html.dark .todo-date-list-item { color: #e6e8eb; }
-html.dark .todo-date-list-item:hover { background: #30353c !important; }
+html.dark .todo-date-sidebar { background-color: var(--vs-bg) !important; }
+html.dark .todo-date-list-item { color: var(--vs-text-strong); }
+html.dark .todo-date-list-item:hover { background: var(--vs-border-subtle) !important; }
 html.dark .todo-date-list-item[aria-current="date"],
 html.dark .todo-date-list-item[aria-current="date"]:hover { background: #26332e !important; border-color: #365143 !important; }
 html.dark .todo-date-list-item .todo-date-list-icon { background: #2b3037 !important; border-color: #3b424b !important; }
@@ -750,7 +770,7 @@ html.dark .todo-date-list-item[aria-current="date"] .text-stone-400 { color: #a7
 html.dark .todo-date-list-item .todo-date-list-count { background: #31463a !important; color: #86d9a2 !important; }
 
 .todo-date-list-item[aria-current="date"]::before { content: ""; position: absolute; left: -1px; top: 18px; bottom: 18px; width: 3px; border-radius: 2px; background: #16a34a; }
-html.dark .todo-date-list-item[aria-current="date"]::before { background: #4ade80; }
+html.dark .todo-date-list-item[aria-current="date"]::before { background: var(--vs-accent-text); }
 
 /* Editable todo cells must not retain translucent light hover fills in dark mode. */
 html.dark .todo-table-scroll [data-todo-cell-trigger]:is(:hover, [data-state="open"]),
@@ -759,15 +779,15 @@ html.dark .todo-table-scroll [class*="hover:bg-stone-"]:hover {
   border-color: #4b5563 !important;
 }
 html.dark .todo-table-scroll [data-todo-cell-trigger]:is(:hover, [data-state="open"]) :is(.text-stone-500, .text-stone-400, .text-stone-300) {
-  color: #cdd9e5 !important;
+  color: var(--vs-text) !important;
 }
-html.dark .todo-table-scroll .todo-progress-track { background-color: #444c56 !important; }
+html.dark .todo-table-scroll .todo-progress-track { background-color: var(--vs-border) !important; }
 
 /* Table toolbar and column controls need their own dark hover states too. */
 html.dark .todo-table-section button[class*="hover:bg-stone-"]:hover {
   background-color: #3a414a !important;
   border-color: #52616d !important;
-  color: #e6e8eb !important;
+  color: var(--vs-text-strong) !important;
 }
 html.dark .todo-table-section button[class*="hover:bg-green-50"]:hover {
   background-color: #214635 !important;
@@ -775,10 +795,10 @@ html.dark .todo-table-section button[class*="hover:bg-green-50"]:hover {
 }
 html.dark .todo-table-section button[class*="hover:bg-red-"]:hover {
   background-color: #492b31 !important;
-  color: #fca5a5 !important;
+  color: var(--vs-danger-text-strong) !important;
 }
 html.dark .todo-table-section button[class*="hover:bg-red-"]:hover svg {
-  color: #fca5a5 !important;
+  color: var(--vs-danger-text-strong) !important;
   stroke: currentColor !important;
 }
 
@@ -787,12 +807,12 @@ html.dark .browser-bookmark-button { color: #b1b7c0; }
 html.dark .browser-bookmark-button:is(:hover, :focus-visible),
 html.dark .browser-bookmarks > button:is(:hover, :focus-visible, [data-state="open"]) {
   background-color: #303942 !important;
-  color: #e6e8eb !important;
+  color: var(--vs-text-strong) !important;
 }
 
-html.dark .workspace-activity-tooltip { background: #2b3037 !important; border-color: #444c56 !important; color: #e6e8eb !important; }
-html.dark .workspace-activity-tooltip .text-stone-900 { color: #e6e8eb !important; }
-html.dark .workspace-activity-tooltip .text-stone-400 { color: #9aa1a9 !important; }
+html.dark .workspace-activity-tooltip { background: #2b3037 !important; border-color: var(--vs-border) !important; color: var(--vs-text-strong) !important; }
+html.dark .workspace-activity-tooltip .text-stone-900 { color: var(--vs-text-strong) !important; }
+html.dark .workspace-activity-tooltip .text-stone-400 { color: var(--vs-text-muted) !important; }
 html.dark .workspace-activity-tooltip > svg { fill: #2b3037 !important; }
 
 .workspace-file-picker-row[data-active="true"] { background: #f0fdf4; }
@@ -819,7 +839,7 @@ html.dark {
 }
 html.dark,
 html.dark * {
-  scrollbar-color: #555f6b #22272e;
+  scrollbar-color: #555f6b var(--vs-bg);
 }
 html.dark ::-webkit-scrollbar {
   width: 10px;
@@ -827,11 +847,11 @@ html.dark ::-webkit-scrollbar {
 }
 html.dark ::-webkit-scrollbar-track,
 html.dark ::-webkit-scrollbar-corner {
-  background: #22272e;
+  background: var(--vs-bg);
 }
 html.dark ::-webkit-scrollbar-thumb {
   background: #555f6b;
-  border: 2px solid #22272e;
+  border: 2px solid var(--vs-bg);
   border-radius: 999px;
 }
 html.dark ::-webkit-scrollbar-thumb:hover {
@@ -840,9 +860,9 @@ html.dark ::-webkit-scrollbar-thumb:hover {
 
 /* Portalled file suggestions inherit these from html rather than editor containers. */
 html.dark {
-  --wiki-completion-background: #2d333b;
-  --wiki-completion-foreground: #cdd9e5;
-  --wiki-completion-border: #444c56;
+  --wiki-completion-background: var(--vs-bg-elevated);
+  --wiki-completion-foreground: var(--vs-text);
+  --wiki-completion-border: var(--vs-border);
   --wiki-completion-selected: #173f32;
   --wiki-completion-selected-text: #7ee2a8;
   --wiki-completion-shadow: 0 6px 24px #0006;
@@ -850,39 +870,38 @@ html.dark {
 
 /* Raise context menus above the workspace surface, including portalled submenus. */
 html.dark [data-radix-context-menu-content] {
-  background-color: #2d333b !important;
-  border-color: #444c56 !important;
-  color: #cdd9e5;
-  box-shadow: 0 8px 28px #0006;
+  background-color: var(--vs-menu-bg);
+  border-color: var(--vs-menu-border);
+  color: var(--vs-text);
+  box-shadow: var(--vs-menu-shadow);
 }
+/* Highlighted text colour comes from base.css (var(--vs-menu-active-text)); items may override both tokens. */
 html.dark .workspace-file-context-menu [role="menuitem"]:is([data-highlighted], [data-state="open"]) {
-  background-color: #3a424d !important;
-  color: #fff !important;
+  background-color: var(--vs-menu-hover-bg);
 }
 
 html.dark .vessel-date-popover {
-  background: #2d333b !important;
-  border-color: #444c56 !important;
-  color: #cdd9e5;
+  background: var(--vs-bg-elevated) !important;
+  border-color: var(--vs-border) !important;
+  color: var(--vs-text);
 }
-html.dark .vessel-date-calendar :is(.border-b, .border-t) { border-color: #444c56 !important; }
+html.dark .vessel-date-calendar :is(.border-b, .border-t) { border-color: var(--vs-border) !important; }
 html.dark .vessel-date-calendar :is(.text-stone-400, .text-stone-500) { color: #9da7b3 !important; }
 html.dark .vessel-date-day.text-stone-300 { color: #768390 !important; }
 html.dark .vessel-date-day:not([aria-pressed="true"]):is(:hover, :focus-visible) {
   background: #173f32 !important;
   color: #7ee2a8 !important;
 }
-html.dark .vessel-date-day[aria-pressed="true"] { background: #16a34a !important; color: #fff !important; }
+html.dark .vessel-date-day[aria-pressed="true"] { background: #16a34a !important; color: var(--vs-text-inverse) !important; }
 html.dark .vessel-date-day[aria-pressed="true"]:hover { background: #15803d !important; }
-html.dark .vessel-date-shortcut { background: #373e47 !important; color: #cdd9e5 !important; }
+html.dark .vessel-date-shortcut { background: #373e47 !important; color: var(--vs-text) !important; }
 html.dark .vessel-date-shortcut:is(:hover, :focus-visible) { background: #173f32 !important; color: #7ee2a8 !important; }
-html.dark .vessel-date-calendar button[aria-label$="个月"]:hover { background: #3a424d !important; color: #fff !important; }
+html.dark .vessel-date-calendar button[aria-label$="个月"]:hover { background: var(--vs-menu-hover-bg) !important; color: var(--vs-text-inverse) !important; }
 
-/* Destructive file actions keep a red hover in dark mode instead of the shared grey/white highlight. */
-html.dark .workspace-file-context-menu [role="menuitem"][data-menu-danger],
-html.dark .workspace-file-context-menu [role="menuitem"][data-menu-danger] svg { color: #f87171 !important; }
-html.dark .workspace-file-context-menu [role="menuitem"][data-menu-danger]:is([data-highlighted], [data-state="open"]) {
-  background: rgba(239, 68, 68, .16) !important;
-  color: #fca5a5 !important;
+/* Destructive file actions keep a red hover in dark mode: they only re-point the shared menu tokens. */
+html.dark .workspace-file-context-menu [role="menuitem"][data-menu-danger] {
+  --vs-menu-hover-bg: var(--vs-danger-bg);
+  --vs-menu-active-text: var(--vs-danger-text-strong);
+  color: var(--vs-danger-text);
 }
-html.dark .workspace-file-context-menu [role="menuitem"][data-menu-danger]:is([data-highlighted], [data-state="open"]) :is(*, svg) { color: #fca5a5 !important; }
+html.dark .workspace-file-context-menu [role="menuitem"][data-menu-danger] svg { color: var(--vs-danger-text); }

@@ -17,7 +17,7 @@ export type BrowserExtension = {
 }
 
 export interface BrowserExtensionsAPI {
-  extensionScroll(top?: number): Promise<{ height: number; top: number }>
+  extensionScroll(top?: number): Promise<{ height: number; top: number; width?: number; naturalHeight?: number }>
   resizeBrowserExtension(bounds: { x: number; y: number; width: number; height: number }): Promise<void>
   onBrowserExtensionClosed(callback: () => void): () => void
   closeBrowserExtension(): Promise<void>

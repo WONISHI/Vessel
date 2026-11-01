@@ -125,12 +125,13 @@ export function useGitRepository() {
         git.getStashes(repoPath).catch(() => []),
         git.getLogCount(repoPath, isAll),
         git.getUnpushedCommits(repoPath).catch(() => []),
-        git.getLogCount(repoPath, false).catch(() => 0)
+        // 当前分支范围下与 totalRes 相同，避免重复计数
+        isAll ? git.getLogCount(repoPath, false).catch(() => 0) : null
       ])
 
       if (version !== historyVersion.current) return
       setCommitTotal(totalRes)
-      setBranchCommitTotal(branchTotalRes)
+      setBranchCommitTotal(branchTotalRes ?? totalRes)
       setStatus(statusRes)
       setBranches(branchRes)
       setCommits(logRes)
