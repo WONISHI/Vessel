@@ -1,5 +1,5 @@
 import { expect, it, vi } from "vitest"
-import { installScreenshotModes, updateScreenshotToolbar } from "@/features/screenshot/mode-menu"
+import { installScreenshotModes, readScreenshotMode, updateScreenshotToolbar, writeScreenshotMode } from "@/features/screenshot/mode-menu"
 it("selects OCR and translation without dispatching screenshot completion", () => {
   const heading = document.createElement('div')
   document.body.append(heading)
@@ -67,4 +67,39 @@ it("closes the mode menu when a drawing tool is chosen", () => {
   expect(document.body.dataset.shotSecondary).toBeUndefined()
   dispose()
   toolbar.remove()
+})
+
+it("persists the selected mode and restores it on reinstall", () => {
+  localStorage.removeItem("vessel.screenshot.mode")
+  const heading = document.createElement("div")
+  document.body.append(heading)
+  const dispose = installScreenshotModes(heading, vi.fn())
+  heading.querySelector("button")!.click()
+  document.querySelector<HTMLButtonElement>('[data-mode="ocr"]')!.click()
+  expect(readScreenshotMode()).toBe("ocr")
+  dispose()
+  heading.remove()
+  document.querySelector(".shot-mode-menu")?.remove()
+
+  const again = document.createElement("div")
+  document.body.append(again)
+  const disposeAgain = installScreenshotModes(again, vi.fn())
+  expect(again.querySelector("button")?.textContent).toContain("OCR")
+  again.querySelector("button")!.click()
+  expect(document.querySelector('[data-mode="ocr"]')?.getAttribute("aria-checked")).toBe("true")
+  expect(document.querySelector('[data-mode="copy"]')?.getAttribute("aria-checked")).toBe("false")
+  disposeAgain()
+  again.remove()
+  localStorage.removeItem("vessel.screenshot.mode")
+})
+
+it("accepts an explicit initial mode without waiting for storage", () => {
+  writeScreenshotMode("translate")
+  const heading = document.createElement("div")
+  document.body.append(heading)
+  const dispose = installScreenshotModes(heading, vi.fn(), "ocr")
+  expect(heading.querySelector("button")?.textContent).toContain("OCR")
+  dispose()
+  heading.remove()
+  localStorage.removeItem("vessel.screenshot.mode")
 })

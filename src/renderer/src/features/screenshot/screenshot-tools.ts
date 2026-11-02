@@ -222,6 +222,62 @@ export function installSteps(plugin: ScreenShot, button: HTMLButtonElement) {
   }
 }
 
+/** Show the plugin cut-box size badge while the mouse is still down selecting. */
+export function installLiveCutSize(selected: () => boolean = () => false) {
+  let origin: { x: number; y: number } | null = null
+
+  /** Reads panel. */
+  const panel = () => document.getElementById("cutBoxSizePanel")
+
+  /** Writes size. */
+  const write = (width: number, height: number, startX: number, startY: number) => {
+    const el = panel()
+    if (!el || width < 1 || height < 1) return
+    const label = `${Math.floor(width)} * ${Math.floor(height)}`
+    const child = el.firstChild as HTMLElement | null
+    if (child && child.nodeType === Node.ELEMENT_NODE) child.textContent = label
+    else {
+      const p = document.createElement("p")
+      p.textContent = label
+      el.replaceChildren(p)
+    }
+    el.style.display = "flex"
+    el.style.left = `${startX}px`
+    el.style.top = `${Math.max(0, startY - 35)}px`
+  }
+
+  /** Performs the down operation. */
+  const down = (event: PointerEvent) => {
+    if (event.button !== 0) return
+    if ((event.target as HTMLElement).closest("#toolPanel, #optionPanel, input, textarea, button, .shot-ocr")) return
+    origin = selected() ? null : { x: event.clientX, y: event.clientY }
+  }
+
+  /** Performs the move operation. */
+  const move = (event: PointerEvent) => {
+    if (!origin || (event.buttons & 1) === 0 || selected()) return
+    write(Math.abs(event.clientX - origin.x), Math.abs(event.clientY - origin.y), Math.min(origin.x, event.clientX), Math.min(origin.y, event.clientY))
+  }
+
+  /** Performs the up operation. */
+  const up = () => {
+    origin = null
+  }
+
+  window.addEventListener("pointerdown", down, true)
+  // Bubble after js-web-screen-shot hides the badge on mousemove so the label stays live.
+  window.addEventListener("pointermove", move)
+  window.addEventListener("pointerup", up, true)
+  window.addEventListener("pointercancel", up, true)
+  return () => {
+    origin = null
+    window.removeEventListener("pointerdown", down, true)
+    window.removeEventListener("pointermove", move)
+    window.removeEventListener("pointerup", up, true)
+    window.removeEventListener("pointercancel", up, true)
+  }
+}
+
 /** Sample the original bitmap, never the dark mask or annotation overlay. */
 export async function installColorInspector(src: string, copy: (value: string) => Promise<void>, selected: () => boolean = () => false) {
   const image = new Image()
@@ -245,6 +301,19 @@ export async function installColorInspector(src: string, copy: (value: string) =
   document.body.append(panel)
   let hex = "",
     disposed = false
+  let dragOrigin: { x: number; y: number } | null = null
+
+  /** Starts drag size tracking for the loupe. */
+  const onDragDown = (event: PointerEvent) => {
+    if (event.button !== 0) return
+    if ((event.target as HTMLElement).closest("#toolPanel, #optionPanel, input, textarea, button, .shot-ocr")) return
+    dragOrigin = selected() ? null : { x: event.clientX, y: event.clientY }
+  }
+
+  /** Clears drag size tracking. */
+  const onDragUp = () => {
+    dragOrigin = null
+  }
 
   /** Moves move. */
   const move = (event: MouseEvent) => {
@@ -284,10 +353,14 @@ export async function installColorInspector(src: string, copy: (value: string) =
     view.lineTo(previewSize, center)
     view.stroke()
     text.replaceChildren()
-    for (const [label, value] of [
-      ["坐标", `${x}, ${y}`],
-      ["色值", hex]
-    ]) {
+    const rows: [string, string][] = []
+    if (dragOrigin && (event.buttons & 1) !== 0) {
+      const width = Math.floor(Math.abs(event.clientX - dragOrigin.x))
+      const height = Math.floor(Math.abs(event.clientY - dragOrigin.y))
+      if (width > 0 && height > 0) rows.push(["尺寸", `${width} x ${height}`])
+    }
+    rows.push(["坐标", `${x}, ${y}`], ["色值", hex])
+    for (const [label, value] of rows) {
       const row = document.createElement("div"),
         title = document.createElement("span"),
         content = document.createElement("strong")
@@ -300,7 +373,7 @@ export async function installColorInspector(src: string, copy: (value: string) =
     hint.textContent = "按 C 复制色值"
     text.append(hint)
     panel.style.left = `${Math.max(0, Math.min(event.clientX + 22, innerWidth - 160))}px`
-    panel.style.top = `${Math.max(0, Math.min(event.clientY + 22, innerHeight - 190))}px`
+    panel.style.top = `${Math.max(0, Math.min(event.clientY + 22, innerHeight - 210))}px`
   }
 
   /** Performs the key operation. */
@@ -312,11 +385,17 @@ export async function installColorInspector(src: string, copy: (value: string) =
       })
     }
   }
+  window.addEventListener("pointerdown", onDragDown, true)
+  window.addEventListener("pointerup", onDragUp, true)
+  window.addEventListener("pointercancel", onDragUp, true)
   window.addEventListener("mousemove", move)
   window.addEventListener("keydown", key)
   return () => {
     disposed = true
     panel.remove()
+    window.removeEventListener("pointerdown", onDragDown, true)
+    window.removeEventListener("pointerup", onDragUp, true)
+    window.removeEventListener("pointercancel", onDragUp, true)
     window.removeEventListener("mousemove", move)
     window.removeEventListener("keydown", key)
   }

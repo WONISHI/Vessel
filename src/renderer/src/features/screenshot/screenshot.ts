@@ -4,9 +4,9 @@ import { createOcrDialog } from "@/features/screenshot/ocr-dialog"
 import { arrangeScreenshotToolbar } from "@/features/screenshot/toolbar-order"
 import { installToolbarTooltip } from "@/features/screenshot/toolbar-tooltip"
 import { installToolbarDrag } from "@/features/screenshot/toolbar-drag"
-import { installScreenshotModes, updateScreenshotToolbar } from "@/features/screenshot/mode-menu"
+import { installScreenshotModes, readScreenshotMode, updateScreenshotToolbar, type ScreenshotMode } from "@/features/screenshot/mode-menu"
 import { installOptionArrow } from "@/features/screenshot/option-arrow"
-import { installColorInspector, installSteps, mergeSteps, type CutBox } from "@/features/screenshot/screenshot-tools"
+import { installColorInspector, installLiveCutSize, installSteps, mergeSteps, type CutBox } from "@/features/screenshot/screenshot-tools"
 import "@/features/screenshot/screenshot.css"
 import { recognizeImage } from "@/lib/image/image-ocr"
 import "@fontsource/plus-jakarta-sans/400.css"
@@ -16,7 +16,18 @@ import ScreenShot from "js-web-screen-shot"
 import { Check, Circle, Copy, DownloadSimple as Download, Translate as Languages, PencilLine, NumberCircleOne as ListOrdered, ArrowUpRight as MoveUpRight, PencilSimpleLine, PushPin as Pin, Scan as ScanText, Square, TextT as Type, ArrowUUpLeft as Undo2, DotsThree, X } from "@phosphor-icons/react/ssr"
 import { createElement } from "react"
 import { renderToStaticMarkup } from "react-dom/server"
-type ScreenshotAPI = { pinMenu(): Promise<void>; pinStyle(style: { opacity?: number; shadow?: boolean }): Promise<void>; onPinStyleToggle(callback: () => void): () => void; ready(): Promise<void>; data(): Promise<{ mode: "capture" | "pin"; image: string }>; finish(image: string, pin: boolean): Promise<void>; close(): Promise<void>; copy(): Promise<void>; copyText(text: string): Promise<void>; translate(text: string, target: string): Promise<string> }
+type ScreenshotAPI = {
+  pinMenu(): Promise<void>
+  pinStyle(style: { opacity?: number; shadow?: boolean }): Promise<void>
+  onPinStyleToggle(callback: () => void): () => void
+  ready(): Promise<void>
+  data(): Promise<{ mode: "capture" | "pin"; image: string }>
+  finish(image: string, pin: boolean): Promise<void>
+  close(): Promise<void>
+  copy(): Promise<void>
+  copyText(text: string): Promise<void>
+  translate(text: string, target: string): Promise<string>
+}
 const api = (window as unknown as { screenshotAPI: ScreenshotAPI }).screenshotAPI
 const root = document.getElementById("root")!
 // The annotation library uses "none" as its canvas font family. Keep its size
@@ -79,7 +90,8 @@ void api
     await bitmap.decode()
     await document.fonts.ready
     if (mode === "capture") {
-      let action: "copy" | "pin" | "ocr" | "save" | "translate" = "copy"
+      const savedMode: ScreenshotMode = readScreenshotMode()
+      let action: "copy" | "pin" | "ocr" | "save" | "translate" = savedMode
       let stepTools: ReturnType<typeof installSteps> | undefined
       let stopGlass: (() => void) | undefined
       let stopTooltip: (() => void) | undefined
@@ -116,8 +128,12 @@ void api
           if (toolbar) updateScreenshotToolbar(toolbar, mode)
           const Icon = mode === "ocr" ? ScanText : mode === "translate" ? Languages : Check
           document.documentElement.style.setProperty("--shot-copy-icon", icon(Icon, "#00ba69"))
-        })
-        if (toolbar) updateScreenshotToolbar(toolbar, "copy")
+        }, savedMode)
+        if (toolbar) updateScreenshotToolbar(toolbar, savedMode)
+        {
+          const Icon = savedMode === "ocr" ? ScanText : savedMode === "translate" ? Languages : Check
+          document.documentElement.style.setProperty("--shot-copy-icon", icon(Icon, "#00ba69"))
+        }
         toolbar?.prepend(heading)
         if (toolbar) {
           stopOptionArrow = installOptionArrow(toolbar)
@@ -163,7 +179,12 @@ void api
           const sizeMenu = options?.querySelector<HTMLElement>(".text-select-panel")
           const stopSizeGlass = sizeMenu ? installLiquidGlass(sizeMenu) : undefined
           const stopTextOptions = options ? installTextOptions(toolbar, options) : undefined
-          stopGlass = () => { stopTextOptions?.(); stopSizeGlass?.(); stopOptionsGlass?.(); stopToolbarGlass() }
+          stopGlass = () => {
+            stopTextOptions?.()
+            stopSizeGlass?.()
+            stopOptionsGlass?.()
+            stopToolbarGlass()
+          }
         }
         // Route downloads through the same compositor so numbered steps are included.
         const save = document.querySelector<HTMLElement>("#toolPanel .save")
@@ -238,15 +259,19 @@ void api
           plugin.completeScreenshot()
         }
       })
-      void installColorInspector(
-        image,
-        (value) => api.copyText(value),
-        () => plugin.getCutBoxInfo().width > 0
-      )
+      const cutSelected = () => plugin.getCutBoxInfo().width > 0
+      const stopLiveSize = installLiveCutSize(cutSelected)
+      void installColorInspector(image, (value) => api.copyText(value), cutSelected)
         .then((dispose) => {
-          stopInspector = dispose
+          stopInspector = () => {
+            stopLiveSize()
+            dispose()
+          }
         })
-        .catch(showError)
+        .catch((error) => {
+          stopLiveSize()
+          showError(error)
+        })
     } else {
       document.body.classList.add("shot-pin-window")
       const more = document.createElement("button")
@@ -255,7 +280,9 @@ void api
       more.title = "贴图菜单"
       more.setAttribute("aria-label", "贴图菜单")
       more.innerHTML = renderToStaticMarkup(createElement(DotsThree, { size: 22, weight: "bold" }))
-      more.onclick = () => { void api.pinMenu().catch(showError) }
+      more.onclick = () => {
+        void api.pinMenu().catch(showError)
+      }
       const styleBar = document.createElement("div")
       styleBar.className = "pin-style-bar"
       styleBar.hidden = true
@@ -267,17 +294,20 @@ void api
       opacity.max = "100"
       opacity.value = "100"
       opacity.setAttribute("aria-label", "贴图不透明度")
-      opacity.oninput = () => { void api.pinStyle({ opacity: Number(opacity.value) / 100 }) }
+      opacity.oninput = () => {
+        void api.pinStyle({ opacity: Number(opacity.value) / 100 })
+      }
       label.append(opacity)
       styleBar.append(label)
-      const toggleStyle = () => { styleBar.hidden = !styleBar.hidden }
+      const toggleStyle = () => {
+        styleBar.hidden = !styleBar.hidden
+      }
       api.onPinStyleToggle(toggleStyle)
       const img = document.createElement("img")
       img.src = image
       img.className = "pin-image"
       img.draggable = false
       root.append(img, more, styleBar)
-
     }
   })
   .catch(showError)
@@ -317,10 +347,15 @@ async function showOcr(image: string, translate = false) {
       }
     )
   }
-  close.onclick = () => { void api.close() }
+  close.onclick = () => {
+    void api.close()
+  }
   text.oninput = () => {
-    if (translate) { translated.value = ""; copy.disabled = true; setStatus("原文已修改，请重新翻译") }
-    else copy.disabled = !text.value.trim()
+    if (translate) {
+      translated.value = ""
+      copy.disabled = true
+      setStatus("原文已修改，请重新翻译")
+    } else copy.disabled = !text.value.trim()
   }
   root.append(overlay)
   try {

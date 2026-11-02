@@ -30,6 +30,12 @@ function patchFile(filePath) {
   // 5. In ia: if borderOption was active on mouseup, update position and reposition tools
   code = code.replace("bs()&&(Is(t),Hs(t,n)||(Ss(),xs(),Ks(A)&&Ds(e)))", "bs()&&(Is(t),Gr.borderOption?(Ss(),xs(),Ds(e),Gr.updateBorderOption(null)):(Hs(t,n)||(Ss(),xs(),Ks(A)&&Ds(e))))")
 
+  // 7. Show live cut-box size while drag-selecting (mouse still down).
+  code = code.replace(
+    "!Jr.toolClickStatus&&Nn.dragging&&(e.dragFlag=!0,Jr.setToolStatus(!1),Nn.setCutBoxSizeStatus(!1)),oa(A,e.screenShotImageController,e.drawArrow)",
+    "!Jr.toolClickStatus&&Nn.dragging&&(e.dragFlag=!0,Jr.setToolStatus(!1)),oa(A,e.screenShotImageController,e.drawArrow),!Jr.toolClickStatus&&Nn.dragging&&!Nn.draggingTrim&&function(){var A=Gr.tempGraphPosition;A.width>0&&A.height>0&&(Nn.setCutBoxSizeStatus(!0),Nn.setCutBoxSizePosition(A.startX,A.startY-35),Nn.setCutBoxSize(A.width,A.height))}()"
+  )
+
   // 6. In Ss: update cutOutBoxPosition and redraw elements
   code = code.replace("Gr.tempGraphPosition.height),!Jr.toolClickStatus){var A=Nn.drawGraphPosition", "Gr.tempGraphPosition.height),(!Jr.toolClickStatus||Nn.draggingTrim)){var A=Nn.drawGraphPosition")
   code = code.replace("Nn.setCutOutBoxPosition(e,t,n,r)}}", "Nn.setCutOutBoxPosition(e,t,n,r);Gr.redrawCanvasElements()}}")

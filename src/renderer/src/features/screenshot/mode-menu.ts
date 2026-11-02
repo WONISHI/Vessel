@@ -5,6 +5,24 @@ import { renderToStaticMarkup } from "react-dom/server"
 export type ScreenshotMode = "copy" | "ocr" | "translate"
 
 const SECONDARY_MODE = "mode"
+const MODE_STORAGE_KEY = "vessel.screenshot.mode"
+const MODE_LABELS: Record<ScreenshotMode, string> = { copy: "截图", ocr: "OCR", translate: "翻译" }
+
+/** Read the last selected capture mode so reopening the overlay keeps the choice. */
+export function readScreenshotMode(): ScreenshotMode {
+  try {
+    const value = localStorage.getItem(MODE_STORAGE_KEY)
+    if (value === "copy" || value === "ocr" || value === "translate") return value
+  } catch {}
+  return "copy"
+}
+
+/** Persist the capture mode across route changes and overlay reopenings. */
+export function writeScreenshotMode(mode: ScreenshotMode) {
+  try {
+    localStorage.setItem(MODE_STORAGE_KEY, mode)
+  } catch {}
+}
 
 /** Hide the plugin option panel while our mode menu is the open secondary popup. */
 function claimSecondarySlot() {
@@ -16,14 +34,15 @@ function releaseSecondarySlot() {
 }
 
 /** A separate menu keeps custom modes out of the screenshot library's command dispatch. */
-export function installScreenshotModes(heading: HTMLElement, onSelect: (mode: ScreenshotMode) => void) {
+export function installScreenshotModes(heading: HTMLElement, onSelect: (mode: ScreenshotMode) => void, initialMode: ScreenshotMode = readScreenshotMode()) {
+  const selected = initialMode in MODE_LABELS ? initialMode : "copy"
   const trigger = document.createElement("button")
   trigger.type = "button"
   trigger.className = "shot-mode-trigger"
   trigger.setAttribute("aria-expanded", "false")
   trigger.setAttribute("aria-label", "选择截图模式")
   const label = document.createElement("span")
-  label.textContent = "截图"
+  label.textContent = MODE_LABELS[selected]
   trigger.append(label)
   const chevron = document.createElement("span")
   chevron.className = "shot-mode-chevron"
@@ -40,16 +59,18 @@ export function installScreenshotModes(heading: HTMLElement, onSelect: (mode: Sc
     trigger.setAttribute("aria-expanded", "false")
     releaseSecondarySlot()
   }
-  for (const [mode, title] of [["copy", "截图"], ["ocr", "OCR"], ["translate", "翻译"]] as const) {
+  for (const mode of ["copy", "ocr", "translate"] as const) {
+    const title = MODE_LABELS[mode]
     const button = document.createElement("button")
     button.type = "button"
     button.textContent = title
     button.dataset.mode = mode
     button.setAttribute("role", "menuitemradio")
-    button.setAttribute("aria-checked", String(mode === "copy"))
+    button.setAttribute("aria-checked", String(mode === selected))
     button.onclick = () => {
       label.textContent = title
-      menu.querySelectorAll('button').forEach((item) => item.setAttribute("aria-checked", String(item === button)))
+      menu.querySelectorAll("button").forEach((item) => item.setAttribute("aria-checked", String(item === button)))
+      writeScreenshotMode(mode)
       onSelect(mode)
       close()
     }
