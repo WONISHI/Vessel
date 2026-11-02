@@ -1,3 +1,4 @@
+import { useEffect } from "react"
 import { TextWithArrows } from "@/components/ui/text-with-arrows"
 import { HistoryLoadMore } from "@/pages/git/components/history-load-more"
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuSub, ContextMenuSubContent, ContextMenuSubTrigger, ContextMenuTrigger } from "@/components/ui/context-menu"
@@ -8,7 +9,13 @@ import type { GitPageModel } from "@/pages/git/hooks/use-git-page"
 
 /** 提交历史工具条与拓扑列表 */
 export function GitHistoryList({ g }: { g: GitPageModel }) {
-  const { loading, branches, commits, unpushedHashes, commitTotal, branchCommitTotal, historyLoading, historyFailed, selectedCommitIndex, setSelectedCommitIndex, historyScope, setHistoryScope, setCreateBranchOpen, setBranchStartPoint, loadMoreHistory, topology, aheadCount, branchSyncedTotal, behindCount, copyToClipboard, handleCheckoutCommit, handleCreateTag, handleResetBranch, handleUndoLastCommit, handleRevertCommit, handleOpenRemoteCommit } = g
+  const { loading, branches, commits, unpushedHashes, commitTotal, branchCommitTotal, historyLoading, historyFailed, selectedCommitIndex, setSelectedCommitIndex, historyFocusNonce, historyScope, setHistoryScope, setCreateBranchOpen, setBranchStartPoint, loadMoreHistory, topology, aheadCount, branchSyncedTotal, behindCount, copyToClipboard, handleCheckoutCommit, handleCreateTag, handleResetBranch, handleUndoLastCommit, handleRevertCommit, handleOpenRemoteCommit } = g
+
+  useEffect(() => {
+    if (!historyFocusNonce) return
+    const row = document.querySelector<HTMLElement>("[data-git-history-selected=\"true\"]")
+    row?.scrollIntoView({ block: "nearest", behavior: "smooth" })
+  }, [historyFocusNonce, selectedCommitIndex])
 
   return (
     <>

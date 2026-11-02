@@ -131,14 +131,42 @@ export function useGitCommitActions(repo: GitRepositoryState) {
     }
   }
 
+  /** Deletes a local branch (not the current checkout). */
+  const handleDeleteBranch = async (branch: string, force = false) => {
+    if (!branch || branch === branches.current) {
+      toast.error("不能删除当前检出的分支")
+      return
+    }
+    try {
+      await window.electronAPI.git.deleteBranch(repoPath, branch, force)
+      await refresh()
+      toast.success(`已删除分支: ${branch}`)
+    } catch (e: any) {
+      toast.error("删除分支失败", { description: cleanGitErrorMessage(e) })
+    }
+  }
+
+  /** Merges a branch into the current checkout. */
+  const handleMergeBranch = async (branch: string) => {
+    if (!branch || branch === branches.current) return
+    try {
+      const res = await window.electronAPI.git.merge(repoPath, branch)
+      if (res.success) toast.success(`已合并分支: ${branch}`)
+      else toast.warning(`合并完成，请检查冲突：${res.output}`)
+      await refresh()
+    } catch (e: any) {
+      toast.error("合并失败", { description: cleanGitErrorMessage(e) })
+    }
+  }
+
   /** Handles pull events. */
-  const handlePull = async () => {
+  const handlePull = async (remote?: string, branch?: string) => {
     if (remotePending.current) return
     remotePending.current = true
     setRemoteOperation("pull")
     setLoading(true)
     try {
-      const res = await window.electronAPI.git.pull(repoPath)
+      const res = await window.electronAPI.git.pull(repoPath, remote, branch)
       toast.success(<TextWithArrows text={res.output || "拉取成功"} />)
       await refresh()
     } catch (e: any) {
@@ -151,13 +179,13 @@ export function useGitCommitActions(repo: GitRepositoryState) {
   }
 
   /** Handles push events. */
-  const handlePush = async () => {
+  const handlePush = async (remote?: string, branch?: string) => {
     if (remotePending.current) return
     remotePending.current = true
     setRemoteOperation("push")
     setLoading(true)
     try {
-      const res = await window.electronAPI.git.push(repoPath)
+      const res = await window.electronAPI.git.push(repoPath, remote, branch)
       toast.success(<TextWithArrows text={res.output || "推送成功"} />)
       await refresh()
     } catch (e: any) {
@@ -170,14 +198,14 @@ export function useGitCommitActions(repo: GitRepositoryState) {
   }
 
   /** Handles fetch events. */
-  const handleFetch = async () => {
+  const handleFetch = async (remote?: string) => {
     if (remotePending.current) return
     remotePending.current = true
     setRemoteOperation("fetch")
     setLoading(true)
     try {
-      await window.electronAPI.git.fetch(repoPath)
-      toast.success("已成功抓取远端更新")
+      await window.electronAPI.git.fetch(repoPath, remote)
+      toast.success(remote ? `已抓取远程 ${remote}` : "已成功抓取远端更新")
       await refresh()
     } catch (e: any) {
       toast.error("抓取失败", { description: cleanGitErrorMessage(e) })
@@ -199,5 +227,5 @@ export function useGitCommitActions(repo: GitRepositoryState) {
     }
   }
 
-  return { handleCheckoutCommit, handleCreateTag, handleResetBranch, handleUndoLastCommit, handleRevertCommit, handleOpenRemoteCommit, handleCommit, handleCheckoutBranch, handlePull, handlePush, handleFetch, handleInitRepo }
+  return { handleCheckoutCommit, handleCreateTag, handleResetBranch, handleUndoLastCommit, handleRevertCommit, handleOpenRemoteCommit, handleCommit, handleCheckoutBranch, handleDeleteBranch, handleMergeBranch, handlePull, handlePush, handleFetch, handleInitRepo }
 }

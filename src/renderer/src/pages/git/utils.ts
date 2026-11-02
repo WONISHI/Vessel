@@ -1,3 +1,4 @@
+import type { GitCommitItem } from "@vessel/type"
 /**
  * Git 页独立记住的当前仓库路径（跨路由切走再回来仍恢复选中项）
  */
@@ -47,4 +48,13 @@ export function cleanGitErrorMessage(e: any): string {
     .replace(/^Error invoking remote method '[^']+':\s*/, "")
     .replace(/^Error:\s*/, "")
     .trim()
+}
+
+/** Finds the history-row index whose decorated refs tip-match this branch name. */
+export function findCommitIndexForBranch(commits: GitCommitItem[], branch: string): number {
+  if (!branch) return -1
+  const headRef = `HEAD -> ${branch}`
+  return commits.findIndex((commit) =>
+    commit.refs.some((ref) => ref === branch || ref === headRef)
+  )
 }

@@ -13,8 +13,11 @@ html.dark .vessel-git-page .text-stone-400 { color: #6b7280 !important; }
 html.dark .vessel-git-page :is(textarea, input:not([type="checkbox"]), select) { background: #1c2025 !important; border-color: #30353c !important; color: #e6e8eb !important; }
 html.dark .vessel-git-page :is(textarea, input)::placeholder { color: #6b7280; }
 html.dark .vessel-git-page :is(button, [class*="cursor-pointer"]):is(:hover, :focus-visible) { background-color: rgba(255,255,255,.06) !important; }
-html.dark .vessel-git-page :is([data-git-selected="true"], [class~="bg-stone-200"], [class~="bg-stone-200/70"], [class~="bg-stone-200/80"], .bg-green-50) { background: rgba(34,197,94,.18) !important; color: #4ade80 !important; }
-html.dark .vessel-git-page :is([data-git-selected="true"], [class~="bg-stone-200"], [class~="bg-stone-200/70"], [class~="bg-stone-200/80"], .bg-green-50):hover { background: rgba(34,197,94,.27) !important; }
+/* Workspace / non-branch selected: same gray as branch select (hover softer, selected deeper). */
+html.dark .vessel-git-page :is([data-git-selected="true"]:not([data-git-branch-row]), [class~="bg-stone-200"]:not([data-git-branch-row]), [class~="bg-stone-200/70"]:not([data-git-branch-row]), [class~="bg-stone-200/80"]:not([data-git-branch-row])) { background: #3a4048 !important; color: #e6e8eb !important; }
+html.dark .vessel-git-page :is([data-git-selected="true"]:not([data-git-branch-row]), [class~="bg-stone-200"]:not([data-git-branch-row]), [class~="bg-stone-200/70"]:not([data-git-branch-row]), [class~="bg-stone-200/80"]:not([data-git-branch-row])):hover { background: #404650 !important; }
+html.dark .vessel-git-page .bg-green-50:not([data-git-branch-row]) { background: rgba(34,197,94,.18) !important; color: #4ade80 !important; }
+html.dark .vessel-git-page .bg-green-50:not([data-git-branch-row]):hover { background: rgba(34,197,94,.27) !important; }
 html.dark .vessel-git-page :is(.bg-green-100, .bg-amber-100) { background: rgba(34,197,94,.22) !important; color: #4ade80 !important; }
 html.dark .vessel-git-page .bg-amber-100 { background: rgba(233,162,59,.18) !important; color: #e9a23b !important; }
 html.dark .vessel-git-page [class~="bg-green-50/70"][class~="text-green-900"] { background: rgba(74,222,128,.11) !important; color: #4ade80 !important; }
@@ -22,7 +25,7 @@ html.dark .vessel-git-page [class~="bg-red-50/70"][class~="text-red-900"] { back
 html.dark .vessel-git-page tr.bg-blue-50 { background: rgba(96,165,250,.1) !important; color: #60a5fa !important; }
 html.dark .vessel-git-page :is(button.bg-green-600, button.bg-green-700) { background: #16a34a !important; color: white !important; }
 html.dark .vessel-git-page :is(button.bg-green-600, button.bg-green-700):hover { background: #15803d !important; }
-html.dark .vessel-git-page [data-git-selected="true"] :is(span, svg) { color: #4ade80 !important; }
+html.dark .vessel-git-page [data-git-selected="true"] :is(span, svg) { color: #e6e8eb !important; }
 html.dark .vessel-git-page :is(.text-green-600, .text-green-700, .text-green-800) { color: #4ade80 !important; }
 html.dark .vessel-git-page .text-amber-700 { color: #e9a23b !important; }
 html.dark .vessel-git-page .text-blue-500 { color: #60a5fa; }
@@ -117,7 +120,7 @@ html.dark .vessel-git-page .git-toolbar :is(.text-indigo-500, .text-indigo-600) 
 html.dark .vessel-git-page .git-toolbar :is(.text-purple-500, .text-purple-600) { color: #c084fc !important; }
 html.dark .vessel-git-page .git-toolbar :is(.text-amber-500, .text-amber-600) { color: #fbbf24 !important; }
 html.dark .vessel-git-page .git-file-panel [data-radix-scroll-area-viewport] { background: #23272d !important; }
-html.dark .vessel-git-page :is(.bg-stone-200, [class~="bg-stone-200/70"], [class~="bg-stone-200/80"]) :is(.text-stone-700, .text-stone-800, .text-stone-900) { color: #4ade80 !important; }
+html.dark .vessel-git-page :is(.bg-stone-200, [class~="bg-stone-200/70"], [class~="bg-stone-200/80"]) :is(.text-stone-700, .text-stone-800, .text-stone-900) { color: #e6e8eb !important; }
 html.dark .vessel-git-page .git-toolbar select { background: #1c2025 !important; border-color: #30353c !important; color: #e6e8eb !important; }
 
 html.dark .vessel-git-page [data-git-file-selected="true"],
@@ -246,15 +249,113 @@ html.dark .git-repository-settings .git-settings-tab[aria-selected="true"] { bac
 }
 
 /* Sidebar rows only carry hover:bg-stone-100, which the [class*="bg-stone-100"] rules above
-   matched as a resting background. Keep idle rows flat and show the surface on hover only. */
-html.dark .vessel-git-page .git-navigation :is([data-git-selected="false"], [data-git-sidebar-hover]) {
+   matched as a resting background (including BRANCHES / REMOTES tree rows). Keep idle rows
+   flat against the sidebar and show the surface on hover only. */
+html.dark .vessel-git-page .git-navigation :is([data-git-selected="false"], [data-git-sidebar-hover], [class*="hover:bg-stone-100"]:not([data-git-selected="true"])) {
   background: transparent !important;
   color: #9aa1a9 !important;
 }
-html.dark .vessel-git-page .git-navigation :is([data-git-selected="false"], [data-git-sidebar-hover]):hover {
+html.dark .vessel-git-page .git-navigation :is([data-git-selected="false"], [data-git-sidebar-hover], [class*="hover:bg-stone-100"]:not([data-git-selected="true"])):hover {
   background: rgba(255, 255, 255, 0.06) !important;
   color: #e6e8eb !important;
 }
-html.dark .vessel-git-page .git-navigation :is([data-git-selected="false"], [data-git-sidebar-hover]):hover > span:first-child :is(span, svg), html.dark .vessel-git-page .git-navigation [data-git-sidebar-hover]:hover > :is(span, svg) {
+html.dark .vessel-git-page .git-navigation :is([data-git-selected="false"], [data-git-sidebar-hover], [class*="hover:bg-stone-100"]:not([data-git-selected="true"])):hover > span:first-child :is(span, svg),
+html.dark .vessel-git-page .git-navigation [data-git-sidebar-hover]:hover > :is(span, svg) {
   color: #e6e8eb !important;
+}
+
+
+/* Git repo switcher dropdown (portal; lives outside .vessel-git-page) */
+.git-repo-switcher-menu {
+  z-index: 80;
+}
+html.dark .git-repo-switcher-menu {
+  background: #23272d !important;
+  border-color: #414954 !important;
+  color: #e6e8eb !important;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45) !important;
+}
+html.dark .git-repo-switcher-menu [role="menuitemradio"],
+html.dark .git-repo-switcher-menu [role="menuitem"] {
+  color: #e6e8eb !important;
+}
+/* Hover: gray lift; selected: slightly deeper gray (not green). */
+html.dark .git-repo-switcher-menu [role="menuitemradio"]:focus,
+html.dark .git-repo-switcher-menu [role="menuitemradio"][data-highlighted],
+html.dark .git-repo-switcher-menu [role="menuitem"]:focus,
+html.dark .git-repo-switcher-menu [role="menuitem"][data-highlighted] {
+  background: #2f343b !important;
+  color: #e6e8eb !important;
+}
+html.dark .git-repo-switcher-menu [role="menuitemradio"][data-state="checked"] {
+  background: #3a4048 !important;
+  color: #e6e8eb !important;
+}
+html.dark .git-repo-switcher-menu [role="menuitemradio"][data-state="checked"]:focus,
+html.dark .git-repo-switcher-menu [role="menuitemradio"][data-state="checked"][data-highlighted] {
+  background: #404650 !important;
+  color: #e6e8eb !important;
+}
+html.dark .git-repo-switcher-menu [role="menuitemradio"][data-state="checked"] :is(span, svg) {
+  color: #e6e8eb !important;
+}
+html.dark .git-repo-switcher-menu [role="separator"] {
+  background: #414954 !important;
+}
+html.dark .vessel-git-page .git-repo-switcher {
+  background: #1c2025 !important;
+  border-color: #414954 !important;
+  color: #e6e8eb !important;
+}
+html.dark .vessel-git-page .git-repo-switcher:hover {
+  background: #2a3038 !important;
+  color: #fff !important;
+}
+
+/* Workspace nav selected (文件状态 / 历史记录): match branch gray select. */
+html.dark .vessel-git-page .git-navigation [data-git-selected="true"]:not([data-git-branch-row]) {
+  background: #3a4048 !important;
+  color: #e6e8eb !important;
+}
+html.dark .vessel-git-page .git-navigation [data-git-selected="true"]:not([data-git-branch-row]):hover {
+  background: #404650 !important;
+}
+html.dark .vessel-git-page .git-navigation [data-git-selected="true"]:not([data-git-branch-row]) > span:first-child,
+html.dark .vessel-git-page .git-navigation [data-git-selected="true"]:not([data-git-branch-row]) > span:first-child :is(span, svg) {
+  color: #e6e8eb !important;
+}
+
+/* Branch leaf: only current checkout is green; click-selected + hover are gray (selected deeper). */
+html.dark .vessel-git-page .git-navigation [data-git-branch-row="leaf"][data-git-current="false"][data-git-selected="false"]:hover {
+  background: #2f343b !important;
+  color: #e6e8eb !important;
+}
+html.dark .vessel-git-page .git-navigation [data-git-branch-row="leaf"][data-git-current="false"][data-git-selected="false"]:hover > span:first-child :is(span, svg) {
+  color: #c4c9d0 !important;
+}
+html.dark .vessel-git-page .git-navigation [data-git-branch-row="leaf"][data-git-current="false"][data-git-selected="true"] {
+  background: #3a4048 !important;
+  color: #e6e8eb !important;
+}
+html.dark .vessel-git-page .git-navigation [data-git-branch-row="leaf"][data-git-current="false"][data-git-selected="true"] > span:first-child :is(span, svg),
+html.dark .vessel-git-page .git-navigation [data-git-branch-row="leaf"][data-git-current="false"][data-git-selected="true"] > svg {
+  color: #e6e8eb !important;
+}
+html.dark .vessel-git-page .git-navigation [data-git-branch-row="leaf"][data-git-current="false"][data-git-selected="true"]:hover {
+  background: #404650 !important;
+}
+/* Current checkout: bold white text, no green; hover stays soft gray. */
+html.dark .vessel-git-page .git-navigation [data-git-branch-row="leaf"][data-git-current="true"] {
+  background: transparent !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+}
+html.dark .vessel-git-page .git-navigation [data-git-branch-row="leaf"][data-git-current="true"] > span:first-child :is(span, svg),
+html.dark .vessel-git-page .git-navigation [data-git-branch-row="leaf"][data-git-current="true"] > div > svg,
+html.dark .vessel-git-page .git-navigation [data-git-branch-row="leaf"][data-git-current="true"] > svg {
+  color: #ffffff !important;
+}
+html.dark .vessel-git-page .git-navigation [data-git-branch-row="leaf"][data-git-current="true"]:hover {
+  background: #2f343b !important;
+  color: #ffffff !important;
 }

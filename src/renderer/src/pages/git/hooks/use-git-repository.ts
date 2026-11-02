@@ -3,7 +3,7 @@ import { toast } from "@/components/ui/sonner"
 import { computeGitTopology } from "@/pages/git/components/git-graph"
 import type { GitCommitDetail, GitCommitItem, GitFileStatus, GitStatusResult } from "@vessel/type"
 import { useCallback, useEffect, useRef, useState } from "react"
-import { cleanGitErrorMessage, getInitialRepoPath, persistGitRepoPath } from "@/pages/git/utils"
+import { cleanGitErrorMessage, findCommitIndexForBranch, getInitialRepoPath, persistGitRepoPath } from "@/pages/git/utils"
 
 /** 仓库数据状态、刷新逻辑与派生计数 */
 export function useGitRepository() {
@@ -64,6 +64,12 @@ export function useGitRepository() {
   const historyPending = useRef<number | null>(null)
   const [historyFailed, setHistoryFailed] = useState(false)
   const [selectedCommitIndex, setSelectedCommitIndex] = useState(0)
+  /** Nonzero bump asks the history list to scroll the selected tip into view. */
+  const [historyFocusNonce, setHistoryFocusNonce] = useState(0)
+  /** Branch leaf click waits for history (and optional scope refresh) before selecting tip. */
+  const pendingBranchTipRef = useRef<string | null>(null)
+  const branchTipLoadAttemptsRef = useRef(0)
+  const [branchTipRequestId, setBranchTipRequestId] = useState(0)
   const [commitDetail, setCommitDetail] = useState<GitCommitDetail | null>(null)
   const [historyScope, setHistoryScope] = useState<"all" | "current">("all")
 
@@ -229,6 +235,52 @@ export function useGitRepository() {
       .catch(() => setCommitDetail(null))
   }, [repoPath, activeTab, selectedCommitIndex, commits])
 
+  /** Selects a branch tip in the history graph (sidebar leaf click; not checkout). */
+  const navigateToBranchTip = useCallback(
+    (branch: string) => {
+      if (!branch) return
+      pendingBranchTipRef.current = branch
+      branchTipLoadAttemptsRef.current = 0
+      setBranchTipRequestId((value) => value + 1)
+      setActiveTab("history")
+      if (historyScope !== "all") {
+        setHistoryScope("all")
+        return
+      }
+      const idx = findCommitIndexForBranch(commits, branch)
+      if (idx >= 0) {
+        pendingBranchTipRef.current = null
+        setSelectedCommitIndex(idx)
+        setHistoryFocusNonce((value) => value + 1)
+      }
+    },
+    [commits, historyScope]
+  )
+
+  // After switching to history / all-branches, keep loading until the tip row is found.
+  useEffect(() => {
+    const branch = pendingBranchTipRef.current
+    if (!branch || activeTab !== "history" || loading || historyScope !== "all") return
+
+    const idx = findCommitIndexForBranch(commits, branch)
+    if (idx >= 0) {
+      pendingBranchTipRef.current = null
+      setSelectedCommitIndex(idx)
+      setHistoryFocusNonce((value) => value + 1)
+      return
+    }
+
+    if (commits.length === 0) return
+    if (commits.length >= commitTotal || historyLoading || historyPending.current !== null) return
+    if (branchTipLoadAttemptsRef.current >= 20) {
+      pendingBranchTipRef.current = null
+      toast.error("未在历史记录中找到该分支的尖端提交", { description: branch })
+      return
+    }
+    branchTipLoadAttemptsRef.current += 1
+    void loadMoreHistory()
+  }, [activeTab, loading, historyScope, commits, commitTotal, historyLoading, branchTipRequestId])
+
   // 拓扑图计算
   const topology = computeGitTopology(commits)
 
@@ -237,7 +289,7 @@ export function useGitRepository() {
   const branchSyncedTotal = Math.max(0, branchCommitTotal - aheadCount)
   const behindCount = status?.behind || 0
 
-  return { repositorySettingsOpen, setRepositorySettingsOpen, terminalOpen, setTerminalOpen, repoPath, setRepoPath, libraryProjects, setLibraryProjects, isRepo, setIsRepo, activeTab, setActiveTab, loading, setLoading, remoteOperation, setRemoteOperation, remotePending, status, setStatus, branches, setBranches, commits, setCommits, unpushedHashes, setUnpushedHashes, commitTotal, setCommitTotal, branchCommitTotal, setBranchCommitTotal, historyLoading, setHistoryLoading, historyVersion, historyPending, historyFailed, setHistoryFailed, selectedCommitIndex, setSelectedCommitIndex, commitDetail, setCommitDetail, historyScope, setHistoryScope, selectedFile, setSelectedFile, diffText, setDiffText, selectedStagedPaths, setSelectedStagedPaths, selectedUnstagedPaths, setSelectedUnstagedPaths, lastStagedClickedIndex, setLastStagedClickedIndex, lastUnstagedClickedIndex, setLastUnstagedClickedIndex, activeFileSection, setActiveFileSection, stashes, setStashes, commitMessage, commitMessageReset, setCommitMessageReset, isAmend, setIsAmend, createBranchOpen, setCreateBranchOpen, branchStartPoint, setBranchStartPoint, mergeBranchOpen, setMergeBranchOpen, refresh, loadMoreHistory, topology, aheadCount, branchSyncedTotal, behindCount }
+  return { repositorySettingsOpen, setRepositorySettingsOpen, terminalOpen, setTerminalOpen, repoPath, setRepoPath, libraryProjects, setLibraryProjects, isRepo, setIsRepo, activeTab, setActiveTab, loading, setLoading, remoteOperation, setRemoteOperation, remotePending, status, setStatus, branches, setBranches, commits, setCommits, unpushedHashes, setUnpushedHashes, commitTotal, setCommitTotal, branchCommitTotal, setBranchCommitTotal, historyLoading, setHistoryLoading, historyVersion, historyPending, historyFailed, setHistoryFailed, selectedCommitIndex, setSelectedCommitIndex, historyFocusNonce, navigateToBranchTip, commitDetail, setCommitDetail, historyScope, setHistoryScope, selectedFile, setSelectedFile, diffText, setDiffText, selectedStagedPaths, setSelectedStagedPaths, selectedUnstagedPaths, setSelectedUnstagedPaths, lastStagedClickedIndex, setLastStagedClickedIndex, lastUnstagedClickedIndex, setLastUnstagedClickedIndex, activeFileSection, setActiveFileSection, stashes, setStashes, commitMessage, commitMessageReset, setCommitMessageReset, isAmend, setIsAmend, createBranchOpen, setCreateBranchOpen, branchStartPoint, setBranchStartPoint, mergeBranchOpen, setMergeBranchOpen, refresh, loadMoreHistory, topology, aheadCount, branchSyncedTotal, behindCount }
 }
 
 export type GitRepositoryState = ReturnType<typeof useGitRepository>

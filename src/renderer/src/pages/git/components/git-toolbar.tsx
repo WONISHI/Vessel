@@ -39,7 +39,7 @@ export function GitToolbar({ g }: { g: GitPageModel }) {
             <button
               type="button"
               className="flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium text-stone-700 hover:bg-stone-200/70"
-              onClick={handlePull}
+              onClick={() => void handlePull()}
               disabled={loading || !isRepo}
             >
               <Download className="size-4 text-blue-600" />
@@ -51,7 +51,7 @@ export function GitToolbar({ g }: { g: GitPageModel }) {
             <button
               type="button"
               className="flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium text-stone-700 hover:bg-stone-200/70"
-              onClick={handlePush}
+              onClick={() => void handlePush()}
               disabled={loading || !isRepo}
             >
               <Upload className="size-4 text-orange-600" />
@@ -63,7 +63,7 @@ export function GitToolbar({ g }: { g: GitPageModel }) {
             <button
               type="button"
               className="flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium text-stone-700 hover:bg-stone-200/70"
-              onClick={handleFetch}
+              onClick={() => void handleFetch()}
               disabled={loading || !isRepo}
             >
               <ArrowDownUp className="size-4 text-stone-600" />
@@ -162,29 +162,28 @@ export function GitToolbar({ g }: { g: GitPageModel }) {
                 <DropdownMenuTrigger asChild>
                   <button
                     type="button"
-                    className="git-repo-switcher flex h-7 max-w-[200px] items-center gap-1.5 rounded-md border border-stone-200 bg-white px-2 text-xs text-stone-700 outline-none hover:bg-stone-50 focus-visible:border-green-500"
-                    data-title={repoPath}
+                    className="git-repo-switcher flex h-7 max-w-[200px] items-center gap-1.5 rounded-md border border-stone-200 bg-white px-2 text-xs text-stone-700 outline-none hover:bg-stone-50 focus-visible:border-green-500 dark:border-[#414954] dark:bg-[#1c2025] dark:text-stone-200 dark:hover:bg-[#2a3038] dark:focus-visible:border-emerald-500"
                   >
                     <span className="truncate">{libraryProjects.find((p) => p.path === repoPath)?.name || repoPath.split(/[\\/]/).pop() || "选择仓库"}</span>
-                    <ChevronDown className="size-3.5 shrink-0 text-stone-400" />
+                    <ChevronDown className="size-3.5 shrink-0 text-stone-400 dark:text-stone-500" />
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="max-h-[60vh] w-56 overflow-y-auto">
+                <DropdownMenuContent align="end" className="git-repo-switcher-menu max-h-[60vh] w-56 overflow-y-auto border-stone-200 bg-white text-stone-800 dark:border-[#414954] dark:bg-[#23272d] dark:text-stone-100">
                   <DropdownMenuRadioGroup value={repoPath} onValueChange={(value) => value && setRepoPath(value)}>
                     {!libraryProjects.some((p) => p.path === repoPath) && repoPath && (
-                      <DropdownMenuRadioItem value={repoPath} className="text-xs">
+                      <DropdownMenuRadioItem value={repoPath} className="git-repo-switcher-item text-xs dark:focus:bg-[#2f343b] dark:focus:text-stone-100 dark:data-[state=checked]:bg-[#3a4048] dark:data-[state=checked]:text-stone-100">
                         <span className="truncate">{repoPath.split(/[\\/]/).pop()} (当前)</span>
                       </DropdownMenuRadioItem>
                     )}
                     {libraryProjects.map((p) => (
-                      <DropdownMenuRadioItem key={p.path} value={p.path} className="text-xs" data-title={p.path}>
+                      <DropdownMenuRadioItem key={p.path} value={p.path} className="git-repo-switcher-item text-xs dark:focus:bg-[#2f343b] dark:focus:text-stone-100 dark:data-[state=checked]:bg-[#3a4048] dark:data-[state=checked]:text-stone-100">
                         <span className="truncate">{p.name}</span>
                       </DropdownMenuRadioItem>
                     ))}
                   </DropdownMenuRadioGroup>
-                  <DropdownMenuSeparator />
+                  <DropdownMenuSeparator className="dark:bg-[#414954]" />
                   <DropdownMenuItem
-                    className="text-xs"
+                    className="git-repo-switcher-item text-xs dark:focus:bg-[#2f343b] dark:focus:text-stone-100"
                     onSelect={() => {
                       void window.electronAPI.openDirectory().then((res) => {
                         if (res?.path) setRepoPath(res.path)
@@ -198,8 +197,7 @@ export function GitToolbar({ g }: { g: GitPageModel }) {
               </DropdownMenu>
             ) : (
               <span
-                className="font-mono text-stone-600 truncate max-w-sm"
-                data-title={repoPath}
+                className="font-mono text-stone-600 truncate max-w-sm dark:text-stone-300"
               >
                 {repoPath.split(/[\\/]/).pop() || "未选择仓库"}
               </span>
