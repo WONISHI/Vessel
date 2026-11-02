@@ -1,7 +1,25 @@
 /**
- * 优先读取项目资源库中打开的项目路径
+ * Git 页独立记住的当前仓库路径（跨路由切走再回来仍恢复选中项）
+ */
+export const GIT_CURRENT_REPO_KEY = "vessel:git-current-repo"
+
+/** Writes the selected Git repo path so remounts restore the same label. */
+export function persistGitRepoPath(path: string): void {
+  try {
+    if (path) localStorage.setItem(GIT_CURRENT_REPO_KEY, path)
+    else localStorage.removeItem(GIT_CURRENT_REPO_KEY)
+  } catch {}
+}
+
+/**
+ * 优先读取 Git 页上次选中的仓库，其次项目资源库 / 固定项 / 工作区
  */
 export function getInitialRepoPath(): string {
+  try {
+    const saved = localStorage.getItem(GIT_CURRENT_REPO_KEY)
+    if (saved) return saved
+  } catch {}
+
   try {
     const resource = JSON.parse(localStorage.getItem("resource_current_project") || "null")
     if (resource?.path) return resource.path

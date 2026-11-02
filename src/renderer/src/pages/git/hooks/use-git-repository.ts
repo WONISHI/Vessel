@@ -3,7 +3,7 @@ import { toast } from "@/components/ui/sonner"
 import { computeGitTopology } from "@/pages/git/components/git-graph"
 import type { GitCommitDetail, GitCommitItem, GitFileStatus, GitStatusResult } from "@vessel/type"
 import { useCallback, useEffect, useRef, useState } from "react"
-import { cleanGitErrorMessage, getInitialRepoPath } from "@/pages/git/utils"
+import { cleanGitErrorMessage, getInitialRepoPath, persistGitRepoPath } from "@/pages/git/utils"
 
 /** 仓库数据状态、刷新逻辑与派生计数 */
 export function useGitRepository() {
@@ -11,6 +11,11 @@ export function useGitRepository() {
   const [terminalOpen, setTerminalOpen] = useState(false)
   const [repoPath, setRepoPath] = useState<string>(getInitialRepoPath)
   const [libraryProjects, setLibraryProjects] = useState<{ name: string; path: string }[]>([])
+
+  // 记住 Git 页选中的仓库，切到其他路由再回来仍显示同一项
+  useEffect(() => {
+    persistGitRepoPath(repoPath)
+  }, [repoPath])
 
   useEffect(() => {
     /** Updates projects. */
