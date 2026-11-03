@@ -1373,6 +1373,7 @@ body[data-shot-shape="diamond"]:not([data-shot-secondary]) :is(#optionPanel, #op
   overflow: hidden;
   resize: none;
   field-sizing: content;
+  -webkit-app-region: no-drag;
   -webkit-user-select: text !important;
   user-select: text !important;
   pointer-events: auto !important;

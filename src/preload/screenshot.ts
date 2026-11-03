@@ -15,6 +15,9 @@ contextBridge.exposeInMainWorld("screenshotAPI", {
   /** Focus the screenshot panel so textarea / IME can receive keys. */
   focus: () => ipcRenderer.invoke("shot:focus"),
 
+  /** Lower alwaysOnTop while dashed text box is open so macOS IME candidates are not covered. */
+  setTextEditing: (editing: boolean) => ipcRenderer.invoke("shot:text-editing", editing),
+
   translate: (text: string, target: string) => ipcRenderer.invoke("shot:translate", text, target),
 
   /** Copies text. */

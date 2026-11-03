@@ -166,8 +166,6 @@ function ensureEditor() {
   node.setAttribute("spellcheck", "false")
   node.setAttribute("inputmode", "text")
   node.setAttribute("enterkeyhint", "enter")
-  // Helps macOS IME attach to this control in Electron panel windows.
-  node.setAttribute("lang", "")
   node.rows = 1
   node.tabIndex = 0
   node.dataset.vesselText = "1"
@@ -210,12 +208,30 @@ function pinCanvasUnfocusable(pin: boolean) {
 /**
  * Install crop-click text editing. Returns disposer.
  */
-export function installTextInputFocus(toolbar: HTMLElement, getCutBox: () => CutBox, focusWindow?: () => void) {
+export function installTextInputFocus(
+  toolbar: HTMLElement,
+  getCutBox: () => CutBox,
+  hooks?: { focusWindow?: () => void; setTextEditing?: (editing: boolean) => void | Promise<void> }
+) {
+  const focusWindow = hooks?.focusWindow
+  const setTextEditing = hooks?.setTextEditing
   const editor = ensureEditor()
   let session: EditorSession | null = null
   let lastOpenAt = 0
   let composing = false
   let windowFocusedOnce = false
+  let textEditingOn = false
+
+  /** Must finish before focus when turning on — otherwise screen-saver level still covers IME. */
+  const applyTextEditing = async (on: boolean) => {
+    if (textEditingOn === on) return
+    textEditingOn = on
+    try {
+      await Promise.resolve(setTextEditing?.(on))
+    } catch {
+      /* smoke / missing handler */
+    }
+  }
 
   /** Mac/Electron IME: compositionstart OR keyCode 229 / isComposing. */
   const imeBusy = (event?: KeyboardEvent | CompositionEvent | Event | null) => {
@@ -265,6 +281,7 @@ export function installTextInputFocus(toolbar: HTMLElement, getCutBox: () => Cut
     editor.value = ""
     session = null
     pinCanvasUnfocusable(false)
+    void applyTextEditing(false)
     if (document.activeElement === editor) editor.blur()
   }
 
@@ -314,11 +331,13 @@ export function installTextInputFocus(toolbar: HTMLElement, getCutBox: () => Cut
     editor.style.width = "96px"
     editor.style.height = `${Math.ceil(fontSize * 1.45)}px`
     editor.classList.add("is-open")
-    // Raise panel once + place caret; re-assert focus after plugin handlers, without repeating win.focus.
-    focusEditor({ raiseWindow: true, placeCaret: true })
-    requestAnimationFrame(() => {
-      softFocus()
-      requestAnimationFrame(softFocus)
+    // Await level drop before focus — race here keeps screen-saver covering 拼音候选窗.
+    void applyTextEditing(true).then(() => {
+      if (!session || !editor.classList.contains("is-open")) return
+      focusEditor({ raiseWindow: true, placeCaret: true })
+      requestAnimationFrame(() => {
+        if (session && !composing) softFocus()
+      })
     })
   }
 
@@ -328,7 +347,8 @@ export function installTextInputFocus(toolbar: HTMLElement, getCutBox: () => Cut
     // Clicks inside the editor must keep focus for typing / IME.
     if (target === editor || target?.closest?.("#vesselTextInput")) {
       event.stopPropagation()
-      softFocus()
+      // softFocus mid-composition cancels 拼音选字.
+      if (!composing) softFocus()
       return
     }
     if (target?.closest?.(CHROME)) {
@@ -384,7 +404,8 @@ export function installTextInputFocus(toolbar: HTMLElement, getCutBox: () => Cut
     if (!session || !editor.classList.contains("is-open")) return
     const busy = imeBusy(event)
     if (document.activeElement !== editor) {
-      softFocus()
+      // Reclaim focus only when not composing; focus mid-IME drops the candidate window.
+      if (!busy) softFocus()
       if (busy) return
       if (event.key === "Escape") {
         event.preventDefault()
@@ -420,7 +441,7 @@ export function installTextInputFocus(toolbar: HTMLElement, getCutBox: () => Cut
   const onBodyKeyDownCapture = (event: KeyboardEvent) => {
     if (!session || !editor.classList.contains("is-open")) return
     if (imeBusy(event)) {
-      if (document.activeElement !== editor) softFocus()
+      // Never focus() during composition — Electron panel IME cancels 拼音 on focus steal.
       return
     }
     const target = event.target as Node | null
@@ -460,12 +481,8 @@ export function installTextInputFocus(toolbar: HTMLElement, getCutBox: () => Cut
 
   const onBlur = () => {
     if (!session || !editor.classList.contains("is-open")) return
-    // Hold focus through IME candidate UI / spurious panel blur; do not commit on blur.
-    if (composing) {
-      requestAnimationFrame(() => {
-        if (session && composing) softFocus()
-      })
-    }
+    // Do not softFocus while composing — macOS IME candidate UI blurs the textarea;
+    // reclaiming focus here cancels 拼音. compositionend handles soft reclaim.
   }
 
   // Do NOT commit on blur: Electron panel + canvas tabIndex cause spurious blurs

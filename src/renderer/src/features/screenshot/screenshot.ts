@@ -28,6 +28,7 @@ type ScreenshotAPI = {
   finish(image: string, pin: boolean): Promise<void>
   close(): Promise<void>
   focus(): Promise<void>
+  setTextEditing(editing: boolean): Promise<void>
   copy(): Promise<void>
   copyText(text: string): Promise<void>
   translate(text: string, target: string): Promise<string>
@@ -213,7 +214,14 @@ void api
           const sizeMenu = options?.querySelector<HTMLElement>(".text-select-panel")
           const stopSizeGlass = sizeMenu ? installLiquidGlass(sizeMenu) : undefined
           const stopTextOptions = options ? installTextOptions(toolbar, options) : undefined
-          const stopTextInputFocus = installTextInputFocus(toolbar, () => plugin.getCutBoxInfo(), () => { void api.focus().catch(() => undefined) })
+          const stopTextInputFocus = installTextInputFocus(
+            toolbar,
+            () => plugin.getCutBoxInfo(),
+            {
+              focusWindow: () => { void api.focus().catch(() => undefined) },
+              setTextEditing: (editing) => { void api.setTextEditing(editing).catch(() => undefined) }
+            }
+          )
           stopGlass = () => {
             stopTextInputFocus()
             stopTextOptions?.()

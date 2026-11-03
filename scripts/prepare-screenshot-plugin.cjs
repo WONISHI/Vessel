@@ -85,14 +85,22 @@ function patchFile(filePath) {
     ",vs={addElement:function(e){",
     ",vs=globalThis.__vesselShotApi={addElement:function(e){"
   )
+  // Keep Us inside the same comma-assignment chain. A statement-ending ";" before Us=
+  // becomes `Us=...` without a binding in ESM strict mode → ReferenceError: Us is not defined
+  // (screenshot page loads blank / clicks do nothing).
   code = code.replace(
     "redraw:function(){Qs()}},Us=function(A,e,t){var n;null===(n=Cs())||void 0===n||n.mouseDownFn(A,e,t,Wr,vs)}",
-    "redraw:function(){Qs()},saveHistory:function(){Wr()}};globalThis.__vesselShotHistory=Wr;Us=function(A,e,t){var n;null===(n=Cs())||void 0===n||n.mouseDownFn(A,e,t,Wr,vs)}"
+    "redraw:function(){Qs()},saveHistory:function(){Wr()}},Us=(globalThis.__vesselShotHistory=Wr,function(A,e,t){var n;null===(n=Cs())||void 0===n||n.mouseDownFn(A,e,t,Wr,vs)})"
   )
   // Idempotent if a prior run already assigned __vesselShotApi but not saveHistory.
   code = code.replace(
     "redraw:function(){Qs()}},Us=function(A,e,t){var n;globalThis.__vesselShotHistory=Wr,null===(n=Cs())||void 0===n||n.mouseDownFn(A,e,t,Wr,vs)}",
-    "redraw:function(){Qs()},saveHistory:function(){Wr()}};globalThis.__vesselShotHistory=Wr;Us=function(A,e,t){var n;null===(n=Cs())||void 0===n||n.mouseDownFn(A,e,t,Wr,vs)}"
+    "redraw:function(){Qs()},saveHistory:function(){Wr()}},Us=(globalThis.__vesselShotHistory=Wr,function(A,e,t){var n;null===(n=Cs())||void 0===n||n.mouseDownFn(A,e,t,Wr,vs)})"
+  )
+  // Repair older Vessel builds that inserted a hard ";" before Us=.
+  code = code.replace(
+    "redraw:function(){Qs()},saveHistory:function(){Wr()}};globalThis.__vesselShotHistory=Wr;Us=function(A,e,t){var n;null===(n=Cs())||void 0===n||n.mouseDownFn(A,e,t,Wr,vs)}",
+    "redraw:function(){Qs()},saveHistory:function(){Wr()}},Us=(globalThis.__vesselShotHistory=Wr,function(A,e,t){var n;null===(n=Cs())||void 0===n||n.mouseDownFn(A,e,t,Wr,vs)})"
   )
 
   if (code !== orig) {

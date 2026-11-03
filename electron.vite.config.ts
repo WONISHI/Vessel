@@ -152,9 +152,14 @@ function patchScreenShotPlugin() {
         "var vs = { addElement: function(e2) {",
         "var vs = globalThis.__vesselShotApi = { addElement: function(e2) {"
       )
+      // Keep Us in the comma-assignment chain — a ";" before Us= breaks ESM strict init.
       patched = patched.replace(
         "redraw:function(){Qs()}},Us=function(A,e,t){var n;null===(n=Cs())||void 0===n||n.mouseDownFn(A,e,t,Wr,vs)}",
-        "redraw:function(){Qs()},saveHistory:function(){Wr()}};globalThis.__vesselShotHistory=Wr;Us=function(A,e,t){var n;null===(n=Cs())||void 0===n||n.mouseDownFn(A,e,t,Wr,vs)}"
+        "redraw:function(){Qs()},saveHistory:function(){Wr()}},Us=(globalThis.__vesselShotHistory=Wr,function(A,e,t){var n;null===(n=Cs())||void 0===n||n.mouseDownFn(A,e,t,Wr,vs)})"
+      )
+      patched = patched.replace(
+        "redraw:function(){Qs()},saveHistory:function(){Wr()}};globalThis.__vesselShotHistory=Wr;Us=function(A,e,t){var n;null===(n=Cs())||void 0===n||n.mouseDownFn(A,e,t,Wr,vs)}",
+        "redraw:function(){Qs()},saveHistory:function(){Wr()}},Us=(globalThis.__vesselShotHistory=Wr,function(A,e,t){var n;null===(n=Cs())||void 0===n||n.mouseDownFn(A,e,t,Wr,vs)})"
       )
       patched = patched.replace(
         "redraw: function() {\n  Qs();\n} };",

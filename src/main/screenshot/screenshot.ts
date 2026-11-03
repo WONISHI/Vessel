@@ -48,6 +48,18 @@ function create(bounds: Electron.Rectangle, resizable = true) {
     if (!win.isFocused()) win.focus()
     if (!win.webContents.isFocused()) win.webContents.focus()
   })
+  // Root cause of "中文输入不了": setAlwaysOnTop(..., "screen-saver") is level ~1000 and
+  // paints over macOS IME candidate windows (~pop-up-menu / 101). Drop while the dashed
+  // text box is open so 拼音选字 can appear; restore afterwards so the overlay still covers fullscreen Spaces.
+  win.webContents.ipc.handle("shot:text-editing", (_event, editing: unknown) => {
+    if (win.isDestroyed()) return
+    const on = editing === true
+    win.setAlwaysOnTop(true, on ? "floating" : "screen-saver")
+    if (!on) return
+    if (process.platform === "darwin") app.focus({ steal: true })
+    win.focus()
+    if (!win.webContents.isFocused()) win.webContents.focus()
+  })
   win.webContents.ipc.handle("shot:translate", (_event, text: unknown, target: unknown) => translateScreenshot(text, target))
   win.webContents.ipc.handle("shot:copy-text", (_event, text: string) => {
     if (typeof text !== "string" || text.length > 1024 * 1024) throw new Error("文字数据无效")
@@ -86,8 +98,13 @@ async function captureDisplay(display: Electron.Display): Promise<string> {
 export async function startScreenshot(previewSource?: Electron.WebContents) {
   if (capturing) return
   if (captureWindow && !captureWindow.isDestroyed()) {
-    captureWindow.focus()
-    return
+    // A failed renderer init can leave an invisible window that swallows later starts.
+    if (captureWindow.isVisible()) {
+      captureWindow.focus()
+      return
+    }
+    captureWindow.destroy()
+    captureWindow = undefined
   }
   capturing = true
   try {
@@ -106,6 +123,13 @@ export async function startScreenshot(previewSource?: Electron.WebContents) {
         win.focus()
       }
     })
+    // If the renderer throws before shot:ready, still surface the window so the user is not stuck.
+    setTimeout(() => {
+      if (shown || win.isDestroyed()) return
+      shown = true
+      win.show()
+      win.focus()
+    }, 2500)
     win.webContents.ipc.handle("shot:data", () => ({ mode: "capture", image }))
     let finishing = false
     win.webContents.ipc.handle("shot:finish", async (_event, data: string, pinned?: boolean) => {
@@ -166,10 +190,31 @@ export async function startScreenshot(previewSource?: Electron.WebContents) {
   }
 }
 
+/** Opens macOS Accessibility settings when global shortcuts cannot register. */
+async function promptScreenshotShortcutHelp(key: string) {
+  const trusted = process.platform === "darwin" ? systemPreferences.isTrustedAccessibilityClient(false) : true
+  const { response } = await dialog.showMessageBox({
+    type: "warning",
+    title: "截图快捷键未生效",
+    message: `无法注册快捷键 ${key}`,
+    detail: trusted
+      ? "该快捷键可能已被其他应用占用。请关闭其它 Vessel / Electron 实例后重试，或在系统设置中更换冲突应用的快捷键。"
+      : "macOS 需要辅助功能权限后，全局快捷键才能唤起端外截图。请在「系统设置 → 隐私与安全性 → 辅助功能」中允许 Vessel，然后完全退出并重新打开。",
+    buttons: process.platform === "darwin" && !trusted ? ["打开辅助功能设置", "稍后"] : ["知道了"],
+    cancelId: process.platform === "darwin" && !trusted ? 1 : 0
+  })
+  if (process.platform === "darwin" && !trusted && response === 0) {
+    // Prompt the system trust dialog when possible, then open Settings.
+    systemPreferences.isTrustedAccessibilityClient(true)
+    await shell.openExternal("x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")
+  }
+}
+
 /** Registers screenshot shortcut. */
 export function registerScreenshotShortcut() {
   const keys = [process.platform === "darwin" ? "Control+X" : "F1"]
   const registered = new Set<string>()
+  let warnedMissing = false
 
   /** Refreshes the current state. */
   const update = () => {
@@ -177,15 +222,27 @@ export function registerScreenshotShortcut() {
     registered.clear()
     if (generalSettings().externalScreenshot === false) return
     if (globalShortcut.register("Alt+Shift+P", () => togglePins(pins))) registered.add("Alt+Shift+P")
+    const missing: string[] = []
     for (const key of keys) {
       if (globalShortcut.register(key, () => void startScreenshot())) registered.add(key)
-      else console.warn(`截图快捷键已被占用：${key}`)
+      else {
+        console.warn(`截图快捷键已被占用：${key}`)
+        missing.push(key)
+      }
+    }
+    if (missing.length && !warnedMissing) {
+      warnedMissing = true
+      void promptScreenshotShortcutHelp(missing[0]!)
     }
   }
   update()
   settingsEvents.on("changed", update)
+  // User may grant Accessibility after first launch — re-bind when the app is re-activated.
+  const onActivate = () => update()
+  app.on("activate", onActivate)
   app.once("will-quit", () => {
     settingsEvents.off("changed", update)
+    app.off("activate", onActivate)
     for (const key of registered) globalShortcut.unregister(key)
   })
 }

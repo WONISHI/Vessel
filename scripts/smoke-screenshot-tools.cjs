@@ -26,6 +26,8 @@ app
         result = { data, pin }
       })
       win.webContents.ipc.handle("shot:close", () => win.close())
+      win.webContents.ipc.handle("shot:focus", () => {})
+      win.webContents.ipc.handle("shot:text-editing", () => {})
       await win.loadFile(path.resolve("out/renderer/screenshot.html"))
       await wait(500)
 
