@@ -363,7 +363,7 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
                       type="button"
                       data-developer-tool-card
                       data-active={location.pathname === "/git"}
-                      className={cn("flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-stone-100 dark:hover:bg-white/[.06]", location.pathname === "/git" && "bg-green-50 text-green-700 font-medium dark:bg-green-500/15 dark:text-green-400 dark:hover:bg-green-500/20")}
+                      className={cn("flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-[#f0efed] active:bg-[#ececec]", location.pathname === "/git" && "bg-[#ececec] font-medium")}
                       onClick={() => {
                         setMoreToolsOpen(false)
                         onActivityChange("git")
@@ -384,7 +384,7 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
                       type="button"
                       data-developer-tool-card
                       data-active={location.pathname === "/api-client"}
-                      className={cn("flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-stone-100 dark:hover:bg-white/[.06]", location.pathname === "/api-client" && "bg-green-50 text-green-700 font-medium dark:bg-green-500/15 dark:text-green-400 dark:hover:bg-green-500/20")}
+                      className={cn("flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-[#f0efed] active:bg-[#ececec]", location.pathname === "/api-client" && "bg-[#ececec] font-medium")}
                       onClick={() => {
                         setMoreToolsOpen(false)
                         onActivityChange("postman")
@@ -405,7 +405,7 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
                       type="button"
                       data-developer-tool-card
                       data-active={location.pathname.startsWith("/devtools")}
-                      className={cn("flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-stone-100 dark:hover:bg-white/[.06]", location.pathname.startsWith("/devtools") && "bg-green-50 text-green-700 font-medium dark:bg-green-500/15 dark:text-green-400 dark:hover:bg-green-500/20")}
+                      className={cn("flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-[#f0efed] active:bg-[#ececec]", location.pathname.startsWith("/devtools") && "bg-[#ececec] font-medium")}
                       onClick={() => {
                         setMoreToolsOpen(false)
                         onActivityChange("tools")

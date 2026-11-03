@@ -39,6 +39,7 @@ export function TransitButton({ menuItem = false, onOpenChange }: { menuItem?: b
           variant="ghost"
           size="icon"
           data-activity-button={!menuItem ? "true" : undefined}
+          data-transit-button={!menuItem ? "true" : undefined}
           aria-pressed={Boolean(selected)}
           aria-label={`中转站，${items.length} 个`}
           onMouseEnter={enter}

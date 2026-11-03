@@ -217,6 +217,12 @@ html.dark [data-activity-button][data-state="open"]:hover,
 html.dark [data-activity-button][aria-pressed="true"]:hover {
   background-color: var(--vs-selected-hover) !important;
 }
+/* Pin/transit opens on hover: use the same grey hover as other activity buttons, not selected green. */
+html.dark [data-activity-button][data-transit-button][data-state="open"]:not([aria-pressed="true"]),
+html.dark [data-activity-button][data-transit-button][data-state="open"]:not([aria-pressed="true"]):hover {
+  background-color: var(--vs-hover-strong) !important;
+  color: #d6d9de !important;
+}
 html.dark [data-base-table] tbody tr:hover {
   background-color: var(--vs-hover) !important;
 }
@@ -350,15 +356,23 @@ html.dark .dev-actions-menu [role="separator"] {
 /* Console page chrome follows the dark palette without changing other debug pages. */
 html.dark .dev-console-page h2 { color: var(--vs-text-inverse) !important; }
 
-/* Developer cards use translucent dark interaction states from the design. */
+/* Developer cards: light/dark use activity-bar hover greys (not the same palette). */
+html [data-developer-tool-card],
 html.dark [data-developer-tool-card] { background: transparent !important; }
 html.dark [data-developer-tool-card] .developer-tool-title { color: var(--vs-text-strong) !important; }
 html.dark [data-developer-tool-card] .developer-tool-description { color: var(--vs-text-muted) !important; }
-html.dark [data-developer-tool-card]:hover { background: var(--vs-hover) !important; }
-html.dark [data-developer-tool-card]:hover .developer-tool-title { color: var(--vs-text-inverse) !important; }
-html.dark [data-developer-tool-card][data-active="true"] { background: var(--vs-selected) !important; }
-html.dark [data-developer-tool-card][data-active="true"] .developer-tool-title { color: var(--vs-accent-text) !important; }
-html.dark [data-developer-tool-card][data-active="true"]:hover { background: var(--vs-selected-hover) !important; }
+/* Light: activity-bar hover #f0efed, active one step darker. */
+html [data-developer-tool-card]:hover { background: #f0efed !important; }
+html [data-developer-tool-card]:active { background: #ececec !important; }
+html [data-developer-tool-card][data-active="true"],
+html [data-developer-tool-card][data-active="true"]:hover { background: #ececec !important; }
+/* Dark: sampled activity-bar item hover #34383d; active slightly darker. Keep light text. */
+html.dark [data-developer-tool-card]:hover { background: #34383d !important; }
+html.dark [data-developer-tool-card]:active { background: #2e3237 !important; }
+html.dark [data-developer-tool-card][data-active="true"],
+html.dark [data-developer-tool-card][data-active="true"]:hover { background: #2e3237 !important; }
+html.dark [data-developer-tool-card]:is(:hover, :active, [data-active="true"]) .developer-tool-title { color: var(--vs-text-strong) !important; }
+html.dark [data-developer-tool-card]:is(:hover, :active, [data-active="true"]) .developer-tool-description { color: var(--vs-text-muted) !important; }
 html.dark [data-developer-tool-card] > .bg-orange-50,
 html.dark [data-developer-tool-card] > .bg-amber-50 { background: rgba(217, 98, 43, .13) !important; color: #e8743b !important; }
 html.dark [data-developer-tool-card] > .bg-blue-50 { background: rgba(55, 98, 227, .13) !important; color: #5a7ff0 !important; }
