@@ -1,9 +1,9 @@
-import { createRequire } from "node:module"
 import { cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { afterEach, expect, it, vi } from "vitest"
 import { ObsidianImageLine } from "@/components/core/canvas/variants/markdown/obsidian-images/components/obsidian-image-line"
-import { focusImageSourceBoundary, focusImageParagraph } from "@/components/core/canvas/variants/markdown/image-paragraph"
+import { focusImageParagraph, focusInsideCodeBlock, insertEmptyLineInSource, VESSEL_BLANK_LINE } from "@/components/core/canvas/variants/markdown/image-paragraph"
 import { prepareObsidianImages, restoreObsidianImages } from "@/components/core/canvas/variants/markdown/image-source"
+import { createRequire } from "node:module"
 vi.mock("@/components/core/canvas/variants/markdown/obsidian-images/components/obsidian-image", () => ({
   ObsidianImage: ({ onFocusAbove, onFocusBelow }: { onFocusAbove: () => void; onFocusBelow: () => void }) => <div><button onClick={onFocusAbove}>上方</button><button onClick={onFocusBelow}>下方</button></div>
 }))
@@ -21,25 +21,49 @@ it("passes the clicked image offsets, including repeated references", () => {
   fireEvent.click(screen.getAllByText("上方")[2])
   expect(above).toHaveBeenLastCalledWith(source.lastIndexOf("![[a.png]]"))
 })
-it.each([false, true])("inserts a line next to the middle image in a shared source block, below=%s", (below) => {
-  const source = "![[a.png]]![[b.png]]![[c.png]]"
+it("insertEmptyLineInSource adds an inside blank marker without raw newlines", () => {
+  expect(insertEmptyLineInSource("![[a.png]]", 0)).toBe(`${VESSEL_BLANK_LINE}![[a.png]]`)
+  expect(insertEmptyLineInSource("![[a.png]]", "![[a.png]]".length)).toBe(`![[a.png]]${VESSEL_BLANK_LINE}`)
+  expect(insertEmptyLineInSource("![[a.png]]![[b.png]]", "![[a.png]]".length)).toBe(`![[a.png]]${VESSEL_BLANK_LINE}![[b.png]]`)
+  expect(insertEmptyLineInSource("![[a.png]]", 0).includes("\n")).toBe(false)
+})
+it("blank markers survive prepare/restore on one image line (not an outer empty paragraph)", () => {
+  const source = insertEmptyLineInSource("![[a.png]]", 0)
+  const doc = `前文\n\`\`\`vessel-obsidian-image\n${encodeURIComponent(source)}\n\`\`\`\n后文\n`
+  const restored = restoreObsidianImages(doc)
+  expect(restored).toContain(`${VESSEL_BLANK_LINE}![[a.png]]`)
+  const prepared = prepareObsidianImages(restored)
+  expect(prepared).toContain("vessel-obsidian-image")
+  expect(prepared).not.toMatch(/vessel-obsidian-image\n%0A/)
+  // Blank marker stays on the same restored line as the image reference (not its own markdown line)
+  expect(restored.split("\n").some((line) => line.includes("![[a.png]]") && line.includes(VESSEL_BLANK_LINE))).toBe(true)
+})
+it("renders blank markers from the image source inside the component", () => {
+  const { container } = render(<ObsidianImageLine source={`${VESSEL_BLANK_LINE}![[a.png]]${VESSEL_BLANK_LINE}`} root="/w" documentPath="/w/n.md" onChange={() => {}} />)
+  expect(container.querySelectorAll('[aria-hidden]')).toHaveLength(2)
+})
+it("focusInsideCodeBlock inserts an empty line inside the code block without outer empty siblings", () => {
   const root = document.createElement("div")
   root.setAttribute("contenteditable", "true")
-  root.innerHTML = lute.Md2VditorIRDOM(prepareObsidianImages(source))
+  root.innerHTML = lute.Md2VditorIRDOM("前文\n\n```python\nprint(1)\n```\n\n后文\n")
   document.body.append(root)
-  const offset = source.indexOf("![[b.png]]") + (below ? "![[b.png]]".length : 0)
-  const paragraph = focusImageSourceBoundary(root.firstElementChild as HTMLElement, source, offset, (text) => lute.Md2VditorIRDOM(prepareObsidianImages(text)))!
-  expect(root.children[1]).toBe(paragraph)
-  expect(paragraph.tagName).toBe("P")
-  expect(window.getSelection()?.anchorNode).toBe(paragraph)
-  const left = decodeURIComponent(paragraph.previousElementSibling!.querySelector("pre.vditor-ir__marker code")!.textContent!.trim())
-  const right = decodeURIComponent(paragraph.nextElementSibling!.querySelector("pre.vditor-ir__marker code")!.textContent!.trim())
-  expect(left).toBe(source.slice(0, offset))
-  expect(right).toBe(source.slice(offset))
-  const saved = restoreObsidianImages(lute.VditorIRDOM2Md(root.innerHTML))
-  for (const name of ["a", "b", "c"]) expect(saved.match(new RegExp(`!\\[\\[${name}\\.png\\]\\]`, "g"))).toHaveLength(1)
+  const block = root.querySelector<HTMLElement>('[data-type="code-block"]')!
+  const prev = block.previousElementSibling
+  const next = block.nextElementSibling
+  const paragraphs = root.querySelectorAll("p").length
+  const code = focusInsideCodeBlock(block, false)!
+  expect(code.textContent?.startsWith("\n")).toBe(true)
+  expect(block.previousElementSibling).toBe(prev)
+  expect(block.nextElementSibling).toBe(next)
+  expect(root.querySelectorAll("p").length).toBe(paragraphs)
+  focusInsideCodeBlock(block, true)
+  expect(block.previousElementSibling).toBe(prev)
+  expect(block.nextElementSibling).toBe(next)
+  expect(root.querySelectorAll("p").length).toBe(paragraphs)
+  // Fail if an empty outer paragraph was inserted beside the component
+  expect([prev, next].some((node) => node instanceof HTMLElement && !(node.textContent || "").replace(/[\u200b\s]/g, ""))).toBe(false)
 })
-it("keeps a separate middle image's focus between its immediate neighbors", () => {
+it("keeps a separate middle image's outside focus between its immediate neighbors", () => {
   const root = document.createElement("div")
   root.setAttribute("contenteditable", "true")
   root.innerHTML = '<div id="a"></div><div id="b"></div><div id="c"></div>'

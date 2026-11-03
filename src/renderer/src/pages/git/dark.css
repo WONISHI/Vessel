@@ -344,6 +344,17 @@ html.dark .vessel-git-page .git-navigation [data-git-branch-row="leaf"][data-git
 html.dark .vessel-git-page .git-navigation [data-git-branch-row="leaf"][data-git-current="false"][data-git-selected="true"]:hover {
   background: #404650 !important;
 }
+
+html.dark .vessel-git-page .git-navigation [data-git-branch-row="folder"][data-git-selected="true"] {
+  background: #3a4048 !important;
+  color: #e6e8eb !important;
+}
+html.dark .vessel-git-page .git-navigation [data-git-branch-row="folder"][data-git-selected="true"] :is(span, svg) {
+  color: #e6e8eb !important;
+}
+html.dark .vessel-git-page .git-navigation [data-git-branch-row="folder"][data-git-selected="true"]:hover {
+  background: #404650 !important;
+}
 /* Current checkout: bold white text, no green; hover stays soft gray. */
 html.dark .vessel-git-page .git-navigation [data-git-branch-row="leaf"][data-git-current="true"] {
   background: transparent !important;

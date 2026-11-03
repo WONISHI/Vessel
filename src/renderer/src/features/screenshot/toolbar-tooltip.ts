@@ -21,7 +21,7 @@ export function installToolbarTooltip(toolbar: HTMLElement) {
     active = null
   }
   const labels: [string, string][] = [
-    [".square", "矩形"], [".round", "椭圆"], [".right-top", "箭头"],
+    [".shot-shapes", "形状"], [".right-top", "箭头"],
     [".brush", "画笔"], [".mosaicPen", "马赛克"], [".text", "文字"],
     [".undo, .undo-disabled", "撤销"], [".save", "下载截图"], [".close", "取消截图"],
     [".confirm", "完成并复制"], [".shot-step", "步骤标注"], [".shot-pin", "固定到屏幕"],

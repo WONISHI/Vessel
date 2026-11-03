@@ -139,7 +139,7 @@ export function useVditorSetup(state: VditorEditorState, { triggerInsertLinkRef 
     /** Performs the choose language operation. */
     const chooseLanguage = (event: Event) => setLanguageBlock((event as CustomEvent<HTMLElement>).detail)
     element.addEventListener("vessel-code-language", chooseLanguage)
-    const handleCodeContextMenu = (event: Event) => setCodeContextMenu((event as CustomEvent<{ block: HTMLElement; x: number; y: number }>).detail)
+    const handleCodeContextMenu = (event: Event) => { setCalloutBlockMenu(null); setCalloutMenu(null); setCodeContextMenu((event as CustomEvent<{ block: HTMLElement; x: number; y: number }>).detail) }
     element.addEventListener("vessel-code-context-menu", handleCodeContextMenu)
     const onDecorationFocusOut = () => decorate()
     element.addEventListener("focusout", onDecorationFocusOut)

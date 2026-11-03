@@ -207,9 +207,7 @@ async function run(options: SyncOptions, prefix: string, indexPath: string, conc
             options.signal?.throwIfAborted()
             await operation(item)
           } catch (error) {
-            const localSource = typeof item === "object" && item !== null
-              ? (item as { source?: string; local?: { source: string } }).source ?? (item as { local?: { source: string } }).local?.source
-              : typeof item === "string" ? locals.get(item)?.source : undefined
+            const localSource = typeof item === "object" && item !== null ? ((item as { source?: string; local?: { source: string } }).source ?? (item as { local?: { source: string } }).local?.source) : typeof item === "string" ? locals.get(item)?.source : undefined
             const fsError = error as NodeJS.ErrnoException
             const movedLocally = localSource && ["ENOENT", "ENOTDIR"].includes(fsError?.code ?? "") && fsError.path === localSource
             if (!options.signal?.aborted && ((error instanceof SyncError && error.code === "FILE_CHANGED") || movedLocally)) {

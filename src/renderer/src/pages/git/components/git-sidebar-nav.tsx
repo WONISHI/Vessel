@@ -16,6 +16,7 @@ export function GitSidebarNav({ g }: { g: GitPageModel }) {
     stashes,
     setCreateBranchOpen,
     setBranchStartPoint,
+    setBranchNamePrefix,
     aheadCount,
     branchSyncedTotal,
     behindCount,
@@ -123,8 +124,9 @@ export function GitSidebarNav({ g }: { g: GitPageModel }) {
   const treeActions = {
     onSelectBranch: navigateToBranchTip,
     onRequestCheckout: requestCheckout,
-    onCreateBranchFrom: (startPoint: string) => {
-      setBranchStartPoint(startPoint)
+    onCreateBranchFrom: (startPoint: string, namePrefix?: string) => {
+      setBranchStartPoint(startPoint || undefined)
+      setBranchNamePrefix(namePrefix || "")
       setCreateBranchOpen(true)
     },
     onMergeIntoCurrent: requestMerge,

@@ -32,6 +32,21 @@ export function focusImageParagraph(block: HTMLElement, below = true): HTMLEleme
   return paragraph
 }
 
+/** Inserts / focuses an empty paragraph inside a quote/callout (标注), not as a sibling outside it. */
+export function focusInsideQuote(quote: HTMLElement, below = true): HTMLElement | null {
+  const editor = quote.closest<HTMLElement>('[contenteditable="true"]')
+  if (!editor || !quote.isConnected) return null
+  const edge = below ? quote.lastElementChild : quote.firstElementChild
+  if (edge instanceof HTMLElement) {
+    return focusImageParagraph(edge, below)
+  }
+  const paragraph = document.createElement("p")
+  paragraph.setAttribute("data-block", "0")
+  paragraph.innerHTML = "<br>"
+  quote.append(paragraph)
+  return focusImageParagraph(paragraph, true)
+}
+
 /** Inserts an editable paragraph beside an image without splitting its encoded source block. */
 export function insertImageParagraph(block: HTMLElement, below = true): HTMLElement | null {
   const editor = block.closest<HTMLElement>('[contenteditable="true"]')
@@ -144,4 +159,49 @@ export function focusImageSourceBoundary(block: HTMLElement, source: string, off
   block.replaceWith(before.content, paragraph, after.content)
   // Reuse the caret restoration that survives the context menu's closing frame.
   return focusImageParagraph(next, false)
+}
+
+/** True when the block lives inside a callout/card parent (not a top-level editor child). */
+export function isNestedBlock(block: HTMLElement): boolean {
+  return Boolean(block.closest(".vessel-callout, blockquote, .vessel-callout-body"))
+}
+
+/** Single-line marker for an empty line that stays inside an image component across prepare/restore. */
+export const VESSEL_BLANK_LINE = "<!--vessel-blank-->"
+
+/** Inserts a blank line into an image/component source string at the given offset (inside the component). */
+export function insertEmptyLineInSource(source: string, offset: number): string {
+  const clamped = Math.max(0, Math.min(offset, source.length))
+  // Must NOT use a raw "\n": restoreObsidianImages would put it into the markdown document and
+  // prepareObsidianImages would turn it into an empty paragraph *outside* the image component.
+  return source.slice(0, clamped) + VESSEL_BLANK_LINE + source.slice(clamped)
+}
+
+/** Inserts an empty line inside a code block at the start (above) or end (below), and focuses the caret there. */
+export function focusInsideCodeBlock(block: HTMLElement, below = true): HTMLElement | null {
+  const editor = block.closest<HTMLElement>('[contenteditable="true"]')
+  const code = block.querySelector<HTMLElement>("pre.vditor-ir__marker code")
+  if (!editor || !code) return null
+  const preview = block.querySelector<HTMLElement>("pre.vditor-ir__preview code")
+  let text = code.textContent ?? ""
+  text = below ? `${text}\n` : `\n${text}`
+  code.textContent = text
+  if (preview) preview.textContent = text
+  /** Restores the caret after the context menu closes. */
+  const focus = () => {
+    if (!code.isConnected) return
+    code.normalize()
+    const textNode = code.firstChild
+    if (!textNode || textNode.nodeType !== Node.TEXT_NODE) return
+    editor.focus({ preventScroll: true })
+    const range = document.createRange()
+    range.setStart(textNode, below ? (textNode.textContent?.length ?? 0) : 0)
+    range.collapse(true)
+    const selection = window.getSelection()
+    selection?.removeAllRanges()
+    selection?.addRange(range)
+  }
+  focus()
+  requestAnimationFrame(focus)
+  return code
 }

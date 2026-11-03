@@ -34,14 +34,21 @@ export function EditorCodeMenus({ m }: { m: VditorEditorModel }) {
           onFocusAbove={() => {
             const { block } = codeContextMenu
             const editable = block.closest<HTMLElement>('[contenteditable="true"]')
-            if (!editable || readOnly) return
+            if (!editable || readOnly || !instance.current) return
+            instance.current.vditor.undo?.addToUndoStack(instance.current.vditor)
+            // Nested-in-quote: sibling empty <p> stays inside the callout; top-level stays outside the block.
             focusImageParagraph(block, false)?.scrollIntoView({ block: "nearest" })
+            instance.current.vditor.undo?.addToUndoStack(instance.current.vditor)
+            changeHandler.current((properties?.raw ?? "") + restoreObsidianImages(instance.current.getValue()))
           }}
           onFocusBelow={() => {
             const { block } = codeContextMenu
             const editable = block.closest<HTMLElement>('[contenteditable="true"]')
-            if (!editable || readOnly) return
+            if (!editable || readOnly || !instance.current) return
+            instance.current.vditor.undo?.addToUndoStack(instance.current.vditor)
             focusImageParagraph(block, true)?.scrollIntoView({ block: "nearest" })
+            instance.current.vditor.undo?.addToUndoStack(instance.current.vditor)
+            changeHandler.current((properties?.raw ?? "") + restoreObsidianImages(instance.current.getValue()))
           }}
           onCopy={() => {
             const { block } = codeContextMenu

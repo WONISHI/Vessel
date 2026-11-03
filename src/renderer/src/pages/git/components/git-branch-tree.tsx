@@ -23,7 +23,7 @@ function splitRemoteRef(fullName: string): { remote: string; branch: string } | 
 export type GitBranchTreeActions = {
   onSelectBranch?: (branch: string) => void
   onRequestCheckout: (branch: string) => void
-  onCreateBranchFrom?: (startPoint: string) => void
+  onCreateBranchFrom?: (startPoint: string, namePrefix?: string) => void
   onMergeIntoCurrent?: (branch: string) => void
   onDeleteBranch?: (branch: string) => void
   onCopyName?: (name: string) => void
@@ -61,7 +61,7 @@ export function GitBranchTree({
   /** Single-click leaf: select tip in history (not checkout). */
   onSelectBranch?: (branch: string) => void
   onRequestCheckout: (branch: string) => void
-  onCreateBranchFrom?: (startPoint: string) => void
+  onCreateBranchFrom?: (startPoint: string, namePrefix?: string) => void
   onMergeIntoCurrent?: (branch: string) => void
   onDeleteBranch?: (branch: string) => void
   onCopyName?: (name: string) => void
@@ -178,6 +178,22 @@ export function GitBranchTree({
             <ContextMenuSeparator />
           </>
         )}
+        <ContextMenuItem
+          onSelect={() => {
+            const folderPrefix =
+              variant === "remote"
+                ? node.key.includes("/")
+                  ? `${node.key.slice(node.key.indexOf("/") + 1)}/`
+                  : ""
+                : node.key.endsWith("/")
+                  ? node.key
+                  : `${node.key}/`
+            onCreateBranchFrom?.(currentBranch || "", folderPrefix || undefined)
+          }}
+        >
+          <Plus className="size-3.5 text-indigo-500" />
+          <span>新建分支…</span>
+        </ContextMenuItem>
         <ContextMenuItem onSelect={() => onCopyName?.(node.key)}>
           <Copy className="size-3.5 text-stone-500" />
           <span>复制名称</span>
@@ -281,15 +297,22 @@ export function GitBranchTree({
             <div
               role="button"
               tabIndex={0}
-              data-git-sidebar-hover
+              data-git-branch-row="folder"
+              data-git-selected={selected === node.key ? "true" : "false"}
+              data-git-sidebar-hover={selected === node.key ? undefined : true}
               onClick={() => toggleFolder(node.key)}
+              onContextMenu={() => setSelected(node.key)}
               onKeyDown={(event) => {
                 if (event.key === "Enter" || event.key === " ") {
                   event.preventDefault()
                   toggleFolder(node.key)
                 }
               }}
-              className="flex cursor-pointer items-center gap-1.5 rounded-md py-1.5 pr-2 text-stone-600 transition-colors hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-800/60"
+              className={`flex cursor-pointer items-center gap-1.5 rounded-md py-1.5 pr-2 transition-colors ${
+                selected === node.key
+                  ? "bg-stone-200/80 font-medium text-stone-800"
+                  : "text-stone-600 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-800/60"
+              }`}
               style={{ paddingLeft: pad }}
             >
               {isOpen ? <ChevronDown className="size-3.5 shrink-0 text-stone-400" /> : <ChevronRight className="size-3.5 shrink-0 text-stone-400" />}

@@ -290,6 +290,26 @@ body,
   margin-top: 5px;
 }
 
+/* Dark: match toolbar liquid glass so the loupe info strip is not solid white. */
+@media (prefers-color-scheme: dark) {
+  .shot-color-inspector {
+    color-scheme: dark;
+    background: linear-gradient(135deg, #303841d9, #20262ecc 55%, #343c46d9);
+    backdrop-filter: blur(18px) saturate(135%);
+    -webkit-backdrop-filter: blur(18px) saturate(135%);
+    box-shadow: 0 8px 24px #0005;
+  }
+  .shot-color-inspector div {
+    color: #94a3b8;
+  }
+  .shot-color-inspector strong {
+    color: #f1f5f9;
+  }
+  .shot-color-inspector small {
+    color: #64748b;
+  }
+}
+
 #toolPanel .shot-toolbar-heading { pointer-events: auto; }
 .shot-mode-trigger { display: flex; align-items: center; gap: 10px; height: 28px; padding: 0; border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; }
 .shot-mode-chevron { display: inline-flex; align-items: center; justify-content: center; width: 14px; height: 14px; color: #53615a; transition: transform .15s ease; }
@@ -337,7 +357,219 @@ body,
 .shot-mode-menu button[aria-checked="true"] { background: rgba(107, 167, 242, .20); }
 .shot-mode-menu::before { content: ''; position: absolute; left: var(--shot-menu-arrow); top: -8px; width: 18px; height: 9px; transform: translateX(-50%); background: var(--shot-menu-surface); clip-path: polygon(50% 0, 100% 100%, 0 100%); }
 .shot-mode-menu[data-side="top"]::before { top: auto; bottom: -8px; transform: translateX(-50%) rotate(180deg); }
-.shot-mode-trigger[aria-expanded="true"] { border-radius: 10px; background: #17171708; }
+.shot-mode-trigger:hover,
+.shot-mode-trigger[aria-expanded="true"] { border-radius: 10px; background: #ffffff40; }
+
+.shot-shape-menu {
+  position: fixed;
+  z-index: 130;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: max-content;
+  max-width: calc(100vw - 16px);
+  height: 40px;
+  min-height: 40px;
+  max-height: 40px;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: 14px;
+  --shot-menu-surface: #ffffff70;
+  background: linear-gradient(135deg, #ffffff70, #e8edf145 55%, #ffffff59);
+  backdrop-filter: blur(18px) saturate(135%);
+  -webkit-backdrop-filter: blur(18px) saturate(135%);
+  box-shadow: 0 8px 24px #17212d26;
+}
+.shot-shape-menu[hidden] { display: none; }
+.shot-shape-options,
+.shot-shape-list,
+.shot-shape-colors {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.shot-shape-divider {
+  width: 1px;
+  height: 16px;
+  margin: 0 2px;
+  background: #7773;
+  flex: 0 0 auto;
+}
+.shot-shape-width { position: relative; }
+.shot-shape-width > summary {
+  list-style: none;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 48px;
+  height: 24px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: 7px;
+  color: inherit;
+  font: 500 12px/1 system-ui;
+  cursor: pointer;
+  user-select: none;
+}
+.shot-shape-width > summary::-webkit-details-marker { display: none; }
+.shot-shape-width > summary::after {
+  content: "";
+  width: 5px;
+  height: 5px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: translateY(-1px) rotate(45deg);
+  opacity: .7;
+}
+.shot-shape-width[open] > summary,
+.shot-shape-width > summary:hover { background: #ffffff40; }
+.shot-shape-width-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 2;
+  box-sizing: border-box;
+  display: grid;
+  min-width: 64px;
+  /* Fit all stroke widths (1–16) without a scrollbar on normal viewports. */
+  max-height: min(300px, 70vh);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 4px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #f4f6f5e6, #e8edf1bf);
+  backdrop-filter: blur(18px) saturate(135%);
+  -webkit-backdrop-filter: blur(18px) saturate(135%);
+  box-shadow: 0 8px 24px #17212d26;
+  scrollbar-width: thin;
+  scrollbar-color: #0000002e transparent;
+}
+.shot-shape-width-menu::-webkit-scrollbar { width: 8px; }
+.shot-shape-width-menu::-webkit-scrollbar-track { background: transparent; margin: 6px 0; }
+.shot-shape-width-menu::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: #0000002e padding-box;
+}
+.shot-shape-width-menu::-webkit-scrollbar-thumb:hover { background: #00000052 padding-box; }
+.shot-shape-menu[data-side="top"] .shot-shape-width-menu {
+  top: auto;
+  bottom: calc(100% + 8px);
+}
+.shot-shape-width-menu button {
+  box-sizing: border-box;
+  width: 100%;
+  height: 24px;
+  justify-content: flex-start;
+  padding: 0 8px;
+  border-radius: 6px;
+  font: 12px system-ui;
+}
+.shot-shape-colors button {
+  box-sizing: border-box;
+  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 5px;
+  outline: none;
+  box-shadow: inset 0 0 0 1px #00000026;
+  transition: transform .12s ease, box-shadow .12s ease;
+}
+.shot-shape-colors button:hover {
+  transform: scale(1.08);
+  box-shadow: 0 0 0 1px #ffffff80;
+}
+.shot-shape-colors button[aria-checked="true"] {
+  /* 1px flush blue ring — no white spacer / 2.5px halo. */
+  box-shadow: 0 0 0 1px #168bfa;
+}
+.shot-shape-color-active {
+  box-sizing: border-box;
+  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 5px;
+  outline: none;
+  box-shadow: 0 0 0 1px #168bfa;
+}
+.shot-shape-list button,
+.shot-shape-menu .shot-shape-width-menu button {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  cursor: pointer;
+}
+.shot-shape-list button {
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+}
+.shot-shape-list button:hover,
+.shot-shape-width-menu button:hover { background: #ffffff40; }
+.shot-shape-list button[aria-checked="true"],
+.shot-shape-width-menu button[aria-checked="true"] { background: rgba(107, 167, 242, .20); }
+.shot-shape-menu::before {
+  content: '';
+  position: absolute;
+  left: var(--shot-menu-arrow);
+  top: -8px;
+  width: 18px;
+  height: 9px;
+  transform: translateX(-50%);
+  background: var(--shot-menu-surface);
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+}
+.shot-shape-menu[data-side="top"]::before { top: auto; bottom: -8px; transform: translateX(-50%) rotate(180deg); }
+#toolPanel .shot-shapes[aria-expanded="true"],
+#toolPanel .shot-shapes[aria-pressed="true"],
+#toolPanel .shot-shapes-active { background-color: #ffffff40; }
+
+.shot-step-menu {
+  position: fixed;
+  z-index: 130;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: max-content;
+  max-width: calc(100vw - 16px);
+  height: 40px;
+  min-height: 40px;
+  max-height: 40px;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: 14px;
+  --shot-menu-surface: #ffffff70;
+  background: linear-gradient(135deg, #ffffff70, #e8edf145 55%, #ffffff59);
+  backdrop-filter: blur(18px) saturate(135%);
+  -webkit-backdrop-filter: blur(18px) saturate(135%);
+  box-shadow: 0 8px 24px #17212d26;
+}
+.shot-step-menu[hidden] { display: none; }
+.shot-step-menu::before {
+  content: '';
+  position: absolute;
+  left: var(--shot-menu-arrow);
+  top: -8px;
+  width: 18px;
+  height: 9px;
+  transform: translateX(-50%);
+  background: var(--shot-menu-surface);
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+}
+.shot-step-menu[data-side="top"]::before { top: auto; bottom: -8px; transform: translateX(-50%) rotate(180deg); }
+
 .shot-translation { max-height: calc(100vh - 48px); overflow-y: auto; }
 .shot-translation textarea { height: min(23vh, 180px); }
 .shot-translation select { padding: 6px 10px; border: 1px solid #ddd; border-radius: 6px; background: white; margin: 10px 8px 10px 0; }
@@ -352,7 +584,15 @@ body,
 body[data-screenshot-mode="ocr"] :is(#optionPanel, #optionIcoController),
 body[data-screenshot-mode="translate"] :is(#optionPanel, #optionIcoController) { display: none !important; }
 /* Mode menu and the plugin option surface are mutually exclusive secondary popups. */
-body[data-shot-secondary="mode"] :is(#optionPanel, #optionIcoController) { display: none !important; }
+body[data-shot-secondary="mode"] :is(#optionPanel, #optionIcoController),
+body[data-shot-secondary="shapes"] :is(#optionPanel, #optionIcoController),
+body[data-shot-secondary="steps"] :is(#optionPanel, #optionIcoController) { display: none !important; }
+/* Custom shapes still need the shared color / width panel. */
+body[data-shot-shape="triangle"]:not([data-shot-secondary]) :is(#optionPanel, #optionIcoController),
+body[data-shot-shape="line"]:not([data-shot-secondary]) :is(#optionPanel, #optionIcoController),
+body[data-shot-shape="diamond"]:not([data-shot-secondary]) :is(#optionPanel, #optionIcoController) {
+  display: flex !important;
+}
 
 #toolPanel .shot-toolbar-grip { pointer-events: auto; cursor: grab; touch-action: none; user-select: none; width: 14px; height: 28px; border-radius: 5px; background-position: center; }
 #toolPanel .shot-toolbar-grip:hover { background-color: #ffffff30; }
@@ -429,21 +669,30 @@ body[data-shot-secondary="mode"] :is(#optionPanel, #optionIcoController) { displ
   width: 18px !important;
   height: 18px !important;
   margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
   border-radius: 5px;
+  outline: none;
+  box-shadow: inset 0 0 0 1px #00000026;
   cursor: pointer;
   transition: transform .12s ease, box-shadow .12s ease;
 }
 #optionPanel .right-panel .color-panel .color-item:hover {
-  transform: scale(1.12);
-  box-shadow: 0 0 0 3px #ffffff59;
+  transform: scale(1.08);
+  box-shadow: 0 0 0 1px #ffffff80;
 }
-#optionPanel .right-panel .color-select-panel {
-  width: 22px !important;
-  height: 22px !important;
-  border: 0 !important;
-  border-radius: 6px;
+#optionPanel .right-panel .color-select-panel,
+#optionPanel .right-panel .color-panel .color-item.color-select-panel {
+  width: 18px !important;
+  height: 18px !important;
+  margin: 0 !important;
   margin-left: 0 !important;
-  box-shadow: 0 0 0 3px #ffffff59;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 5px;
+  outline: none !important;
+  /* 1px flush blue ring; kill library gray #e5e6e5 frame + thick double halo. */
+  box-shadow: 0 0 0 1px #168bfa !important;
 }
 #optionPanel .right-panel .pull-down-arrow { display: none !important; }
 #optionPanel .text-size-panel {
@@ -594,17 +843,24 @@ body[data-shot-secondary="mode"] :is(#optionPanel, #optionIcoController) { displ
 }
 #toolPanel .separateLine { display: none !important; }
 #toolPanel .shot-step { order: 1; }
-#toolPanel .item-panel:has(.square) { order: 2; }
-#toolPanel .item-panel:has(.round) { order: 3; }
-#toolPanel .item-panel:has(.right-top) { order: 4; }
-#toolPanel .item-panel:has(.text) { order: 5; }
-#toolPanel .item-panel:has(.mosaicPen) { order: 6; }
-#toolPanel .item-panel:has(.brush) { order: 7; }
-#toolPanel .item-panel:has(.undo, .undo-disabled) { order: 8; }
-#toolPanel .item-panel:has(.close) { order: 9; }
-#toolPanel .shot-pin { order: 10; }
-#toolPanel .item-panel:has(.save) { order: 11; }
-#toolPanel .item-panel:has(.confirm) { order: 12; margin-right: 0 !important; }
+#toolPanel .shot-shapes { order: 2; }
+#toolPanel .item-panel:has(.right-top) { order: 3; }
+#toolPanel .item-panel:has(.text) { order: 4; }
+#toolPanel .item-panel:has(.mosaicPen) { order: 5; }
+#toolPanel .item-panel:has(.brush) { order: 6; }
+#toolPanel .item-panel:has(.undo, .undo-disabled) { order: 7; }
+#toolPanel .item-panel:has(.close) { order: 8; }
+#toolPanel .shot-pin { order: 9; }
+#toolPanel .item-panel:has(.save) { order: 10; }
+#toolPanel .item-panel:has(.confirm) { order: 11; margin-right: 0 !important; }
+/* Keep library square/ellipse + custom shape tools mounted for activation, but out of the bar. */
+#toolPanel .item-panel.square,
+#toolPanel .item-panel.round,
+#toolPanel .item-panel:has(.square),
+#toolPanel .item-panel:has(.round),
+#toolPanel .item-panel[data-title="triangle"],
+#toolPanel .item-panel[data-title="line"],
+#toolPanel .item-panel[data-title="diamond"] { display: none !important; }
 
 /* Before a crop is confirmed, expose only the compact screenshot mode picker. */
 #toolPanel[style*="display: none"],
@@ -917,7 +1173,10 @@ body[data-shot-secondary="mode"] :is(#optionPanel, #optionIcoController) { displ
   background: radial-gradient(ellipse 150px 70px at var(--glass-x, 25%) var(--glass-y, 0px), #ffffff70, #ffffff00 75%);
   box-shadow: none;
 }
-:is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip).shot-liquid-glass .item-panel:hover { background-color: #ffffff59; }
+:is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip).shot-liquid-glass .item-panel:hover,
+:is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip).shot-liquid-glass .shot-shapes[aria-expanded="true"],
+:is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip).shot-liquid-glass .shot-mode-trigger:hover,
+:is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip).shot-liquid-glass .shot-mode-trigger[aria-expanded="true"] { background-color: #ffffff59; }
 :is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip).shot-liquid-glass .item-panel[class*="-active"],
 :is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip).shot-liquid-glass button[aria-pressed="true"] {
   background-color: #ffffff45;
@@ -966,11 +1225,62 @@ body[data-shot-secondary="mode"] :is(#optionPanel, #optionIcoController) { displ
   }
   .shot-mode-menu button { color: #f1f5f9; }
   .shot-mode-menu button:hover,
+  .shot-mode-trigger:hover,
   .shot-mode-trigger[aria-expanded="true"] { background: #ffffff1f; }
+  .shot-shape-menu {
+    color-scheme: dark;
+    --shot-menu-surface: #303841d9;
+    color: #f1f5f9;
+    background: linear-gradient(135deg, #303841d9, #20262ecc 55%, #343c46d9);
+    box-shadow: 0 8px 24px #0005;
+  }
+  .shot-step-menu {
+    color-scheme: dark;
+    --shot-menu-surface: #303841d9;
+    color: #f1f5f9;
+    background: linear-gradient(135deg, #303841d9, #20262ecc 55%, #343c46d9);
+    box-shadow: 0 8px 24px #0005;
+  }
+  .shot-shape-menu button { color: #f1f5f9; }
+  .shot-shape-list button:hover,
+  .shot-shape-width > summary:hover,
+  .shot-shape-width[open] > summary,
+  .shot-shape-width-menu button:hover { background: #ffffff1f; }
+  .shot-shape-list button[aria-checked="true"],
+  .shot-shape-width-menu button[aria-checked="true"] { background: #ffffff29; }
+  .shot-shape-width-menu {
+    background: linear-gradient(135deg, #303841ed, #20262ed9);
+    box-shadow: 0 8px 24px #0005;
+    scrollbar-color: #ffffff38 transparent;
+  }
+  .shot-shape-width-menu::-webkit-scrollbar-thumb { background: #ffffff38 padding-box; }
+  .shot-shape-width-menu::-webkit-scrollbar-thumb:hover { background: #ffffff5c padding-box; }
+  .shot-shape-colors button { box-shadow: inset 0 0 0 1px #ffffff33; }
+  .shot-shape-colors button:hover { box-shadow: 0 0 0 1px #ffffff55; }
+  .shot-shape-colors button[aria-checked="true"],
+  .shot-shape-color-active,
+  #optionPanel .right-panel .color-select-panel,
+  #optionPanel .right-panel .color-panel .color-item.color-select-panel {
+    box-shadow: 0 0 0 1px #168bfa !important;
+  }
+  #optionPanel .right-panel .color-panel .color-item {
+    box-shadow: inset 0 0 0 1px #ffffff33;
+  }
+  #optionPanel .right-panel .color-panel .color-item:hover {
+    box-shadow: 0 0 0 1px #ffffff55;
+  }
+  .shot-shape-divider { background: #ffffff26; }
+  #toolPanel .shot-shapes[aria-expanded="true"],
+  #toolPanel .shot-shapes[aria-pressed="true"],
+  #toolPanel .shot-shapes-active { background-color: #ffffff29; }
+
   :is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip).shot-liquid-glass .shot-toolbar-grip {
     background-image: radial-gradient(circle, #cbd5e180 1px, transparent 1.5px);
   }
-  :is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip).shot-liquid-glass .item-panel:hover { background-color: #ffffff1f; }
+  :is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip).shot-liquid-glass .item-panel:hover,
+  :is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip).shot-liquid-glass .shot-shapes[aria-expanded="true"],
+  :is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip).shot-liquid-glass .shot-mode-trigger:hover,
+  :is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip).shot-liquid-glass .shot-mode-trigger[aria-expanded="true"] { background-color: #ffffff1f; }
   :is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip).shot-liquid-glass .item-panel[class*="-active"],
   :is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip).shot-liquid-glass button[aria-pressed="true"] {
     background-color: #ffffff29;
@@ -1009,4 +1319,78 @@ body[data-shot-secondary="mode"] :is(#optionPanel, #optionIcoController) { displ
   #optionPanel .text-select-panel { scrollbar-color: #ffffff38 transparent; }
   #optionPanel .text-select-panel::-webkit-scrollbar-thumb { background: #ffffff38 padding-box; }
   #optionPanel .text-select-panel::-webkit-scrollbar-thumb:hover { background: #ffffff5c padding-box; }
+}
+/* Plugin #textInputPanel: dashed edit box inside the crop (文字工具). Library CSS uses border:none. */
+#textInputPanel {
+  box-sizing: border-box !important;
+  min-width: 72px !important;
+  min-height: 1.45em !important;
+  padding: 2px 6px !important;
+  border: 1px dashed #168bfa !important;
+  border-radius: 2px;
+  background: #ffffffcc !important;
+  outline: none !important;
+  caret-color: #168bfa;
+  line-height: 1.35;
+  white-space: pre-wrap;
+  word-break: break-word;
+  -webkit-user-select: text !important;
+  user-select: text !important;
+  pointer-events: auto !important;
+  z-index: 10050 !important;
+}
+#textInputPanel:empty,
+#textInputPanel:focus {
+  min-width: 96px !important;
+}
+@media (prefers-color-scheme: dark) {
+  #textInputPanel {
+    background: #1c2025cc !important;
+    border-color: #60a5fa !important;
+    caret-color: #93c5fd;
+  }
+}
+
+
+/* Vessel-owned dashed text editor (文字工具). textarea for reliable CJK IME. */
+#vesselTextInput {
+  display: none;
+  position: fixed;
+  z-index: 10060;
+  box-sizing: border-box;
+  min-width: 96px;
+  min-height: 1.45em;
+  padding: 2px 6px;
+  margin: 0;
+  border: 1px dashed #168bfa;
+  border-radius: 2px;
+  background: #ffffffcc;
+  outline: none;
+  caret-color: #168bfa;
+  line-height: 1.35;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow: hidden;
+  resize: none;
+  field-sizing: content;
+  -webkit-user-select: text !important;
+  user-select: text !important;
+  pointer-events: auto !important;
+  font-weight: 700;
+  color: #F53440;
+}
+#vesselTextInput.is-open {
+  display: block;
+}
+@media (prefers-color-scheme: dark) {
+  #vesselTextInput {
+    background: #1c2025cc;
+    border-color: #60a5fa;
+    caret-color: #93c5fd;
+  }
+}
+/* Keep plugin panel hidden; Vessel editor owns text entry. */
+body:has(#toolPanel .text-active) #textInputPanel,
+body:has(#toolPanel .item-panel:has(.text-active)) #textInputPanel {
+  display: none !important;
 }

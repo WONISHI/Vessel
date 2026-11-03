@@ -143,14 +143,15 @@ export function createImageMounter({ imageRoots, workspacePath, documentPath, re
         container.dataset.imageSource = currentSource
         const focusAt = (offset: number) => {
           const block = element.closest<HTMLElement>('[data-type="code-block"]')
-          if (!block || readOnly) return
+          const sourceCode = block?.querySelector("pre.vditor-ir__marker code")
+          if (!block || !sourceCode || readOnly) return
           getEditor().vditor.undo?.addToUndoStack(getEditor().vditor)
+          // Nested-in-quote: sibling empty <p> (or split) stays inside the callout; top-level stays beside the image block.
           const paragraph = focusImageSourceBoundary(block, currentSource, offset, (source) => getEditor().vditor.lute.Md2VditorIRDOM(prepareObsidianImages(source)))
           if (!paragraph) return
-          // Ordinary neighboring-line focus keeps every existing image subtree intact.
           if (!block.isConnected) {
             for (const neighbor of [paragraph.previousElementSibling, paragraph.nextElementSibling]) {
-              const preview = neighbor?.querySelector<HTMLElement>('.vditor-ir__preview')
+              const preview = neighbor?.querySelector<HTMLElement>(".vditor-ir__preview")
               if (preview) mountImage(preview)
             }
           }

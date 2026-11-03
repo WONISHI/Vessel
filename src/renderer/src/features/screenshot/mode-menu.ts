@@ -24,9 +24,35 @@ export function writeScreenshotMode(mode: ScreenshotMode) {
   } catch {}
 }
 
+
+/** Drop drawing-tool active tiles and hide the plugin option strip (secondary mutual exclusion). */
+export function clearScreenshotDrawingActives(toolbar?: HTMLElement | null, except?: HTMLElement | null) {
+  const root = toolbar ?? document.getElementById("toolPanel")
+  if (!root) return
+  root.querySelectorAll<HTMLElement>(".item-panel, .item-panel *").forEach((el) => {
+    if (except && (el === except || except.contains(el))) return
+    for (const name of [...el.classList]) {
+      if (name.endsWith("-active")) el.classList.remove(name)
+    }
+  })
+  root.querySelectorAll<HTMLElement>(".shot-shapes").forEach((el) => {
+    if (el === except) return
+    el.classList.remove("shot-shapes-active")
+    el.setAttribute("aria-pressed", "false")
+  })
+  root.querySelectorAll<HTMLElement>(".shot-step").forEach((el) => {
+    if (el !== except) el.setAttribute("aria-pressed", "false")
+  })
+  for (const id of ["optionPanel", "optionIcoController"]) {
+    const node = document.getElementById(id)
+    if (node) node.style.setProperty("display", "none")
+  }
+}
+
 /** Hide the plugin option panel while our mode menu is the open secondary popup. */
 function claimSecondarySlot() {
   document.body.dataset.shotSecondary = SECONDARY_MODE
+  window.dispatchEvent(new CustomEvent("vessel:screenshot-secondary", { detail: SECONDARY_MODE }))
 }
 
 function releaseSecondarySlot() {
@@ -78,8 +104,10 @@ export function installScreenshotModes(heading: HTMLElement, onSelect: (mode: Sc
   }
   const positionMenu = () => {
     const rect = heading.getBoundingClientRect()
-    const toolbar = heading.closest("#toolPanel")?.getBoundingClientRect() || rect
+    const toolbarEl = heading.closest<HTMLElement>("#toolPanel")
+    const toolbar = toolbarEl?.getBoundingClientRect() || rect
     const button = trigger.getBoundingClientRect()
+    clearScreenshotDrawingActives(toolbarEl)
     menu.hidden = false
     claimSecondarySlot()
     const left = Math.max(8, Math.min(button.left + button.width / 2 - menu.offsetWidth / 2, innerWidth - menu.offsetWidth - 8))
@@ -102,7 +130,9 @@ export function installScreenshotModes(heading: HTMLElement, onSelect: (mode: Sc
     if (!tool || heading.contains(tool)) return
     close()
   }
+  const secondary = (event: Event) => { if ((event as CustomEvent<string>).detail !== SECONDARY_MODE) close() }
   window.addEventListener("vessel:screenshot-toolbar-moved", moved)
+  window.addEventListener("vessel:screenshot-secondary", secondary)
   const outside = (event: PointerEvent) => { if (!menu.contains(event.target as Node) && !heading.contains(event.target as Node)) close() }
   const key = (event: KeyboardEvent) => { if (event.key === "Escape" && !menu.hidden) { event.stopImmediatePropagation(); close(); trigger.focus() } }
   window.addEventListener("pointerdown", outside, true)
@@ -110,6 +140,7 @@ export function installScreenshotModes(heading: HTMLElement, onSelect: (mode: Sc
   document.addEventListener("click", toolClick, true)
   return () => {
     window.removeEventListener("vessel:screenshot-toolbar-moved", moved)
+    window.removeEventListener("vessel:screenshot-secondary", secondary)
     menu.remove()
     releaseSecondarySlot()
     window.removeEventListener("pointerdown", outside, true)

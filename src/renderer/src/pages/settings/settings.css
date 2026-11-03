@@ -108,3 +108,20 @@ html.dark .vessel-settings :is(input:not([type="file"]):not([type="range"]):not(
   border-color: #22c55e !important;
   box-shadow: 0 0 0 3px #22c55e26 !important;
 }
+
+/* Dark-only Select popover/selected: keep light mode as-is; avoid bright green surfaces. */
+html.dark .vessel-settings [data-radix-select-content],
+html.dark [data-radix-select-content] {
+  background: #2d333b !important;
+  border-color: #444c56 !important;
+  color: #cdd9e5 !important;
+  box-shadow: 0 8px 28px #0006 !important;
+}
+html.dark .vessel-settings [data-radix-select-item]:focus,
+html.dark .vessel-settings [data-radix-select-item][data-highlighted],
+html.dark [data-radix-select-item]:focus,
+html.dark [data-radix-select-item][data-highlighted],
+html.dark [data-radix-select-item][data-state="checked"] {
+  background: #3a424d !important;
+  color: #e6e8eb !important;
+}

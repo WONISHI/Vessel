@@ -167,7 +167,7 @@ export function SettingsPage() {
               key={id}
               aria-current={section === id ? "page" : undefined}
               onClick={() => setSection(id)}
-              className={`mb-1 flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sm ${section === id ? "bg-green-50 font-semibold text-green-600 dark:bg-green-950" : "text-muted-foreground hover:bg-muted"}`}
+              className={`mb-1 flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sm ${section === id ? "bg-green-50 font-semibold text-green-600 dark:bg-[#3a4048] dark:text-[#e6e8eb]" : "text-muted-foreground hover:bg-muted"}`}
             >
               <Icon className="size-4 shrink-0" />
               {label}

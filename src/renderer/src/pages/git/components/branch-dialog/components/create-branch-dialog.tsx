@@ -10,6 +10,7 @@ export function CreateBranchDialog({
   currentBranch,
   branches,
   startPoint: initialStartPoint,
+  namePrefix = "",
   onCreate
 }: {
   open: boolean
@@ -17,6 +18,8 @@ export function CreateBranchDialog({
   currentBranch: string
   branches: string[]
   startPoint?: string
+  /** Prefill branch name, e.g. folder path "codex/". */
+  namePrefix?: string
   onCreate: (name: string, startPoint?: string, checkout?: boolean) => void
 }) {
   const [name, setName] = useState("")
@@ -26,9 +29,9 @@ export function CreateBranchDialog({
   useEffect(() => {
     if (open) {
       setStartPoint(initialStartPoint || currentBranch)
-      setName("")
+      setName(namePrefix || "")
     }
-  }, [open, initialStartPoint, currentBranch])
+  }, [open, initialStartPoint, currentBranch, namePrefix])
 
   /** Handles confirm events. */
   const handleConfirm = () => {

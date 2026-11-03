@@ -8,7 +8,7 @@ import type { GitPageModel } from "@/pages/git/hooks/use-git-page"
 
 /** 新建分支 / 仓库设置 / 终端 / 合并分支弹窗 */
 export function GitDialogs({ g }: { g: GitPageModel }) {
-  const { repositorySettingsOpen, setRepositorySettingsOpen, terminalOpen, setTerminalOpen, repoPath, branches, createBranchOpen, setCreateBranchOpen, branchStartPoint, setBranchStartPoint, mergeBranchOpen, setMergeBranchOpen, refresh } = g
+  const { repositorySettingsOpen, setRepositorySettingsOpen, terminalOpen, setTerminalOpen, repoPath, branches, createBranchOpen, setCreateBranchOpen, branchStartPoint, setBranchStartPoint, branchNamePrefix, setBranchNamePrefix, mergeBranchOpen, setMergeBranchOpen, refresh } = g
 
   return (
     <>
@@ -17,11 +17,15 @@ export function GitDialogs({ g }: { g: GitPageModel }) {
           open={createBranchOpen}
           onOpenChange={(open) => {
             setCreateBranchOpen(open)
-            if (!open) setBranchStartPoint(undefined)
+            if (!open) {
+              setBranchStartPoint(undefined)
+              setBranchNamePrefix("")
+            }
           }}
           currentBranch={branches.current}
           branches={branches.local}
           startPoint={branchStartPoint}
+          namePrefix={branchNamePrefix}
           onCreate={async (name, startPoint, checkout) => {
             try {
               await window.electronAPI.git.createBranch(repoPath, name, startPoint, checkout)

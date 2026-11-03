@@ -139,6 +139,8 @@ export function useGitFileActions(repo: GitRepositoryState) {
   const handleStashFiles = async (paths: string[]) => {
     if (!repoPath || paths.length === 0) return
     const defaultMsg = paths.length === 1 ? `贮藏修改: ${paths[0]}` : `贮藏选中的 ${paths.length} 个文件修改`
+    // Defer past context-menu teardown; otherwise Electron often returns null from prompt with no dialog.
+    await new Promise<void>((resolve) => setTimeout(resolve, 0))
     const message = window.prompt("请输入贮藏说明 (可选):", defaultMsg)
     if (message === null) return
     try {
@@ -159,6 +161,7 @@ export function useGitFileActions(repo: GitRepositoryState) {
       return
     }
     const defaultMsg = `WIP 在 ${branches.current || "HEAD"} (${totalChanges} 个文件)`
+    await new Promise<void>((resolve) => setTimeout(resolve, 0))
     const message = window.prompt("请输入贮藏说明 (可选):", defaultMsg)
     if (message === null) return
     try {

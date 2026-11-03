@@ -28,9 +28,31 @@ export function installOptionArrow(toolbar: HTMLElement) {
   const schedule = () => {
     if (!frame) frame = requestAnimationFrame(align)
   }
+  const isShapeTool = (tool: HTMLElement) => {
+    const title = tool.dataset.title || ""
+    return title === "square" || title === "round" || title === "triangle" || title === "line" || title === "diamond" || title === "形状" || tool.classList.contains("shot-shapes") || tool.classList.contains("square") || tool.classList.contains("round") || !!tool.querySelector(".square, .round")
+  }
   const click = (event: MouseEvent) => {
     const tool = (event.target as Element).closest<HTMLElement>(".item-panel")
-    if (tool && Number(tool.dataset.id) >= 1 && Number(tool.dataset.id) <= 6) selected = tool
+    if (!tool || !toolbar.contains(tool)) return
+    if (isShapeTool(tool)) {
+      selected = toolbar.querySelector<HTMLElement>(".shot-shapes") || tool
+      schedule()
+      return
+    }
+    const id = Number(tool.dataset.id)
+    if (id >= 1 && id <= 6) {
+      selected = tool
+      // Close mode/shape secondaries and drop their held active tiles.
+      if (document.body.dataset.shotSecondary === "mode" || document.body.dataset.shotSecondary === "shapes" || document.body.dataset.shotSecondary === "steps") {
+        delete document.body.dataset.shotSecondary
+      }
+      window.dispatchEvent(new CustomEvent("vessel:screenshot-secondary", { detail: "options" }))
+      const shapes = toolbar.querySelector<HTMLElement>(".shot-shapes")
+      shapes?.classList.remove("shot-shapes-active")
+      shapes?.setAttribute("aria-pressed", "false")
+      shapes?.setAttribute("aria-expanded", "false")
+    }
     schedule()
   }
   toolbar.addEventListener("click", click)

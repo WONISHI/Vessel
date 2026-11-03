@@ -152,6 +152,10 @@ type CalloutMenuTarget = { quote: HTMLElement; x: number; y: number }
 export function bindCallouts(root: HTMLElement, onTypeMenu?: (target: CalloutMenuTarget) => void, onBlockMenu?: (target: CalloutMenuTarget) => void, onSourceEdit?: (apply: () => void) => void) {
   const contextMenu = (event: MouseEvent) => {
     const target = event.target as Element
+    // Nested code/image/table components own their context menus; do not steal on capture.
+    if (target.closest(".vessel-image-component, .vessel-image-block, .vessel-table-container, .vessel-table-block")) return
+    const codeFrame = target.closest<HTMLElement>("pre.vessel-code-frame")
+    if (codeFrame && event.clientY - codeFrame.getBoundingClientRect().top <= 40) return
     const quote = target.closest<HTMLElement>(".vessel-callout")
     if (!quote || !root.contains(quote)) return
     const heading = target.closest<HTMLElement>(".vessel-callout-heading")

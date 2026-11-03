@@ -42,6 +42,12 @@ function create(bounds: Electron.Rectangle, resizable = true) {
   win.webContents.setWindowOpenHandler(() => ({ action: "deny" }))
   win.webContents.on("will-navigate", (e) => e.preventDefault())
   win.webContents.ipc.handle("shot:close", () => win.close())
+  win.webContents.ipc.handle("shot:focus", () => {
+    if (win.isDestroyed()) return
+    // Only raise when needed — repeated webContents.focus() mid-IME cancels 拼音 on panel windows.
+    if (!win.isFocused()) win.focus()
+    if (!win.webContents.isFocused()) win.webContents.focus()
+  })
   win.webContents.ipc.handle("shot:translate", (_event, text: unknown, target: unknown) => translateScreenshot(text, target))
   win.webContents.ipc.handle("shot:copy-text", (_event, text: string) => {
     if (typeof text !== "string" || text.length > 1024 * 1024) throw new Error("文字数据无效")
@@ -95,8 +101,9 @@ export async function startScreenshot(previewSource?: Electron.WebContents) {
     win.webContents.ipc.handle("shot:ready", () => {
       if (!shown && !win.isDestroyed()) {
         shown = true
-        // A macOS nonactivating panel can receive keyboard input without activating Vessel.
+        // Panel floats above Spaces; focus so contenteditable text tool can type.
         win.show()
+        win.focus()
       }
     })
     win.webContents.ipc.handle("shot:data", () => ({ mode: "capture", image }))

@@ -1,11 +1,14 @@
 import { installLiquidGlass } from "@/features/screenshot/liquid-glass"
 import { installTextOptions, screenshotTextFont, drawScreenshotTextDecoration } from "./text-options"
+import { installTextInputFocus, vesselTextAdapters } from "./text-input"
 import { createOcrDialog } from "@/features/screenshot/ocr-dialog"
 import { arrangeScreenshotToolbar } from "@/features/screenshot/toolbar-order"
 import { installToolbarTooltip } from "@/features/screenshot/toolbar-tooltip"
 import { installToolbarDrag } from "@/features/screenshot/toolbar-drag"
 import { installScreenshotModes, readScreenshotMode, updateScreenshotToolbar, type ScreenshotMode } from "@/features/screenshot/mode-menu"
 import { installOptionArrow } from "@/features/screenshot/option-arrow"
+import { createShapeCanvasEvents, installShapeStrokeTracker, screenshotShapeAdapters, screenshotShapeToolbarItems } from "@/features/screenshot/shape-draw"
+import { activateScreenshotShape, installShapeMenu, readScreenshotShape, readScreenshotShapeStroke, type ScreenshotShape } from "@/features/screenshot/shape-menu"
 import { installColorInspector, installLiveCutSize, installSteps, mergeSteps, type CutBox } from "@/features/screenshot/screenshot-tools"
 import "@/features/screenshot/screenshot.css"
 import { recognizeImage } from "@/lib/image/image-ocr"
@@ -24,6 +27,7 @@ type ScreenshotAPI = {
   data(): Promise<{ mode: "capture" | "pin"; image: string }>
   finish(image: string, pin: boolean): Promise<void>
   close(): Promise<void>
+  focus(): Promise<void>
   copy(): Promise<void>
   copyText(text: string): Promise<void>
   translate(text: string, target: string): Promise<string>
@@ -80,7 +84,11 @@ function installToolbarIcons() {
   document.head.append(style)
 }
 window.addEventListener("keydown", (event) => {
-  if (event.key === "Escape") void api.close()
+  if (event.key === "Escape") {
+    if (document.getElementById("vesselTextInput")?.classList.contains("is-open")) return
+    if (event.isComposing || event.keyCode === 229) return
+    void api.close()
+  }
 })
 void api
   .data()
@@ -91,12 +99,17 @@ void api
     await document.fonts.ready
     if (mode === "capture") {
       const savedMode: ScreenshotMode = readScreenshotMode()
+      const savedShape: ScreenshotShape = readScreenshotShape()
       let action: "copy" | "pin" | "ocr" | "save" | "translate" = savedMode
+      let activeCustomShape: ScreenshotShape | null = null
+      let shapeCanvas: CanvasRenderingContext2D | null = null
+      const shapeStroke = installShapeStrokeTracker(readScreenshotShapeStroke())
       let stepTools: ReturnType<typeof installSteps> | undefined
       let stopGlass: (() => void) | undefined
       let stopTooltip: (() => void) | undefined
       let stopToolbarDrag: (() => void) | undefined
       let stopModeMenu: (() => void) | undefined
+      let stopShapeMenu: { dispose: () => void; select: (shape: ScreenshotShape) => void } | undefined
       let stopOptionArrow: (() => void) | undefined
       let stopInspector: (() => void) | undefined
       document.body.style.background = `url("${image}") center / 100% 100% no-repeat`
@@ -154,6 +167,21 @@ void api
         }
         const steps = tool("shot-step", "步骤标注", ListOrdered)
         stepTools = installSteps(plugin, steps)
+        const shapes = tool("shot-shapes", "形状", Square)
+        stopShapeMenu = installShapeMenu(toolbar || document.body, shapes, (shape) => {
+          activeCustomShape = shape === "triangle" || shape === "line" || shape === "diamond" ? shape : null
+          shapes.classList.add("shot-shapes-active")
+          shapes.setAttribute("aria-pressed", "true")
+        }, savedShape, shapeStroke)
+        toolbar?.addEventListener("click", (event) => {
+          const target = event.target as Element
+          if (target.closest(".shot-shapes, .item-panel[data-title='triangle'], .item-panel[data-title='line'], .item-panel[data-title='diamond'], .item-panel.square, .item-panel.round") || target.closest(".item-panel:has(.square), .item-panel:has(.round)")) return
+          if (!target.closest("#toolPanel .item-panel")) return
+          shapes.classList.remove("shot-shapes-active")
+          shapes.setAttribute("aria-pressed", "false")
+          activeCustomShape = null
+          delete document.body.dataset.shotShape
+        })
         document.querySelector("#toolPanel .undo, #toolPanel .undo-disabled")?.parentElement?.addEventListener(
           "click",
           (event) => {
@@ -172,6 +200,12 @@ void api
         copy.before(pin)
         if (toolbar) arrangeScreenshotToolbar(toolbar)
         if (toolbar) {
+          activateScreenshotShape(toolbar, savedShape)
+          if (savedShape === "triangle" || savedShape === "line" || savedShape === "diamond") {
+            activeCustomShape = savedShape
+            shapes.classList.add("shot-shapes-active")
+            shapes.setAttribute("aria-pressed", "true")
+          }
           stopTooltip = installToolbarTooltip(toolbar)
           const stopToolbarGlass = installLiquidGlass(toolbar)
           const options = document.getElementById("optionPanel")
@@ -179,7 +213,9 @@ void api
           const sizeMenu = options?.querySelector<HTMLElement>(".text-select-panel")
           const stopSizeGlass = sizeMenu ? installLiquidGlass(sizeMenu) : undefined
           const stopTextOptions = options ? installTextOptions(toolbar, options) : undefined
+          const stopTextInputFocus = installTextInputFocus(toolbar, () => plugin.getCutBoxInfo(), () => { void api.focus().catch(() => undefined) })
           stopGlass = () => {
+            stopTextInputFocus()
             stopTextOptions?.()
             stopSizeGlass?.()
             stopOptionsGlass?.()
@@ -207,6 +243,17 @@ void api
         writeBase64: false,
         exportOptions: { type: "image/png" },
         useRatioArrow: true,
+        userToolbar: screenshotShapeToolbarItems((shape, context) => {
+          activeCustomShape = shape
+          shapeCanvas = context
+          document.body.dataset.shotShape = shape
+        }),
+        customElementAdapters: [...screenshotShapeAdapters(), ...vesselTextAdapters()],
+        canvasEvents: createShapeCanvasEvents(
+          () => shapeStroke.current(),
+          () => shapeCanvas,
+          () => activeCustomShape
+        ) as any,
 
         /** Performs the trigger callback operation. */
         triggerCallback: ({ code }) => {
@@ -223,11 +270,14 @@ void api
           observer.disconnect()
           stopOptionArrow?.()
           stopModeMenu?.()
+          stopShapeMenu?.dispose()
+          shapeStroke.dispose()
           stopToolbarDrag?.()
           stopTooltip?.()
           stopGlass?.()
           stopInspector?.()
           stepTools?.hide()
+          delete document.body.dataset.shotShape
           void mergeSteps(base64, cutInfo, stepTools?.steps || [])
             .then(async (result) => {
               if (action === "ocr" || action === "translate") {
@@ -253,6 +303,8 @@ void api
         }
       })
       window.addEventListener("keydown", (event) => {
+        if (event.isComposing || event.keyCode === 229) return
+        if (document.getElementById("vesselTextInput")?.classList.contains("is-open")) return
         if (matchesShortcut(event, "pinScreenshot")) {
           event.preventDefault()
           action = "pin"

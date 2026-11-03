@@ -12,6 +12,9 @@ contextBridge.exposeInMainWorld("screenshotAPI", {
   /** Closes close. */
   close: () => ipcRenderer.invoke("shot:close"),
 
+  /** Focus the screenshot panel so textarea / IME can receive keys. */
+  focus: () => ipcRenderer.invoke("shot:focus"),
+
   translate: (text: string, target: string) => ipcRenderer.invoke("shot:translate", text, target),
 
   /** Copies text. */

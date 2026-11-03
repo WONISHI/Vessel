@@ -87,15 +87,80 @@ function patchScreenShotPlugin() {
       patched = patched.replace("setToolStatus(!0);var i=o.cutOutBoxPosition;Jn(i.startX,i.startY,i.width,i.height,A,o.borderSize,e,t,!1)", "setToolStatus(!0);var i=o.cutOutBoxPosition;Jn(i.startX,i.startY,i.width,i.height,A,o.borderSize,e,t,!0)")
       patched = patched.replace("var i=Nn.cutOutBoxPosition;Jn(i.startX,i.startY,i.width,i.height,A,Nn.borderSize,r,o,!1)", "var i=Nn.cutOutBoxPosition;Jn(i.startX,i.startY,i.width,i.height,A,Nn.borderSize,r,o,!0)")
       patched = patched.replace("Gr.selectionBorderNodes.length>0&&!Jr.toolClickStatus&&!Nn.draggingTrim&&ys(A,e,i)", "Gr.selectionBorderNodes.length>0&&!Nn.draggingTrim&&ys(A,e,i)")
+      // Skip crop Move while drawing; keep Move for text (mouseInsideCropBox). On text+Move hits
+      // clear borderOption so Ms()/mouseUp crop-drag cannot destroy #textInputPanel.
+      patched = patched.replace(
+        /if\s*\(\s*Jr\.toolClickStatus\s*&&\s*(\w+)\.option\s*===\s*lo\.Move\s*\)\s*continue\s*;/g,
+        'if(Jr.toolClickStatus&&$1.option===lo.Move&&"text"!==Jr.toolName)continue;'
+      )
+      patched = patched.replace(
+        /if\s*\(\s*Jr\.toolClickStatus\s*&&\s*(\w+)\.option\s*===\s*lo\.Move\s*&&\s*"text"\s*!==\s*Jr\.toolName\s*\)\s*continue\s*;/g,
+        'if(Jr.toolClickStatus&&$1.option===lo.Move&&"text"!==Jr.toolName)continue;'
+      )
       patched = patched.replace(
         "for(var r=0;r<Gr.selectionBorderNodes.length;r++){var o=Gr.selectionBorderNodes[r];if(t.rect(o.x,o.y,o.width,o.height)",
-        "for(var r=0;r<Gr.selectionBorderNodes.length;r++){var o=Gr.selectionBorderNodes[r];if(Jr.toolClickStatus&&o.option===lo.Move)continue;if(t.rect(o.x,o.y,o.width,o.height)"
+        'for(var r=0;r<Gr.selectionBorderNodes.length;r++){var o=Gr.selectionBorderNodes[r];if(Jr.toolClickStatus&&o.option===lo.Move&&"text"!==Jr.toolName)continue;if(t.rect(o.x,o.y,o.width,o.height)'
+      )
+      patched = patched.replace(
+        /Fs\((\w+)\.index\)\s*,\s*Gr\.updateBorderOption\(\1\.option\)\s*,\s*(\w+)=!0/g,
+        'Fs($1.index),Jr.toolClickStatus&&$1.option===lo.Move&&"text"===Jr.toolName?Gr.updateBorderOption(null):Gr.updateBorderOption($1.option),$2=!0'
+      )
+      patched = patched.replace(
+        /Fs\((\w+)\.index\)\s*,\s*Gr\.updateBorderOption\(\1\.option\)\s*,\s*(\w+)\s*=\s*true/g,
+        'Fs($1.index),Jr.toolClickStatus&&$1.option===lo.Move&&"text"===Jr.toolName?Gr.updateBorderOption(null):Gr.updateBorderOption($1.option),$2=true'
       )
       patched = patched.replace("!Jr.toolClickStatus||Nn.dragging?Jr.toolClickStatus&&Nn.dragging?Vs(", "!Jr.toolClickStatus||Nn.dragging?Jr.toolClickStatus&&Nn.dragging&&!Nn.draggingTrim?Vs(")
       patched = patched.replace("bs()&&(Is(t),Hs(t,n)||(Ss(),xs(),Ks(A)&&Ds(e)))", "bs()&&(Is(t),Gr.borderOption?(Ss(),xs(),Ds(e),Gr.updateBorderOption(null)):(Hs(t,n)||(Ss(),xs(),Ks(A)&&Ds(e))))")
       patched = patched.replace("Gr.tempGraphPosition.height),!Jr.toolClickStatus){var A=Nn.drawGraphPosition", "Gr.tempGraphPosition.height),(!Jr.toolClickStatus||Nn.draggingTrim)){var A=Nn.drawGraphPosition")
       patched = patched.replace("Nn.setCutOutBoxPosition(e,t,n,r)}}", "Nn.setCutOutBoxPosition(e,t,n,r);Gr.redrawCanvasElements()}}")
       patched = patched.replace("Gr.tempGraphPosition.height)){var A=Nn.drawGraphPosition", "Gr.tempGraphPosition.height),(!Jr.toolClickStatus||Nn.draggingTrim)){var A=Nn.drawGraphPosition")
+
+      // Text tool Zs: geometric cut-box hit (mouseInsideCropBox is unreliable), allow text over
+      // shapes, and always consume mousedown while text is active so Ms()/draw cannot steal the panel.
+      patched = patched.replace(
+        'function Zs(e,t,n){if(!Gr.mouseInsideCropBox)return!0;var r=n.textInputController,o=n.canvasContext,i=null;Gr.checkMouseInElement(e,t,function(A){i=A});var s=null!=i?Gr.getCanvasElement(i):null,a=Gr.activeElementId;if(function(A,e,t){var n=null!=e&&"text"!==e.type&&("move"===t||wr.has(t)),r=null!=A&&"text"!==A.type;return n||r}(s,null!=a?Gr.getCanvasElement(a):null,Gn.mousePointer))return!1;',
+        'function Zs(e,t,n){var _b=Nn.cutOutBoxPosition;if(!(_b&&e>=_b.startX&&t>=_b.startY&&e<=_b.startX+_b.width&&t<=_b.startY+_b.height))return!0;var r=n.textInputController,o=n.canvasContext,i=null;Gr.checkMouseInElement(e,t,function(A){i=A});var s=null!=i?Gr.getCanvasElement(i):null,a=Gr.activeElementId;if(function(A,e,t){return null!=e&&"text"!==e.type&&("move"===t||wr.has(t))}(s,null!=a?Gr.getCanvasElement(a):null,Gn.mousePointer))return!1;'
+      )
+      patched = patched.replace(
+        'function Zs(e,t,n){var _b=Nn.cutOutBoxPosition;if(!(_b&&e>=_b.startX&&t>=_b.startY&&e<=_b.startX+_b.width&&t<=_b.startY+_b.height))return!0;var r=n.textInputController,o=n.canvasContext,i=null;Gr.checkMouseInElement(e,t,function(A){i=A});var s=null!=i?Gr.getCanvasElement(i):null,a=Gr.activeElementId;if(function(A,e,t){var n=null!=e&&"text"!==e.type&&("move"===t||wr.has(t)),r=null!=A&&"text"!==A.type;return n||r}(s,null!=a?Gr.getCanvasElement(a):null,Gn.mousePointer))return!1;',
+        'function Zs(e,t,n){var _b=Nn.cutOutBoxPosition;if(!(_b&&e>=_b.startX&&t>=_b.startY&&e<=_b.startX+_b.width&&t<=_b.startY+_b.height))return!0;var r=n.textInputController,o=n.canvasContext,i=null;Gr.checkMouseInElement(e,t,function(A){i=A});var s=null!=i?Gr.getCanvasElement(i):null,a=Gr.activeElementId;if(function(A,e,t){return null!=e&&"text"!==e.type&&("move"===t||wr.has(t))}(s,null!=a?Gr.getCanvasElement(a):null,Gn.mousePointer))return!1;'
+      )
+      patched = patched.replace(
+        "function(A,e){var t=ks();return Boolean(t&&Zs(A,e,t))}",
+        "function(A,e){var t=ks();if(!t)return!1;Zs(A,e,t);return!0}"
+      )
+      patched = patched.replace(
+        "function(A,e){var t=ks();if(!t)return!1;return!Zs(A,e,t)}",
+        "function(A,e){var t=ks();if(!t)return!1;Zs(A,e,t);return!0}"
+      )
+      patched = patched.replace(
+        /function\s*\(\s*(\w+)\s*,\s*(\w+)\s*\)\s*\{\s*var\s+(\w+)\s*=\s*ks\(\)\s*;\s*return\s+Boolean\(\s*\3\s*&&\s*Zs\(\s*\1\s*,\s*\2\s*,\s*\3\s*\)\s*\)\s*;?\s*\}/g,
+        "function($1,$2){var $3=ks();if(!$3)return!1;Zs($1,$2,$3);return!0}"
+      )
+      patched = patched.replace(
+        /function\s*\(\s*(\w+)\s*,\s*(\w+)\s*\)\s*\{\s*var\s+(\w+)\s*=\s*ks\(\)\s*;\s*if\s*\(\s*!\3\s*\)\s*return\s*!1\s*;\s*return\s*!Zs\(\s*\1\s*,\s*\2\s*,\s*\3\s*\)\s*;?\s*\}/g,
+        "function($1,$2){var $3=ks();if(!$3)return!1;Zs($1,$2,$3);return!0}"
+      )
+
+
+      // Expose plugin custom-element API for Vessel-owned text commits.
+      patched = patched.replace(
+        ",vs={addElement:function(e){",
+        ",vs=globalThis.__vesselShotApi={addElement:function(e){"
+      )
+      patched = patched.replace(
+        "var vs = { addElement: function(e2) {",
+        "var vs = globalThis.__vesselShotApi = { addElement: function(e2) {"
+      )
+      patched = patched.replace(
+        "redraw:function(){Qs()}},Us=function(A,e,t){var n;null===(n=Cs())||void 0===n||n.mouseDownFn(A,e,t,Wr,vs)}",
+        "redraw:function(){Qs()},saveHistory:function(){Wr()}};globalThis.__vesselShotHistory=Wr;Us=function(A,e,t){var n;null===(n=Cs())||void 0===n||n.mouseDownFn(A,e,t,Wr,vs)}"
+      )
+      patched = patched.replace(
+        "redraw: function() {\n  Qs();\n} };",
+        "redraw: function() {\n  Qs();\n  }, saveHistory: function() {\n    Wr();\n  } };\nglobalThis.__vesselShotHistory = Wr;"
+      )
+
       return { code: patched, map: null }
     }
   }

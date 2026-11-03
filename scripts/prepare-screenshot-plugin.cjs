@@ -18,10 +18,27 @@ function patchFile(filePath) {
   // 2. Allow ys to detect border handles in annotation mode
   code = code.replace("Gr.selectionBorderNodes.length>0&&!Jr.toolClickStatus&&!Nn.draggingTrim&&ys(A,e,i)", "Gr.selectionBorderNodes.length>0&&!Nn.draggingTrim&&ys(A,e,i)")
 
-  // 3. Skip lo.Move in ys when in annotation mode so annotations can be drawn inside
+  // 3. Skip lo.Move while drawing; keep Move for text (mouseInsideCropBox). Clear borderOption on
+  // text+Move hits so Ms()/mouseUp do not crop-drag away #textInputPanel.
+  code = code.replace(
+    /if\s*\(\s*Jr\.toolClickStatus\s*&&\s*(\w+)\.option\s*===\s*lo\.Move\s*\)\s*continue\s*;/g,
+    'if(Jr.toolClickStatus&&$1.option===lo.Move&&"text"!==Jr.toolName)continue;'
+  )
+  code = code.replace(
+    /if\s*\(\s*Jr\.toolClickStatus\s*&&\s*(\w+)\.option\s*===\s*lo\.Move\s*&&\s*"text"\s*!==\s*Jr\.toolName\s*\)\s*continue\s*;/g,
+    'if(Jr.toolClickStatus&&$1.option===lo.Move&&"text"!==Jr.toolName)continue;'
+  )
   code = code.replace(
     "for(var r=0;r<Gr.selectionBorderNodes.length;r++){var o=Gr.selectionBorderNodes[r];if(t.rect(o.x,o.y,o.width,o.height)",
-    "for(var r=0;r<Gr.selectionBorderNodes.length;r++){var o=Gr.selectionBorderNodes[r];if(Jr.toolClickStatus&&o.option===lo.Move)continue;if(t.rect(o.x,o.y,o.width,o.height)"
+    'for(var r=0;r<Gr.selectionBorderNodes.length;r++){var o=Gr.selectionBorderNodes[r];if(Jr.toolClickStatus&&o.option===lo.Move&&"text"!==Jr.toolName)continue;if(t.rect(o.x,o.y,o.width,o.height)'
+  )
+  code = code.replace(
+    /Fs\((\w+)\.index\),Gr\.updateBorderOption\(\1\.option\),(\w+)=!0/g,
+    'Fs($1.index),Jr.toolClickStatus&&$1.option===lo.Move&&"text"===Jr.toolName?Gr.updateBorderOption(null):Gr.updateBorderOption($1.option),$2=!0'
+  )
+  code = code.replace(
+    /Fs\((\w+)\.index\)\s*,\s*Gr\.updateBorderOption\(\1\.option\)\s*,\s*(\w+)\s*=\s*true/g,
+    'Fs($1.index),Jr.toolClickStatus&&$1.option===lo.Move&&"text"===Jr.toolName?Gr.updateBorderOption(null):Gr.updateBorderOption($1.option),$2=true'
   )
 
   // 4. In oa, allow resize dragging even when toolClickStatus is true
@@ -41,6 +58,43 @@ function patchFile(filePath) {
   code = code.replace("Nn.setCutOutBoxPosition(e,t,n,r)}}", "Nn.setCutOutBoxPosition(e,t,n,r);Gr.redrawCanvasElements()}}")
 
   code = code.replace("Gr.tempGraphPosition.height)){var A=Nn.drawGraphPosition", "Gr.tempGraphPosition.height),(!Jr.toolClickStatus||Nn.draggingTrim)){var A=Nn.drawGraphPosition")
+
+  // 8. Text tool Zs: hit-test the cut box geometrically (mouseInsideCropBox lags / misses),
+  // allow placing text over non-text drawings, and ALWAYS consume mousedown while text is active
+  // so Ms()/draw cannot steal or dismiss #textInputPanel (upstream Boolean(t&&Zs) is inverted).
+  code = code.replace(
+    'function Zs(e,t,n){if(!Gr.mouseInsideCropBox)return!0;var r=n.textInputController,o=n.canvasContext,i=null;Gr.checkMouseInElement(e,t,function(A){i=A});var s=null!=i?Gr.getCanvasElement(i):null,a=Gr.activeElementId;if(function(A,e,t){var n=null!=e&&"text"!==e.type&&("move"===t||wr.has(t)),r=null!=A&&"text"!==A.type;return n||r}(s,null!=a?Gr.getCanvasElement(a):null,Gn.mousePointer))return!1;',
+    'function Zs(e,t,n){var _b=Nn.cutOutBoxPosition;if(!(_b&&e>=_b.startX&&t>=_b.startY&&e<=_b.startX+_b.width&&t<=_b.startY+_b.height))return!0;var r=n.textInputController,o=n.canvasContext,i=null;Gr.checkMouseInElement(e,t,function(A){i=A});var s=null!=i?Gr.getCanvasElement(i):null,a=Gr.activeElementId;if(function(A,e,t){return null!=e&&"text"!==e.type&&("move"===t||wr.has(t))}(s,null!=a?Gr.getCanvasElement(a):null,Gn.mousePointer))return!1;'
+  )
+  // Idempotent if a previous Vessel run already applied the geometry gate but kept the old abort.
+  code = code.replace(
+    'function Zs(e,t,n){var _b=Nn.cutOutBoxPosition;if(!(_b&&e>=_b.startX&&t>=_b.startY&&e<=_b.startX+_b.width&&t<=_b.startY+_b.height))return!0;var r=n.textInputController,o=n.canvasContext,i=null;Gr.checkMouseInElement(e,t,function(A){i=A});var s=null!=i?Gr.getCanvasElement(i):null,a=Gr.activeElementId;if(function(A,e,t){var n=null!=e&&"text"!==e.type&&("move"===t||wr.has(t)),r=null!=A&&"text"!==A.type;return n||r}(s,null!=a?Gr.getCanvasElement(a):null,Gn.mousePointer))return!1;',
+    'function Zs(e,t,n){var _b=Nn.cutOutBoxPosition;if(!(_b&&e>=_b.startX&&t>=_b.startY&&e<=_b.startX+_b.width&&t<=_b.startY+_b.height))return!0;var r=n.textInputController,o=n.canvasContext,i=null;Gr.checkMouseInElement(e,t,function(A){i=A});var s=null!=i?Gr.getCanvasElement(i):null,a=Gr.activeElementId;if(function(A,e,t){return null!=e&&"text"!==e.type&&("move"===t||wr.has(t))}(s,null!=a?Gr.getCanvasElement(a):null,Gn.mousePointer))return!1;'
+  )
+  code = code.replace(
+    "function(A,e){var t=ks();return Boolean(t&&Zs(A,e,t))}",
+    "function(A,e){var t=ks();if(!t)return!1;Zs(A,e,t);return!0}"
+  )
+  code = code.replace(
+    "function(A,e){var t=ks();if(!t)return!1;return!Zs(A,e,t)}",
+    "function(A,e){var t=ks();if(!t)return!1;Zs(A,e,t);return!0}"
+  )
+
+  // 9. Expose custom-element API for Vessel-owned text / shapes (addElement + history).
+  code = code.replace(
+    ",vs={addElement:function(e){",
+    ",vs=globalThis.__vesselShotApi={addElement:function(e){"
+  )
+  code = code.replace(
+    "redraw:function(){Qs()}},Us=function(A,e,t){var n;null===(n=Cs())||void 0===n||n.mouseDownFn(A,e,t,Wr,vs)}",
+    "redraw:function(){Qs()},saveHistory:function(){Wr()}};globalThis.__vesselShotHistory=Wr;Us=function(A,e,t){var n;null===(n=Cs())||void 0===n||n.mouseDownFn(A,e,t,Wr,vs)}"
+  )
+  // Idempotent if a prior run already assigned __vesselShotApi but not saveHistory.
+  code = code.replace(
+    "redraw:function(){Qs()}},Us=function(A,e,t){var n;globalThis.__vesselShotHistory=Wr,null===(n=Cs())||void 0===n||n.mouseDownFn(A,e,t,Wr,vs)}",
+    "redraw:function(){Qs()},saveHistory:function(){Wr()}};globalThis.__vesselShotHistory=Wr;Us=function(A,e,t){var n;null===(n=Cs())||void 0===n||n.mouseDownFn(A,e,t,Wr,vs)}"
+  )
+
   if (code !== orig) {
     writeFileSync(filePath, code, "utf8")
     console.log("Patched screenshot plugin:", filePath)

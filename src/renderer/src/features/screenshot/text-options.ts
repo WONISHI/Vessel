@@ -1,5 +1,8 @@
 import { installLiquidGlass } from "./liquid-glass"
 const format = { bold: false, italic: false, underline: false, strike: false, family: "sans-serif" }
+export function getScreenshotTextFormat() {
+  return { ...format }
+}
 export function screenshotTextFont(value: string) {
   if (!/\bnone$/.test(value)) return value
   const size = /[\d.]+px/.exec(value)?.[0] || "16px"
@@ -57,7 +60,7 @@ export function installTextOptions(toolbar: HTMLElement, panel: HTMLElement) {
   summary.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h7m4 0h5M4 12h3m4 0h9M4 18h11m4 0h1"/><circle cx="13" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/></svg><span class="shot-menu-chevron" aria-hidden="true"></span>'
   const list = document.createElement("div"); list.className = "shot-text-format-menu"
   const updateInput = () => {
-    const input = document.querySelector<HTMLElement>('#textInput, [contenteditable="true"]')
+    const input = document.querySelector<HTMLElement>('#vesselTextInput.is-open, #textInputPanel, #textInput, [contenteditable="true"]')
     if (!input) return
     input.style.fontWeight = format.bold ? "700" : "400"
     input.style.fontStyle = format.italic ? "italic" : "normal"

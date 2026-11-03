@@ -104,6 +104,7 @@ export function useGitRepository() {
   // 弹窗状态
   const [createBranchOpen, setCreateBranchOpen] = useState(false)
   const [branchStartPoint, setBranchStartPoint] = useState<string | undefined>(undefined)
+  const [branchNamePrefix, setBranchNamePrefix] = useState("")
   const [mergeBranchOpen, setMergeBranchOpen] = useState(false)
 
   // 刷新当前仓库数据
@@ -289,7 +290,7 @@ export function useGitRepository() {
   const branchSyncedTotal = Math.max(0, branchCommitTotal - aheadCount)
   const behindCount = status?.behind || 0
 
-  return { repositorySettingsOpen, setRepositorySettingsOpen, terminalOpen, setTerminalOpen, repoPath, setRepoPath, libraryProjects, setLibraryProjects, isRepo, setIsRepo, activeTab, setActiveTab, loading, setLoading, remoteOperation, setRemoteOperation, remotePending, status, setStatus, branches, setBranches, commits, setCommits, unpushedHashes, setUnpushedHashes, commitTotal, setCommitTotal, branchCommitTotal, setBranchCommitTotal, historyLoading, setHistoryLoading, historyVersion, historyPending, historyFailed, setHistoryFailed, selectedCommitIndex, setSelectedCommitIndex, historyFocusNonce, navigateToBranchTip, commitDetail, setCommitDetail, historyScope, setHistoryScope, selectedFile, setSelectedFile, diffText, setDiffText, selectedStagedPaths, setSelectedStagedPaths, selectedUnstagedPaths, setSelectedUnstagedPaths, lastStagedClickedIndex, setLastStagedClickedIndex, lastUnstagedClickedIndex, setLastUnstagedClickedIndex, activeFileSection, setActiveFileSection, stashes, setStashes, commitMessage, commitMessageReset, setCommitMessageReset, isAmend, setIsAmend, createBranchOpen, setCreateBranchOpen, branchStartPoint, setBranchStartPoint, mergeBranchOpen, setMergeBranchOpen, refresh, loadMoreHistory, topology, aheadCount, branchSyncedTotal, behindCount }
+  return { repositorySettingsOpen, setRepositorySettingsOpen, terminalOpen, setTerminalOpen, repoPath, setRepoPath, libraryProjects, setLibraryProjects, isRepo, setIsRepo, activeTab, setActiveTab, loading, setLoading, remoteOperation, setRemoteOperation, remotePending, status, setStatus, branches, setBranches, commits, setCommits, unpushedHashes, setUnpushedHashes, commitTotal, setCommitTotal, branchCommitTotal, setBranchCommitTotal, historyLoading, setHistoryLoading, historyVersion, historyPending, historyFailed, setHistoryFailed, selectedCommitIndex, setSelectedCommitIndex, historyFocusNonce, navigateToBranchTip, commitDetail, setCommitDetail, historyScope, setHistoryScope, selectedFile, setSelectedFile, diffText, setDiffText, selectedStagedPaths, setSelectedStagedPaths, selectedUnstagedPaths, setSelectedUnstagedPaths, lastStagedClickedIndex, setLastStagedClickedIndex, lastUnstagedClickedIndex, setLastUnstagedClickedIndex, activeFileSection, setActiveFileSection, stashes, setStashes, commitMessage, commitMessageReset, setCommitMessageReset, isAmend, setIsAmend, createBranchOpen, setCreateBranchOpen, branchStartPoint, setBranchStartPoint, branchNamePrefix, setBranchNamePrefix, mergeBranchOpen, setMergeBranchOpen, refresh, loadMoreHistory, topology, aheadCount, branchSyncedTotal, behindCount }
 }
 
 export type GitRepositoryState = ReturnType<typeof useGitRepository>

@@ -499,13 +499,24 @@ export class GitService {
 
   /** Performs the stash save operation. */
   async stashSave(cwd: string, message?: string, files?: string[]): Promise<void> {
-    const args = ["stash", "push", "-u"]
+    // GitLens-style pathspecs: repo-relative with "./" so untracked/pathspec matching is reliable.
+    const pathspecs = (files || [])
+      .map((file) => file.replace(/\\/g, "/").replace(/^\.\//, "").replace(/^\/+/, ""))
+      .filter(Boolean)
+      .map((file) => (file.startsWith("./") ? file : `./${file}`))
+    const args = ["stash", "push"]
+    // Include untracked whenever pathspecs are used (or for full-workspace stash).
+    args.push("--include-untracked")
     if (message) args.push("-m", message)
-    if (files && files.length > 0) {
-      args.push("--", ...files)
+    if (pathspecs.length > 0) {
+      args.push("--", ...pathspecs)
     }
     const res = await runGit(args, cwd)
-    if (res.exitCode !== 0) throw new Error(res.stderr || "Stash save failed")
+    const combined = `${res.stdout || ""}\n${res.stderr || ""}`
+    if (/No local changes to save/i.test(combined)) {
+      throw new Error("没有可贮藏的修改（所选路径可能没有变更）")
+    }
+    if (res.exitCode !== 0) throw new Error(res.stderr || res.stdout || "Stash save failed")
   }
 
   /** Performs the stash pop operation. */
