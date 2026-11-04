@@ -57,7 +57,7 @@ function pythonBinary(root, platform) {
 
 /** Verifies MarkItDown imports against the prepared interpreter. */
 function verify(python) {
-  execFileSync(python, ["-c", "import sys; from markitdown import MarkItDown; print(sys.version.split()[0]); print('markitdown-ok')"], { stdio: "inherit" })
+  execFileSync(python, ["-I", "-c", "import sys; from markitdown import MarkItDown; from markitdown.converters import PdfConverter; print(sys.version.split()[0]); print('markitdown-ok')"], { stdio: "inherit", timeout: 120000 })
 }
 
 /** Performs the main operation. */
@@ -67,10 +67,19 @@ function main() {
   const name = assetName(triple)
   const python = pythonBinary(OUT, platform)
   const marker = path.join(OUT, ".vessel-markitdown.json")
+  const requirementsHash = createHash("sha256").update(fs.readFileSync(REQUIREMENTS)).digest("hex")
+  const metadata = fs.existsSync(marker) ? JSON.parse(fs.readFileSync(marker, "utf8")) : null
+  const matches = metadata && metadata.platform === platform && metadata.arch === arch && metadata.release === RELEASE && metadata.cpython === CPYTHON && metadata.requirementsHash === requirementsHash
+
+  if (process.argv.includes("--ensure") && matches && fs.existsSync(python)) {
+    verify(python)
+    return
+  }
 
   if (checkOnly) {
     if (!fs.existsSync(python)) throw new Error("缺少打包用 MarkItDown 运行时，请运行 npm run assets:markitdown")
     if (!fs.existsSync(marker)) throw new Error("MarkItDown 运行时元数据缺失，请重新运行 npm run assets:markitdown")
+    if (!matches) throw new Error("MarkItDown 运行时目标或依赖不匹配，请重新运行 npm run assets:markitdown")
     verify(python)
     console.log("MarkItDown standalone runtime verified:", python)
     return
@@ -105,8 +114,7 @@ function main() {
   if (!fs.existsSync(interpreter)) throw new Error(`独立 Python 缺少解释器：${interpreter}`)
 
   console.log("Installing MarkItDown into standalone runtime…")
-  execFileSync(interpreter, ["-m", "pip", "install", "--upgrade", "pip"], { stdio: "inherit" })
-  execFileSync(interpreter, ["-m", "pip", "install", "--no-cache-dir", "-r", REQUIREMENTS], { stdio: "inherit" })
+  execFileSync(interpreter, ["-m", "pip", "install", "--cache-dir", path.join(CACHE, "pip"), "--progress-bar", "off", "-r", REQUIREMENTS], { stdio: "inherit" })
 
   // Drop bundled ensurepip wheels that are not needed at runtime.
   for (const base of ["lib", "Lib"]) {
@@ -116,11 +124,6 @@ function main() {
       if (!entry.startsWith("python")) continue
       removeTree(path.join(libRoot, entry, "ensurepip", "_bundled"))
     }
-  }
-  try {
-    execFileSync(interpreter, ["-m", "pip", "cache", "purge"], { stdio: "ignore" })
-  } catch {
-    /* Optional cleanup. */
   }
 
   const digest = createHash("sha256").update(fs.readFileSync(archive)).digest("hex")
@@ -137,6 +140,7 @@ function main() {
         archive: name,
         sha256: digest,
         requirements: path.basename(REQUIREMENTS),
+        requirementsHash,
         preparedAt: new Date().toISOString()
       },
       null,
@@ -148,4 +152,19 @@ function main() {
   console.log("MarkItDown standalone runtime ready at", OUT)
 }
 
-main()
+fs.mkdirSync(CACHE, { recursive: true })
+const lock = path.join(CACHE, "prepare.lock")
+let descriptor
+try {
+  descriptor = fs.openSync(lock, "wx")
+  fs.writeFileSync(descriptor, String(process.pid))
+} catch (error) {
+  if (error.code === "EEXIST") throw new Error(`另一个任务正在准备 MarkItDown；若任务已退出，请删除 ${lock} 后重试。`)
+  throw error
+}
+try {
+  main()
+} finally {
+  fs.closeSync(descriptor)
+  fs.unlinkSync(lock)
+}

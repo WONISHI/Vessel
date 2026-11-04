@@ -14,9 +14,10 @@ export async function convertOfficeMarkdown(name: string, bytes: Uint8Array): Pr
     const input = join(directory, `document${extname(name).toLowerCase()}`)
     const output = join(directory, "document.md")
     await writeFile(input, bytes)
-    const python = process.env.VESSEL_MARKITDOWN_PYTHON || (app.isPackaged ? join(process.resourcesPath, "markitdown", "bin", "python3") : join(app.getAppPath(), ".venv-markitdown", "bin", "python3"))
+    const runtime = app.isPackaged ? join(process.resourcesPath, "markitdown") : join(app.getAppPath(), ".venv-markitdown")
+    const python = process.env.VESSEL_MARKITDOWN_PYTHON || (process.platform === "win32" ? join(runtime, app.isPackaged ? "python.exe" : "Scripts/python.exe") : join(runtime, "bin", "python3"))
     try {
-      await execute(python, ["-c", "import sys; from pathlib import Path; from markitdown import MarkItDown; result = MarkItDown().convert(sys.argv[1]); Path(sys.argv[2]).write_text(result.text_content, encoding='utf-8')", input, output], { timeout: 120000, maxBuffer: 2 * 1024 * 1024 })
+      await execute(python, ["-I", "-c", "import sys; from pathlib import Path; from markitdown import MarkItDown; result = MarkItDown().convert(sys.argv[1]); Path(sys.argv[2]).write_text(result.text_content, encoding='utf-8')", input, output], { timeout: 120000, maxBuffer: 2 * 1024 * 1024 })
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === "ENOENT") throw new Error("MarkItDown 运行环境未安装，请配置 VESSEL_MARKITDOWN_PYTHON（Python 3.10+ 并安装 markitdown）。")
       throw new Error(`MarkItDown 转换失败：${(error as { stderr?: string }).stderr?.trim() || String(error)}`)

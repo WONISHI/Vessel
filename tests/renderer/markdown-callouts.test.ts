@@ -337,3 +337,42 @@ it("keeps the fold flag hidden and protected when Vditor splits the directive ac
     expect(document.activeElement).toBe(root)
   } finally { unbind(); root.remove(); window.getSelection()?.removeAllRanges() }
 })
+
+
+it.each(["selectionchange", "leading-empty-text"])("inserts after the directive when an empty title has %s", (boundary) => {
+  const root = document.createElement("div")
+  root.setAttribute("contenteditable", "true")
+  root.innerHTML = lute.Md2VditorIRDOM('> [!help]+ 标题\n> 标注内容\n')
+  document.body.append(root)
+  decorateCallouts(root)
+  const unbind = bindCallouts(root)
+  try {
+    const heading = root.querySelector<HTMLElement>(".vessel-callout-heading")!
+    heading.dispatchEvent(new MouseEvent("dblclick", { bubbles: true }))
+    const range = document.createRange()
+    range.selectNodeContents(heading)
+    getSelection()!.removeAllRanges(); getSelection()!.addRange(range)
+    root.dispatchEvent(new KeyboardEvent("keydown", { key: "Backspace", bubbles: true, cancelable: true }))
+    expect(heading.dataset.calloutTitle).toBe("")
+    if (boundary === "selectionchange") {
+      range.setStart(heading.parentElement!, 0)
+      range.collapse(true)
+      getSelection()!.removeAllRanges(); getSelection()!.addRange(range)
+      document.dispatchEvent(new Event("selectionchange"))
+    } else {
+      const text = document.createTextNode("")
+      heading.prepend(text)
+      range.setStart(text, 0); range.collapse(true)
+      getSelection()!.removeAllRanges(); getSelection()!.addRange(range)
+    }
+    for (const data of ["f", "g"]) {
+      const input = new InputEvent("beforeinput", { bubbles: true, cancelable: true, inputType: "insertText", data })
+      root.dispatchEvent(input)
+      expect(input.defaultPrevented).toBe(true)
+    }
+    expect(heading.dataset.calloutTitle).toBe("fg")
+    expect(root.querySelector(".vessel-callout")).toBeTruthy()
+    expect(lute.VditorIRDOM2Md(root.innerHTML)).toContain("[!help]+ fg")
+    expect(root.textContent).toContain("标注内容")
+  } finally { unbind(); root.remove(); getSelection()?.removeAllRanges() }
+})

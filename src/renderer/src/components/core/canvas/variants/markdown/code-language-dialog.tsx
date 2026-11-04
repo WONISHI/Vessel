@@ -31,6 +31,7 @@ export function CodeLanguageDialog({ value, anchor, onClose, onConfirm }: { valu
   const normalizedValue = value === "step" ? "steps" : value
   const [selected, setSelected] = useState(normalizedValue)
   const [query, setQuery] = useState("")
+  const [explicitSelection, setExplicitSelection] = useState(false)
   const options = languages.some(([id]) => id === normalizedValue) ? languages : [[normalizedValue, normalizedValue, ""], ...languages]
   const filtered = options.filter((option) => option.join(" ").toLowerCase().includes(query.trim().toLowerCase()))
   useEffect(() => {
@@ -49,19 +50,23 @@ export function CodeLanguageDialog({ value, anchor, onClose, onConfirm }: { valu
           const index = filtered.findIndex(([id]) => id === selected)
           const next = index < 0 ? (event.key === "ArrowDown" ? 0 : filtered.length - 1) : (index + (event.key === "ArrowDown" ? 1 : -1) + filtered.length) % filtered.length
           setSelected(filtered[next][0])
-        } else if (event.key === "Enter" && filtered.some(([id]) => id === selected)) {
+          setExplicitSelection(true)
+        } else if (event.key === "Enter") {
           event.preventDefault()
-          onConfirm(selected)
+          const exact = query.trim() ? filtered.find(([, label]) => label.toLowerCase() === query.trim().toLowerCase()) : undefined
+          if (explicitSelection || !query.trim()) {
+            if (filtered.some(([id]) => id === selected)) onConfirm(selected)
+          } else if (exact) onConfirm(exact[0])
         }
       }} onCloseAutoFocus={(event) => event.preventDefault()}>
         <header className="code-language-header"><h2>代码语言</h2><button type="button" aria-label="关闭代码语言" onClick={onClose}><X size={15} /></button></header>
         <div className="code-language-body">
             <div id="code-language-panel" className="code-language-panel">
-              <div className="code-language-search"><Search size={15} /><input autoFocus aria-label="搜索语言" role="combobox" aria-expanded="true" aria-controls={listId} aria-activedescendant={filtered.some(([id]) => id === selected) ? `${listId}-${selected}` : undefined} placeholder="搜索语言..." value={query} onChange={(event) => setQuery(event.target.value)} /></div>
+              <div className="code-language-search"><Search size={15} /><input autoFocus aria-label="搜索语言" role="combobox" aria-expanded="true" aria-controls={listId} aria-activedescendant={filtered.some(([id]) => id === selected) ? `${listId}-${selected}` : undefined} placeholder="搜索语言..." value={query} onChange={(event) => { setQuery(event.target.value); setExplicitSelection(false) }} /></div>
               <ScrollArea className="code-language-options">
                 <div ref={list} id={listId} role="listbox" aria-label="代码语言">
                   {filtered.map(([id, label, extension]) => (
-                    <button id={`${listId}-${id}`} type="button" role="option" aria-selected={selected === id} className="code-language-option" key={id} onClick={() => setSelected(id)}>
+                    <button id={`${listId}-${id}`} type="button" role="option" aria-selected={selected === id} className="code-language-option" key={id} onClick={() => { setSelected(id); setExplicitSelection(true) }}>
                       <Check size={15} className={selected === id ? "" : "invisible"} /><span>{label}</span><span className="code-language-extension">{extension}</span>
                     </button>
                   ))}

@@ -1,9 +1,14 @@
 const fs = require("node:fs/promises")
 const path = require("node:path")
 const { createHash } = require("node:crypto")
+const { execFileSync } = require("node:child_process")
 const required = ["v9.3.0.24-1/web-apps/apps/api/documents/api.js", "v9.3.0.24-1/web-apps/apps/api/documents/preload.html", "v9.3.0.24-1/web-apps/apps/documenteditor/main/index.html", "v9.3.0.24-1/sdkjs/word/sdk-all.js", "x2t/x2t.js", "x2t/x2t.wasm"]
 module.exports = async (context) => {
   const root = context.electronPlatformName === "darwin" ? path.join(context.appOutDir, context.packager.appInfo.productFilename + ".app", "Contents/Resources") : path.join(context.appOutDir, "resources")
+  const python = path.join(root, "markitdown", ...(context.electronPlatformName === "win32" ? ["python.exe"] : ["bin", "python3"]))
+  await fs.access(python)
+  // Execute from the copied location to catch non-relocatable runtimes before shipping.
+  execFileSync(python, ["-I", "-c", "from markitdown import MarkItDown; from markitdown.converters import PdfConverter; print('Packaged MarkItDown PDF runtime OK')"], { stdio: "inherit", timeout: 120000 })
   if (context.electronPlatformName === "win32") {
     const arch = context.arch === 3 ? "arm64" : "x64"
     const nativeRoot = path.join(root, "app.asar.unpacked/node_modules")

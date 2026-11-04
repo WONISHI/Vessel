@@ -18,6 +18,8 @@ src/renderer/public/ocr/runtime/
 
 # Local MarkItDown Python environment
 .venv-markitdown/
+resources/markitdown/
+tmp/python-build-standalone/
 
 # Local project-analysis sources must not enter repository history
 /tmp/contest-analysis/

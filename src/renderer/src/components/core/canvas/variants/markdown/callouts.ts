@@ -250,8 +250,11 @@ export function bindCallouts(root: HTMLElement, onTypeMenu?: (target: CalloutMen
     // Bring that boundary back inside the empty title before native insertion can precede [!type].
     if (!title && range.collapsed) {
       const paragraph = (node instanceof Element ? node : node.parentElement)?.closest("p")
-      const empty = paragraph?.querySelector<HTMLElement>(":scope > .vessel-callout-heading.vessel-callout-editing")
-      if (empty && node === paragraph && !empty.dataset.calloutTitle) {
+      const empty = paragraph?.querySelector<HTMLElement>(":scope > .vessel-callout-heading")
+      const editable = empty?.closest('[contenteditable="true"]')
+      const index = empty && paragraph ? Array.from(paragraph.childNodes).indexOf(empty) : -1
+      const boundary = index >= 0 && node === paragraph && (range.startOffset === index || range.startOffset === index + 1)
+      if (empty && root.contains(empty) && boundary && !empty.dataset.calloutTitle && document.activeElement === editable) {
         title = empty
         const text = document.createTextNode("")
         title.append(text)
@@ -308,6 +311,8 @@ export function bindCallouts(root: HTMLElement, onTypeMenu?: (target: CalloutMen
     }
   }
   const selection = () => {
+    // Normalize Chromium's empty-title boundary before deciding whether editing ended.
+    activeTitle()
     const selected = window.getSelection()
     root.querySelectorAll<HTMLElement>(".vessel-callout-heading").forEach((heading) => {
       const editing = document.activeElement === heading.closest('[contenteditable="true"]') && Boolean(selected && (heading.contains(selected.anchorNode) || heading.contains(selected.focusNode)))

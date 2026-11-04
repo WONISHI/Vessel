@@ -15,6 +15,8 @@ python3 -m venv .venv-markitdown
 
 开发模式默认读取项目 `.venv-markitdown/bin/python3`。也可以设置 `VESSEL_MARKITDOWN_PYTHON` 为已安装上述依赖的 Python 绝对路径。
 
-发布环境默认读取 `process.resourcesPath/markitdown/bin/python3`，发布包需另外提供匹配目标平台的独立 Python 运行环境，或设置上述环境变量；项目虚拟环境不会自动进入发布包。不能直接复制依赖本机 Python 路径的虚拟环境作为独立运行时。
+发布包通过 electron-builder 的 `beforePack` 自动下载独立 CPython 并安装固定版本的 MarkItDown，复制到 `resources/markitdown`。首次打包需要网络，后续复用通过版本、架构和依赖校验的运行时。也可提前执行 `npm run assets:markitdown`；执行 `node scripts/prepare-markitdown.cjs --check` 可检查环境。
+
+macOS/Linux 使用 `process.resourcesPath/markitdown/bin/python3`，Windows 使用 `process.resourcesPath/markitdown/python.exe`，用户无需安装 Python。打包后会从应用资源目录实际启动 Python 并检查 PDF 转换器导入，校验失败则终止打包。请在目标系统和架构上打包，暂不支持跨平台、跨架构或 universal 打包。项目开发虚拟环境不会进入发布包。
 
 转换超时为 120 秒；失败时显示错误，不弹出保存对话框。转换临时文件会在成功或失败后清理。

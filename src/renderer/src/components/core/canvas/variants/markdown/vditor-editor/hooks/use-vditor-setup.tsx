@@ -301,6 +301,8 @@ export function useVditorSetup(state: VditorEditorState, { triggerInsertLinkRef 
           preview: { hljs: { style: "atom-one-light", langs: [] }, math: { engine: "KaTeX", inlineDigit: true } },
           icon: "ant",
           height: "auto",
+          // Handle Tab inside the editor instead of moving focus to controls above the document.
+          tab: "    ",
           value: prepareObsidianImages(initialValue.current),
           customRenders: [
             ...(["steps", "timeline"] as const).map((language) => ({

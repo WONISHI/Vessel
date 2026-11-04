@@ -63,3 +63,41 @@ it("selects a filtered Python result with ArrowDown and confirms it with Enter",
   fireEvent.keyDown(input, { key: "Enter" })
   expect(confirm).toHaveBeenCalledWith("python")
 })
+
+it.each([['python', 'python'], ['typescript', 'ts'], ['c++', 'cpp']])("confirms the exact displayed name %s directly with Enter", async (query, expected) => {
+  function Picker() {
+    const [value, setValue] = useState("")
+    return value ? <p>Selected: {value}</p> : <CodeLanguageDialog value="text" onClose={vi.fn()} onConfirm={setValue} />
+  }
+  render(<Picker />)
+  const input = screen.getByRole("combobox", { name: "搜索语言" })
+  await userEvent.type(input, query)
+  expect(screen.getByRole("dialog", { name: "代码语言" })).toBeTruthy()
+  await userEvent.keyboard('{Enter}')
+  expect(screen.queryByRole("dialog", { name: "代码语言" })).toBeNull()
+  expect(screen.getByText(`Selected: ${expected}`)).toBeTruthy()
+})
+
+it("ignores a partial name even when the current language is its only result", () => {
+  const confirm = vi.fn()
+  render(<CodeLanguageDialog value="python" onClose={vi.fn()} onConfirm={confirm} />)
+  const input = screen.getByRole("combobox", { name: "搜索语言" })
+  fireEvent.change(input, { target: { value: 'pyt' } })
+  fireEvent.keyDown(input, { key: 'Enter' })
+  expect(confirm).not.toHaveBeenCalled()
+  expect(screen.getByRole('dialog', { name: '代码语言' })).toBeTruthy()
+  fireEvent.keyDown(input, { key: 'ArrowDown' })
+  fireEvent.keyDown(input, { key: 'Enter' })
+  expect(confirm).toHaveBeenCalledWith('python')
+})
+
+it("discards a previous explicit choice when the search changes", () => {
+  const confirm = vi.fn()
+  render(<CodeLanguageDialog value="text" onClose={vi.fn()} onConfirm={confirm} />)
+  const input = screen.getByRole("combobox", { name: "搜索语言" })
+  fireEvent.change(input, { target: { value: 'python' } })
+  fireEvent.keyDown(input, { key: 'ArrowDown' })
+  fireEvent.change(input, { target: { value: 'pyt' } })
+  fireEvent.keyDown(input, { key: 'Enter' })
+  expect(confirm).not.toHaveBeenCalled()
+})

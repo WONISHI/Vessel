@@ -17,9 +17,13 @@ function editCalloutTitle(heading: HTMLElement, edit: { insert: string } | { bac
   }
   const nodes = () => {
     const result: Text[] = []
+    const marker = heading.querySelector("[data-callout-marker]")
     const walker = document.createTreeWalker(heading, NodeFilter.SHOW_TEXT)
     while (walker.nextNode()) {
       const node = walker.currentNode as Text
+      // Range extraction/deletion can leave empty text nodes before the hidden directive.
+      // They are not title insertion points, even though they are outside the marker span.
+      if (marker && !(marker.compareDocumentPosition(node) & Node.DOCUMENT_POSITION_FOLLOWING)) continue
       if (!node.parentElement?.closest(sourceMarkers)) result.push(node)
     }
     return result

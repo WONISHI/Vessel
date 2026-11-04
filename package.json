@@ -109,6 +109,13 @@
           "**/*",
           "!**/*.gz"
         ]
+      },
+      {
+        "from": "resources/markitdown",
+        "to": "markitdown",
+        "filter": [
+          "**/*"
+        ]
       }
     ],
     "files": [
@@ -123,7 +130,8 @@
       "zh_CN",
       "zh_TW",
       "en"
-    ]
+    ],
+    "beforePack": "scripts/prepare-markitdown-package.cjs"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
@@ -167,7 +175,8 @@
     "typecheck:clipper": "npm run typecheck --workspace=@vessel/clipper",
     "assets:matting": "node scripts/prepare-matting-assets.cjs",
     "check:components": "node scripts/checks/component-boundaries.cjs",
-    "check:conventions": "node scripts/checks/source-conventions.cjs && npm run check:components"
+    "check:conventions": "node scripts/checks/source-conventions.cjs && npm run check:components",
+    "assets:markitdown": "node scripts/prepare-markitdown.cjs"
   },
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.2",
