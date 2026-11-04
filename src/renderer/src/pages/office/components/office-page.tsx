@@ -5,7 +5,7 @@ import { useRouter } from "@vessel/react-router"
 import { useEffect, useRef, useState } from "react"
 
 /** Renders the office page component. */
-export function OfficePage() {
+export function OfficePage({ visible = true }: { visible?: boolean }) {
   const router = useRouter()
   const frame = useRef<HTMLIFrameElement>(null)
   const [url, setUrl] = useState("")
@@ -50,6 +50,9 @@ export function OfficePage() {
     }
   }, [url])
   useEffect(() => {
+    if (url && ready) frame.current?.contentWindow?.postMessage({ type: "office:visibility", visible }, new URL(url).origin)
+  }, [url, ready, visible])
+  useEffect(() => {
     if (!url || !ready) return
     /** Synchronizes only shell appearance across the isolated Office frame. */
     const syncTheme = () => frame.current?.contentWindow?.postMessage({ type: "office:theme", dark: document.documentElement.classList.contains("dark") }, new URL(url).origin)
@@ -91,6 +94,7 @@ export function OfficePage() {
         {url && (
           <iframe
             ref={frame}
+            name="Office 文档列表"
             data-title="ONLYOFFICE 本地编辑器" aria-label="ONLYOFFICE 本地编辑器"
             src={url}
             className="h-full w-full border-0"

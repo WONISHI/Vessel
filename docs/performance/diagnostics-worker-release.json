@@ -1,0 +1,53 @@
+{
+  "before": {
+    "time": 1793792946610,
+    "memory": {
+      "rss": 36126720,
+      "heapTotal": 4259840,
+      "heapUsed": 3403880,
+      "external": 1361169,
+      "arrayBuffers": 10515
+    },
+    "worker": {
+      "running": false,
+      "pending": 0,
+      "queued": 0,
+      "queuedBytes": 0
+    }
+  },
+  "checked": {
+    "time": 1793792947005,
+    "memory": {
+      "rss": 192348160,
+      "heapTotal": 4521984,
+      "heapUsed": 3847024,
+      "external": 1457996,
+      "arrayBuffers": 10515
+    },
+    "worker": {
+      "running": true,
+      "pending": 0,
+      "queued": 0,
+      "queuedBytes": 0,
+      "idleReleaseAt": 1793793007005,
+      "heapUsed": 70478520,
+      "sampledAt": 1793792947005
+    }
+  },
+  "released": {
+    "time": 1793793008006,
+    "memory": {
+      "rss": 61685760,
+      "heapTotal": 4521984,
+      "heapUsed": 3886960,
+      "external": 1457996,
+      "arrayBuffers": 10515
+    },
+    "worker": {
+      "running": false,
+      "pending": 0,
+      "queued": 0,
+      "queuedBytes": 0
+    }
+  }
+}

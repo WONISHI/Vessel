@@ -242,16 +242,16 @@ export function htmlToMarkdown(html: string, baseUrl: string): string {
 /**
  * 生成包含 Frontmatter 元数据的完整 Markdown 文件内容
  */
-export function buildClipMarkdown(meta: PageMetadata, mode: ClipMode = "article", tags: string[] = [], notes = ""): string {
+export function buildClipMarkdown(meta: PageMetadata, mode: ClipMode = "article", tags: string[] = [], notes = "", template?: string): string {
   const dateStr = meta.timestamp || new Date().toISOString()
   const frontmatter = [
     "---",
-    `title: "${(meta.title || "未命名网页").replace(/"/g, '\\"')}"`,
-    `url: "${meta.url || ""}"`,
-    `clipped_at: "${dateStr}"`,
-    meta.author ? `author: "${meta.author.replace(/"/g, '\\"')}"` : null,
-    meta.siteName ? `site_name: "${meta.siteName.replace(/"/g, '\\"')}"` : null,
-    tags.length ? `tags:\n${tags.map((t) => `  - ${t}`).join("\n")}` : `tags: [剪藏]`,
+    `title: ${JSON.stringify(meta.title || "未命名网页")}`,
+    `url: ${JSON.stringify(meta.url || "")}`,
+    `clipped_at: ${JSON.stringify(dateStr)}`,
+    meta.author ? `author: ${JSON.stringify(meta.author)}` : null,
+    meta.siteName ? `site_name: ${JSON.stringify(meta.siteName)}` : null,
+    tags.length ? `tags:\n${tags.map((t) => `  - ${JSON.stringify(t)}`).join("\n")}` : `tags: [剪藏]`,
     "---",
     ""
   ]
@@ -277,5 +277,14 @@ export function buildClipMarkdown(meta: PageMetadata, mode: ClipMode = "article"
     body = `\n${articleMd}\n`
   }
 
+  if (template !== undefined) {
+    const variables: Record<string, string> = {
+      title: meta.title || "未命名网页", url: meta.url, author: meta.author || "",
+      site: meta.siteName || "", description: meta.description || "",
+      date: dateStr.slice(0, 10), content: body.trim(), notes: notes.trim(),
+      tags: tags.join(", ")
+    }
+    return `${frontmatter}\n${template.replace(/\{\{\s*(\w+)\s*\}\}/g, (token, key: string) => variables[key] ?? token)}\n`
+  }
   return `${frontmatter}\n${header}${notesSection}${body}`
 }

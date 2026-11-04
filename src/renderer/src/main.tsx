@@ -12,8 +12,6 @@ import { StrictMode, lazy, Suspense } from "react"
 import { createRoot } from "react-dom/client"
 
 import { GlobalErrorBoundary } from "@/components/core/error-boundary/crash-fallback"
-import router from "@/router/index"
-import { RouterProvider } from "@vessel/react-router/components"
 
 // 监听未捕获的致命运行时错误
 window.addEventListener("error", (event) => {
@@ -26,13 +24,18 @@ window.addEventListener("unhandledrejection", (event) => {
 
 installDataTitleTooltips()
 
+// A standalone preview must not initialize the full workspace/router module graph.
+const MainApplication = lazy(async () => {
+  const [{ default: router }, { RouterProvider }] = await Promise.all([import("@/router/index"), import("@vessel/react-router/components")])
+  return { default: () => <RouterProvider router={router} /> }
+})
 const StandalonePreview = lazy(() => import("@/components/transit/standalone-preview"))
 const standalonePreview = new URLSearchParams(window.location.search).has("standalonePreview")
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <GlobalErrorBoundary>
-      {standalonePreview ? <Suspense fallback={null}><StandalonePreview /></Suspense> : <RouterProvider router={router} />}
+      <Suspense fallback={<div role="status" className="p-6 text-sm text-stone-500">正在加载…</div>}>{standalonePreview ? <StandalonePreview /> : <MainApplication />}</Suspense>
     </GlobalErrorBoundary>
   </StrictMode>
 )

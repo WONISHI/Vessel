@@ -1,7 +1,7 @@
 import { RouteLoading } from "@/components/ui/route-loading"
 import { Globe } from "lucide-react"
 import { lazyWithRetry } from "@/lib/lazy-retry"
-import { Suspense, useEffect, useState } from "react"
+import { Suspense, useState } from "react"
 import { useLocation } from "react-router-dom"
 
 // 浏览器页（含 webview 管理）首次访问时才加载
@@ -13,17 +13,6 @@ export function BrowserKeepAlive() {
   const visible = useLocation().pathname === "/browser"
   const [visited, setVisited] = useState(visible)
   if (visible && !visited) setVisited(true)
-  // Warm the browser chunk while the app is idle so the first activity-bar click skips the download/parse wait.
-  useEffect(() => {
-    if (visited) return
-    const warm = () => void loadBrowserPage().catch(() => {})
-    if ("requestIdleCallback" in window) {
-      const id = window.requestIdleCallback(warm, { timeout: 5000 })
-      return () => window.cancelIdleCallback(id)
-    }
-    const timer = setTimeout(warm, 2000)
-    return () => clearTimeout(timer)
-  }, [visited])
   if (!visited && !visible) return null
   return (
     <div

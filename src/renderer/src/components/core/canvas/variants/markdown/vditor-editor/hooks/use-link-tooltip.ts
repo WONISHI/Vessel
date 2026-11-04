@@ -1,5 +1,5 @@
 import { restoreObsidianImages } from "@/components/core/canvas/variants/markdown/image-source"
-import { buildMarkdownLink, normalizeLinkUrl } from "@vessel/obsidian"
+import { buildMarkdownLink } from "@vessel/obsidian"
 import { useEffect, useRef, useState } from "react"
 import type { VditorEditorState } from "@/components/core/canvas/variants/markdown/vditor-editor/hooks/use-vditor-editor-state"
 
@@ -38,19 +38,22 @@ export function useLinkTooltip(state: VditorEditorState) {
     const editable = host.current?.querySelector<HTMLElement>('.vditor-ir [contenteditable="true"]')
     if (!editable) return
 
-    editable.focus({ preventScroll: true })
     const selection = window.getSelection()
-    if (customRange) {
+    const previous = customRange ?? (selection?.rangeCount && editable.contains(selection.getRangeAt(0).commonAncestorContainer) ? selection.getRangeAt(0).cloneRange() : null)
+    editable.focus({ preventScroll: true })
+    if (previous) {
       selection?.removeAllRanges()
-      selection?.addRange(customRange)
+      selection?.addRange(previous)
     }
 
     const range = selection && selection.rangeCount > 0 ? selection.getRangeAt(0) : null
     const selectedText = range ? range.toString() : ""
 
-    let anchorRect: { left: number; top: number; width?: number; height?: number } | null = clickAnchor ?? null
-    if (range && !clickAnchor) {
-      const rect = range.getBoundingClientRect?.()
+    let anchorRect: { left: number; top: number; width?: number; height?: number } | null = null
+    if (range && editable.contains(range.startContainer)) {
+      const start = range.cloneRange()
+      start.collapse(true)
+      const rect = start.getBoundingClientRect?.()
       if (rect && rect.bottom > 0 && rect.top < window.innerHeight && (rect.width > 0 || rect.height > 0)) {
         anchorRect = {
           left: rect.left,
@@ -61,22 +64,20 @@ export function useLinkTooltip(state: VditorEditorState) {
       }
     }
 
-    const existingLinks = new Set(editable.querySelectorAll('[data-type="a"]'))
-    instance.current.insertValue(selectedText ? `[${selectedText}](https://)` : "[](https://)", true)
-    const targetElement = Array.from(editable.querySelectorAll<HTMLElement>('[data-type="a"]')).find((node) => !existingLinks.has(node)) ?? null
-    if (targetElement) {
-      // Keep the Markdown placeholder visible while the URL input owns focus.
-      targetElement.classList.add("vessel-link-edit-target")
-      const rect = targetElement.getBoundingClientRect()
-      if (rect.bottom > 0 && rect.top < window.innerHeight && rect.height > 0) anchorRect = rect
+    // Keep the document unchanged until confirmation: an empty-label placeholder is
+    // plain text in Lute and cannot reliably be replaced as a link node later.
+    if (!anchorRect && range) {
+      const node = range.startContainer instanceof Element ? range.startContainer : range.startContainer.parentElement
+      const block = node?.closest<HTMLElement>("p,li,h1,h2,h3,h4,h5,h6") ?? editable.children[range.startOffset] as HTMLElement | undefined
+      const rect = block?.getBoundingClientRect()
+      if (rect && rect.height > 0 && rect.bottom > 0 && rect.top < window.innerHeight) anchorRect = { left: rect.left, top: rect.top, width: 0, height: rect.height }
     }
-    changeHandler.current((properties?.raw ?? "") + restoreObsidianImages(instance.current.getValue()))
     const edRect = editable.getBoundingClientRect()
     setLinkTooltip({
-      anchor: anchorRect || { left: edRect.left + 24, top: edRect.top + 24, width: 32, height: 22 },
-      initialUrl: "https://",
+      anchor: anchorRect || clickAnchor || { left: edRect.left + 24, top: edRect.top + 24, width: 32, height: 22 },
+      initialUrl: "",
       initialText: selectedText,
-      targetElement,
+      targetElement: null,
       range: range?.cloneRange()
     })
   }
@@ -89,10 +90,11 @@ export function useLinkTooltip(state: VditorEditorState) {
       return
     }
 
-    const normalized = normalizeLinkUrl(url)
+    const destination = url.trim()
+    if (!destination) return
     const targetEl = linkTooltip?.targetElement
     const selectedText = linkTooltip?.initialText || ""
-    const updatedMd = buildMarkdownLink(selectedText, normalized)
+    const updatedMd = buildMarkdownLink(selectedText || destination, destination)
 
     if (targetEl && targetEl.isConnected) {
       const range = document.createRange()
@@ -112,27 +114,6 @@ export function useLinkTooltip(state: VditorEditorState) {
       selection?.removeAllRanges()
       selection?.addRange(range)
       instance.current.insertValue(updatedMd, true)
-    }
-
-    if (!selectedText) {
-      requestAnimationFrame(() => {
-        const editable = host.current?.querySelector<HTMLElement>('.vditor-ir [contenteditable="true"]')
-        const sel = window.getSelection()
-        if (editable && sel) {
-          const links = editable.querySelectorAll<HTMLElement>('[data-type="a"]')
-          const lastLink = links.length > 0 ? links[links.length - 1] : null
-          if (lastLink) {
-            const linkTextSpan = lastLink.querySelector<HTMLElement>(".vditor-ir__link")
-            if (linkTextSpan) {
-              const r = document.createRange()
-              r.selectNodeContents(linkTextSpan)
-              r.collapse(true)
-              sel.removeAllRanges()
-              sel.addRange(r)
-            }
-          }
-        }
-      })
     }
 
     const next = instance.current.getValue()

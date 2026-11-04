@@ -8,6 +8,13 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react"
 
 /** Renders the office component. */
 export function Office() {
+  const [visible, setVisible] = useState(true)
+  const [suspended, setSuspended] = useState(false)
+  useEffect(() => {
+    if (visible) { setSuspended(false); return }
+    const timer = setTimeout(() => setSuspended(true), 30_000)
+    return () => clearTimeout(timer)
+  }, [visible])
   const [docs, setDocs] = useState<Doc[]>([])
   const [active, setActive] = useState("")
   const [menu, setMenu] = useState(false)
@@ -27,6 +34,10 @@ export function Office() {
 
     /** Performs the listener operation. */
     const listener = (event: MessageEvent) => {
+      if (event.source === parent && event.data?.type === "office:visibility") {
+        setVisible(event.data.visible === true)
+        return
+      }
       if (event.source === parent && event.data?.type === "office:theme") {
         document.documentElement.classList.toggle("dark", event.data.dark === true)
         return
@@ -289,7 +300,8 @@ export function Office() {
         </p>
       )}
       <div className="relative min-h-0 flex-1">
-        {docs.map((doc) =>
+        {/* Editable Office sessions keep runtime-only state; only read-only PDF panes are suspended. */}
+        {docs.filter((doc) => !isPdf(doc.name) || (doc.id === active && !suspended)).map((doc) =>
           isPdf(doc.name) ? (
             <PdfPane
               key={doc.id}
@@ -304,6 +316,7 @@ export function Office() {
                 else frames.current.delete(doc.id)
               }}
               hidden={doc.id !== active}
+              name={`Office · ${doc.name}`}
               data-title={doc.name} aria-label={doc.name}
               src="/office.html?editor=1"
               className="absolute inset-0 h-full w-full border-0"

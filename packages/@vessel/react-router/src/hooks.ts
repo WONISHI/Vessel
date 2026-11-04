@@ -5,10 +5,12 @@ import { AppRouterContext } from "#vessel-react-router/router"
 import type { AppRouter, RouteLocationNormalized } from "#vessel-react-router/types"
 
 /** Provides the router hook. */
-export function useRouter(): AppRouter {
+export function useRouter(): AppRouter
+export function useRouter(options: { optional: true }): AppRouter | null
+export function useRouter(options?: { optional: true }): AppRouter | null {
   const router = useContext(AppRouterContext)
 
-  if (!router) {
+  if (!router && !options?.optional) {
     throw new Error("useRouter 必须在 RouterProvider 内使用")
   }
 

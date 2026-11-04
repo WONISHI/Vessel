@@ -1,3 +1,4 @@
+import { collectPerformanceSources, createMainMemoryReader } from "./performance-resources"
 import { BaseModule } from "@main/modules/base/index"
 import { SUPPORTED_EXTENSIONS } from "@main/modules/welcome/constants/index.constant"
 import { AppDatabase } from "@main/modules/welcome/database/index.database"
@@ -165,7 +166,8 @@ export class WelcomeModule extends BaseModule {
 
       /** 获取数据库路径、数据库版本、设备 ID 和本次应用会话 ID。 */
       this.registerHandler("storage:getInfo", () => database.getInfo())
-      const samplePerformance = createPerformanceSampler(() => app.getAppMetrics(), totalmem)
+      const readMainMemory = createMainMemoryReader()
+      const samplePerformance = createPerformanceSampler(() => app.getAppMetrics(), totalmem, Date.now, () => ({ ...collectPerformanceSources(), mainMemory: readMainMemory() }))
       this.registerHandler("performance:snapshot", () => samplePerformance())
       this.registerHandler("system:info", async (event): Promise<SystemInfo> => {
         const window = BrowserWindow.fromWebContents(event.sender)

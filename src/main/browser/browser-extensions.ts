@@ -216,7 +216,10 @@ export function registerBrowserExtensions(host: WebContents) {
     }
     if (typeof page !== "string" || /^(?:[a-z]+:|\/\/)/i.test(page)) throw new Error("扩展页面路径无效")
     await extensionFile(record.path, page.split(/[?#]/)[0])
-    const url = new URL(page.replace(/^\//, ""), `chrome-extension://${record.extensionId}/`).href
+    const popupURL = new URL(page.replace(/^\//, ""), `chrome-extension://${record.extensionId}/`)
+    // Extension contexts do not consistently receive the guest preload bridge.
+    if (record.key.includes("clipper") || record.name.includes("剪藏")) popupURL.searchParams.set("vesselHost", "1")
+    const url = popupURL.href
     const parent = BrowserWindow.fromWebContents(host)
     if (!parent) throw new Error("窗口已关闭")
     closePopup(key)

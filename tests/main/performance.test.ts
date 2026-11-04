@@ -20,3 +20,14 @@ it("warms CPU samples, converts KB, shares cached reads and resets reused PIDs",
   time += 1000
   expect(sample()).toMatchObject({ processes: [], memoryBytes: 0, cpuPercent: 0 })
 })
+
+it('reports deltas only for the same process lifetime and does not accumulate dead PIDs', () => {
+  let time = 1000
+  const metrics = [{ pid: 3, creationTime: 1, type: 'Tab', cpu: { percentCPUUsage: 0 }, memory: { workingSetSize: 100, peakWorkingSetSize: 120 } }] as ProcessMetric[]
+  const sample = createPerformanceSampler(() => metrics, () => 1e9, () => time)
+  expect(sample().processes[0].deltaBytes).toBeNull()
+  time += 1000; metrics[0].memory.workingSetSize = 125
+  expect(sample().processes[0].deltaBytes).toBe(25 * 1024)
+  time += 1000; metrics[0].creationTime = 2
+  expect(sample().processes[0].deltaBytes).toBeNull()
+})

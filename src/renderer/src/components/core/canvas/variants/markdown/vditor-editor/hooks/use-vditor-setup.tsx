@@ -1,3 +1,5 @@
+import { bindMarkdownView } from "@/components/core/canvas/session/markdown-view"
+import { writeDocument } from "@/components/core/canvas/session/document-session"
 import { pdfDocumentHtml } from "@/components/pdf-export/export-html"
 import { lazyPreviews } from "@/components/core/canvas/variants/markdown/lazy-previews"
 import { decorateCallouts, bindCallouts } from "@/components/core/canvas/variants/markdown/callouts"
@@ -32,7 +34,7 @@ import { createImageMounter, createTableMounter, type PreviewMountDeps } from "@
 
 /** 创建 Vditor 实例并绑定所有编辑器 DOM 交互（属性或只读状态变化时重建） */
 export function useVditorSetup(state: VditorEditorState, { triggerInsertLinkRef }: Pick<LinkTooltipState, "triggerInsertLinkRef">) {
-  const { onChange, workspacePath, documentPath, readOnly, tableWorkspace, setFootnoteTarget, setInsertLocation, clipboardImageInsertAction, imageInsertAction, setLanguageBlock, setCodeContextMenu, setColorAnchor, colorRange, instance, setCalloutBlockMenu, setCalloutMenu, setLoading, setLoadError, host, toolbarHost, properties, initialValue, readyHandler, changeHandler } = state
+  const { onChange, workspacePath, documentPath, readOnly, tableWorkspace, setFootnoteTarget, setInsertLocation, clipboardImageInsertAction, imageInsertAction, setLanguageBlock, setCodeContextMenu, setColorAnchor, colorRange, instance, setCalloutBlockMenu, setCalloutMenu, setLoading, setLoadError, host, toolbarHost, properties, initialValue, latestValue, readyHandler, changeHandler } = state
 
   useEffect(() => {
     changeHandler.current = onChange
@@ -48,6 +50,7 @@ export function useVditorSetup(state: VditorEditorState, { triggerInsertLinkRef 
     }
     const toolbarContainer = toolbarHost.current
     toolbarContainer?.addEventListener("pointerdown", rememberSelection, true)
+    const view = readOnly ? undefined : bindMarkdownView(element, documentPath)
     const handleKeyDown = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && (event.key === "k" || event.key === "K")) {
         event.preventDefault()
@@ -222,6 +225,7 @@ export function useVditorSetup(state: VditorEditorState, { triggerInsertLinkRef 
       imagePicker.value = ""
     })
     let editor: Vditor
+    const documentContent = () => (properties?.raw ?? "") + restoreObsidianImages(editor.getValue())
     let imageFrame = 0
 
     /** Refreshes images. */
@@ -399,13 +403,15 @@ export function useVditorSetup(state: VditorEditorState, { triggerInsertLinkRef 
 
           /** Performs the after operation. */
           after: () => {
+            // A tab can be evicted while Lute/assets are still loading.
+            if (disposed) { editor.destroy(); return }
             configureBodyLute(editor.vditor?.lute)
             // Initial rendering happens before `after`; reparse any leading rule misread as YAML.
             if (element.querySelector('[data-type="yaml-front-matter"]')) editor.setValue(prepareObsidianImages(initialValue.current), true)
             instance.current = editor
             if (!readOnly)
               markdownDocuments.set(documentPath, {
-                content: () => (properties?.raw ?? "") + restoreObsidianImages(editor.getValue()),
+                content: documentContent,
                 html: () => pdfDocumentHtml(element.querySelector<HTMLElement>(".vditor-ir .vditor-reset")!, workspacePath, documentPath)
               })
             window.dispatchEvent(new Event("vessel:file-menu-refresh"))
@@ -436,6 +442,7 @@ export function useVditorSetup(state: VditorEditorState, { triggerInsertLinkRef 
                 if (!disposed) {
                   setLoading(false)
                   setLoadError("")
+                  view?.restore()
                   readyHandler.current?.()
                 }
               })
@@ -451,6 +458,12 @@ export function useVditorSetup(state: VditorEditorState, { triggerInsertLinkRef 
       initFrame = requestAnimationFrame(initialize)
     })
     return () => {
+      view?.dispose()
+      if (ready && !readOnly && typeof editor.getValue === "function") {
+        const content = (properties?.raw ?? "") + restoreObsidianImages(editor.getValue())
+        if (content !== latestValue.current) void writeDocument(documentPath, content).catch(console.error)
+      }
+      colorRange.current = null
       clearTimeout(timeout)
       cancelAnimationFrame(initFrame)
       cancelAnimationFrame(paintFrame)
@@ -461,7 +474,7 @@ export function useVditorSetup(state: VditorEditorState, { triggerInsertLinkRef 
       cancelAnimationFrame(decorateFrame)
       clearCodeHighlights(element)
       instance.current = null
-      if (!readOnly) markdownDocuments.delete(documentPath)
+      if (!readOnly && markdownDocuments.get(documentPath)?.content === documentContent) markdownDocuments.delete(documentPath)
       window.dispatchEvent(new Event("vessel:file-menu-refresh"))
       element.removeEventListener("keydown", handleKeyDown, true)
       toolbarContainer?.removeEventListener("pointerdown", rememberSelection, true)
@@ -482,7 +495,10 @@ export function useVditorSetup(state: VditorEditorState, { triggerInsertLinkRef 
       element.removeEventListener("paste", pasteImage, true)
       cancelAnimationFrame(imageFrame)
       disposed = true
-      if (ready) editor.destroy()
+      if (ready) {
+        window.clearTimeout(editor.vditor?.ir?.processTimeoutId)
+        editor.destroy()
+      }
       toolbarHost.current?.replaceChildren()
     }
   }, [properties, readOnly])

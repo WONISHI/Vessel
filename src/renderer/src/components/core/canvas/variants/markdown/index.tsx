@@ -1,3 +1,4 @@
+import { documentSession, readDocument } from "@/components/core/canvas/session/document-session"
 import { saveMarkdownContent, waitForMarkdownWrites } from "./local-writes"
 import { DocumentOutline } from "@/components/core/canvas/variants/markdown/document-outline"
 import { DocumentStats } from "@/components/core/canvas/variants/markdown/document-stats"
@@ -27,10 +28,14 @@ export default function MarkdownCanvas({ activeFilePath, workspacePath: customWo
   useEffect(() => {
     let cancelled = false
     const cached = drafts.current.get(activeFilePath)
-    const request = cached === undefined ? window.electronAPI.readContent(activeFilePath) : Promise.resolve(cached)
+    const request = cached === undefined ? readDocument(activeFilePath) : Promise.resolve(cached)
     request
       .then((content) => {
-        if (!cancelled) setLoaded({ path: activeFilePath, content })
+        if (!cancelled) {
+          setLoaded({ path: activeFilePath, content })
+          const recovered = documentSession(activeFilePath)
+          if (recovered.draft !== undefined) setSaveState({ path: activeFilePath, message: `未保存草稿：${recovered.error || "等待保存"}`, failed: true })
+        }
       })
       .catch((error) => {
         if (!cancelled) setLoaded({ path: activeFilePath, content: "", error: String(error) })

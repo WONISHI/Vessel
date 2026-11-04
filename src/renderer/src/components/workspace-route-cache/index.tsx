@@ -1,3 +1,4 @@
+import { WorkspaceVisible } from "@/components/workspace/components/layout-main/document-cache"
 import { useContext, useRef, useState, type ReactNode } from "react"
 import { UNSAFE_LocationContext, useLocation, useOutlet } from "react-router-dom"
 
@@ -48,7 +49,7 @@ export function WorkspaceRouteCache() {
           >
             {node && (
               <UNSAFE_LocationContext.Provider value={show ? context : entry?.context}>
-                {node}
+                <WorkspaceVisible.Provider value={show}>{node}</WorkspaceVisible.Provider>
               </UNSAFE_LocationContext.Provider>
             )}
           </div>

@@ -36,7 +36,7 @@ export function BrowserPage({ visible = true }: { visible?: boolean }) {
         <BrowserTabs b={b} />
         <div className="relative shrink-0">
           <div hidden={toolbarCollapsed}>
-            <BrowserToolbar b={b} />
+            <BrowserToolbar b={b} visible={visible} />
             <BookmarkBar
               items={bookmarks}
               onNavigate={navigate}
@@ -133,7 +133,7 @@ export function BrowserPage({ visible = true }: { visible?: boolean }) {
                           <Guest
                             key={item.id}
                             tab={item}
-                            visible={item.id === tab.id}
+                            visible={visible && item.id === tab.id}
                             register={registerView}
                             update={update}
                           />

@@ -98,26 +98,42 @@ export function registerBrowserDevtools(host: WebContents) {
     panel.setBounds({ x, y, width: Math.max(0, Math.min(Math.round(bounds.width), size.width - x)), height: Math.max(0, Math.min(Math.round(bounds.height), size.height - y)) })
   })
   let catalog: WebContentsView | undefined
-  let catalogReady: Promise<void> | undefined
+  let devices: Promise<import("@vessel/type").BrowserDevice[]> | undefined
+  let devicesAt = 0
   host.once("destroyed", () => {
     if (catalog && !catalog.webContents.isDestroyed()) catalog.webContents.close()
+    devices = undefined
   })
-  host.ipc.handle("browser:devices", async () => {
-    let target = panel?.webContents
-    if (!target || target.isDestroyed()) {
-      if (!catalog || catalog.webContents.isDestroyed()) {
-        catalog = new WebContentsView({ webPreferences: { partition: "persist:vessel-browser", sandbox: true, contextIsolation: true, nodeIntegration: false } })
-        catalogReady = catalog.webContents.loadURL("devtools://devtools/bundled/inspector.html")
+  const readDevices = (target: WebContents) => target.executeJavaScript(`(async () => {
+    let module;
+    try { module = await import('../models/emulation/emulation.js') } catch { module = await import('../panels/emulation/emulation.js') }
+    const list = module.EmulatedDevices.EmulatedDevicesList.instance();
+    return [...list.standard(), ...list.custom()].map(device => ({title: device.title, width: device.vertical.width, height: device.vertical.height, deviceScaleFactor: device.deviceScaleFactor, mobile: device.capabilities.includes('mobile'), userAgent: device.userAgent}));
+  })()`)
+  host.ipc.handle("browser:devices", () => {
+    if (panel && !panel.webContents.isDestroyed()) return readDevices(panel.webContents)
+    if (devices && Date.now() - devicesAt < 60_000) return devices
+    // Cache the small plain device list, not an entire hidden DevTools renderer.
+    devicesAt = Date.now()
+    devices = (async () => {
+      const view = new WebContentsView({ webPreferences: { partition: "persist:vessel-browser", sandbox: true, contextIsolation: true, nodeIntegration: false } })
+      catalog = view
+      let timer: ReturnType<typeof setTimeout> | undefined
+      try {
+        return await Promise.race([
+          (async () => {
+            await view.webContents.loadURL("devtools://devtools/bundled/inspector.html")
+            return await readDevices(view.webContents)
+          })(),
+          new Promise<never>((_resolve, reject) => { timer = setTimeout(() => reject(new Error("读取设备列表超时")), 15_000) })
+        ])
+      } finally {
+        clearTimeout(timer)
+        if (!view.webContents.isDestroyed()) view.webContents.close()
+        if (catalog === view) catalog = undefined
       }
-      await catalogReady
-      target = catalog.webContents
-    }
-    return target.executeJavaScript(`(async () => {
-      let module;
-      try { module = await import('../models/emulation/emulation.js') } catch { module = await import('../panels/emulation/emulation.js') }
-      const list = module.EmulatedDevices.EmulatedDevicesList.instance();
-      return [...list.standard(), ...list.custom()].map(device => ({title: device.title, width: device.vertical.width, height: device.vertical.height, deviceScaleFactor: device.deviceScaleFactor, mobile: device.capabilities.includes('mobile'), userAgent: device.userAgent}));
-    })()`)
+    })().catch((error) => { devices = undefined; throw error })
+    return devices
   })
   host.once("destroyed", close)
 }

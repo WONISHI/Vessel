@@ -1,0 +1,74 @@
+{
+  "scenario": "12 Markdown documents, each 1000 headings + 1000 paragraphs, real MarkdownCanvas and Vditor; navigation and unused Excalidraw/Monaco modules stubbed identically",
+  "results": [
+    {
+      "mode": "baseline",
+      "natural": {
+        "workingSetMiB": 1188.46875,
+        "heapMiB": 409.9516410827637,
+        "editors": 12,
+        "nodes": 183719
+      },
+      "collected": {
+        "workingSetMiB": 878.734375,
+        "heapMiB": 248.35006046295166,
+        "editors": 12,
+        "nodes": 183719
+      }
+    },
+    {
+      "mode": "bounded",
+      "natural": {
+        "workingSetMiB": 834.875,
+        "heapMiB": 186.7631435394287,
+        "editors": 3,
+        "nodes": 47099
+      },
+      "collected": {
+        "workingSetMiB": 477.5625,
+        "heapMiB": 77.82560539245605,
+        "editors": 3,
+        "nodes": 47099
+      }
+    },
+    {
+      "mode": "bounded",
+      "natural": {
+        "workingSetMiB": 833.671875,
+        "heapMiB": 187.8721981048584,
+        "editors": 3,
+        "nodes": 47099
+      },
+      "collected": {
+        "workingSetMiB": 475.140625,
+        "heapMiB": 77.84381294250488,
+        "editors": 3,
+        "nodes": 47099
+      }
+    },
+    {
+      "mode": "baseline",
+      "natural": {
+        "workingSetMiB": 1273.15625,
+        "heapMiB": 403.37169075012207,
+        "editors": 12,
+        "nodes": 183719
+      },
+      "collected": {
+        "workingSetMiB": 968.640625,
+        "heapMiB": 248.35728931427002,
+        "editors": 12,
+        "nodes": 183719
+      }
+    }
+  ],
+  "baselineCommit": "2f7ae011fe79598b08fa96b2677aad9766de2d2f",
+  "electron": "39.8.10",
+  "platform": "macOS arm64",
+  "order": [
+    "baseline",
+    "bounded",
+    "bounded",
+    "baseline"
+  ]
+}

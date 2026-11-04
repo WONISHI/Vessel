@@ -2,6 +2,7 @@ const { execFileSync } = require("node:child_process")
 const path = require("node:path")
 
 module.exports = async (context) => {
+  execFileSync(process.execPath, [path.join(__dirname, "../packages/@vessel/clipper/scripts/build.cjs")], { stdio: "inherit", cwd: path.resolve(__dirname, "..") })
   const arch = { 0: "ia32", 1: "x64", 3: "arm64", 4: "universal" }[context.arch]
   const platform = context.electronPlatformName
   if (platform !== process.platform || arch !== process.arch) {

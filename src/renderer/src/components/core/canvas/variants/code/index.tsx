@@ -1,3 +1,5 @@
+import { retainCodeModel } from "@/components/core/canvas/session/code-model"
+import { documentSession, readDocument, writeDocument } from "@/components/core/canvas/session/document-session"
 import { useDarkAppearance } from "@/hooks/use-dark-appearance"
 import { registerMonacoTheme } from "@/components/core/canvas/variants/code/theme"
 import { parseLinePosition } from "@/components/core/canvas/variants/code/go-to-line"
@@ -74,6 +76,8 @@ export default function CodeCanvas({ activeFilePath, workspacePath, revealPositi
   const [error, setError] = useState("")
   const [status, setStatus] = useState("")
   const [saveError, setSaveError] = useState(false)
+  const releaseModel = useRef<(() => void) | null>(null)
+  const focusSubscription = useRef<{ dispose(): void } | null>(null)
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -164,12 +168,15 @@ export default function CodeCanvas({ activeFilePath, workspacePath, revealPositi
   useEffect(() => {
     mounted.current = true
     let cancelled = false
-    void window.electronAPI
-      .readContent(activeFilePath)
+    void readDocument(activeFilePath)
       .then((value) => {
         if (!cancelled) {
           if (value.includes("\0")) setError("该文件包含二进制内容，无法作为代码编辑。")
-          else setContent(value)
+          else {
+            setContent(value)
+            const recovered = documentSession(activeFilePath)
+            if (recovered.draft !== undefined) { setStatus(`未保存草稿：${recovered.error || "等待保存"}`); setSaveError(true) }
+          }
         }
       })
       .catch((error) => {
@@ -177,8 +184,12 @@ export default function CodeCanvas({ activeFilePath, workspacePath, revealPositi
       })
     return () => {
       cancelled = true
+      if (editorRef.current) documentSession(activeFilePath).code = editorRef.current.saveViewState()
+      focusSubscription.current?.dispose()
+      releaseModel.current?.()
       mounted.current = false
       if (codeEditors.get(activeFilePath) === editorRef.current) codeEditors.delete(activeFilePath)
+      editorRef.current = null
     }
   }, [activeFilePath])
   const [diagnosticError, setDiagnosticError] = useState("")
@@ -219,8 +230,7 @@ export default function CodeCanvas({ activeFilePath, workspacePath, revealPositi
     const request = ++revision.current
     setStatus("正在保存…")
     setSaveError(false)
-    void window.electronAPI
-      .saveContent(activeFilePath, value)
+    void writeDocument(activeFilePath, value)
       .then(() => {
         if (mounted.current && revision.current === request) setStatus("已保存")
       })
@@ -297,6 +307,8 @@ export default function CodeCanvas({ activeFilePath, workspacePath, revealPositi
           theme={dark ? "vessel-dark" : "light"}
           beforeMount={registerMonacoTheme}
           height="100%"
+          saveViewState={false}
+          keepCurrentModel
           path={monaco.Uri.file(activeFilePath).toString()}
           language={codeLanguage(activeFilePath) || "plaintext"}
           value={content}
@@ -309,10 +321,12 @@ export default function CodeCanvas({ activeFilePath, workspacePath, revealPositi
           }}
           onMount={(editor) => {
             editorRef.current = editor
+            releaseModel.current = retainCodeModel(editor)
+            editor.restoreViewState(documentSession(activeFilePath).code ?? null)
             codeEditors.set(activeFilePath, editor)
             window.dispatchEvent(new Event("vessel:file-menu-refresh"))
             reveal()
-            editor.onDidFocusEditorText(() => codeEditors.set(activeFilePath, editor))
+            focusSubscription.current = editor.onDidFocusEditorText(() => codeEditors.set(activeFilePath, editor))
             editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => save(editor.getValue()))
           }}
           options={{

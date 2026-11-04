@@ -28,18 +28,22 @@
 .vessel-command [cmdk-input]::placeholder {
   color: #a3a39e;
 }
-.vessel-command [cmdk-list] {
-  min-height: 0;
+.vessel-command-scroll [data-radix-scroll-area-viewport] {
+  height: auto;
   max-height: min(360px, calc(70vh - 64px));
+  overscroll-behavior: contain;
+  scrollbar-width: none !important;
+}
+.vessel-command-scroll [data-radix-scroll-area-viewport]::-webkit-scrollbar {
+  display: none !important;
+  width: 0;
+  height: 0;
+}
+.vessel-command .vessel-command-scroll [cmdk-list] {
+  min-height: 0;
+  max-height: none;
+  overflow: visible;
   padding: 4px 8px 8px;
-}
-.vessel-command [cmdk-list]::-webkit-scrollbar {
-  width: 8px;
-  background: transparent;
-}
-.vessel-command [cmdk-list]::-webkit-scrollbar-thumb {
-  background: #dcdcd9;
-  border-radius: 8px;
 }
 .vessel-command [cmdk-group] {
   padding: 0;
@@ -105,4 +109,3 @@ html.dark [cmdk-root] [cmdk-item][data-selected="true"]:hover { background: rgba
 html.dark [cmdk-root] [cmdk-item][data-selected="true"]:hover svg { color: #4ade80 !important; }
 html.dark [cmdk-root] [cmdk-separator] { background: #30353c !important; }
 html.dark [cmdk-root] kbd { color: #6b7280; border-color: #30353c; }
-html.dark [cmdk-root] [cmdk-list]::-webkit-scrollbar-thumb { background: #444c56; }

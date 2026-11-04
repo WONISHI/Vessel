@@ -32,6 +32,18 @@ describe("CommandPalette theme toggle", () => {
     vi.restoreAllMocks()
   })
 
+  it("uses ScrollArea and keeps keyboard selection scrolling", async () => {
+    render(<CommandPalette />)
+    act(() => { window.dispatchEvent(new KeyboardEvent("keydown", { key: "p", metaKey: true })) })
+    const input = await screen.findByPlaceholderText("输入命令或链接…")
+    const list = screen.getByRole("listbox")
+    expect(list.closest("[data-radix-scroll-area-viewport]")).not.toBeNull()
+    const before = list.querySelector('[aria-selected="true"]')?.getAttribute("data-value")
+    fireEvent.keyDown(input, { key: "ArrowDown" })
+    await waitFor(() => expect(list.querySelector('[aria-selected="true"]')?.getAttribute("data-value")).not.toBe(before))
+    expect(HTMLElement.prototype.scrollIntoView).toHaveBeenCalled()
+  })
+
   it("renders '切换主题' command and toggles from light to dark", async () => {
     const settingsSavedListener = vi.fn()
     window.addEventListener("vessel:settings-saved", settingsSavedListener)

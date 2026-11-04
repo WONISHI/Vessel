@@ -18,7 +18,7 @@ export function OfficeKeepAlive() {
       className="h-full w-full"
     >
       <Suspense fallback={<RouteLoading activity="office" icon={<FileText />} title="正在加载文档" label="正在准备 ONLYOFFICE 编辑器，请稍候…" />}>
-        <OfficePage />
+        <OfficePage visible={visible} />
       </Suspense>
     </div>
   ) : null

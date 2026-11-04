@@ -75,8 +75,8 @@ export class GitService {
       }
     }
 
-    const res = await runGit(["status", "--porcelain=v1", "-b", "-uall"], cwd)
-    const lines = res.stdout.split("\n")
+    const res = await runGit(["status", "--porcelain=v1", "-z", "-b", "-uall"], cwd)
+    const lines = res.stdout.split("\0")
 
     let branch = "HEAD"
     let upstream = ""
@@ -88,7 +88,8 @@ export class GitService {
     const untracked: GitFileStatus[] = []
     const conflicts: GitFileStatus[] = []
 
-    for (const line of lines) {
+    for (let index = 0; index < lines.length; index++) {
+      const line = lines[index]
       if (!line) continue
       if (line.startsWith("## ")) {
         // 分支信息，例如 ## main...origin/main [ahead 1, behind 2]
@@ -107,14 +108,11 @@ export class GitService {
 
       const x = line[0] // 暂存区状态
       const y = line[1] // 工作区状态
-      const rest = line.slice(3).trim()
-      let filePath = rest
+      // -z returns raw UTF-8 paths without quoting, with destination before source for renames.
+      const filePath = line.slice(3)
       let oldPath: string | undefined
-
-      if (rest.includes(" -> ")) {
-        const parts = rest.split(" -> ")
-        oldPath = parts[0]
-        filePath = parts[1]
+      if (x === "R" || x === "C" || y === "R" || y === "C") {
+        oldPath = lines[++index]
       }
 
       // 未合并 / 冲突状态

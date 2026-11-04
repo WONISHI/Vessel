@@ -66,7 +66,8 @@ export function diagnoseCode(path: string, content: string): CodeDiagnostic[] {
 }
 parentPort?.on("message", ({ id, path, content }: { id: number; path: string; content: string }) => {
   try {
-    parentPort!.postMessage({ id, diagnostics: diagnoseCode(path, content) })
+    const diagnostics = diagnoseCode(path, content)
+    parentPort!.postMessage({ id, diagnostics, memory: { heapUsed: process.memoryUsage().heapUsed } })
   } catch (error) {
     parentPort!.postMessage({ id, error: String(error) })
   }

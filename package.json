@@ -116,6 +116,13 @@
         "filter": [
           "**/*"
         ]
+      },
+      {
+        "from": "packages/@vessel/clipper/dist",
+        "to": "extensions/clipper",
+        "filter": [
+          "**/*"
+        ]
       }
     ],
     "files": [

@@ -1,3 +1,4 @@
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { WorkspaceFilePicker } from "@/components/workspace-file-picker"
 import type { FilePickerWorkspace, FilePickerRequest } from "@/components/workspace-file-picker/types"
 import { CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandShortcut } from "@/components/ui/command"
@@ -118,7 +119,8 @@ export function CommandPalette() {
           value={search}
           onValueChange={setSearch}
         />
-        <CommandList>
+        <ScrollArea type="auto" className="vessel-command-scroll min-h-0">
+        <CommandList className="!max-h-none !overflow-visible">
           <CommandEmpty>没有匹配的命令</CommandEmpty>
           {url && (
             <CommandGroup
@@ -224,6 +226,7 @@ export function CommandPalette() {
             </CommandItem>
           </CommandGroup>
         </CommandList>
+        </ScrollArea>
       </CommandDialog>
       {finderOpen && (
         <WorkspaceFilePicker

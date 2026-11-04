@@ -116,7 +116,6 @@ export function HistorySheet({ open, onOpenChange, entries, error, onDelete, onN
               placeholder="搜索历史记录…"
               className="min-w-0 flex-1 border-0 bg-transparent text-xs outline-none placeholder:text-stone-400"
             />
-            <kbd className="rounded border bg-white px-1 text-[10px] text-stone-400">⌘F</kbd>
           </div>
         </div>
         {error && (

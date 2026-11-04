@@ -11,7 +11,7 @@ import { ArrowLeft, ArrowRight, Bookmark, Bug, Home, LockKeyhole, Pin, RotateCw,
 import type { BrowserPageModel } from "@/pages/browser/components/browser-page/hooks/use-browser-page"
 
 /** 地址栏与导航工具条 */
-export function BrowserToolbar({ b }: { b: BrowserPageModel }) {
+export function BrowserToolbar({ b, visible = true }: { b: BrowserPageModel; visible?: boolean }) {
   const { deviceMode, setDeviceMode, setTabs, setFindOpen, devtoolsOpen, setDevtoolsOpen, setActive, input, setInput, bookmarks, views, tab, getActivePageData, update, navigate, zoom, bookmark } = b
 
   return (
@@ -137,10 +137,12 @@ export function BrowserToolbar({ b }: { b: BrowserPageModel }) {
                 <Bug />
               </Button>
               <BrowserExtensions
+                visible={visible}
                 onOpenDevtools={() => setDevtoolsOpen(true)}
                 getActivePageData={getActivePageData}
               />
               <BrowserMore
+                visible={visible}
                 zoomFactor={tab.zoom}
                 zoom={zoom}
                 onFind={() => setFindOpen(true)}

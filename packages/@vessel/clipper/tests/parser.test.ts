@@ -54,8 +54,8 @@ describe("Clipper Parser", () => {
     expect(md).toContain("---")
     expect(md).toContain('title: "深入浅出 React 核心原理"')
     expect(md).toContain('author: "Dan Abramov"')
-    expect(md).toContain("  - 前端")
-    expect(md).toContain("  - React")
+    expect(md).toContain('  - "前端"')
+    expect(md).toContain('  - "React"')
     expect(md).toContain("### 📝 我的笔记与标注")
     expect(md).toContain("这是我非常喜欢的一篇好文章")
     expect(md).toContain("关于 React 渲染和调度机制的深度解析")
@@ -72,5 +72,21 @@ describe("Clipper Parser", () => {
     const md = buildClipMarkdown(meta, "article")
     expect(md).toContain("这是从网页直接提取到的纯文本正文内容")
     expect(md).not.toContain("未能自动提取到正文内容")
+  })
+})
+
+
+describe("剪藏模板", () => {
+  it("替换变量且不递归执行网页内容中的变量", () => {
+    const md = buildClipMarkdown({ title: "标题", url: "https://example.com", articleText: "保留 {{notes}}", timestamp: "2026-11-04T00:00:00Z" }, "article", ["学习"], "批注", "# {{title}}\n{{date}}\n{{content}}\n{{notes}}\n{{unknown}}")
+    expect(md).toContain("# 标题\n2026-11-04\n保留 {{notes}}\n批注\n{{unknown}}")
+    expect(md).toContain('tags:\n  - "学习"')
+  })
+  it("转义属性换行、反斜杠和特殊标签", () => {
+    const md = buildClipMarkdown({ title: "a\nb", url: "https://example.com", author: "a\nb", siteName: "x\\y" }, "bookmark", ["a: b", "[x]"])
+    expect(md).toContain('title: "a\\nb"')
+    expect(md).toContain('author: "a\\nb"')
+    expect(md).toContain('site_name: "x\\\\y"')
+    expect(md).toContain('  - "a: b"')
   })
 })

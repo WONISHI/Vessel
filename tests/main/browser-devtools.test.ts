@@ -2,7 +2,7 @@ import { expect, it, vi } from "vitest"
 import type { WebContents } from "electron"
 vi.mock("node:fs", () => ({ readFileSync: () => Buffer.from("font") }))
 const mocks = vi.hoisted(() => {
-  const panel = { setBounds: vi.fn(), webContents: { on: vi.fn(), isDestroyed: () => false, setZoomFactor: vi.fn(), insertCSS: vi.fn().mockResolvedValue("css"), removeInsertedCSS: vi.fn(), close: vi.fn() } }
+  const panel = { setBounds: vi.fn(), webContents: { on: vi.fn(), isDestroyed: () => false, setZoomFactor: vi.fn(), insertCSS: vi.fn().mockResolvedValue("css"), removeInsertedCSS: vi.fn(), close: vi.fn(), loadURL: vi.fn().mockResolvedValue(undefined), executeJavaScript: vi.fn().mockResolvedValue([{ title: "Phone", width: 390 }]) } }
   const host = { ipc: { handle: vi.fn() }, once: vi.fn() }
   const guest = { hostWebContents: host, setDevToolsWebContents: vi.fn(), openDevTools: vi.fn(), once: vi.fn(), removeListener: vi.fn(), closeDevTools: vi.fn(), isDestroyed: () => false }
   const detached = { contentView: { addChildView: vi.fn(), removeChildView: vi.fn() }, getContentSize: () => [1000, 600], on: vi.fn(), isDestroyed: () => false, destroy: vi.fn() }
@@ -43,4 +43,29 @@ it("positions only the host's guest console and applies validated font preferenc
   expect(mocks.panel.setBounds).toHaveBeenLastCalledWith({ x: 0, y: 0, width: 1000, height: 600 })
   handle({}, null)
   expect(mocks.detached.destroy).toHaveBeenCalled()
+})
+
+it("closes temporary device-catalog contents after extraction and reuses only the plain list", async () => {
+  mocks.host.ipc.handle.mockClear(); mocks.panel.webContents.close.mockClear()
+  registerBrowserDevtools(mocks.host as unknown as WebContents)
+  const handler = mocks.host.ipc.handle.mock.calls.find(([name]) => name === "browser:devices")![1]
+  const first = handler({})
+  const second = handler({})
+  expect(await first).toEqual([{ title: "Phone", width: 390 }])
+  await second
+  expect(mocks.panel.webContents.loadURL).toHaveBeenCalledOnce()
+  expect(mocks.panel.webContents.close).toHaveBeenCalledOnce()
+  await handler({})
+  expect(mocks.panel.webContents.loadURL).toHaveBeenCalledOnce()
+})
+
+it('closes a failed catalog and allows a fresh retry', async () => {
+  mocks.host.ipc.handle.mockClear(); mocks.panel.webContents.close.mockClear(); mocks.panel.webContents.loadURL.mockClear()
+  mocks.panel.webContents.loadURL.mockRejectedValueOnce(new Error('load failed'))
+  registerBrowserDevtools(mocks.host as unknown as WebContents)
+  const handler = mocks.host.ipc.handle.mock.calls.find(([name]) => name === 'browser:devices')![1]
+  await expect(handler({})).rejects.toThrow('load failed')
+  expect(mocks.panel.webContents.close).toHaveBeenCalledOnce()
+  await expect(handler({})).resolves.toEqual([{ title: 'Phone', width: 390 }])
+  expect(mocks.panel.webContents.close).toHaveBeenCalledTimes(2)
 })

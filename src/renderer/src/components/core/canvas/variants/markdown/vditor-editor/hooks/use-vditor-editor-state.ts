@@ -25,12 +25,14 @@ export function useVditorEditorState({ value, onChange, workspacePath, documentP
   const host = useRef<HTMLDivElement>(null)
   const toolbarHost = useRef<HTMLDivElement>(null)
   const [properties] = useState(() => parseFrontmatter(value))
+  const latestValue = useRef(value)
+  latestValue.current = value
   const initialValue = useRef(properties?.body ?? value)
   const readyHandler = useRef(onReady)
   readyHandler.current = onReady
   const changeHandler = useRef(onChange)
 
-  return { value, onChange, workspacePath, documentPath, readOnly, onReady, tableWorkspace, footnoteTarget, setFootnoteTarget, insertLocation, setInsertLocation, clipboardImageInsertAction, imageInsertAction, languageBlock, setLanguageBlock, codeContextMenu, setCodeContextMenu, colorAnchor, setColorAnchor, colorRange, instance, calloutBlockMenu, setCalloutBlockMenu, calloutMenu, setCalloutMenu, loading, setLoading, loadError, setLoadError, host, toolbarHost, properties, initialValue, readyHandler, changeHandler }
+  return { value, onChange, workspacePath, documentPath, readOnly, onReady, tableWorkspace, footnoteTarget, setFootnoteTarget, insertLocation, setInsertLocation, clipboardImageInsertAction, imageInsertAction, languageBlock, setLanguageBlock, codeContextMenu, setCodeContextMenu, colorAnchor, setColorAnchor, colorRange, instance, calloutBlockMenu, setCalloutBlockMenu, calloutMenu, setCalloutMenu, loading, setLoading, loadError, setLoadError, host, toolbarHost, properties, initialValue, latestValue, readyHandler, changeHandler }
 }
 
 export type VditorEditorState = ReturnType<typeof useVditorEditorState>

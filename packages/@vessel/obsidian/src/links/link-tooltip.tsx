@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from "react"
 import { createPortal } from "react-dom"
-import { normalizeLinkUrl } from "#vessel-obsidian/links/markdown-link"
 
 export interface LinkTooltipProps {
   anchor: { left: number; top: number; width?: number; height?: number }
@@ -59,21 +58,22 @@ export const LinkTooltip: React.FC<LinkTooltipProps> = ({
   }, [onClose])
 
   const handleConfirm = () => {
-    const normalized = normalizeLinkUrl(url)
-    onConfirm(normalized, text)
+    const destination = url.trim()
+    if (destination) onConfirm(destination, text || destination)
   }
 
   // Calculate position: preferred above anchor
-  const popupHeight = 34
+  const popupHeight = 36
+  const popupWidth = Math.min(240, window.innerWidth - 16)
   const gap = 8
   const isNearTop = anchor.top - popupHeight - gap < 10
   const preferredTop = isNearTop
     ? anchor.top + (anchor.height || 22) + gap
     : Math.max(gap, anchor.top - popupHeight - gap)
   const top = Math.max(gap, Math.min(window.innerHeight - popupHeight - gap, preferredTop))
-  const left = Math.max(gap, Math.min(window.innerWidth - 248, anchor.left))
+  const left = Math.max(gap, Math.min(window.innerWidth - popupWidth - gap, anchor.left - 18))
 
-  const arrowLeft = Math.max(12, Math.min(220, anchor.left + (anchor.width ?? 24) / 2 - left - 4))
+  const arrowLeft = Math.max(7, Math.min(popupWidth - 21, anchor.left - left - 7))
 
   if (typeof document === "undefined") return null
 

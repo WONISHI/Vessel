@@ -533,3 +533,15 @@ html.dark .browser-loading-card {
   color: #cdd9e5;
   box-shadow: 0 8px 30px #00000026;
 }
+
+/* Match the workspace locate button in light mode. */
+html:not(.dark) .browser-more-item[data-highlighted],
+html:not(.dark) .browser-more-item:focus,
+html:not(.dark) .browser-more-item:hover {
+  background-color: #16a34a !important;
+  color: #fff !important;
+}
+html:not(.dark) .browser-more-item:hover svg {
+  color: #fff !important;
+  stroke: #fff !important;
+}

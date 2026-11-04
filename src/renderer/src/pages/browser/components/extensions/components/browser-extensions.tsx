@@ -36,7 +36,7 @@ function writePopupSize(key: string, size: { width?: number; height?: number }) 
   } catch {}
 }
 
-export function BrowserExtensions({ onOpenDevtools, getActivePageData }: { onOpenDevtools?: () => void; getActivePageData?: () => Promise<any> }) {
+export function BrowserExtensions({ visible = true, onOpenDevtools, getActivePageData }: { visible?: boolean; onOpenDevtools?: () => void; getActivePageData?: () => Promise<any> }) {
   const [popup, setPopup] = useState<BrowserExtension | null>(null)
   const popupArea = useRef<HTMLDivElement>(null)
   const scrollViewport = useRef<HTMLDivElement>(null)
@@ -56,6 +56,18 @@ export function BrowserExtensions({ onOpenDevtools, getActivePageData }: { onOpe
   const [position, setPosition] = useState({ x: 0, y: 0 })
   const [permissions, setPermissions] = useState<BrowserExtension | null>(null)
 
+  const visibility = useRef(visible)
+  visibility.current = visible
+  useEffect(() => {
+    if (!visible) {
+      setOpen(false)
+      setPopup(null)
+      setMenu(null)
+      setPermissions(null)
+      void window.electronAPI.closeBrowserExtension()
+    }
+  }, [visible])
+
   /** Runs run. */
   const run = async (operation: () => Promise<BrowserExtension[]>) => {
     setBusy(true)
@@ -64,7 +76,7 @@ export function BrowserExtensions({ onOpenDevtools, getActivePageData }: { onOpe
       setItems(await operation())
     } catch (reason) {
       setError(String(reason))
-      setOpen(true)
+      if (visibility.current) setOpen(true)
     } finally {
       setBusy(false)
     }
@@ -208,7 +220,12 @@ export function BrowserExtensions({ onOpenDevtools, getActivePageData }: { onOpe
           console.warn("Failed to extract or post active-page data:", err)
         }
       }
+      if (!visibility.current) return
       const result = await window.electronAPI.openBrowserExtension(item.key, mode)
+      if (!visibility.current) {
+        void window.electronAPI.closeBrowserExtension()
+        return
+      }
       if (result.kind === "dialog") {
         setOpen(false)
         setPopup(item)
@@ -219,11 +236,11 @@ export function BrowserExtensions({ onOpenDevtools, getActivePageData }: { onOpe
       }
       if (result.message) {
         setError(result.message)
-        setOpen(true)
+        if (visibility.current) setOpen(true)
       }
     } catch (reason) {
       setError(String(reason))
-      setOpen(true)
+      if (visibility.current) setOpen(true)
     }
   }
 
@@ -238,7 +255,7 @@ export function BrowserExtensions({ onOpenDevtools, getActivePageData }: { onOpe
   return (
     <>
       <Dialog
-        open={!!popup}
+        open={visible && !!popup}
         onOpenChange={(value) => {
           if (!value) {
             setPopup(null)
@@ -303,7 +320,7 @@ export function BrowserExtensions({ onOpenDevtools, getActivePageData }: { onOpe
       </Button>
       <Sheet
         modal={false}
-        open={open}
+        open={visible && open}
         onOpenChange={setOpen}
       >
         <SheetContent
@@ -368,8 +385,8 @@ export function BrowserExtensions({ onOpenDevtools, getActivePageData }: { onOpe
                       onClick={() => void launch(item)}
                       className="flex min-w-0 flex-1 items-center gap-3 text-left"
                     >
-                      <span className="flex size-8 shrink-0 items-center justify-center rounded-lg border bg-background text-green-600">
-                        <Icon item={item} />
+                      <span className={`flex size-8 shrink-0 items-center justify-center rounded-lg text-green-600 ${item.key.includes("clipper") || item.name.includes("剪藏") ? "overflow-hidden" : "border bg-background"}`}>
+                        <Icon item={item} className={item.key.includes("clipper") || item.name.includes("剪藏") ? "size-full object-contain" : undefined} />
                       </span>
                       <span className="min-w-0">
                         <span className="flex items-center gap-2">
@@ -434,7 +451,7 @@ export function BrowserExtensions({ onOpenDevtools, getActivePageData }: { onOpe
       </Sheet>
       <DropdownMenu
         modal={false}
-        open={!!menu}
+        open={visible && !!menu}
         onOpenChange={(value) => {
           if (!value) setMenu(null)
         }}
@@ -453,7 +470,7 @@ export function BrowserExtensions({ onOpenDevtools, getActivePageData }: { onOpe
           <DropdownMenuItem
             onSelect={() => {
               setPermissions(menu)
-              setOpen(true)
+              if (visibility.current) setOpen(true)
             }}
           >
             可读取和更改的网站数据
@@ -472,7 +489,7 @@ export function BrowserExtensions({ onOpenDevtools, getActivePageData }: { onOpe
           <DropdownMenuItem
             onSelect={() => {
               setPermissions(menu)
-              setOpen(true)
+              if (visibility.current) setOpen(true)
             }}
           >
             查看网站权限

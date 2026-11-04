@@ -12,7 +12,7 @@ import { toast } from "sonner"
 
 /** Renders the link interaction area component. */
 export function LinkInteractionArea({ children, actions = [], className, inline = false }: { children: ReactNode; actions?: readonly LinkAction[]; className?: string; inline?: boolean }) {
-  const router = useRouter()
+  const router = useRouter({ optional: true })
   const host = useRef<HTMLDivElement & HTMLSpanElement>(null)
   useEffect(() => {
     const element = host.current
@@ -142,7 +142,7 @@ export function LinkInteractionArea({ children, actions = [], className, inline 
           <ExternalLink className="!size-3.5" />
           在默认浏览器中打开
         </Button>
-        {target && /^https?:/i.test(target.href) && (
+        {target && router && /^https?:/i.test(target.href) && (
           <Button
             variant="ghost"
             className="h-8 w-full justify-start gap-2 px-2 text-[11px] hover:bg-emerald-700 hover:!text-white [&:hover_svg]:!text-white"
