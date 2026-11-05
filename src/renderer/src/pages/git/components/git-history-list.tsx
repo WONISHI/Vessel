@@ -193,7 +193,7 @@ export function GitHistoryList({ g }: { g: GitPageModel }) {
                                 {idx === 0 && (
                                   <>
                                     <ContextMenuSub>
-                                      <ContextMenuSubTrigger className="font-medium">
+                                      <ContextMenuSubTrigger className="text-amber-700 focus:text-amber-800 font-medium">
                                         <Undo2 className="size-3.5 text-amber-600" />
                                         <span>撤销最后一次提交…</span>
                                       </ContextMenuSubTrigger>
@@ -217,7 +217,7 @@ export function GitHistoryList({ g }: { g: GitPageModel }) {
                                 )}
 
                                 <ContextMenuSub>
-                                  <ContextMenuSubTrigger>
+                                  <ContextMenuSubTrigger className="text-amber-700 focus:text-amber-800">
                                     <RotateCcw className="size-3.5 text-orange-500" />
                                     <span>重置当前分支到此处</span>
                                   </ContextMenuSubTrigger>
