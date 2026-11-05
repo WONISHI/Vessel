@@ -1,12 +1,7 @@
 import App from "@/components/app/index"
 import { RouterCrashFallback } from "@/components/core/error-boundary/crash-fallback"
 import Canvas from "@/components/workspace/components/layout-main/canvas"
-import WorkspaceHome from "@/components/workspace/components/layout-main/workspace-home"
-import { Base64Tool, ColorTool, JsonTool, URLTool } from "@/pages/debug/components/utility-tools"
-import { EditorRoute } from "@/pages/editor/index"
 import { OfficeRoute } from "@/pages/office/index"
-import { ResourceRoute } from "@/pages/resources/index"
-import SearchPage from "@/pages/search/index"
 import { WelcomeRoute } from "@/pages/welcome/index"
 import { createRouter, createWebHashHistory, type AppRouteRecordRaw } from "@vessel/react-router"
 import type { WorkspaceData } from "@vessel/type"
@@ -29,6 +24,14 @@ function lazyPage<P extends object>(factory: () => Promise<{ default: ComponentT
 }
 
 const debugLoading: RouteLoadingOptions = { icon: <Bug />, title: "正在加载调试工具", label: "正在准备开发者工具，请稍候…" }
+const WorkspaceHome = lazyPage(() => import("@/components/workspace/components/layout-main/workspace-home"))
+const SearchPage = lazyPage(() => import("@/pages/search/index"))
+const EditorRoute = lazyPage<object>(async () => ({ default: (await import("@/pages/editor/index")).EditorRoute }))
+const ResourceRoute = lazyPage<object>(async () => ({ default: (await import("@/pages/resources/index")).ResourceRoute }))
+const Base64Tool = lazyPage<object>(async () => ({ default: (await import("@/pages/debug/base64/index")).Base64Tool }), debugLoading)
+const ColorTool = lazyPage<object>(async () => ({ default: (await import("@/pages/debug/color/index")).ColorTool }), debugLoading)
+const JsonTool = lazyPage<object>(async () => ({ default: (await import("@/pages/debug/json/index")).JsonTool }), debugLoading)
+const URLTool = lazyPage<object>(async () => ({ default: (await import("@/pages/debug/url/index")).URLTool }), debugLoading)
 const DiagnosticsPage = lazyPage(() => import("@/pages/debug/diagnostics/index"), debugLoading)
 const DebugPage = lazyPage(() => import("@/pages/debug/index"), { ...debugLoading, activity: "tools" })
 const DevtoolsStorage = lazyPage(() => import("@/pages/debug/storage/index"), debugLoading)

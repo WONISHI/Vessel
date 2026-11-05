@@ -148,7 +148,6 @@ export function registerBrowserExtensions(host: WebContents) {
   applyBrowserIdentity(session.fromPartition("persist:vessel-browser"))
   applyBrowserIdentity(session.fromPartition("persist:vessel-transit"))
   registerBrowserSiteCompatibility(session.fromPartition("persist:vessel-browser"))
-  void initialize()
   const owned = new Set<() => void>()
   let activePopup: WebContents | undefined
   host.ipc.handle("browser:extensions:scroll", async (_event, top?: number) => {
@@ -191,7 +190,7 @@ export function registerBrowserExtensions(host: WebContents) {
     if (background.getType() === "backgroundPage") background.on("dom-ready", () => configureBackground(background))
   }
   app.on("web-contents-created", onCreated)
-  void initialize().then(() => webContents.getAllWebContents().forEach(configureBackground))
+  let preparedBackgrounds = false
   host.once("destroyed", () => {
     app.removeListener("web-contents-created", onCreated)
     closeOwned()
@@ -378,6 +377,10 @@ export function registerBrowserExtensions(host: WebContents) {
   )
   host.ipc.handle("browser:extensions:list", async () => {
     await initialize()
+    if (!preparedBackgrounds) {
+      preparedBackgrounds = true
+      webContents.getAllWebContents().forEach(configureBackground)
+    }
     await queue
     await reconcileBuiltins()
     for (const record of records) {

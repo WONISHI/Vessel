@@ -1,6 +1,6 @@
 import { excludedBackupName, syncBackup } from "@main/sync/settings-backup"
 import { createS3Storage } from "@main/sync/settings-s3"
-import { getSyncDiagnostics } from "@main/sync/sync-diagnostics"
+import { acquireSyncDiagnostics } from "@main/sync/sync-diagnostics"
 import { collectFiles, createSyncExcludeFilter, parseSyncExcludeRules, DEFAULT_CONFLICT_STRATEGY, type SyncProgress } from "@vessel/sync"
 import type { AppSettings, BackupStatus } from "@vessel/type"
 import { defaultSettings, isIgnoredEntry, isLegacyDefaultIgnoredFiles, parseIgnoredPatterns } from "@vessel/utils"
@@ -208,7 +208,8 @@ async function snapshot(root: string, config: AppSettings["backup"], secret: str
   const excludePath = createSyncExcludeFilter(config.syncExcludeRules ?? defaultSettings.backup.syncExcludeRules ?? "")
   const directory = syncDirectory(root)
   await mkdir(directory, { recursive: true })
-  const logger = config.logEnabled ? await getSyncDiagnostics(directory) : undefined
+  const diagnostics = config.logEnabled ? await acquireSyncDiagnostics(directory) : undefined
+  const logger = diagnostics?.logger
 
   /** Performs the safe operation. */
   const safe = (value: string) => [secret, config.accessKey, config.endpoint].filter(Boolean).reduce((result, sensitive) => result.split(sensitive).join("[已隐藏]"), value)
@@ -235,7 +236,11 @@ async function snapshot(root: string, config: AppSettings["backup"], secret: str
     if (!reportedError) record({ type: "error", message: error instanceof Error ? error.message : "同步失败" })
     throw error
   } finally {
-    await logger?.flush()
+    try {
+      await logger?.flush()
+    } finally {
+      diagnostics?.release()
+    }
   }
 }
 
@@ -452,13 +457,23 @@ export function registerSettings(host: WebContents) {
   host.ipc.handle("settings:preview", () => backup(undefined, currentWorkspace ?? undefined, true))
   host.ipc.handle("settings:logs", async () => {
     if (!currentWorkspace) return { enabled: false, entries: [] }
-    const logger = await getSyncDiagnostics(syncDirectory(currentWorkspace))
-    return { enabled: profile().config.logEnabled === true, ...logger.get() }
+    const enabled = profile().config.logEnabled === true
+    const { logger, release } = await acquireSyncDiagnostics(syncDirectory(currentWorkspace))
+    try {
+      return { enabled, ...logger.get() }
+    } finally {
+      release()
+    }
   })
   host.ipc.handle("settings:logs:clear", async () => {
     if (!currentWorkspace) throw new Error("请先打开工作区")
     if (syncing) throw new Error("同步进行中，请完成后再清空日志")
-    await (await getSyncDiagnostics(syncDirectory(currentWorkspace))).clear()
+    const { logger, release } = await acquireSyncDiagnostics(syncDirectory(currentWorkspace))
+    try {
+      await logger.clear()
+    } finally {
+      release()
+    }
   })
   host.ipc.handle("settings:status", () => profile().status)
 }

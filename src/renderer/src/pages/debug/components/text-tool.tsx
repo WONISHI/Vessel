@@ -1,3 +1,4 @@
+import "@/components/styles/tool-page-header.css"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { copy } from "@/pages/debug/components/utility-tools-shared"

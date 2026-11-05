@@ -13,15 +13,17 @@ import { DocumentTabs } from "@/components/workspace/components/layout-main/docu
 import { FileSearch } from "@/components/workspace/components/layout-main/file-search"
 import { StatusTarget } from "@/components/workspace/components/layout-main/status-context"
 import { resolveTerminalDirectory, TerminalPanel } from "@/components/workspace/components/layout-main/terminal-panel"
-import WorkspaceHome from "@/components/workspace/components/layout-main/workspace-home"
+import { lazyWithRetry } from "@/lib/lazy-retry"
 import { useWorkspace } from "@/components/workspace/hooks/useWorkspace"
 import { cn } from "@/lib/utils"
 import { RouterView } from "@vessel/react-router/components"
 import { matchesShortcut } from "@vessel/utils"
 import { ChevronLeft, ChevronRight, Columns2, Copy, File, Home, LayoutTemplate, List, MoreHorizontal, Pin, Terminal, X } from "lucide-react"
-import { useEffect, useMemo, useRef, useState } from "react"
+import { Suspense, useEffect, useMemo, useRef, useState } from "react"
 import { useLocation } from "react-router-dom"
 import { toast } from "sonner"
+
+const WorkspaceHome = lazyWithRetry(() => import("@/components/workspace/components/layout-main/workspace-home"))
 
 /** 主区只负责标签导航和当前子路由出口。 */
 export default function LayoutMain({ resources = false }: { resources?: boolean }) {
@@ -376,7 +378,7 @@ export default function LayoutMain({ resources = false }: { resources?: boolean 
                   className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
                 >
                   <DocumentTabs files={files} activePath={activeFilePath} workspacePath={workspace.path} home={home}>
-                    {resources ? <WorkspaceHome /> : <RouterView />}
+                    {resources ? <Suspense fallback={<div role="status">正在加载工作区…</div>}><WorkspaceHome /></Suspense> : <RouterView />}
                   </DocumentTabs>
                 </div>
               </ResizablePanel>

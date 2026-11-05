@@ -2,8 +2,8 @@ import type { BackupLogEntry } from "@vessel/type"
 import { randomUUID } from "node:crypto"
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises"
 import { join } from "node:path"
-const stores = new Map<string, Promise<SyncDiagnostics>>()
-const limit = 1000
+const stores = new Map<string, { value: Promise<SyncDiagnostics>; users: number }>()
+const limit = 200
 /** Bounded, batched diagnostic storage; no filesystem work on each progress event. */
 export class SyncDiagnostics {
   private entries: BackupLogEntry[] = []
@@ -94,11 +94,17 @@ export class SyncDiagnostics {
 }
 
 /** Returns sync diagnostics. */
-export function getSyncDiagnostics(directory: string) {
-  let store = stores.get(directory)
-  if (!store) {
-    store = new SyncDiagnostics(directory).load()
-    stores.set(directory, store)
+export async function acquireSyncDiagnostics(directory: string) {
+  const store = stores.get(directory) ?? { value: new SyncDiagnostics(directory).load(), users: 0 }
+  stores.delete(directory)
+  stores.set(directory, store)
+  store.users++
+  return {
+    logger: await store.value,
+    release() {
+      store.users--
+      const idle = [...stores].filter(([, entry]) => entry.users === 0)
+      for (const [path] of idle.slice(0, Math.max(0, idle.length - 2))) stores.delete(path)
+    }
   }
-  return store
 }

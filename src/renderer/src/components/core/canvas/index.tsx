@@ -1,9 +1,9 @@
 import { codeLanguage } from "@/components/core/canvas/variants/code/language"
-import MarkdownCanvas from "@/components/core/canvas/variants/markdown/index"
 import MediaCanvas from "@/components/core/canvas/variants/media/index"
 import { EditorLoading } from "@/components/ui/editor-loading"
 import { lazyWithRetry } from "@/lib/lazy-retry"
 import { Suspense, memo } from "react"
+const MarkdownCanvas = lazyWithRetry(() => import("@/components/core/canvas/variants/markdown/index"))
 const MindmapCanvas = lazyWithRetry(() => import("@/components/core/canvas/variants/mindmap"))
 const MarkdownTableCanvas = lazyWithRetry(() => import("@/components/core/canvas/variants/markdown-table"))
 const BaseCanvas = lazyWithRetry(() => import("@/components/core/canvas/variants/base"))
@@ -73,13 +73,15 @@ const EditorCanvas = ({ fileType, activeFilePath, workspacePath, revealPosition,
     )
   if (fileType === "md" || fileType === "markdown") {
     return (
-      <MarkdownCanvas
-        key={activeFilePath}
-        activeFilePath={activeFilePath}
-        workspacePath={workspacePath}
-        highlightKeyword={highlightKeyword}
-        revealLine={revealLine}
-      />
+      <Suspense fallback={<EditorLoading />}>
+        <MarkdownCanvas
+          key={activeFilePath}
+          activeFilePath={activeFilePath}
+          workspacePath={workspacePath}
+          highlightKeyword={highlightKeyword}
+          revealLine={revealLine}
+        />
+      </Suspense>
     )
   } else if (codeLanguage(activeFilePath) || codeLanguage(`file.${fileType}`)) {
     return (

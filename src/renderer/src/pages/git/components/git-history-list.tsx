@@ -193,7 +193,7 @@ export function GitHistoryList({ g }: { g: GitPageModel }) {
                                 {idx === 0 && (
                                   <>
                                     <ContextMenuSub>
-                                      <ContextMenuSubTrigger className="text-amber-700 focus:text-amber-800 font-medium">
+                                      <ContextMenuSubTrigger className="font-medium">
                                         <Undo2 className="size-3.5 text-amber-600" />
                                         <span>撤销最后一次提交…</span>
                                       </ContextMenuSubTrigger>

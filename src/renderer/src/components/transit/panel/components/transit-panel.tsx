@@ -1,5 +1,5 @@
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { FilePreview } from "@/components/transit/file-preview"
+import { lazyWithRetry } from "@/lib/lazy-retry"
 import { TransitDock, type TransitDockMode } from "@/components/transit/panel/components/transit-dock"
 import { TransitStatus } from "@/components/transit/panel/components/transit-status"
 import "@/components/transit/panel/components/transit.css"
@@ -9,8 +9,10 @@ import { selectTransit, useTransit } from "@/components/transit/state"
 import { ResizableSplit } from "@/components/ui/resizable-split"
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet"
 import { ChevronLeft, ChevronRight, ExternalLink, Clipboard, FileText, Globe, Maximize, Minimize, X } from "lucide-react"
-import { useCallback, useRef, useState } from "react"
+import { Suspense, useCallback, useRef, useState } from "react"
 import { toast } from "sonner"
+
+const FilePreview = lazyWithRetry(() => import("@/components/transit/file-preview").then(({ FilePreview }) => ({ default: FilePreview })))
 
 /** Renders the transit panel component. */
 export function TransitPanel() {
@@ -89,11 +91,9 @@ export function TransitPanel() {
       </nav>
       <div className="transit-sheet-body">
       {item.kind === "file" ? (
-        <FilePreview
-          key={`${item.id}-${refresh}`}
-          item={item}
-          onLoaded={onLoaded}
-        />
+        <Suspense fallback={<div role="status">正在加载文件预览…</div>}>
+          <FilePreview key={`${item.id}-${refresh}`} item={item} onLoaded={onLoaded} />
+        </Suspense>
       ) : item.kind === "url" ? (
         <WebPreview
           searchRequest={searchRequest}

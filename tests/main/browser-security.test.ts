@@ -77,16 +77,15 @@ it("asks before navigation, preserves current requests and opens confirmed new t
   }
 })
 
-it("preconnects HTTP pages while keeping local files and rejected guests untouched", () => {
+it("attaches trusted guests without opening speculative connections", () => {
   const events = new Map<string, Function>()
   secureBrowserGuests({ on: (name: string, handler: Function) => events.set(name, handler) } as unknown as WebContents)
   const attach = events.get("will-attach-webview")!
   const preventDefault = vi.fn()
   const preferences: Record<string, unknown> = {}
   attach({ preventDefault }, preferences, { src: "https://example.com/docs", partition: "persist:vessel-browser" })
-  expect(preconnect).toHaveBeenCalledWith({ url: "https://example.com/docs", numSockets: 1 })
+  expect(preconnect).not.toHaveBeenCalled()
   expect(preferences.webSecurity).toBe(true)
-  preconnect.mockClear()
   attach({ preventDefault }, {}, { src: "file:///tmp/test.html", partition: "persist:vessel-browser" })
   attach({ preventDefault }, {}, { src: "https://example.com", partition: "untrusted" })
   expect(preconnect).not.toHaveBeenCalled()

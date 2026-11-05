@@ -102,7 +102,9 @@ export default function WorkspaceTree({
   const updateDirectory = (path: string, entry: DirectoryState) => {
     setDirectories((state) => {
       const next = { ...state, [path]: entry }
+      directoryCache.delete(workspace.path)
       directoryCache.set(workspace.path, { reader: window.electronAPI?.readWorkspaceDirectory, entries: next })
+      if (directoryCache.size > 3) directoryCache.delete(directoryCache.keys().next().value!)
       return next
     })
   }

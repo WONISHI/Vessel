@@ -5,7 +5,13 @@ import { Suspense, useState } from "react"
 import { useLocation } from "react-router-dom"
 
 // 浏览器页（含 webview 管理）首次访问时才加载
-const loadBrowserPage = () => import("@/pages/browser/index")
+const loadBrowserPage = async () => {
+  const [page] = await Promise.all([
+    import("@/pages/browser/index"),
+    window.electronAPI.listBrowserExtensions?.().catch((error) => console.error("加载浏览器扩展失败", error))
+  ])
+  return page
+}
 const BrowserPage = lazyWithRetry(loadBrowserPage)
 
 /** 活动栏切换只隐藏浏览器，保留 guest、历史记录与表单状态。 */
