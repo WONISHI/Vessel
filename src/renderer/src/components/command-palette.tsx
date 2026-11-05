@@ -83,6 +83,11 @@ export function CommandPalette() {
         case "command": setOpen((value) => !value); break
         case "selectWorkspace": selectWorkspace(); break
         case "findWorkspaceFiles": findWorkspaceFiles(); break
+        case "openTranslate":
+          setOpen(false)
+          setFinderOpen(false)
+          void router.push("/devtools/translate")
+          break
         case "visitLink": visitLink(); break
         case "reloadApp": reloadApp(); break
         case "toggleTheme": toggleTheme(); break

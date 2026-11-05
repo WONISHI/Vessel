@@ -16,8 +16,8 @@ const maxLength = 5000
 
 export default function TranslateTool() {
   const [input, setInput] = useState("")
-  const [from, setFrom] = useState("auto")
-  const [to, setTo] = useState("zh-CN")
+  const [from, setFrom] = useState("zh-CN")
+  const [to, setTo] = useState("en")
   const [result, setResult] = useState<{ text: string; detectedLanguage: string }>()
   const [error, setError] = useState("")
   const [busy, setBusy] = useState(false)

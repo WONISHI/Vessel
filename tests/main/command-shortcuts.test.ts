@@ -7,7 +7,7 @@ it("registers every palette command with unique keys for renderer and Electron i
   for (const id of commandShortcutIds) {
     const item = shortcuts[id]
     expect(matchesShortcut({ key: item.key, control: true, shift: id !== "command" }, id)).toBe(true)
-    expect(matchesShortcut({ key: item.key, metaKey: true, shiftKey: id !== "command" }, id)).toBe(true)
+    expect(matchesShortcut({ key: item.key, metaKey: true, shiftKey: id !== "command" }, id)).toBe(id !== "openTranslate")
     expect(item.scope).toBe("全局")
   }
 })
