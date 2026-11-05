@@ -194,7 +194,7 @@ export function elementToMarkdown(element: Element, baseUrl: string): string {
 export function nodeToMarkdown(node: Node, baseUrl: string): string {
   if (node.nodeType === 3) {
     // 文本节点
-    return node.textContent || ""
+    return (node.textContent || "").replace(/[\t\n\r\f ]+/g, " ")
   }
   if (node.nodeType === 1) {
     return elementToMarkdown(node as Element, baseUrl)

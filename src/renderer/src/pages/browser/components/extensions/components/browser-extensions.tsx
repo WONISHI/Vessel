@@ -5,7 +5,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Switch } from "@/components/ui/switch"
 import { Icon } from "@/pages/browser/components/extensions/components/icon"
-import type { BrowserExtension } from "@vessel/type"
+import type { BrowserExtension, WebStoreInstallStatus } from "@vessel/type"
 import { Box, Folder, Pin, Puzzle, Shield, Trash2, TriangleAlert, Upload } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 
@@ -52,6 +52,7 @@ export function BrowserExtensions({ visible = true, onOpenDevtools, getActivePag
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState("")
+  const [storeStatus, setStoreStatus] = useState<WebStoreInstallStatus | null>(null)
   const [menu, setMenu] = useState<BrowserExtension | null>(null)
   const [position, setPosition] = useState({ x: 0, y: 0 })
   const [permissions, setPermissions] = useState<BrowserExtension | null>(null)
@@ -67,6 +68,15 @@ export function BrowserExtensions({ visible = true, onOpenDevtools, getActivePag
       void window.electronAPI.closeBrowserExtension()
     }
   }, [visible])
+
+  useEffect(() => window.electronAPI.onWebStoreInstall((status) => {
+    setStoreStatus(status)
+    setBusy(["preparing", "confirming", "installing"].includes(status.phase))
+    if (visibility.current) setOpen(true)
+    if (status.phase === "complete" || status.phase === "error") {
+      void window.electronAPI.listBrowserExtensions().then(setItems).catch(reason => setError(String(reason)))
+    }
+  }), [])
 
   /** Runs run. */
   const run = async (operation: () => Promise<BrowserExtension[]>) => {
@@ -206,22 +216,12 @@ export function BrowserExtensions({ visible = true, onOpenDevtools, getActivePag
   const launch = async (item: BrowserExtension, mode: "open" | "options" | "inspect" = "open") => {
     setError("")
     try {
+      let pageData: Record<string, unknown> | undefined
       if (getActivePageData && (item.key.includes("clipper") || item.name.includes("剪藏"))) {
-        try {
-          const pageData = await getActivePageData()
-          if (pageData) {
-            await fetch("http://127.0.0.1:35678/api/active-page", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(pageData)
-            })
-          }
-        } catch (err) {
-          console.warn("Failed to extract or post active-page data:", err)
-        }
+        pageData = await getActivePageData() || undefined
       }
       if (!visibility.current) return
-      const result = await window.electronAPI.openBrowserExtension(item.key, mode)
+      const result = await window.electronAPI.openBrowserExtension(item.key, mode, pageData)
       if (!visibility.current) {
         void window.electronAPI.closeBrowserExtension()
         return
@@ -333,7 +333,7 @@ export function BrowserExtensions({ visible = true, onOpenDevtools, getActivePag
               <Box className="size-5 text-green-600" />
               浏览器扩展
             </SheetTitle>
-            <SheetDescription className="pr-4 text-xs leading-5 dark:text-[#9BA1A9]">支持 CRX、ZIP（含 CRX 的压缩包）和包含 manifest.json 的解压目录。支持部分 Chrome 扩展和 DevTools 扩展，暂不支持从 Chrome 商店直接安装。</SheetDescription>
+            <SheetDescription className="pr-4 text-xs leading-5 dark:text-[#9BA1A9]">支持 CRX、ZIP（含 CRX 的压缩包）和包含 manifest.json 的解压目录。支持部分 Chrome 扩展和 DevTools 扩展，在内置浏览器打开 Chrome 应用商店，点击“添加至 Vessel”可安装商店扩展。</SheetDescription>
           </SheetHeader>
           <div className="min-h-0 flex-1 overflow-auto p-5">
             <div className="mb-4 grid grid-cols-2 gap-2">
@@ -367,6 +367,7 @@ export function BrowserExtensions({ visible = true, onOpenDevtools, getActivePag
               <span>已安装扩展</span>
               <span className="rounded-full bg-muted px-2">{items.length}</span>
             </div>
+            {storeStatus && <p role="status" className={`rounded-lg border p-3 text-xs ${storeStatus.phase === "error" ? "border-red-200 text-red-600" : "text-foreground"}`}>{storeStatus.message}</p>}
             {!items.length && <p className="py-8 text-center text-sm text-muted-foreground dark:text-[#9BA1A9]">{busy ? "正在读取扩展…" : "尚未安装扩展"}</p>}
             <div className="space-y-3">
               {items.map((item) => {

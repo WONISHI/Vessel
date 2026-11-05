@@ -6,7 +6,7 @@ import { insertFootnote, validFootnoteRange, deleteFootnote } from "@/components
 import { FootnotePopover } from "@/components/core/canvas/variants/markdown/footnote-popover"
 import { MarkdownInsertMenu } from "@/components/core/canvas/variants/markdown/insert-menu"
 import { insertEmptyCodeBlock } from "@/components/core/canvas/variants/markdown/insert-code-block"
-import { focusImageParagraph, focusInsideQuote } from "@/components/core/canvas/variants/markdown/image-paragraph"
+import { focusImageParagraph } from "@/components/core/canvas/variants/markdown/image-paragraph"
 import { restoreObsidianImages } from "@/components/core/canvas/variants/markdown/image-source"
 import { toast } from "sonner"
 import type { VditorEditorModel } from "@/components/core/canvas/variants/markdown/vditor-editor/types"
@@ -50,8 +50,8 @@ export function EditorBlockMenus({ m }: { m: VditorEditorModel }) {
           const editor = instance.current, quote = calloutBlockMenu.quote
           if (!editor || !host.current?.contains(quote)) return
           editor.vditor.undo?.addToUndoStack(editor.vditor)
-          // 标注/callout: empty lines go inside the quote, not as siblings outside it.
-          focusInsideQuote(quote, below)?.scrollIntoView({ block: "nearest" })
+          // Place the caret in an empty sibling paragraph outside the callout.
+          focusImageParagraph(quote, below)?.scrollIntoView({ block: "nearest" })
           editor.vditor.undo?.addToUndoStack(editor.vditor)
           changeHandler.current((properties?.raw ?? "") + restoreObsidianImages(editor.getValue()))
           setCalloutBlockMenu(null)

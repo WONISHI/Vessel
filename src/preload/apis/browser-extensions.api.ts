@@ -1,6 +1,11 @@
 import type { BrowserExtensionsAPI } from "@vessel/type"
 import { ipcRenderer } from "electron"
 export const browserExtensionsAPI: BrowserExtensionsAPI = {
+  onWebStoreInstall: (callback) => {
+    const listener = (_event: Electron.IpcRendererEvent, status: Parameters<typeof callback>[0]) => callback(status)
+    ipcRenderer.on("browser:extensions:store-status", listener)
+    return () => ipcRenderer.removeListener("browser:extensions:store-status", listener)
+  },
   /** Performs the extension scroll operation. */
   extensionScroll: (top) => ipcRenderer.invoke("browser:extensions:scroll", top),
 
@@ -22,7 +27,7 @@ export const browserExtensionsAPI: BrowserExtensionsAPI = {
   closeBrowserExtension: () => ipcRenderer.invoke("browser:extensions:close"),
 
   /** Opens browser extension. */
-  openBrowserExtension: (key, mode) => ipcRenderer.invoke("browser:extensions:open", key, mode),
+  openBrowserExtension: (key, mode, pageData) => ipcRenderer.invoke("browser:extensions:open", key, mode, pageData),
 
   /** Lists browser extensions. */
   listBrowserExtensions: () => ipcRenderer.invoke("browser:extensions:list"),

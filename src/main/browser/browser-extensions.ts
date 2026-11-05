@@ -1,3 +1,4 @@
+import { prepareStoreExtension, webStoreExtensionId } from "@main/browser/extensions/extension-store"
 import { applyBrowserIdentity } from "@main/browser/browser-identity"
 import { registerBrowserSiteCompatibility } from "@main/browser/browser-site-compatibility"
 import { registerExtensionTabBridge } from "@main/browser/extensions/extension-tab-bridge"
@@ -8,7 +9,7 @@ import { prepareExtensionLogin } from "@main/browser/extensions/extension-login-
 import { extensionFile, extensionMetadata } from "@main/browser/extensions/extension-metadata"
 import { handleExtensionWindows, loadExtensionPage, registerExtensionNavigation } from "@main/browser/extensions/extension-navigation"
 import { igugeWelcomeStyle } from "@main/browser/extensions/extension-popup-style"
-import type { BrowserExtension } from "@vessel/type"
+import type { BrowserExtension, WebStoreInstallStatus } from "@vessel/type"
 import { app, BrowserWindow, dialog, session, webContents, WebContentsView, type WebContents } from "electron"
 import { randomUUID } from "node:crypto"
 import { readFile, realpath, rename, rm, stat, writeFile } from "node:fs/promises"
@@ -17,6 +18,7 @@ import { basename, dirname, join } from "node:path"
 let records: BrowserExtension[] = []
 let initialized: Promise<void> | undefined
 let queue = Promise.resolve()
+let storeInstalling = false
 const tabHosts = new Set<WebContents>()
 
 /** Performs the extensions operation. */
@@ -194,7 +196,7 @@ export function registerBrowserExtensions(host: WebContents) {
     closeOwned()
   })
   host.ipc.handle("browser:extensions:close", closeOwned)
-  host.ipc.handle("browser:extensions:open", async (_event, key: string, mode = "open") => {
+  host.ipc.handle("browser:extensions:open", async (_event, key: string, mode = "open", pageData?: Record<string, unknown>) => {
     await initialize()
     await queue
     if (!["open", "options", "inspect"].includes(mode)) throw new Error("扩展操作无效")
@@ -230,6 +232,10 @@ export function registerBrowserExtensions(host: WebContents) {
     } catch {}
     activePopup = popup.webContents
     popup.webContents.on("dom-ready", () => {
+      if ((record.key.includes("clipper") || record.name.includes("剪藏")) && pageData && typeof pageData.url === "string" && /^https?:\/\//.test(pageData.url)) {
+        const payload = JSON.stringify(pageData)
+        void popup.webContents.executeJavaScript(`window.__vesselClipperPage = ${payload}; window.dispatchEvent(new Event("vessel:clipper-page-ready"));`).catch((error) => console.error("剪藏页面数据传递失败", error))
+      }
       void popup.webContents.executeJavaScript(`(${installExtensionApiShim.toString()})()`).catch(() => {})
       void popup.webContents.insertCSS("::-webkit-scrollbar { display: none !important; } html { scrollbar-width: none !important; }")
       if (/iguge|igg/i.test(record.name) && new URL(popup.webContents.getURL()).pathname === "/welcome.html") void popup.webContents.insertCSS(igugeWelcomeStyle)
@@ -306,6 +312,62 @@ export function registerBrowserExtensions(host: WebContents) {
     )
     return operation
   }
+  host.on("did-attach-webview", (_event, guest) => {
+    guest.ipc.on("vessel:webstore-install", async (event) => {
+      if (event.senderFrame !== guest.mainFrame || guest.session !== session.fromPartition("persist:vessel-browser")) return
+      const id = webStoreExtensionId(guest.getURL())
+      const owner = BrowserWindow.fromWebContents(host)
+      if (!id || !owner || storeInstalling || host.isDestroyed()) return
+      storeInstalling = true
+      const notify = (phase: WebStoreInstallStatus["phase"], message: string) => {
+        if (!host.isDestroyed()) host.send("browser:extensions:store-status", { phase, message } satisfies WebStoreInstallStatus)
+      }
+      let imported: Awaited<ReturnType<typeof prepareStoreExtension>> | undefined
+      let retained = false
+      try {
+        await initialize()
+        await queue
+        const existing = records.find(record => record.storeId === id || record.extensionId === id)
+        if (existing?.enabled && existing.extensionId && !existing.error) { notify("complete", `已安装：${existing.name}`); return }
+        notify("preparing", "正在从 Chrome 应用商店读取扩展包和权限…")
+        imported = await prepareStoreExtension(id, join(app.getPath("userData"), "browser-extension-packages"), process.versions.chrome, guest.session.fetch.bind(guest.session))
+        if (host.isDestroyed() || guest.isDestroyed() || webStoreExtensionId(guest.getURL()) !== id) { notify("cancelled", "已离开原商店页面，安装已取消"); return }
+        notify("confirming", `等待确认安装：${imported.name}`)
+        const permissionText = imported.permissions.length ? imported.permissions.join("\n") : "无额外权限"
+        const optionalText = imported.optional.length ? `\n\n可选权限：\n${imported.optional.join("\n")}` : ""
+        const choice = await dialog.showMessageBox(owner, {
+          type: "question", title: "安装浏览器扩展", message: `将“${imported.name}”添加至 Vessel？`,
+          detail: `版本：${imported.version}\n来源：Chrome 应用商店\n\n声明的权限和网站访问范围：\n${permissionText}${optionalText}\n\nVessel 仅支持部分 Chrome 扩展 API，安装成功不代表全部功能可用。`,
+          buttons: ["取消", "添加至 Vessel"], defaultId: 0, cancelId: 0, noLink: true
+        })
+        if (choice.response !== 1) { notify("cancelled", "已取消安装"); return }
+        if (host.isDestroyed() || guest.isDestroyed() || webStoreExtensionId(guest.getURL()) !== id) { notify("cancelled", "原商店页面已关闭或切换，安装已取消"); return }
+        notify("installing", `正在安装：${imported.name}`)
+        let installed: BrowserExtension | undefined
+        await mutate(async () => {
+          installed = records.find(record => record.storeId === id || record.extensionId === id)
+          if (!installed) {
+            installed = { key: randomUUID(), storeId: id, path: imported!.path, name: imported!.name, version: imported!.version, enabled: true, managedDirectory: imported!.directory, archiveDigest: imported!.digest }
+            records.push(installed)
+            retained = true
+          }
+          installed.enabled = true
+          await load(installed)
+          if (installed.extensionId && installed.extensionId !== id) {
+            extensions().removeExtension(installed.extensionId)
+            installed.extensionId = undefined
+            installed.error = "加载后的扩展 ID 与商店页面不一致"
+          }
+        })
+        if (installed?.error) notify("error", `扩展加载失败：${installed.error}`)
+        else notify("complete", `已添加：${installed?.name}。请刷新需要使用扩展的网页。`)
+      } catch (error) { notify("error", `商店安装失败：${error instanceof Error ? error.message : String(error)}`) }
+      finally {
+        storeInstalling = false
+        if (imported && !retained) await rm(imported.directory, { recursive: true, force: true })
+      }
+    })
+  })
   host.ipc.handle("browser:extensions:pin", (_event, key: string, pinned: boolean) =>
     mutate(async () => {
       const record = records.find((item) => item.key === key)

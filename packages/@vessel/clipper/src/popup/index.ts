@@ -18,8 +18,8 @@ const templateBody = document.getElementById("template-body") as HTMLTextAreaEle
 const authorInput = document.getElementById("clip-author") as HTMLInputElement
 const siteInput = document.getElementById("clip-site") as HTMLInputElement
 const sourceInput = document.getElementById("clip-source") as HTMLInputElement
-const quoteTemplate = "# {{title}}\n\n> 来源：[{{site}}]({{url}}) · {{date}}\n\n{{content}}\n\n## 我的笔记\n\n{{notes}}"
-const defaultTemplate = "# {{title}}\n\n[原文]({{url}}) · {{author}} · {{date}}\n\n{{content}}\n\n## 阅读笔记\n\n{{notes}}"
+const quoteTemplate = "# {{title}}\n\n> 来源：[{{site}}]({{url}}) · {{date}}\n\n{{content}}"
+const defaultTemplate = "# {{title}}\n\n[原文]({{url}}) · {{author}} · {{date}}\n\n{{content}}\n\n{{notes}}"
 let preferencesReady = false
 async function preferences(action: "read" | "write") {
   try {
@@ -30,7 +30,7 @@ async function preferences(action: "read" | "write") {
         if (typeof saved.folder === "string") folderInput!.value = saved.folder
         if (typeof saved.tags === "string") tagsInput!.value = saved.tags
         if (["default", "quote", "custom"].includes(saved.template)) templateSelect.value = saved.template
-        if (typeof saved.body === "string") templateBody.value = saved.body
+        if (typeof saved.body === "string") templateBody.value = saved.body === defaultTemplate.replace("{{notes}}", "## 阅读笔记\n\n{{notes}}") ? defaultTemplate : saved.body
       }
     } else {
       const saved = { folder: folderInput?.value, tags: tagsInput?.value, template: templateSelect.value, body: templateBody.value }
@@ -85,14 +85,15 @@ function updateMarkdownPreview() {
     currentMode,
     tags,
     notes,
-    templateSelect.value === "custom" ? templateBody.value : templateSelect.value === "quote" ? quoteTemplate : undefined
+    templateSelect.value === "custom" ? templateBody.value : templateSelect.value === "quote" ? quoteTemplate + (notes.trim() ? "\n\n## 我的笔记\n\n{{notes}}" : "") : "{{content}}\n\n{{notes}}"
   )
   document.getElementById("edit-state")!.hidden = editedMarkdown === null
-  const content = editedMarkdown ?? md
-  if (previewEl) previewEl.value = content
-  document.getElementById("content-count")!.textContent = String(content.length)
+  const prefix = md.match(/^---\n[\s\S]*?\n---\n/)?.[0] || ""
+  const content = editedMarkdown ?? md.slice(prefix.length).trim()
+  if (previewEl) previewEl.value = pageReady ? content : ""
+  document.getElementById("content-count")!.textContent = String(pageReady ? content.length : 0)
   if (preferencesReady) void preferences("write")
-  return content
+  return `${prefix}\n${content}\n`
 }
 
 /** Sets mode. */
@@ -219,9 +220,18 @@ saveBtn?.addEventListener("click", async () => {
 /** Loads active page data. */
 async function loadActivePageData() {
   let pageMetadata: PageMetadata | null = null
+  const directPage = () => (window as Window & { __vesselClipperPage?: PageMetadata }).__vesselClipperPage
+  if (new URLSearchParams(location.search).get("vesselHost") === "1") {
+    pageMetadata = directPage() || await new Promise<PageMetadata | null>((resolve) => {
+      const finish = () => { clearTimeout(timer); window.removeEventListener("vessel:clipper-page-ready", finish); resolve(directPage() || null) }
+      const timer = setTimeout(finish, 1500)
+      window.addEventListener("vessel:clipper-page-ready", finish)
+    })
+  }
 
   // 1. 优先尝试从 Vessel Bridge 获取当前活动页面（在 Vessel 桌面端内时极速获取）
   try {
+    if (pageMetadata?.url) throw new Error("Page delivered directly by Vessel")
     if (new URLSearchParams(location.search).get("vesselHost") !== "1" && !("vesselPageBridge" in window)) throw new Error("Use the active browser tab")
     const res = await fetch("http://127.0.0.1:35678/api/active-page", { signal: AbortSignal.timeout(2000) })
     if (res.ok) {
@@ -410,7 +420,8 @@ async function init() {
     if (status && status.ok) {
       isVesselConnected = true
       if (statusBadge) statusBadge.className = "status-badge connected"
-      const wsName = status.workspace?.name ? `已连接: ${status.workspace.name}` : "已连接 Vessel"
+      const wsName = "已连接 Vessel"
+      if (statusBadge) statusBadge.title = status.workspace?.name ? `当前工作区：${status.workspace.name}` : "尚未打开工作区"
       if (statusText) statusText.textContent = wsName
     } else {
       isVesselConnected = false

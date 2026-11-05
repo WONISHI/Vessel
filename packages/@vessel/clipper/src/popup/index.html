@@ -61,13 +61,13 @@
 
       <!-- 内容折叠预览 -->
       <div class="preview-box">
-        <button id="toggle-preview-btn" class="preview-toggle" type="button">
+        <button id="toggle-preview-btn" class="preview-toggle open" type="button">
           <span>编辑 Markdown · <span id="content-count">0</span> 字符</span>
           <span class="arrow">▼</span>
         </button>
-        <textarea id="preview-content" aria-label="Markdown 正文" class="preview-content hidden" rows="9"></textarea>
-        <small id="edit-state" hidden>正文已手动修改，属性变化需重新生成正文后应用。</small>
-        <button id="reset-content" class="preview-toggle" type="button">重新生成正文（覆盖手动修改）</button>
+        <textarea id="preview-content" aria-label="Markdown 正文" class="preview-content" rows="9"></textarea>
+        <small id="edit-state" hidden>正文已手动修改；标题、来源等属性仍会独立保存。</small>
+        <button id="reset-content" class="preview-toggle open" type="button">重新生成正文（覆盖手动修改）</button>
       </div>
     </div>
 

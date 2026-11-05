@@ -10,7 +10,7 @@ vi.mock('@/components/ui/dropdown-menu', () => ({ DropdownMenu: ({children}: any
 it('切离页面关闭管理与历史侧栏，返回后不重新打开', async () => {
   ;(globalThis as any).IS_REACT_ACT_ENVIRONMENT = true
   const close = vi.fn(async () => {})
-  window.electronAPI = { listBrowserExtensions: async () => [], onBrowserExtensionClosed: () => () => {}, closeBrowserExtension: close, listBrowserHistory: async () => [] } as any
+  window.electronAPI = { onWebStoreInstall: () => () => {}, listBrowserExtensions: async () => [], onBrowserExtensionClosed: () => () => {}, closeBrowserExtension: close, listBrowserHistory: async () => [] } as any
   const container = document.createElement('div'); document.body.append(container)
   const root = createRoot(container)
   const render = (visible: boolean) => <><BrowserExtensions visible={visible}/><BrowserMore visible={visible} zoomFactor={1} zoom={()=>{}} onFind={()=>{}} onNavigate={()=>{}} guest={()=>undefined} deviceMode={false} onDevice={()=>{}}/></>

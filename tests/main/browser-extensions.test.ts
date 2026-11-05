@@ -3,6 +3,8 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { expect, it, vi } from "vitest"
 const mocks = vi.hoisted(() => ({ directory: "", selection: "", options: undefined as unknown, load: vi.fn(async () => ({ id: "ext-id", name: "Test", version: "1.0" })), remove: vi.fn() }))
+vi.mock("@main/browser/browser-identity", () => ({ applyBrowserIdentity: vi.fn() }))
+vi.mock("@main/browser/browser-site-compatibility", () => ({ registerBrowserSiteCompatibility: vi.fn() }))
 vi.mock("electron", () => ({
   app: { getPath: () => mocks.directory, getAppPath: () => join(mocks.directory, "missing-builtins"), on: vi.fn(), removeListener: vi.fn() },
   webContents: { getAllWebContents: () => [] },
@@ -22,7 +24,7 @@ it("installs, persists, disables, re-enables and removes extension records witho
   await writeFile(manifest, JSON.stringify({ name: "Test", version: "1.0", manifest_version: 3 }))
   const handlers = new Map<string, (...args: unknown[]) => Promise<unknown>>()
   const { registerBrowserExtensions } = await import("@main/browser/browser-extensions")
-  registerBrowserExtensions({ once: vi.fn(), ipc: { handle: (name: string, handler: (...args: unknown[]) => Promise<unknown>) => handlers.set(name, handler) } } as never)
+  registerBrowserExtensions({ on: vi.fn(), once: vi.fn(), ipc: { handle: (name: string, handler: (...args: unknown[]) => Promise<unknown>) => handlers.set(name, handler) } } as never)
   try {
     const installed = (await handlers.get("browser:extensions:install")!()) as { key: string }[]
     const key = installed[0].key

@@ -50,3 +50,22 @@ it("focusInsideQuote does not create a sibling outside the 标注", () => {
   expect(quote.firstElementChild && isEmptyParagraph(quote.firstElementChild)).toBe(true)
   expect(quote.lastElementChild && isEmptyParagraph(quote.lastElementChild)).toBe(true)
 })
+
+it("callout 上下方聚焦创建外部空行，复用已有空行并保持标注内容", () => {
+  const root = document.createElement("div")
+  root.setAttribute("contenteditable", "true")
+  root.innerHTML = lute.Md2VditorIRDOM("> [!help]+ 结果是2，3，4\n> 标注内容\n")
+  document.body.append(root)
+  decorateCallouts(root)
+  const quote = root.querySelector<HTMLElement>("blockquote")!
+  const original = quote.innerHTML
+  for (const below of [false, true]) {
+    const paragraph = focusImageParagraph(quote, below)!
+    expect(paragraph.parentElement).toBe(root)
+    expect(below ? quote.nextElementSibling : quote.previousElementSibling).toBe(paragraph)
+    expect(isEmptyParagraph(paragraph)).toBe(true)
+    expect(window.getSelection()?.anchorNode === paragraph || paragraph.contains(window.getSelection()?.anchorNode || null)).toBe(true)
+    expect(focusImageParagraph(quote, below)).toBe(paragraph)
+  }
+  expect(quote.innerHTML).toBe(original)
+})

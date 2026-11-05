@@ -1,3 +1,4 @@
+import { bindWebStoreInstall } from "./webstore-install"
 import { contextBridge, ipcRenderer } from "electron"
 import { installExtensionApiShim } from "../main/browser/extensions/extension-api-shim"
 
@@ -25,3 +26,5 @@ const linkActivation = (event: MouseEvent) => {
 }
 window.addEventListener("click", linkActivation, true)
 window.addEventListener("auxclick", linkActivation, true)
+
+if (location.protocol === "https:" && location.hostname === "chromewebstore.google.com") bindWebStoreInstall(() => ipcRenderer.send("vessel:webstore-install"))

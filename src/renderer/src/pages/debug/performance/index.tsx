@@ -1,3 +1,4 @@
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { PageBackButton } from '@/pages/debug/components/page-back-button'
 import { usePerformance, type PerformancePoint } from './use-performance'
 import { Clock3, Monitor, Copy, Activity } from 'lucide-react'
@@ -28,6 +29,7 @@ export default function PerformancePage() {
   }
   return <div className="performance-page">
     <header className="performance-header"><div className="flex items-center gap-2"><PageBackButton /><div><h2>性能监控</h2><p>进程来源 / 内存明细 / 历史趋势</p></div></div><div className="performance-actions"><button type="button" onClick={copy} disabled={!snapshot}><Copy size={13} />{copyStatus || '复制诊断'}</button><span className="performance-status" data-live={Boolean(snapshot && !error && visible)} role="status"><Clock3 size={13} />{error ? '采样失败' : !visible ? '已暂停' : snapshot ? 'Live' : '连接中'}</span></div></header>
+    <ScrollArea className="performance-scroll" type="auto">
     <div className="performance-body">
       {error && <div role="alert" className="performance-error">无法读取性能数据：{error}（将自动重试）</div>}
       <div className="performance-metrics">
@@ -43,5 +45,6 @@ export default function PerformancePage() {
       </div>
       <section className="performance-processes"><div className="performance-process-heading"><h3><Monitor size={15} />进程与页面来源</h3><span>{snapshot?.processes.length ?? 0} 个进程 · 按内存排序</span></div><div className="performance-process-scroll"><table aria-label="应用进程性能"><thead><tr><th>进程 / 页面 / 所属窗口</th><th>CPU</th><th>驻留内存</th><th>上次采样变化</th></tr></thead><tbody>{[...(snapshot?.processes ?? [])].sort((a, b) => b.memoryBytes - a.memoryBytes).map((process) => <tr key={`${process.pid}:${process.creationTime}`}><th scope="row"><div>{processNames[process.type] ?? process.type}<span className="performance-process-name">{process.name}</span><span className="performance-pid">PID {process.pid}</span></div>{process.sources?.length ? <details open><summary>{process.sources.length} 个页面 / frame 来源</summary><div className="performance-sources">{process.sources.map((source) => <div className="performance-source" key={`${source.webContentsId}:${source.frameId}`}><div><b>{source.kind}</b><span>{source.visible === true ? '宿主窗口可见' : source.visible === false ? '宿主窗口隐藏' : '可见性未确认'}</span></div><p>{source.title || '无页面标题'}{source.windowTitle && ` · 窗口：${source.windowTitle}`}</p><code>{source.url || '页面地址不可用'}</code><small>WebContents {source.webContentsId} · Frame {source.frameId}</small></div>)}</div></details> : process.type === 'Tab' ? <p className="performance-note">暂未关联页面：可能正在创建、退出或已脱离 frame。</p> : null}</th><td className="performance-cpu" data-busy={(process.cpuPercent ?? 0) >= 50}>{error || process.cpuPercent == null ? '—' : `${process.cpuPercent.toFixed(1)}%`}</td><td className="performance-memory">{size(process.memoryBytes)}<small>历史峰值 {size(process.peakMemoryBytes)}</small></td><td className="performance-delta" data-growing={(process.deltaBytes ?? 0) > 0}>{signed(process.deltaBytes)}</td></tr>)}</tbody></table>{!snapshot && <div className="performance-empty">正在获取进程数据…</div>}</div></section>
     </div>
+    </ScrollArea>
   </div>
 }

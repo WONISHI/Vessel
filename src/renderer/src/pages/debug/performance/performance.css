@@ -6,7 +6,8 @@ html.dark .performance-page { --perf-bg: #1a1d21; --perf-surface: #23272d; --per
 .performance-status { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 999px; font-size: 11px; background: var(--perf-track); color: var(--perf-muted); }
 .performance-status[data-live="true"] { background: #dcfce7; color: #15803d; }
 html.dark .performance-status[data-live="true"] { background: #173b2b; color: #4ade80; }
-.performance-body { flex: 1; min-height: 0; overflow: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.performance-scroll { flex: 1; min-height: 0; }
+.performance-body { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
 .performance-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; flex-shrink: 0; }
 .performance-card { padding: 16px; background: var(--perf-surface); border: 1px solid var(--perf-edge); border-radius: 10px; }
 .performance-card h3 { font-size: 11px; font-weight: 600; color: var(--perf-faint); }

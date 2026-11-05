@@ -8,6 +8,7 @@ export type BrowserExtension = {
   error?: string
   managedDirectory?: string
   archiveDigest?: string
+  storeId?: string
   pinned?: boolean
   icon?: string
   popup?: string
@@ -16,13 +17,16 @@ export type BrowserExtension = {
   permissions?: string[]
 }
 
+export type WebStoreInstallStatus = { phase: "preparing" | "confirming" | "installing" | "complete" | "cancelled" | "error"; message: string }
+
 export interface BrowserExtensionsAPI {
+  onWebStoreInstall(callback: (status: WebStoreInstallStatus) => void): () => void
   extensionScroll(top?: number): Promise<{ height: number; top: number; width?: number; naturalHeight?: number }>
   resizeBrowserExtension(bounds: { x: number; y: number; width: number; height: number }): Promise<void>
   onBrowserExtensionClosed(callback: () => void): () => void
   closeBrowserExtension(): Promise<void>
   pinBrowserExtension(key: string, pinned: boolean): Promise<BrowserExtension[]>
-  openBrowserExtension(key: string, mode?: "open" | "options" | "inspect"): Promise<{ kind: "dialog" | "devtools" | "background"; message?: string }>
+  openBrowserExtension(key: string, mode?: "open" | "options" | "inspect", pageData?: Record<string, unknown>): Promise<{ kind: "dialog" | "devtools" | "background"; message?: string }>
   listBrowserExtensions(): Promise<BrowserExtension[]>
   installBrowserExtension(kind?: "archive" | "directory"): Promise<BrowserExtension[]>
   setBrowserExtensionEnabled(key: string, enabled: boolean): Promise<BrowserExtension[]>
