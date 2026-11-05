@@ -10,12 +10,12 @@ it("updates external content but does not reload a self-save", async () => {
   await act(async () => {
     change()
   })
+  await waitFor(() => expect(window.electronAPI.readContent).toHaveBeenCalledOnce())
   expect(apply).not.toHaveBeenCalled()
   vi.mocked(window.electronAPI.readContent).mockResolvedValue("external")
-  await act(async () => {
-    change()
-  })
+  act(() => { change(); change(); change() })
   await waitFor(() => expect(apply).toHaveBeenCalledWith("external"))
+  expect(window.electronAPI.readContent).toHaveBeenCalledTimes(2)
 })
 it("does not overwrite edits made while an external read is pending", async () => {
   const apply = vi.fn()
@@ -32,6 +32,7 @@ it("does not overwrite edits made while an external read is pending", async () =
   })
   const hook = renderHook(({ content }) => useExternalContent("/note.md", content, apply), { initialProps: { content: "old" } })
   act(change)
+  await waitFor(() => expect(window.electronAPI.readContent).toHaveBeenCalledOnce())
   hook.rerender({ content: "new local edit" })
   await act(async () => {
     resolve("external")

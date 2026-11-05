@@ -209,3 +209,12 @@ it("does not fail the batch when a file is renamed between planning and upload",
   expect(result.changed).toBe(1)
   expect(f.objects.has("0.md")).toBe(false)
 })
+
+it("throttles intermediate progress while retaining phase boundaries and final counts", async () => {
+  const f = await fixture(16)
+  const progress = vi.fn()
+  await syncFiles({ ...f.options, onProgress: progress, progressIntervalMs: 60000 })
+  const transfers = progress.mock.calls.map(([value]) => value).filter((value) => value.phase === "transferring")
+  expect(transfers.map((value) => value.completed)).toEqual([0, 16])
+  expect(transfers.at(-1)).toMatchObject({ total: 16, uploaded: 16 })
+})

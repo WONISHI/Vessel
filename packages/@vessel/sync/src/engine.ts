@@ -195,7 +195,7 @@ async function run(options: SyncOptions, prefix: string, indexPath: string, conc
     }
     if (!options.onProgress) return
     const now = performance.now()
-    if (!phaseChanged && (active || completed !== total) && now - lastProgressAt < 125) return
+    if (!phaseChanged && (active || completed !== total) && now - lastProgressAt < (options.progressIntervalMs ?? 0)) return
     lastProgressAt = now
     options.onProgress({ phase, active, elapsedMs: now - started, completed, total, path, uploaded: result.changed, downloaded: result.downloaded, bytes: result.size + result.downloadSize! + [...activeBytes.values()].reduce((a, b) => a + b, 0), conflicts: result.conflicts.length })
   }
@@ -698,12 +698,11 @@ async function run(options: SyncOptions, prefix: string, indexPath: string, conc
     }
   })
   tasks.sort((a, b) => a.path.localeCompare(b.path))
-  const publicPlan = tasks.map(({ path, action, reason }) => ({ path, action, reason }))
   const deletes = tasks.filter((task) => task.action.startsWith("delete-") && !task.isRename).length
   const protectedDeletion = deletes > 0 && threshold < 100 && deletes * 100 > tasks.length * threshold
   options.signal?.throwIfAborted()
   if (options.dryRun) {
-    result.plan = publicPlan
+    result.plan = tasks.map(({ path, action, reason }) => ({ path, action, reason }))
     result.dryRun = true
     result.conflicts = tasks.filter((task) => task.action === "conflict").map((task) => task.path)
     result.time = new Date().toISOString()

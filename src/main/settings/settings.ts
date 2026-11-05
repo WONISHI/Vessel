@@ -200,7 +200,7 @@ async function persist(next: NonNullable<typeof stored>) {
 const syncDirectory = (root: string) => join(app.getPath("userData"), "sync-indexes", createHash("sha256").update(root).digest("hex"))
 
 /** Performs the snapshot operation. */
-async function snapshot(root: string, config: AppSettings["backup"], secret: string, selected?: string, onProgress?: (progress: SyncProgress) => void, dryRun = false, changedPaths?: readonly string[]) {
+async function snapshot(root: string, config: AppSettings["backup"], secret: string, selected?: string, onProgress?: (progress: SyncProgress) => void, dryRun = false, changedPaths?: readonly string[]): Promise<BackupStatus> {
   const ignoredPatterns = parseIgnoredPatterns(load().settings.ignoredFiles)
 
   /** Performs the exclude operation. */
@@ -240,7 +240,7 @@ async function snapshot(root: string, config: AppSettings["backup"], secret: str
 }
 
 /** Backs up backup. */
-async function backup(selected?: string, expectedRoot?: string, dryRun = false, changedPaths?: readonly string[]) {
+async function backup(selected?: string, expectedRoot?: string, dryRun = false, changedPaths?: readonly string[]): Promise<BackupStatus> {
   const root = currentWorkspace
   if (!root || (expectedRoot !== undefined && expectedRoot !== root)) throw new Error("当前页面不是可同步的工作区")
   if (selected !== undefined && (typeof selected !== "string" || !selected)) throw new Error("请先打开要同步的文件")
@@ -273,7 +273,7 @@ async function backup(selected?: string, expectedRoot?: string, dryRun = false, 
       notifyStatus(p.status)
       return status
     }
-    if (!selected && !changedPaths && root === currentWorkspace) lastFullSyncTime = Date.parse(status.time)
+    if (!selected && !changedPaths && root === currentWorkspace) lastFullSyncTime = Date.parse(status.time ?? "") || Date.now()
     p.status = status
     await persist({ ...load(), profiles: { ...load().profiles, [root]: p } })
     notifyStatus(status)
@@ -322,7 +322,7 @@ function queueSaveSync(delay = 1500) {
       if (root !== currentWorkspace || watcher !== scheduledWatcher) return
       // Retry against a full snapshot if a queued path disappeared or changed kind.
       markSaveChange()
-      queueSaveSync(30000)
+      if (paths) queueSaveSync(30000)
     })
   }, delay)
 }

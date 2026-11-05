@@ -457,3 +457,14 @@ it("handles local file renames without restoring old files even when propagateDe
   const localFiles = (await readdir(f.a)).filter((name) => !name.startsWith(".")).sort()
   expect(localFiles).toEqual(["chapter2.md"])
 })
+
+it("reconciles only queued paths using HEAD and leaves other remote changes for a full sync", async () => {
+  const f = await fixture()
+  await writeFile(join(f.a, "edited.md"), "latest local text")
+  f.put("other.md", "remote text")
+  expect(await f.run(f.a, { paths: ["edited.md"], exactRemotePaths: true })).toMatchObject({ changed: 1, downloaded: 0 })
+  expect(f.storage.list).not.toHaveBeenCalled()
+  expect(f.storage.head).toHaveBeenCalledExactlyOnceWith("edited.md", undefined)
+  await expect(readFile(join(f.a, "other.md"))).rejects.toMatchObject({ code: "ENOENT" })
+  expect(await f.run()).toMatchObject({ changed: 0, downloaded: 1 })
+})

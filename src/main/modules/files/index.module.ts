@@ -30,14 +30,13 @@ export function saveTextFileContent(path: unknown, content: unknown): Promise<vo
   }
 
   const previous = pendingWrites.get(path)?.done
-  const done = (async () => {
-    await previous?.catch(() => {})
+  const done = (previous ?? Promise.resolve()).catch(() => {}).then(async () => {
     // A fixed batching window also makes progress while the user keeps typing.
     await new Promise<void>((resolve) => setTimeout(resolve, 150))
     queuedWrites.delete(path)
     if (!(await stat(path)).isFile()) throw new Error("只能保存普通文件")
     await writeFile(path, batch.content, "utf8")
-  })()
+  })
   const batch: WriteBatch = { content, done }
   pendingWrites.set(path, batch)
   queuedWrites.set(path, batch)
@@ -46,6 +45,14 @@ export function saveTextFileContent(path: unknown, content: unknown): Promise<vo
   }
   void done.then(cleanup, cleanup)
   return done
+}
+
+/** Let accepted writes settle before Electron tears down the main process. */
+export function drainTextFileWrites(): Promise<void> | undefined {
+  if (!pendingWrites.size) return undefined
+  return (async () => {
+    while (pendingWrites.size) await Promise.allSettled([...pendingWrites.values()].map(({ done }) => done))
+  })()
 }
 
 /**
@@ -89,6 +96,10 @@ export async function mutateWorkspaceFile(root: string, path: string, name?: str
   const source = await realpath(path)
   const offset = relative(base, source)
   if (!offset || offset === ".." || offset.startsWith(".." + sep) || isAbsolute(offset) || (!(await stat(source)).isFile() && !(await stat(source)).isDirectory())) throw new Error("只能操作工作区内的普通文件")
+  for (const [pendingPath, batch] of pendingWrites) {
+    const pendingOffset = relative(source, pendingPath)
+    if (pendingPath === path || (!isAbsolute(pendingOffset) && pendingOffset !== ".." && !pendingOffset.startsWith(".." + sep))) await batch.done
+  }
   if (name === undefined) {
     await shell.trashItem(source)
     return ""

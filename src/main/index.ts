@@ -1,3 +1,4 @@
+import { drainTextFileWrites } from "@main/modules/files/index.module"
 import { registerImageResources } from "@main/modules/files/image-resource"
 import { installApplicationMenu } from "@main/menu"
 import { registerBases } from "@main/modules/bases"
@@ -288,7 +289,22 @@ app.on("window-all-closed", () => {
   app.quit()
 })
 
-app.on("before-quit", () => {
+let drainingTextWrites = false
+app.on("before-quit", (event) => {
+  if (drainingTextWrites) {
+    event.preventDefault()
+    return
+  }
+  const pending = drainTextFileWrites()
+  if (pending) {
+    event.preventDefault()
+    drainingTextWrites = true
+    void pending.then(() => {
+      drainingTextWrites = false
+      app.quit()
+    })
+    return
+  }
   mainApps.dispose()
 })
 

@@ -79,6 +79,7 @@ it("persists Markdown edits in order and waits for pending saves before reloadin
   await writeFile(path, "old")
   const first = saveTextFileContent(path, "first")
   const last = saveTextFileContent(path, "---\ntitle: 标题\n---\n[[目录/文件]]\n修改后的内容")
+  expect(first).toBe(last)
   await expect(readTextFileContent(path)).resolves.toBe("---\ntitle: 标题\n---\n[[目录/文件]]\n修改后的内容")
   await Promise.all([first, last])
   await expect(saveTextFileContent(directory, "bad")).rejects.toThrow("普通文件")

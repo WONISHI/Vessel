@@ -30,13 +30,14 @@ export async function syncBackup(directory: string, config: AppSettings["backup"
       },
       ...runtime,
       direction: runtime.root ? (config.direction ?? "bidirectional") : "push",
-      concurrency: Math.min(config.concurrency ?? 8, 4),
+      concurrency: config.concurrency ?? 8,
       conflictStrategy: config.conflictStrategy ?? DEFAULT_CONFLICT_STRATEGY,
       propagateDeletes: config.propagateDeletes ?? DEFAULT_PROPAGATE_DELETES,
       deleteThresholdPercent: config.deleteThresholdPercent ?? 20,
       maxFileSize: (config.maxFileSizeMB ?? 0) * 1024 ** 2,
       prefix: config.prefix,
       files: metadata === undefined ? files : [...files, { path: ".vessel/backup.json", source: metadataPath }],
+      progressIntervalMs: 125,
       onProgress
     })
     return { ...result, changed: result.changed - metadataUploads }

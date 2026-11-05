@@ -108,6 +108,8 @@ export interface SyncOptions {
   /** Flush after this many completed files, and always on completion/failure. Default 32. */
   checkpointEvery?: number
   signal?: AbortSignal
+  /** Minimum interval between intermediate progress callbacks, in milliseconds. */
+  progressIntervalMs?: number
   onProgress?: (progress: SyncProgress) => void
   /** Diagnostics observers must not affect synchronization. No credentials are emitted. */
   onLog?: (event: SyncLogEvent) => void

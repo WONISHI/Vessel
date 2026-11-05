@@ -95,7 +95,7 @@ export function OfficePage({ visible = true }: { visible?: boolean }) {
           <iframe
             ref={frame}
             name="Office 文档列表"
-            data-title="ONLYOFFICE 本地编辑器" aria-label="ONLYOFFICE 本地编辑器"
+            aria-label="ONLYOFFICE 本地编辑器"
             src={url}
             className="h-full w-full border-0"
           />

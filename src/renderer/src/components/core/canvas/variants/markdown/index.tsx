@@ -12,7 +12,7 @@ import { useExternalContent } from "@/components/workspace/hooks/file-changes"
 import { WorkspaceContext } from "@/components/workspace/types/workspace"
 import { lazyWithRetry } from "@/lib/lazy-retry"
 import { highlightKeywordInVditor } from "@/pages/search/reveal-hit"
-import { Suspense, useContext, useEffect, useMemo, useRef, useState } from "react"
+import { Suspense, useContext, useDeferredValue, useEffect, useMemo, useRef, useState } from "react"
 
 const ExcalidrawCanvas = lazyWithRetry(() => import("@/components/core/canvas/variants/excalidraw/index"))
 
@@ -24,13 +24,10 @@ export default function MarkdownCanvas({ activeFilePath, workspacePath: customWo
   const [saveState, setSaveState] = useState<{ path: string; message: string; failed?: boolean } | null>(null)
   const [asExcalidraw, setAsExcalidraw] = useState(false)
   const saveRevision = useRef(0)
-  const drafts = useRef(new Map<string, string>())
   const contentHost = useRef<HTMLDivElement>(null)
   useEffect(() => {
     let cancelled = false
-    const cached = drafts.current.get(activeFilePath)
-    const request = cached === undefined ? readDocument(activeFilePath) : Promise.resolve(cached)
-    request
+    readDocument(activeFilePath)
       .then((content) => {
         if (!cancelled) {
           setLoaded({ path: activeFilePath, content })
@@ -47,13 +44,13 @@ export default function MarkdownCanvas({ activeFilePath, workspacePath: customWo
   }, [activeFilePath])
   const [externalRevision, setExternalRevision] = useState(0)
   useExternalContent(activeFilePath, loaded?.path === activeFilePath ? loaded.content : undefined, (content) => {
-    drafts.current.set(activeFilePath, content)
     setLoaded({ path: activeFilePath, content })
     setExternalRevision((value) => value + 1)
     setSaveState({ path: activeFilePath, message: "已从磁盘更新" })
   }, waitForMarkdownWrites)
   const current = loaded?.path === activeFilePath ? loaded : null
-  const sections = useMemo(() => headingSections(current?.content ?? ""), [current?.content])
+  const outlineSource = useDeferredValue(current?.content ?? "")
+  const sections = useMemo(() => headingSections(outlineSource), [outlineSource])
   const [headings, setHeadings] = useState<{ text: string; level: number; color?: string }[]>([])
   const [activeHeading, setActiveHeading] = useState(-1)
   useEffect(() => {
@@ -186,7 +183,6 @@ export default function MarkdownCanvas({ activeFilePath, workspacePath: customWo
               documentPath={activeFilePath}
               value={current.content}
               onChange={(content) => {
-                drafts.current.set(activeFilePath, content)
                 setLoaded({ path: activeFilePath, content })
                 const revision = ++saveRevision.current
                 setSaveState({ path: activeFilePath, message: "正在保存…" })
@@ -203,7 +199,7 @@ export default function MarkdownCanvas({ activeFilePath, workspacePath: customWo
         </div>
         <DocumentOutline
           preview={SectionPreview}
-          source={current?.content ?? ""}
+          source={outlineSource}
           onSelectFootnote={(id) => {
             const node = Array.from(contentHost.current?.querySelectorAll<HTMLElement>("[data-vessel-footnote-id]") ?? []).find((item) => item.dataset.vesselFootnoteId === id)
             node?.scrollIntoView({ behavior: "smooth", block: "center" })
@@ -226,7 +222,7 @@ export default function MarkdownCanvas({ activeFilePath, workspacePath: customWo
         workspacePath={workspacePath}
       />
       <DocumentStats
-        source={current?.content ?? ""}
+        source={outlineSource}
         saveStatus={saveState?.path === activeFilePath ? saveState : undefined}
       />
     </div>
