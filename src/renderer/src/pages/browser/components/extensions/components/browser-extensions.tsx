@@ -3,10 +3,11 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import { toast } from "@/components/ui/sonner"
 import { Switch } from "@/components/ui/switch"
 import { Icon } from "@/pages/browser/components/extensions/components/icon"
-import type { BrowserExtension, WebStoreInstallStatus } from "@vessel/type"
-import { Box, Folder, Pin, Puzzle, Shield, Trash2, TriangleAlert, Upload } from "lucide-react"
+import type { BrowserExtension } from "@vessel/type"
+import { Box, ExternalLink, Folder, Pin, Puzzle, Shield, Trash2, TriangleAlert, Upload } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 
 /** Renders the browser extensions component. */
@@ -36,7 +37,7 @@ function writePopupSize(key: string, size: { width?: number; height?: number }) 
   } catch {}
 }
 
-export function BrowserExtensions({ visible = true, onOpenDevtools, getActivePageData }: { visible?: boolean; onOpenDevtools?: () => void; getActivePageData?: () => Promise<any> }) {
+export function BrowserExtensions({ visible = true, onOpenDevtools, getActivePageData, onOpenStore }: { onOpenStore?: (url: string) => void; visible?: boolean; onOpenDevtools?: () => void; getActivePageData?: () => Promise<any> }) {
   const [popup, setPopup] = useState<BrowserExtension | null>(null)
   const popupArea = useRef<HTMLDivElement>(null)
   const scrollViewport = useRef<HTMLDivElement>(null)
@@ -52,7 +53,6 @@ export function BrowserExtensions({ visible = true, onOpenDevtools, getActivePag
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState("")
-  const [storeStatus, setStoreStatus] = useState<WebStoreInstallStatus | null>(null)
   const [menu, setMenu] = useState<BrowserExtension | null>(null)
   const [position, setPosition] = useState({ x: 0, y: 0 })
   const [permissions, setPermissions] = useState<BrowserExtension | null>(null)
@@ -70,8 +70,13 @@ export function BrowserExtensions({ visible = true, onOpenDevtools, getActivePag
   }, [visible])
 
   useEffect(() => window.electronAPI.onWebStoreInstall((status) => {
-    setStoreStatus(status)
-    setBusy(["preparing", "confirming", "installing"].includes(status.phase))
+    const pending = ["preparing", "confirming", "installing"].includes(status.phase)
+    const options = { id: "browser-web-store-install" }
+    setBusy(pending)
+    if (pending) toast.loading(status.message, options)
+    else if (status.phase === "complete") toast.success(status.message, options)
+    else if (status.phase === "error") toast.error(status.message, options)
+    else toast.info(status.message, options)
     if (visibility.current) setOpen(true)
     if (status.phase === "complete" || status.phase === "error") {
       void window.electronAPI.listBrowserExtensions().then(setItems).catch(reason => setError(String(reason)))
@@ -346,7 +351,7 @@ export function BrowserExtensions({ visible = true, onOpenDevtools, getActivePag
                 安装 CRX / ZIP
               </Button>
               <Button
-                className="h-9 px-2 text-xs dark:text-[#9BA1A9] hover:bg-[#327f73] hover:text-white dark:hover:text-white active:bg-[#327f73] active:text-white"
+                className="h-9 px-2 text-xs dark:text-[#9BA1A9] hover:bg-stone-100 hover:text-foreground dark:hover:bg-stone-800"
                 variant="outline"
                 disabled={busy}
                 onClick={() => void run(() => window.electronAPI.installBrowserExtension("directory"))}
@@ -354,6 +359,15 @@ export function BrowserExtensions({ visible = true, onOpenDevtools, getActivePag
                 <Folder />
                 加载解压目录
               </Button>
+              {onOpenStore && (
+                <Button variant="outline" className="col-span-2 h-9 text-xs hover:bg-stone-100 hover:text-foreground dark:hover:bg-stone-800" onClick={() => {
+                  setOpen(false)
+                  onOpenStore("https://chromewebstore.google.com/category/extensions?utm_source=ext_sidebar&hl=zh-CN")
+                }}>
+                  <ExternalLink />
+                  打开 Chrome 应用商店
+                </Button>
+              )}
             </div>
             {error && (
               <p
@@ -367,7 +381,6 @@ export function BrowserExtensions({ visible = true, onOpenDevtools, getActivePag
               <span>已安装扩展</span>
               <span className="rounded-full bg-muted px-2">{items.length}</span>
             </div>
-            {storeStatus && <p role="status" className={`rounded-lg border p-3 text-xs ${storeStatus.phase === "error" ? "border-red-200 text-red-600" : "text-foreground"}`}>{storeStatus.message}</p>}
             {!items.length && <p className="py-8 text-center text-sm text-muted-foreground dark:text-[#9BA1A9]">{busy ? "正在读取扩展…" : "尚未安装扩展"}</p>}
             <div className="space-y-3">
               {items.map((item) => {

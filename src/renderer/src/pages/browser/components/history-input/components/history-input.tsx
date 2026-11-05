@@ -2,11 +2,12 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Highlight } from "@/pages/browser/components/history-input/components/highlight"
 import type { HistoryEntry } from "@vessel/type"
 import { CornerDownLeft, Globe, Search } from "lucide-react"
-import { useEffect, useId, useRef, useState, type ComponentProps } from "react"
+import { getSearchEngine, searchEngines, subscribeSearchEngine } from "@/pages/browser/url"
+import { useSyncExternalStore, useEffect, useId, useRef, useState, type ComponentProps } from "react"
 import { createPortal } from "react-dom"
 
 /** Renders the history input component. */
-export function HistoryInput({ onNavigate, ...props }: ComponentProps<"input"> & { onNavigate: (value: string, newTab?: boolean) => void }) {
+export function HistoryInput({ onNavigate, suppressSuggestions, ...props }: ComponentProps<"input"> & { onNavigate: (value: string, newTab?: boolean) => void; suppressSuggestions?: boolean }) {
   const id = useId(),
     ref = useRef<HTMLInputElement>(null)
   const [entries, setEntries] = useState<HistoryEntry[]>([])
@@ -16,7 +17,9 @@ export function HistoryInput({ onNavigate, ...props }: ComponentProps<"input"> &
   const query = String(props.value ?? "").trim()
   const matches = [...new Map(entries.filter((entry) => `${entry.title} ${entry.url}`.toLowerCase().includes(query.toLowerCase())).map((entry) => [entry.url, entry])).values()].slice(0, 8)
   const count = matches.length + 1
-  const show = open && !!query
+  const engine = useSyncExternalStore(subscribeSearchEngine, getSearchEngine)
+  const engineName = searchEngines[engine].label
+  const show = open && !!query && !suppressSuggestions
   useEffect(() => {
     if (!show) return
 
@@ -136,7 +139,7 @@ export function HistoryInput({ onNavigate, ...props }: ComponentProps<"input"> &
                   </div>
                 ))}
                 <div className="history-completion-heading">
-                  搜索建议<span>Bing</span>
+                  搜索建议<span>{engineName}</span>
                 </div>
                 <div
                   role="option"
@@ -153,7 +156,7 @@ export function HistoryInput({ onNavigate, ...props }: ComponentProps<"input"> &
                       query={query}
                     />
                   </span>
-                  <span className="history-search-label">Bing 搜索</span>
+                  <span className="history-search-label">{engineName} 搜索</span>
                 </div>
               </div>
             </ScrollArea>

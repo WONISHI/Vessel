@@ -65,22 +65,27 @@ export function useExternalContent(path: string, content: string | undefined, ap
     latest.current = { path, content, apply, waitForWrites }
   }, [path, content, apply, waitForWrites])
   const request = useRef(0)
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   useFileChanges((changes) => {
     if (!changes.some((change) => change.path === path && change.type !== "delete")) return
     const snapshot = latest.current
     const revision = ++request.current
-    void Promise.resolve(snapshot.waitForWrites?.(path))
-      .then(() => {
-        if (request.current !== revision || latest.current.path !== path || latest.current.content !== snapshot.content) return undefined
-        return window.electronAPI.readContent(path)
-      })
-      .then((value) => {
-        if (value !== undefined && request.current === revision && latest.current.path === path && latest.current.content === snapshot.content && value !== latest.current.content) latest.current.apply(value)
-      })
-      .catch(() => {})
+    clearTimeout(timer.current)
+    timer.current = setTimeout(() => {
+      void Promise.resolve(snapshot.waitForWrites?.(path))
+        .then(() => {
+          if (request.current !== revision || latest.current.path !== path || latest.current.content !== snapshot.content) return undefined
+          return window.electronAPI.readContent(path)
+        })
+        .then((value) => {
+          if (value !== undefined && request.current === revision && latest.current.path === path && latest.current.content === snapshot.content && value !== latest.current.content) latest.current.apply(value)
+        })
+        .catch(() => {})
+    }, 100)
   })
   useEffect(
     () => () => {
+      clearTimeout(timer.current)
       request.current++
     },
     [path]

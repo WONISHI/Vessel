@@ -1,6 +1,7 @@
+import "./document-outline.css"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { parseFootnotes } from "@vessel/obsidian"
-import { SectionPreview } from "@/components/core/canvas/variants/markdown/section-preview"
+import type { SectionPreview } from "@/components/core/canvas/variants/markdown/section-preview"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -15,19 +16,25 @@ export function DocumentOutline({
   onSelect,
   fileName,
   sections = [],
-  workspacePath,
+  workspacePath = "",
   documentPath,
   source = "",
-  onSelectFootnote
+  onSelectFootnote,
+  preview: Preview,
+  emptyMessage = "暂无标题",
+  kind = "markdown"
 }: {
-  headings: { text: string; level: number; color?: string }[]
+  headings: { text: string; level: number; color?: string; page?: number }[]
   activeIndex: number
   onSelect: (index: number) => void
   fileName?: string
   sections?: string[]
-  workspacePath: string
+  workspacePath?: string
   documentPath: string
   source?: string
+  preview?: typeof SectionPreview
+  emptyMessage?: string
+  kind?: "markdown" | "pdf"
   onSelectFootnote?: (id: string) => void
 }) {
   const [toolsOpen, setToolsOpen] = useState(false)
@@ -85,7 +92,7 @@ export function DocumentOutline({
             </Button>
           </PopoverTrigger>
           <PopoverContent side="left" align="center" sideOffset={12} avoidCollisions={false} onOpenAutoFocus={(event) => event.preventDefault()} className="document-outline-tools-popover flex w-auto items-center gap-0.5 rounded-lg p-1" data-outline-tools onMouseEnter={(event) => { event.stopPropagation(); clearTimeout(closeTimer.current); setToolsHovered(true) }} onMouseLeave={() => setToolsHovered(false)} onFocusCapture={(event) => event.stopPropagation()} onPointerDown={(event) => event.stopPropagation()} onCloseAutoFocus={(event) => event.preventDefault()}>
-            {([ ["outline", Menu, "目录"], ["footnotes", Subscript, "脚注"] ] as const).map(([value, Icon, label]) => (
+            {([ ["outline", Menu, "目录"], ["footnotes", Subscript, "脚注"] ] as const).filter(([value]) => kind === "markdown" || value === "outline").map(([value, Icon, label]) => (
               <Button key={value} variant="ghost" size="icon" aria-label={label} data-title={label} className={cn("document-outline-tool size-6 rounded-md hover:bg-green-600 hover:text-white", section === value && pinned && "bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-400")} onClick={() => { setSection(value); setPinned(true); setToolsOpen(false) }}><Icon className="!size-3.5" /></Button>
             ))}
           </PopoverContent>
@@ -186,6 +193,21 @@ export function DocumentOutline({
             const node = tree[index]
             if (node.ancestors.some((parent) => collapsed.has(parent))) return null
             const folded = collapsed.has(index)
+            const headingButton = (
+              <button
+                type="button"
+                aria-label={heading.text}
+                aria-current={index === activeIndex ? "location" : undefined}
+                onClick={() => onSelect(index)}
+                className={cn("flex min-w-0 flex-1 items-center gap-1.5 py-1.5 text-left text-[11px]", wrapTitles ? "whitespace-normal" : "whitespace-nowrap", index === activeIndex && "font-semibold")}
+              >
+                <span aria-hidden data-level={heading.level} className="document-outline-level flex h-[15px] w-[21px] shrink-0 items-center justify-center rounded-[3px] bg-stone-100 font-mono text-[8.5px] font-bold text-stone-400 data-[level=1]:bg-green-100 data-[level=1]:text-green-700 data-[level=2]:bg-stone-200 data-[level=2]:text-stone-600">{kind === "pdf" ? heading.page : `H${heading.level}`}</span>
+                <span style={{ color: index === activeIndex ? undefined : heading.color }} className={cn("min-w-0", wrapTitles ? "break-words" : "truncate")}>
+                  {heading.text}
+                </span>
+                {folded && node.descendants > 0 && <span aria-label={`${node.descendants} 个子标题`} className="document-outline-count ml-auto shrink-0 rounded-full bg-stone-100 px-1.5 text-[10px] font-normal text-stone-400">{node.descendants}</span>}
+              </button>
+            )
             return (
               <div
                 key={index}
@@ -209,31 +231,21 @@ export function DocumentOutline({
                     <ChevronRight className={cn("size-3.5 transition-transform duration-150 motion-reduce:transition-none", !folded && "rotate-90")} />
                   </button>
                 ) : <span aria-hidden className="flex w-4 shrink-0 justify-center"><span className="size-1 rounded-full bg-stone-300" /></span>}
-                <SectionPreview
-                  enabled={expanded}
-                  onOpenChange={(open) => setPreviewIndex((current) => (open ? index : current === index ? null : current))}
-                  workspacePath={workspacePath}
-                  documentPath={documentPath}
-                  source={sections[index] || heading.text}
-                >
-                  <button
-                    type="button"
-                    aria-label={heading.text}
-                    aria-current={index === activeIndex ? "location" : undefined}
-                    onClick={() => onSelect(index)}
-                    className={cn("flex min-w-0 flex-1 items-center gap-1.5 py-1.5 text-left text-[11px]", wrapTitles ? "whitespace-normal" : "whitespace-nowrap", index === activeIndex && "font-semibold")}
+                {Preview ? (
+                  <Preview
+                    enabled={expanded}
+                    onOpenChange={(open) => setPreviewIndex((current) => (open ? index : current === index ? null : current))}
+                    workspacePath={workspacePath}
+                    documentPath={documentPath}
+                    source={sections[index] || heading.text}
                   >
-                    <span aria-hidden data-level={heading.level} className="document-outline-level flex h-[15px] w-[21px] shrink-0 items-center justify-center rounded-[3px] bg-stone-100 font-mono text-[8.5px] font-bold text-stone-400 data-[level=1]:bg-green-100 data-[level=1]:text-green-700 data-[level=2]:bg-stone-200 data-[level=2]:text-stone-600">H{heading.level}</span>
-                    <span style={{ color: index === activeIndex ? undefined : heading.color }} className={cn("min-w-0", wrapTitles ? "break-words" : "truncate")}>
-                      {heading.text}
-                    </span>
-                    {folded && node.descendants > 0 && <span aria-label={`${node.descendants} 个子标题`} className="document-outline-count ml-auto shrink-0 rounded-full bg-stone-100 px-1.5 text-[10px] font-normal text-stone-400">{node.descendants}</span>}
-                  </button>
-                </SectionPreview>
+                    {headingButton}
+                  </Preview>
+                ) : headingButton}
               </div>
             )
           })}
-          {section === "outline" && !headings.length && expanded && <p className="px-2 py-3 text-xs text-stone-400">暂无标题</p>}
+          {section === "outline" && !headings.length && expanded && <p className="px-2 py-3 text-xs text-stone-400">{emptyMessage}</p>}
         </ScrollArea>
       </div>
     </aside>

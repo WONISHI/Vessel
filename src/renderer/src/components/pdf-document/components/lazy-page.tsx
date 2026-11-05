@@ -23,6 +23,7 @@ export function LazyPage({ number, width, strokes, tool, color, penWidth, add, e
       className="relative mx-auto mb-4 shrink-0 bg-white shadow"
       style={{ width, height: width * ratio }}
       aria-label={`第 ${number} 页`}
+      data-pdf-page={number}
     >
       {visible && (
         <Page

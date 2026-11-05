@@ -376,3 +376,46 @@ it.each(["selectionchange", "leading-empty-text"])("inserts after the directive 
     expect(root.textContent).toContain("标注内容")
   } finally { unbind(); root.remove(); getSelection()?.removeAllRanges() }
 })
+
+it.each(["分", "f", ""])("preserves an empty callout directive when IME commits %j", async (data) => {
+  const root = document.createElement("div")
+  root.setAttribute("contenteditable", "true")
+  root.innerHTML = lute.Md2VditorIRDOM("> [!help]+\n> 标注内容\n")
+  document.body.append(root)
+  decorateCallouts(root)
+  const undo: string[] = []
+  const unbind = bindCallouts(root, undefined, undefined, (apply) => {
+    undo.push(lute.VditorIRDOM2Md(root.innerHTML))
+    apply()
+  })
+  try {
+    const heading = root.querySelector<HTMLElement>(".vessel-callout-heading")!
+    heading.dispatchEvent(new MouseEvent("dblclick", { bubbles: true }))
+    const leading = document.createTextNode("")
+    heading.prepend(leading)
+    getSelection()!.collapse(leading, 0)
+    root.dispatchEvent(new CompositionEvent("compositionstart", { bubbles: true }))
+    expect(getSelection()!.anchorNode).toBe(heading.lastChild)
+    // Reproduce a native provisional insertion before the hidden directive.
+    leading.data = "f"
+    root.dispatchEvent(new InputEvent("input", { bubbles: true, isComposing: true, inputType: "insertCompositionText", data: "f" }))
+    decorateCallouts(root)
+    expect(root.querySelector(".vessel-callout")).toBeTruthy()
+    root.dispatchEvent(new CompositionEvent("compositionend", { bubbles: true, data }))
+    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
+
+    const markdown = lute.VditorIRDOM2Md(root.innerHTML)
+    const restored = root.querySelector<HTMLElement>(".vessel-callout-heading")!
+    expect(restored.dataset.calloutTitle).toBe(data)
+    expect(markdown).toContain(data ? `[!help]+ ${data}` : "[!help]+")
+    expect(markdown).toContain("标注内容")
+    expect(markdown).not.toContain("f[!help]")
+    expect(markdown).not.toContain("\u00a0")
+    expect(undo).toHaveLength(data ? 1 : 0)
+    if (data) expect(undo[0]).toContain("> [!help]+\n")
+  } finally {
+    unbind()
+    root.remove()
+    getSelection()?.removeAllRanges()
+  }
+})

@@ -2,7 +2,7 @@ import { usePdfViewState } from "@/components/pdf-document/components/view-state
 import "@/components/pdf-document/components/pdf-document.css"
 import { LazyPage } from "@/components/pdf-document/components/lazy-page"
 import { COLORS, Stroke, notifyError, readInkStrokes, writeInkStrokes } from "@/components/pdf-document/components/pdf-document-shared"
-import { Button } from "@/components/ui/button"
+import { PdfOutline } from "@/components/pdf-document/components/pdf-outline"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 import { Check, CheckSquare, ChevronDown, Download, Eraser, FileText, Minus, MousePointer2, Pencil, Plus, Undo2 } from "lucide-react"
@@ -13,7 +13,6 @@ import { Document } from "react-pdf"
 /** Renders the pdf document component. */
 export function PdfDocument({ bytes, name, viewStateKey = name }: { bytes: Uint8Array; name: string; viewStateKey?: string }) {
   const file = useMemo(() => ({ data: new Uint8Array(bytes) }), [bytes])
-  const host = useRef<HTMLDivElement>(null)
   const [width, setWidth] = useState(600)
   const [document, setDocument] = useState<PDFDocumentProxy>(),
     [tool, setTool] = useState("view")
@@ -27,10 +26,10 @@ export function PdfDocument({ bytes, name, viewStateKey = name }: { bytes: Uint8
     persistence = useRef(Promise.resolve())
   const key = document ? `pdf-ink:${document.fingerprints[0]}` : ""
   useEffect(() => {
-    const observer = new ResizeObserver(([entry]) => setWidth(Math.max(100, entry.contentRect.width - 48)))
-    if (host.current) observer.observe(host.current)
+    const observer = new ResizeObserver(([entry]) => setWidth(Math.max(100, entry.contentRect.width - 16)))
+    if (viewport.current) observer.observe(viewport.current)
     return () => observer.disconnect()
-  }, [])
+  }, [viewport])
   useEffect(() => {
     setLoaded(false)
     setStrokes([])
@@ -101,12 +100,11 @@ export function PdfDocument({ bytes, name, viewStateKey = name }: { bytes: Uint8
   }
   return (
     <div
-      ref={host}
       className="flex h-full min-h-0 min-w-0 flex-1 flex-col"
       aria-label={name}
     >
       <ScrollArea className="pdf-annotation-toolbar shrink-0 border-b bg-white">
-        <div className="flex w-max min-w-full flex-nowrap items-center gap-1 whitespace-nowrap px-3 py-2 text-sm">
+        <div className="pdf-toolbar-row flex h-14 w-max min-w-full items-center gap-1.5 whitespace-nowrap px-3.5">
           {[
             ["view", MousePointer2, "浏览"],
             ["pen", Pencil, "画笔"],
@@ -117,24 +115,25 @@ export function PdfDocument({ bytes, name, viewStateKey = name }: { bytes: Uint8
               <button
                 key={String(value)}
                 disabled={!loaded}
+                aria-label={String(label)}
                 aria-pressed={tool === value}
-                className={`flex h-8 shrink-0 items-center gap-1.5 rounded-md px-2.5 disabled:opacity-50 ${tool === value ? "bg-green-50 font-medium text-green-700 ring-1 ring-green-200" : "text-stone-700 hover:bg-stone-100 hover:text-stone-900"}`}
+                className="pdf-tool"
                 onClick={() => setTool(String(value))}
               >
                 <ToolIcon className="size-4" />
-                {String(label)}
+                <span className="pdf-tool-label">{String(label)}</span>
               </button>
             )
           })}
-          <span className="pdf-toolbar-divider mx-2 h-5 w-px shrink-0 bg-stone-200" />
+          <span className="pdf-toolbar-divider mx-[7px] h-6 w-px shrink-0 bg-stone-200" />
           <Popover>
             <PopoverTrigger asChild>
               <button
                 aria-label="笔迹颜色"
-                className="flex size-8 shrink-0 items-center justify-center rounded-md border border-transparent hover:bg-stone-100 data-[state=open]:border-green-500"
+                className="pdf-control w-[42px] justify-center"
               >
                 <span
-                  className="size-5 rounded-full ring-1 ring-black/10"
+                  className="size-[22px] rounded-[7px] ring-1 ring-black/10"
                   style={{ background: color }}
                 />
               </button>
@@ -178,13 +177,13 @@ export function PdfDocument({ bytes, name, viewStateKey = name }: { bytes: Uint8
             <PopoverTrigger asChild>
               <button
                 aria-label="笔迹粗细"
-                className="flex h-8 shrink-0 items-center gap-1.5 rounded-md border border-transparent px-2 text-stone-700 hover:bg-stone-100 data-[state=open]:border-green-500"
+                className="pdf-control gap-2 px-2.5 font-semibold"
               >
                 <span
                   className="pdf-pen-preview w-4 rounded-full bg-stone-700"
                   style={{ height: Math.min(penWidth, 4) }}
                 />
-                {penWidth}px
+                <span className="pdf-tool-label">{penWidth}px</span>
                 <ChevronDown className="size-3.5 text-stone-400" />
               </button>
             </PopoverTrigger>
@@ -209,82 +208,79 @@ export function PdfDocument({ bytes, name, viewStateKey = name }: { bytes: Uint8
               ))}
             </PopoverContent>
           </Popover>
-          <span className="pdf-toolbar-divider mx-2 h-5 w-px shrink-0 bg-stone-200" />
+          <span className="pdf-toolbar-divider mx-[7px] h-6 w-px shrink-0 bg-stone-200" />
           <button
+            aria-label="撤销"
             disabled={!undo.current.length}
             onClick={() => change(undo.current.pop()!, false)}
-            className="flex h-8 shrink-0 items-center gap-1.5 rounded-md px-2.5 text-stone-700 hover:bg-stone-100 hover:text-stone-900 disabled:opacity-40"
+            className="pdf-tool"
           >
-            <Undo2 className="size-4" />
-            撤销
+            <Undo2 className="size-[17px]" />
+            <span className="pdf-tool-label">撤销</span>
           </button>
-          <span className="pdf-toolbar-divider mx-2 h-5 w-px shrink-0 bg-stone-200" />
-          <span className="flex shrink-0 items-center gap-1 text-xs text-stone-500">
-            <FileText className="size-3.5" />共 {document?.numPages || "…"} 页 · <CheckSquare className="size-3.5" />
-            标注自动保存在本机
-          </span>
-          <span className="ml-auto" />
-          <Button
-            variant="ghost"
-            size="icon"
-            className="size-8 shrink-0"
-            aria-label="缩小"
-            disabled={zoom <= 0.5}
-            onClick={() => setZoom((v) => v - 0.25)}
-          >
-            <Minus className="size-4" />
-          </Button>
-          <span className="w-11 shrink-0 text-center text-sm">{Math.round(zoom * 100)}%</span>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="size-8 shrink-0"
-            aria-label="放大"
-            disabled={zoom >= 3}
-            onClick={() => setZoom((v) => v + 0.25)}
-          >
-            <Plus className="size-4" />
-          </Button>
-          <Button
-            size="sm"
-            className="ml-2 shrink-0 bg-green-600 text-white hover:bg-green-700"
+          <div className="flex flex-1 items-center justify-center gap-2.5 px-2 text-xs text-stone-400">
+            <span className="flex items-center gap-1.5"><FileText className="size-[15px]" /><span className="pdf-tool-label">共 {document?.numPages || "…"} 页</span></span>
+            <span className="pdf-save-chip flex h-7 items-center gap-1.5 rounded-lg px-[11px] font-semibold">
+              <CheckSquare className="size-3.5" />
+              {loaded ? "自动保存" : "正在读取标注…"}
+            </span>
+          </div>
+          <div className="pdf-zoom-group">
+            <button type="button" aria-label="缩小" disabled={zoom <= 0.5} onClick={() => setZoom((value) => value - 0.25)}>
+              <Minus className="size-4" />
+            </button>
+            <button type="button" className="pdf-zoom-value" aria-label="恢复 100% 缩放" onClick={() => setZoom(1)}>
+              {Math.round(zoom * 100)}%
+            </button>
+            <button type="button" aria-label="放大" disabled={zoom >= 3} onClick={() => setZoom((value) => value + 0.25)}>
+              <Plus className="size-4" />
+            </button>
+          </div>
+          <span className="pdf-toolbar-divider mx-[7px] h-6 w-px shrink-0 bg-stone-200" />
+          <button
+            type="button"
+            className="pdf-export ml-1 flex h-10 shrink-0 items-center gap-2 rounded-[10px] bg-green-600 px-[18px] text-[13.5px] font-semibold text-white hover:bg-green-700 disabled:opacity-40"
+            aria-label="导出标注 PDF"
             disabled={!loaded || saving}
             onClick={() => void exportPDF()}
           >
-            <Download className="size-4" />
-            导出标注 PDF
-          </Button>
+            <Download className="size-[17px]" />
+            <span className="pdf-export-label">导出标注 PDF</span>
+          </button>
         </div>
         <ScrollBar
           orientation="horizontal"
           className="h-1.5"
         />
       </ScrollArea>
-      <ScrollArea viewportRef={viewport} className="min-h-0 flex-1 bg-stone-100 [&_[data-radix-scroll-area-viewport]]:p-4">
-        <div data-pdf-scroll>
-          <Document
-            file={file}
-            onLoadSuccess={setDocument}
-            loading="正在加载 PDF…"
-            error="PDF 加载失败，请检查文件是否完整或已加密。"
-          >
-            {Array.from({ length: document?.numPages || 0 }, (_, index) => (
-              <LazyPage
-                key={`${key}:${index}`}
-                number={index + 1}
-                width={width * zoom}
-                strokes={strokes.filter((stroke) => stroke.page === index + 1)}
-                tool={loaded ? tool : "view"}
-                color={color}
-                penWidth={penWidth}
-                add={(stroke) => change([...strokes, stroke])}
-                erase={(id) => change(strokes.filter((stroke) => stroke.id !== id))}
-              />
-            ))}
-          </Document>
-        </div>
-        <ScrollBar orientation="horizontal" />
-      </ScrollArea>
+      <div className="flex min-h-0 flex-1">
+        <ScrollArea viewportRef={viewport} className="min-h-0 min-w-0 flex-1 bg-stone-100 dark:bg-[#1a1d21] [&_[data-radix-scroll-area-viewport]]:p-4">
+          <div data-pdf-scroll>
+            <Document
+              file={file}
+              onLoadSuccess={setDocument}
+              loading="正在加载 PDF…"
+              error="PDF 加载失败，请检查文件是否完整或已加密。"
+            >
+              {Array.from({ length: document?.numPages || 0 }, (_, index) => (
+                <LazyPage
+                  key={`${key}:${index}`}
+                  number={index + 1}
+                  width={width * zoom}
+                  strokes={strokes.filter((stroke) => stroke.page === index + 1)}
+                  tool={loaded ? tool : "view"}
+                  color={color}
+                  penWidth={penWidth}
+                  add={(stroke) => change([...strokes, stroke])}
+                  erase={(id) => change(strokes.filter((stroke) => stroke.id !== id))}
+                />
+              ))}
+            </Document>
+          </div>
+          <ScrollBar orientation="horizontal" />
+        </ScrollArea>
+        {document && <PdfOutline key={key} pdf={document} name={name} viewport={viewport} />}
+      </div>
     </div>
   )
 }

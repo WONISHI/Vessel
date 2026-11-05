@@ -29,7 +29,10 @@ const profile = (root = currentWorkspace): Profile => (root ? (load().profiles[r
 let timer: ReturnType<typeof setInterval> | undefined
 let watcher: FSWatcher | undefined
 let saveTimer: ReturnType<typeof setTimeout> | undefined
-let pendingSaveRoot: string | undefined
+const MAX_SAVE_PATHS = 128
+let pendingSavePaths: Set<string> | undefined
+let pendingFullScan = false
+let lastFullSyncTime: number | undefined
 let activeHost: WebContents | undefined
 let lastAttemptTime = 0
 
@@ -197,7 +200,7 @@ async function persist(next: NonNullable<typeof stored>) {
 const syncDirectory = (root: string) => join(app.getPath("userData"), "sync-indexes", createHash("sha256").update(root).digest("hex"))
 
 /** Performs the snapshot operation. */
-async function snapshot(root: string, config: AppSettings["backup"], secret: string, selected?: string, onProgress?: (progress: SyncProgress) => void, dryRun = false) {
+async function snapshot(root: string, config: AppSettings["backup"], secret: string, selected?: string, onProgress?: (progress: SyncProgress) => void, dryRun = false, changedPaths?: readonly string[]) {
   const ignoredPatterns = parseIgnoredPatterns(load().settings.ignoredFiles)
 
   /** Performs the exclude operation. */
@@ -218,8 +221,16 @@ async function snapshot(root: string, config: AppSettings["backup"], secret: str
   }
   record({ type: "start", message: `${dryRun ? "预览" : "同步"}扫描开始` })
   try {
-    const entries = await collectFiles({ root, selected, exclude, excludePath, onExcluded: logger ? (path, kind) => record({ type: "excluded", path, message: `已排除${kind === "folder" ? "文件夹" : "文件"}` }) : undefined })
-    return await syncBackup(directory, config, secret, entries, undefined, onProgress, { root, dryRun, paths: selected ? entries.map((file) => file.path) : undefined, exclude, excludePath, onLog: logger ? record : undefined })
+    const scan = { root, exclude, excludePath, onExcluded: logger ? (path: string, kind: "file" | "folder") => record({ type: "excluded", path, message: `已排除${kind === "folder" ? "文件夹" : "文件"}` }) : undefined }
+    const entries = changedPaths ? [] : await collectFiles({ ...scan, selected })
+    for (const path of changedPaths ?? []) {
+      const source = join(root, path)
+      const info = await lstat(source)
+      if (info.isSymbolicLink()) continue
+      entries.push(...await collectFiles({ ...scan, selected: source }))
+    }
+    if (changedPaths && !entries.length) return { time: new Date().toISOString(), size: 0, changed: 0, running: false }
+    return await syncBackup(directory, config, secret, entries, undefined, onProgress, { root, dryRun, paths: selected || changedPaths ? entries.map((file) => file.path) : undefined, exactRemotePaths: Boolean(changedPaths), exclude, excludePath, onLog: logger ? record : undefined })
   } catch (error) {
     if (!reportedError) record({ type: "error", message: error instanceof Error ? error.message : "同步失败" })
     throw error
@@ -229,7 +240,7 @@ async function snapshot(root: string, config: AppSettings["backup"], secret: str
 }
 
 /** Backs up backup. */
-async function backup(selected?: string, expectedRoot?: string, dryRun = false) {
+async function backup(selected?: string, expectedRoot?: string, dryRun = false, changedPaths?: readonly string[]) {
   const root = currentWorkspace
   if (!root || (expectedRoot !== undefined && expectedRoot !== root)) throw new Error("当前页面不是可同步的工作区")
   if (selected !== undefined && (typeof selected !== "string" || !selected)) throw new Error("请先打开要同步的文件")
@@ -240,6 +251,7 @@ async function backup(selected?: string, expectedRoot?: string, dryRun = false) 
     config = p.config
   const previousStatus = p.status
   if (!secret || !config.endpoint || !config.bucket || !config.accessKey) throw new Error("请先保存完整的 S3 配置")
+  lastFullSyncTime ??= p.status.time ? Date.parse(p.status.time) : 0
   syncing = true
   p.status = { ...p.status, running: true, error: undefined, progress: undefined }
   notifyStatus(p.status)
@@ -253,13 +265,15 @@ async function backup(selected?: string, expectedRoot?: string, dryRun = false) 
         p.status = { ...p.status, progress }
         notifyStatus(p.status)
       },
-      dryRun
+      dryRun,
+      changedPaths
     )
     if (dryRun) {
       p.status = previousStatus
       notifyStatus(p.status)
       return status
     }
+    if (!selected && !changedPaths && root === currentWorkspace) lastFullSyncTime = Date.parse(status.time)
     p.status = status
     await persist({ ...load(), profiles: { ...load().profiles, [root]: p } })
     notifyStatus(status)
@@ -276,26 +290,41 @@ async function backup(selected?: string, expectedRoot?: string, dryRun = false) 
     throw error
   } finally {
     syncing = false
-    if (pendingSaveRoot === currentWorkspace) {
-      const pending = pendingSaveRoot
-      pendingSaveRoot = undefined
-      queueSaveSync(pending)
-    }
+    queueSaveSync()
   }
 }
 
-/** Performs the queue save sync operation. */
-function queueSaveSync(root?: string) {
-  if (!root || root !== currentWorkspace) return
+/** Keep only distinct paths and promote structural or oversized batches to a full scan. */
+function markSaveChange(path?: string) {
+  if (!path || (pendingSavePaths?.size === MAX_SAVE_PATHS && !pendingSavePaths.has(path))) {
+    pendingFullScan = true
+    pendingSavePaths = undefined
+  } else if (!pendingFullScan) {
+    (pendingSavePaths ??= new Set()).add(path)
+  }
+}
+
+function queueSaveSync(delay = 1500) {
+  const root = currentWorkspace
+  if (!root || syncing || (!pendingFullScan && !pendingSavePaths?.size)) return
   clearTimeout(saveTimer)
   saveTimer = setTimeout(() => {
-    if (root !== currentWorkspace || !profile(root).config.enabled || !profile(root).config.syncOnSave) return
-    if (syncing) {
-      pendingSaveRoot = root
-      return
-    }
-    void backup(undefined, root).catch(() => {})
-  }, 1500)
+    if (root !== currentWorkspace || syncing || !profile(root).config.enabled || !profile(root).config.syncOnSave) return
+    const paths = pendingFullScan ? undefined : [...pendingSavePaths ?? []]
+    pendingSavePaths = undefined
+    pendingFullScan = false
+    const scheduledWatcher = watcher
+    void backup(undefined, root, false, paths).then((status) => {
+      if (root !== currentWorkspace || watcher !== scheduledWatcher) return
+      for (const path of status.skipped ?? []) markSaveChange(path)
+      queueSaveSync(30000)
+    }).catch(() => {
+      if (root !== currentWorkspace || watcher !== scheduledWatcher) return
+      // Retry against a full snapshot if a queued path disappeared or changed kind.
+      markSaveChange()
+      queueSaveSync(30000)
+    })
+  }, delay)
 }
 
 /** Checks auto sync. */
@@ -312,7 +341,7 @@ function checkAutoSync() {
   }
   const config = p.config
   if (!secret || !config.endpoint || !config.bucket || !config.accessKey) return
-  const lastSyncTime = p.status.time ? new Date(p.status.time).getTime() : 0
+  const lastSyncTime = lastFullSyncTime ?? (p.status.time ? Date.parse(p.status.time) : 0)
   const intervalMs = Math.max(1, p.config.minutes || 10) * 60000
   if (Date.now() - lastAttemptTime < 60000) return
   if (Date.now() - lastSyncTime >= intervalMs) {
@@ -328,7 +357,9 @@ function stopSchedule() {
   clearTimeout(saveTimer)
   watcher?.close()
   watcher = undefined
-  pendingSaveRoot = undefined
+  pendingSavePaths = undefined
+  pendingFullScan = false
+  lastFullSyncTime = undefined
 }
 
 /** Schedules schedule. */
@@ -345,20 +376,16 @@ function schedule() {
     const ignored = parseIgnoredPatterns(load().settings.ignoredFiles)
     const excludePath = createSyncExcludeFilter(p.config.syncExcludeRules ?? defaultSettings.backup.syncExcludeRules ?? "")
     try {
-      watcher = watch(root, { recursive: true }, (_event, filename) => {
-        if (!filename || filename.split(/[\\/]/).some((name) => excludedBackupName(name) || isIgnoredEntry(name, ignored))) return
-
-        /** Performs the changed operation. */
-        const changed = (kind?: "file" | "folder") => {
-          if (kind ? excludePath(filename, kind) : excludePath(filename, "file") && excludePath(filename, "folder")) return
-          if (syncing) pendingSaveRoot = root
-          else queueSaveSync(root)
+      watcher = watch(root, { recursive: true }, (event, filename) => {
+        if (!filename) {
+          markSaveChange()
+          queueSaveSync()
+          return
         }
-        void lstat(join(root, filename))
-          .then((info) => {
-            if (!info.isSymbolicLink()) changed(info.isDirectory() ? "folder" : "file")
-          })
-          .catch(() => changed())
+        if (filename.split(/[\\/]/).some((name) => excludedBackupName(name) || isIgnoredEntry(name, ignored))) return
+        if (excludePath(filename, "file") && excludePath(filename, "folder")) return
+        markSaveChange(event === "change" && !excludePath(filename, "file") ? filename : undefined)
+        queueSaveSync()
       })
       watcher.on("error", () => {
         watcher?.close()

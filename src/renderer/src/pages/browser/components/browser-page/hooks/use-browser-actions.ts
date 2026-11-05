@@ -91,7 +91,8 @@ export function useBrowserActions(state: BrowserState, visible: boolean) {
         const index = current.findIndex((item) => item.id === id)
         if (index < 0 || (Object.keys(patch) as (keyof Tab)[]).every((key) => current[index][key] === patch[key])) return current
         const next = [...current]
-        next[index] = { ...current[index], ...patch }
+        const updated = { ...current[index], ...patch }
+        next[index] = updated.url ? updated : { ...updated, favicon: undefined }
         return next
       }),
     []
@@ -159,7 +160,12 @@ export function useBrowserActions(state: BrowserState, visible: boolean) {
       window.electronAPI.onBrowserNewTab((url, opener) => {
         if (!/^(https?|chrome-extension|file):\/\//i.test(url)) return
         const item = { ...newTab(), url, loading: true, openerId: [...views.current.entries()].find(([, view]) => withGuest(view, (guest) => guest.getWebContentsId()) === opener)?.[0] }
-        setTabs((current) => [...current, item])
+        setTabs((current) => {
+          const openerIndex = current.findIndex((tab) => tab.id === item.openerId)
+          if (openerIndex === -1) return [...current, item]
+          const insertAt = openerIndex + 1
+          return [...current.slice(0, insertAt), item, ...current.slice(insertAt)]
+        })
         setActive(item.id)
         setInput(null)
       }),

@@ -98,6 +98,8 @@ export interface SyncOptions {
   excludePath?: (path: string, kind: "file" | "folder") => boolean
   /** Restrict remote/history processing when syncing selected files. */
   paths?: readonly string[]
+  /** Use individual HEAD requests for a bounded set of known paths. */
+  exactRemotePaths?: boolean
   dryRun?: boolean
   /** Default 8, maximum 32. Includes hashing, remote checks and streaming uploads. */
   concurrency?: number

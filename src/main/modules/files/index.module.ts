@@ -14,28 +14,38 @@ import { BrowserWindow, clipboard, dialog, ipcMain, shell } from "electron"
 import { link, lstat, mkdir, readFile, realpath, rename, stat, unlink, writeFile } from "node:fs/promises"
 import { dirname, isAbsolute, join, relative, sep } from "node:path"
 
-const pendingWrites = new Map<string, Promise<void>>()
+type WriteBatch = { content: string; done: Promise<void> }
+const pendingWrites = new Map<string, WriteBatch>()
+const queuedWrites = new Map<string, WriteBatch>()
 
-/** Saves text file content. */
+/** Share the result of the latest queued write with all edits it supersedes. */
 export function saveTextFileContent(path: unknown, content: unknown): Promise<void> {
   if (typeof path !== "string" || !isAbsolute(path) || path.includes("\0") || typeof content !== "string") {
     return Promise.reject(new TypeError("文件路径或内容无效"))
   }
-  const previous = pendingWrites.get(path) ?? Promise.resolve()
-  const write = previous
-    .catch(() => {})
-    .then(async () => {
-      if (!(await stat(path)).isFile()) throw new Error("只能保存普通文件")
-      await writeFile(path, content, "utf8")
-    })
-  pendingWrites.set(path, write)
-
-  /** Performs the cleanup operation. */
-  const cleanup = () => {
-    if (pendingWrites.get(path) === write) pendingWrites.delete(path)
+  const queued = queuedWrites.get(path)
+  if (queued) {
+    queued.content = content
+    return queued.done
   }
-  void write.then(cleanup, cleanup)
-  return write
+
+  const previous = pendingWrites.get(path)?.done
+  const done = (async () => {
+    await previous?.catch(() => {})
+    // A fixed batching window also makes progress while the user keeps typing.
+    await new Promise<void>((resolve) => setTimeout(resolve, 150))
+    queuedWrites.delete(path)
+    if (!(await stat(path)).isFile()) throw new Error("只能保存普通文件")
+    await writeFile(path, batch.content, "utf8")
+  })()
+  const batch: WriteBatch = { content, done }
+  pendingWrites.set(path, batch)
+  queuedWrites.set(path, batch)
+  const cleanup = () => {
+    if (pendingWrites.get(path) === batch) pendingWrites.delete(path)
+  }
+  void done.then(cleanup, cleanup)
+  return done
 }
 
 /**
@@ -48,7 +58,7 @@ export async function readTextFileContent(path: unknown): Promise<string> {
   if (typeof path !== "string" || !isAbsolute(path) || path.includes("\0")) {
     throw new TypeError("文件路径必须为有效的绝对路径")
   }
-  await pendingWrites.get(path)
+  while (pendingWrites.has(path)) await pendingWrites.get(path)?.done
   const info = await stat(path)
   if (!info.isFile()) throw new Error("只能读取普通文件")
   return readFile(path, "utf8")

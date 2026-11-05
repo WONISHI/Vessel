@@ -276,7 +276,7 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
                     onPointerLeave={() => setMoreToolsTooltipOpen(false)}
                     onBlur={() => setMoreToolsTooltipOpen(false)}
                     aria-pressed={moreActive}
-                    className={cn("relative h-[38px] w-[38px] rounded-[10px] text-stone-500 hover:!bg-[#f0efed] hover:!text-stone-500", (moreActive || moreToolsOpen) && "!bg-emerald-50 !text-green-700 hover:!bg-emerald-50 hover:!text-green-700")}
+                    className={cn("relative h-[38px] w-[38px] rounded-[10px] text-[#a8a29e] hover:!bg-[#f0efed] hover:!text-[#a8a29e]", (moreActive || moreToolsOpen) && "!bg-emerald-50 !text-green-700 hover:!bg-emerald-50 hover:!text-green-700")}
                   >
                     <Ellipsis className="!size-5" />
                   </Button>
@@ -434,7 +434,7 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
                 size="icon"
                 data-activity-button
                 aria-label="切换浅色或深色主题"
-                className="size-[38px] rounded-[10px] text-stone-500 hover:!bg-[#f0efed] hover:!text-stone-500"
+                className="size-[38px] rounded-[10px] text-[#a8a29e] hover:!bg-[#f0efed] hover:!text-[#a8a29e]"
                 onClick={() => {
                   void window.electronAPI
                     .getSettings()
@@ -459,7 +459,7 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
                 size="icon"
                 data-activity-button
                 aria-label="设置"
-                className="size-[38px] rounded-[10px] text-stone-500 hover:!bg-[#f0efed] hover:!text-stone-500"
+                className="size-[38px] rounded-[10px] text-[#a8a29e] hover:!bg-[#f0efed] hover:!text-[#a8a29e]"
                 onClick={() => {
                   const from = location.pathname.startsWith("/resources") ? "/resources" : location.hash.slice(1) || location.pathname || "/"
                   sessionStorage.setItem("vessel-settings-from", from)

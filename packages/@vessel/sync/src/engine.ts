@@ -184,14 +184,20 @@ async function run(options: SyncOptions, prefix: string, indexPath: string, conc
   const result: SyncResult = { time: "", size: 0, changed: 0, downloaded: 0, downloadSize: 0, deleted: 0, conflicts: [], skipped: [], checked: 0, hashed: 0, cached: 0, durationMs: 0, running: false }
   const activeBytes = new Map<string, number>()
   let loggedPhase: string | undefined
+  let lastProgressAt = -Infinity
 
   /** Performs the phase operation. */
   const phase = (phase: "remote" | "hashing" | "planning" | "transferring", completed: number, total: number, path = "", active = false) => {
-    if (loggedPhase !== phase) {
+    const phaseChanged = loggedPhase !== phase
+    if (phaseChanged) {
       loggedPhase = phase
       log(options, { type: "phase", message: `执行阶段：${{ remote: "读取远端列表", hashing: "检查本地文件", planning: "生成同步计划", transferring: "执行文件同步" }[phase]}` })
     }
-    options.onProgress?.({ phase, active, elapsedMs: performance.now() - started, completed, total, path, uploaded: result.changed, downloaded: result.downloaded, bytes: result.size + result.downloadSize! + [...activeBytes.values()].reduce((a, b) => a + b, 0), conflicts: result.conflicts.length })
+    if (!options.onProgress) return
+    const now = performance.now()
+    if (!phaseChanged && (active || completed !== total) && now - lastProgressAt < 125) return
+    lastProgressAt = now
+    options.onProgress({ phase, active, elapsedMs: now - started, completed, total, path, uploaded: result.changed, downloaded: result.downloaded, bytes: result.size + result.downloadSize! + [...activeBytes.values()].reduce((a, b) => a + b, 0), conflicts: result.conflicts.length })
   }
 
   /** Performs the parallel operation. */
@@ -273,6 +279,18 @@ async function run(options: SyncOptions, prefix: string, indexPath: string, conc
   let snapshot: ReadonlyMap<string, RemoteFile> | undefined
   phase("remote", 0, options.files.length)
   const listing = (async () => {
+    if (options.exactRemotePaths && scope) {
+      const found = new Map<string, RemoteFile>()
+      await parallel([...scope], async (path) => {
+        if (!included(path)) return
+        const key = keyFor(path)
+        const entry = await storage.head(key, options.signal)
+        result.checked++
+        if (entry) found.set(key, entry)
+      })
+      snapshot = found
+      return
+    }
     if (!storage.list) return
     try {
       snapshot = await storage.list(prefix ? prefix + "/" : "", options.signal)
@@ -336,7 +354,7 @@ async function run(options: SyncOptions, prefix: string, indexPath: string, conc
     const request = (async () => {
       const listed = snapshot?.get(key)
       if (snapshot && !listed) return undefined
-      if (listed?.digest) return listed
+      if (options.exactRemotePaths && scope || listed?.digest) return listed
       if (listed?.etag && old?.remote?.etag === listed.etag && old.size === listed.size) return { ...listed, digest: old.digest }
       const local = locals.get(path)?.entry
       const etagMd5 = /^(?:"([a-f0-9]{32})"|([a-f0-9]{32}))$/i.exec(listed?.etag ?? "")

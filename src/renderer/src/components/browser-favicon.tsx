@@ -9,7 +9,7 @@ export function BrowserFavicon({ url, favicon }: { url?: string; favicon?: strin
     const page = new URL(url || "")
     if (["http:", "https:"].includes(page.protocol)) fallback = new URL("/favicon.ico", page).href
   } catch {}
-  const source = [favicon, fallback].find((value) => value && !failed.includes(value))
+  const source = url ? [favicon, fallback].find((value) => value && !failed.includes(value)) : undefined
   return source ? (
     <img key={source} src={source} alt="" className="size-4 shrink-0 object-contain" onError={() => setFailed((previous) => [...previous, source])} />
   ) : <Globe size={14} className="shrink-0 text-green-600" />

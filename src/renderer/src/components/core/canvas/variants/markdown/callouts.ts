@@ -48,10 +48,13 @@ function hideCalloutDirective(paragraph: HTMLElement) {
   container.prepend(marker)
 }
 
+const composingQuotes = new WeakSet<HTMLElement>()
+
 /** Decorate source spans only: Lute still serializes the exact original quote text. */
 export function decorateCallouts(root: HTMLElement) {
   const quotes = [...(root.matches("blockquote") ? [root] : []), ...root.querySelectorAll<HTMLElement>("blockquote")]
   for (const quote of quotes) {
+    if (composingQuotes.has(quote)) continue
     const paragraph = quote.firstElementChild
     if (!(paragraph instanceof HTMLElement) || paragraph.tagName !== "P") continue
     let heading = paragraph.querySelector<HTMLElement>(":scope > .vessel-callout-heading")
@@ -204,6 +207,7 @@ export function bindCallouts(root: HTMLElement, onTypeMenu?: (target: CalloutMen
     selected?.addRange(range)
   }
   const keydown = (event: KeyboardEvent) => {
+    if (composingTitle && event.isComposing) { event.stopImmediatePropagation(); return }
     const selected = window.getSelection()
     const title = activeTitle()
     const editable = title?.closest<HTMLElement>('[contenteditable="true"]')
@@ -240,6 +244,8 @@ export function bindCallouts(root: HTMLElement, onTypeMenu?: (target: CalloutMen
   }
   let composingTitle: HTMLElement | null = null
   let compositionFrame = 0
+  let finishComposition: (() => void) | undefined
+  let restoreEmptyTitle: (() => HTMLElement | null) | undefined
   const activeTitle = () => {
     const selected = window.getSelection()
     if (!selected?.rangeCount) return null
@@ -264,9 +270,11 @@ export function bindCallouts(root: HTMLElement, onTypeMenu?: (target: CalloutMen
     }
     return title && root.contains(title) && title.contains(range.endContainer) && document.activeElement === title.closest('[contenteditable="true"]') ? title : null
   }
-  const commitTitle = (title: HTMLElement, insert?: string) => {
+  const commitTitle = (title: HTMLElement, insert?: string, restoreEmpty = false) => {
     const apply = () => {
-      if (insert !== undefined) insertCalloutTitle(title, insert)
+      if (insert !== undefined && !insertCalloutTitle(title, insert) && restoreEmpty) {
+        title.append(document.createTextNode(` ${insert.replace(/[\r\n]+/g, " ")}`))
+      }
       const quote = title.closest<HTMLElement>(".vessel-callout")
       if (quote) decorateCallouts(quote)
     }
@@ -274,9 +282,10 @@ export function bindCallouts(root: HTMLElement, onTypeMenu?: (target: CalloutMen
     else apply()
   }
   const beforeInput = (event: InputEvent) => {
+    if (composingTitle) { event.stopImmediatePropagation(); return }
     const title = activeTitle()
     if (!title) return
-    if (event.isComposing || composingTitle) { event.stopImmediatePropagation(); return }
+    if (event.isComposing) { event.stopImmediatePropagation(); return }
     if (["insertText", "insertReplacementText"].includes(event.inputType) && event.data !== null && event.cancelable) {
       event.preventDefault()
       event.stopImmediatePropagation()
@@ -291,26 +300,65 @@ export function bindCallouts(root: HTMLElement, onTypeMenu?: (target: CalloutMen
     commitTitle(title, event.clipboardData.getData("text/plain"))
   }
   const compositionStart = (event: CompositionEvent) => {
-    composingTitle = activeTitle()
-    if (composingTitle) { cancelAnimationFrame(compositionFrame); event.stopImmediatePropagation() }
+    cancelAnimationFrame(compositionFrame)
+    finishComposition?.()
+    const title = activeTitle()
+    composingTitle = title
+    if (!title) return
+    event.stopImmediatePropagation()
+    const paragraph = title.parentElement
+    const quote = title.closest<HTMLElement>(".vessel-callout")
+    const selected = window.getSelection()
+    if (!paragraph || !quote || title.dataset.calloutTitle || !selected?.isCollapsed) return
+
+    // An empty text node beside the hidden directive is not a native IME caret stop.
+    const original = paragraph.innerHTML
+    const anchor = document.createTextNode("\u00a0")
+    composingQuotes.add(quote)
+    title.append(anchor)
+    selected.collapse(anchor, anchor.length)
+    restoreEmptyTitle = () => {
+      composingQuotes.delete(quote)
+      if (!root.contains(paragraph)) return null
+      const keepCaret = paragraph.contains(window.getSelection()?.anchorNode ?? null)
+      paragraph.innerHTML = original
+      const restored = paragraph.querySelector<HTMLElement>(":scope > .vessel-callout-heading")
+      if (restored && keepCaret && document.activeElement === restored.closest('[contenteditable="true"]')) {
+        window.getSelection()?.collapse(restored, restored.childNodes.length)
+      }
+      return restored
+    }
   }
   const compositionEnd = (event: CompositionEvent) => {
     if (!composingTitle) return
     event.stopImmediatePropagation()
     const title = composingTitle
-    compositionFrame = requestAnimationFrame(() => {
+    const data = event.data
+    finishComposition = () => {
       composingTitle = null
-      if (title.isConnected) commitTitle(title)
-    })
+      finishComposition = undefined
+      const restore = restoreEmptyTitle
+      restoreEmptyTitle = undefined
+      if (restore) {
+        // Remove native provisional text before capturing undo and applying the committed title.
+        const restored = restore()
+        if (restored && data) commitTitle(restored, data, true)
+      } else if (root.contains(title)) {
+        commitTitle(title)
+      }
+    }
+    compositionFrame = requestAnimationFrame(finishComposition)
   }
   const input = (event: Event) => {
+    if (composingTitle) { event.stopImmediatePropagation(); return }
     const title = activeTitle()
-    if (composingTitle || title) {
+    if (title) {
       event.stopImmediatePropagation()
-      if (!composingTitle && title) commitTitle(title)
+      commitTitle(title)
     }
   }
   const selection = () => {
+    if (composingTitle) return
     // Normalize Chromium's empty-title boundary before deciding whether editing ended.
     activeTitle()
     const selected = window.getSelection()
@@ -332,6 +380,8 @@ export function bindCallouts(root: HTMLElement, onTypeMenu?: (target: CalloutMen
   document.addEventListener("selectionchange", selection)
   return () => {
     cancelAnimationFrame(compositionFrame)
+    if (finishComposition) finishComposition()
+    else restoreEmptyTitle?.()
     root.removeEventListener("beforeinput", beforeInput, true)
     root.removeEventListener("paste", paste, true)
     root.removeEventListener("compositionstart", compositionStart, true)

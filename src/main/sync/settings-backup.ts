@@ -7,11 +7,14 @@ export { excludedBackupName } from "@vessel/sync"
 export type { BackupFile } from "@vessel/sync"
 
 /** Vessel metadata/status adapter; synchronization and transport live in @vessel/sync. */
-export async function syncBackup(directory: string, config: AppSettings["backup"], secret: string, files: BackupFile[], metadata: unknown, onProgress?: (progress: SyncProgress) => void, runtime: Pick<SyncOptions, "root" | "paths" | "exclude" | "excludePath" | "onLog" | "dryRun"> = {}) {
+export async function syncBackup(directory: string, config: AppSettings["backup"], secret: string, files: BackupFile[], metadata: unknown, onProgress?: (progress: SyncProgress) => void, runtime: Pick<SyncOptions, "root" | "paths" | "exactRemotePaths" | "exclude" | "excludePath" | "onLog" | "dryRun"> = {}) {
   const metadataPath = join(directory, "backup-metadata.tmp")
   if (metadata !== undefined) await writeFile(metadataPath, JSON.stringify({ format: "vessel-files-v1", metadata }), { mode: 0o600 })
   try {
-    const storage = createS3Storage(config, secret)
+    // Multipart buffers share this adapter-wide budget, even across files.
+    const partSize = 8 * 1024 ** 2
+    const multipartBufferBudget = 16 * 1024 ** 2
+    const storage = createS3Storage(config, secret, { partSize, partConcurrency: multipartBufferBudget / partSize })
     let metadataUploads = 0
     const result = await syncFiles({
       stateDirectory: directory,
@@ -27,13 +30,13 @@ export async function syncBackup(directory: string, config: AppSettings["backup"
       },
       ...runtime,
       direction: runtime.root ? (config.direction ?? "bidirectional") : "push",
-      concurrency: config.concurrency ?? 8,
+      concurrency: Math.min(config.concurrency ?? 8, 4),
       conflictStrategy: config.conflictStrategy ?? DEFAULT_CONFLICT_STRATEGY,
       propagateDeletes: config.propagateDeletes ?? DEFAULT_PROPAGATE_DELETES,
       deleteThresholdPercent: config.deleteThresholdPercent ?? 20,
       maxFileSize: (config.maxFileSizeMB ?? 0) * 1024 ** 2,
       prefix: config.prefix,
-      files: [...files, ...(metadata === undefined ? [] : [{ path: ".vessel/backup.json", source: metadataPath }])],
+      files: metadata === undefined ? files : [...files, { path: ".vessel/backup.json", source: metadataPath }],
       onProgress
     })
     return { ...result, changed: result.changed - metadataUploads }

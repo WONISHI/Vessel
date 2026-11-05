@@ -1,3 +1,5 @@
+import { SearchEnginePicker } from "./search-engine-picker"
+import { useRef, useState } from "react"
 import { addTransit } from "@/components/transit/state"
 import { Button } from "@/components/ui/button"
 import { BrowserExtensions } from "@/pages/browser/components/extensions"
@@ -7,12 +9,18 @@ import { BrowserMore } from "@/pages/browser/components/tools"
 import { elementPickerScript } from "@/pages/browser/element-picker"
 import { withGuest } from "@/pages/browser/guest-lifecycle"
 import { browserURL } from "@/pages/browser/url"
-import { ArrowLeft, ArrowRight, Bookmark, Bug, Home, LockKeyhole, Pin, RotateCw, Search, SquareDashedMousePointer, X } from "lucide-react"
+import { ArrowLeft, ArrowRight, Bookmark, Bug, Home, Info, LockKeyhole, Pin, RotateCw, Search, SquareDashedMousePointer, X } from "lucide-react"
 import type { BrowserPageModel } from "@/pages/browser/components/browser-page/hooks/use-browser-page"
 
 /** 地址栏与导航工具条 */
 export function BrowserToolbar({ b, visible = true }: { b: BrowserPageModel; visible?: boolean }) {
   const { deviceMode, setDeviceMode, setTabs, setFindOpen, devtoolsOpen, setDevtoolsOpen, setActive, input, setInput, bookmarks, views, tab, getActivePageData, update, navigate, zoom, bookmark } = b
+
+  const address = useRef<HTMLFormElement>(null)
+  const [focused, setFocused] = useState(false)
+  const [engineOpen, setEngineOpen] = useState(false)
+  const fullAddress = input ?? tab.url
+  const editing = focused || engineOpen
 
   return (
             <div className="browser-toolbar">
@@ -59,13 +67,22 @@ export function BrowserToolbar({ b, visible = true }: { b: BrowserPageModel; vis
                 <Home />
               </Button>
               <form
+                ref={address}
                 className="browser-address"
+                onBlur={(event) => {
+                  const target = event.relatedTarget
+                  if (!(target instanceof Element && target.closest("[data-search-engine-trigger]"))) setFocused(false)
+                }}
                 onSubmit={(event) => {
                   event.preventDefault()
                   navigate(input ?? tab.url)
                 }}
               >
-                {tab.url.startsWith("https:") ? <LockKeyhole size={14} /> : <Search size={14} />}
+                {editing ? (
+                  <SearchEnginePicker open={engineOpen} onOpenChange={setEngineOpen}
+                    onSelect={() => address.current?.querySelector("input")?.focus()} />
+                ) : /^https:\/\//i.test(fullAddress) ? <LockKeyhole size={14} />
+                  : /^http:\/\//i.test(fullAddress) ? <Info size={14} /> : <Search size={14} />}
                 <HistoryInput
                   onNavigate={(value, newWindow) => {
                     if (newWindow) {
@@ -80,9 +97,16 @@ export function BrowserToolbar({ b, visible = true }: { b: BrowserPageModel; vis
                   autoCapitalize="none"
                   aria-label="搜索或输入网址"
                   placeholder="搜索或输入网址"
-                  value={input ?? tab.url}
+                  value={editing ? fullAddress : fullAddress.replace(/^https?:\/\//i, "")}
+                  suppressSuggestions={engineOpen}
                   onChange={(event) => setInput(event.target.value)}
-                  onFocus={(event) => event.target.select()}
+                  onFocus={(event) => {
+                    setFocused(true)
+                    const field = event.currentTarget
+                    requestAnimationFrame(() => {
+                      if (window.document.activeElement === field) field.select()
+                    })
+                  }}
                 />
                 <button
                   type="button"
@@ -140,6 +164,11 @@ export function BrowserToolbar({ b, visible = true }: { b: BrowserPageModel; vis
                 visible={visible}
                 onOpenDevtools={() => setDevtoolsOpen(true)}
                 getActivePageData={getActivePageData}
+                onOpenStore={(url) => {
+                  const next = { ...newTab(), url, loading: true }
+                  setTabs((previous) => [...previous, next])
+                  setActive(next.id)
+                }}
               />
               <BrowserMore
                 visible={visible}

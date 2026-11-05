@@ -52,7 +52,6 @@ export function storeSessionFetch(session: Session, url: string, init: RequestIn
         resolve(result)
       } catch (error) { fail(error instanceof Error ? error : new Error(String(error))) }
     })
-    request.on("close", () => { if (!finished) fail(new Error("扩展下载连接提前关闭")) })
     request.end()
   })
 }

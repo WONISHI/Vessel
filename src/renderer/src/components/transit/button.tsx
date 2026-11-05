@@ -44,7 +44,7 @@ export function TransitButton({ menuItem = false, onOpenChange }: { menuItem?: b
           aria-label={`中转站，${items.length} 个`}
           onMouseEnter={enter}
           onMouseLeave={leave}
-          className={`${menuItem ? "relative flex h-[38px] w-full items-center justify-start gap-2.5 px-2.5 text-xs" : "relative size-[38px]"} rounded-[10px] hover:!bg-[#f0efed] hover:!text-stone-500 ${selected ? "!bg-emerald-50 !text-green-700" : "text-stone-500"}`}
+          className={`${menuItem ? "relative flex h-[38px] w-full items-center justify-start gap-2.5 px-2.5 text-xs" : "relative size-[38px]"} rounded-[10px] hover:!bg-[#f0efed] ${menuItem ? "hover:!text-stone-500" : "hover:!text-[#a8a29e]"} ${selected ? "!bg-emerald-50 !text-green-700" : menuItem ? "text-stone-500" : "text-[#a8a29e]"}`}
         >
           <Pin className={menuItem ? "!size-4" : "!size-5"} />
           {menuItem && "中转站"}

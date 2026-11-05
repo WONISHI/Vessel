@@ -29,7 +29,7 @@ export default function PerformancePage() {
   }
   return <div className="performance-page">
     <header className="performance-header"><div className="flex items-center gap-2"><PageBackButton /><div><h2>性能监控</h2><p>进程来源 / 内存明细 / 历史趋势</p></div></div><div className="performance-actions"><button type="button" onClick={copy} disabled={!snapshot}><Copy size={13} />{copyStatus || '复制诊断'}</button><span className="performance-status" data-live={Boolean(snapshot && !error && visible)} role="status"><Clock3 size={13} />{error ? '采样失败' : !visible ? '已暂停' : snapshot ? 'Live' : '连接中'}</span></div></header>
-    <ScrollArea className="performance-scroll" type="auto">
+    <ScrollArea className="performance-scroll" type="hover">
     <div className="performance-body">
       {error && <div role="alert" className="performance-error">无法读取性能数据：{error}（将自动重试）</div>}
       <div className="performance-metrics">

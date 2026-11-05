@@ -1,3 +1,4 @@
+import { SectionPreview } from "@/components/core/canvas/variants/markdown/section-preview"
 import { documentSession, readDocument } from "@/components/core/canvas/session/document-session"
 import { saveMarkdownContent, waitForMarkdownWrites } from "./local-writes"
 import { DocumentOutline } from "@/components/core/canvas/variants/markdown/document-outline"
@@ -201,6 +202,7 @@ export default function MarkdownCanvas({ activeFilePath, workspacePath: customWo
           )}
         </div>
         <DocumentOutline
+          preview={SectionPreview}
           source={current?.content ?? ""}
           onSelectFootnote={(id) => {
             const node = Array.from(contentHost.current?.querySelectorAll<HTMLElement>("[data-vessel-footnote-id]") ?? []).find((item) => item.dataset.vesselFootnoteId === id)
