@@ -20,7 +20,7 @@ export function storeDownloadURL(id: string, chromeVersion: string) {
   return url.href
 }
 
-function officialDownload(value: string) {
+export function officialStoreDownload(value: string) {
   const url = new URL(value)
   return url.protocol === "https:" && !url.port && !url.username && !url.password &&
     ["google.com", "googleusercontent.com", "gvt1.com"].some(host => url.hostname === host || url.hostname.endsWith(`.${host}`))
@@ -56,7 +56,7 @@ export async function prepareStoreExtension(id: string, storage: string, chromeV
     let url = storeDownloadURL(id, chromeVersion)
     let response: Response | undefined
     for (let redirects = 0; redirects <= 5; redirects++) {
-      if (!officialDownload(url)) throw new Error("商店下载跳转到非 Google 地址，已停止")
+      if (!officialStoreDownload(url)) throw new Error("商店下载跳转到非 Google 地址，已停止")
       response = await fetcher(url, { redirect: "manual", signal: controller.signal })
       if (![301, 302, 303, 307, 308].includes(response.status)) break
       const location = response.headers.get("location")

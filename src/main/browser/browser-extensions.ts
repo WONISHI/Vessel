@@ -1,3 +1,4 @@
+import { storeSessionFetch } from "@main/browser/extensions/extension-store-fetch"
 import { prepareStoreExtension, webStoreExtensionId } from "@main/browser/extensions/extension-store"
 import { applyBrowserIdentity } from "@main/browser/browser-identity"
 import { registerBrowserSiteCompatibility } from "@main/browser/browser-site-compatibility"
@@ -330,7 +331,7 @@ export function registerBrowserExtensions(host: WebContents) {
         const existing = records.find(record => record.storeId === id || record.extensionId === id)
         if (existing?.enabled && existing.extensionId && !existing.error) { notify("complete", `已安装：${existing.name}`); return }
         notify("preparing", "正在从 Chrome 应用商店读取扩展包和权限…")
-        imported = await prepareStoreExtension(id, join(app.getPath("userData"), "browser-extension-packages"), process.versions.chrome, guest.session.fetch.bind(guest.session))
+        imported = await prepareStoreExtension(id, join(app.getPath("userData"), "browser-extension-packages"), process.versions.chrome, (url, init) => storeSessionFetch(guest.session, url, init))
         if (host.isDestroyed() || guest.isDestroyed() || webStoreExtensionId(guest.getURL()) !== id) { notify("cancelled", "已离开原商店页面，安装已取消"); return }
         notify("confirming", `等待确认安装：${imported.name}`)
         const permissionText = imported.permissions.length ? imported.permissions.join("\n") : "无额外权限"
