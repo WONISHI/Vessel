@@ -202,6 +202,10 @@ function createWindow(): void {
     mainWindow.on("focus", () => mainWindow.setOverlayIcon(null, ""))
   }
   secureBrowserGuests(mainWindow.webContents)
+  mainWindow.webContents.ipc.handle("tools:translate", async (_event, text, from, to) => {
+    const { translateText } = await import("@main/translate")
+    return translateText(text, from, to)
+  })
   registerSettings(mainWindow.webContents)
   registerOffice(mainWindow.webContents)
   registerTransit(mainWindow.webContents)

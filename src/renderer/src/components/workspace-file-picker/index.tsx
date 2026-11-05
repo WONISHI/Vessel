@@ -84,7 +84,7 @@ export function WorkspaceFilePicker({ workspace, onClose }: { workspace: FilePic
               setVisibleCount((count) => Math.min(count + 100, files.length))
             }
           }}
-          className="max-h-[45vh] min-h-0 [&_[data-radix-scroll-area-viewport]]:max-h-[45vh]"
+          className="-mx-4 max-h-[45vh] min-h-0 [&_[data-radix-scroll-area-viewport]>div]:px-4 [&_[data-radix-scroll-area-viewport]]:max-h-[45vh]"
         >
           {files.slice(0, visibleCount).map((file) => (
             <button

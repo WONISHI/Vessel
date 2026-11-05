@@ -17,6 +17,7 @@ import { gitAPI } from "@preload/apis/git.api"
 const api = {}
 
 const vesselAPI = {
+  translateText: (text: string, from: string, to: string) => ipcRenderer.invoke("tools:translate", text, from, to),
   onFilePreviewUpdated: (callback: (state: { items: { id: string; kind: "file"; title: string; root: string; content: string }[]; selected: string }) => void) => {
     const handler = (_event: Electron.IpcRendererEvent, state: Parameters<typeof callback>[0]) => callback(state)
     ipcRenderer.on("preview:updated", handler)

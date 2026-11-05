@@ -31,6 +31,7 @@ const ResourceRoute = lazyPage<object>(async () => ({ default: (await import("@/
 const Base64Tool = lazyPage<object>(async () => ({ default: (await import("@/pages/debug/base64/index")).Base64Tool }), debugLoading)
 const ColorTool = lazyPage<object>(async () => ({ default: (await import("@/pages/debug/color/index")).ColorTool }), debugLoading)
 const JsonTool = lazyPage<object>(async () => ({ default: (await import("@/pages/debug/json/index")).JsonTool }), debugLoading)
+const TranslateTool = lazyPage(() => import("@/pages/debug/translate"), debugLoading)
 const URLTool = lazyPage<object>(async () => ({ default: (await import("@/pages/debug/url/index")).URLTool }), debugLoading)
 const DiagnosticsPage = lazyPage(() => import("@/pages/debug/diagnostics/index"), debugLoading)
 const DebugPage = lazyPage(() => import("@/pages/debug/index"), { ...debugLoading, activity: "tools" })
@@ -118,7 +119,8 @@ export const routes: AppRouteRecordRaw[] = [
         { path: "json", component: JsonTool, title: "JSON 格式化" },
         { path: "color", component: ColorTool, title: "颜色转换" },
         { path: "base64", component: Base64Tool, title: "Base64" },
-        { path: "url", component: URLTool, title: "URL 编解码" }
+        { path: "url", component: URLTool, title: "URL 编解码" },
+        { path: "translate", component: TranslateTool, title: "翻译" }
       ].map((tool) => ({ path: tool.path, name: `devtools-${tool.path}`, component: tool.component, meta: { title: tool.title } })),
       {
         index: true,

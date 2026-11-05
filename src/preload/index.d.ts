@@ -89,6 +89,7 @@ export interface StorageInfo {
 }
 
 export interface VesselAPI extends BrowserProxyAPI, BrowserToolsAPI, SettingsAPI, BrowserExtensionsAPI, TodosAPI, TerminalAPI, FileWatchAPI, NativeMenuAPI {
+  translateText(text: string, from: string, to: string): Promise<{ text: string; detectedLanguage: string }>
   getPerformanceSnapshot: () => Promise<import("@vessel/type").PerformanceSnapshot>
   shareFilesToWechat: (root: string, paths: string[]) => Promise<{ opened: boolean }>
   getSystemInfo: () => Promise<import("@vessel/type").SystemInfo>

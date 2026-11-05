@@ -36,6 +36,18 @@
   background: white;
   box-shadow: -1px 0 #e7e5e4;
 }
+html.dark .todo-table-scroll .todo-sticky-action {
+  box-shadow: none;
+}
+html.dark .todo-table-scroll .todo-sticky-action::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  right: 100%;
+  width: 12px;
+  background: linear-gradient(to left, var(--vs-bg-sunken), transparent);
+  pointer-events: none;
+}
 .todo-table-scroll .todo-sticky-add {
   position: sticky;
   right: 0;
