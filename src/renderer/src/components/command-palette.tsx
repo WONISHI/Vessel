@@ -119,7 +119,7 @@ export function CommandPalette() {
           value={search}
           onValueChange={setSearch}
         />
-        <ScrollArea type="auto" className="vessel-command-scroll min-h-0">
+        <ScrollArea type="hover" scrollHideDelay={0} className="vessel-command-scroll min-h-0">
         <CommandList className="!max-h-none !overflow-visible">
           <CommandEmpty>没有匹配的命令</CommandEmpty>
           {url && (
