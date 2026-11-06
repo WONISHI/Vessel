@@ -50,7 +50,7 @@ function AttachmentReader({ root, files, onNextPage, open, onOpenChange, initial
   const resize = useRef<{ x: number; width: number } | null>(null)
   const changeWidth = (next: number) => {
     const max = window.innerWidth * 0.9
-    setWidth(Math.min(max, Math.max(Math.min(480, max), next)))
+    setWidth(Math.min(max, Math.max(Math.min(480, window.innerWidth * 0.6), next)))
   }
   const step = 160
   const move = (direction: number) => {
@@ -68,7 +68,7 @@ function AttachmentReader({ root, files, onNextPage, open, onOpenChange, initial
       <SheetContent
         showOverlay={false}
         ref={sheet}
-        className="flex w-[1830px] min-w-[min(480px,90vw)] max-w-[90vw] flex-col gap-0 p-0 sm:max-w-[90vw]"
+        className="flex w-[60vw] min-w-[min(480px,60vw)] max-w-[90vw] flex-col gap-0 p-0 sm:max-w-[90vw]"
         style={{ width }}
         onOpenAutoFocus={() => {
           const initialIndex = Math.max(0, files.findIndex((entry) => entry.path === initialPath))
@@ -155,20 +155,22 @@ function AttachmentReader({ root, files, onNextPage, open, onOpenChange, initial
   )
 }
 
-function AttachmentCard({ file, root, selected, onSelect, onPreview }: { file: Attachment; root: string; selected?: boolean; onSelect?: (event: MouseEvent<HTMLButtonElement>) => void; onPreview: () => void }) {
+function AttachmentCard({ file, root, selected, onSelect, onPreview }: { file: Attachment; root: string; selected?: boolean; onSelect?: (event: MouseEvent<HTMLElement>) => void; onPreview: () => void }) {
   const extension = file.name.split(".").pop()?.toUpperCase() || "文件"
   const [failedTemp, setFailedTemp] = useState(false)
   const temporary = /\.tmp$/i.test(file.name)
   const image = imageExtension.test(file.name)
-  const preview = image && !failedTemp ? (event: MouseEvent) => {
-    event.stopPropagation()
-    onPreview()
-  } : undefined
+  const preview = image && !failedTemp ? onPreview : undefined
   const size = file.size >= 1024 ** 2 ? `${(file.size / 1024 ** 2).toFixed(1)} MB` : `${Math.ceil(file.size / 1024)} KB`
 
   return (
-    <article className={`relative min-w-0 rounded-xl border bg-card p-2 text-card-foreground ${selected ? "ring-2 ring-green-600" : ""}`}>
-      <div className="aspect-square overflow-hidden rounded-lg bg-muted" onDoubleClickCapture={preview}>
+    <article className={`relative min-w-0 rounded-xl border bg-card p-2 text-card-foreground ${selected ? "ring-2 ring-green-600" : ""}`} onDoubleClick={(event) => {
+      if (!(event.target as Element).closest("[data-attachment-thumbnail]")) preview?.()
+    }}>
+      <div data-attachment-thumbnail
+        className={`aspect-square overflow-hidden rounded-lg bg-muted ${onSelect ? "relative z-10" : ""}`}
+        onClickCapture={onSelect}
+      >
         {image && !failedTemp ? (
           <Image
             sourceKey={file.path}
@@ -200,7 +202,6 @@ function AttachmentCard({ file, root, selected, onSelect, onPreview }: { file: A
         <button type="button" aria-label={`选择 ${file.name}`} aria-pressed={selected}
           className="absolute inset-0 cursor-pointer rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-green-600"
           onClick={onSelect}
-          onDoubleClick={preview}
         />
       )}
     </article>
@@ -350,7 +351,7 @@ export default function AttachmentRoute() {
                 const selecting = selection?.group === label
                 const selected = selecting ? group.filter((file) => selection.paths.includes(file.path)) : []
                 const firstImage = selected.find((file) => imageExtension.test(file.name))
-                const selectFile = (file: Attachment, event: MouseEvent<HTMLButtonElement>) => {
+                const selectFile = (file: Attachment, event: MouseEvent<HTMLElement>) => {
                   if (!selection) return
                   const additive = event.metaKey || event.ctrlKey
                   const anchorIndex = group.findIndex((entry) => entry.path === selection.anchor)
@@ -383,7 +384,7 @@ export default function AttachmentRoute() {
                     </div>
                   </div>
                   <div className="grid grid-cols-[repeat(auto-fill,minmax(130px,1fr))] gap-3">
-                    {group.map((file) => <AttachmentCard key={`${file.path}:${file.mtime}`} file={file} root={root} selected={selected.includes(file)}
+                    {group.map((file) => <AttachmentCard key={`${file.path}:${file.mtime}`} file={file} root={root} selected={selected.includes(file) || (readerOpen && initialPath === file.path)}
                       onPreview={() => openGroupReader(label, file.path)}
                       onSelect={selecting ? (event) => selectFile(file, event) : undefined} />)}
                   </div>
