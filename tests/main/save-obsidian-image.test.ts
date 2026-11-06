@@ -85,3 +85,35 @@ it("reuses vault images and imports external files without overwriting same-name
     await rm(external, { recursive: true, force: true })
   }
 })
+
+it("uses configured attachment order, creates folders, and skips paths outside the workspace", async () => {
+  const root = await mkdtemp(join(tmpdir(), "vessel-attachment-library-"))
+  const doc = join(root, "note.md")
+  try {
+    await writeFile(doc, "")
+    const source = { bytes: new Uint8Array([1]) }
+    const first = await saveObsidianImage(root, doc, source, ["../outside", "~img", "~/images"])
+    const second = await saveObsidianImage(root, doc, source, ["~/images", "~img"])
+    expect(first.reference).toBe(`![[img/${first.name}]]`)
+    expect(second.reference).toBe(`![[images/${second.name}]]`)
+    expect(await readFile(first.path)).toEqual(Buffer.from([1]))
+    expect(await readFile(second.path)).toEqual(Buffer.from([1]))
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
+it("lists saved attachments in configured folders once, including nested files", async () => {
+  const { listAttachments } = await import("@main/modules/files/attachment-library")
+  const root = await mkdtemp(join(tmpdir(), "vessel-attachment-list-"))
+  const doc = join(root, "note.md")
+  try {
+    await writeFile(doc, "")
+    const saved = await saveObsidianImage(root, doc, { bytes: new Uint8Array([1, 2]) }, ["~/images/nested"])
+    expect(await listAttachments(root, ["~/missing", "../outside", "~images", "~/images/nested"])).toEqual([
+      { name: saved.name, path: saved.path, size: 2, relativePath: join("images", "nested", saved.name) }
+    ])
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
+})

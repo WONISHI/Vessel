@@ -32,10 +32,23 @@ export const Guest = memo(function Guest({ tab, visible, register, update }: { t
     /** Synchronizes sync. */
     const sync = () => withGuest(view, (guest) => updateRef.current(tab.id, { url: guest.getURL(), title: guest.getTitle() || "正在加载…", back: guest.canGoBack(), forward: guest.canGoForward() }))
 
+    let mediaRevision = 0
+    const syncVideoPlaying = () => {
+      const revision = ++mediaRevision
+      void withGuest(view, (guest) => guest.executeJavaScript(`(() => {
+        const floating = document.getElementById("vessel-floating-video")?.shadowRoot?.querySelector("video")
+        const playing = (video) => !video.paused && !video.ended
+        return Boolean(floating && playing(floating)) || Array.from(document.querySelectorAll("video")).some(playing)
+      })()`).then((playing) => {
+        if (revision === mediaRevision) updateRef.current(tab.id, { videoPlaying: playing === true })
+      }).catch(() => {}))
+    }
+
     /** Handles ready events. */
     const onReady = () => {
       void view.executeJavaScript(pageObserverScript).catch((error) => console.warn("页面监听注入失败", error))
       markGuestReady(view, true)
+      syncVideoPlaying()
       setDocumentReady((revision) => revision + 1)
       if (tab.zoom && tab.zoom !== 1) {
         try {
@@ -49,8 +62,9 @@ export const Guest = memo(function Guest({ tab, visible, register, update }: { t
     /** Starts start. */
     const start = (event: Electron.DidStartNavigationEvent) => {
       if (event.isMainFrame && !event.isInPlace) {
+        mediaRevision++
         setDocumentReady(0)
-        updateRef.current(tab.id, { loading: true, error: "" })
+        updateRef.current(tab.id, { loading: true, error: "", videoPlaying: false })
       }
     }
 
@@ -84,6 +98,8 @@ export const Guest = memo(function Guest({ tab, visible, register, update }: { t
       if (event.channel === "vessel-navigation") sync()
       if (event.channel === "vessel-find") window.dispatchEvent(new CustomEvent("vessel-browser-find", { detail: view.getWebContentsId() }))
     }
+    view.addEventListener("media-started-playing", syncVideoPlaying)
+    view.addEventListener("media-paused", syncVideoPlaying)
     view.addEventListener("ipc-message", message)
     view.addEventListener("page-favicon-updated", favicon)
     view.addEventListener("dom-ready", onReady)
@@ -94,6 +110,9 @@ export const Guest = memo(function Guest({ tab, visible, register, update }: { t
     view.addEventListener("did-stop-loading", stop)
     view.addEventListener("did-fail-load", fail)
     return () => {
+      mediaRevision++
+      view.removeEventListener("media-started-playing", syncVideoPlaying)
+      view.removeEventListener("media-paused", syncVideoPlaying)
       view.removeEventListener("ipc-message", message)
       markGuestReady(view, false)
       view.removeEventListener("page-favicon-updated", favicon)

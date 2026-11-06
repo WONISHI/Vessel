@@ -1,3 +1,4 @@
+import { attachmentFolderOffset } from "@main/modules/files/attachment-library"
 import { collectPerformanceSources, createMainMemoryReader } from "./performance-resources"
 import { BaseModule } from "@main/modules/base/index"
 import { SUPPORTED_EXTENSIONS } from "@main/modules/welcome/constants/index.constant"
@@ -11,7 +12,7 @@ import { createPerformanceSampler } from "./performance"
 import { getDatabaseStorageBytes } from "./system-info"
 import type { SystemInfo } from "@vessel/type"
 import { readdir, realpath, stat } from "fs/promises"
-import { basename, extname, isAbsolute, join, relative } from "path"
+import { basename, extname, isAbsolute, join, relative, resolve } from "path"
 
 /**
  * 欢迎页主进程模块。
@@ -92,15 +93,24 @@ export class WelcomeModule extends BaseModule {
         return database.recordWorkspaceOpened(workspace)
       })
 
-      this.registerHandler("workspace:readDirectory", async (_event, root: string, directory: string, options?: { includeIgnored?: boolean }) => {
+      this.registerHandler("workspace:readDirectory", async (_event, root: string, directory: string, options?: { includeIgnored?: boolean; hideAttachmentFolders?: boolean }) => {
         if (typeof root !== "string" || typeof directory !== "string") throw new TypeError("目录路径必须为字符串")
         const rootPath = await realpath(root)
         const directoryPath = await realpath(directory)
         const childPath = relative(rootPath, directoryPath)
         if (childPath === ".." || childPath.startsWith("../") || childPath.startsWith("..\\") || isAbsolute(childPath)) throw new Error("目录不属于当前工作区")
         const entries = await readdir(directoryPath, { withFileTypes: true })
-        const ignoredPatterns = parseIgnoredPatterns(generalSettings().ignoredFiles)
-        const filtered = entries.filter((entry) => (entry.isDirectory() || entry.isFile()) && (options?.includeIgnored === true || !isIgnoredEntry(entry.name, ignoredPatterns)))
+        const settings = generalSettings()
+        const ignoredPatterns = parseIgnoredPatterns(settings.ignoredFiles)
+        const hiddenFolders = new Set(
+          options?.hideAttachmentFolders && settings.attachmentLibraryEnabled
+            ? (settings.attachmentFolders ?? []).map((folder) => attachmentFolderOffset(rootPath, folder) ?? attachmentFolderOffset(resolve(root), folder))
+            : []
+        )
+        const filtered = entries.filter((entry) => {
+          if (entry.isDirectory() && hiddenFolders.has(join(childPath, entry.name))) return false
+          return (entry.isDirectory() || entry.isFile()) && (options?.includeIgnored === true || !isIgnoredEntry(entry.name, ignoredPatterns))
+        })
         const nodes = await Promise.all(
           filtered.map(async (entry) => {
             const entryPath = join(directoryPath, entry.name)

@@ -7,7 +7,7 @@ import { useWorkspace } from "@/components/workspace/hooks/useWorkspace"
 import type { WorkspaceNode } from "@/components/workspace/types/workspace"
 import { useRouter } from "@vessel/react-router"
 import { localFileURL } from "@vessel/utils"
-import { Code, Copy, FileDown, File, FilePlus2, FolderOpen, FolderPlus, Globe, Send, Pencil, Pin, Search, Trash2, Images } from "lucide-react"
+import { Code, Copy, FileDown, File, FilePlus2, FolderOpen, FolderPlus, Globe, Send, Pencil, Pin, Paperclip, Search, Trash2, Images } from "lucide-react"
 import { Suspense, useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { toast } from "sonner"
 
@@ -39,6 +39,16 @@ export function FileActions({
   const router = useRouter()
   const [pdfExportOpen, setPdfExportOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [attachmentsEnabled, setAttachmentsEnabled] = useState(false)
+  const imageFile = node.type !== "directory" && /\.(png|jpe?g|gif|webp|svg|avif|bmp)$/i.test(node.name)
+  useEffect(() => {
+    if (!menuOpen || !imageFile) return
+    let active = true
+    void window.electronAPI.getSettings().then((settings) => {
+      if (active) setAttachmentsEnabled(settings.attachmentLibraryEnabled === true)
+    }).catch(() => {})
+    return () => { active = false }
+  }, [menuOpen, imageFile])
   const inputRef = useRef<HTMLInputElement | null>(null)
 
   const selectName = useCallback((input: HTMLInputElement) => {
@@ -395,6 +405,23 @@ export function FileActions({
               <Pin />
               加入中转站
             </ContextMenuItem>
+          )}
+          {!multiple && imageFile && attachmentsEnabled && (
+            <ContextMenuItem disabled={busy} onSelect={async () => {
+              setBusy(true)
+              try {
+                const target = await window.electronAPI.moveImageToAttachments(workspace.path, node.path)
+                if (target !== node.path && openFiles.some((file) => file.path === node.path)) {
+                  renameWorkspaceTab(node.path, target, node.name)
+                }
+                onChanged()
+                toast.success("图片已添加到附件库")
+              } catch (error) {
+                toast.error(String(error))
+              } finally {
+                setBusy(false)
+              }
+            }}><Paperclip />添加到附件库</ContextMenuItem>
           )}
           {!multiple && <ContextMenuItem
             disabled={busy}

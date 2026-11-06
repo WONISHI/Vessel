@@ -91,6 +91,8 @@ interface StorageInfo {
 
 /** preload 暴露给 React 渲染进程的完整 API。 */
 interface VesselAPI extends BrowserProxyAPI, BrowserToolsAPI, SettingsAPI, BrowserExtensionsAPI, TodosAPI, TerminalAPI, FileWatchAPI, NativeMenuAPI {
+  moveImageToAttachments(root: string, path: string): Promise<string>
+  listAttachments(root: string): Promise<Array<{ name: string; path: string; size: number; relativePath: string; mtime: number }>>
   translateText(text: string, from: string, to: string): Promise<{ text: string; detectedLanguage: string }>
   getPerformanceSnapshot: () => Promise<import("@vessel/type").PerformanceSnapshot>
   shareFilesToWechat: (root: string, paths: string[]) => Promise<{ opened: boolean }>
@@ -127,7 +129,7 @@ interface VesselAPI extends BrowserProxyAPI, BrowserToolsAPI, SettingsAPI, Brows
   onBrowserNewTab: (callback: (url: string, opener?: number) => void) => () => void
   takePendingMarkdownFiles: () => Promise<string[]>
   onOpenMarkdown: (callback: (path: string) => void) => () => void
-  readWorkspaceDirectory: (root: string, directory: string, options?: { includeIgnored?: boolean }) => Promise<Array<{ name: string; path: string; type: "file" | "directory"; ctime?: number; mtime?: number }>>
+  readWorkspaceDirectory: (root: string, directory: string, options?: { includeIgnored?: boolean; hideAttachmentFolders?: boolean }) => Promise<Array<{ name: string; path: string; type: "file" | "directory"; ctime?: number; mtime?: number }>>
   /** 选择文件夹并记录工作区打开信息。 */
   openDirectory: () => Promise<WorkspaceData | null>
 

@@ -3,6 +3,9 @@ export interface AppSettings {
   proxyEnabled?: boolean
   externalScreenshot?: boolean
   externalPreview?: boolean
+  attachmentLibraryEnabled?: boolean
+  attachmentFolders?: string[]
+  floatingVideoEnabled?: boolean
   monitorNavigation?: boolean
   globalSearchEnabled?: boolean
   ignoredFiles?: string

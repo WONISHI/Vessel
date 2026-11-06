@@ -89,6 +89,8 @@ export interface StorageInfo {
 }
 
 export interface VesselAPI extends BrowserProxyAPI, BrowserToolsAPI, SettingsAPI, BrowserExtensionsAPI, TodosAPI, TerminalAPI, FileWatchAPI, NativeMenuAPI {
+  moveImageToAttachments(root: string, path: string): Promise<string>
+  listAttachments(root: string): Promise<Array<{ name: string; path: string; size: number; relativePath: string; mtime: number }>>
   translateText(text: string, from: string, to: string): Promise<{ text: string; detectedLanguage: string }>
   getPerformanceSnapshot: () => Promise<import("@vessel/type").PerformanceSnapshot>
   shareFilesToWechat: (root: string, paths: string[]) => Promise<{ opened: boolean }>
@@ -125,7 +127,7 @@ export interface VesselAPI extends BrowserProxyAPI, BrowserToolsAPI, SettingsAPI
   onBrowserNewTab: (callback: (url: string, opener?: number) => void) => () => void
   takePendingMarkdownFiles: () => Promise<string[]>
   onOpenMarkdown: (callback: (path: string) => void) => () => void
-  readWorkspaceDirectory: (root: string, directory: string, options?: { includeIgnored?: boolean }) => Promise<Array<{ name: string; path: string; type: "file" | "directory"; ctime?: number; mtime?: number }>>
+  readWorkspaceDirectory: (root: string, directory: string, options?: { includeIgnored?: boolean; hideAttachmentFolders?: boolean }) => Promise<Array<{ name: string; path: string; type: "file" | "directory"; ctime?: number; mtime?: number }>>
   openDirectory: () => Promise<WorkspaceData | null>
 
   getRecentWorkspaces: (limit?: number) => Promise<RecentWorkspace[]>

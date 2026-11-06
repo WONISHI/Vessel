@@ -209,7 +209,7 @@ export function GitBranchTree({
     const isCurrentRemote = variant === "remote" && isRemoteTrackingCurrent(node.fullName, currentBranch)
     const isCurrent = isCurrentLocal || isCurrentRemote
     const isSelected = selected === node.fullName
-    const pad = 10 + depth * 12
+    const pad = 10 + depth * 20
     const LeafIcon = variant === "remote" ? Layers : GitBranch
     const fullName = node.fullName
 
@@ -282,7 +282,7 @@ export function GitBranchTree({
   /** Renders node. */
   const renderNode = (node: BranchTreeNode, depth: number): ReactNode => {
     const hasChildren = node.children.length > 0
-    const pad = 10 + depth * 12
+    const pad = 10 + depth * 20
 
     if (!hasChildren) {
       return renderLeaf(node, depth)

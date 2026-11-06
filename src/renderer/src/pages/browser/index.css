@@ -545,3 +545,34 @@ html:not(.dark) .browser-more-item:hover svg {
   color: #fff !important;
   stroke: #fff !important;
 }
+
+[data-vessel-browser-page][hidden]:has(webview[data-floating-video-overlay]) {
+  display: block;
+  position: fixed;
+  inset: 0;
+  z-index: 240;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+[data-vessel-browser-page] [aria-label="设备预览内容"]:has(webview[data-floating-video-overlay]) {
+  transform: none !important;
+}
+
+[data-vessel-browser-page] webview[data-floating-video-overlay] {
+  display: flex !important;
+  position: fixed;
+  inset: 0;
+  z-index: 240;
+  visibility: visible;
+  pointer-events: auto;
+  clip-path: var(--floating-video-clip);
+}
+
+.browser-floating-video-shadow {
+  position: fixed;
+  z-index: 239;
+  pointer-events: none;
+  border-radius: 12px;
+  box-shadow: 0 0 0 1px #0003, 0 4px 12px #0003, 0 16px 40px #0005;
+}

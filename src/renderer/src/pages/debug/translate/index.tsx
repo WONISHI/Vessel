@@ -80,6 +80,7 @@ export default function TranslateTool() {
           </div>
           <div className="rounded-xl border bg-background">
             <Textarea
+              autoFocus
               aria-label="原文"
               placeholder="输入要翻译的文字"
               value={input}

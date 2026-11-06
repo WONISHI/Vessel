@@ -1,3 +1,4 @@
+import { AttachmentLibrarySettings } from "@/pages/settings/components/attachment-library-settings"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -415,6 +416,9 @@ export function SettingsPage() {
                         onCheckedChange={(value) => update("externalPreview", value)}
                       />
                     </Row>
+                    <Row title="悬浮视频窗口" description="在内置浏览器检测网页视频，并在可拖动的窗口中播放。">
+                      <Switch aria-label="悬浮视频窗口" checked={draft.floatingVideoEnabled === true} onCheckedChange={(value) => update("floatingVideoEnabled", value)} />
+                    </Row>
                     <Row
                       title="监听页面跳转"
                       description="开启后，非链接跳转前询问在当前页面还是新标签页打开；a 标签链接直接放行。"
@@ -425,6 +429,12 @@ export function SettingsPage() {
                         onCheckedChange={(value) => update("monitorNavigation", value)}
                       />
                     </Row>
+                    <AttachmentLibrarySettings
+                      enabled={draft.attachmentLibraryEnabled === true}
+                      folders={draft.attachmentFolders ?? ["~/images", "~/img"]}
+                      onEnabledChange={(value) => update("attachmentLibraryEnabled", value)}
+                      onFoldersChange={(value) => update("attachmentFolders", value)}
+                    />
                     <Row
                       title="活动栏全局搜索"
                       description="开启后在左侧活动栏显示全局搜索入口；关闭后仅保留侧边栏和快捷键搜索。"

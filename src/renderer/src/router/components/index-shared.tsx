@@ -8,7 +8,7 @@ import type { WorkspaceData } from "@vessel/type"
 import { RouteLoading, type RouteLoadingOptions } from "@/components/ui/route-loading"
 import { lazyWithRetry } from "@/lib/lazy-retry"
 import { Suspense, type ComponentType } from "react"
-import { Bug, GitBranch, Image as ImageIcon, ListTodo, Send, Settings } from "lucide-react"
+import { Bug, FolderOpen, GitBranch, Image as ImageIcon, ListTodo, Paperclip, Send, Settings } from "lucide-react"
 
 /** 按路由懒加载重页面，加载期间显示统一的满宽加载蒙层（RouteLoading），各路由只传图标与文案 */
 function lazyPage<P extends object>(factory: () => Promise<{ default: ComponentType<P> }>, loading: RouteLoadingOptions = {}): ComponentType<P> {
@@ -27,7 +27,7 @@ const debugLoading: RouteLoadingOptions = { icon: <Bug />, title: "正在加载�
 const WorkspaceHome = lazyPage(() => import("@/components/workspace/components/layout-main/workspace-home"))
 const SearchPage = lazyPage(() => import("@/pages/search/index"))
 const EditorRoute = lazyPage<object>(async () => ({ default: (await import("@/pages/editor/index")).EditorRoute }))
-const ResourceRoute = lazyPage<object>(async () => ({ default: (await import("@/pages/resources/index")).ResourceRoute }))
+const ResourceRoute = lazyPage<object>(async () => ({ default: (await import("@/pages/resources/index")).ResourceRoute }), { activity: "resources", icon: <FolderOpen />, title: "正在加载项目资源库", label: "正在准备项目资源库，请稍候…" })
 const Base64Tool = lazyPage<object>(async () => ({ default: (await import("@/pages/debug/base64/index")).Base64Tool }), debugLoading)
 const ColorTool = lazyPage<object>(async () => ({ default: (await import("@/pages/debug/color/index")).ColorTool }), debugLoading)
 const JsonTool = lazyPage<object>(async () => ({ default: (await import("@/pages/debug/json/index")).JsonTool }), debugLoading)
@@ -43,6 +43,7 @@ function BrowserRoute() {
   return null
 }
 const SourceTreePage = lazyPage(() => import("@/pages/git/index"), { activity: "git", icon: <GitBranch />, title: "正在加载 Git", label: "正在读取仓库与提交记录，请稍候…" })
+const AttachmentRoute = lazyPage(() => import("@/pages/attachments"), { activity: "attachments", icon: <Paperclip />, title: "正在加载附件库", label: "正在准备附件库，请稍候…" })
 const ImageRoute = lazyPage(() => import("@/pages/image/index"), { activity: "image", icon: <ImageIcon />, title: "正在加载图片工具", label: "正在准备图片处理工作区，请稍候…" })
 const PostmanPage = lazyPage(() => import("@/pages/postman/index"), { activity: "postman", icon: <Send />, title: "正在加载 API 调试", label: "正在准备请求工作区，请稍候…" })
 const SettingsPage = lazyPage(() => import("@/pages/settings/index"), { icon: <Settings />, title: "正在加载设置", label: "正在读取偏好设置，请稍候…" })
@@ -84,6 +85,7 @@ export const routes: AppRouteRecordRaw[] = [
   { path: "/settings", name: "settings", component: SettingsPage, meta: { title: "设置" } },
   { path: "/browser", name: "browser", component: BrowserRoute, meta: { title: "浏览器" } },
   { path: "/todos", name: "todos", component: TodosPage, meta: { title: "待办" } },
+  { path: "/attachments", name: "attachments", component: AttachmentRoute, meta: { title: "附件库" } },
   { path: "/image", name: "image", component: ImageRoute, meta: { title: "图片" } },
   {
     path: "/",

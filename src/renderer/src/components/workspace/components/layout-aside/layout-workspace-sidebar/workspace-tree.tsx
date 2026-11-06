@@ -115,7 +115,7 @@ export default function WorkspaceTree({
   const loadDirectoryChildren = (path: string) => {
     if (pending.current.has(path)) return pending.current.get(path)!
     const request = window.electronAPI
-      .readWorkspaceDirectory(workspace.path, path)
+      .readWorkspaceDirectory(workspace.path, path, { hideAttachmentFolders: true })
       .then((nodes) => {
         if (mounted.current) updateDirectory(path, { nodes })
       })
@@ -182,10 +182,12 @@ export default function WorkspaceTree({
       // Refresh in place: clearing rows collapses the scroll height and resets scrollTop.
       // Keep the cached tree visible while settings (including appearance) are refreshed.
       if (!recent) {
-        void loadDirectoryChildren(workspace.path)
-        expandedFolders.forEach((path) => {
-          void loadDirectoryChildren(path)
-        })
+        for (const path of new Set([workspace.path, ...expandedFolders])) {
+          void (async () => {
+            await pending.current.get(path)
+            if (mounted.current) await loadDirectoryChildren(path)
+          })()
+        }
       }
     }
     window.addEventListener("vessel:settings-saved", handleSettingsSaved)

@@ -1,11 +1,36 @@
+import { attachmentFolderOffset } from "./attachment-library"
 import { constants } from "node:fs"
 import { nativeImage, session } from "electron"
-import { copyFile, realpath, stat, writeFile } from "node:fs/promises"
+import { access, copyFile, mkdir, realpath, stat, writeFile } from "node:fs/promises"
 import { basename, extname, isAbsolute, join, relative, sep } from "node:path"
 export type ImageImport = { bytes?: Uint8Array; url?: string; path?: string }
 const limit = 30 * 1024 * 1024
-/** Import attachments atomically into the vault root; never overwrite a same-second paste. */
-export async function saveObsidianImage(root: string, documentPath: string, source: ImageImport) {
+/** Resolve and create the first usable directory without following links outside the workspace. */
+export async function attachmentDirectory(base: string, folders: string[]) {
+  for (const entry of folders) {
+    const offset = attachmentFolderOffset(base, entry)
+    if (!offset) continue
+    try {
+      let directory = base
+      for (const segment of offset.split(sep)) {
+        const candidate = join(directory, segment)
+        await mkdir(candidate).catch((error) => {
+          if (error.code !== "EEXIST") throw error
+        })
+        directory = await realpath(candidate)
+        if (!directory.startsWith(base + sep) || !(await stat(directory)).isDirectory()) throw new Error("附件目录无效")
+      }
+      await access(directory, constants.W_OK)
+      return directory
+    } catch {
+      // Try the next configured folder if this one is unavailable.
+    }
+  }
+  throw new Error("没有可用的附件目录，请检查通用配置中的附件库")
+}
+
+/** Import attachments without overwriting a same-second paste. */
+export async function saveObsidianImage(root: string, documentPath: string, source: ImageImport, folders?: string[]) {
   const base = await realpath(root),
     document = await realpath(documentPath)
   const offset = relative(base, document)
@@ -40,6 +65,7 @@ export async function saveObsidianImage(root: string, documentPath: string, sour
     bytes = image.toPNG()
   }
   if (!bytes.length || bytes.length > limit) throw new Error("图片内容为空或超过 30 MB")
+  const directory = folders ? await attachmentDirectory(base, folders) : base
   const date = new Date()
 
   /** Performs the pad operation. */
@@ -47,10 +73,10 @@ export async function saveObsidianImage(root: string, documentPath: string, sour
   for (let attempt = 0; attempt < 3600; attempt++) {
     const stamp = `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`
     const name = `Pasted image ${stamp}.${extension}`,
-      path = join(base, name)
+      path = join(directory, name)
     try {
       await writeFile(path, bytes, { flag: "wx" })
-      return { name, path, reference: `![[${name}]]` }
+      return { name, path, reference: `![[${relative(base, path).split(sep).join("/")}]]` }
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error
       date.setSeconds(date.getSeconds() + 1)

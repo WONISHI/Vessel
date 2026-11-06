@@ -15,6 +15,10 @@ import { useCallback, useState } from "react"
 /** Renders the image preview page component. */
 export default function ImagePreviewPage({ activeFilePath }: { activeFilePath: string }) {
   const { workspace } = useWorkspace()
+  return <ImageFilePreview root={workspace.path} activeFilePath={activeFilePath} />
+}
+
+export function ImageFilePreview({ root, activeFilePath }: { root: string; activeFilePath: string }) {
   const [file, setFile] = useState<ImageFile>()
   const [edited, setEdited] = useState<string>()
   const [original, setOriginal] = useState({ width: 0, height: 0 })
@@ -30,14 +34,14 @@ export default function ImagePreviewPage({ activeFilePath }: { activeFilePath: s
   /** Loads source. */
   const loadSource = useCallback(async () => {
     try {
-      const result = await window.electronAPI.readImageFile(workspace.path, activeFilePath)
+      const result = await window.electronAPI.readImageFile(root, activeFilePath)
       setFile(result)
       return result.src
     } catch (error) {
       setError(String(error))
       throw error
     }
-  }, [workspace.path, activeFilePath])
+  }, [root, activeFilePath])
 
   /** Applies apply. */
   const apply = async (operation: ImageOperation) => {

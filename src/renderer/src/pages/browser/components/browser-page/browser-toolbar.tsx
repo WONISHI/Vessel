@@ -1,3 +1,4 @@
+import { FloatingVideo } from "./floating-video"
 import { SearchEnginePicker } from "./search-engine-picker"
 import { useRef, useState } from "react"
 import { addTransit } from "@/components/transit/state"
@@ -121,6 +122,7 @@ export function BrowserToolbar({ b, visible = true }: { b: BrowserPageModel; vis
                   />
                 </button>
               </form>
+              <FloatingVideo visible={visible} tabId={tab.id} url={tab.url} getGuest={() => views.current.get(tab.id)} />
               <Button
                 variant="ghost"
                 size="icon"

@@ -126,6 +126,11 @@ function validate(value: AppSettings): AppSettings {
     proxyEnabled: value.proxyEnabled === true,
     externalScreenshot: value.externalScreenshot !== false,
     externalPreview: value.externalPreview !== false,
+    attachmentLibraryEnabled: value.attachmentLibraryEnabled === true,
+    attachmentFolders: Array.isArray(value.attachmentFolders)
+      ? value.attachmentFolders.slice(0, 32).map((folder) => text(folder, 2048).trim()).filter(Boolean)
+      : defaultSettings.attachmentFolders,
+    floatingVideoEnabled: value.floatingVideoEnabled !== false,
     monitorNavigation: value.monitorNavigation === true,
     globalSearchEnabled: value.globalSearchEnabled === true,
     ignoredFiles:

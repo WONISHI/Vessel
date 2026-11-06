@@ -1,3 +1,5 @@
+import { listAttachments } from "./attachment-library"
+import { generalSettings } from "@main/settings/settings"
 import { createImageResource } from "./image-resource"
 import { restoreWorkspaceTabs } from "@main/files/restore-tabs"
 import { openProjectInEditor } from "@main/files/open-project-editor"
@@ -7,7 +9,7 @@ import { BaseModule } from "@main/modules/base/index"
 import { copyImage } from "@main/modules/files/copy-image"
 import { readImageFile } from "@main/modules/files/image-file"
 import { collectMarkdownImages, readObsidianImage, resolveObsidianImageFile } from "@main/modules/files/obsidian-image"
-import { saveObsidianImage } from "@main/modules/files/save-obsidian-image"
+import { attachmentDirectory, saveObsidianImage } from "@main/modules/files/save-obsidian-image"
 import { transferWorkspaceFiles } from "@main/modules/files/transfer-workspace-files"
 import { readWikiLink } from "@main/modules/files/wiki-link"
 import { BrowserWindow, clipboard, dialog, ipcMain, shell } from "electron"
@@ -154,7 +156,30 @@ export class FilesModule extends BaseModule {
     ipcMain.handle("file:share-wechat", (_event, root: string, paths: string[]) => shareFilesToWechat(root, paths))
     ipcMain.handle("image:copy", (_event, source) => copyImage(source))
     ipcMain.handle("image:readFile", (_event, root, path) => readImageFile(root, path))
-    ipcMain.handle("obsidian:saveImage", (_event, root, documentPath, source) => saveObsidianImage(root, documentPath, source))
+    ipcMain.handle("attachments:moveImage", async (_event, root: string, path: string) => {
+      const { attachmentLibraryEnabled, attachmentFolders } = generalSettings()
+      if (!attachmentLibraryEnabled) throw new Error("请先开启附件库")
+      const first = attachmentFolders?.[0]
+      if (!first) throw new Error("请先配置附件库的首个目录")
+      const base = await realpath(root)
+      const source = await realpath(path)
+      const offset = relative(base, source)
+      if (!offset || offset === ".." || offset.startsWith(".." + sep) || isAbsolute(offset) ||
+          !/\.(png|jpe?g|gif|webp|svg|avif|bmp)$/i.test(source) || !(await stat(source)).isFile()) {
+        throw new Error("请选择工作区内的图片文件")
+      }
+      const destination = await attachmentDirectory(base, [first])
+      const [moved] = await transferWorkspaceFiles(base, [source], destination, false)
+      return moved?.target ?? source
+    })
+    ipcMain.handle("attachments:list", (_event, root: string) => {
+      const settings = generalSettings()
+      return settings.attachmentLibraryEnabled ? listAttachments(root, settings.attachmentFolders ?? []) : []
+    })
+    ipcMain.handle("obsidian:saveImage", (_event, root, documentPath, source) => {
+      const { attachmentLibraryEnabled, attachmentFolders } = generalSettings()
+      return saveObsidianImage(root, documentPath, source, attachmentLibraryEnabled ? attachmentFolders ?? [] : undefined)
+    })
     ipcMain.handle("obsidian:deleteImage", async (event, root: string, documentPath: string, reference: string) => {
       const path = await resolveObsidianImageFile(root, documentPath, reference)
       if (path === await realpath(documentPath)) throw new Error("不能删除当前文档")
@@ -205,6 +230,8 @@ export class FilesModule extends BaseModule {
     ipcMain.removeHandler("obsidian:readImage")
     ipcMain.removeHandler("obsidian:imageResource")
     ipcMain.removeHandler("obsidian:resolveImage")
+    ipcMain.removeHandler("attachments:moveImage")
+    ipcMain.removeHandler("attachments:list")
     ipcMain.removeHandler("obsidian:saveImage")
     ipcMain.removeHandler("workspace:transferFiles")
     ipcMain.removeHandler("workspace:mutateFile")

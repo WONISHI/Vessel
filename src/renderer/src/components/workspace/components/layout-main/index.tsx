@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from "@/components/ui/context-menu"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable-panels"
+import { RouteLoading } from "@/components/ui/route-loading"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { StatusBar } from "@/components/ui/status-bar"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
@@ -18,7 +19,7 @@ import { useWorkspace } from "@/components/workspace/hooks/useWorkspace"
 import { cn } from "@/lib/utils"
 import { RouterView } from "@vessel/react-router/components"
 import { matchesShortcut } from "@vessel/utils"
-import { ChevronLeft, ChevronRight, Columns2, Copy, File, Home, LayoutTemplate, List, MoreHorizontal, Pin, Terminal, X } from "lucide-react"
+import { ChevronLeft, ChevronRight, Columns2, Copy, File, FolderOpen, Home, LayoutTemplate, List, MoreHorizontal, Pin, Terminal, X } from "lucide-react"
 import { Suspense, useEffect, useMemo, useRef, useState } from "react"
 import { useLocation } from "react-router-dom"
 import { toast } from "sonner"
@@ -378,7 +379,7 @@ export default function LayoutMain({ resources = false }: { resources?: boolean 
                   className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
                 >
                   <DocumentTabs files={files} activePath={activeFilePath} workspacePath={workspace.path} home={home}>
-                    {resources ? <Suspense fallback={<div role="status">正在加载工作区…</div>}><WorkspaceHome /></Suspense> : <RouterView />}
+                    {resources ? <Suspense fallback={<RouteLoading icon={<FolderOpen />} title="正在加载项目资源库" label="正在准备工作区，请稍候…" />}><WorkspaceHome /></Suspense> : <RouterView />}
                   </DocumentTabs>
                 </div>
               </ResizablePanel>

@@ -36,6 +36,7 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
   const router = useRouter()
   const { open, openMobile, isMobile } = useSidebar()
   const expanded = isMobile ? openMobile : open
+  const [attachmentsEnabled, setAttachmentsEnabled] = useState(activity === "attachments")
   const [globalSearchEnabled, setGlobalSearchEnabled] = useState(false)
   const [syncRunning, setSyncRunning] = useState(false)
   const [syncEnabled, setSyncEnabled] = useState(false)
@@ -94,7 +95,9 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
       void window.electronAPI
         .getSettings()
         .then((s) => {
-          if (!cancelled) setGlobalSearchEnabled(!!s.globalSearchEnabled)
+          if (cancelled) return
+          setGlobalSearchEnabled(!!s.globalSearchEnabled)
+          setAttachmentsEnabled(s.attachmentLibraryEnabled === true)
         })
         .catch(() => { })
     }
@@ -105,7 +108,7 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
       window.removeEventListener("vessel:settings-saved", update)
     }
   }, [])
-  const visibleItems = ACTIVITY_ITEMS.filter((item) => item.id !== "search" || globalSearchEnabled)
+  const visibleItems = ACTIVITY_ITEMS.filter((item) => (item.id !== "search" || globalSearchEnabled) && (item.id !== "attachments" || attachmentsEnabled))
   const { railRef, capacity } = useActivityOverflow(visibleItems.length + 1)
   const priorityItems = [...visibleItems].sort((a, b) => {
     /** Keeps the workspace and current activity ahead of secondary entries when space is limited. */
@@ -136,6 +139,10 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
       selectLastPinned()
       onActivityChange(id)
       void router.push("/resources")
+      return
+    }
+    if (id === "attachments") {
+      void router.push("/attachments")
       return
     }
     if (id === "office") {
