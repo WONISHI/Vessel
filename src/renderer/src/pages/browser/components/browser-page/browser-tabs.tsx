@@ -2,7 +2,7 @@ import { BrowserFavicon } from "@/components/browser-favicon"
 import { TabSwitcher } from "@/components/tab-switcher"
 import { Button } from "@/components/ui/button"
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger } from "@/components/ui/context-menu"
-import { AudioLines, Pin, Plus, RotateCw, X } from "lucide-react"
+import { AudioLines, LoaderCircle, Pin, Plus, RotateCw, X } from "lucide-react"
 import type { BrowserPageModel } from "@/pages/browser/components/browser-page/hooks/use-browser-page"
 
 /** 顶部标签栏 */
@@ -40,7 +40,9 @@ export function BrowserTabs({ b }: { b: BrowserPageModel }) {
                     className="browser-tab-select flex min-w-0 flex-1 items-center gap-2"
                     data-title={item.videoPlaying ? `${item.title} · 正在播放视频` : item.title}
                   >
-                    {item.videoPlaying
+                    {item.loading
+                      ? <LoaderCircle size={16} className="shrink-0 animate-spin" aria-label="正在加载" />
+                      : item.videoPlaying
                       ? <AudioLines size={16} className="shrink-0 text-green-600" aria-label="正在播放视频" />
                       : <BrowserFavicon key={`${item.url}:${item.favicon || ""}`} url={item.url} favicon={item.favicon} />}
                     {!item.pinned && <span className="truncate">{item.title}</span>}

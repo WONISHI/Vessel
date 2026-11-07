@@ -10,7 +10,7 @@ import { BrowserMore } from "@/pages/browser/components/tools"
 import { elementPickerScript } from "@/pages/browser/element-picker"
 import { withGuest } from "@/pages/browser/guest-lifecycle"
 import { browserURL } from "@/pages/browser/url"
-import { ArrowLeft, ArrowRight, Bookmark, Bug, Home, Info, LockKeyhole, Pin, RotateCw, Search, SquareDashedMousePointer, X } from "lucide-react"
+import { ArrowLeft, ArrowRight, Bookmark, Bug, Home, Info, LoaderCircle, LockKeyhole, Pin, RotateCw, Search, SquareDashedMousePointer, X } from "lucide-react"
 import type { BrowserPageModel } from "@/pages/browser/components/browser-page/hooks/use-browser-page"
 
 /** 地址栏与导航工具条 */
@@ -82,7 +82,7 @@ export function BrowserToolbar({ b, visible = true }: { b: BrowserPageModel; vis
                 {editing ? (
                   <SearchEnginePicker open={engineOpen} onOpenChange={setEngineOpen}
                     onSelect={() => address.current?.querySelector("input")?.focus()} />
-                ) : /^https:\/\//i.test(fullAddress) ? <LockKeyhole size={14} />
+                ) : tab.loading ? <LoaderCircle size={14} className="shrink-0 animate-spin" aria-label="正在加载" /> : /^https:\/\//i.test(fullAddress) ? <LockKeyhole size={14} />
                   : /^http:\/\//i.test(fullAddress) ? <Info size={14} /> : <Search size={14} />}
                 <HistoryInput
                   onNavigate={(value, newWindow) => {
