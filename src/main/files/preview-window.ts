@@ -1,3 +1,4 @@
+import { isCodePreviewFile } from "@main/files/code-preview-formats"
 import { registerOffice } from "@main/office/office"
 import { registerTransit } from "@main/transit/transit"
 import { app, BrowserWindow } from "electron"
@@ -7,7 +8,7 @@ const formats = new Set([".md", ".markdown", ".pdf", ".doc", ".docx", ".docs", "
 type PreviewTab = { id: string; kind: "file"; title: string; root: string; content: string }
 let preview: { win: BrowserWindow; tabs: PreviewTab[]; selected: string } | undefined
 const fileTab = (file: string): PreviewTab => ({ id: file, kind: "file", title: basename(file), root: dirname(file), content: file })
-export const usesPreviewWindow = (path: string) => formats.has(extname(path).toLowerCase())
+export const usesPreviewWindow = (path: string) => formats.has(extname(path).toLowerCase()) || isCodePreviewFile(path)
 
 /** OS-opened documents use a focused preview, independent of the workspace window. */
 export async function openFilePreviewWindow(path: string, paths: string[] = [path]) {

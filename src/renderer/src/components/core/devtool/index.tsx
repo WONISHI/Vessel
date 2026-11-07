@@ -1,3 +1,4 @@
+import { CrashFallbackView } from "@/components/core/error-boundary/crash-fallback"
 import { ConsoleHistory } from "@/components/core/devtool/components/ConsoleHistory"
 import { DevToolsMenu } from "@/components/core/devtool/components/DevToolsMenu"
 import { useDevToolToast, type DevToolLog } from "@/components/core/devtool/hooks/useDevToolToast"
@@ -8,7 +9,7 @@ import type { DevToolsMenuItem, LogType } from "@/components/core/devtool/src/ty
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
-import { Bug, Cog, RefreshCcw, Terminal, Trash2, Wrench, ScanLine } from "lucide-react"
+import { AlertTriangle, Bug, Cog, RefreshCcw, Terminal, Trash2, Wrench, ScanLine } from "lucide-react"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { toast } from "sonner"
@@ -42,6 +43,7 @@ function readEnabledTypes(): Record<LogType, boolean> {
  *
  */
 export default function DevTool() {
+  const [simulatedCrash, setSimulatedCrash] = useState<Error>()
   const navigate = useNavigate()
   const [controlVisible, setControlVisible] = useState(() => localStorage.getItem("vessel-control-visible") !== "false")
   useEffect(() => {
@@ -305,6 +307,12 @@ export default function DevTool() {
         }
       },
       {
+        key: "preview-crash",
+        label: "模拟崩溃页面",
+        icon: AlertTriangle,
+        onClick: () => setSimulatedCrash(new Error("模拟异常：InstantiationService has been disposed"))
+      },
+      {
         key: "debug",
         label: "调试页面",
         icon: Wrench,
@@ -316,6 +324,11 @@ export default function DevTool() {
 
   return (
     <>
+      {simulatedCrash && (
+        <div className="fixed inset-0 z-[400]">
+          <CrashFallbackView error={simulatedCrash} simulated onReset={() => setSimulatedCrash(undefined)} />
+        </div>
+      )}
       <div
         hidden={!controlVisible}
         data-vessel-control="true"

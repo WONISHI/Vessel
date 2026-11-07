@@ -52,7 +52,7 @@ it("classifies folders separately from files", async () => {
 it("routes external documents to an independent preview without workspace delivery", async () => {
   preview.accepts.mockReturnValue(true)
   mocks.send.mockClear()
-  for (const path of ["/notes/笔记.md", "/notes/document.pdf", "/notes/sheet.xlsx", "/notes/photo.png"]) {
+  for (const path of ["/notes/笔记.md", "/notes/document.pdf", "/notes/sheet.xlsx", "/notes/photo.png", "/notes/package.json", "/notes/component.vue"]) {
     mocks.events.get("open-file")!({ preventDefault() {} }, path)
     await vi.waitFor(() => expect(preview.open).toHaveBeenCalledWith(path))
   }

@@ -1,3 +1,4 @@
+import { isCodePreviewFile } from "@main/files/code-preview-formats"
 import { openFilePreviewWindow, usesPreviewWindow } from "@main/files/preview-window"
 import { generalSettings } from "@main/settings/settings"
 import { app, BrowserWindow, ipcMain } from "electron"
@@ -10,36 +11,6 @@ const supported = new Set([
   ".base",
   ".md",
   ".markdown",
-  ".txt",
-  ".js",
-  ".jsx",
-  ".ts",
-  ".tsx",
-  ".mjs",
-  ".cjs",
-  ".mts",
-  ".cts",
-  ".json",
-  ".html",
-  ".htm",
-  ".css",
-  ".scss",
-  ".less",
-  ".vue",
-  ".svelte",
-  ".yaml",
-  ".yml",
-  ".xml",
-  ".py",
-  ".rs",
-  ".go",
-  ".java",
-  ".c",
-  ".cpp",
-  ".h",
-  ".sh",
-  ".sql",
-  ".env",
   ".png",
   ".jpg",
   ".jpeg",
@@ -82,7 +53,7 @@ export async function externalPathInfo(path: string) {
 
 /** Performs the markdown arguments operation. */
 export function markdownArguments(argv: string[], cwd = process.cwd()): string[] {
-  return argv.filter((value) => !value.startsWith("-") && (supported.has(extname(value).toLowerCase()) || isDirectory(resolve(cwd, value)))).map((value) => resolve(cwd, value))
+  return argv.filter((value) => !value.startsWith("-") && (supported.has(extname(value).toLowerCase()) || isCodePreviewFile(value) || isDirectory(resolve(cwd, value)))).map((value) => resolve(cwd, value))
 }
 /** 保留启动期间的文件，直到渲染进程注册监听后主动取走。 */
 export function registerMarkdownOpening() {
@@ -96,7 +67,7 @@ export function registerMarkdownOpening() {
     if (generalSettings().externalPreview === false) return
     try {
       const info = await externalPathInfo(path)
-      if (info.kind === "file" && !supported.has(extname(path).toLowerCase())) return
+      if (info.kind === "file" && !supported.has(extname(path).toLowerCase()) && !isCodePreviewFile(path)) return
       if (info.kind === "file" && usesPreviewWindow(path)) {
         await openFilePreviewWindow(path)
         return

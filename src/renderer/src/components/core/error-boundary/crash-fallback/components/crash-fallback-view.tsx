@@ -1,14 +1,14 @@
 import Logo from "@/assets/logo.png"
 import DarkLogo from "@/assets/logo-dark.svg"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Kbd } from "@/components/ui/kbd"
+import { Kbd, KbdGroup } from "@/components/ui/kbd"
 import { CrashFallbackViewProps } from "@/components/core/error-boundary/crash-fallback/components/crash-fallback-shared"
 import { Button } from "@/components/ui/button"
 import { AlertTriangle, Check, ChevronDown, ChevronUp, Copy, RefreshCw, RotateCcw, X } from "lucide-react"
 import { useEffect, useState } from "react"
 
 /** Renders the crash fallback view component. */
-export function CrashFallbackView({ error, onReset }: CrashFallbackViewProps) {
+export function CrashFallbackView({ error, onReset, simulated = false }: CrashFallbackViewProps) {
   const [showDetails, setShowDetails] = useState(false)
   const [copied, setCopied] = useState(false)
 
@@ -18,10 +18,10 @@ export function CrashFallbackView({ error, onReset }: CrashFallbackViewProps) {
 
   useEffect(() => {
     // 立即向主进程标记当前处于崩溃状态
-    void window.electronAPI?.reportCrash?.(true)
+    if (!simulated) void window.electronAPI?.reportCrash?.(true)
 
     // 崩溃状态下如果收到主进程关闭请求（如菜单退出或红点），直接退出，绝不二次确认
-    const cleanup = window.electronAPI?.onRequestClose?.(() => {
+    const cleanup = simulated ? undefined : window.electronAPI?.onRequestClose?.(() => {
       void window.electronAPI?.confirmQuit?.()
     })
 
@@ -39,12 +39,16 @@ export function CrashFallbackView({ error, onReset }: CrashFallbackViewProps) {
     return () => {
       cleanup?.()
       window.removeEventListener("keydown", onKeyDown)
-      void window.electronAPI?.reportCrash?.(false)
+      if (!simulated) void window.electronAPI?.reportCrash?.(false)
     }
   }, [])
 
   /** Handles reload events. */
   const handleReload = () => {
+    if (simulated) {
+      onReset?.()
+      return
+    }
     void window.electronAPI?.reportCrash?.(false)
     onReset?.()
     if (window.electronAPI?.reloadWindow) {
@@ -99,7 +103,7 @@ export function CrashFallbackView({ error, onReset }: CrashFallbackViewProps) {
       <div className="flex flex-1 flex-col items-center justify-center p-6 no-drag overflow-y-auto">
         <div className="flex w-full max-w-lg flex-col items-center text-center space-y-5">
           {/* 异常图标 */}
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-destructive/10 text-destructive ring-8 ring-destructive/5">
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-destructive/10 text-destructive ring-8 ring-destructive/5 dark:bg-red-400/10 dark:text-red-400 dark:ring-red-400/5">
             <AlertTriangle className="h-8 w-8" />
           </div>
 
@@ -110,8 +114,8 @@ export function CrashFallbackView({ error, onReset }: CrashFallbackViewProps) {
           </div>
 
           {/* 简要错误原因 */}
-          <div className="w-full rounded-lg border border-destructive/20 bg-destructive/5 p-3.5 text-left">
-            <p className="font-mono text-xs text-destructive break-all leading-relaxed select-text">{errorMessage}</p>
+          <div className="w-full rounded-lg border border-destructive/20 bg-destructive/5 p-3.5 text-left dark:border-red-400/25 dark:bg-red-400/[0.07]">
+            <p className="font-mono text-xs text-destructive break-all leading-relaxed select-text dark:text-red-300">{errorMessage}</p>
           </div>
 
           {/* 详细堆栈折叠 */}
@@ -166,15 +170,15 @@ export function CrashFallbackView({ error, onReset }: CrashFallbackViewProps) {
             <Button
               variant="ghost"
               onClick={handleQuit}
-              className="gap-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+              className="gap-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 dark:hover:text-red-300 dark:hover:bg-red-400/10"
             >
               <X className="h-4 w-4" />
               退出应用
             </Button>
           </div>
 
-          <p className="text-[11px] text-muted-foreground/70">
-            按 <Kbd>{isMac ? "Cmd" : "Ctrl"} + R</Kbd> 即可快速重新加载页面
+          <p className="text-[11px] text-muted-foreground/70 dark:text-muted-foreground">
+            按 <KbdGroup><Kbd>{isMac ? "Cmd" : "Ctrl"}</Kbd><span>+</span><Kbd>R</Kbd></KbdGroup> 即可快速重新加载页面
           </p>
         </div>
       </div>

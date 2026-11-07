@@ -426,6 +426,10 @@ export function registerSettings(host: WebContents) {
   })
   app.once("will-quit", stopSchedule)
   host.ipc.handle("settings:get", () => publicSettings())
+  host.ipc.handle("settings:backup-export-secret", (_event, workspacePath?: string) => {
+    if (workspacePath !== (currentWorkspace ?? undefined)) throw new Error("工作区已切换，请重新打开设置")
+    return decrypt()
+  })
   host.ipc.handle("settings:info", () => ({ version: app.getVersion(), electron: process.versions.electron, node: process.versions.node }))
   host.ipc.handle("settings:save", async (_event, input: AppSettings, secret?: string) => {
     const settings = validate(input)

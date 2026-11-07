@@ -90,6 +90,7 @@ export interface BackupLogs {
 
 export interface SettingsAPI {
   getSettings(): Promise<AppSettings>
+  getBackupExportSecret(workspacePath?: string): Promise<string>
   saveSettings(settings: AppSettings, secret?: string): Promise<AppSettings>
   getSettingsInfo(): Promise<{ version: string; electron: string; node: string }>
   testBackup(settings: AppSettings["backup"], secret?: string): Promise<void>

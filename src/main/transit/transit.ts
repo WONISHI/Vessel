@@ -1,3 +1,4 @@
+import { isCodePreviewFile } from "@main/files/code-preview-formats"
 import type { TransitFile } from "@vessel/type"
 import { app, BrowserWindow, clipboard, dialog, type WebContents } from "electron"
 import { mkdir, readFile, realpath, stat, writeFile } from "node:fs/promises"
@@ -15,7 +16,7 @@ async function readTransitFile(root: string, file: string): Promise<TransitFile>
   if (extension === ".pdf") return { kind: "pdf", bytes: new Uint8Array(await readFile(path)), name: basename(path) }
   const mime = { ".svg": "image/svg+xml", ".bmp": "image/bmp", ".ico": "image/x-icon", ".avif": "image/avif", ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".gif": "image/gif", ".webp": "image/webp" }[extension]
   if (mime) return { kind: "image", content: `data:${mime};base64,${(await readFile(path)).toString("base64")}` }
-  if (!/^\.(md|markdown|txt|json|js|jsx|ts|tsx|css|html|xml|yaml|yml|csv|log|py|sh|sql)$/.test(extension)) throw new Error("暂不支持此文件格式的预览")
+  if (!isCodePreviewFile(path) && !/^\.(md|markdown|log)$/.test(extension)) throw new Error("暂不支持此文件格式的预览")
   return { kind: /^\.(md|markdown)$/.test(extension) ? "markdown" : "text", content: await readFile(path, "utf8") }
 }
 

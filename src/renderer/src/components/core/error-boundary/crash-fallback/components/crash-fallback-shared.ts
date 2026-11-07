@@ -2,6 +2,7 @@ import { type ReactNode } from "react"
 export interface CrashFallbackViewProps {
   error?: unknown
   onReset?: () => void
+  simulated?: boolean
 }
 export interface GlobalErrorBoundaryProps {
   children: ReactNode

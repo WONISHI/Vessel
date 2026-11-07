@@ -45,5 +45,7 @@ it("loads an independent native-frame preview, supplies its file, and reuses the
   win.handlers.get("preview:action")({}, "close")
   expect(win.close).toHaveBeenCalled()
   expect(usesPreviewWindow("/notes/IMAGE.AVIF")).toBe(true)
-  expect(usesPreviewWindow("/notes/code.ts")).toBe(false)
+  expect(usesPreviewWindow("/notes/code.ts")).toBe(true)
+  expect(usesPreviewWindow("/notes/settings.JSON")).toBe(true)
+  expect(usesPreviewWindow("/notes/.env")).toBe(true)
 })

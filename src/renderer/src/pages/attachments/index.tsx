@@ -191,16 +191,16 @@ function AttachmentCard({ file, root, selected, onSelect, onPreview }: { file: A
       </div>
       <button
         type="button"
-        className="mt-2 block w-full truncate rounded px-1 text-left text-sm font-medium hover:underline"
+        className="mt-2 block w-full cursor-default truncate rounded px-1 text-left text-sm font-medium hover:underline"
         data-title={file.relativePath}
         onClick={() => void window.electronAPI.openTransitWindow({ kind: "file", root, content: file.path, title: file.name }).catch((error) => toast.error(String(error)))}
       >
         {file.name}
       </button>
-      <p className="px-1 text-xs text-muted-foreground">{extension} · {size}</p>
+      <p className="cursor-default px-1 text-xs text-muted-foreground">{extension} · {size}</p>
       {onSelect && (
         <button type="button" aria-label={`选择 ${file.name}`} aria-pressed={selected}
-          className="absolute inset-0 cursor-pointer rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-green-600"
+          className="absolute inset-0 cursor-default rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-green-600"
           onClick={onSelect}
         />
       )}
@@ -303,7 +303,7 @@ export default function AttachmentRoute() {
         <RouteLoading icon={<Paperclip />} title="正在加载附件库" label="正在读取附件目录，请稍候…" />
       ) : (
         <section className="flex h-full min-h-0 min-w-0 flex-1 flex-col">
-          <header className="tool-page-header">
+          <header className="tool-page-header dark:!border-b-border">
             <span className="tool-page-brand"><Paperclip size={16} /></span>
             <div className="tool-page-heading">
               <h1>附件库</h1>

@@ -62,6 +62,7 @@ const vesselAPI = {
 
   /** Returns settings. */
   getSettings: (): Promise<AppSettings> => ipcRenderer.invoke("settings:get"),
+  getBackupExportSecret: (workspacePath?: string): Promise<string> => ipcRenderer.invoke("settings:backup-export-secret", workspacePath),
 
   /** Saves settings. */
   saveSettings: (settings: AppSettings, secret?: string): Promise<AppSettings> => ipcRenderer.invoke("settings:save", settings, secret),

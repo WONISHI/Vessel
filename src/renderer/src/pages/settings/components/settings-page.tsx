@@ -1,3 +1,4 @@
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { AttachmentLibrarySettings } from "@/pages/settings/components/attachment-library-settings"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -13,17 +14,65 @@ import { SyncDiagnosticsPanel } from "@/pages/settings/components/sync-diagnosti
 import { useRouter } from "@vessel/react-router"
 import type { AppSettings, BackupStatus } from "@vessel/type"
 import { defaultSettings, isLegacyDefaultIgnoredFiles } from "@vessel/utils"
-import { ArrowLeft, Camera, CheckCircle2, Clock, Cloud, Download, RotateCcw, Save, Settings } from "lucide-react"
-import { version as reactVersion, useEffect, useState } from "react"
+import { ArrowLeft, Camera, CheckCircle2, Clock, Cloud, Download, RotateCcw, Save, Settings, Upload } from "lucide-react"
+import { version as reactVersion, useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
+
+const configFormat = "vessel-settings"
+const configVersion = 1
+
+const { backup: backupDefaults, ...settingsDefaults } = defaultSettings
+const { hasSecret: _hasSecret, ...backupConfigDefaults } = backupDefaults
+
+function readConfigFields(input: Record<string, unknown>, defaults: Record<string, unknown>) {
+  return Object.fromEntries(Object.entries(defaults).filter(([key]) => Object.hasOwn(input, key)).map(([key, fallback]) => {
+    const value = input[key]
+    const valid = Array.isArray(fallback)
+      ? Array.isArray(value) && value.every((entry) => typeof entry === "string")
+      : typeof value === typeof fallback
+    if (!valid) throw new Error(`配置项 ${key} 的格式无效`)
+    return [key, value]
+  }))
+}
+
+function parseSettingsConfig(text: string) {
+  let document: { format?: unknown; version?: unknown; settings?: unknown } | null
+  try {
+    document = JSON.parse(text)
+  } catch {
+    throw new Error("配置文件不是有效的 JSON")
+  }
+  if (document?.format !== configFormat || document.version !== configVersion ||
+      !document.settings || typeof document.settings !== "object" || Array.isArray(document.settings)) {
+    throw new Error("无法识别此 Vessel 配置文件或版本")
+  }
+  const input = document.settings as Record<string, unknown>
+  const settings = readConfigFields(input, settingsDefaults)
+  const backup = input.backup
+  if (backup !== undefined && (!backup || typeof backup !== "object" || Array.isArray(backup))) {
+    throw new Error("同步与备份配置的格式无效")
+  }
+  const fields = backup as Record<string, unknown> | undefined
+  const backupConfig = fields ? readConfigFields(fields, backupConfigDefaults) : {}
+  const secretKey = fields?.secretKey
+  if (secretKey !== undefined && (typeof secretKey !== "string" || secretKey.length > 4096)) {
+    throw new Error("Secret Key 格式无效")
+  }
+  if (!Object.keys(settings).length && !Object.keys(backupConfig).length && secretKey === undefined) {
+    throw new Error("配置文件没有可导入的设置")
+  }
+  return { settings, backupConfig, secretKey }
+}
 
 /** Renders the settings page component. */
 export function SettingsPage() {
   const router = useRouter()
+  const configInput = useRef<HTMLInputElement>(null)
   const [section, setSection] = useState<(typeof sections)[number]["id"]>("about")
   const [draft, setDraft] = useState<AppSettings>(structuredClone(defaultSettings))
   const [saved, setSaved] = useState<AppSettings>()
   const [secret, setSecret] = useState<string | undefined>()
+  const [confirmExport, setConfirmExport] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState("")
   const [status, setStatus] = useState<BackupStatus>({ running: false })
@@ -100,6 +149,38 @@ export function SettingsPage() {
     }
   }
 
+  const exportConfig = () => void run(async () => {
+    if (!saved) return
+    const secretKey = saved.backup.hasSecret
+      ? await window.electronAPI.getBackupExportSecret(saved.backup.workspacePath)
+      : undefined
+    const settings = {
+      ...readConfigFields({ ...saved }, settingsDefaults),
+      backup: { ...readConfigFields(saved.backup, backupConfigDefaults), secretKey }
+    }
+    const json = JSON.stringify({ format: configFormat, version: configVersion, settings }, null, 2)
+    const url = URL.createObjectURL(new Blob([json], { type: "application/json" }))
+    const link = document.createElement("a")
+    link.href = url
+    link.download = "vessel-settings.json"
+    link.click()
+    setTimeout(() => URL.revokeObjectURL(url), 1000)
+  })
+
+  const importConfig = (file: File) => void run(async () => {
+    if (file.size > 4 * 1024 * 1024) throw new Error("配置文件不能超过 4 MB")
+    const imported = parseSettingsConfig(await file.text())
+    if (dirty && !confirm("导入会覆盖配置文件中对应的未保存设置，是否继续？")) return
+    setDraft((current) => ({
+      ...current,
+      ...imported.settings,
+      backup: { ...current.backup, ...imported.backupConfig }
+    }))
+    if (imported.secretKey !== undefined) setSecret(imported.secretKey)
+    setPreview(undefined)
+    toast.success("配置已载入，请点击保存应用")
+  })
+
   /** Performs the back operation. */
   const back = () => {
     if (dirty && !confirm("有未保存的设置，确定返回吗？")) return
@@ -107,6 +188,18 @@ export function SettingsPage() {
   }
   return (
     <div className="vessel-settings flex h-dvh w-full flex-col bg-background text-foreground">
+      <ConfirmDialog
+        open={confirmExport}
+        onOpenChange={setConfirmExport}
+        title="导出设置"
+        description="导出的配置文件包含明文 S3 密钥，请妥善保管。"
+        confirmText="继续导出"
+        tone="primary"
+        onConfirm={() => {
+          setConfirmExport(false)
+          exportConfig()
+        }}
+      />
       <header className="tool-page-header">
         <Button
           variant="ghost"
@@ -126,6 +219,19 @@ export function SettingsPage() {
           <p className="mt-1 text-xs text-muted-foreground">自定义 Vessel 的外观、行为和功能</p>
         </div>
         <div className="tool-page-actions">
+          <input ref={configInput} type="file" accept=".json,application/json" hidden onChange={(event) => {
+            const file = event.currentTarget.files?.[0]
+            event.currentTarget.value = ""
+            if (file) importConfig(file)
+          }} />
+          <Button variant="outline" className="hover:!text-white" disabled={!saved || busy} onClick={() => configInput.current?.click()}>
+            <Upload className="size-4" />
+            导入
+          </Button>
+          <Button variant="outline" className="hover:!text-white" disabled={!saved || busy} onClick={() => saved?.backup.hasSecret ? setConfirmExport(true) : exportConfig()}>
+            <Download className="size-4" />
+            导出
+          </Button>
           <Button
             variant="outline"
             disabled={!saved || busy}
