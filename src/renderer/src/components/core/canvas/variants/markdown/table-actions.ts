@@ -2,7 +2,7 @@ import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Plus, Trash2 } from "lucide-
 import { createElement } from "react"
 import { renderToStaticMarkup } from "react-dom/server"
 
-type TableActionType = "row-above" | "row-below" | "col-left" | "col-right" | "del-row" | "del-col"
+type TableActionType = "row-above" | "row-below" | "col-left" | "col-right" | "del-row" | "del-col" | "del-table"
 
 /** Performs the trigger table action operation. */
 function triggerTableAction(cell: HTMLTableCellElement, action: TableActionType) {
@@ -16,6 +16,21 @@ function triggerTableAction(cell: HTMLTableCellElement, action: TableActionType)
   const sel = window.getSelection()
   sel?.removeAllRanges()
   sel?.addRange(range)
+
+  if (action === "del-table") {
+    range.selectNode(table)
+    sel?.removeAllRanges()
+    sel?.addRange(range)
+    // Native deletion emits input and preserves the editor's usual undo path.
+    if (!document.execCommand("delete")) {
+      range.deleteContents()
+      range.collapse(true)
+      sel?.removeAllRanges()
+      sel?.addRange(range)
+      editor.dispatchEvent(new InputEvent("input", { bubbles: true, inputType: "deleteContentBackward" }))
+    }
+    return
+  }
 
   const mac = /Mac/.test(navigator.platform)
   let key = "="
@@ -187,7 +202,8 @@ export function bindTableActions(root: HTMLElement) {
     { id: "col-right", label: "在右边插入一列", icon: ArrowRight },
     { id: "divider" },
     { id: "del-row", label: "删除当前行", icon: Trash2, danger: true },
-    { id: "del-col", label: "删除当前列", icon: Trash2, danger: true }
+    { id: "del-col", label: "删除当前列", icon: Trash2, danger: true },
+    { id: "del-table", label: "删除表格", icon: Trash2, danger: true }
   ]
 
   menuItems.forEach((item) => {

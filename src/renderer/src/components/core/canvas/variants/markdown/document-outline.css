@@ -103,3 +103,18 @@ html.dark button.document-outline-tool[data-menu-hovered="true"] > svg {
   color: #9aa1ab !important;
   stroke: #9aa1ab !important;
 }
+
+.footnote-sidebar-preview .vditor-reset {
+  padding: 0;
+  font-size: 11px;
+  line-height: 1.8;
+  color: inherit;
+  overflow-wrap: anywhere;
+}
+.footnote-sidebar-preview .vditor-reset p {
+  margin: 0 0 6px;
+}
+.footnote-sidebar-preview .vditor-reset pre {
+  max-width: 100%;
+  overflow: auto;
+}

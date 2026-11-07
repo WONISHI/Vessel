@@ -669,6 +669,9 @@
   border: none;
   border-top: 1px solid #f5f5f4;
 }
+.vessel-table-menu button.danger {
+  color: #dc2626;
+}
 .vessel-table-menu button.danger:hover {
   background: #dc2626;
   color: #ffffff;
@@ -848,11 +851,11 @@ html.dark .markdown-insert-menu {
 }
 .vessel-vditor .vessel-heading-menu button::before { content: attr(data-level); font: 600 10px/19px sans-serif; width: 23px; border-radius: 4px; background: #f4f4f3; color: #78716c; }
 .vessel-vditor .vessel-heading-menu button::after { content: attr(data-shortcut); margin-left: auto; font-size: 10px; color: #a8a29e; }
-.vessel-vditor .vessel-heading-menu button:hover { background: #f4f4f3; color: #16a34a; }
+.vessel-vditor .vditor-hint.vessel-heading-menu button:hover { background: #f4f4f3 !important; color: #1c1917; }
 html.dark .vessel-vditor .vditor-hint.vessel-heading-menu { background: #23272d; border-color: #30353c; box-shadow: 0 12px 32px #0006; }
 html.dark .vessel-vditor .vessel-heading-menu button { color: #e6e8eb; }
 html.dark .vessel-vditor .vessel-heading-menu button::before { background: #ffffff0f; color: #9aa1a9; }
-html.dark .vessel-vditor .vessel-heading-menu button:hover { background: #ffffff0f; color: #4ade80; }
+html.dark .vessel-vditor .vditor-hint.vessel-heading-menu button:hover { background: #ffffff0f !important; color: #e6e8eb; }
 
 /* Dark outline minimap colors and hierarchy from the supplied design. */
 
@@ -972,4 +975,66 @@ html.dark ::highlight(vessel-link-target) {
 }
 .markdown-insert-menu [role="menuitem"]:is([data-highlighted], [data-state="open"]) .markdown-insert-heading {
   background: #ffffff26;
+}
+
+/* Match toolbar pickers to the heading menu's floating surface. */
+.vessel-vditor .vditor-toolbar .vditor-panel {
+  padding: 8px;
+  border: 1px solid #e7e5e4;
+  border-radius: 9px;
+  background: #fff !important;
+  color: #292524;
+  box-shadow: 0 12px 32px #0002;
+  z-index: 100;
+}
+.vessel-vditor .vditor-toolbar .vditor-panel--arrow::before {
+  display: none;
+}
+.vessel-vditor .vditor-emojis button {
+  border-radius: 6px;
+}
+.vessel-vditor .vditor-emojis button:hover {
+  background: #f4f4f3;
+}
+html.dark .vessel-vditor .vditor-toolbar .vditor-panel {
+  background: #23272d !important;
+  border-color: #30353c;
+  color: #e6e8eb;
+  box-shadow: 0 12px 32px #0006;
+}
+html.dark .vessel-vditor .vditor-emojis button:hover {
+  background: #ffffff0f;
+}
+
+.vessel-vditor .vditor-toolbar .vessel-image-menu {
+  min-width: 0;
+  width: 168px;
+  max-width: calc(100vw - 24px);
+  padding: 4px;
+}
+.vessel-vditor .vessel-image-menu button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 8px;
+  border-radius: 5px;
+  text-align: left;
+  color: inherit;
+  font-size: 12px;
+}
+.vessel-vditor .vessel-image-menu button:hover {
+  background: #f4f4f3;
+  color: #292524;
+}
+html.dark .vessel-vditor .vessel-image-menu button:hover {
+  background: #ffffff0f;
+  color: #e6e8eb;
+}
+
+.vessel-vditor .vessel-image-menu button:hover svg {
+  color: #78716c;
+}
+html.dark .vessel-vditor .vessel-image-menu button:hover svg {
+  color: #9aa1a9;
 }

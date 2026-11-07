@@ -19,3 +19,9 @@
 }
 .vessel-data-title-tooltip[hidden] { display: none; }
 html.dark .vessel-data-title-tooltip { background: #292e35; border-color: #3a414a; color: #aeb5bf; box-shadow: 0 2px 6px #0003; }
+
+/* The delegated tooltip replaces Vditor's pseudo-element toolbar labels. */
+.vditor-toolbar .vditor-tooltipped::before,
+.vditor-toolbar .vditor-tooltipped::after {
+  display: none !important;
+}

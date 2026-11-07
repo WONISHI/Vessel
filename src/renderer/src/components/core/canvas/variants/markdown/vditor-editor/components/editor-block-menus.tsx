@@ -1,3 +1,6 @@
+import { insertEmptyHeading, insertEmptyMarkdownBlock } from "../../insert-heading"
+import { insertEmptyTable } from "../../insert-table"
+import { isEmptyParagraph } from "../../image-paragraph"
 import { CalloutBlockMenu } from "@/components/core/canvas/variants/markdown/callout-block-menu"
 import { CalloutTypeMenu } from "@/components/core/canvas/variants/markdown/callout-type-menu"
 import { changeCalloutType } from "@/components/core/canvas/variants/markdown/callouts"
@@ -13,11 +16,11 @@ import type { VditorEditorModel } from "@/components/core/canvas/variants/markdo
 
 /** 脚注、Callout 与插入菜单浮层 */
 export function EditorBlockMenus({ m }: { m: VditorEditorModel }) {
-  const { documentPath, readOnly, footnoteTarget, setFootnoteTarget, insertLocation, setInsertLocation, clipboardImageInsertAction, imageInsertAction, instance, calloutBlockMenu, setCalloutBlockMenu, calloutMenu, setCalloutMenu, host, properties, initialValue, changeHandler, triggerInsertLinkRef } = m
+  const { workspacePath, documentPath, readOnly, footnoteTarget, setFootnoteTarget, insertLocation, setInsertLocation, clipboardImageInsertAction, imageInsertAction, instance, calloutBlockMenu, setCalloutBlockMenu, calloutMenu, setCalloutMenu, host, properties, initialValue, changeHandler, triggerInsertLinkRef } = m
 
   return (
     <>
-      <FootnoteHoverCard host={host} source={() => restoreObsidianImages(instance.current?.getValue() || initialValue.current)} onDelete={readOnly ? undefined : (id) => {
+      <FootnoteHoverCard workspacePath={workspacePath} documentPath={documentPath} host={host} source={() => restoreObsidianImages(instance.current?.getValue() || initialValue.current)} onDelete={readOnly ? undefined : (id) => {
         if (instance.current && host.current && deleteFootnote(instance.current, host.current, id)) changeHandler.current((properties?.raw ?? "") + restoreObsidianImages(instance.current.getValue()))
       }} />
       {footnoteTarget && !readOnly && footnoteTarget.path === documentPath && (
@@ -117,9 +120,24 @@ export function EditorBlockMenus({ m }: { m: VditorEditorModel }) {
             }
             if (value === "image-clipboard") clipboardImageInsertAction.current?.()
             else if (value === "image") imageInsertAction.current?.()
+            else if (/^#{1,6} 标题$/.test(value)) insertEmptyHeading(instance.current, editable, value.indexOf(" "))
+            else if (value === "- 列表项") insertEmptyMarkdownBlock(instance.current, editable, "-", "ul")
+            else if (value === "1. 列表项") insertEmptyMarkdownBlock(instance.current, editable, "1.", "ol")
+            else if (value === "- [ ] 待办事项") insertEmptyMarkdownBlock(instance.current, editable, "- [ ]", "ul")
+            else if (value === "> 引用内容") insertEmptyMarkdownBlock(instance.current, editable, ">", "blockquote")
+            else if (value === "`代码`") insertEmptyMarkdownBlock(instance.current, editable, "`", "code", true)
+            else if (/^> \[![\w-]+\]\+ 标题/.test(value)) {
+              insertEmptyMarkdownBlock(instance.current, editable, value.split(" 标题")[0], "blockquote > p:first-child", false, { content: "标题", suffix: "> \u200b\n" })
+            }
+            else if (value === "empty-table") insertEmptyTable(instance.current, editable)
             else if (value === "code-block") insertEmptyCodeBlock(instance.current, editable)
             else if (value === "***") instance.current.insertMD("\n\n***\n\n")
-            else instance.current.insertValue(inline ? value : `\n\n${value}\n\n`, true)
+            else {
+              const element = range.startContainer instanceof Element ? range.startContainer : range.startContainer.parentElement
+              const paragraph = element?.closest("p")
+              const emptyCalloutLine = /^> \[!/.test(value) && range.collapsed && paragraph?.parentElement === editable && isEmptyParagraph(paragraph)
+              instance.current.insertValue(inline || emptyCalloutLine ? value : `\n\n${value}\n\n`, true)
+            }
             setInsertLocation(null)
           }}
         />

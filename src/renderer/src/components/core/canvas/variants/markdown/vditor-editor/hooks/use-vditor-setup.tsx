@@ -1,3 +1,7 @@
+import { bindToolbarPanels } from "../../toolbar-panels"
+import { bindEmptyLinePaste } from "../../empty-line-insertion"
+import { bindImageToolbarMenu } from "../../image-toolbar-menu"
+import { cancelInsertFocus } from "../../insert-focus"
 import { bindMarkdownView } from "@/components/core/canvas/session/markdown-view"
 import { writeDocument } from "@/components/core/canvas/session/document-session"
 import { pdfDocumentHtml } from "@/components/pdf-export/export-html"
@@ -68,6 +72,7 @@ export function useVditorSetup(state: VditorEditorState, { triggerInsertLinkRef 
       changeHandler.current((properties?.raw ?? "") + restoreObsidianImages(current.getValue()))
     })
     const unbindInsertMenu = readOnly ? () => {} : bindMarkdownInsertMenu(element, setInsertLocation, () => setInsertLocation(null))
+    const unbindEmptyLinePaste = readOnly ? () => {} : bindEmptyLinePaste(element)
     const unbindTablePaste = readOnly ? () => {} : bindTablePaste(element)
     const unbindImageParagraphs = readOnly ? () => {} : bindImageParagraphs(element)
     const unbindListShortcuts = readOnly ? () => {} : bindListShortcuts(element)
@@ -189,6 +194,8 @@ export function useVditorSetup(state: VditorEditorState, { triggerInsertLinkRef 
       })
     })
     observer.observe(element, { childList: true, characterData: true, subtree: true })
+    let unbindImageMenu = () => {}
+    let unbindToolbarPanels = () => {}
     const imagePicker = document.createElement("input")
     clipboardImageInsertAction.current = () => {
       const selection = window.getSelection()
@@ -367,7 +374,7 @@ export function useVditorSetup(state: VditorEditorState, { triggerInsertLinkRef 
                   icon: renderToStaticMarkup(<ImagePlus />),
 
                   /** Performs the click operation. */
-                  click: () => imagePicker.click()
+                  click: () => {}
                 },
                 { name: "emoji", hotkey: markdownHotkey("emoji"), icon: renderToStaticMarkup(<Smile />) },
                 { name: "list", hotkey: markdownHotkey("list"), icon: renderToStaticMarkup(<List />) },
@@ -418,6 +425,8 @@ export function useVditorSetup(state: VditorEditorState, { triggerInsertLinkRef 
             const toolbar = host.current?.querySelector<HTMLElement>(".vditor-toolbar")
             if (!disposed && toolbar && toolbarHost.current) toolbarHost.current.appendChild(toolbar)
             if (!readOnly && toolbar) unbindFootnotes = bindFootnoteToolbar(element, toolbar, (range) => setFootnoteTarget({ range, text: range.toString(), path: documentPath }))
+            if (!readOnly && toolbar) unbindToolbarPanels = bindToolbarPanels(toolbar)
+            if (!readOnly && toolbar) unbindImageMenu = bindImageToolbarMenu(toolbar, element, () => clipboardImageInsertAction.current?.(), () => imageInsertAction.current?.())
             const linkBtn = toolbar?.querySelector<HTMLElement>('[data-type="link"]')
             const handleLinkBtnClick = (event: Event) => {
               event.preventDefault()
@@ -458,6 +467,7 @@ export function useVditorSetup(state: VditorEditorState, { triggerInsertLinkRef 
       initFrame = requestAnimationFrame(initialize)
     })
     return () => {
+      element.querySelectorAll<HTMLElement>('[contenteditable="true"], [contenteditable="false"]').forEach(cancelInsertFocus)
       view?.dispose()
       if (ready && !readOnly && typeof editor.getValue === "function") {
         const content = (properties?.raw ?? "") + restoreObsidianImages(editor.getValue())
@@ -478,6 +488,8 @@ export function useVditorSetup(state: VditorEditorState, { triggerInsertLinkRef 
       window.dispatchEvent(new Event("vessel:file-menu-refresh"))
       element.removeEventListener("keydown", handleKeyDown, true)
       toolbarContainer?.removeEventListener("pointerdown", rememberSelection, true)
+      unbindToolbarPanels()
+      unbindImageMenu()
       unbindFootnotes()
       unbindCallouts()
       unbindWikiEditing()
@@ -485,6 +497,7 @@ export function useVditorSetup(state: VditorEditorState, { triggerInsertLinkRef 
       unbindInsertMenu()
       clipboardImageInsertAction.current = null
       imageInsertAction.current = null
+      unbindEmptyLinePaste()
       unbindTablePaste()
       unbindImageParagraphs()
       unbindListShortcuts()

@@ -1,3 +1,4 @@
+import { FootnoteSidebarPreview } from "./footnote-sidebar-preview"
 import "./document-outline.css"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { parseFootnotes } from "@vessel/obsidian"
@@ -186,7 +187,7 @@ export function DocumentOutline({
         )}
         <ScrollArea className="min-h-0 flex-1 [&_[data-radix-scroll-area-viewport]>div]:!block">
           {section === "footnotes" && <div className="space-y-1 px-1 py-2">
-            {notes.map((note) => <button key={note.id} className="w-full rounded-md p-2 text-left text-xs text-stone-600 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-white/5" onClick={() => onSelectFootnote?.(note.id)}><span className="flex items-start gap-1.5"><span aria-label={`第 ${note.number} 个脚注`} className="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded bg-green-50 font-mono text-[10px] font-medium text-green-700 dark:bg-green-950 dark:text-green-400">{note.number}</span><span className="min-w-0 break-words font-medium leading-5">{note.text}</span></span>{note.text !== note.content && <span className="mt-1 block whitespace-pre-wrap break-words pl-[22px] text-[11px] leading-5 text-stone-400">{note.content}</span>}</button>)}
+            {notes.map((note) => <div key={note.id} className="w-full rounded-md p-2 text-left text-xs text-stone-600 dark:text-stone-300"><button className="w-full rounded text-left hover:bg-stone-100 dark:hover:bg-white/5" onClick={() => onSelectFootnote?.(note.id)}><span className="flex items-start gap-1.5"><span aria-label={`第 ${note.number} 个脚注`} className="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded bg-green-50 font-mono text-[10px] font-medium text-green-700 dark:bg-green-950 dark:text-green-400">{note.number}</span><span className="min-w-0 break-words font-medium leading-5">{note.text}</span></span></button><FootnoteSidebarPreview content={note.content} /></div>)}
             {!notes.length && <p className="p-2 text-xs text-stone-400">暂无脚注</p>}
           </div>}
           {section === "outline" && headings.map((heading, index) => {

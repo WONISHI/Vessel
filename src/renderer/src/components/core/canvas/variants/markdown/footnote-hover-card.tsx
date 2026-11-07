@@ -1,12 +1,14 @@
 import { Trash2 } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { useEffect, useRef, useState, type RefObject } from "react"
+import { lazy, Suspense, useEffect, useRef, useState, type RefObject } from "react"
 import { parseFootnotes } from "@vessel/obsidian"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 import { Portal } from "@radix-ui/react-hover-card"
 
-type Note = { id: string; content: string; rect: DOMRect }
-export function FootnoteHoverCard({ host, source, onDelete }: { host: RefObject<HTMLDivElement | null>; source: () => string; onDelete?: (id: string) => void }) {
+const PreviewBody = lazy(() => import("./section-preview/components/preview-body").then((module) => ({ default: module.PreviewBody })))
+
+type Note = { id: string; title: string; number: number; content: string; rect: DOMRect }
+export function FootnoteHoverCard({ host, source, onDelete, workspacePath = "", documentPath = "" }: { workspacePath?: string; documentPath?: string; host: RefObject<HTMLDivElement | null>; source: () => string; onDelete?: (id: string) => void }) {
   const deleteRef = useRef(onDelete)
   useEffect(() => {
     deleteRef.current = onDelete
@@ -30,10 +32,26 @@ export function FootnoteHoverCard({ host, source, onDelete }: { host: RefObject<
       const target = (event.target as Element)?.closest<HTMLElement>('[data-vessel-footnote-id], sup[data-type="footnotes-ref"]')
       if (!target || target.closest('[data-type="footnotes-block"], [data-type="code-block"]')) return
       const id = target.dataset.vesselFootnoteId || target.getAttribute("data-footnotes-label")?.replace(/^\^/, "")
-      const definition = parseFootnotes(sourceRef.current()).definitions.find((item) => item.id === id)
+      const parsed = parseFootnotes(sourceRef.current())
+      const definition = parsed.definitions.find((item) => item.id === id)
       if (!definition) return
       keep()
-      setNote({ id: definition.id, content: definition.content, rect: target.getBoundingClientRect() })
+      const scope = target.closest(".vditor-ir") ?? root
+      const boundText = Array.from(scope.querySelectorAll<HTMLElement>("[data-vessel-footnote-id]"))
+        .filter((node) => node.dataset.vesselFootnoteId === id)
+        .map((node) => node.textContent ?? "").join("")
+        .replace(/[\u200b\ufeff]/g, "").trim()
+      const orderedIds = [...new Set([...parsed.references, ...parsed.annotations]
+        .sort((a, b) => a.start - b.start)
+        .filter((entry) => parsed.definitions.some((definition) => definition.id === entry.id))
+        .map((entry) => entry.id))]
+      setNote({
+        id: definition.id,
+        title: boundText || parsed.annotations.filter((entry) => entry.id === id).map((entry) => entry.content).join("") || "脚注",
+        number: orderedIds.indexOf(definition.id) + 1 || parsed.definitions.indexOf(definition) + 1,
+        content: definition.content,
+        rect: target.getBoundingClientRect()
+      })
     }
     const leave = (event: Event) => {
       const target = (event.target as Element)?.closest('[data-vessel-footnote-id], sup[data-type="footnotes-ref"]')
@@ -88,7 +106,7 @@ export function FootnoteHoverCard({ host, source, onDelete }: { host: RefObject<
             align="start"
             sideOffset={7}
             collisionPadding={12}
-            className="z-[100] w-72 max-w-[calc(100vw-24px)] rounded-xl p-3"
+            className="z-[100] w-[min(480px,calc(100vw-24px))] max-w-[calc(100vw-24px)] rounded-xl p-3"
             onContextMenu={(event) => {
               if (!note || !onDelete) return
               event.preventDefault()
@@ -102,8 +120,15 @@ export function FootnoteHoverCard({ host, source, onDelete }: { host: RefObject<
             onFocusCapture={keep}
             onBlurCapture={close}
           >
-            <div className="mb-1.5 text-[10px] font-medium text-muted-foreground">脚注 {note?.id}</div>
-            <div className="max-h-60 overflow-auto whitespace-pre-wrap break-words text-xs leading-6">{note?.content}</div>
+            <div className="mb-1.5 flex min-w-0 items-center gap-2">
+              <span className="inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded bg-green-100 px-1.5 text-[10px] font-semibold text-green-700 dark:bg-green-950 dark:text-green-300">{note?.number}</span>
+              <span className="truncate text-xs font-medium" title={note?.title}>{note?.title}</span>
+            </div>
+            {note && (
+              <Suspense fallback={<p className="text-xs text-muted-foreground">正在加载…</p>}>
+                <PreviewBody key={note.id} source={note.content} workspacePath={workspacePath} documentPath={documentPath} />
+              </Suspense>
+            )}
           </HoverCardContent>
         </Portal>
       </HoverCard>

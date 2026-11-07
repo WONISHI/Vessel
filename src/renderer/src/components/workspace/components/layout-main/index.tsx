@@ -1,3 +1,4 @@
+import { addTransitFile } from "@/components/transit/state"
 import { getFilePresentation } from "@/components/workspace/components/layout-aside/layout-workspace-sidebar/utils"
 import { BackupStatus } from "@/components/backup-status"
 import CanvasContent from "@/components/core/canvas/index"
@@ -19,10 +20,12 @@ import { useWorkspace } from "@/components/workspace/hooks/useWorkspace"
 import { cn } from "@/lib/utils"
 import { RouterView } from "@vessel/react-router/components"
 import { matchesShortcut } from "@vessel/utils"
-import { ChevronLeft, ChevronRight, Columns2, Copy, File, FolderOpen, Home, LayoutTemplate, List, MoreHorizontal, Pin, Terminal, X } from "lucide-react"
+import { ChevronLeft, ChevronRight, Columns2, Copy, FileDown, File, FolderOpen, Home, LayoutTemplate, List, MoreHorizontal, Pin, Terminal, X } from "lucide-react"
 import { Suspense, useEffect, useMemo, useRef, useState } from "react"
 import { useLocation } from "react-router-dom"
 import { toast } from "sonner"
+
+const PdfExportDialog = lazyWithRetry(() => import("@/components/pdf-export/pdf-export-dialog"))
 
 const WorkspaceHome = lazyWithRetry(() => import("@/components/workspace/components/layout-main/workspace-home"))
 
@@ -38,7 +41,20 @@ export default function LayoutMain({ resources = false }: { resources?: boolean 
     }
   })
   const openFiles = useMemo(() => [...files].sort((a, b) => Number(pinned.includes(b.path)) - Number(pinned.includes(a.path))), [files, pinned])
+  const [pdfExportPath, setPdfExportPath] = useState<string | null>(null)
+  const [splitSide, setSplitSide] = useState<"left" | "right">("right")
   const [splitPath, setSplitPath] = useState<string | null>(null)
+
+  useEffect(() => {
+    const split = (event: Event) => {
+      const detail = (event as CustomEvent<{ root: string; path: string; side: "left" | "right" }>).detail
+      if (detail.root !== workspace.path || !["left", "right"].includes(detail.side)) return
+      setSplitSide(detail.side)
+      setSplitPath(detail.path)
+    }
+    window.addEventListener("vessel:split-document", split)
+    return () => window.removeEventListener("vessel:split-document", split)
+  }, [workspace.path])
 
   /** Toggles pin. */
   const togglePin = (path: string) =>
@@ -212,6 +228,34 @@ export default function LayoutMain({ resources = false }: { resources?: boolean 
                         <X />
                         关闭其他
                       </ContextMenuItem>
+                      <ContextMenuItem onSelect={() => {
+                        void navigator.clipboard.writeText(file.name).catch((error) => toast.error(`复制失败：${String(error)}`))
+                      }}>
+                        <Copy />
+                        复制文件名
+                      </ContextMenuItem>
+                      <ContextMenuItem onSelect={() => {
+                        void window.electronAPI.revealWorkspaceFile(workspace.path, file.path).catch((error) => toast.error(String(error)))
+                      }}>
+                        <FolderOpen />
+                        在资源管理器中显示
+                      </ContextMenuItem>
+                      {/\.(md|markdown)$/i.test(file.name) && !/\.excalidraw\.md$/i.test(file.name) && (
+                        <ContextMenuItem onSelect={() => setPdfExportPath(file.path)}>
+                          <FileDown />
+                          导出 PDF…
+                        </ContextMenuItem>
+                      )}
+                      <ContextMenuItem onSelect={() => {
+                        try {
+                          addTransitFile(workspace.path, file.path, file.name)
+                        } catch (error) {
+                          toast.error(String(error))
+                        }
+                      }}>
+                        <Pin />
+                        加入中转站
+                      </ContextMenuItem>
                       <ContextMenuItem onSelect={() => copyPath(file.path, false)}>
                         <Copy />
                         复制路径
@@ -224,7 +268,7 @@ export default function LayoutMain({ resources = false }: { resources?: boolean 
                         <Pin />
                         {pinned.includes(file.path) ? "取消固定" : "固定"}
                       </ContextMenuItem>
-                      <ContextMenuItem onSelect={() => setSplitPath(file.path)}>
+                      <ContextMenuItem onSelect={() => { setSplitSide("right"); setSplitPath(file.path) }}>
                         <Columns2 />
                         向右拆分
                       </ContextMenuItem>
@@ -371,6 +415,7 @@ export default function LayoutMain({ resources = false }: { resources?: boolean 
             <ResizablePanelGroup orientation="horizontal">
               <ResizablePanel
                 id="primary-document"
+                style={{ order: splitSide === "left" ? 2 : 0 }}
                 minSize="20%"
                 className="flex min-h-0 flex-col"
               >
@@ -385,9 +430,10 @@ export default function LayoutMain({ resources = false }: { resources?: boolean 
               </ResizablePanel>
               {splitPath && (
                 <>
-                  <ResizableHandle aria-label="调整右侧编辑区宽度" />
+                  <ResizableHandle style={{ order: 1 }} aria-label="调整拆分编辑区宽度" />
                   <ResizablePanel
                     id="split-document"
+                    style={{ order: splitSide === "left" ? 0 : 2 }}
                     defaultSize="50%"
                     minSize="20%"
                     className="flex min-h-0 flex-col"
@@ -468,6 +514,11 @@ export default function LayoutMain({ resources = false }: { resources?: boolean 
             </>
           )}
         </ResizablePanelGroup>
+        {pdfExportPath && (
+          <Suspense fallback={null}>
+            <PdfExportDialog key={pdfExportPath} path={pdfExportPath} root={workspace.path} onClose={() => setPdfExportPath(null)} />
+          </Suspense>
+        )}
       </main>
     </StatusTarget.Provider>
   )

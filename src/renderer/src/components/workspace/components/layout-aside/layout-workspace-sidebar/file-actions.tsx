@@ -7,7 +7,7 @@ import { useWorkspace } from "@/components/workspace/hooks/useWorkspace"
 import type { WorkspaceNode } from "@/components/workspace/types/workspace"
 import { useRouter } from "@vessel/react-router"
 import { localFileURL } from "@vessel/utils"
-import { Code, Copy, FileDown, File, FilePlus2, FolderOpen, FolderPlus, Globe, Send, Pencil, Pin, Paperclip, Search, Trash2, Images } from "lucide-react"
+import { Columns2, ArrowLeft, ArrowRight, Code, Copy, FileDown, File, FilePlus2, FolderOpen, FolderPlus, Globe, Send, Pencil, Pin, Paperclip, Search, Trash2, Images } from "lucide-react"
 import { Suspense, useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { toast } from "sonner"
 
@@ -377,6 +377,23 @@ export function FileActions({
           ))}
           {!multiple && node.type === "file" && /\.(md|markdown)$/i.test(node.name) && !/\.excalidraw\.md$/i.test(node.name) && (
             <ContextMenuItem disabled={busy} onSelect={() => setPdfExportOpen(true)}><FileDown />导出 PDF…</ContextMenuItem>
+          )}
+          {!multiple && node.type === "file" && (
+            <ContextMenuSub>
+              <ContextMenuSubTrigger><Columns2 />拆分</ContextMenuSubTrigger>
+              <ContextMenuSubContent>
+                {(["left", "right"] as const).map((side) => (
+                  <ContextMenuItem key={side} onSelect={() => {
+                    void Promise.resolve(openWorkspaceFile(node)).then(() => {
+                      window.dispatchEvent(new CustomEvent("vessel:split-document", { detail: { root: workspace.path, path: node.path, side } }))
+                    }).catch((error) => toast.error(String(error)))
+                  }}>
+                    {side === "left" ? <ArrowLeft /> : <ArrowRight />}
+                    {side === "left" ? "向左拆分" : "向右拆分"}
+                  </ContextMenuItem>
+                ))}
+              </ContextMenuSubContent>
+            </ContextMenuSub>
           )}
           {!multiple && node.type !== "directory" && (
             <ContextMenuItem

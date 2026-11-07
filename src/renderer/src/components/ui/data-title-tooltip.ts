@@ -24,10 +24,14 @@ export function installDataTitleTooltips() {
     pointerX = 0
     tooltip.hidden = true
   }
+  const labelOf = (element: HTMLElement) => element.dataset.title ?? element.getAttribute("aria-label") ?? ""
   /** Positions a readable tooltip within the current viewport. */
   const show = () => {
-    if (!target?.isConnected || !target.dataset.title?.trim()) return hide()
-    tooltip.textContent = target.dataset.title
+    if (!target?.isConnected || !labelOf(target).trim()) return hide()
+    const toolbar = target.closest(".vditor-toolbar")
+    if (toolbar && Array.from(toolbar.querySelectorAll<HTMLElement>(".vditor-panel, .vditor-hint"))
+      .some((panel) => panel.getClientRects().length > 0 && getComputedStyle(panel).visibility !== "hidden")) return hide()
+    tooltip.textContent = labelOf(target)
     tooltip.hidden = false
     const rect = target.getBoundingClientRect()
     const size = tooltip.getBoundingClientRect()
@@ -36,7 +40,7 @@ export function installDataTitleTooltips() {
     const explicitSide = target.dataset.titleSide
     const isTopTab = Boolean(target.closest('[data-workspace-tab="true"], .browser-tabs'))
     const isTreeRow = Boolean(target.closest('[data-workspace-tree-row]'))
-    let side = explicitSide || (isTopTab ? "bottom" : isTreeRow ? "right" : "top")
+    let side = explicitSide || (target.closest(".vditor-toolbar") ? "bottom" : isTopTab ? "bottom" : isTreeRow ? "right" : "top")
     if (side === "top" && rect.top - size.height - gap < gap && !explicitSide) {
       side = "bottom"
     } else if (side === "right" && rect.right + size.width + gap > innerWidth && !explicitSide) {
@@ -71,10 +75,10 @@ export function installDataTitleTooltips() {
     if (event instanceof MouseEvent) {
       pointerX = event.clientX
     }
-    const next = event.target instanceof Element ? event.target.closest<HTMLElement>("[data-title]") : null
+    const next = event.target instanceof Element ? event.target.closest<HTMLElement>("[data-title], .vditor-toolbar .vditor-tooltipped[aria-label]") : null
     if (next === target) return
     hide()
-    if (!next?.dataset.title?.trim()) return
+    if ((!next || !labelOf(next).trim())) return
     target = next
     timer = setTimeout(show, event.type === "focusin" ? 100 : 350)
   }
@@ -94,6 +98,7 @@ export function installDataTitleTooltips() {
   document.addEventListener("keydown", keydown)
   document.addEventListener("scroll", hide, true)
   window.addEventListener("resize", hide)
+  window.addEventListener("vessel:toolbar-panel-open", hide)
   return () => {
     hide()
     tooltip.remove()
@@ -105,5 +110,6 @@ export function installDataTitleTooltips() {
     document.removeEventListener("keydown", keydown)
     document.removeEventListener("scroll", hide, true)
     window.removeEventListener("resize", hide)
+    window.removeEventListener("vessel:toolbar-panel-open", hide)
   }
 }

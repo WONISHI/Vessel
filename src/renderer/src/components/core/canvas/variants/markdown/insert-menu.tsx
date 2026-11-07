@@ -27,12 +27,12 @@ const groups = [
       { label: "代码块", icon: CodeXml, value: "code-block" },
       { label: "行内代码", icon: Code, value: "`代码`", inline: true }
     ] },
-    { label: "插入表格", icon: Table2, value: "| 标题一 | 标题二 |\n| --- | --- |\n| 内容 | 内容 |" },
+    { label: "插入表格", icon: Table2, value: "empty-table" },
     { label: "插入分割线", icon: Minus, value: "***" }
   ] },
-  { label: "", items: [
+  { label: "组件", items: [
     { label: "添加组件", icon: LayoutGrid, children: [
-      { label: "Callout 标注", icon: StickyNote, value: "> [!note]+ 标题\n> 标注内容" },
+      { label: "Callout 标注", icon: StickyNote, value: "> [!note]+ 标题\n>" },
       { label: "时间线", icon: Milestone, value: "```timeline\n- 第一个事件\n  - 事件说明\n- 第二个事件\n  - 事件说明\n```" },
       { label: "步骤条", icon: Workflow, value: "```steps\n1. 第一步\n   - 步骤说明\n2. 第二步\n   - 步骤说明\n```" },
       {
@@ -80,7 +80,7 @@ export function MarkdownInsertMenu({ x, y, onClose, onInsert, preserveEditorFocu
                         <ContextMenuSubTrigger><StickyNote /><span>{child.label}</span></ContextMenuSubTrigger>
 
                           <ContextMenuSubContent className="markdown-insert-menu markdown-callout-picker" collisionPadding={8} aria-label="Callout 类型">
-                            <CalloutTypeItems onSelect={(name) => onInsert(`> [!${name}]+ 标题\n> 标注内容`, false)} />
+                            <CalloutTypeItems onSelect={(name) => onInsert(`> [!${name}]+ 标题\n>`, false)} />
                           </ContextMenuSubContent>
 
                       </ContextMenuSub>
