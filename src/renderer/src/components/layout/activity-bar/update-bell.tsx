@@ -40,7 +40,7 @@ export function UpdateBell({ dark }: { dark: boolean }) {
           {nextVersion && <span aria-hidden="true" className="absolute right-0 top-0 flex size-4 items-center justify-center rounded-full bg-emerald-700 text-[10px] text-white">1</span>}
         </Button>
       </PopoverTrigger>
-      <PopoverContent side="right" align="end" sideOffset={8} className="w-56 p-3" aria-label="应用更新">
+      <PopoverContent side="right" align="end" sideOffset={8} className="w-56 p-3 shadow-xl dark:shadow-[0_12px_32px_rgba(0,0,0,.5)]" aria-label="应用更新">
         <div className="space-y-1.5 text-center">
           <img src={dark ? DarkLogo : Logo} alt="" className="mx-auto size-8 object-contain" />
           <h2 className="text-sm font-semibold">Vessel</h2>
@@ -61,7 +61,7 @@ export function UpdateBell({ dark }: { dark: boolean }) {
             )}
           </div>
         </div>
-        <div className="mt-3 flex justify-center gap-2 [&_button]:h-7 [&_button]:px-2.5 [&_button]:text-xs">
+        <div className="mt-3 flex justify-center gap-2 [&_button]:h-7 [&_button]:px-2.5 [&_button]:text-xs [&_button:hover]:!text-white">
           {state?.status === "unsupported" && (
             <Button size="sm" variant="outline" onClick={() => run(() => window.electronAPI.openExternal("https://github.com/WONISHI/Vessel/releases"))}>下载新版</Button>
           )}
