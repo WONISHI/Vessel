@@ -5,7 +5,7 @@ export const defaultSettings: AppSettings = {
   proxyEnabled: false,
   externalScreenshot: true,
   externalPreview: true,
-  attachmentLibraryEnabled: false,
+  attachmentLibraryEnabled: true,
   attachmentFolders: ["~/images", "~/img"],
   floatingVideoEnabled: true,
   monitorNavigation: false,

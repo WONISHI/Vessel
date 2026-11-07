@@ -5,7 +5,7 @@ import { ImageFilePreview } from "@/components/image-preview/index"
 import Layout from "@/components/layout"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { Button } from "@/components/ui/button"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { Image } from "@/components/ui/image"
 import { RouteLoading } from "@/components/ui/route-loading"
@@ -21,7 +21,9 @@ type Attachment = Awaited<ReturnType<Window["electronAPI"]["listAttachments"]>>[
 const pageSize = 60
 const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" })
 const folderOf = (path: string) => path.slice(0, Math.max(path.lastIndexOf("/"), path.lastIndexOf("\\")))
-type SortBy = "time" | "folder" | "name"
+const sortLabels = { time: "修改时间", folder: "所在文件夹", name: "文件名称" }
+type SortBy = keyof typeof sortLabels
+const sortOptions: SortBy[] = ["time", "folder", "name"]
 const dateFormat = new Intl.DateTimeFormat("zh-CN", { year: "numeric", month: "long", day: "numeric" })
 const nameGroup = (name: string) => name.match(/^[a-z]/i)?.[0].toUpperCase() ?? "#"
 
@@ -219,8 +221,9 @@ export default function AttachmentRoute() {
   const [confirmFiles, setConfirmFiles] = useState<Attachment[]>([])
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState("")
-  const [page, setPage] = useState(1)
+  const [requestedPage, setPage] = useState(1)
   const [sortBy, setSortBy] = useState<SortBy>("time")
+  const [filterGroup, setFilterGroup] = useState<string>()
   const [reverse, setReverse] = useState(false)
   const [loading, setLoading] = useState(Boolean(root))
   const [error, setError] = useState("")
@@ -244,7 +247,10 @@ export default function AttachmentRoute() {
     return () => { cancelled = true }
   }, [root, revision])
 
-  const sortedFiles = useMemo(() => [...files].sort((a, b) => {
+  const sortedFiles = useMemo(() => files.filter((file) => {
+    if (filterGroup === undefined) return true
+    return groupLabel(file, sortBy) === filterGroup && (sortBy !== "folder" || imageExtension.test(file.name))
+  }).sort((a, b) => {
     const byName = () => collator.compare(a.name, b.name)
     const aGroup = sortBy === "time" ? "" : groupLabel(a, sortBy)
     const bGroup = sortBy === "time" ? "" : groupLabel(b, sortBy)
@@ -253,8 +259,9 @@ export default function AttachmentRoute() {
       : collator.compare(aGroup, bGroup) || (aGroup < bGroup ? -1 : aGroup > bGroup ? 1 : 0)
     const withinGroup = sortBy === "name" && reverse ? -byName() : byName()
     return (reverse ? -order : order) || withinGroup || collator.compare(a.relativePath, b.relativePath)
-  }), [files, sortBy, reverse])
-  const pageCount = Math.max(1, Math.ceil(files.length / pageSize))
+  }), [files, sortBy, reverse, filterGroup])
+  const pageCount = Math.max(1, Math.ceil(sortedFiles.length / pageSize))
+  const page = Math.min(requestedPage, pageCount)
   const start = (page - 1) * pageSize
   const pageGroups = new Map<string, Attachment[]>()
   const pageFiles = sortedFiles.slice(start, start + pageSize)
@@ -294,7 +301,12 @@ export default function AttachmentRoute() {
     setInitialPath(path)
     setReaderOpen(true)
   }
-  const sortLabel = `排序方式 · ${{ time: "修改时间", folder: "所在文件夹", name: "文件名称" }[sortBy]}`
+  const sortLabel = `排序与筛选 · ${sortLabels[sortBy]}${filterGroup === undefined ? "" : ` · ${filterGroup}`}`
+  const filterOptions = useMemo(() => ({
+    time: [...new Set([...files].sort((a, b) => b.mtime - a.mtime).map((file) => groupLabel(file, "time")))],
+    folder: [...new Set(files.filter((file) => imageExtension.test(file.name)).map((file) => groupLabel(file, "folder")))].sort(collator.compare),
+    name: [..."ABCDEFGHIJKLMNOPQRSTUVWXYZ", "#"]
+  }), [files])
   const direction = sortBy === "time" ? (reverse ? "最早优先" : "最新优先") : (reverse ? "降序" : "升序")
 
   return (
@@ -318,16 +330,33 @@ export default function AttachmentRoute() {
                     </svg>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuRadioGroup value={sortBy} onValueChange={(value) => {
-                    setSortBy(value as SortBy)
-                    setReverse(false)
-                    setPage(1)
-                  }}>
-                    <DropdownMenuRadioItem checkOnRight value="time">修改时间</DropdownMenuRadioItem>
-                    <DropdownMenuRadioItem checkOnRight value="folder">所在文件夹</DropdownMenuRadioItem>
-                    <DropdownMenuRadioItem checkOnRight value="name">文件名称</DropdownMenuRadioItem>
-                  </DropdownMenuRadioGroup>
+                <DropdownMenuContent align="end" className="dark:bg-[#2c333d]">
+                  {sortOptions.map((option) => (
+                    <DropdownMenuSub key={option}>
+                      <DropdownMenuSubTrigger>{sortLabels[option]}</DropdownMenuSubTrigger>
+                      <DropdownMenuSubContent className="dark:bg-[#2c333d]">
+                        <ScrollArea type="hover" scrollHideDelay={0} className="[&>[data-radix-scroll-area-viewport]]:max-h-[min(24rem,calc(var(--radix-dropdown-menu-content-available-height)_-_0.625rem))]">
+                          <DropdownMenuRadioGroup
+                            value={sortBy === option ? filterGroup === undefined ? "all" : `group:${filterGroup}` : ""}
+                            onValueChange={(value) => {
+                              setSortBy(option)
+                              setFilterGroup(value === "all" ? undefined : value.slice("group:".length))
+                              if (sortBy !== option) setReverse(false)
+                              setPage(1)
+                              setSelection(undefined)
+                            }}
+                          >
+                            <DropdownMenuRadioItem checkOnRight value="all">全部</DropdownMenuRadioItem>
+                            {filterOptions[option].map((group) => (
+                              <DropdownMenuRadioItem key={group} checkOnRight value={`group:${group}`}>
+                                {option === "name" && group === "#" ? "其他首字符" : group}
+                              </DropdownMenuRadioItem>
+                            ))}
+                          </DropdownMenuRadioGroup>
+                        </ScrollArea>
+                      </DropdownMenuSubContent>
+                    </DropdownMenuSub>
+                  ))}
                 </DropdownMenuContent>
               </DropdownMenu>
               <Button className="hover:text-white" size="icon" variant="outline" aria-label={direction} data-title={direction} onClick={() => { setReverse(!reverse); setPage(1) }}>
@@ -346,6 +375,7 @@ export default function AttachmentRoute() {
           <ScrollArea key={`${root}:${page}:${sortBy}:${reverse}`} type="hover" className="min-h-0 flex-1 [&>[data-radix-scroll-area-viewport]]:[scrollbar-width:none] [&>[data-radix-scroll-area-viewport]::-webkit-scrollbar]:hidden">
             <div className="p-5">
               {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
+              {!error && files.length > 0 && sortedFiles.length === 0 && <p className="text-sm text-muted-foreground">没有符合筛选条件的附件</p>}
               {!error && !files.length && <p className="text-sm text-muted-foreground">{root ? "配置的目录中暂无附件" : "请先打开工作区"}</p>}
               {root && Array.from(pageGroups, ([label, group]) => {
                 const selecting = selection?.group === label
@@ -393,9 +423,9 @@ export default function AttachmentRoute() {
               })}
             </div>
           </ScrollArea>
-          {root && files.length > 0 && (
+          {root && sortedFiles.length > 0 && (
             <nav aria-label="附件分页" className="flex flex-wrap items-center justify-between gap-2 border-t px-5 py-3">
-              <p className="text-sm text-muted-foreground">共 {files.length} 项，每页 {pageSize} 项</p>
+              <p className="text-sm text-muted-foreground">共 {sortedFiles.length} 项，每页 {pageSize} 项</p>
               <div className="flex items-center gap-2">
                 <Button size="icon" variant="outline" className="hover:text-white" aria-label="上一页" data-title="上一页" disabled={page === 1} onClick={() => setPage(page - 1)}><ChevronLeft /></Button>
                 <form className="flex items-center gap-2" onSubmit={(event) => {

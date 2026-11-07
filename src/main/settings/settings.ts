@@ -126,7 +126,7 @@ function validate(value: AppSettings): AppSettings {
     proxyEnabled: value.proxyEnabled === true,
     externalScreenshot: value.externalScreenshot !== false,
     externalPreview: value.externalPreview !== false,
-    attachmentLibraryEnabled: value.attachmentLibraryEnabled === true,
+    attachmentLibraryEnabled: typeof value.attachmentLibraryEnabled === "boolean" ? value.attachmentLibraryEnabled : defaultSettings.attachmentLibraryEnabled,
     attachmentFolders: Array.isArray(value.attachmentFolders)
       ? value.attachmentFolders.slice(0, 32).map((folder) => text(folder, 2048).trim()).filter(Boolean)
       : defaultSettings.attachmentFolders,
