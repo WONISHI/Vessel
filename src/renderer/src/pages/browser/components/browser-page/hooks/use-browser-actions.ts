@@ -1,3 +1,4 @@
+import { browserNavigationError } from "@/pages/browser/navigation-error"
 import { newTab, Tab } from "@/pages/browser/components/index-shared"
 import { withGuest } from "@/pages/browser/guest-lifecycle"
 import { browserURL } from "@/pages/browser/url"
@@ -142,7 +143,10 @@ export function useBrowserActions(state: BrowserState, visible: boolean) {
       const view = views.current.get(tab.id)
       update(tab.id, { url, loading: true, error: "" })
       setInput(null)
-      if (view) void view.loadURL(url).catch((error) => update(tab.id, { error: String(error), loading: false }))
+      if (view) void view.loadURL(url).catch((error) => {
+        const message = browserNavigationError(error)
+        if (message) update(tab.id, { error: message, loading: false })
+      })
     } catch (error) {
       update(tab.id, { error: String(error) })
     }

@@ -105,10 +105,24 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
-          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
-            test "$(gh release view "$RELEASE_TAG" --json isDraft --jq .isDraft)" = true
-          else
+          release_error="$RUNNER_TEMP/vessel-release-error.log"
+          if is_draft=$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$RELEASE_TAG" --jq .draft 2>"$release_error"); then
+            echo "Updating existing release $RELEASE_TAG (draft=$is_draft)"
+          elif grep -q 'HTTP 404' "$release_error"; then
             gh release create "$RELEASE_TAG" --verify-tag --draft --title "Vessel $RELEASE_TAG" --generate-notes
+            is_draft=true
+          else
+            cat "$release_error" >&2
+            exit 1
           fi
-          gh release upload "$RELEASE_TAG" release-assets/* --clobber
-          gh release edit "$RELEASE_TAG" --draft=false --latest
+          # Upload installers before updating the manifests that point to them.
+          for asset in release-assets/*; do
+            case "$asset" in
+              *.yml) continue ;;
+            esac
+            gh release upload "$RELEASE_TAG" "$asset" --clobber
+          done
+          gh release upload "$RELEASE_TAG" release-assets/*.yml --clobber
+          if [ "$is_draft" = true ]; then
+            gh release edit "$RELEASE_TAG" --draft=false --latest
+          fi

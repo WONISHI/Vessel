@@ -150,7 +150,7 @@ export function BrowserPage({ visible = true }: { visible?: boolean }) {
               {tab.error && (
                 <div
                   role="alert"
-                  className="absolute inset-x-4 top-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700"
+                  className="absolute inset-x-4 top-4 break-words rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700"
                 >
                   {tab.error}
                   <button

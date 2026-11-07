@@ -234,7 +234,7 @@ git push origin v1.0.1
 
 在仓库 Actions 页面查看 `Build and publish Vessel` 的进度。成功后，Release 包含 Windows NSIS 安装包、两种 Mac 架构的 DMG 和 ZIP、blockmap，以及 `latest.yml` 和合并后的 `latest-mac.yml`。更新说明由 GitHub 自动生成，发布后可以编辑。
 
-工作流只接受 `v主版本.次版本.修订号`，标签必须和 `package.json` 一致。已公开的同版本 Release 会阻止再次上传，后续更新应递增版本并创建新标签。
+工作流只接受 `v主版本.次版本.修订号`，标签必须和 `package.json` 一致。同版本任务重试会复用已有 Release 并覆盖同名资产。向用户提供新的应用更新时应递增版本并创建新标签。
 
 发布后，在 Windows 安装版验证启动提示、手动检查、下载和重启安装，在 Mac 两种架构上验证手动下载安装，以及升级后访问原工作区的行为。首次接入更新器的用户需要手动下载安装一次。
 

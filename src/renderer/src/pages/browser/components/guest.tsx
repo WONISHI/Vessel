@@ -1,3 +1,4 @@
+import { browserNavigationError } from "@/pages/browser/navigation-error"
 import { guestAppearanceScript } from "@/pages/browser/guest-appearance"
 import { useDarkAppearance } from "@/hooks/use-dark-appearance"
 import { Tab } from "@/pages/browser/components/index-shared"
@@ -82,7 +83,7 @@ export const Guest = memo(function Guest({ tab, visible, register, update }: { t
 
     /** Performs the fail operation. */
     const fail = (event: Electron.DidFailLoadEvent) => {
-      if (event.isMainFrame && event.errorCode !== -3) updateRef.current(tab.id, { loading: false, error: `页面加载失败：${event.errorDescription}` })
+      if (event.isMainFrame && event.errorCode !== -3) updateRef.current(tab.id, { loading: false, error: browserNavigationError(event.errorDescription) })
     }
 
     /** Performs the message operation. */
