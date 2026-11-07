@@ -21,6 +21,21 @@ function App() {
   useEffect(() => window.electronAPI.onOpenSettings?.(() => void router.push("/settings")), [router])
   const location = useLocation()
   useEffect(() => {
+    let notifiedVersion: string | undefined
+    const notify = (state: Awaited<ReturnType<Window["electronAPI"]["getAppUpdate"]>>) => {
+      if (state.status !== "available" || notifiedVersion === state.version) return
+      notifiedVersion = state.version
+      toast.info(`Vessel ${state.version} 可更新`, {
+        id: "vessel-app-update",
+        action: { label: "查看更新", onClick: () => void router.push("/settings") }
+      })
+    }
+    const unsubscribe = window.electronAPI.onAppUpdate(notify)
+    let active = true
+    void window.electronAPI.getAppUpdate().then((state) => { if (active) notify(state) }).catch(console.error)
+    return () => { active = false; unsubscribe() }
+  }, [router])
+  useEffect(() => {
     /** Refreshes the current state. */
     const update = () => {
       let root: string | null = null

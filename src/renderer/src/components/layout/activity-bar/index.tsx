@@ -1,3 +1,4 @@
+import { UpdateBell } from "./update-bell"
 import { useDarkAppearance } from "@/hooks/use-dark-appearance"
 import { applyAppearance } from "@/pages/settings/appearance"
 import { useActivityOverflow } from "@/components/layout/activity-bar/use-activity-overflow"
@@ -434,6 +435,7 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
           </div>
         </Popover>
         <div className="mt-auto flex flex-col items-center gap-1">
+          <UpdateBell dark={dark} />
           <Tooltip>
             <TooltipTrigger asChild>
               <Button

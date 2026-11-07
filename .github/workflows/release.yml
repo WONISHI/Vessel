@@ -1,0 +1,122 @@
+name: Build and publish Vessel
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build ${{ matrix.target }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: windows-x64
+            os: windows-2022
+            platform: win
+          - target: mac-arm64
+            os: macos-15
+            platform: mac
+          - target: mac-x64
+            os: macos-15-intel
+            platform: mac
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate release version
+        run: |
+          node -e 'const v=require("./package.json").version; if (!/^\d+\.\d+\.\d+$/.test(v) || process.env.GITHUB_REF_NAME !== "v"+v) throw new Error("Tag must match stable package version v"+v)'
+      - name: Validate macOS signing credentials
+        if: matrix.platform == 'mac'
+        env:
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          node -e 'for(const k of ["CSC_LINK","CSC_KEY_PASSWORD","APPLE_ID","APPLE_APP_SPECIFIC_PASSWORD","APPLE_TEAM_ID"]) if(!process.env[k]) throw new Error("Missing repository secret "+k)'
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.30.3
+      - run: pnpm install --frozen-lockfile
+      - name: Prepare Office runtime
+        run: |
+          curl -L --fail --retry 3 https://codeload.github.com/oonxt/wasm-onlyoffice-demo/tar.gz/refs/heads/gh-pages -o "$RUNNER_TEMP/office.tar.gz"
+          mkdir -p resources/office
+          tar -xzf "$RUNNER_TEMP/office.tar.gz" -C resources/office --strip-components=1 wasm-onlyoffice-demo-gh-pages/v9.3.0.24-1 wasm-onlyoffice-demo-gh-pages/x2t
+          node scripts/prepare-office.cjs
+      - run: pnpm run assets:matting
+      - run: pnpm run assets:markitdown
+      - run: pnpm run build:clipper
+      - run: pnpm run build
+      - name: Package Windows
+        if: matrix.platform == 'win'
+        run: node scripts/build-win.cjs --publish never
+      - name: Package signed and notarized macOS app
+        if: matrix.platform == 'mac'
+        env:
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: node scripts/build-mac.cjs --publish never --config.forceCodeSigning=true --config.mac.notarize=true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.target }}
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0
+          path: |
+            dist/*.exe
+            dist/*.dmg
+            dist/*.zip
+            dist/*.blockmap
+            dist/latest*.yml
+
+  publish:
+    name: Publish complete release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: release-*
+          path: release-input
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install PyYAML==6.0.2
+      - name: Merge and validate release assets
+        run: python scripts/prepare-release-assets.py release-input release-assets
+      - name: Upload assets and publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            test "$(gh release view "$RELEASE_TAG" --json isDraft --jq .isDraft)" = true
+          else
+            gh release create "$RELEASE_TAG" --verify-tag --draft --title "Vessel $RELEASE_TAG" --generate-notes
+          fi
+          gh release upload "$RELEASE_TAG" release-assets/* --clobber
+          gh release edit "$RELEASE_TAG" --draft=false --latest

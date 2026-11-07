@@ -1,3 +1,4 @@
+import { registerAppUpdate } from "./app-update"
 import { drainTextFileWrites } from "@main/modules/files/index.module"
 import { registerImageResources } from "@main/modules/files/image-resource"
 import { installApplicationMenu } from "@main/menu"
@@ -207,6 +208,7 @@ function createWindow(): void {
     return translateText(text, from, to)
   })
   registerSettings(mainWindow.webContents)
+  registerAppUpdate(mainWindow.webContents)
   registerOffice(mainWindow.webContents)
   registerTransit(mainWindow.webContents)
   registerContentSearch(mainWindow.webContents)

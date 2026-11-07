@@ -1,3 +1,4 @@
+import type { AppUpdateState } from "../shared/app-update"
 import { electronAPI } from "@electron-toolkit/preload"
 import { browserExtensionsAPI } from "@preload/apis/browser-extensions.api"
 import { browserProxyAPI } from "@preload/apis/browser-proxy.api"
@@ -59,6 +60,16 @@ const vesselAPI = {
 
   /** Performs the emulate browser device operation. */
   emulateBrowserDevice: (id: number, device: BrowserDevice | null) => ipcRenderer.invoke("browser:emulate", id, device),
+
+  getAppUpdate: (): Promise<AppUpdateState> => ipcRenderer.invoke("app-update:get"),
+  checkAppUpdate: (): Promise<void> => ipcRenderer.invoke("app-update:check"),
+  downloadAppUpdate: (): Promise<void> => ipcRenderer.invoke("app-update:download"),
+  installAppUpdate: (): Promise<void> => ipcRenderer.invoke("app-update:install"),
+  onAppUpdate: (callback: (state: AppUpdateState) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, state: AppUpdateState) => callback(state)
+    ipcRenderer.on("app-update:state", listener)
+    return () => { ipcRenderer.removeListener("app-update:state", listener) }
+  },
 
   /** Returns settings. */
   getSettings: (): Promise<AppSettings> => ipcRenderer.invoke("settings:get"),

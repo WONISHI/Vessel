@@ -1,3 +1,4 @@
+import { AppUpdateSettings } from "./app-update-settings"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { AttachmentLibrarySettings } from "@/pages/settings/components/attachment-library-settings"
 import { Button } from "@/components/ui/button"
@@ -297,6 +298,7 @@ export function SettingsPage() {
                 <>
                   <h2>关于 Vessel</h2>
                   <p className="settings-description">应用信息、个人资料和版本详情</p>
+                  <AppUpdateSettings />
                   <div className="settings-card flex items-center gap-4 p-6">
                     <label className="relative cursor-pointer">
                       <span className="flex size-16 items-center justify-center overflow-hidden rounded-2xl bg-green-100 text-2xl font-bold text-green-700">

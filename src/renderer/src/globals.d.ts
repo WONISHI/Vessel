@@ -1,3 +1,4 @@
+import type { AppUpdateAPI } from "../../shared/app-update"
 import type { NativeMenuAPI } from "@vessel/type"
 import type { ElectronAPI } from "@electron-toolkit/preload"
 import type { BrowserExtensionsAPI, BrowserProxyAPI, BrowserToolsAPI, FileWatchAPI, ImageFile, SettingsAPI, TerminalAPI, TodosAPI, TransitFile } from "@vessel/type"
@@ -90,7 +91,7 @@ interface StorageInfo {
 }
 
 /** preload 暴露给 React 渲染进程的完整 API。 */
-interface VesselAPI extends BrowserProxyAPI, BrowserToolsAPI, SettingsAPI, BrowserExtensionsAPI, TodosAPI, TerminalAPI, FileWatchAPI, NativeMenuAPI {
+interface VesselAPI extends AppUpdateAPI, BrowserProxyAPI, BrowserToolsAPI, SettingsAPI, BrowserExtensionsAPI, TodosAPI, TerminalAPI, FileWatchAPI, NativeMenuAPI {
   moveImageToAttachments(root: string, path: string): Promise<string>
   listAttachments(root: string): Promise<Array<{ name: string; path: string; size: number; relativePath: string; mtime: number }>>
   translateText(text: string, from: string, to: string): Promise<{ text: string; detectedLanguage: string }>

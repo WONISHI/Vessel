@@ -14,6 +14,12 @@
       "**/node_modules/node-pty/**/*",
       "**/node_modules/@parcel/watcher*/**/*"
     ],
+    "publish": {
+      "provider": "github",
+      "owner": "WONISHI",
+      "repo": "Vessel",
+      "releaseType": "draft"
+    },
     "nsis": {
       "artifactName": "${productName}-Setup-${version}.${ext}",
       "installerIcon": "build/vessel.ico",
@@ -29,8 +35,10 @@
     "mac": {
       "icon": "build/icon.icns",
       "category": "public.app-category.productivity",
+      "artifactName": "${productName}-${version}-mac-${arch}.${ext}",
       "target": [
-        "dmg"
+        "dmg",
+        "zip"
       ]
     },
     "win": {
@@ -195,6 +203,7 @@
     "@vscode/ripgrep": "^1.18.0",
     "better-sqlite3": "^12.4.1",
     "dugite": "^3.2.3",
+    "electron-updater": "^6.8.11",
     "node-pty": "^1.1.0",
     "typescript": "^5.9.3",
     "yaml": "^2.9.1",
