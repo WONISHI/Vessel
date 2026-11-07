@@ -51,9 +51,10 @@ jobs:
         run: |
           curl -L --fail --retry 3 https://codeload.github.com/oonxt/wasm-onlyoffice-demo/tar.gz/refs/heads/gh-pages -o "$RUNNER_TEMP/office.tar.gz"
           mkdir -p resources/office
+          office_destination="$(cd resources/office && pwd)"
           (
             cd "$RUNNER_TEMP"
-            tar -xzf office.tar.gz -C "$GITHUB_WORKSPACE/resources/office" --strip-components=1 wasm-onlyoffice-demo-gh-pages/v9.3.0.24-1 wasm-onlyoffice-demo-gh-pages/x2t
+            tar -xzf office.tar.gz -C "$office_destination" --strip-components=1 wasm-onlyoffice-demo-gh-pages/v9.3.0.24-1 wasm-onlyoffice-demo-gh-pages/x2t
           )
           node scripts/prepare-office.cjs
       - run: pnpm run assets:matting
