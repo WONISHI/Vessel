@@ -71,7 +71,7 @@ Office 的字体、格式兼容性和编辑能力取决于上游运行资源；O
 ### 应用更新
 
 - **首次安装**：首个包含更新功能的版本发布后，从 GitHub Releases 下载与你的系统和架构匹配的安装包。Windows 使用 NSIS `.exe`，macOS 使用 `.dmg`。此前安装的版本需要手动升级一次。 [Vessel Releases](https://github.com/WONISHI/Vessel/releases)
-- **后续更新**：应用启动后会检查新版本，也可以到「设置 → 关于 → 应用更新」手动检查。发现新版后，可以查看更新说明，点击「下载更新」并查看进度。下载完成后，保存手头的编辑内容，点击「重启并安装」并在应用内确认。
+- **后续更新**：Windows 安装版启动后会检查新版本，也可以到「设置 → 关于 → 应用更新」手动检查。发现新版后，可以查看更新说明，点击「下载更新」并查看进度。下载完成后，保存手头的编辑内容，点击「重启并安装」并在应用内确认。
 
 ### 设置迁移
 
@@ -222,17 +222,7 @@ Vessel 使用 `electron-updater` 从 `WONISHI/Vessel` 的公开正式 Release �
 
 仓库提供 `.github/workflows/release.yml`。推送与 `package.json` 版本一致的稳定版标签（例如 `v1.0.1`）后，GitHub Actions 会构建 Windows x64、macOS ARM64 和 macOS Intel 安装包。工作流自动准备 Office、MarkItDown、背景移除和剪藏资源，执行类型检查及生产构建，合并 Mac 双架构更新清单并核对安装包摘要。三个构建全部成功后，上传到草稿 Release 并公开发布。
 
-首次使用前，在仓库的 Settings → Secrets and variables → Actions 添加以下 Repository secrets。Mac 安装版使用 Developer ID Application 证书，证书需要包含私钥。
-
-| Secret | 内容 |
-| --- | --- |
-| `CSC_LINK` | 导出的 Developer ID Application `.p12` 证书的 Base64 内容 |
-| `CSC_KEY_PASSWORD` | `.p12` 证书密码 |
-| `APPLE_ID` | 用于 Apple 公证的 Apple ID |
-| `APPLE_APP_SPECIFIC_PASSWORD` | 该 Apple ID 的 App 专用密码 |
-| `APPLE_TEAM_ID` | Apple Developer 团队 ID |
-
-工作流使用 GitHub 自动提供的 `GITHUB_TOKEN` 写入 Release。Mac 任务会在凭据缺失时失败，补齐凭据后可在 Actions 页面重新运行失败任务。
+工作流使用 GitHub 自动提供的 `GITHUB_TOKEN` 写入 Release。Mac 产物采用未签名、未公证构建，无需配置 Apple 证书或账号 Secrets。Mac 用户从 Releases 手动下载新版 DMG 安装，首次打开时可能遇到 macOS 安全提示。当前应用内自动安装更新适用于 Windows 安装版，Mac 的铃铛提供新版下载入口。
 
 发布时先修改 `package.json` 的版本号（例如 `1.0.1`），提交所有发布代码和工作流，再推送标签。
 
@@ -246,7 +236,7 @@ git push origin v1.0.1
 
 工作流只接受 `v主版本.次版本.修订号`，标签必须和 `package.json` 一致。已公开的同版本 Release 会阻止再次上传，后续更新应递增版本并创建新标签。
 
-发布后，在 Windows 和 Mac 两种架构上各使用一个包含更新器的旧安装版，验证启动提示、手动检查、下载、重启安装，以及升级后访问原工作区的行为。首次接入更新器的用户需要手动下载安装一次。
+发布后，在 Windows 安装版验证启动提示、手动检查、下载和重启安装，在 Mac 两种架构上验证手动下载安装，以及升级后访问原工作区的行为。首次接入更新器的用户需要手动下载安装一次。
 
 更新源和构建产物说明见 [GitHub Releases](https://github.com/WONISHI/Vessel/releases) 和 [electron-builder 自动更新文档](https://www.electron.build/v26/docs/features/auto-update/)。
 

@@ -41,16 +41,6 @@ jobs:
       - name: Validate release version
         run: |
           node -e 'const v=require("./package.json").version; if (!/^\d+\.\d+\.\d+$/.test(v) || process.env.GITHUB_REF_NAME !== "v"+v) throw new Error("Tag must match stable package version v"+v)'
-      - name: Validate macOS signing credentials
-        if: matrix.platform == 'mac'
-        env:
-          CSC_LINK: ${{ secrets.CSC_LINK }}
-          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        run: |
-          node -e 'for(const k of ["CSC_LINK","CSC_KEY_PASSWORD","APPLE_ID","APPLE_APP_SPECIFIC_PASSWORD","APPLE_TEAM_ID"]) if(!process.env[k]) throw new Error("Missing repository secret "+k)'
       - uses: pnpm/action-setup@v4
         with:
           version: 10.30.3
@@ -68,15 +58,11 @@ jobs:
       - name: Package Windows
         if: matrix.platform == 'win'
         run: node scripts/build-win.cjs --publish never
-      - name: Package signed and notarized macOS app
+      - name: Package unsigned macOS app
         if: matrix.platform == 'mac'
         env:
-          CSC_LINK: ${{ secrets.CSC_LINK }}
-          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        run: node scripts/build-mac.cjs --publish never --config.forceCodeSigning=true --config.mac.notarize=true
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: node scripts/build-mac.cjs --publish never --config.forceCodeSigning=false --config.mac.identity=null --config.mac.notarize=false
       - uses: actions/upload-artifact@v4
         with:
           name: release-${{ matrix.target }}

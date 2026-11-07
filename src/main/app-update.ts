@@ -4,7 +4,7 @@ import type { AppUpdateState } from "../shared/app-update"
 import { drainTextFileWrites } from "@main/modules/files/index.module"
 
 const { autoUpdater } = updater
-const supported = app.isPackaged && (process.platform === "win32" || process.platform === "darwin")
+const supported = app.isPackaged && process.platform === "win32"
 let state: AppUpdateState = { status: supported ? "idle" : "unsupported" }
 let windowContents: WebContents | undefined
 let initialized = false

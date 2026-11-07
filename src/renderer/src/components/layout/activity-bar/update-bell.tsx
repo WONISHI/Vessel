@@ -37,6 +37,9 @@ export function UpdateBell({ dark }: { dark: boolean }) {
           className="relative size-[38px] rounded-[10px] text-[#a8a29e] hover:!bg-[#f0efed] hover:!text-[#a8a29e]"
         >
           <Bell className="!size-5" />
+          {state?.status === "unsupported" && (
+            <Button size="sm" variant="outline" onClick={() => run(() => window.electronAPI.openExternal("https://github.com/WONISHI/Vessel/releases"))}>下载新版</Button>
+          )}
           {nextVersion && <span aria-hidden="true" className="absolute right-0 top-0 flex size-4 items-center justify-center rounded-full bg-emerald-700 text-[10px] text-white">1</span>}
         </Button>
       </PopoverTrigger>
@@ -45,9 +48,12 @@ export function UpdateBell({ dark }: { dark: boolean }) {
           <img src={dark ? DarkLogo : Logo} alt="" className="mx-auto size-10 object-contain" />
           <h2 className="text-sm font-semibold">Vessel</h2>
           <p className="text-xs text-muted-foreground">当前版本 {version ?? "…"}</p>
+          {state?.status === "unsupported" && (
+            <Button size="sm" variant="outline" onClick={() => run(() => window.electronAPI.openExternal("https://github.com/WONISHI/Vessel/releases"))}>下载新版</Button>
+          )}
           {nextVersion && <p className="text-sm">新版本 {nextVersion}</p>}
           <div role="status" className="text-xs text-muted-foreground">
-            {state?.status === "unsupported" && "Windows 和 macOS 安装版支持应用更新。"}
+            {state?.status === "unsupported" && "自动安装更新适用于 Windows 安装版。Mac 请下载新版安装包。"}
             {state?.status === "checking" && "正在检查更新…"}
             {state?.status === "current" && "已是最新版本。"}
             {state?.status === "error" && state.message}
@@ -62,6 +68,9 @@ export function UpdateBell({ dark }: { dark: boolean }) {
           </div>
         </div>
         <div className="mt-4 flex justify-center gap-2">
+          {state?.status === "unsupported" && (
+            <Button size="sm" variant="outline" onClick={() => run(() => window.electronAPI.openExternal("https://github.com/WONISHI/Vessel/releases"))}>下载新版</Button>
+          )}
           {nextVersion && <Button size="sm" variant="outline" onClick={() => setOpen(false)}>稍候更新</Button>}
           {state?.status === "available" && <Button size="sm" onClick={() => run(window.electronAPI.downloadAppUpdate)}>立刻更新</Button>}
           {state?.status === "ready" && <Button size="sm" onClick={() => run(window.electronAPI.installAppUpdate)}>重启并安装</Button>}
