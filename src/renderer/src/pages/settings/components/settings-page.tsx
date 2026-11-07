@@ -1,3 +1,4 @@
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { AppUpdateSettings } from "./app-update-settings"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { AttachmentLibrarySettings } from "@/pages/settings/components/attachment-library-settings"
@@ -15,7 +16,7 @@ import { SyncDiagnosticsPanel } from "@/pages/settings/components/sync-diagnosti
 import { useRouter } from "@vessel/react-router"
 import type { AppSettings, BackupStatus } from "@vessel/type"
 import { defaultSettings, isLegacyDefaultIgnoredFiles } from "@vessel/utils"
-import { ArrowLeft, Camera, CheckCircle2, Clock, Cloud, Download, RotateCcw, Save, Settings, Upload } from "lucide-react"
+import { ArrowLeft, ChevronDown, Camera, CheckCircle2, Clock, Cloud, Download, RotateCcw, Save, Settings, Upload } from "lucide-react"
 import { version as reactVersion, useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 
@@ -527,16 +528,35 @@ export function SettingsPage() {
                     <Row title="悬浮视频窗口" description="在内置浏览器检测网页视频，并在可拖动的窗口中播放。">
                       <Switch aria-label="悬浮视频窗口" checked={draft.floatingVideoEnabled === true} onCheckedChange={(value) => update("floatingVideoEnabled", value)} />
                     </Row>
-                    <Row
-                      title="监听页面跳转"
-                      description="开启后，非链接跳转前询问在当前页面还是新标签页打开；a 标签链接直接放行。"
-                    >
-                      <Switch
-                        aria-label="监听页面跳转"
-                        checked={!!draft.monitorNavigation}
-                        onCheckedChange={(value) => update("monitorNavigation", value)}
-                      />
-                    </Row>
+                    <Collapsible>
+                      <div className="settings-row">
+                        <CollapsibleTrigger className="settings-attachment-trigger group min-w-0 flex-1 rounded text-left">
+                          <span className="flex items-center gap-2 text-sm font-semibold">
+                            <ChevronDown className="size-4 shrink-0 transition-transform group-data-[state=closed]:-rotate-90" />
+                            监听页面跳转
+                          </span>
+                          <span className="mt-1 block text-xs text-muted-foreground">开启后，非链接跳转时在右上角选择打开方式，超时按原方式跳转。</span>
+                        </CollapsibleTrigger>
+                        <Switch aria-label="监听页面跳转" checked={!!draft.monitorNavigation} onCheckedChange={(value) => update("monitorNavigation", value)} />
+                      </div>
+                      <CollapsibleContent className="px-5 pb-4">
+                        <Row title="默认跳转等待时间" description="单位为毫秒，默认 3000；设为 0 时立即按原方式跳转。">
+                          <Input
+                            type="number"
+                            aria-label="默认跳转等待时间（毫秒）"
+                            min={0}
+                            max={2147483647}
+                            step={1}
+                            className="w-40"
+                            value={draft.navigationDelayMs ?? 3000}
+                            onChange={(event) => {
+                              const value = event.target.valueAsNumber
+                              if (Number.isInteger(value) && value >= 0 && value <= 2147483647) update("navigationDelayMs", value)
+                            }}
+                          />
+                        </Row>
+                      </CollapsibleContent>
+                    </Collapsible>
                     <AttachmentLibrarySettings
                       enabled={draft.attachmentLibraryEnabled === true}
                       folders={draft.attachmentFolders ?? ["~/images", "~/img"]}

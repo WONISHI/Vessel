@@ -7,6 +7,7 @@ export interface AppSettings {
   attachmentFolders?: string[]
   floatingVideoEnabled?: boolean
   monitorNavigation?: boolean
+  navigationDelayMs?: number
   globalSearchEnabled?: boolean
   ignoredFiles?: string
   name: string

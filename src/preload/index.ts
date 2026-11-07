@@ -207,6 +207,17 @@ const vesselAPI = {
   setBrowserDevtools: (id: number | null, bounds?: Electron.Rectangle, appearance?: { font: string; size: number; detached?: boolean }): Promise<void> => ipcRenderer.invoke("browser:devtools", id, bounds, appearance),
 
   /** Handles browser new tab events. */
+  onNavigationRequest: (callback: (request: { id: number; url: string; defaultCurrent: boolean; delayMs: number }) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, request: { id: number; url: string; defaultCurrent: boolean; delayMs: number }) => callback(request)
+    ipcRenderer.on("browser:navigation-request", listener)
+    return () => { ipcRenderer.removeListener("browser:navigation-request", listener) }
+  },
+  onNavigationDismiss: (callback: (id: number) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, id: number) => callback(id)
+    ipcRenderer.on("browser:navigation-dismiss", listener)
+    return () => { ipcRenderer.removeListener("browser:navigation-dismiss", listener) }
+  },
+  answerNavigation: (id: number, current: boolean): Promise<void> => ipcRenderer.invoke("browser:navigation-answer", id, current),
   onBrowserNewTab: (callback: (url: string, opener?: number) => void) => {
     /** Performs the handler operation. */
     const handler = (_event: Electron.IpcRendererEvent, url: string, opener?: number) => callback(url, opener)

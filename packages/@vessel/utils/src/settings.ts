@@ -9,6 +9,7 @@ export const defaultSettings: AppSettings = {
   attachmentFolders: ["~/images", "~/img"],
   floatingVideoEnabled: true,
   monitorNavigation: false,
+  navigationDelayMs: 3000,
   globalSearchEnabled: false,
   ignoredFiles: ".obsidian, .git, .DS_Store, .vscode, .vessel",
   name: "本地用户",

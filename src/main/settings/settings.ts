@@ -90,6 +90,8 @@ function load() {
 /** Validates validate. */
 function validate(value: AppSettings): AppSettings {
   if (!value || !value.backup) throw new Error("设置格式无效")
+  const delay = value.navigationDelayMs ?? 3000
+  if (!Number.isInteger(delay) || delay < 0 || delay > 2147483647) throw new Error("跳转等待时间必须为有效的非负整数毫秒")
   if (!["light", "dark", "system"].includes(value.theme) || ![5, 10, 30].includes(value.backup.minutes) || !Number.isInteger(value.fontSize) || value.fontSize < 12 || value.fontSize > 18) throw new Error("设置选项无效")
   if (!["Plus Jakarta Sans", "Inter", "system-ui", "PingFang SC", "Georgia"].includes(value.font) || !/^#[0-9a-f]{6}$/i.test(value.accent)) throw new Error("外观设置无效")
   const direction = value.backup.direction ?? "bidirectional",
@@ -132,6 +134,7 @@ function validate(value: AppSettings): AppSettings {
       : defaultSettings.attachmentFolders,
     floatingVideoEnabled: value.floatingVideoEnabled !== false,
     monitorNavigation: value.monitorNavigation === true,
+    navigationDelayMs: value.navigationDelayMs ?? 3000,
     globalSearchEnabled: value.globalSearchEnabled === true,
     ignoredFiles:
       typeof value.ignoredFiles === "string"

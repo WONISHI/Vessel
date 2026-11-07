@@ -1,3 +1,4 @@
+import { NavigationNotice } from "@/pages/browser/components/browser-page/navigation-notice"
 import browserLoading from "@/assets/vessel-browser-loading/loading.svg"
 import ActivityBar from "@/components/layout/activity-bar/index"
 import Layout from "@/components/layout/index"
@@ -76,6 +77,7 @@ export function BrowserPage({ visible = true }: { visible?: boolean }) {
             }
           >
             <div className="relative h-full min-h-0 min-w-0 flex-1 bg-white">
+              <NavigationNotice />
               {findOpen && (
                 <BrowserFindBar b={b} />
               )}

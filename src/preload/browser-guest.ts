@@ -21,6 +21,7 @@ contextBridge.exposeInMainWorld("vesselPageBridge", {
 
 /** Performs the link activation operation. */
 const linkActivation = (event: MouseEvent) => {
+  if (!event.isTrusted) return
   const link = event.composedPath().find((node) => node instanceof HTMLAnchorElement && node.hasAttribute("href")) as HTMLAnchorElement | undefined
   if (link) ipcRenderer.sendSync("vessel:anchor-navigation", link.href)
 }
@@ -28,3 +29,33 @@ window.addEventListener("click", linkActivation, true)
 window.addEventListener("auxclick", linkActivation, true)
 
 if (location.protocol === "https:" && location.hostname === "chromewebstore.google.com") bindWebStoreInstall(() => ipcRenderer.send("vessel:webstore-install"))
+
+
+// Resume the original form submission so POST bodies and submitter values survive the choice.
+let formToken = 0
+let pendingForm: { token: number; form: HTMLFormElement; submitter: HTMLElement | null } | undefined
+let resumingForm = false
+ipcRenderer.on("vessel:resume-form", (_event, token: number) => {
+  const pending = pendingForm
+  if (!pending || pending.token !== token) return
+  pendingForm = undefined
+  if (!pending.form.isConnected) return
+  resumingForm = true
+  try {
+    HTMLFormElement.prototype.requestSubmit.call(pending.form, pending.submitter ?? undefined)
+  } finally {
+    resumingForm = false
+  }
+})
+window.addEventListener("submit", (event: SubmitEvent) => {
+  if (resumingForm || event.defaultPrevented || !(event.target instanceof HTMLFormElement)) return
+  const form = event.target
+  const submitter = event.submitter
+  const target = submitter?.getAttribute("formtarget") ?? form.target
+  if (target && target !== "_self") return
+  const url = new URL(submitter?.getAttribute("formaction") || form.action, location.href).href
+  const token = ++formToken
+  pendingForm = { token, form, submitter }
+  if (ipcRenderer.sendSync("vessel:form-navigation-choice", url, token) !== true) event.preventDefault()
+  else pendingForm = undefined
+})

@@ -2,9 +2,9 @@ import { registerBrowserDevtools } from "@main/browser/browser-devtools"
 import { registerBrowserExtensions } from "@main/browser/browser-extensions"
 import { registerBrowserProxy } from "@main/browser/browser-proxy"
 import { registerBrowserTools } from "@main/browser/browser-tools"
-import { shouldMonitorNavigation } from "@main/settings/settings"
+import { generalSettings, shouldMonitorNavigation } from "@main/settings/settings"
 import { commandShortcutIds, matchesShortcut } from "@vessel/utils"
-import { BrowserWindow, dialog, session, type WebContents } from "electron"
+import { session, type WebContents } from "electron"
 import { join } from "node:path"
 
 /** Performs the allowed operation. */
@@ -18,12 +18,42 @@ const allowed = (url: string) => {
   }
 }
 
+/** Recognizes search submissions within the same search provider. */
+function isSearchNavigation(from: string, to: string) {
+  const provider = (url: URL) => {
+    if (!["https:", "http:"].includes(url.protocol)) return undefined
+    const host = url.hostname
+    if (/^(?:www\.)?google\.(?:com|[a-z]{2}|com\.[a-z]{2}|co\.[a-z]{2})$/.test(host)) return "google"
+    if (host === "bing.com" || host.endsWith(".bing.com")) return "bing"
+    if (host === "baidu.com" || host.endsWith(".baidu.com")) return "baidu"
+    if (host === "duckduckgo.com" || host.endsWith(".duckduckgo.com")) return "duckduckgo"
+    return undefined
+  }
+  try {
+    const current = new URL(from)
+    const target = new URL(to)
+    const engine = provider(current)
+    if (!engine || engine !== provider(target)) return false
+    if (engine === "google" || engine === "bing") return target.pathname === "/search"
+    if (engine === "baidu") return target.pathname === "/s"
+    return target.pathname === "/" || target.pathname === "/html/" || target.pathname === "/lite/"
+  } catch {
+    return false
+  }
+}
+
 /** Performs the secure browser guests operation. */
 export function secureBrowserGuests(contents: WebContents) {
   registerBrowserExtensions(contents)
   registerBrowserProxy(contents)
   registerBrowserDevtools(contents)
   registerBrowserTools(contents)
+  const decisions = new Map<number, (current: boolean) => void>()
+  let decisionId = 0
+  contents.ipc.handle("browser:navigation-answer", (_event, id: number, current: boolean) => {
+    if (typeof current === "boolean") decisions.get(id)?.(current)
+  })
+  contents.once("destroyed", () => decisions.clear())
   contents.on("will-attach-webview", (event, preferences, params) => {
     if (!allowed(params.src) || !["persist:vessel-browser", "persist:vessel-transit"].includes(params.partition)) {
       event.preventDefault()
@@ -38,33 +68,53 @@ export function secureBrowserGuests(contents: WebContents) {
     preferences.allowRunningInsecureContent = false
   })
   contents.on("did-attach-webview", (_event, guest) => {
-    let asking = false
-    let anchor: { url: string; expires: number } | undefined
+    let cancelDecision: (() => void) | undefined
+    let resumeFormUntil = 0
+    let anchor: { url: string; source: string; expires: number } | undefined
 
     /** Performs the bypass prompt operation. */
-    const bypassPrompt = (url: string) => !shouldMonitorNavigation() || (anchor?.url === url && anchor.expires >= Date.now())
+    const bypassPrompt = (url: string) => !shouldMonitorNavigation() || isSearchNavigation(guest.getURL(), url) || (anchor !== undefined && anchor.expires >= Date.now() && (anchor.url === url || anchor.source === guest.getURL()))
     guest.ipc.on("vessel:anchor-navigation", (event, url: unknown) => {
-      if (typeof url === "string" && url.length < 16384 && allowed(url)) anchor = { url, expires: Date.now() + 1000 }
+      if (typeof url === "string" && url.length < 16384 && allowed(url)) anchor = { url, source: guest.getURL(), expires: Date.now() + 1000 }
       event.returnValue = true
     })
 
     /** Performs the choose navigation operation. */
-    const chooseNavigation = (url: string): boolean => {
+    const chooseNavigation = (url: string, defaultCurrent = true, loadCurrent = () => { void guest.loadURL(url).catch(() => {}) }): boolean => {
       if (!allowed(url)) return false
       if (bypassPrompt(url)) return true
       if (guest.session === session.fromPartition("persist:vessel-transit")) return true
-      const owner = BrowserWindow.fromWebContents(contents)
-      if (!owner || asking || guest.isDestroyed()) return false
-      asking = true
-      try {
-        // A synchronous decision preserves the original request, including form bodies.
-        const choice = dialog.showMessageBoxSync(owner, { type: "question", title: "打开页面", message: "在哪里打开此页面？", detail: url, buttons: ["当前页面", "新标签页", "取消"], defaultId: 0, cancelId: 2, noLink: true })
-        if (choice === 1 && !contents.isDestroyed()) contents.send("browser:new-tab", url, guest.id)
-        return choice === 0
-      } finally {
-        asking = false
+      cancelDecision?.()
+      const id = ++decisionId
+      const originalUrl = guest.getURL()
+      const finish = (current: boolean) => {
+        cancelDecision?.()
+        if (guest.isDestroyed() || contents.isDestroyed() || guest.getURL() !== originalUrl) return
+        if (current) loadCurrent()
+        else contents.send("browser:new-tab", url, guest.id)
       }
+      const delayMs = generalSettings().navigationDelayMs ?? 3000
+      const timer = setTimeout(() => finish(defaultCurrent), delayMs)
+      cancelDecision = () => {
+        clearTimeout(timer)
+        decisions.delete(id)
+        if (!contents.isDestroyed()) contents.send("browser:navigation-dismiss", id)
+        cancelDecision = undefined
+      }
+      decisions.set(id, finish)
+      contents.send("browser:navigation-request", { id, url, defaultCurrent, delayMs })
+      return false
     }
+    guest.ipc.on("vessel:form-navigation-choice", (event, url: unknown, token: unknown) => {
+      if (typeof url !== "string" || url.length >= 16384 || typeof token !== "number") {
+        event.returnValue = false
+        return
+      }
+      event.returnValue = chooseNavigation(url, true, () => {
+        resumeFormUntil = Date.now() + 1000
+        guest.send("vessel:resume-form", token)
+      })
+    })
     guest.ipc.on("vessel:navigation-choice", (event, url: unknown) => {
       event.returnValue = typeof url === "string" && url.length < 16384 && chooseNavigation(url)
     })
@@ -86,6 +136,10 @@ export function secureBrowserGuests(contents: WebContents) {
       }
     })
     guest.on("will-navigate", (event, url) => {
+      if (resumeFormUntil >= Date.now() && allowed(url)) {
+        resumeFormUntil = 0
+        return
+      }
       if (!chooseNavigation(url)) event.preventDefault()
     })
     guest.on("will-redirect", (event, url) => {
@@ -97,8 +151,13 @@ export function secureBrowserGuests(contents: WebContents) {
         contents.send("browser:new-tab", url, guest.id)
         return { action: "deny" }
       }
-      if (chooseNavigation(url)) void guest.loadURL(url, { httpReferrer: referrer, ...(postBody ? { postData: postBody.data, extraHeaders: `Content-Type: ${postBody.contentType}` } : {}) }).catch(() => {})
+      const loadCurrent = () => { void guest.loadURL(url, { httpReferrer: referrer, ...(postBody ? { postData: postBody.data, extraHeaders: `Content-Type: ${postBody.contentType}` } : {}) }).catch(() => {}) }
+      if (chooseNavigation(url, false, loadCurrent)) loadCurrent()
       return { action: "deny" }
+    })
+    guest.on("destroyed", () => cancelDecision?.())
+    guest.on("did-start-navigation", (_event, _url, _inPlace, mainFrame) => {
+      if (mainFrame) cancelDecision?.()
     })
     guest.on("dom-ready", () => {
       void guest
