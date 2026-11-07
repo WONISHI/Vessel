@@ -110,7 +110,7 @@ export function useGitRepository() {
   // 刷新当前仓库数据
 
   /** Refreshes refresh. */
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (silent = false) => {
     if (!repoPath) {
       setIsRepo(false)
       return
@@ -119,10 +119,11 @@ export function useGitRepository() {
     historyPending.current = null
     setHistoryFailed(false)
     setHistoryLoading(false)
-    setLoading(true)
+    if (!silent) setLoading(true)
     try {
       const git = window.electronAPI.git
       const valid = await git.isRepo(repoPath)
+      if (version !== historyVersion.current) return
       setIsRepo(valid)
       if (!valid) {
         setLoading(false)
@@ -169,9 +170,10 @@ export function useGitRepository() {
         return null
       })
     } catch (err: any) {
+      if (version !== historyVersion.current) return
       toast.error("读取仓库信息失败", { description: cleanGitErrorMessage(err) })
     } finally {
-      setLoading(false)
+      if (version === historyVersion.current) setLoading(false)
     }
   }, [repoPath, historyScope])
 
@@ -201,6 +203,53 @@ export function useGitRepository() {
   useEffect(() => {
     void refresh()
   }, [refresh])
+
+  // 合并连续文件事件，避免保存文件时重复扫描仓库。
+  useEffect(() => {
+    if (!repoPath) return
+    let disposed = false
+    let watchId: string | undefined
+    let timer: ReturnType<typeof setTimeout> | undefined
+    let running = false
+    let pending = false
+    const reload = async () => {
+      if (disposed) return
+      if (running) {
+        pending = true
+        return
+      }
+      running = true
+      await refresh(true)
+      running = false
+      if (pending && !disposed) {
+        pending = false
+        schedule()
+      }
+    }
+    const schedule = () => {
+      clearTimeout(timer)
+      timer = setTimeout(() => { void reload() }, 500)
+    }
+    const off = window.electronAPI.onFilesChanged((root) => {
+      if (root === repoPath) schedule()
+    })
+    void window.electronAPI.watchStart(repoPath).then((id) => {
+      if (disposed) void window.electronAPI.watchStop(id).catch(console.error)
+      else {
+        watchId = id
+        schedule()
+      }
+    }).catch(console.error)
+    window.addEventListener("focus", schedule)
+    return () => {
+      disposed = true
+      clearTimeout(timer)
+      off()
+      window.removeEventListener("focus", schedule)
+      if (watchId) void window.electronAPI.watchStop(watchId).catch(console.error)
+      historyVersion.current++
+    }
+  }, [repoPath, refresh])
 
   // 加载选定文件的 Diff
   useEffect(() => {
