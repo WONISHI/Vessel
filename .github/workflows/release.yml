@@ -30,6 +30,8 @@ jobs:
             platform: mac
     runs-on: ${{ matrix.os }}
     timeout-minutes: 90
+    env:
+      NODE_OPTIONS: --max-old-space-size=4096
     defaults:
       run:
         shell: bash
