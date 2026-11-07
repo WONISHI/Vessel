@@ -37,20 +37,14 @@ export function UpdateBell({ dark }: { dark: boolean }) {
           className="relative size-[38px] rounded-[10px] text-[#a8a29e] hover:!bg-[#f0efed] hover:!text-[#a8a29e]"
         >
           <Bell className="!size-5" />
-          {state?.status === "unsupported" && (
-            <Button size="sm" variant="outline" onClick={() => run(() => window.electronAPI.openExternal("https://github.com/WONISHI/Vessel/releases"))}>下载新版</Button>
-          )}
           {nextVersion && <span aria-hidden="true" className="absolute right-0 top-0 flex size-4 items-center justify-center rounded-full bg-emerald-700 text-[10px] text-white">1</span>}
         </Button>
       </PopoverTrigger>
-      <PopoverContent side="right" align="end" sideOffset={10} aria-label="应用更新">
-        <div className="space-y-2 text-center">
-          <img src={dark ? DarkLogo : Logo} alt="" className="mx-auto size-10 object-contain" />
+      <PopoverContent side="right" align="end" sideOffset={8} className="w-56 p-3" aria-label="应用更新">
+        <div className="space-y-1.5 text-center">
+          <img src={dark ? DarkLogo : Logo} alt="" className="mx-auto size-8 object-contain" />
           <h2 className="text-sm font-semibold">Vessel</h2>
           <p className="text-xs text-muted-foreground">当前版本 {version ?? "…"}</p>
-          {state?.status === "unsupported" && (
-            <Button size="sm" variant="outline" onClick={() => run(() => window.electronAPI.openExternal("https://github.com/WONISHI/Vessel/releases"))}>下载新版</Button>
-          )}
           {nextVersion && <p className="text-sm">新版本 {nextVersion}</p>}
           <div role="status" className="text-xs text-muted-foreground">
             {state?.status === "unsupported" && "自动安装更新适用于 Windows 安装版。Mac 请下载新版安装包。"}
@@ -67,7 +61,7 @@ export function UpdateBell({ dark }: { dark: boolean }) {
             )}
           </div>
         </div>
-        <div className="mt-4 flex justify-center gap-2">
+        <div className="mt-3 flex justify-center gap-2 [&_button]:h-7 [&_button]:px-2.5 [&_button]:text-xs">
           {state?.status === "unsupported" && (
             <Button size="sm" variant="outline" onClick={() => run(() => window.electronAPI.openExternal("https://github.com/WONISHI/Vessel/releases"))}>下载新版</Button>
           )}
