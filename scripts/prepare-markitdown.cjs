@@ -100,7 +100,7 @@ function main() {
   const extractRoot = path.join(CACHE, `extract-${triple}`)
   removeTree(extractRoot)
   fs.mkdirSync(extractRoot, { recursive: true })
-  execFileSync("tar", ["-xzf", archive, "-C", extractRoot], { stdio: "inherit" })
+  execFileSync("tar", ["-xzf", path.basename(archive), "-C", path.basename(extractRoot)], { cwd: CACHE, stdio: "inherit" })
 
   const extractedPython = path.join(extractRoot, "python")
   if (!fs.existsSync(extractedPython)) throw new Error(`独立 Python 解压结果异常：未找到 ${extractedPython}`)

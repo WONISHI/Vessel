@@ -95,7 +95,7 @@ async function prepareWinApp(arch, electronVersion) {
     if (!(await validRipgrep())) throw new Error("Ripgrep package checksum mismatch")
     const ripgrepTarget = path.join(app, "node_modules/@vscode", ripgrepName)
     await fs.mkdir(ripgrepTarget, { recursive: true })
-    await run("tar", ["-xzf", ripgrepArchive, "--strip-components=1", "-C", ripgrepTarget])
+    await run("tar", ["-xzf", path.relative(root, ripgrepArchive).split(path.sep).join("/"), "--strip-components=1", "-C", path.relative(root, ripgrepTarget).split(path.sep).join("/")], root)
     await verifyPE(path.join(ripgrepTarget, "bin/rg.exe"), arch)
     const watcherVersion = require("@parcel/watcher/package.json").version
     const watcherName = `watcher-win32-${arch}`
@@ -115,7 +115,7 @@ async function prepareWinApp(arch, electronVersion) {
     if (!(await valid())) throw new Error("Watcher package checksum mismatch")
     const watcher = path.join(app, "node_modules/@parcel", watcherName)
     await fs.mkdir(watcher, { recursive: true })
-    await run("tar", ["-xzf", watcherArchive, "--strip-components=1", "-C", watcher])
+    await run("tar", ["-xzf", path.relative(root, watcherArchive).split(path.sep).join("/"), "--strip-components=1", "-C", path.relative(root, watcher).split(path.sep).join("/")], root)
     await verifyPE(path.join(watcher, "watcher.node"), arch)
     const sqliteVersion = require("better-sqlite3/package.json").version
     const builderRequire = createRequire(require.resolve("electron-builder"))
@@ -131,7 +131,7 @@ async function prepareWinApp(arch, electronVersion) {
       await download(`https://github.com/WiseLibs/better-sqlite3/releases/download/v${sqliteVersion}/${filename}`, archive)
     const sqlite = path.join(app, "node_modules/better-sqlite3")
     await fs.rm(path.join(sqlite, "build"), { recursive: true, force: true })
-    await run("tar", ["-xzf", archive, "-C", sqlite])
+    await run("tar", ["-xzf", path.relative(root, archive).split(path.sep).join("/"), "-C", path.relative(root, sqlite).split(path.sep).join("/")], root)
     await verifyPE(path.join(sqlite, "build/Release/better_sqlite3.node"), arch)
     // node-pty ships N-API Windows prebuilds and their companion DLL/EXE files.
     const pty = path.join(app, "node_modules/node-pty")
