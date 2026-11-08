@@ -1,3 +1,4 @@
+import { parseFootnotes } from "@vessel/obsidian"
 import type Vditor from "vditor"
 
 const excluded = '[data-type="code-block"], pre:not(.vditor-reset), img, [data-type="img"], .vessel-image-block, [contenteditable="false"], [data-type="footnotes-ref"], [data-type="footnotes-block"], [data-vessel-footnote-id]'
@@ -128,6 +129,11 @@ export function insertFootnote(editor: Vditor, host: HTMLElement, range: Range, 
   selection.addRange(caret)
   editable.appendChild(footnotes)
   editor.insertValue(`[^${id}]`, true)
+  const value = editor.getValue()
+  const parsed = parseFootnotes(value)
+  if (parsed.references.some((entry) => entry.id === id) && !parsed.definitions.some((entry) => entry.id === id)) {
+    editor.setValue(value.trimEnd() + `\n\n[^${id}]: ${definition}\n`)
+  }
   return true
 }
 
@@ -176,4 +182,15 @@ export function deleteFootnote(editor: Vditor, host: HTMLElement, id: string): b
   selection?.addRange(range)
   editor.insertValue("", true)
   return true
+}
+
+/** Retains referenced definitions if a local DOM re-render omits the footnote block. */
+export function preserveFootnoteDefinitions(previous: string, next: string): string {
+  const before = parseFootnotes(previous)
+  const after = parseFootnotes(next)
+  const referenced = new Set(after.references.map((entry) => entry.id))
+  const defined = new Set(after.definitions.map((entry) => entry.id))
+  const missing = before.definitions.filter((entry) => referenced.has(entry.id) && !defined.has(entry.id))
+  if (!missing.length) return next
+  return next.trimEnd() + "\n\n" + missing.map((entry) => previous.slice(entry.start, entry.end)).join("\n\n") + "\n"
 }

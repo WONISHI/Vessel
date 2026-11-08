@@ -2,7 +2,7 @@ import { decorateInlineHTML } from "@/components/core/canvas/variants/markdown/i
 import { afterEach, expect, it, vi } from "vitest"
 import { createRequire } from "node:module"
 import type Vditor from "vditor"
-import { bindFootnoteToolbar, deleteFootnote, insertFootnote, nextFootnoteId, validFootnoteRange } from "@/components/core/canvas/variants/markdown/footnotes"
+import { bindFootnoteToolbar, preserveFootnoteDefinitions, deleteFootnote, insertFootnote, nextFootnoteId, validFootnoteRange } from "@/components/core/canvas/variants/markdown/footnotes"
 const require = createRequire(import.meta.url)
 require("vditor/dist/js/lute/lute.min.js")
 const lute = (globalThis as any).Lute.New()
@@ -151,4 +151,12 @@ it("deletes only the requested footnote and preserves its text and other notes",
   expect(undo).toHaveBeenCalledTimes(1)
   expect(editor.insertValue).toHaveBeenCalledWith("", true)
   expect(deleteFootnote(editor, host, "missing")).toBe(false)
+})
+
+it("preserves definitions omitted by a DOM edit while allowing reference deletion and definition updates", () => {
+  const previous = "文字[^1]\n\n[^1]: **说明**\n    第二行\n"
+  expect(preserveFootnoteDefinitions(previous, "修改文字[^1]")).toContain("[^1]: **说明**\n    第二行")
+  expect(preserveFootnoteDefinitions(previous, "文字")).toBe("文字")
+  const updated = "文字[^1]\n\n[^1]: 新的说明"
+  expect(preserveFootnoteDefinitions(previous, updated)).toBe(updated)
 })

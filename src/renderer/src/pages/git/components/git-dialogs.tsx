@@ -1,3 +1,4 @@
+import { CreateTagDialog } from "./create-tag-dialog"
 import { RepositorySettingsDialog } from "@/pages/git/components/repository-settings-dialog"
 import { TerminalPanel } from "@/components/workspace/components/layout-main/terminal-panel"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -12,6 +13,9 @@ export function GitDialogs({ g }: { g: GitPageModel }) {
 
   return (
     <>
+        {g.tagTarget?.repoPath === repoPath && (
+          <CreateTagDialog key={repoPath + g.tagTarget.hash} repoPath={repoPath} hash={g.tagTarget.hash} onClose={() => g.setTagTarget(null)} onCreated={refresh} />
+        )}
         {/* 弹窗：新建分支 */}
         <CreateBranchDialog
           open={createBranchOpen}

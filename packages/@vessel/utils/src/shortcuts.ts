@@ -8,9 +8,11 @@ export const shortcuts = {
   findWorkspaceFiles: { label: "查找工作区文件", key: "f", mod: true, shift: true, scope: "全局" },
   visitLink: { label: "访问链接", key: "l", mod: true, shift: true, scope: "全局" },
   reloadApp: { label: "刷新页面", key: "r", mod: true, shift: true, scope: "全局" },
-  toggleTheme: { label: "切换主题", key: "d", mod: true, shift: true, scope: "全局" },
+  toggleTheme: { label: "切换主题", key: "j", mod: true, shift: true, scope: "全局" },
   showControls: { label: "显示控制按钮", key: "y", mod: true, shift: true, scope: "全局" },
   hideControls: { label: "关闭控制按钮", key: "u", mod: true, shift: true, scope: "全局" },
+  openBrowser: { label: "跳转到浏览器", key: "b", ctrl: true, shift: true, scope: "全局" },
+  openWorkspace: { label: "跳转到工作区", key: "d", ctrl: true, shift: true, scope: "全局" },
   openTranslate: { label: "打开翻译", key: "g", ctrl: true, shift: true, scope: "全局" },
   command: { label: "命令菜单", key: "p", mod: true, scope: "全局" },
   find: { label: "页面 / 文档查找", key: "f", mod: true, scope: "浏览器、编辑器" },
@@ -66,4 +68,4 @@ export function markdownHotkey(id: ShortcutId) {
 }
 
 /** Commands available both in the app shell and focused browser guests. */
-export const commandShortcutIds = ["command", "openTranslate", "selectWorkspace", "findWorkspaceFiles", "visitLink", "reloadApp", "toggleTheme", "showControls", "hideControls"] as const
+export const commandShortcutIds = ["command", "openBrowser", "openWorkspace", "openTranslate", "selectWorkspace", "findWorkspaceFiles", "visitLink", "reloadApp", "toggleTheme", "showControls", "hideControls"] as const

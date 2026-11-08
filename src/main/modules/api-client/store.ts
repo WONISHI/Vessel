@@ -186,6 +186,12 @@ export class ApiClientStore {
     this.db.prepare("DELETE FROM api_history").run()
   }
 
+  /** Deletes the request group represented by one deduplicated history row. */
+  deleteHistoryRequest(method: string, url: string): void {
+    if (typeof method !== "string" || typeof url !== "string") throw new Error("历史记录参数无效")
+    this.db.prepare("DELETE FROM api_history WHERE UPPER(method) = ? AND url = ?").run(method.toUpperCase(), url)
+  }
+
   /** Deletes history. */
   deleteHistory(id: number): void {
     this.db.prepare("DELETE FROM api_history WHERE id = ?").run(id)

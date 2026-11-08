@@ -1,3 +1,11 @@
+import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from "@/components/ui/context-menu"
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable-panels"
+import "@/components/ui/resize-handle.css"
+import "@/components/core/canvas/variants/code/monaco"
+import Editor from "@monaco-editor/react"
+import { registerMonacoTheme } from "@/components/core/canvas/variants/code/theme"
+import { useDarkAppearance } from "@/hooks/use-dark-appearance"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import "@/pages/postman/dark.css"
 import type { AsideActivity } from "@/components/layout/activity-bar/activity"
 import LayoutActivityBar from "@/components/layout/activity-bar/index"
@@ -6,12 +14,13 @@ import { Button } from "@/components/ui/button"
 import { toast } from "@/components/ui/sonner"
 import type { ApiCollectionRecord, ApiEnvironmentRecord, ApiHistoryRecord, ApiRequestRecord, ApiResponseData } from "@vessel/type"
 import { Check, Copy, FolderPlus, Play, Plus, Save, Send, Trash2 } from "lucide-react"
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
 
 /** Renders the postman page component. */
 export default function PostmanPage() {
   const navigate = useNavigate()
+  const dark = useDarkAppearance()
 
   /** Handles activity change events. */
   const handleActivityChange = (act: AsideActivity) => {
@@ -28,6 +37,14 @@ export default function PostmanPage() {
   const [collections, setCollections] = useState<ApiCollectionRecord[]>([])
   const [requests, setRequests] = useState<ApiRequestRecord[]>([])
   const [history, setHistory] = useState<ApiHistoryRecord[]>([])
+  const uniqueHistory = useMemo(() => {
+    const latest = new Map<string, ApiHistoryRecord>()
+    for (const item of [...history].sort((a, b) => b.createdAt - a.createdAt || b.id - a.id)) {
+      const key = JSON.stringify([item.method.toUpperCase(), item.url])
+      if (!latest.has(key)) latest.set(key, item)
+    }
+    return [...latest.values()]
+  }, [history])
   const [environments, setEnvironments] = useState<ApiEnvironmentRecord[]>([])
   const [activeEnvId, setActiveEnvId] = useState<string | null>(null)
 
@@ -266,7 +283,7 @@ pm.test("Response time is less than 1000ms", function () {
         />
       }
     >
-      <div className="vessel-api-page flex h-full min-w-0 flex-1 flex-col overflow-hidden bg-white text-stone-800">
+      <div id="vessel-api-client" className="vessel-api-page flex h-full min-w-0 flex-1 flex-col overflow-hidden bg-white text-stone-800">
         {/* 顶部工具栏 */}
         <header className="flex h-12 shrink-0 items-center justify-between border-b border-stone-200 bg-stone-50/70 px-3">
           <div className="flex items-center gap-2">
@@ -280,31 +297,24 @@ pm.test("Response time is less than 1000ms", function () {
 
           {/* 环境选择器与保存 */}
           <div className="flex items-center gap-2 text-xs">
-            <select
-              value={activeEnvId || ""}
-              onChange={async (e) => {
-                const val = e.target.value || null
-                setActiveEnvId(val)
-                const updated = await window.electronAPI.apiClient.setActiveEnvironment(val)
+            <Select value={activeEnvId ?? "__none__"} onValueChange={(value) => {
+              const id = value === "__none__" ? null : value
+              void window.electronAPI.apiClient.setActiveEnvironment(id).then((updated) => {
+                setActiveEnvId(id)
                 setEnvironments(updated)
-              }}
-              className="rounded border border-stone-200 bg-white px-2 py-1 text-xs outline-none focus:border-amber-500"
-            >
-              <option value="">No Environment (无环境)</option>
-              {environments.map((env) => (
-                <option
-                  key={env.id}
-                  value={env.id}
-                >
-                  {env.name}
-                </option>
-              ))}
-            </select>
+              }).catch((error) => toast.error(String(error)))
+            }}>
+              <SelectTrigger className="api-select-trigger h-8 w-48 text-xs" aria-label="请求环境"><SelectValue /></SelectTrigger>
+              <SelectContent className="api-select-content">
+                <SelectItem value="__none__">No Environment (无环境)</SelectItem>
+                {environments.map((env) => <SelectItem key={env.id} value={env.id}>{env.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
 
             <Button
               size="sm"
               variant="outline"
-              className="h-8 gap-1.5 text-xs border-stone-200"
+              className="api-save-button h-8 gap-1.5 text-xs border-stone-200"
               onClick={handleSaveRequest}
             >
               <Save className="size-3.5" />
@@ -314,9 +324,10 @@ pm.test("Response time is less than 1000ms", function () {
         </header>
 
         {/* 主体分栏 */}
-        <div className="flex flex-1 min-h-0 overflow-hidden">
+        <ResizablePanelGroup orientation="horizontal" className="overflow-hidden">
           {/* 左侧边栏 (Collections / History / Environments) */}
-          <aside className="w-64 shrink-0 border-r border-stone-200 bg-stone-50/50 flex flex-col overflow-hidden">
+          <ResizablePanel id="api-sidebar" defaultSize="20%" minSize="160px" maxSize="40%">
+          <aside className="h-full bg-stone-50/50 flex flex-col overflow-hidden">
             {/* Sidebar Tabs */}
             <div className="flex border-b border-stone-200 text-xs font-medium">
               <button
@@ -433,9 +444,10 @@ pm.test("Response time is less than 1000ms", function () {
                       清空
                     </button>
                   </div>
-                  {history.map((h) => (
+                  {uniqueHistory.map((h) => (
+                    <ContextMenu key={h.id}>
+                    <ContextMenuTrigger asChild>
                     <div
-                      key={h.id}
                       onClick={() => {
                         setMethod(h.method)
                         setUrl(h.url)
@@ -459,6 +471,18 @@ pm.test("Response time is less than 1000ms", function () {
                         {h.url}
                       </div>
                     </div>
+                    </ContextMenuTrigger>
+                    <ContextMenuContent className="api-history-menu w-32">
+                      <ContextMenuItem className="text-red-600 focus:!bg-red-50 focus:!text-red-600" onSelect={() => {
+                        void window.electronAPI.apiClient.deleteHistoryRequest(h.method, h.url).then(() => {
+                          setHistory((current) => current.filter((item) => item.method.toUpperCase() !== h.method.toUpperCase() || item.url !== h.url))
+                        }).catch((error) => toast.error(String(error)))
+                      }}>
+                        <Trash2 className="size-3.5" />
+                        删除
+                      </ContextMenuItem>
+                    </ContextMenuContent>
+                    </ContextMenu>
                   ))}
                 </div>
               )}
@@ -512,31 +536,26 @@ pm.test("Response time is less than 1000ms", function () {
               )}
             </div>
           </aside>
+          </ResizablePanel>
+          <ResizableHandle aria-label="调整 API 侧栏宽度" />
+          <ResizablePanel id="api-main" minSize="360px">
 
           {/* 右侧主请求与响应区 */}
-          <main className="flex-1 min-w-0 flex flex-col overflow-hidden">
+          <main className="h-full min-w-0 flex flex-col overflow-hidden">
             {/* URL 输入栏 */}
             <div className="p-3 border-b border-stone-200 bg-white flex items-center gap-2">
-              <select
-                value={method}
-                onChange={(e) => setMethod(e.target.value)}
-                className="h-9 rounded-md border border-stone-200 bg-stone-50 px-2.5 font-bold text-xs outline-none focus:border-amber-500"
-              >
-                {["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"].map((m) => (
-                  <option
-                    key={m}
-                    value={m}
-                  >
-                    {m}
-                  </option>
-                ))}
-              </select>
+              <Select value={method} onValueChange={setMethod}>
+                <SelectTrigger className="api-select-trigger h-9 w-28 bg-stone-50 text-xs font-bold" aria-label="请求方法"><SelectValue /></SelectTrigger>
+                <SelectContent className="api-select-content">
+                  {["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"].map((method) => <SelectItem key={method} value={method}>{method}</SelectItem>)}
+                </SelectContent>
+              </Select>
 
               <input
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 placeholder="输入 URL 或使用 {{baseUrl}}/api/v1/users…"
-                className="h-9 flex-1 rounded-md border border-stone-200 px-3 font-mono text-xs outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+                className="api-url-input h-9 flex-1 rounded-md border border-stone-200 px-3 font-mono text-xs outline-none"
                 onKeyDown={(e) => {
                   if ((e.metaKey || e.ctrlKey) && e.key === "Enter") handleSend()
                 }}
@@ -553,7 +572,8 @@ pm.test("Response time is less than 1000ms", function () {
             </div>
 
             {/* 请求构造区 Tabs */}
-            <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+            <ResizablePanelGroup orientation="vertical">
+              <ResizablePanel id="api-request" defaultSize="45%" minSize="140px" className="flex min-h-0 flex-col overflow-hidden">
               {/* 请求配置导航条 */}
               <div className="flex border-b border-stone-200 bg-stone-50/50 px-3 text-xs">
                 {[
@@ -575,7 +595,7 @@ pm.test("Response time is less than 1000ms", function () {
               </div>
 
               {/* 请求配置具体内容 */}
-              <div className="h-48 shrink-0 overflow-y-auto p-3 text-xs border-b border-stone-200 bg-white">
+              <div className={`min-h-0 flex-1 bg-white p-3 text-xs ${(activeReqTab === "body" || activeReqTab === "tests") ? "flex flex-col overflow-hidden" : "overflow-y-auto"}`}>
                 {activeReqTab === "params" && (
                   <div className="space-y-1">
                     <div className="flex items-center text-[11px] font-semibold text-stone-400 mb-1">
@@ -702,16 +722,15 @@ pm.test("Response time is less than 1000ms", function () {
                   <div className="space-y-3">
                     <div className="flex items-center gap-3">
                       <label className="font-semibold text-stone-600">认证类型:</label>
-                      <select
-                        value={authType}
-                        onChange={(e) => setAuthType(e.target.value as any)}
-                        className="rounded border border-stone-200 px-2 py-1"
-                      >
-                        <option value="none">No Auth</option>
-                        <option value="bearer">Bearer Token</option>
-                        <option value="basic">Basic Auth</option>
-                        <option value="apiKey">API Key</option>
-                      </select>
+                      <Select value={authType} onValueChange={(value) => setAuthType(value as typeof authType)}>
+                        <SelectTrigger className="api-select-trigger h-8 w-40 text-xs" aria-label="认证类型"><SelectValue /></SelectTrigger>
+                        <SelectContent className="api-select-content">
+                          <SelectItem value="none">No Auth</SelectItem>
+                          <SelectItem value="bearer">Bearer Token</SelectItem>
+                          <SelectItem value="basic">Basic Auth</SelectItem>
+                          <SelectItem value="apiKey">API Key</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
 
                     {authType === "bearer" && (
@@ -784,8 +803,8 @@ pm.test("Response time is less than 1000ms", function () {
                 )}
 
                 {activeReqTab === "body" && (
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-4">
+                  <div className="flex min-h-0 flex-1 flex-col gap-2">
+                    <div className="flex shrink-0 items-center gap-4">
                       {["none", "raw", "x-www-form-urlencoded", "form-data"].map((t) => (
                         <label
                           key={t}
@@ -816,20 +835,24 @@ pm.test("Response time is less than 1000ms", function () {
                     </div>
 
                     {bodyType === "raw" && (
-                      <textarea
-                        rows={5}
-                        value={bodyContent}
-                        onChange={(e) => setBodyContent(e.target.value)}
-                        placeholder='{\n  "title": "foo",\n  "body": "bar",\n  "userId": 1\n}'
-                        className="w-full rounded border border-stone-200 p-2 font-mono text-xs outline-none focus:border-amber-500"
-                      />
+                      <div className="min-h-0 min-w-0 flex-1 overflow-hidden rounded border border-amber-500">
+                        <Editor
+                          height="100%"
+                          theme={dark ? "vessel-dark" : "light"}
+                          beforeMount={registerMonacoTheme}
+                          language={rawType === "text" ? "plaintext" : rawType}
+                          value={bodyContent}
+                          onChange={(value) => setBodyContent(value ?? "")}
+                          options={{ automaticLayout: true, minimap: { enabled: false }, fontSize: 12, tabSize: 2, wordWrap: "on", scrollBeyondLastLine: false, ariaLabel: "请求 Body", padding: { top: 8 } }}
+                        />
+                      </div>
                     )}
                   </div>
                 )}
 
                 {activeReqTab === "tests" && (
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
+                  <div className="flex min-h-0 flex-1 flex-col gap-2">
+                    <div className="flex shrink-0 items-center justify-between">
                       <span className="font-semibold text-stone-600">断言测试脚本 (Postman 语法)</span>
                       <button
                         type="button"
@@ -839,16 +862,24 @@ pm.test("Response time is less than 1000ms", function () {
                         + 插入代码片段
                       </button>
                     </div>
-                    <textarea
-                      rows={5}
-                      value={testsScript}
-                      onChange={(e) => setTestsScript(e.target.value)}
-                      className="w-full rounded border border-stone-200 p-2 font-mono text-xs outline-none focus:border-amber-500"
-                    />
+                    <div className="min-h-0 min-w-0 flex-1 overflow-hidden rounded border border-amber-500">
+                      <Editor
+                        height="100%"
+                        theme={dark ? "vessel-dark" : "light"}
+                        beforeMount={registerMonacoTheme}
+                        language="javascript"
+                        value={testsScript}
+                        onChange={(value) => setTestsScript(value ?? "")}
+                        options={{ automaticLayout: true, minimap: { enabled: false }, fontSize: 12, tabSize: 2, wordWrap: "on", scrollBeyondLastLine: false, ariaLabel: "断言测试脚本", padding: { top: 8 } }}
+                      />
+                    </div>
                   </div>
                 )}
               </div>
 
+              </ResizablePanel>
+              <ResizableHandle aria-label="调整请求与响应区域高度" />
+              <ResizablePanel id="api-response" minSize="100px" className="flex min-h-0 flex-col overflow-hidden">
               {/* 响应结果展示区 (Response Viewer) */}
               <div className="flex-1 min-h-0 flex flex-col bg-stone-50/30">
                 {/* 响应状态指示栏 */}
@@ -893,11 +924,25 @@ pm.test("Response time is less than 1000ms", function () {
                 </div>
 
                 {/* 响应内容 */}
-                <div className="flex-1 overflow-auto p-3 text-xs bg-white font-mono">
+                <div className={`min-h-0 flex-1 bg-white text-xs font-mono ${response && activeResTab === "body" ? "overflow-hidden" : "overflow-auto p-3"}`}>
                   {!response ? (
                     <div className="flex h-full items-center justify-center text-stone-400 font-sans">点击右上角“发送”按钮以发起请求</div>
                   ) : activeResTab === "body" ? (
-                    <pre className="whitespace-pre-wrap break-all leading-relaxed text-stone-800">{formattedJson}</pre>
+                    <Editor
+                      height="100%"
+                      theme={dark ? "vessel-dark" : "light"}
+                      beforeMount={registerMonacoTheme}
+                      language={(() => {
+                        try { JSON.parse(response.body); return "json" } catch {}
+                        const type = Object.entries(response.headers).find(([name]) => name.toLowerCase() === "content-type")?.[1] ?? ""
+                        if (type.includes("html")) return "html"
+                        if (type.includes("xml")) return "xml"
+                        if (type.includes("javascript")) return "javascript"
+                        return "plaintext"
+                      })()}
+                      value={formattedJson}
+                      options={{ readOnly: true, domReadOnly: true, automaticLayout: true, minimap: { enabled: false }, fontSize: 12, tabSize: 2, wordWrap: "on", scrollBeyondLastLine: false, ariaLabel: "响应内容", padding: { top: 12 } }}
+                    />
                   ) : activeResTab === "headers" ? (
                     <div className="space-y-1 font-sans">
                       {Object.entries(response.headers).map(([k, v]) => (
@@ -932,9 +977,11 @@ pm.test("Response time is less than 1000ms", function () {
                   )}
                 </div>
               </div>
-            </div>
+              </ResizablePanel>
+            </ResizablePanelGroup>
           </main>
-        </div>
+          </ResizablePanel>
+        </ResizablePanelGroup>
       </div>
     </Layout>
   )

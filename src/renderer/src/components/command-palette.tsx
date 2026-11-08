@@ -83,6 +83,12 @@ export function CommandPalette() {
         case "command": setOpen((value) => !value); break
         case "selectWorkspace": selectWorkspace(); break
         case "findWorkspaceFiles": findWorkspaceFiles(); break
+        case "openBrowser":
+        case "openWorkspace":
+          setOpen(false)
+          setFinderOpen(false)
+          void router.push(command === "openBrowser" ? "/browser" : "/editor")
+          break
         case "openTranslate":
           setOpen(false)
           setFinderOpen(false)

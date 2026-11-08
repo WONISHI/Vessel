@@ -1,3 +1,4 @@
+import { useState } from "react"
 import { TextWithArrows } from "@/components/ui/text-with-arrows"
 import { toast } from "@/components/ui/sonner"
 import { cleanGitErrorMessage } from "@/pages/git/utils"
@@ -19,18 +20,8 @@ export function useGitCommitActions(repo: GitRepositoryState) {
     }
   }
 
-  /** Handles create tag events. */
-  const handleCreateTag = async (hash: string) => {
-    const tag = window.prompt(`请输入要为此提交 (${hash.slice(0, 7)}) 创建的标签名:`)
-    if (!tag || !tag.trim()) return
-    try {
-      await window.electronAPI.git.createTag(repoPath, tag.trim(), hash)
-      await refresh()
-      toast.success(`已创建标签: ${tag.trim()}`)
-    } catch (e: any) {
-      toast.error("创建标签失败", { description: cleanGitErrorMessage(e) })
-    }
-  }
+  const [tagTarget, setTagTarget] = useState<{ hash: string; repoPath: string } | null>(null)
+  const handleCreateTag = (hash: string) => setTagTarget({ hash, repoPath })
 
   /** Handles reset branch events. */
   const handleResetBranch = async (hash: string, mode: "soft" | "mixed" | "hard") => {
@@ -227,5 +218,5 @@ export function useGitCommitActions(repo: GitRepositoryState) {
     }
   }
 
-  return { handleCheckoutCommit, handleCreateTag, handleResetBranch, handleUndoLastCommit, handleRevertCommit, handleOpenRemoteCommit, handleCommit, handleCheckoutBranch, handleDeleteBranch, handleMergeBranch, handlePull, handlePush, handleFetch, handleInitRepo }
+  return { tagTarget, setTagTarget, handleCheckoutCommit, handleCreateTag, handleResetBranch, handleUndoLastCommit, handleRevertCommit, handleOpenRemoteCommit, handleCommit, handleCheckoutBranch, handleDeleteBranch, handleMergeBranch, handlePull, handlePush, handleFetch, handleInitRepo }
 }

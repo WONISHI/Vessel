@@ -144,7 +144,7 @@ export function DocumentOutline({
         className={cn("document-outline-panel flex min-h-0 flex-1 flex-col overflow-hidden motion-reduce:!transition-none", pinned ? "w-full" : "absolute inset-y-0 right-0 z-20", !pinned && "w-48 rounded-lg bg-white p-2 shadow-lg ring-1 ring-stone-100")}
       >
         <div className="flex h-8 shrink-0 items-center justify-end gap-2 pr-7">
-          <Button
+          {section === "outline" && <Button
             variant="ghost"
             size="icon"
             className="document-outline-action size-7 shrink-0 text-stone-400 hover:bg-green-600 hover:text-white active:bg-green-600 active:text-white"
@@ -154,7 +154,7 @@ export function DocumentOutline({
             onClick={() => setCollapsed(anyExpanded ? new Set(tree.flatMap((node, index) => node.descendants ? [index] : [])) : new Set())}
           >
             <ListTree className="!size-3.5" />
-          </Button>
+          </Button>}
           {
             <Button
               variant="ghost"

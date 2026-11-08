@@ -54,6 +54,7 @@ export class ApiClientModule extends BaseModule {
       "api-client:history:clear": () => store.clearHistory(),
 
       /** Performs the "api client:history:delete" operation. */
+      "api-client:history:delete-request": (_e, method: string, url: string) => store.deleteHistoryRequest(method, url),
       "api-client:history:delete": (_e, id: number) => store.deleteHistory(id),
 
       // 环境变量 Environments

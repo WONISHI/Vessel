@@ -38,6 +38,7 @@ export const apiClientAPI = {
   listHistory: (limit?: number): Promise<ApiHistoryRecord[]> => ipcRenderer.invoke("api-client:history:list", limit),
 
   /** Clears history. */
+  deleteHistoryRequest: (method: string, url: string): Promise<void> => ipcRenderer.invoke("api-client:history:delete-request", method, url),
   clearHistory: (): Promise<void> => ipcRenderer.invoke("api-client:history:clear"),
 
   /** Deletes history. */

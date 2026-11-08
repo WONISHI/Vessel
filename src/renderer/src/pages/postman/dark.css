@@ -28,3 +28,84 @@ html.dark .vessel-api-page :is(.bg-green-50, .bg-green-100) { background: rgba(7
 html.dark .vessel-api-page :is(.bg-red-50, .bg-red-100) { background: rgba(248,113,113,.12) !important; color: #f87171 !important; }
 
 html.dark .vessel-api-page > header { background: #22272e !important; }
+
+/* API-only select borders, including portalled option panels. */
+.vessel-api-page button.api-select-trigger,
+html.dark .vessel-api-page button.api-select-trigger,
+.api-select-content,
+html.dark .api-select-content {
+  border-color: #f59e0b !important;
+}
+.vessel-api-page button.api-select-trigger:focus {
+  --tw-ring-color: #f59e0b;
+}
+
+.api-select-content [role="option"] {
+  font-size: 11px !important;
+  line-height: 1.5;
+}
+.api-select-content [role="option"]:is([data-highlighted], [data-state="checked"]),
+html.dark .api-select-content [role="option"]:is([data-highlighted], [data-state="checked"]) {
+  background-color: #f59e0b !important;
+  color: #fff !important;
+}
+.api-select-content [role="option"]:is([data-highlighted], [data-state="checked"]) svg {
+  color: #fff !important;
+}
+.vessel-api-page button.api-select-trigger:focus,
+.vessel-api-page button.api-select-trigger[data-state="open"] {
+  --tw-ring-color: #f59e0b !important;
+}
+
+html #vessel-api-client button.api-select-trigger.vessel-field:not(:disabled):is(:focus, :focus-visible, [data-state="open"]),
+html.dark #vessel-api-client button.api-select-trigger.vessel-field:not(:disabled):is(:focus, :focus-visible, [data-state="open"]) {
+  border-color: #f59e0b !important;
+  outline: none !important;
+  box-shadow: 0 0 0 3px #f59e0b26 !important;
+}
+
+html #vessel-api-client input.api-url-input,
+html.dark #vessel-api-client input.api-url-input {
+  border-width: 1px !important;
+}
+html #vessel-api-client input.api-url-input:is(:focus, :focus-visible),
+html.dark #vessel-api-client input.api-url-input:is(:focus, :focus-visible) {
+  border-color: #f59e0b !important;
+  outline: none !important;
+  box-shadow: 0 0 0 3px #f59e0b26 !important;
+}
+
+.api-select-content [role="option"][data-highlighted]:not([data-state="checked"]),
+html.dark .api-select-content [role="option"][data-highlighted]:not([data-state="checked"]) {
+  background-color: rgba(245, 158, 11, .14) !important;
+  color: #b45309 !important;
+}
+html.dark .api-select-content [role="option"][data-highlighted]:not([data-state="checked"]) {
+  color: #fbbf24 !important;
+}
+
+html .api-history-menu [role="menuitem"]:is(:hover, :focus, [data-highlighted]),
+html .api-history-menu [role="menuitem"]:is(:hover, :focus, [data-highlighted]) svg {
+  color: #dc2626 !important;
+}
+html .api-history-menu [role="menuitem"]:is(:hover, :focus, [data-highlighted]) {
+  background-color: #fef2f2 !important;
+}
+html.dark .api-history-menu [role="menuitem"]:is(:hover, :focus, [data-highlighted]),
+html.dark .api-history-menu [role="menuitem"]:is(:hover, :focus, [data-highlighted]) svg {
+  color: #f87171 !important;
+}
+html.dark .api-history-menu [role="menuitem"]:is(:hover, :focus, [data-highlighted]) {
+  background-color: rgba(239, 68, 68, .14) !important;
+}
+
+html #vessel-api-client button.api-save-button:not(:disabled):hover,
+html.dark #vessel-api-client button.api-save-button:not(:disabled):hover {
+  background-color: #f59e0b !important;
+  border-color: #f59e0b !important;
+  color: #fff !important;
+}
+html #vessel-api-client button.api-save-button:not(:disabled):hover svg {
+  color: #fff !important;
+  stroke: currentColor !important;
+}

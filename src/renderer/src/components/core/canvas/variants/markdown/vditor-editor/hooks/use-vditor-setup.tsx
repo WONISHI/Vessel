@@ -8,7 +8,7 @@ import { pdfDocumentHtml } from "@/components/pdf-export/export-html"
 import { lazyPreviews } from "@/components/core/canvas/variants/markdown/lazy-previews"
 import { decorateCallouts, bindCallouts } from "@/components/core/canvas/variants/markdown/callouts"
 import { configureBodyLute } from "@/components/core/canvas/variants/markdown/body-lute"
-import { bindFootnoteToolbar, decorateFootnoteReferences } from "@/components/core/canvas/variants/markdown/footnotes"
+import { bindFootnoteToolbar, decorateFootnoteReferences, preserveFootnoteDefinitions } from "@/components/core/canvas/variants/markdown/footnotes"
 import { markdownDocuments } from "@/components/native-file-menu/document-bridge"
 import { bindMarkdownInsertMenu } from "@/components/core/canvas/variants/markdown/insert-menu-selection"
 import { bindTaskCheckboxes } from "@/components/core/canvas/variants/markdown/task-checkboxes"
@@ -232,7 +232,7 @@ export function useVditorSetup(state: VditorEditorState, { triggerInsertLinkRef 
       imagePicker.value = ""
     })
     let editor: Vditor
-    const documentContent = () => (properties?.raw ?? "") + restoreObsidianImages(editor.getValue())
+    const documentContent = () => preserveFootnoteDefinitions(latestValue.current, (properties?.raw ?? "") + restoreObsidianImages(editor.getValue()))
     let imageFrame = 0
 
     /** Refreshes images. */
@@ -394,7 +394,13 @@ export function useVditorSetup(state: VditorEditorState, { triggerInsertLinkRef 
           /** Performs the input operation. */
           input: (content) => {
             if (!disposed && !readOnly) {
-              changeHandler.current((properties?.raw ?? "") + restoreObsidianImages(content))
+              const next = (properties?.raw ?? "") + restoreObsidianImages(content)
+              const preserved = preserveFootnoteDefinitions(latestValue.current, next)
+              changeHandler.current(preserved)
+              if (preserved !== next) {
+                editor.setValue(prepareObsidianImages(preserved.slice((properties?.raw ?? "").length)))
+                return
+              }
               const prepared = prepareObsidianImages(content)
               cancelAnimationFrame(imageFrame)
               if (prepared !== content)
@@ -470,7 +476,7 @@ export function useVditorSetup(state: VditorEditorState, { triggerInsertLinkRef 
       element.querySelectorAll<HTMLElement>('[contenteditable="true"], [contenteditable="false"]').forEach(cancelInsertFocus)
       view?.dispose()
       if (ready && !readOnly && typeof editor.getValue === "function") {
-        const content = (properties?.raw ?? "") + restoreObsidianImages(editor.getValue())
+        const content = documentContent()
         if (content !== latestValue.current) void writeDocument(documentPath, content).catch(console.error)
       }
       colorRange.current = null

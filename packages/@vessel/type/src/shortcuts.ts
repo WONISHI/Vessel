@@ -9,6 +9,8 @@ export type ShortcutItem = {
 
 export type ShortcutId =
   | "openTranslate"
+  | "openBrowser"
+  | "openWorkspace"
   | "command"
   | "selectWorkspace"
   | "findWorkspaceFiles"

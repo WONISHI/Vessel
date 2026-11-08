@@ -171,12 +171,12 @@ export function GitToolbar({ g }: { g: GitPageModel }) {
                 <DropdownMenuContent align="end" className="git-repo-switcher-menu max-h-[60vh] w-56 overflow-y-auto border-stone-200 bg-white text-stone-800 dark:border-[#414954] dark:bg-[#23272d] dark:text-stone-100">
                   <DropdownMenuRadioGroup value={repoPath} onValueChange={(value) => value && setRepoPath(value)}>
                     {!libraryProjects.some((p) => p.path === repoPath) && repoPath && (
-                      <DropdownMenuRadioItem value={repoPath} className="git-repo-switcher-item text-xs dark:focus:bg-[#2f343b] dark:focus:text-stone-100 dark:data-[state=checked]:bg-[#3a4048] dark:data-[state=checked]:text-stone-100">
+                      <DropdownMenuRadioItem checkOnRight value={repoPath} className="git-repo-switcher-item text-xs dark:focus:bg-[#2f343b] dark:focus:text-stone-100 dark:data-[state=checked]:bg-[#3a4048] dark:data-[state=checked]:text-stone-100">
                         <span className="truncate">{repoPath.split(/[\\/]/).pop()} (当前)</span>
                       </DropdownMenuRadioItem>
                     )}
                     {libraryProjects.map((p) => (
-                      <DropdownMenuRadioItem key={p.path} value={p.path} className="git-repo-switcher-item text-xs dark:focus:bg-[#2f343b] dark:focus:text-stone-100 dark:data-[state=checked]:bg-[#3a4048] dark:data-[state=checked]:text-stone-100">
+                      <DropdownMenuRadioItem checkOnRight key={p.path} value={p.path} className="git-repo-switcher-item text-xs dark:focus:bg-[#2f343b] dark:focus:text-stone-100 dark:data-[state=checked]:bg-[#3a4048] dark:data-[state=checked]:text-stone-100">
                         <span className="truncate">{p.name}</span>
                       </DropdownMenuRadioItem>
                     ))}

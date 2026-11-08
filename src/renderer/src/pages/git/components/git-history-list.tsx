@@ -184,7 +184,7 @@ export function GitHistoryList({ g }: { g: GitPageModel }) {
                                   <span>在此处创建分支…</span>
                                 </ContextMenuItem>
                                 <ContextMenuItem onSelect={() => void handleCreateTag(c.hash)}>
-                                  <Tag className="size-3.5 text-amber-500" />
+                                  <Tag className="size-3.5 text-stone-500" />
                                   <span>在此处创建标签…</span>
                                 </ContextMenuItem>
 
