@@ -100,7 +100,7 @@ export default function TranslateTool() {
             />
             <div className="flex items-center justify-between px-3 pb-2 text-xs text-muted-foreground">
               <span>{from === "auto" && detectedLabel ? `检测到 ${detectedLabel} · ` : ""}{input.length}/{maxLength}</span>
-              <Button size="icon" variant="ghost" aria-label="清空原文" disabled={busy || !input} onClick={() => { setInput(""); clearResult() }}><X size={16} /></Button>
+              <Button size="icon" variant="ghost" className="translate-clear-button" aria-label="清空原文" disabled={busy || !input} onClick={() => { setInput(""); clearResult() }}><X size={16} /></Button>
             </div>
           </div>
         </section>

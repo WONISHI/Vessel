@@ -2,6 +2,7 @@ import Logo from "@/assets/logo.png"
 import DarkLogo from "@/assets/logo-dark.svg"
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { Bell } from "lucide-react"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
@@ -10,6 +11,7 @@ type UpdateState = Awaited<ReturnType<Window["electronAPI"]["getAppUpdate"]>>
 
 export function UpdateBell({ dark }: { dark: boolean }) {
   const [open, setOpen] = useState(false)
+  const [tooltipOpen, setTooltipOpen] = useState(false)
   const [state, setState] = useState<UpdateState>()
   const [version, setVersion] = useState<string>()
 
@@ -26,15 +28,16 @@ export function UpdateBell({ dark }: { dark: boolean }) {
   return (
     <Popover open={open} onOpenChange={(next) => {
       setOpen(next)
+      if (next) setTooltipOpen(false)
       if (next && !version) void window.electronAPI.getSettingsInfo().then((info) => setVersion(info.version)).catch(console.error)
     }}>
+      <Tooltip open={tooltipOpen && !open} onOpenChange={(next) => setTooltipOpen(next && !open)}>
+      <TooltipTrigger asChild>
       <PopoverTrigger asChild>
         <Button
           variant="ghost"
           size="icon"
           data-activity-button
-          data-title={open ? undefined : nextVersion ? "应用更新，1 条通知" : "应用更新"}
-          data-title-side="right"
           aria-label={nextVersion ? "应用更新，1 条通知" : "应用更新"}
           className="relative size-[38px] rounded-[10px] text-[#a8a29e] hover:!bg-[#f0efed] hover:!text-[#a8a29e]"
         >
@@ -42,6 +45,9 @@ export function UpdateBell({ dark }: { dark: boolean }) {
           {nextVersion && <span aria-hidden="true" className="absolute right-0 top-0 flex size-4 items-center justify-center rounded-full bg-emerald-700 text-[10px] text-white">1</span>}
         </Button>
       </PopoverTrigger>
+      </TooltipTrigger>
+      <TooltipContent side="right">{nextVersion ? "应用更新，1 条通知" : "应用更新"}</TooltipContent>
+      </Tooltip>
       <PopoverContent side="right" align="end" sideOffset={8} className="w-56 p-3 shadow-xl dark:shadow-[0_12px_32px_rgba(0,0,0,.5)]" aria-label="应用更新">
         <div className="space-y-1.5 text-center">
           <img src={dark ? DarkLogo : Logo} alt="" className="mx-auto size-8 object-contain" />

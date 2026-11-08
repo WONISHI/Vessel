@@ -57,3 +57,20 @@ export interface GitRepositorySettings {
   globalEmail: string
   ignore: string
 }
+
+export interface GitTagOptions {
+  force?: boolean
+  lightweight?: boolean
+  sign?: boolean
+  message?: string
+}
+
+export interface GitSearchOptions {
+  query: string
+  field: "message" | "sha" | "branch" | "file" | "author"
+  from?: string
+  to?: string
+  skip?: number
+  limit?: number
+}
+export interface GitSearchResult { commits: GitCommitItem[]; hasMore: boolean }

@@ -1,12 +1,14 @@
+import { useState } from "react"
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuSub, ContextMenuSubContent, ContextMenuSubTrigger } from "@/components/ui/context-menu"
 import { MarkdownContextMenuAnchor } from "./context-menu-anchor"
-import { headingBlockRange } from "./heading-handles"
+import { canCopyHeadingBlock, headingBlockRange } from "./heading-handles"
 import type Vditor from "vditor"
 import { restoreObsidianImages } from "./image-source"
 import { toast } from "sonner"
 
 /** Actions operate on a heading and all content up to the next peer or parent heading. */
 export function HeadingBlockMenu({ heading, x, y, editor, onClose }: { heading: HTMLElement; x: number; y: number; editor: Vditor; onClose: () => void }) {
+  const [copyEnabled] = useState(() => canCopyHeadingBlock(heading))
   const focusHeading = (atEnd: boolean) => {
     const editable = heading.closest<HTMLElement>('[contenteditable="true"]')
     if (!editable) return
@@ -40,7 +42,8 @@ export function HeadingBlockMenu({ heading, x, y, editor, onClose }: { heading: 
     <ContextMenu modal={false} onOpenChange={(open) => { if (!open) onClose() }}>
       <MarkdownContextMenuAnchor x={x} y={y} label="标题块操作" />
       <ContextMenuContent className="w-36" onCloseAutoFocus={(event) => event.preventDefault()}>
-        <ContextMenuItem onSelect={() => {
+        <ContextMenuItem disabled={!copyEnabled} onSelect={() => {
+          if (!copyEnabled) return
           const range = headingBlockRange(heading)
           if (!range) return
           const container = document.createElement("div")

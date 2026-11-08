@@ -1,8 +1,9 @@
-import type { GitRepositorySettings } from "@vessel/type/git"
+import type { GitRepositorySettings, GitTagOptions, GitSearchOptions, GitSearchResult } from "@vessel/type/git"
 import type { GitCommitDetail, GitCommitItem, GitDiffResult, GitStatusResult } from "@vessel/type"
 import { ipcRenderer } from "electron"
 
 export const gitAPI = {
+  searchCommits: (cwd: string, options: GitSearchOptions): Promise<GitSearchResult> => ipcRenderer.invoke("git:search", cwd, options),
   getRepositorySettings: (cwd: string): Promise<GitRepositorySettings> => ipcRenderer.invoke("git:repository-settings", cwd),
   saveRepositorySettings: (cwd: string, settings: GitRepositorySettings): Promise<void> => ipcRenderer.invoke("git:save-repository-settings", cwd, settings),
   /** Checks whether repo. */
@@ -90,7 +91,10 @@ export const gitAPI = {
   revert: (cwd: string, hash: string): Promise<void> => ipcRenderer.invoke("git:revert", cwd, hash),
 
   /** Creates tag. */
-  createTag: (cwd: string, tag: string, target?: string): Promise<void> => ipcRenderer.invoke("git:create-tag", cwd, tag, target),
+  createTag: (cwd: string, tag: string, target?: string, options?: GitTagOptions): Promise<void> => ipcRenderer.invoke("git:create-tag", cwd, tag, target, options),
+  getTags: (cwd: string): Promise<string[]> => ipcRenderer.invoke("git:tags", cwd),
+  deleteTag: (cwd: string, tag: string): Promise<void> => ipcRenderer.invoke("git:delete-tag", cwd, tag),
+  pushTag: (cwd: string, remote: string, tag: string): Promise<void> => ipcRenderer.invoke("git:push-tag", cwd, remote, tag),
 
   getRemoteWebUrl: (cwd: string): Promise<string> => ipcRenderer.invoke("git:remote-web-url", cwd),
 

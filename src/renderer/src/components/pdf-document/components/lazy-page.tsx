@@ -20,7 +20,7 @@ export function LazyPage({ number, width, strokes, tool, color, penWidth, add, e
   return (
     <div
       ref={host}
-      className="relative mx-auto mb-4 shrink-0 bg-white shadow"
+      className="relative isolate mx-auto mb-4 shrink-0 bg-white shadow"
       style={{ width, height: width * ratio }}
       aria-label={`第 ${number} 页`}
       data-pdf-page={number}
@@ -37,10 +37,11 @@ export function LazyPage({ number, width, strokes, tool, color, penWidth, add, e
         />
       )}
       <svg
-        className="absolute inset-0"
+        className="pdf-ink-layer absolute inset-0 z-10"
+        aria-label="PDF 笔迹层"
         width={width}
         height={width * ratio}
-        style={{ pointerEvents: tool === "view" ? "none" : "auto", touchAction: tool === "view" ? "auto" : "none", cursor: tool === "pen" ? "crosshair" : "default" }}
+        style={{ zIndex: 10, pointerEvents: tool === "view" ? "none" : "all", touchAction: tool === "view" ? "auto" : "none", cursor: tool === "pen" ? "crosshair" : tool === "erase" ? "cell" : "default" }}
         onPointerDown={(event) => {
           if (tool !== "pen" || event.button !== 0) return
           event.preventDefault()
@@ -69,22 +70,32 @@ export function LazyPage({ number, width, strokes, tool, color, penWidth, add, e
         }}
       >
         {[...strokes, ...(draft ? [draft] : [])].map((stroke) => (
+          <g key={stroke.id}>
           <polyline
-            key={stroke.id}
             points={path(stroke)}
             fill="none"
             stroke={stroke.color}
             strokeWidth={stroke.width * width}
             strokeLinecap="round"
             strokeLinejoin="round"
-            style={{ pointerEvents: tool === "erase" ? "stroke" : "none" }}
+            style={{ pointerEvents: "none" }}
+          />
+          {tool === "erase" && <polyline
+            points={path(stroke)}
+            fill="none"
+            stroke="transparent"
+            strokeWidth={Math.max(12, stroke.width * width + 8)}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            style={{ pointerEvents: "stroke" }}
             onPointerDown={(event) => {
               if (tool === "erase") {
                 event.stopPropagation()
                 erase(stroke.id)
               }
             }}
-          />
+          />}
+          </g>
         ))}
       </svg>
     </div>

@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
-import { Archive, ArrowDown, ArrowUp, CloudCheck, Clock, FileText, Plus } from "lucide-react"
+import { Archive, ArrowDown, ArrowUp, CloudCheck, Clock, FileText, Plus, Search } from "lucide-react"
 import type { GitPageModel } from "@/pages/git/hooks/use-git-page"
 import { GitBranchTree } from "@/pages/git/components/git-branch-tree"
 
@@ -200,6 +200,10 @@ export function GitSidebarNav({ g }: { g: GitPageModel }) {
                       {branchCommitTotal}
                     </span>
                   </div>
+                </button>
+                <button type="button" onClick={() => setActiveTab("search")} data-git-selected={activeTab === "search"}
+                  className={`flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 transition-colors ${activeTab === "search" ? "bg-stone-200/80 font-medium text-stone-900" : "text-stone-600 hover:bg-stone-100"}`}>
+                  <Search className="size-3.5 text-stone-500" />搜索
                 </button>
               </div>
 

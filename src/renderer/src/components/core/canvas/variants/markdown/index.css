@@ -1067,7 +1067,7 @@ html.dark .vessel-heading-grip:hover { background: #ffffff0f; color: #d6d3d1; }
 .vessel-heading-fold-indicator { display: none; }
 .vessel-heading-grip.is-heading-folded .vessel-heading-fold-indicator { display: flex; }
 .vessel-heading-grip.is-heading-folded :is(.vessel-heading-level, .vessel-heading-drag) { display: none; }
-.vditor-toolbar .vessel-heading-exit-focus { margin-left: auto; width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; border-radius: 5px; color: #78716c; }
+.vditor-toolbar .vessel-heading-exit-focus { position: static; margin: 0; padding: 0; width: 25px; height: var(--toolbar-height, 35px); display: inline-flex; align-items: center; justify-content: center; border-radius: 5px; color: #78716c; }
 .vditor-toolbar .vessel-heading-exit-focus[hidden] { display: none; }
-.vditor-toolbar .vessel-heading-exit-focus:hover { background: #f4f4f3; }
-html.dark .vditor-toolbar .vessel-heading-exit-focus:hover { background: #ffffff0f; }
+.vditor-toolbar .vessel-heading-exit-focus:hover { background: transparent; }
+html.dark .vditor-toolbar .vessel-heading-exit-focus:hover { background: transparent; }

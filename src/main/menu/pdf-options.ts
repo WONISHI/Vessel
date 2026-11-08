@@ -3,7 +3,7 @@ import type { PdfExportOptions } from "@vessel/type/native-menu"
 
 /** Validate IPC options and generate one consistent page layout for Chromium. */
 export function preparePdfExport(html: string, options?: PdfExportOptions): { html: string; print: PrintToPDFOptions } {
-  if (!options) return { html, print: { printBackground: true, preferCSSPageSize: true } }
+  if (!options) return { html, print: { printBackground: true, preferCSSPageSize: true, generateDocumentOutline: true, generateTaggedPDF: true } }
   if (
     !["A4", "A3", "A5", "Letter", "Legal"].includes(options.paper) ||
     typeof options.landscape !== "boolean" ||
@@ -24,6 +24,8 @@ export function preparePdfExport(html: string, options?: PdfExportOptions): { ht
     html: /<\/head>/i.test(html) ? html.replace(/<\/head>/i, `${css}</head>`) : css + html,
     print: {
       pageSize: options.paper,
+      generateDocumentOutline: true,
+      generateTaggedPDF: true,
       landscape: options.landscape,
       printBackground: options.printBackground,
       preferCSSPageSize: true,

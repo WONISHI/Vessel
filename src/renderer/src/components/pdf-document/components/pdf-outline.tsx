@@ -31,9 +31,12 @@ async function readHeadings(pdf: PDFDocumentProxy, isActive: () => boolean): Pro
 
 async function inferHeadings(pdf: PDFDocumentProxy, isActive: () => boolean): Promise<PdfHeading[]> {
   const titles: Awaited<ReturnType<typeof readPageTitles>> = []
+  const fontWeights = new Map<number, number>()
   for (let number = 1; number <= pdf.numPages && isActive(); number++) {
     try {
-      titles.push(...await readPageTitles(await pdf.getPage(number), number))
+      titles.push(...await readPageTitles(await pdf.getPage(number), number, (weights) => {
+        for (const [size, weight] of weights) fontWeights.set(size, (fontWeights.get(size) ?? 0) + weight)
+      }))
     } catch {
       // Continue scanning when an individual page has unreadable text.
     }
@@ -46,11 +49,13 @@ async function inferHeadings(pdf: PDFDocumentProxy, isActive: () => boolean): Pr
     pages.add(title.page)
     marginOccurrences.set(title.text, pages)
   }
-  const unique = titles.filter((title) => !inMargin(title.offset) || (marginOccurrences.get(title.text)?.size ?? 0) < 2)
+  const bodySize = [...fontWeights].sort((a, b) => b[1] - a[1])[0]?.[0] ?? 0
+  // Code-heavy pages may have a smaller local body font; do not promote normal prose there.
+  const unique = titles.filter((title) => (title.numbered || (title.size >= bodySize * 1.1 && title.size >= bodySize + .75)) && (!inMargin(title.offset) || (marginOccurrences.get(title.text)?.size ?? 0) < 2))
   const sizes = [...new Set(unique.map(({ size }) => Math.round(size * 4) / 4))].sort((a, b) => b - a)
   return unique.map(({ size, ...title }) => ({
     ...title,
-    level: Math.min(3, sizes.indexOf(Math.round(size * 4) / 4) + 1)
+    level: Math.min(6, sizes.indexOf(Math.round(size * 4) / 4) + 1)
   }))
 }
 

@@ -52,7 +52,8 @@ export default function MarkdownCanvas({ activeFilePath, workspacePath: customWo
   const current = loaded?.path === activeFilePath ? loaded : null
   const outlineSource = useDeferredValue(current?.content ?? "")
   const sections = useMemo(() => headingSections(outlineSource), [outlineSource])
-  const [headings, setHeadings] = useState<{ text: string; level: number; color?: string }[]>([])
+  const outlineNodes = useRef<HTMLElement[]>([])
+  const [headings, setHeadings] = useState<{ text: string; level: number; color?: string; sourceIndex: number }[]>([])
   const [activeHeading, setActiveHeading] = useState(-1)
   useEffect(() => {
     const host = contentHost.current
@@ -67,7 +68,9 @@ export default function MarkdownCanvas({ activeFilePath, workspacePath: customWo
       frame = requestAnimationFrame(() => {
         if (headingsDirty) {
           nodes = Array.from(host.querySelectorAll<HTMLElement>(".vditor-ir .vditor-reset h1, .vditor-ir .vditor-reset h2, .vditor-ir .vditor-reset h3, .vditor-ir .vditor-reset h4, .vditor-ir .vditor-reset h5, .vditor-ir .vditor-reset h6"))
-          const next = nodes.map((node) => ({ ...outlineHeading(node.textContent ?? ""), level: Number(node.tagName[1]) }))
+          const next = nodes.map((node, sourceIndex) => ({ node, sourceIndex })).filter(({ node }) => !node.closest(".vessel-heading-focus-hidden")).map(({ node, sourceIndex }) => ({ ...outlineHeading(node.textContent ?? ""), level: Number(node.tagName[1]), sourceIndex }))
+          nodes = nodes.filter((node) => !node.closest(".vessel-heading-focus-hidden"))
+          outlineNodes.current = nodes
           setHeadings((previous) => (JSON.stringify(previous) === JSON.stringify(next) ? previous : next))
           headingsDirty = false
         }
@@ -83,6 +86,8 @@ export default function MarkdownCanvas({ activeFilePath, workspacePath: customWo
         setActiveHeading(active)
       })
     }
+    const visibilityChanged = () => { headingsDirty = true; update() }
+    host.addEventListener("vessel:heading-visibility", visibilityChanged)
     const observer = new MutationObserver((mutations) => {
       if (mutations.some((mutation) => {
         const target = mutation.target instanceof Element ? mutation.target : mutation.target.parentElement
@@ -97,6 +102,8 @@ export default function MarkdownCanvas({ activeFilePath, workspacePath: customWo
     host.addEventListener("scroll", update, true)
     update()
     return () => {
+      host.removeEventListener("vessel:heading-visibility", visibilityChanged)
+      outlineNodes.current = []
       observer.disconnect()
       resize.disconnect()
       host.removeEventListener("scroll", update, true)
@@ -207,13 +214,12 @@ export default function MarkdownCanvas({ activeFilePath, workspacePath: customWo
           }}
           workspacePath={workspacePath}
           documentPath={activeFilePath}
-          sections={sections}
+          sections={headings.map((heading) => sections[heading.sourceIndex] ?? heading.text)}
           fileName={activeFilePath.split(/[\\/]/).pop()}
           headings={headings}
           activeIndex={activeHeading}
           onSelect={(index) => {
-            const nodes = contentHost.current?.querySelectorAll(".vditor-ir .vditor-reset :is(h1,h2,h3,h4,h5,h6)")
-            const target = nodes?.[index]
+            const target = outlineNodes.current[index]
             if (target instanceof HTMLElement) revealMarkdownElement(target)
           }}
         />

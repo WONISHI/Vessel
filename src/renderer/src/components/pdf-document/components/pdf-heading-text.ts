@@ -3,7 +3,7 @@ import type { PDFPageProxy } from "pdfjs-dist"
 export type PdfHeading = { text: string; level: number; page: number; offset?: number }
 type Line = { text: string; x: number; y: number; end: number; size: number }
 
-export async function readPageTitles(page: PDFPageProxy, number: number) {
+export async function readPageTitles(page: PDFPageProxy, number: number, onFontWeights?: (weights: Map<number, number>) => void) {
   const viewport = page.getViewport({ scale: 1 })
   const { items } = await page.getTextContent()
   const lines: Line[] = []
@@ -28,13 +28,14 @@ export async function readPageTitles(page: PDFPageProxy, number: number) {
     }
   }
 
+  onFontWeights?.(weights)
   const body = [...weights].sort((a, b) => b[1] - a[1] || a[0] - b[0])[0]?.[0] ?? 0
   const candidates: Line[] = []
   let previous: Line | undefined
   for (const line of lines) {
     const numbered = /^(?:第[一二三四五六七八九十百\d]+[章节篇]|\d+(?:\.\d+)+\s+\S)/.test(line.text)
     const titleLike = line.text.length >= 2 && line.text.length <= 120 && /\p{L}/u.test(line.text) && !/[。；;]$/.test(line.text)
-    const prominent = line.size >= body * 1.2 && line.size >= body + 2
+    const prominent = line.size >= body * 1.1 && line.size >= body + .75
     const sparseTitle = lines.length <= 3 && line.size >= 18 && line.y < viewport.height * .4
     if (titleLike && (prominent || numbered || sparseTitle)) {
       const last = candidates.at(-1)
@@ -52,7 +53,8 @@ export async function readPageTitles(page: PDFPageProxy, number: number) {
   return candidates.map((line) => ({
     text: line.text,
     page: number,
-    size: line.size / Math.max(body, 1),
+    size: line.size,
+    numbered: /^(?:第[一二三四五六七八九十百\d]+[章节篇]|\d+(?:\.\d+)+\s+\S)/.test(line.text),
     offset: Math.max(0, Math.min(1, (line.y - line.size) / viewport.height))
   }))
 }

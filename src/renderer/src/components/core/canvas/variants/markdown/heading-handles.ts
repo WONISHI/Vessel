@@ -18,11 +18,34 @@ export function headingBlockRange(heading: HTMLElement) {
   return range
 }
 
+const doubleClickSelections = new WeakSet<HTMLElement>()
+
+/** Only the handle's double-click grants block-copy permission. */
+export function selectHeadingBlock(heading: HTMLElement) {
+  const range = headingBlockRange(heading)
+  if (!range) return
+  heading.closest<HTMLElement>('[contenteditable="true"]')?.focus({ preventScroll: true })
+  const selection = window.getSelection()
+  if (!selection) return
+  selection.removeAllRanges()
+  selection.addRange(range)
+  doubleClickSelections.add(heading)
+}
+
+export function canCopyHeadingBlock(heading: HTMLElement) {
+  const selection = window.getSelection()
+  const block = headingBlockRange(heading)
+  if (!doubleClickSelections.has(heading) || !block || !selection?.rangeCount || selection.isCollapsed) return false
+  const selected = selection.getRangeAt(0)
+  return selected.compareBoundaryPoints(Range.START_TO_START, block) === 0 && selected.compareBoundaryPoints(Range.END_TO_END, block) === 0
+}
+
 /** Keeps decorative handles outside the document so they cannot enter saved Markdown. */
 export function bindHeadingHandles(root: HTMLElement, onMenu: (heading: HTMLElement, x: number, y: number) => void, toolbarHost?: HTMLElement | null) {
   const handles = new Map<HTMLElement, HTMLButtonElement>()
   const headingIcons = [Heading1, Heading2, Heading3, Heading4, Heading5, Heading6]
   let focusedSection: HTMLElement | null = null
+  let reportedFocus: HTMLElement | null = null
   const exitFocus = document.createElement("button")
   exitFocus.type = "button"
   exitFocus.className = "vessel-heading-exit-focus"
@@ -87,14 +110,7 @@ export function bindHeadingHandles(root: HTMLElement, onMenu: (heading: HTMLElem
           schedule()
         }
         button.prepend(foldIcon)
-        const select = () => {
-          const range = headingBlockRange(heading)
-          if (!range) return
-          editable?.focus({ preventScroll: true })
-          const selection = window.getSelection()
-          selection?.removeAllRanges()
-          selection?.addRange(range)
-        }
+        const select = () => selectHeadingBlock(heading)
         button.onmousedown = (event) => { event.preventDefault(); event.stopPropagation() }
         button.onclick = (event) => {
           event.preventDefault()
@@ -123,6 +139,10 @@ export function bindHeadingHandles(root: HTMLElement, onMenu: (heading: HTMLElem
       button.hidden = !heading.getClientRects().length || !root.getClientRects().length || rect.top < visibleTop || rect.top + 20 > visibleBottom
       button.style.left = `${Math.max(bounds.left, rect.left - 18)}px`
       button.style.top = `${rect.top + Math.max(0, (Math.min(rect.height, 32) - 20) / 2)}px`
+    }
+    if (reportedFocus !== focusedSection) {
+      reportedFocus = focusedSection
+      root.dispatchEvent(new CustomEvent("vessel:heading-visibility", { bubbles: true }))
     }
   }
   const schedule = () => { if (!frame) frame = requestAnimationFrame(update) }

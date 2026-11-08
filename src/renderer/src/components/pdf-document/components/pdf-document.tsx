@@ -116,6 +116,7 @@ export function PdfDocument({ bytes, name, viewStateKey = name }: { bytes: Uint8
                 key={String(value)}
                 disabled={!loaded}
                 aria-label={String(label)}
+                data-title={String(label)}
                 aria-pressed={tool === value}
                 className="pdf-tool pdf-mode-tool"
                 onClick={() => setTool(String(value))}
@@ -128,7 +129,7 @@ export function PdfDocument({ bytes, name, viewStateKey = name }: { bytes: Uint8
           <Popover>
             <PopoverTrigger asChild>
               <button
-                aria-label="笔迹颜色"
+                aria-label="笔迹颜色" data-title="笔迹颜色"
                 className="pdf-control w-9 justify-center"
               >
                 <span
@@ -147,6 +148,7 @@ export function PdfDocument({ bytes, name, viewStateKey = name }: { bytes: Uint8
                   <button
                     key={value}
                     aria-label={value}
+                    data-title={`笔迹颜色 ${value}`}
                     onClick={() => setColor(value)}
                     className="flex size-[25px] items-center justify-center rounded-md ring-1 ring-black/5 hover:scale-105"
                     style={{ background: value }}
@@ -175,7 +177,7 @@ export function PdfDocument({ bytes, name, viewStateKey = name }: { bytes: Uint8
           <Popover>
             <PopoverTrigger asChild>
               <button
-                aria-label="笔迹粗细"
+                aria-label="笔迹粗细" data-title="笔迹粗细"
                 className="pdf-control gap-2 px-2.5 font-semibold"
               >
                 <span
@@ -194,6 +196,7 @@ export function PdfDocument({ bytes, name, viewStateKey = name }: { bytes: Uint8
               {[1, 2, 3, 5, 8].map((size) => (
                 <button
                   key={size}
+                  data-title={`${size}px 笔迹粗细`}
                   onClick={() => setPenWidth(size)}
                   aria-pressed={penWidth === size}
                   className="pdf-width-option"
@@ -210,30 +213,29 @@ export function PdfDocument({ bytes, name, viewStateKey = name }: { bytes: Uint8
           </Popover>
           <span className="pdf-toolbar-divider mx-[7px] h-6 w-px shrink-0 bg-stone-200" />
           <div className="pdf-zoom-group">
-            <button type="button" aria-label="缩小" disabled={zoom <= 0.5} onClick={() => setZoom((value) => value - 0.25)}>
+            <button type="button" aria-label="缩小" data-title="缩小" disabled={zoom <= 0.5} onClick={() => setZoom((value) => value - 0.25)}>
               <Minus className="size-4" />
             </button>
-            <button type="button" className="pdf-zoom-value" aria-label="恢复 100% 缩放" onClick={() => setZoom(1)}>
+            <button type="button" className="pdf-zoom-value" aria-label="恢复 100% 缩放" data-title="恢复 100% 缩放" onClick={() => setZoom(1)}>
               {Math.round(zoom * 100)}%
             </button>
-            <button type="button" aria-label="放大" disabled={zoom >= 3} onClick={() => setZoom((value) => value + 0.25)}>
+            <button type="button" aria-label="放大" data-title="放大" disabled={zoom >= 3} onClick={() => setZoom((value) => value + 0.25)}>
               <Plus className="size-4" />
             </button>
           </div>
           <button
-            aria-label="撤销"
+            aria-label="撤销" data-title="撤销"
             disabled={!undo.current.length}
             onClick={() => change(undo.current.pop()!, false)}
             className="pdf-tool"
           >
             <Undo2 className="size-[17px]" />
-            <span className="pdf-tool-label">撤销</span>
           </button>
           <span className="pdf-toolbar-divider mx-[7px] h-6 w-px shrink-0 bg-stone-200" />
           <button
             type="button"
             className="pdf-export"
-            aria-label="导出标注 PDF"
+            aria-label="导出标注 PDF" data-title="导出标注 PDF"
             disabled={!loaded || saving}
             onClick={() => void exportPDF()}
           >

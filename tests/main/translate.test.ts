@@ -53,3 +53,26 @@ it("parses dictionary alternatives and merges duplicate words without inventing 
   ] }] })).toEqual([{ word: "translation", partOfSpeech: "noun", meanings: ["翻译", "译文", "转译"] }])
   expect(parseTranslationDictionary({ sentences: [] })).toEqual([])
 })
+
+it("starts a backup after 600ms and cancels the slower request", async () => {
+  vi.resetModules()
+  vi.useFakeTimers()
+  fetch.mockReset()
+  let primarySignal: AbortSignal | undefined
+  fetch.mockImplementationOnce((_url, options) => new Promise((_resolve, reject) => {
+    primarySignal = options.signal
+    primarySignal!.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")), { once: true })
+  }))
+  fetch.mockResolvedValueOnce(Response.json({ src: "en", sentences: [{ trans: "快速" }] }))
+  try {
+    const fresh = await import("@main/translate")
+    const request = fresh.translateText("fast", "en", "zh-CN")
+    await vi.advanceTimersByTimeAsync(599)
+    expect(fetch).toHaveBeenCalledTimes(1)
+    await vi.advanceTimersByTimeAsync(1)
+    await expect(request).resolves.toMatchObject({ text: "快速" })
+    expect(fetch).toHaveBeenCalledTimes(2)
+    expect(primarySignal?.aborted).toBe(true)
+    expect(vi.getTimerCount()).toBe(0)
+  } finally { vi.useRealTimers() }
+})

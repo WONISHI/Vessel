@@ -1,3 +1,4 @@
+import { GitSearchPanel } from "@/pages/git/components/git-search-panel"
 import { GitOperationLoading } from "@/pages/git/components/operation-loading"
 import type { AsideActivity } from "@/components/layout/activity-bar/activity"
 import LayoutActivityBar from "@/components/layout/activity-bar/index"
@@ -88,6 +89,8 @@ export default function SourceTreePage() {
                   初始化为 Git 仓库
                 </Button>
               </div>
+            ) : activeTab === "search" ? (
+              <GitSearchPanel key={g.repoPath} g={g} />
             ) : activeTab === "status" ? (
               /* 视图 1: 文件状态视图 (1号占60%，4号占40%，3号使用Resizable拖拽调整) */
               <ResizablePanelGroup

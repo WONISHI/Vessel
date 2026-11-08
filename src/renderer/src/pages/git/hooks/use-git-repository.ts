@@ -44,7 +44,7 @@ export function useGitRepository() {
   }, [repoPath])
 
   const [isRepo, setIsRepo] = useState<boolean | null>(null)
-  const [activeTab, setActiveTab] = useState<"status" | "history">("status")
+  const [activeTab, setActiveTab] = useState<"status" | "history" | "search">("status")
   const [loading, setLoading] = useState(false)
   const [remoteOperation, setRemoteOperation] = useState<GitRemoteOperation | null>(null)
   const remotePending = useRef(false)

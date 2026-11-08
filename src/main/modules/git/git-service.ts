@@ -1,4 +1,4 @@
-import type { GitCommitDetail, GitCommitItem, GitDiffResult, GitFileStatus, GitStatusResult } from "@vessel/type/git"
+import type { GitTagOptions, GitCommitDetail, GitCommitItem, GitDiffResult, GitFileStatus, GitStatusResult } from "@vessel/type/git"
 import { spawn } from "node:child_process"
 import { existsSync } from "node:fs"
 import { join } from "node:path"
@@ -542,11 +542,43 @@ export class GitService {
   }
 
   /** Creates tag. */
-  async createTag(cwd: string, tag: string, target?: string): Promise<void> {
-    const args = ["tag", tag]
-    if (target) args.push(target)
+  async createTag(cwd: string, tag: string, target = "HEAD", options?: GitTagOptions): Promise<void> {
+    if (!tag || tag.startsWith("-") || !target || target.startsWith("-")) throw new Error("标签名称或目标提交无效")
+    const valid = await runGit(["check-ref-format", `refs/tags/${tag}`], cwd)
+    if (valid.exitCode !== 0) throw new Error("标签名称格式无效")
+    const commit = await runGit(["rev-parse", "--verify", `${target}^{commit}`], cwd)
+    if (commit.exitCode !== 0) throw new Error("指定的提交不存在")
+    if (options?.lightweight && options.sign) throw new Error("轻量标签不支持签名")
+    const args = ["tag"]
+    if (options?.force) args.push("--force")
+    if (options && !options.lightweight) {
+      args.push(options.sign ? "--sign" : "--annotate", "--message", options.message?.trim() || tag)
+      if (!options.sign) args.push("--no-sign")
+    }
+    else args.push("--no-sign")
+    args.push("--", tag, commit.stdout.trim())
     const res = await runGit(args, cwd)
     if (res.exitCode !== 0) throw new Error(res.stderr || "Create tag failed")
+  }
+
+  async getTags(cwd: string): Promise<string[]> {
+    const result = await runGit(["tag", "--list", "--sort=-creatordate"], cwd)
+    if (result.exitCode !== 0) throw new Error(result.stderr || "读取标签失败")
+    return result.stdout.trim().split("\n").filter(Boolean)
+  }
+
+  async deleteTag(cwd: string, tag: string): Promise<void> {
+    if (!tag || tag.startsWith("-")) throw new Error("标签名称无效")
+    const result = await runGit(["tag", "--delete", "--", tag], cwd)
+    if (result.exitCode !== 0) throw new Error(result.stderr || "删除标签失败")
+  }
+
+  async pushTag(cwd: string, remote: string, tag: string): Promise<void> {
+    if (!remote || remote.startsWith("-") || !tag || tag.startsWith("-")) throw new Error("远程仓库或标签无效")
+    const remotes = await runGit(["remote"], cwd)
+    if (remotes.exitCode !== 0 || !remotes.stdout.split("\n").includes(remote)) throw new Error("远程仓库不存在")
+    const result = await runGit(["push", remote, `refs/tags/${tag}:refs/tags/${tag}`], cwd)
+    if (result.exitCode !== 0) throw new Error(result.stderr || "推送标签失败")
   }
 
   /** Returns the remote repository URL, prioritizing origin. */

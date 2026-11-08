@@ -32,3 +32,16 @@ it("combines wrapped titles and keeps separate headings on the same PDF page", a
 it("does not invent page labels for an image-only PDF", async () => {
   expect(await readPageTitles(makePage([]), 1)).toEqual([])
 })
+
+it("recognizes smaller H3 titles without mistaking normal bold-size body lines for headings", async () => {
+  const titles = await readPageTitles(makePage([
+    item("面试题", 21, 760),
+    item("场景题", 15.75, 700),
+    item("前端路由性能", 12.28, 650),
+    item("前端路由性能优化不能只背懒加载，要按问题来源来答。", 10.5, 600),
+    item("一句话结论", 10.5, 560),
+    item("路由优化是控制资源加载时机，加上管控组件生命周期。", 10.5, 540)
+  ]), 1)
+  expect(titles.map((title) => title.text)).toEqual(["面试题", "场景题", "前端路由性能"])
+  expect(titles[2].size).toBeCloseTo(12.5)
+})
