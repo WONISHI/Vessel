@@ -1,10 +1,16 @@
 import { preparePdfExport } from "@main/menu/pdf-options"
-import { BrowserWindow, dialog, ipcMain } from "electron"
+import { BrowserWindow, dialog, ipcMain, shell } from "electron"
 import { writeFile } from "node:fs/promises"
 import type { NativeMenuAPI } from "@vessel/type"
 
 /** Native destination dialogs always retain OS overwrite confirmation. */
 export function installFileMenuDialog() {
+  const exports = new Map<number, Set<string>>()
+  ipcMain.handle("file-menu:preview-pdf", async (event, path: unknown) => {
+    if (typeof path !== "string" || !exports.get(event.sender.id)?.has(path)) throw new Error("未找到已导出的 PDF")
+    const error = await shell.openPath(path)
+    if (error) throw new Error(error)
+  })
   ipcMain.handle("file-menu:dialog", async (event, request: Parameters<NativeMenuAPI["fileMenuDialog"]>[0]) => {
     const owner = BrowserWindow.fromWebContents(event.sender)
     if (!owner || !request || !["open", "save", "pdf"].includes(request.action)) throw new Error("无效的文件菜单请求")
@@ -31,6 +37,15 @@ export function installFileMenuDialog() {
       await printWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(prepared!.html)}`)
       const pdf = await printWindow.webContents.printToPDF(prepared!.print)
       await writeFile(result.filePath, pdf)
+      let paths = exports.get(event.sender.id)
+      if (!paths) {
+        paths = new Set()
+        exports.set(event.sender.id, paths)
+        const senderId = event.sender.id
+        event.sender.once("destroyed", () => exports.delete(senderId))
+      }
+      paths.add(result.filePath)
+      if (paths.size > 64) paths.delete(paths.values().next().value!)
       return result.filePath
     } finally { printWindow.destroy() }
   })

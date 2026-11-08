@@ -1,6 +1,7 @@
+import { bindDoubleSpace } from "../../../../../../shared/double-space"
 import { FloatingVideo } from "./floating-video"
 import { SearchEnginePicker } from "./search-engine-picker"
-import { useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { addTransit } from "@/components/transit/state"
 import { Button } from "@/components/ui/button"
 import { BrowserExtensions } from "@/pages/browser/components/extensions"
@@ -20,6 +21,20 @@ export function BrowserToolbar({ b, visible = true }: { b: BrowserPageModel; vis
   const address = useRef<HTMLFormElement>(null)
   const [focused, setFocused] = useState(false)
   const [engineOpen, setEngineOpen] = useState(false)
+  useEffect(() => {
+    if (!visible) return
+    const focusAddress = () => {
+      const field = address.current?.querySelector("input")
+      field?.focus()
+      field?.select()
+    }
+    const fromGuest = (event: Event) => {
+      if (withGuest(views.current.get(tab.id), (guest) => guest.getWebContentsId()) === (event as CustomEvent<number>).detail) focusAddress()
+    }
+    const stop = bindDoubleSpace(window, focusAddress)
+    window.addEventListener("vessel-browser-focus-address", fromGuest)
+    return () => { stop(); window.removeEventListener("vessel-browser-focus-address", fromGuest) }
+  }, [visible, tab.id])
   const fullAddress = input ?? tab.url
   const editing = focused || engineOpen
 
@@ -100,6 +115,10 @@ export function BrowserToolbar({ b, visible = true }: { b: BrowserPageModel; vis
                   placeholder="搜索或输入网址"
                   value={editing ? fullAddress : fullAddress.replace(/^https?:\/\//i, "")}
                   suppressSuggestions={engineOpen}
+                  onDoubleClick={(event) => {
+                    event.preventDefault()
+                    event.currentTarget.select()
+                  }}
                   onChange={(event) => setInput(event.target.value)}
                   onFocus={(event) => {
                     setFocused(true)

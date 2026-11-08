@@ -1,3 +1,4 @@
+import { loadExtensionWithWorker } from "@main/browser/extensions/extension-worker"
 import { storeSessionFetch } from "@main/browser/extensions/extension-store-fetch"
 import { prepareStoreExtension, webStoreExtensionId } from "@main/browser/extensions/extension-store"
 import { applyBrowserIdentity } from "@main/browser/browser-identity"
@@ -63,7 +64,7 @@ async function load(record: BrowserExtension) {
       return true
     })
     const runtimePath = await prepareExtensionRuntime(record.path, join(app.getPath("userData"), "browser-extension-runtime"), tabBridgeToken)
-    const extension = await extensions().loadExtension(runtimePath)
+    const extension = await loadExtensionWithWorker(session.fromPartition("persist:vessel-browser"), runtimePath)
     Object.assign(record, { extensionId: extension.id, name: extension.name, version: extension.version, error: undefined })
   } catch (error) {
     record.error = String(error)

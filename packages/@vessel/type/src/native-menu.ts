@@ -16,6 +16,7 @@ export interface FileMenuState {
   recent: { name: string; path: string; kind: "file" | "workspace" }[]
 }
 export interface NativeMenuAPI {
+  previewExportedPdf: (path: string) => Promise<void>
   onFileMenuCommand: (callback: (command: FileMenuCommand | "recent", path?: string, kind?: "file" | "workspace") => void) => () => void
   updateFileMenu: (state: FileMenuState) => void
   fileMenuDialog: (request: { action: "open" | "save" | "pdf"; defaultPath?: string; content?: string; html?: string; markdown?: boolean; pdfOptions?: PdfExportOptions }) => Promise<string | null>

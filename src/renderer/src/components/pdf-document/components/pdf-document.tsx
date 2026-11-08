@@ -5,7 +5,7 @@ import { COLORS, Stroke, notifyError, readInkStrokes, writeInkStrokes } from "@/
 import { PdfOutline } from "@/components/pdf-document/components/pdf-outline"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
-import { Check, CheckSquare, ChevronDown, Download, Eraser, FileText, Minus, MousePointer2, Pencil, Plus, Undo2 } from "lucide-react"
+import { Check, ChevronDown, Download, Eraser, Hand, Minus, Pencil, Plus, Undo2 } from "lucide-react"
 import type { PDFDocumentProxy } from "pdfjs-dist"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { Document } from "react-pdf"
@@ -104,9 +104,9 @@ export function PdfDocument({ bytes, name, viewStateKey = name }: { bytes: Uint8
       aria-label={name}
     >
       <ScrollArea className="pdf-annotation-toolbar shrink-0 border-b bg-white">
-        <div className="pdf-toolbar-row flex h-14 w-max min-w-full items-center gap-1.5 whitespace-nowrap px-3.5">
+        <div className="pdf-toolbar-row flex w-max min-w-full items-center justify-center whitespace-nowrap">
           {[
-            ["view", MousePointer2, "浏览"],
+            ["view", Hand, "浏览"],
             ["pen", Pencil, "画笔"],
             ["erase", Eraser, "擦除笔迹"]
           ].map(([value, Icon, label]) => {
@@ -117,11 +117,10 @@ export function PdfDocument({ bytes, name, viewStateKey = name }: { bytes: Uint8
                 disabled={!loaded}
                 aria-label={String(label)}
                 aria-pressed={tool === value}
-                className="pdf-tool"
+                className="pdf-tool pdf-mode-tool"
                 onClick={() => setTool(String(value))}
               >
                 <ToolIcon className="size-4" />
-                <span className="pdf-tool-label">{String(label)}</span>
               </button>
             )
           })}
@@ -130,26 +129,26 @@ export function PdfDocument({ bytes, name, viewStateKey = name }: { bytes: Uint8
             <PopoverTrigger asChild>
               <button
                 aria-label="笔迹颜色"
-                className="pdf-control w-[42px] justify-center"
+                className="pdf-control w-9 justify-center"
               >
                 <span
-                  className="size-[22px] rounded-[7px] ring-1 ring-black/10"
+                  className="size-[19px] rounded-[6px] ring-1 ring-black/10"
                   style={{ background: color }}
                 />
               </button>
             </PopoverTrigger>
             <PopoverContent
               align="start"
-              className="pdf-annotation-popover w-64 p-3"
+              className="pdf-annotation-popover w-[200px] p-2"
             >
               <p className="mb-2 text-xs font-medium text-stone-500">笔迹颜色</p>
-              <div className="grid grid-cols-6 gap-2">
+              <div className="grid grid-cols-6 gap-[7px]">
                 {COLORS.map((value) => (
                   <button
                     key={value}
                     aria-label={value}
                     onClick={() => setColor(value)}
-                    className="flex size-8 items-center justify-center rounded-md ring-1 ring-black/5 hover:scale-105"
+                    className="flex size-[25px] items-center justify-center rounded-md ring-1 ring-black/5 hover:scale-105"
                     style={{ background: value }}
                   >
                     {color.toLowerCase() === value && <span className={`size-2 rounded-full ${value === "#ffffff" ? "bg-stone-700" : "bg-white"}`} />}
@@ -189,17 +188,18 @@ export function PdfDocument({ bytes, name, viewStateKey = name }: { bytes: Uint8
             </PopoverTrigger>
             <PopoverContent
               align="start"
-              className="pdf-annotation-popover w-48 p-2"
+              className="pdf-annotation-popover w-[156px] p-2"
             >
               <p className="mb-1 px-2 text-xs font-medium text-stone-500">笔迹粗细</p>
               {[1, 2, 3, 5, 8].map((size) => (
                 <button
                   key={size}
                   onClick={() => setPenWidth(size)}
-                  className={`flex w-full items-center gap-3 rounded-md px-2 py-2 text-sm ${penWidth === size ? "bg-green-50 text-green-700" : "text-stone-700 hover:bg-stone-100"}`}
+                  aria-pressed={penWidth === size}
+                  className="pdf-width-option"
                 >
                   <span
-                    className={`pdf-pen-preview w-16 rounded-full ${penWidth === size ? "bg-green-600" : "bg-stone-700"}`}
+                    className="pdf-pen-preview w-16 rounded-full"
                     style={{ height: size }}
                   />
                   <span className="flex-1 text-left">{size}px</span>
@@ -209,22 +209,6 @@ export function PdfDocument({ bytes, name, viewStateKey = name }: { bytes: Uint8
             </PopoverContent>
           </Popover>
           <span className="pdf-toolbar-divider mx-[7px] h-6 w-px shrink-0 bg-stone-200" />
-          <button
-            aria-label="撤销"
-            disabled={!undo.current.length}
-            onClick={() => change(undo.current.pop()!, false)}
-            className="pdf-tool"
-          >
-            <Undo2 className="size-[17px]" />
-            <span className="pdf-tool-label">撤销</span>
-          </button>
-          <div className="flex flex-1 items-center justify-center gap-2.5 px-2 text-xs text-stone-400">
-            <span className="flex items-center gap-1.5"><FileText className="size-[15px]" /><span className="pdf-tool-label">共 {document?.numPages || "…"} 页</span></span>
-            <span className="pdf-save-chip flex h-7 items-center gap-1.5 rounded-lg px-[11px] font-semibold">
-              <CheckSquare className="size-3.5" />
-              {loaded ? "自动保存" : "正在读取标注…"}
-            </span>
-          </div>
           <div className="pdf-zoom-group">
             <button type="button" aria-label="缩小" disabled={zoom <= 0.5} onClick={() => setZoom((value) => value - 0.25)}>
               <Minus className="size-4" />
@@ -236,16 +220,24 @@ export function PdfDocument({ bytes, name, viewStateKey = name }: { bytes: Uint8
               <Plus className="size-4" />
             </button>
           </div>
+          <button
+            aria-label="撤销"
+            disabled={!undo.current.length}
+            onClick={() => change(undo.current.pop()!, false)}
+            className="pdf-tool"
+          >
+            <Undo2 className="size-[17px]" />
+            <span className="pdf-tool-label">撤销</span>
+          </button>
           <span className="pdf-toolbar-divider mx-[7px] h-6 w-px shrink-0 bg-stone-200" />
           <button
             type="button"
-            className="pdf-export ml-1 flex h-10 shrink-0 items-center gap-2 rounded-[10px] bg-green-600 px-[18px] text-[13.5px] font-semibold text-white hover:bg-green-700 disabled:opacity-40"
+            className="pdf-export"
             aria-label="导出标注 PDF"
             disabled={!loaded || saving}
             onClick={() => void exportPDF()}
           >
             <Download className="size-[17px]" />
-            <span className="pdf-export-label">导出标注 PDF</span>
           </button>
         </div>
         <ScrollBar

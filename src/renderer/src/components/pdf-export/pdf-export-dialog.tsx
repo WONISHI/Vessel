@@ -1,3 +1,4 @@
+import "./pdf-export-dialog.css"
 import { useEffect, useRef, useState } from "react"
 import type { PdfExportOptions } from "@vessel/type/native-menu"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -47,7 +48,12 @@ export default function PdfExportDialog({ path, root, onClose }: { path: string;
       const html = await pdfDocumentHtml(editor, root, path)
       const output = await window.electronAPI.fileMenuDialog({ action: "pdf", defaultPath: path.replace(/\.(md|markdown)$/i, ".pdf"), html, pdfOptions: options })
       if (output) {
-        toast.success("PDF 已导出")
+        toast.success("PDF 已导出", {
+          action: {
+            label: "预览",
+            onClick: () => { void window.electronAPI.previewExportedPdf(output).catch((error) => toast.error(`打开预览失败：${String(error)}`)) }
+          }
+        })
         onClose()
       }
     } catch (reason) {
@@ -184,6 +190,7 @@ export default function PdfExportDialog({ path, root, onClose }: { path: string;
         <DialogFooter>
           <Button
             variant="outline"
+            className="pdf-export-cancel"
             disabled={busy}
             onClick={onClose}
           >

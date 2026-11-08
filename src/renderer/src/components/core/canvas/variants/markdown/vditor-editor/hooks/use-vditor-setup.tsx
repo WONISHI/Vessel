@@ -79,7 +79,7 @@ export function useVditorSetup(state: VditorEditorState, { triggerInsertLinkRef 
     const unbindListShortcuts = readOnly ? () => {} : bindListShortcuts(element)
     const unbindTaskCheckboxes = bindTaskCheckboxes(element, readOnly)
     const unbindWikiEditing = bindWikiLinkEditing(element)
-    const unbindHeadingHandles = readOnly ? () => {} : bindHeadingHandles(element, (heading, x, y) => setHeadingBlockMenu({ heading, x, y }))
+    const unbindHeadingHandles = readOnly ? () => {} : bindHeadingHandles(element, (heading, x, y) => setHeadingBlockMenu({ heading, x, y }), toolbarHost.current)
     const unbindTableActions = readOnly ? () => {} : bindTableActions(element)
 
     const imageRoots = new Map<HTMLElement, Root>()

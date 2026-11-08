@@ -5,14 +5,14 @@ import type { GitPageModel } from "@/pages/git/hooks/use-git-page"
 
 /** 底部提交输入栏 */
 export function GitCommitBar({ g }: { g: GitPageModel }) {
-  const { branches, commits, commitMessage, commitMessageReset, isAmend, setIsAmend, handleUndoLastCommit, handleCommit } = g
+  const { status, branches, commits, commitMessage, commitMessageReset, isAmend, setIsAmend, handleUndoLastCommit, handleCommit } = g
 
   return (
                   <div className="border-t border-stone-200 p-2.5 bg-white shrink-0">
                     <CommitMessageInput
                       draft={commitMessage}
                       resetVersion={commitMessageReset}
-                      onSubmit={() => void handleCommit()}
+                      onSubmit={() => { if (status?.staged.length) void handleCommit() }}
                     />
                     <div className="mt-2 flex items-center justify-between">
                       <div className="flex items-center gap-3">
@@ -39,6 +39,7 @@ export function GitCommitBar({ g }: { g: GitPageModel }) {
                       </div>
                       <Button
                         size="sm"
+                        disabled={!status?.staged.length}
                         onClick={handleCommit}
                         className="bg-green-600 text-white hover:bg-green-700 h-7 text-xs px-3"
                       >

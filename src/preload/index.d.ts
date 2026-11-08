@@ -92,7 +92,7 @@ export interface StorageInfo {
 export interface VesselAPI extends AppUpdateAPI, BrowserProxyAPI, BrowserToolsAPI, SettingsAPI, BrowserExtensionsAPI, TodosAPI, TerminalAPI, FileWatchAPI, NativeMenuAPI {
   moveImageToAttachments(root: string, path: string): Promise<string>
   listAttachments(root: string): Promise<Array<{ name: string; path: string; size: number; relativePath: string; mtime: number }>>
-  translateText(text: string, from: string, to: string): Promise<{ text: string; detectedLanguage: string }>
+  translateText(text: string, from: string, to: string): Promise<{ text: string; detectedLanguage: string; alternatives?: { word: string; partOfSpeech: string; meanings: string[] }[] }>
   getPerformanceSnapshot: () => Promise<import("@vessel/type").PerformanceSnapshot>
   shareFilesToWechat: (root: string, paths: string[]) => Promise<{ opened: boolean }>
   getSystemInfo: () => Promise<import("@vessel/type").SystemInfo>

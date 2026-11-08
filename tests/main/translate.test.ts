@@ -1,5 +1,5 @@
 import { expect, it, vi } from "vitest"
-import { translateText } from "@main/translate"
+import { translateText, parseTranslationDictionary } from "@main/translate"
 
 const { fetch, fromPartition } = vi.hoisted(() => {
   const fetch = vi.fn()
@@ -43,4 +43,13 @@ it("falls back to Google's other endpoint on 429 and skips the limited endpoint 
   expect(fetch).toHaveBeenCalledTimes(3)
   expect(fetch).toHaveBeenNthCalledWith(2, expect.stringContaining("https://translate.googleapis.com/"), expect.objectContaining({ method: "POST" }))
   expect(fetch).toHaveBeenNthCalledWith(3, expect.stringContaining("https://translate.googleapis.com/"), expect.anything())
+})
+
+it("parses dictionary alternatives and merges duplicate words without inventing entries", () => {
+  expect(parseTranslationDictionary({ dict: [{ pos: "noun", entry: [
+    { word: "translation", reverse_translation: ["翻译", "译文"] },
+    { word: "translation", reverse_translation: ["翻译", "转译"] },
+    { word: 1 }
+  ] }] })).toEqual([{ word: "translation", partOfSpeech: "noun", meanings: ["翻译", "译文", "转译"] }])
+  expect(parseTranslationDictionary({ sentences: [] })).toEqual([])
 })

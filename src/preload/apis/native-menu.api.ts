@@ -8,5 +8,6 @@ export const nativeMenuAPI: NativeMenuAPI = {
     return () => ipcRenderer.removeListener("file-menu:command", listener)
   },
   updateFileMenu: (state) => ipcRenderer.send("file-menu:state", state),
+  previewExportedPdf: (path) => ipcRenderer.invoke("file-menu:preview-pdf", path),
   fileMenuDialog: (request) => ipcRenderer.invoke("file-menu:dialog", request)
 }

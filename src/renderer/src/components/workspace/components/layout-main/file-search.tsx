@@ -1,3 +1,4 @@
+import { revealMarkdownElement } from "@/components/core/canvas/variants/markdown/reveal-element"
 import { codeEditors } from "@/components/core/canvas/variants/code/search-bridge"
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -85,7 +86,7 @@ export function FileSearch({ path, contentHost }: { path: string; contentHost: R
       return
     }
     if (item.element?.isConnected) {
-      item.element.scrollIntoView({ behavior: "smooth", block: "center" })
+      revealMarkdownElement(item.element)
       item.element.animate?.([{ backgroundColor: "#bbf7d0" }, { backgroundColor: "transparent" }], { duration: 1800 })
     }
   }

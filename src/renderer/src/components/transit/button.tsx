@@ -48,7 +48,6 @@ export function TransitButton({ menuItem = false, onOpenChange }: { menuItem?: b
         >
           <Pin className={menuItem ? "!size-4" : "!size-5"} />
           {menuItem && "中转站"}
-          {items.length > 0 && <span className="absolute -right-0.5 -top-0.5 min-w-4 rounded-full bg-emerald-700 px-1 text-[9px] leading-4 !text-white">{items.length}</span>}
         </Button>
       </PopoverTrigger>
       <PopoverContent

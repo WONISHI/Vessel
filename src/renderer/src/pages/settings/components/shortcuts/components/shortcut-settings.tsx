@@ -9,7 +9,8 @@ import { ChevronDown } from "lucide-react"
 /** Renders the shortcut settings component. */
 export function ShortcutSettings() {
   const [query, setQuery] = useState("")
-  const mac = navigator.platform.includes("Mac")
+  const [platform, setPlatform] = useState<"windows" | "mac">(() => navigator.platform.includes("Mac") ? "mac" : "windows")
+  const mac = platform === "mac"
   const rows: { id: string; group: string; title: string; scope: string; keys: string }[] = (Object.keys(shortcuts) as ShortcutId[]).map((id) => ({ id, group: category(id), title: shortcuts[id].label, scope: shortcuts[id].scope, keys: shortcutLabel(id, mac) }))
   rows.unshift({ id: "switchWindow", group: "全局与导航", title: windowSwitchShortcut.label, scope: windowSwitchShortcut.scope, keys: mac ? windowSwitchShortcut.mac : windowSwitchShortcut.windows })
   rows.unshift({ id: "screenshot", group: "截图", title: screenshotShortcut.label, scope: screenshotShortcut.scope, keys: mac ? screenshotShortcut.mac : screenshotShortcut.windows })
@@ -21,8 +22,25 @@ export function ShortcutSettings() {
       <h2>快捷键</h2>
       <p className="settings-description">按使用场景分组，编辑操作在对应编辑器中生效。滚动快捷键优先作用于鼠标悬停的内容区域。</p>
       <Input type="search" aria-label="搜索快捷键" placeholder="搜索操作或按键组合…" value={query} onChange={(event) => setQuery(event.target.value)} className="mb-3" />
+      <div role="tablist" aria-label="快捷键平台" className="mb-3 inline-flex gap-1 rounded-lg bg-stone-100 p-1 dark:bg-stone-800">
+        {([ ["windows", "Windows"], ["mac", "macOS"] ] as const).map(([value, label]) => (
+          <button key={value} type="button" role="tab" id={`shortcut-tab-${value}`} aria-controls="shortcut-platform-panel" aria-selected={platform === value}
+            tabIndex={platform === value ? 0 : -1}
+            onClick={() => setPlatform(value)}
+            onKeyDown={(event) => {
+              if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return
+              event.preventDefault()
+              const next = event.key === "Home" ? "windows" : event.key === "End" ? "mac" : platform === "mac" ? "windows" : "mac"
+              setPlatform(next)
+              document.getElementById(`shortcut-tab-${next}`)?.focus()
+            }}
+            className={`rounded-md px-4 py-1.5 text-xs font-medium transition-colors ${platform === value ? "bg-white text-stone-900 shadow-sm dark:bg-stone-700 dark:text-white" : "text-stone-500 hover:bg-white/50 dark:text-stone-400 dark:hover:bg-stone-700/50"}`}>
+            {label}
+          </button>
+        ))}
+      </div>
       {!matches.length && <p role="status" className="settings-description">未找到匹配的快捷键</p>}
-      <div className="settings-shortcuts space-y-3">
+      <div role="tabpanel" id="shortcut-platform-panel" aria-labelledby={`shortcut-tab-${platform}`} className="settings-shortcuts space-y-3">
         {categories.map((group) => {
           const entries = matches.filter((row) => row.group === group)
           if (!entries.length) return null

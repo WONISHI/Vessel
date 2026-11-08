@@ -1041,7 +1041,7 @@ html.dark .vessel-vditor .vessel-image-menu button:hover svg {
 
 .vessel-heading-grip {
   position: fixed;
-  z-index: 40;
+  z-index: 9;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1054,3 +1054,20 @@ html.dark .vessel-vditor .vessel-image-menu button:hover svg {
 .vessel-heading-grip[hidden] { display: none; }
 .vessel-heading-grip:hover { background: #f4f4f3; color: #57534e; }
 html.dark .vessel-heading-grip:hover { background: #ffffff0f; color: #d6d3d1; }
+
+.vessel-heading-grip .vessel-heading-drag { display: none; }
+.vessel-heading-grip.is-heading-hovered .vessel-heading-level { display: none; }
+.vessel-heading-grip.is-heading-hovered .vessel-heading-drag { display: flex; }
+.vessel-heading-grip .vessel-heading-level { display: flex; }
+.vessel-heading-fold-hidden { display: none !important; }
+.vessel-heading-grip { opacity: 1; pointer-events: auto; }
+.vessel-heading-grip.is-heading-hovered { opacity: 1; pointer-events: auto; }
+
+.vessel-heading-focus-hidden { display: none !important; }
+.vessel-heading-fold-indicator { display: none; }
+.vessel-heading-grip.is-heading-folded .vessel-heading-fold-indicator { display: flex; }
+.vessel-heading-grip.is-heading-folded :is(.vessel-heading-level, .vessel-heading-drag) { display: none; }
+.vditor-toolbar .vessel-heading-exit-focus { margin-left: auto; width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; border-radius: 5px; color: #78716c; }
+.vditor-toolbar .vessel-heading-exit-focus[hidden] { display: none; }
+.vditor-toolbar .vessel-heading-exit-focus:hover { background: #f4f4f3; }
+html.dark .vditor-toolbar .vessel-heading-exit-focus:hover { background: #ffffff0f; }

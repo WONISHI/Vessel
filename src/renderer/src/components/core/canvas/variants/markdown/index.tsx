@@ -1,3 +1,4 @@
+import { revealMarkdownElement } from "@/components/core/canvas/variants/markdown/reveal-element"
 import { SectionPreview } from "@/components/core/canvas/variants/markdown/section-preview"
 import { documentSession, readDocument } from "@/components/core/canvas/session/document-session"
 import { saveMarkdownContent, waitForMarkdownWrites } from "./local-writes"
@@ -117,7 +118,7 @@ export default function MarkdownCanvas({ activeFilePath, workspacePath: customWo
         if (++tries < 30) timer = setTimeout(attempt, 100)
         return
       }
-      highlightKeywordInVditor(editor, highlightKeyword)
+      if (!highlightKeywordInVditor(editor, highlightKeyword) && ++tries < 30) timer = setTimeout(attempt, 100)
     }
     timer = setTimeout(attempt, 120)
     return () => clearTimeout(timer)
@@ -202,7 +203,7 @@ export default function MarkdownCanvas({ activeFilePath, workspacePath: customWo
           source={outlineSource}
           onSelectFootnote={(id) => {
             const node = Array.from(contentHost.current?.querySelectorAll<HTMLElement>("[data-vessel-footnote-id]") ?? []).find((item) => item.dataset.vesselFootnoteId === id)
-            node?.scrollIntoView({ behavior: "smooth", block: "center" })
+            if (node) revealMarkdownElement(node)
           }}
           workspacePath={workspacePath}
           documentPath={activeFilePath}
@@ -212,7 +213,8 @@ export default function MarkdownCanvas({ activeFilePath, workspacePath: customWo
           activeIndex={activeHeading}
           onSelect={(index) => {
             const nodes = contentHost.current?.querySelectorAll(".vditor-ir .vditor-reset :is(h1,h2,h3,h4,h5,h6)")
-            nodes?.[index]?.scrollIntoView({ behavior: "smooth", block: "center" })
+            const target = nodes?.[index]
+            if (target instanceof HTMLElement) revealMarkdownElement(target)
           }}
         />
       </div>

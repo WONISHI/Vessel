@@ -1,3 +1,4 @@
+import { bindDoubleSpace } from "../shared/double-space"
 import { scrollBoundary } from "../shared/scroll-boundary"
 import { bindWebStoreInstall } from "./webstore-install"
 import { contextBridge, ipcRenderer } from "electron"
@@ -68,3 +69,5 @@ window.addEventListener("blur", () => { scrollPointer = undefined })
 ipcRenderer.on("vessel:scroll-boundary", (_event, top: boolean) => {
   if (typeof top === "boolean") scrollBoundary(top, scrollPointer)
 })
+
+bindDoubleSpace(window, () => ipcRenderer.sendToHost("vessel-focus-address"))

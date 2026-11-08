@@ -1,10 +1,11 @@
+import { revealMarkdownElement } from "@/components/core/canvas/variants/markdown/reveal-element"
 import { codeEditors } from "@/components/core/canvas/variants/code/search-bridge"
 import type { ContentMatch } from "@vessel/type"
 export type { ContentMatch }
 
 /** Performs the highlight keyword in vditor operation. */
 export function highlightKeywordInVditor(container: HTMLElement, keyword: string) {
-  if (!keyword || !keyword.trim()) return
+  if (!keyword || !keyword.trim()) return false
   const term = keyword.trim()
   const lower = term.toLowerCase()
 
@@ -21,7 +22,7 @@ export function highlightKeywordInVditor(container: HTMLElement, keyword: string
     return !hasBlockChild && (node.innerText || node.textContent || "").toLowerCase().includes(lower)
   })
 
-  if (!blocks.length) return
+  if (!blocks.length) return false
 
   let firstMark: HTMLElement | null = null
   for (const block of blocks) {
@@ -65,10 +66,11 @@ export function highlightKeywordInVditor(container: HTMLElement, keyword: string
 
   const targetToScroll = firstMark || blocks[0]
   if (targetToScroll) {
-    targetToScroll.scrollIntoView({ behavior: "smooth", block: "center" })
+    revealMarkdownElement(targetToScroll)
     const parentBlock = (firstMark ? firstMark.closest("td, th, p, h1, h2, h3, h4, h5, h6, li") : blocks[0]) as HTMLElement | null
     parentBlock?.animate?.([{ backgroundColor: "rgba(187, 247, 208, 0.45)" }, { backgroundColor: "rgba(187, 247, 208, 0.15)", offset: 0.8 }, { backgroundColor: "transparent" }], { duration: 2400 })
   }
+  return true
 }
 
 /** Performs the reveal search hit operation. */
@@ -92,7 +94,7 @@ export function revealSearchHit(match: ContentMatch) {
       if (++tries < 30) setTimeout(attempt, 100)
       return
     }
-    highlightKeywordInVditor(editor, keyword)
+    if (!highlightKeywordInVditor(editor, keyword) && ++tries < 30) setTimeout(attempt, 100)
   }
   setTimeout(attempt, 80)
 }

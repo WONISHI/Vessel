@@ -1,3 +1,4 @@
+import { ScrollArea } from "@/components/ui/scroll-area"
 import "./translate.css"
 import "@/components/styles/tool-page-header.css"
 import { Button } from "@/components/ui/button"
@@ -19,7 +20,7 @@ export default function TranslateTool() {
   const [input, setInput] = useState("")
   const [from, setFrom] = useState("zh-CN")
   const [to, setTo] = useState("en")
-  const [result, setResult] = useState<{ text: string; detectedLanguage: string }>()
+  const [result, setResult] = useState<{ text: string; detectedLanguage: string; alternatives?: { word: string; partOfSpeech: string; meanings: string[] }[] }>()
   const [error, setError] = useState("")
   const [busy, setBusy] = useState(false)
   const source = from === "auto" ? result?.detectedLanguage : from
@@ -52,8 +53,8 @@ export default function TranslateTool() {
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col overflow-y-auto">
-      <header className="tool-page-header">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden">
+      <header className="tool-page-header shrink-0">
         <span className="tool-page-brand"><Languages size={16} /></span>
         <div className="tool-page-heading">
           <h2>翻译</h2>
@@ -65,6 +66,7 @@ export default function TranslateTool() {
           </Button>
         </div>
       </header>
+      <ScrollArea className="min-h-0 flex-1">
       <div className="grid gap-3 p-4 lg:grid-cols-2">
         <section className="flex min-w-0 flex-col gap-2">
           <div className="flex items-center gap-2">
@@ -83,10 +85,16 @@ export default function TranslateTool() {
             <Textarea
               autoFocus
               aria-label="原文"
-              placeholder="输入要翻译的文字"
+              placeholder="输入要翻译的文字，Enter 翻译，Shift+Enter 换行"
               value={input}
               maxLength={maxLength}
               readOnly={busy}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing && event.keyCode !== 229) {
+                  event.preventDefault()
+                  if (!event.repeat) void run()
+                }
+              }}
               onChange={(event) => { setInput(event.target.value); clearResult() }}
               className="translate-source-input h-44 resize-none border-0 bg-transparent p-4 text-base shadow-none focus-visible:ring-0"
             />
@@ -108,12 +116,28 @@ export default function TranslateTool() {
               {busy ? "正在翻译…" : result?.text || "译文"}
             </div>
             <div className="flex justify-end px-3 pb-2">
-              <Button size="icon" variant="ghost" aria-label="复制译文" disabled={!result?.text} onClick={() => copy(result?.text ?? "")}><Copy size={16} /></Button>
+              <Button size="icon" variant="ghost" className="translate-copy-button" aria-label="复制译文" disabled={!result?.text} onClick={() => copy(result?.text ?? "")}><Copy size={16} /></Button>
             </div>
           </div>
+          {!!result?.alternatives?.length && (
+            <div className="translate-alternatives overflow-hidden rounded-xl border bg-muted/50">
+              <h3 className="border-b px-4 py-3 text-sm font-semibold">其他翻译</h3>
+              {result.alternatives.map((entry) => (
+                <div key={`${entry.partOfSpeech}:${entry.word}`} className="flex flex-wrap items-start gap-3 border-b px-4 py-3 last:border-b-0">
+                  <span className="min-w-24 flex-1 text-sm font-medium break-words">{entry.word}</span>
+                  <span className="text-xs text-muted-foreground">{({ noun: "名词", verb: "动词", adjective: "形容词", adverb: "副词", pronoun: "代词", preposition: "介词", conjunction: "连词", interjection: "感叹词" } as Record<string, string>)[entry.partOfSpeech] ?? entry.partOfSpeech}</span>
+                  <div className="flex min-w-0 flex-[2] flex-wrap gap-1.5">
+                    {entry.meanings.map((meaning) => <span key={meaning} className="rounded bg-muted px-2 py-0.5 text-xs text-muted-foreground">{meaning}</span>)}
+                  </div>
+                  <Button size="icon" variant="ghost" className="translate-copy-button size-7 shrink-0" aria-label={`复制 ${entry.word}`} onClick={() => copy(entry.word)}><Copy size={14} /></Button>
+                </div>
+              ))}
+            </div>
+          )}
         </section>
         {error && <p role="alert" className="text-sm text-red-600 lg:col-span-2">{error}</p>}
       </div>
+      </ScrollArea>
     </div>
   )
 }

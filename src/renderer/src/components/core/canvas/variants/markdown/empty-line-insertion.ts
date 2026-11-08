@@ -22,30 +22,43 @@ export function emptyLineAfterHeading(editable: HTMLElement) {
   }
 }
 
-/** Cleans a leftover paste placeholder after Vditor has processed the input. */
+/** Removes only an existing empty insertion paragraph left before newly pasted blocks. */
 export function bindEmptyLinePaste(root: HTMLElement) {
-  let pending: (() => boolean) | undefined
-  let disposed = false
-  const paste = () => {
+  let stop: (() => void) | undefined
+  const paste = (event: ClipboardEvent) => {
+    stop?.()
+    const text = event.clipboardData?.getData("text/plain") ?? ""
+    // Leading blank lines explicitly copied by the user are meaningful.
+    if (!text.trim() || /^\s*\r?\n/.test(text) || event.clipboardData?.files.length) return
     const editable = root.querySelector<HTMLElement>('.vditor-ir [contenteditable="true"]')
-    pending = editable ? emptyLineAfterHeading(editable) : undefined
-  }
-  const input = () => {
-    if (!pending) return
-    const clean = pending
-    pending = undefined
-    queueMicrotask(() => {
-      if (!disposed && clean()) {
-        root.querySelector<HTMLElement>('.vditor-ir [contenteditable="true"]')?.dispatchEvent(new InputEvent("input", { bubbles: true }))
-      }
+    const selection = window.getSelection()
+    if (!editable || !selection?.isCollapsed || !selection.rangeCount) return
+    const start = selection.getRangeAt(0).startContainer
+    const element = start instanceof Element ? start : start.parentElement
+    const paragraph = element?.closest("p")
+    if (!paragraph || paragraph.parentElement !== editable || !isEmptyParagraph(paragraph)) return
+    const index = Array.from(editable.children).indexOf(paragraph)
+    const before = Array.from(editable.children).slice(0, index).map((node) => node.textContent).join("\n")
+    const tail = Array.from(editable.children).slice(index + 1).map((node) => node.textContent).join("\n")
+    const oldCount = editable.children.length
+    let timer: ReturnType<typeof setTimeout>
+    const observer = new MutationObserver(() => {
+      const nodes = Array.from(editable.children)
+      if (nodes.length <= oldCount || nodes.slice(0, index).map((node) => node.textContent).join("\n") !== before) return
+      const empty = nodes[index]
+      const inserted = nodes[index + 1]
+      if (!isEmptyParagraph(empty) || !inserted || isEmptyParagraph(inserted)) return
+      // Verify that a new block appeared before the unchanged original trailing content.
+      const trailingCount = oldCount - index - 1
+      if (trailingCount && nodes.slice(-trailingCount).map((node) => node.textContent).join("\n") !== tail) return
+      stop?.()
+      empty.remove()
+      editable.dispatchEvent(new InputEvent("input", { bubbles: true, inputType: "insertFromPaste" }))
     })
+    stop = () => { observer.disconnect(); clearTimeout(timer); stop = undefined }
+    observer.observe(editable, { childList: true, subtree: true, characterData: true })
+    timer = setTimeout(() => stop?.(), 1000)
   }
   root.addEventListener("paste", paste, true)
-  root.addEventListener("input", input)
-  return () => {
-    disposed = true
-    pending = undefined
-    root.removeEventListener("paste", paste, true)
-    root.removeEventListener("input", input)
-  }
+  return () => { stop?.(); root.removeEventListener("paste", paste, true) }
 }
