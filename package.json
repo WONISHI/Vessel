@@ -1,6 +1,6 @@
 {
   "name": "vessel",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Vessel — 集 Markdown 笔记、附件管理、Git、内置浏览器、截图与 S3 同步备份于一体的桌面工作台",
   "main": "./out/main/index.js",
   "author": "WONISHI",
