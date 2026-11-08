@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { withGuest } from "@/pages/browser/guest-lifecycle"
 import type { WebviewTag } from "electron"
-import { Film } from "lucide-react"
+import { FilePlay, Film } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 import { setFloatingGuest } from "./floating-video-overlay"
@@ -102,7 +102,7 @@ export function FloatingVideo({ visible, tabId, url, getGuest }: {
           <div className="max-h-64 space-y-1 overflow-y-auto">
             {videos.map((video, order) => (
               <Button key={video.id} variant="ghost" className="w-full justify-between hover:bg-muted" disabled={video.floating} onClick={() => play(video.id)}>
-                <span>视频 {order + 1}</span>
+                <span className="flex items-center gap-2"><FilePlay className="size-4 shrink-0" aria-hidden="true" />视频 {order + 1}</span>
                 <span className="text-xs text-muted-foreground">{video.floating ? "悬浮中" : durationLabel(video)}{video.width > 0 && ` · ${video.width}×${video.height}`}</span>
               </Button>
             ))}

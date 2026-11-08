@@ -1,3 +1,4 @@
+import { bindHeadingHandles } from "../../heading-handles"
 import { bindToolbarPanels } from "../../toolbar-panels"
 import { bindEmptyLinePaste } from "../../empty-line-insertion"
 import { bindImageToolbarMenu } from "../../image-toolbar-menu"
@@ -38,7 +39,7 @@ import { createImageMounter, createTableMounter, type PreviewMountDeps } from "@
 
 /** 创建 Vditor 实例并绑定所有编辑器 DOM 交互（属性或只读状态变化时重建） */
 export function useVditorSetup(state: VditorEditorState, { triggerInsertLinkRef }: Pick<LinkTooltipState, "triggerInsertLinkRef">) {
-  const { onChange, workspacePath, documentPath, readOnly, tableWorkspace, setFootnoteTarget, setInsertLocation, clipboardImageInsertAction, imageInsertAction, setLanguageBlock, setCodeContextMenu, setColorAnchor, colorRange, instance, setCalloutBlockMenu, setCalloutMenu, setLoading, setLoadError, host, toolbarHost, properties, initialValue, latestValue, readyHandler, changeHandler } = state
+  const { setHeadingBlockMenu, onChange, workspacePath, documentPath, readOnly, tableWorkspace, setFootnoteTarget, setInsertLocation, clipboardImageInsertAction, imageInsertAction, setLanguageBlock, setCodeContextMenu, setColorAnchor, colorRange, instance, setCalloutBlockMenu, setCalloutMenu, setLoading, setLoadError, host, toolbarHost, properties, initialValue, latestValue, readyHandler, changeHandler } = state
 
   useEffect(() => {
     changeHandler.current = onChange
@@ -78,6 +79,7 @@ export function useVditorSetup(state: VditorEditorState, { triggerInsertLinkRef 
     const unbindListShortcuts = readOnly ? () => {} : bindListShortcuts(element)
     const unbindTaskCheckboxes = bindTaskCheckboxes(element, readOnly)
     const unbindWikiEditing = bindWikiLinkEditing(element)
+    const unbindHeadingHandles = readOnly ? () => {} : bindHeadingHandles(element, (heading, x, y) => setHeadingBlockMenu({ heading, x, y }))
     const unbindTableActions = readOnly ? () => {} : bindTableActions(element)
 
     const imageRoots = new Map<HTMLElement, Root>()
@@ -499,6 +501,8 @@ export function useVditorSetup(state: VditorEditorState, { triggerInsertLinkRef 
       unbindFootnotes()
       unbindCallouts()
       unbindWikiEditing()
+      unbindHeadingHandles()
+      setHeadingBlockMenu(null)
       unbindTableActions()
       unbindInsertMenu()
       clipboardImageInsertAction.current = null

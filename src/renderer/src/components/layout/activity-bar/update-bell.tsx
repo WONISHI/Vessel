@@ -33,6 +33,8 @@ export function UpdateBell({ dark }: { dark: boolean }) {
           variant="ghost"
           size="icon"
           data-activity-button
+          data-title={open ? undefined : nextVersion ? "应用更新，1 条通知" : "应用更新"}
+          data-title-side="right"
           aria-label={nextVersion ? "应用更新，1 条通知" : "应用更新"}
           className="relative size-[38px] rounded-[10px] text-[#a8a29e] hover:!bg-[#f0efed] hover:!text-[#a8a29e]"
         >

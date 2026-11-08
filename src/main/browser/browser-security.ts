@@ -120,6 +120,12 @@ export function secureBrowserGuests(contents: WebContents) {
     })
     guest.on("before-input-event", (event, input) => {
       if (input.type !== "keyDown") return
+      const scrollTop = matchesShortcut(input, "scrollTop")
+      if (scrollTop || matchesShortcut(input, "scrollBottom")) {
+        event.preventDefault()
+        if (!input.isAutoRepeat) guest.send("vessel:scroll-boundary", scrollTop)
+        return
+      }
       if (matchesShortcut(input, "refreshBrowser")) {
         event.preventDefault()
         if (!input.isAutoRepeat) guest.reload()

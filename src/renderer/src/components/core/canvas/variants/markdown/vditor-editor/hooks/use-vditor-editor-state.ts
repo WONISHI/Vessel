@@ -18,6 +18,7 @@ export function useVditorEditorState({ value, onChange, workspacePath, documentP
   const [colorAnchor, setColorAnchor] = useState<{ left: number; top: number } | null>(null)
   const colorRange = useRef<Range | null>(null)
   const instance = useRef<Vditor | null>(null)
+  const [headingBlockMenu, setHeadingBlockMenu] = useState<{ heading: HTMLElement; x: number; y: number } | null>(null)
   const [calloutBlockMenu, setCalloutBlockMenu] = useState<{ quote: HTMLElement; x: number; y: number } | null>(null)
   const [calloutMenu, setCalloutMenu] = useState<{ quote: HTMLElement; x: number; y: number } | null>(null)
   const [loading, setLoading] = useState(true)
@@ -32,7 +33,7 @@ export function useVditorEditorState({ value, onChange, workspacePath, documentP
   readyHandler.current = onReady
   const changeHandler = useRef(onChange)
 
-  return { value, onChange, workspacePath, documentPath, readOnly, onReady, tableWorkspace, footnoteTarget, setFootnoteTarget, insertLocation, setInsertLocation, clipboardImageInsertAction, imageInsertAction, languageBlock, setLanguageBlock, codeContextMenu, setCodeContextMenu, colorAnchor, setColorAnchor, colorRange, instance, calloutBlockMenu, setCalloutBlockMenu, calloutMenu, setCalloutMenu, loading, setLoading, loadError, setLoadError, host, toolbarHost, properties, initialValue, latestValue, readyHandler, changeHandler }
+  return { headingBlockMenu, setHeadingBlockMenu, value, onChange, workspacePath, documentPath, readOnly, onReady, tableWorkspace, footnoteTarget, setFootnoteTarget, insertLocation, setInsertLocation, clipboardImageInsertAction, imageInsertAction, languageBlock, setLanguageBlock, codeContextMenu, setCodeContextMenu, colorAnchor, setColorAnchor, colorRange, instance, calloutBlockMenu, setCalloutBlockMenu, calloutMenu, setCalloutMenu, loading, setLoading, loadError, setLoadError, host, toolbarHost, properties, initialValue, latestValue, readyHandler, changeHandler }
 }
 
 export type VditorEditorState = ReturnType<typeof useVditorEditorState>

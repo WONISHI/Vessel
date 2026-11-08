@@ -1,3 +1,4 @@
+import { HeadingBlockMenu } from "../../heading-block-menu"
 import { insertEmptyHeading, insertEmptyMarkdownBlock } from "../../insert-heading"
 import { insertEmptyTable } from "../../insert-table"
 import { isEmptyParagraph } from "../../image-paragraph"
@@ -20,6 +21,9 @@ export function EditorBlockMenus({ m }: { m: VditorEditorModel }) {
 
   return (
     <>
+      {m.headingBlockMenu && instance.current && !readOnly && (
+        <HeadingBlockMenu {...m.headingBlockMenu} editor={instance.current} onClose={() => m.setHeadingBlockMenu(null)} />
+      )}
       <FootnoteHoverCard workspacePath={workspacePath} documentPath={documentPath} host={host} source={() => restoreObsidianImages(instance.current?.getValue() || initialValue.current)} onDelete={readOnly ? undefined : (id) => {
         if (instance.current && host.current && deleteFootnote(instance.current, host.current, id)) changeHandler.current((properties?.raw ?? "") + restoreObsidianImages(instance.current.getValue()))
       }} />

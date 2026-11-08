@@ -1038,3 +1038,19 @@ html.dark .vessel-vditor .vessel-image-menu button:hover {
 html.dark .vessel-vditor .vessel-image-menu button:hover svg {
   color: #9aa1a9;
 }
+
+.vessel-heading-grip {
+  position: fixed;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  color: #a8a29e;
+  cursor: pointer;
+}
+.vessel-heading-grip[hidden] { display: none; }
+.vessel-heading-grip:hover { background: #f4f4f3; color: #57534e; }
+html.dark .vessel-heading-grip:hover { background: #ffffff0f; color: #d6d3d1; }

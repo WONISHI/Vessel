@@ -1,3 +1,4 @@
+import "./translate.css"
 import "@/components/styles/tool-page-header.css"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -78,7 +79,7 @@ export default function TranslateTool() {
               <ArrowLeftRight size={16} />
             </Button>
           </div>
-          <div className="rounded-xl border bg-background">
+          <div className="translate-source-field rounded-xl border bg-background">
             <Textarea
               autoFocus
               aria-label="原文"
@@ -87,7 +88,7 @@ export default function TranslateTool() {
               maxLength={maxLength}
               readOnly={busy}
               onChange={(event) => { setInput(event.target.value); clearResult() }}
-              className="h-44 resize-none border-0 bg-transparent p-4 text-base shadow-none focus-visible:ring-0"
+              className="translate-source-input h-44 resize-none border-0 bg-transparent p-4 text-base shadow-none focus-visible:ring-0"
             />
             <div className="flex items-center justify-between px-3 pb-2 text-xs text-muted-foreground">
               <span>{from === "auto" && detectedLabel ? `检测到 ${detectedLabel} · ` : ""}{input.length}/{maxLength}</span>

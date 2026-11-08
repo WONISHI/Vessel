@@ -1,3 +1,4 @@
+import { Input } from "@/components/ui/input"
 import { FootnoteSidebarPreview } from "./footnote-sidebar-preview"
 import "./document-outline.css"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -40,6 +41,8 @@ export function DocumentOutline({
 }) {
   const [toolsOpen, setToolsOpen] = useState(false)
   const [toolsHovered, setToolsHovered] = useState(false)
+  const [search, setSearch] = useState("")
+  const keyword = search.trim().toLocaleLowerCase()
   const [section, setSection] = useState<"outline" | "footnotes">("outline")
   const notes = useMemo(() => {
     const parsed = parseFootnotes(source)
@@ -61,7 +64,18 @@ export function DocumentOutline({
     nodes.forEach((node) => node.ancestors.forEach((parent) => nodes[parent].descendants++))
     return nodes
   }, [headings])
-  useEffect(() => setCollapsed(new Set()), [documentPath])
+  const matchedHeadings = useMemo(() => {
+    const visible = new Set<number>()
+    headings.forEach((heading, index) => {
+      if (!keyword || heading.text.toLocaleLowerCase().includes(keyword)) {
+        visible.add(index)
+        tree[index].ancestors.forEach((ancestor) => visible.add(ancestor))
+      }
+    })
+    return visible
+  }, [headings, tree, keyword])
+  const filteredNotes = notes.filter((note) => !keyword || [note.text, note.content, String(note.number)].some((value) => value.toLocaleLowerCase().includes(keyword)))
+  useEffect(() => { setCollapsed(new Set()); setSearch("") }, [documentPath])
   const anyExpanded = tree.some((node, index) => node.descendants > 0 && !collapsed.has(index))
   const [wrapTitles, setWrapTitles] = useState(false)
   const [pinned, setPinned] = useState(false)
@@ -120,6 +134,8 @@ export function DocumentOutline({
             {headings.map((heading, index) => (
               <button
                 key={index}
+                data-title={heading.text}
+                data-title-side="bottom"
                 aria-label={heading.text}
                 aria-current={index === activeIndex ? "location" : undefined}
                 onClick={() => onSelect(index)}
@@ -161,7 +177,8 @@ export function DocumentOutline({
               size="icon"
               className="size-7 shrink-0 text-stone-400 hover:bg-green-600 hover:text-white"
               aria-label={wrapTitles ? "标题改为单行显示" : "标题改为换行显示"}
-              data-title={wrapTitles ? "标题改为单行显示" : "标题改为换行显示"}
+              data-title-side="bottom"
+            data-title={wrapTitles ? "标题改为单行显示" : "标题改为换行显示"}
               aria-pressed={wrapTitles}
               onClick={() => setWrapTitles(!wrapTitles)}
             >
@@ -181,22 +198,27 @@ export function DocumentOutline({
           </Button>
         </div>
         {fileName && (
-          <div data-title={fileName} className="shrink-0 break-words px-2 pb-2 pt-1 text-xs font-semibold leading-5 text-stone-700 dark:text-stone-200">
+          <div data-title-side="bottom" data-title={fileName} className="shrink-0 break-words px-2 pb-2 pt-1 text-xs font-semibold leading-5 text-stone-700 dark:text-stone-200">
             {fileName}
           </div>
         )}
+        <div className="shrink-0 px-2 pb-2">
+          <Input type="search" aria-label={section === "footnotes" ? "搜索脚注" : "搜索目录"} placeholder={section === "footnotes" ? "搜索脚注…" : "搜索目录…"} value={search} onChange={(event) => setSearch(event.target.value)} className="h-7 text-[11px]" />
+        </div>
         <ScrollArea className="min-h-0 flex-1 [&_[data-radix-scroll-area-viewport]>div]:!block">
           {section === "footnotes" && <div className="space-y-1 px-1 py-2">
-            {notes.map((note) => <div key={note.id} className="w-full rounded-md p-2 text-left text-xs text-stone-600 dark:text-stone-300"><button className="w-full rounded text-left hover:bg-stone-100 dark:hover:bg-white/5" onClick={() => onSelectFootnote?.(note.id)}><span className="flex items-start gap-1.5"><span aria-label={`第 ${note.number} 个脚注`} className="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded bg-green-50 font-mono text-[10px] font-medium text-green-700 dark:bg-green-950 dark:text-green-400">{note.number}</span><span className="min-w-0 break-words font-medium leading-5">{note.text}</span></span></button><FootnoteSidebarPreview content={note.content} /></div>)}
-            {!notes.length && <p className="p-2 text-xs text-stone-400">暂无脚注</p>}
+            {filteredNotes.map((note) => <div key={note.id} className="w-full rounded-md p-2 text-left text-xs text-stone-600 dark:text-stone-300"><button className="w-full rounded text-left hover:bg-stone-100 dark:hover:bg-white/5" onClick={() => onSelectFootnote?.(note.id)}><span className="flex items-start gap-1.5"><span aria-label={`第 ${note.number} 个脚注`} className="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded bg-green-50 font-mono text-[10px] font-medium text-green-700 dark:bg-green-950 dark:text-green-400">{note.number}</span><span className="min-w-0 break-words font-medium leading-5">{note.text}</span></span></button><FootnoteSidebarPreview content={note.content} /></div>)}
+            {!filteredNotes.length && <p className="p-2 text-xs text-stone-400">{keyword ? "没有匹配的脚注" : "暂无脚注"}</p>}
           </div>}
           {section === "outline" && headings.map((heading, index) => {
             const node = tree[index]
-            if (node.ancestors.some((parent) => collapsed.has(parent))) return null
+            if (!matchedHeadings.has(index) || (!keyword && node.ancestors.some((parent) => collapsed.has(parent)))) return null
             const folded = collapsed.has(index)
             const headingButton = (
               <button
                 type="button"
+                data-title={heading.text}
+                data-title-side="bottom"
                 aria-label={heading.text}
                 aria-current={index === activeIndex ? "location" : undefined}
                 onClick={() => onSelect(index)}

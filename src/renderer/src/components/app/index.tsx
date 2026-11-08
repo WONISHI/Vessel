@@ -21,6 +21,10 @@ function App() {
   useEffect(() => window.electronAPI.onOpenSettings?.(() => void router.push("/settings")), [router])
   const location = useLocation()
   useEffect(() => {
+    const route = router.resolve(location.pathname + location.search + location.hash)
+    document.title = typeof route.meta.title === "string" ? route.meta.title : "Vessel"
+  }, [router, location.pathname, location.search, location.hash])
+  useEffect(() => {
     let notifiedVersion: string | undefined
     const notify = (state: Awaited<ReturnType<Window["electronAPI"]["getAppUpdate"]>>) => {
       if (state.status !== "available" || notifiedVersion === state.version) return

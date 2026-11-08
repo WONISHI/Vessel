@@ -1,0 +1,16 @@
+.translate-source-field {
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+.translate-source-field:focus-within {
+  border-color: #16a34a;
+  box-shadow: 0 0 0 3px #16a34a1a;
+}
+html.dark .translate-source-field:focus-within {
+  border-color: #22c55e;
+  box-shadow: 0 0 0 3px #22c55e26;
+}
+.translate-source-field textarea.translate-source-input:is(:focus, :focus-visible) {
+  border: 0 !important;
+  outline: none !important;
+  box-shadow: none !important;
+}

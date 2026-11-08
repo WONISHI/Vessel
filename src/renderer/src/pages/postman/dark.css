@@ -30,8 +30,6 @@ html.dark .vessel-api-page :is(.bg-red-50, .bg-red-100) { background: rgba(248,1
 html.dark .vessel-api-page > header { background: #22272e !important; }
 
 /* API-only select borders, including portalled option panels. */
-.vessel-api-page button.api-select-trigger,
-html.dark .vessel-api-page button.api-select-trigger,
 .api-select-content,
 html.dark .api-select-content {
   border-color: #f59e0b !important;
@@ -107,5 +105,24 @@ html.dark #vessel-api-client button.api-save-button:not(:disabled):hover {
 }
 html #vessel-api-client button.api-save-button:not(:disabled):hover svg {
   color: #fff !important;
+  stroke: currentColor !important;
+}
+
+html #vessel-api-client button.api-select-trigger {
+  border-color: #e7e5e4 !important;
+}
+html.dark #vessel-api-client button.api-select-trigger {
+  border-color: #30353c !important;
+}
+html #vessel-api-client button.api-select-trigger:not(:disabled):hover,
+html.dark #vessel-api-client button.api-select-trigger:not(:disabled):hover {
+  border-color: #f59e0b !important;
+}
+
+html .api-history-menu [role="menuitem"] svg,
+html .api-history-menu [role="menuitem"]:is(:hover, :focus, [data-highlighted]) svg,
+html.dark .api-history-menu [role="menuitem"] svg,
+html.dark .api-history-menu [role="menuitem"]:is(:hover, :focus, [data-highlighted]) svg {
+  color: inherit !important;
   stroke: currentColor !important;
 }

@@ -1,3 +1,4 @@
+import { scrollBoundary } from "../../../shared/scroll-boundary"
 import { matchesShortcut } from "@vessel/utils"
 
 /** Performs the install scroll shortcuts operation. */
@@ -18,16 +19,7 @@ export function installScrollShortcuts() {
   const key = (event: KeyboardEvent) => {
     const top = matchesShortcut(event, "scrollTop")
     if (!top && !matchesShortcut(event, "scrollBottom")) return
-    const hovered = pointer ? document.elementFromPoint(pointer.x, pointer.y) : null
-    const container = hovered?.closest("[data-vessel-scroll]") ?? document.activeElement?.closest("[data-vessel-scroll]")
-    if (!(container instanceof HTMLElement)) return
-    if (container.dataset.vesselScroll === "code") {
-      container.dispatchEvent(new CustomEvent("vessel:scroll-boundary", { detail: top }))
-    } else {
-      const viewport = container.querySelector<HTMLElement>("[data-radix-scroll-area-viewport]")
-      if (!viewport) return
-      viewport.scrollTo({ top: top ? 0 : viewport.scrollHeight, behavior: "smooth" })
-    }
+    if (!scrollBoundary(top, pointer)) return
     event.preventDefault()
     event.stopImmediatePropagation()
   }

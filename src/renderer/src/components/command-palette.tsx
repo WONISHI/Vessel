@@ -84,11 +84,25 @@ export function CommandPalette() {
         case "selectWorkspace": selectWorkspace(); break
         case "findWorkspaceFiles": findWorkspaceFiles(); break
         case "openBrowser":
-        case "openWorkspace":
           setOpen(false)
           setFinderOpen(false)
-          void router.push(command === "openBrowser" ? "/browser" : "/editor")
+          void router.push("/browser")
           break
+        case "openWorkspace": {
+          setOpen(false)
+          setFinderOpen(false)
+          let restored = false
+          const provide: FilePickerRequest = Object.assign((workspace: FilePickerWorkspace) => {
+            if (restored) return
+            const file = workspace.files.find((item) => item.path === workspace.activePath)
+            if (!file) return
+            restored = true
+            workspace.openFile(file)
+          }, { scope: "workspace" as const })
+          window.dispatchEvent(new CustomEvent("vessel:request-workspace-files", { detail: provide }))
+          if (!restored) void router.push("/editor")
+          break
+        }
         case "openTranslate":
           setOpen(false)
           setFinderOpen(false)

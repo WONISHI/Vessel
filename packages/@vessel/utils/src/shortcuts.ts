@@ -12,7 +12,7 @@ export const shortcuts = {
   showControls: { label: "显示控制按钮", key: "y", mod: true, shift: true, scope: "全局" },
   hideControls: { label: "关闭控制按钮", key: "u", mod: true, shift: true, scope: "全局" },
   openBrowser: { label: "跳转到浏览器", key: "b", ctrl: true, shift: true, scope: "全局" },
-  openWorkspace: { label: "跳转到工作区", key: "d", ctrl: true, shift: true, scope: "全局" },
+  openWorkspace: { label: "跳转到工作区", key: "d", ctrl: true, shift: true, scope: "全局，恢复上次选中的文档标签；没有文档时打开工作台" },
   openTranslate: { label: "打开翻译", key: "g", ctrl: true, shift: true, scope: "全局" },
   command: { label: "命令菜单", key: "p", mod: true, scope: "全局" },
   find: { label: "页面 / 文档查找", key: "f", mod: true, scope: "浏览器、编辑器" },
@@ -69,3 +69,5 @@ export function markdownHotkey(id: ShortcutId) {
 
 /** Commands available both in the app shell and focused browser guests. */
 export const commandShortcutIds = ["command", "openBrowser", "openWorkspace", "openTranslate", "selectWorkspace", "findWorkspaceFiles", "visitLink", "reloadApp", "toggleTheme", "showControls", "hideControls"] as const
+
+export const windowSwitchShortcut = { label: "切换 Vessel 窗口", scope: "应用内", mac: "⌘ + E", windows: "Alt + E" }

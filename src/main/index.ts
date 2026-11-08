@@ -1,3 +1,4 @@
+import { registerWindowSwitcher } from "./window-switcher"
 import { registerAppUpdate } from "./app-update"
 import { drainTextFileWrites } from "@main/modules/files/index.module"
 import { registerImageResources } from "@main/modules/files/image-resource"
@@ -245,6 +246,8 @@ function createWindow(): void {
     return { action: "deny" }
   })
 }
+
+registerWindowSwitcher()
 
 app.whenReady().then(() => {
   registerImageResources()

@@ -1,3 +1,4 @@
+import { scrollBoundary } from "../shared/scroll-boundary"
 import { bindWebStoreInstall } from "./webstore-install"
 import { contextBridge, ipcRenderer } from "electron"
 import { installExtensionApiShim } from "../main/browser/extensions/extension-api-shim"
@@ -58,4 +59,12 @@ window.addEventListener("submit", (event: SubmitEvent) => {
   pendingForm = { token, form, submitter }
   if (ipcRenderer.sendSync("vessel:form-navigation-choice", url, token) !== true) event.preventDefault()
   else pendingForm = undefined
+})
+
+let scrollPointer: { x: number; y: number } | undefined
+window.addEventListener("pointermove", (event) => { scrollPointer = { x: event.clientX, y: event.clientY } }, true)
+window.addEventListener("pointerleave", () => { scrollPointer = undefined })
+window.addEventListener("blur", () => { scrollPointer = undefined })
+ipcRenderer.on("vessel:scroll-boundary", (_event, top: boolean) => {
+  if (typeof top === "boolean") scrollBoundary(top, scrollPointer)
 })
