@@ -1,0 +1,12 @@
+html .git-tag-dialog button.git-tag-submit { background: #16a34a !important; color: #fff !important; }
+html .git-tag-dialog button.git-tag-submit:hover:not(:disabled) { background: #15803d !important; }
+html .git-tag-dialog button.git-tag-cancel:hover:not(:disabled) { background: #f5f5f4 !important; color: #44403c !important; }
+html.dark .git-tag-dialog button.git-tag-cancel:hover:not(:disabled) { background: #414954 !important; color: #e6e8eb !important; }
+html .git-tag-dialog .git-tag-tabs button:is(:hover, :focus-visible) { background: #e7e5e4 !important; color: #44403c !important; }
+html .git-tag-dialog .git-tag-tabs button[data-state="active"] { background: #fff !important; color: #1c1917 !important; }
+html.dark .git-tag-dialog .git-tag-tabs button[data-state="active"] { background: #414954 !important; color: #fff !important; }
+html.dark .git-tag-dialog .git-tag-tabs button:is(:hover, :focus-visible) { background: #30363e !important; color: #e6e8eb !important; }
+html .git-tag-dialog button.git-tag-advanced:is(:hover, :focus-visible),
+html .git-tag-dialog button.git-tag-advanced:is(:hover, :focus-visible) svg { background: transparent !important; color: inherit !important; }
+html .git-tag-dialog button[role="radio"]:is(:hover, :focus-visible) { background: transparent !important; color: var(--primary) !important; }
+html .git-tag-dialog button[role="radio"]:is(:hover, :focus-visible) svg { color: inherit !important; }
