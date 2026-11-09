@@ -82,9 +82,9 @@ export function RequestEditor({ draft, onChange, vars, loading, dirty, onSend, o
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex items-center gap-2 border-b border-stone-200 bg-white p-3">
-        <div className="flex min-w-0 flex-1 items-center rounded-md border border-stone-200 focus-within:border-amber-500">
+        <div className="api-url-group flex h-9 min-w-0 flex-1 items-stretch overflow-hidden rounded-md border border-stone-200">
           <Select value={draft.method} onValueChange={(method) => onChange({ method })}>
-            <SelectTrigger className={`api-select-trigger api-method-trigger h-9 w-28 shrink-0 rounded-r-none border-0 border-r bg-stone-50 text-xs font-bold ${METHOD_COLOR[draft.method] ?? ""}`} aria-label="请求方法"><SelectValue /></SelectTrigger>
+            <SelectTrigger className={`api-select-trigger api-method-trigger h-full w-28 shrink-0 rounded-none border-0 border-r bg-stone-50 text-xs font-bold ${METHOD_COLOR[draft.method] ?? ""}`} aria-label="请求方法"><SelectValue /></SelectTrigger>
             <SelectContent className="api-select-content">
               {METHODS.map((method) => <SelectItem key={method} value={method} className={`font-bold ${METHOD_COLOR[method]}`}>{method}</SelectItem>)}
             </SelectContent>
@@ -106,8 +106,8 @@ export function RequestEditor({ draft, onChange, vars, loading, dirty, onSend, o
               }
               onChange({ url, params: paramsFromUrl(url, draft.params) })
             }}
-            wrapperClassName="flex-1"
-            className="h-9 px-3 font-mono text-xs outline-none"
+            wrapperClassName="flex-1 self-stretch"
+            className="h-full px-3 font-mono text-xs outline-none"
           />
         </div>
         <Button onClick={onSend} disabled={loading} className="h-9 gap-1.5 bg-amber-500 px-4 text-xs font-semibold text-white hover:bg-amber-600" data-title="发送 (⌘/Ctrl + Enter)">
@@ -118,7 +118,7 @@ export function RequestEditor({ draft, onChange, vars, loading, dirty, onSend, o
           <Save className="size-3.5" />保存
           {dirty && <span className="absolute -right-0.5 -top-0.5 size-2 rounded-full bg-amber-500" aria-label="有未保存的修改" />}
         </Button>
-        <Button variant="outline" onClick={onCode} className="h-9 border-stone-200 px-2.5 text-xs" aria-label="生成代码" data-title="生成代码片段">
+        <Button variant="outline" onClick={onCode} className="api-save-button h-9 border-stone-200 px-2.5 text-xs" aria-label="生成代码" data-title="生成代码片段">
           <Code2 className="size-3.5" />
         </Button>
       </div>
@@ -204,7 +204,7 @@ export function RequestEditor({ draft, onChange, vars, loading, dirty, onSend, o
             )}
             {(draft.bodyType === "form-data" || draft.bodyType === "x-www-form-urlencoded") && (
               <div className="min-h-0 flex-1 overflow-y-auto">
-                <KVTable rows={draft.bodyForm} vars={vars} keyPlaceholder="字段" valuePlaceholder="值" onChange={(bodyForm) => onChange({ bodyForm })} />
+                <KVTable rows={draft.bodyForm} vars={vars} keyPlaceholder="字段" valuePlaceholder="值" allowFiles={draft.bodyType === "form-data"} onChange={(bodyForm) => onChange({ bodyForm })} />
               </div>
             )}
           </div>

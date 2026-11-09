@@ -151,3 +151,36 @@ html.dark .api-dialog [class~="hover:bg-amber-50"]:hover { background: rgba(245,
 html.dark .vessel-api-page button.api-checkbox[data-state="checked"] { background-color: #f59e0b !important; border-color: #f59e0b !important; }
 html.dark .vessel-api-page button:is(.api-checkbox, .api-radio):not([data-state="checked"]):hover { border-color: #f59e0b !important; }
 .api-checkbox:not(:disabled):hover, .api-radio:not(:disabled):hover { border-color: #f59e0b; }
+
+/* API dialogs (portalled): amber focus instead of the global green .vessel-field focus.
+   Repeated class beats the specificity of the global :is(...) selector in form-fields.css. */
+html .api-dialog .vessel-field.vessel-field.vessel-field.vessel-field.vessel-field.vessel-field:not(:disabled):is(:focus, :focus-visible, [data-state="open"]),
+html.dark .api-dialog .vessel-field.vessel-field.vessel-field.vessel-field.vessel-field.vessel-field:not(:disabled):is(:focus, :focus-visible, [data-state="open"]) {
+  border-color: #f59e0b !important;
+  box-shadow: 0 0 0 3px #f59e0b26 !important;
+}
+.api-dialog .vessel-field:not(:disabled):hover { border-color: #fcd34d; }
+html.dark .api-dialog .vessel-field:not(:disabled):hover { border-color: #b45309; }
+
+/* Type selector inside key/value tables: borderless cell, no focus ring. */
+html #vessel-api-client button.api-select-trigger.vessel-field.api-kv-type,
+html.dark #vessel-api-client button.api-select-trigger.vessel-field.api-kv-type,
+html #vessel-api-client button.api-select-trigger.vessel-field.api-kv-type:not(:disabled):is(:hover, :focus, :focus-visible, [data-state="open"]),
+html.dark #vessel-api-client button.api-select-trigger.vessel-field.api-kv-type:not(:disabled):is(:hover, :focus, :focus-visible, [data-state="open"]) {
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+/* URL bar: one rounded frame; the method selector inside it gets no border/ring of its own. */
+.vessel-api-page .api-url-group:focus-within { border-color: #f59e0b !important; box-shadow: 0 0 0 3px #f59e0b26; }
+html #vessel-api-client button.api-select-trigger.vessel-field.api-method-trigger,
+html.dark #vessel-api-client button.api-select-trigger.vessel-field.api-method-trigger,
+html #vessel-api-client button.api-select-trigger.vessel-field.api-method-trigger:not(:disabled):is(:hover, :focus, :focus-visible, [data-state="open"]),
+html.dark #vessel-api-client button.api-select-trigger.vessel-field.api-method-trigger:not(:disabled):is(:hover, :focus, :focus-visible, [data-state="open"]) {
+  border-top-color: transparent !important;
+  border-bottom-color: transparent !important;
+  border-left-color: transparent !important;
+  border-right-color: #e7e5e4 !important;
+  box-shadow: none !important;
+}
+html.dark #vessel-api-client button.api-select-trigger.vessel-field.api-method-trigger:not(:disabled):is(*, :hover, :focus, :focus-visible, [data-state="open"]) { border-right-color: #30353c !important; }

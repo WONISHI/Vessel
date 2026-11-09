@@ -54,6 +54,14 @@ export class ApiClientModule extends BaseModule {
       "api-client:cookies:list": () => store.listCookies(),
       "api-client:cookies:delete": (_e, filter?: { domain: string; path?: string; name?: string }) => store.deleteCookies(filter),
 
+      /** Picks a file for form-data uploads; returns its absolute path or null. */
+      "api-client:pick-file": async (event) => {
+        const owner = BrowserWindow.fromWebContents(event.sender)
+        const options = { title: "选择要上传的文件", properties: ["openFile" as const] }
+        const result = owner ? await dialog.showOpenDialog(owner, options) : await dialog.showOpenDialog(options)
+        return result.canceled ? null : (result.filePaths[0] ?? null)
+      },
+
       /** Saves response bodies / exported collections through a native save dialog. */
       "api-client:save-file": async (event, name: string, content: string, encoding: "text" | "base64" = "text") => {
         if (typeof name !== "string" || typeof content !== "string") throw new Error("文件参数无效")

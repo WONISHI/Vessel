@@ -1,7 +1,8 @@
 import type { ApiEnvironmentRecord, ApiRequestRecord, ApiResponseData, ApiSendOptions } from "@vessel/type"
 import { paramsFromUrl, splitUrl, urlWithParams } from "@/pages/postman/lib/url-params"
 
-export type KV = { key: string; value: string; enabled: boolean }
+/** Key/value row; `type: "file"` (form-data only) means `value` is an absolute file path to upload. */
+export type KV = { key: string; value: string; enabled: boolean; type?: "text" | "file" }
 export type BodyType = "none" | "form-data" | "x-www-form-urlencoded" | "raw"
 export type RawType = "json" | "text" | "html" | "xml" | "javascript"
 export type AuthType = "none" | "bearer" | "basic" | "apiKey"
@@ -93,7 +94,7 @@ const parse = <T,>(text: string | undefined | null, fallback: T): T => {
   try { return text ? (JSON.parse(text) as T) : fallback } catch { return fallback }
 }
 
-const rows = (value: unknown): KV[] => (Array.isArray(value) ? value.filter((row) => row && typeof row === "object").map((row) => ({ key: String(row.key ?? ""), value: String(row.value ?? ""), enabled: row.enabled !== false })) : [])
+const rows = (value: unknown): KV[] => (Array.isArray(value) ? value.filter((row) => row && typeof row === "object").map((row) => ({ key: String(row.key ?? ""), value: String(row.value ?? ""), enabled: row.enabled !== false, ...(row.type === "file" ? { type: "file" as const } : {}) })) : [])
 
 /** Saved record → draft. Legacy records kept their query in `params`; fold it into the URL so the URL is authoritative. */
 export function draftFromRecord(record: ApiRequestRecord): RequestDraft {

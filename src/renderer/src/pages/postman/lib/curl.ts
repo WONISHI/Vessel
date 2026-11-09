@@ -85,7 +85,8 @@ export function parseCurl(command: string): RequestDraft {
       case "-d": case "--data": case "--data-raw": case "--data-binary": case "--data-ascii": case "--data-urlencode": data.push(value!); break
       case "-F": case "--form": case "--form-string": {
         const [key, formValue] = splitPair(value!, "=")
-        form.push({ key, value: formValue, enabled: true })
+        const file = token !== "--form-string" && formValue.startsWith("@")
+        form.push(file ? { key, value: formValue.slice(1).split(";")[0].replace(/^"(.*)"$/, "$1"), enabled: true, type: "file" } : { key, value: formValue, enabled: true })
         break
       }
       case "-u": case "--user": {

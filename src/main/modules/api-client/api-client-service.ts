@@ -1,6 +1,8 @@
 import { type ApiClientStore } from "@main/modules/api-client/store"
 import { cookieHeaderFor, parseSetCookie } from "@main/modules/api-client/cookie-jar"
 import { runApiScript, type ScriptRequest } from "@main/modules/api-client/script-runner"
+import { readFile, stat } from "node:fs/promises"
+import { basename } from "node:path"
 import type { ApiRequestRecord, ApiResponseData, ApiRunResult, ApiSendOptions, ApiTestResult } from "@vessel/type/api-client"
 export type { ApiResponseData, ApiSendOptions, ApiTestResult } from "@vessel/type/api-client"
 
@@ -12,6 +14,7 @@ export function interpolateVariables(template: string, vars: Record<string, stri
   })
 }
 
+const MAX_UPLOAD_BYTES = 200 * 1024 * 1024
 const BINARY_TYPE = /^(image|audio|video)\/|application\/(pdf|zip|octet-stream|gzip)/i
 const parseJson = <T,>(text: string | undefined, fallback: T): T => {
   try { return text ? (JSON.parse(text) as T) : fallback } catch { return fallback }
@@ -74,10 +77,25 @@ export class ApiClientService {
           reqHeaders["Content-Type"] = options.rawType === "json" ? "application/json; charset=utf-8" : options.rawType === "html" ? "text/html; charset=utf-8" : options.rawType === "xml" ? "application/xml; charset=utf-8" : options.rawType === "javascript" ? "application/javascript; charset=utf-8" : "text/plain; charset=utf-8"
         }
       } else if (options.bodyType === "x-www-form-urlencoded" || options.bodyType === "form-data") {
-        const fields = parseJson<{ key: string; value: string; enabled: boolean }[]>(options.bodyContent, [])
+        const fields = parseJson<{ key: string; value: string; enabled: boolean; type?: "text" | "file" }[]>(options.bodyContent, [])
         if (options.bodyType === "form-data") {
           const form = new FormData()
-          for (const f of fields) if (f.enabled && f.key) form.append(interpolateVariables(f.key, vars), interpolateVariables(f.value, vars))
+          for (const f of fields) {
+            if (!f.enabled || !f.key) continue
+            if (f.type !== "file") {
+              form.append(interpolateVariables(f.key, vars), interpolateVariables(f.value, vars))
+              continue
+            }
+            if (!f.value) continue
+            try {
+              const info = await stat(f.value)
+              if (!info.isFile()) throw new Error("不是文件")
+              if (info.size > MAX_UPLOAD_BYTES) throw new Error("文件超过 200 MB")
+              form.append(interpolateVariables(f.key, vars), new Blob([await readFile(f.value)]), basename(f.value))
+            } catch (error) {
+              return this.failure(options, method, urlObj.toString(), `无法读取上传文件 ${f.value}：${error instanceof Error ? error.message : String(error)}`, "File Error", 0, { testResults, envUpdates, logs, headers: reqHeaders, vars })
+            }
+          }
           bodyData = form
         } else {
           const usp = new URLSearchParams()

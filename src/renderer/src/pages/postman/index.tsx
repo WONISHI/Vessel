@@ -9,6 +9,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { toast } from "@/components/ui/sonner"
 import { StatusBar } from "@/components/ui/status-bar"
 import { ApiSidebar } from "@/pages/postman/components/api-sidebar"
+import { ApiHelpDialog } from "@/pages/postman/components/api-help-dialog"
 import { CodeDialog, CookiesDialog, EnvironmentDialog, ImportDialog, RunnerDialog, SaveRequestDialog } from "@/pages/postman/components/api-dialogs"
 import { RequestEditor } from "@/pages/postman/components/request-editor"
 import { RequestTabs } from "@/pages/postman/components/request-tabs"
@@ -17,7 +18,7 @@ import { applyEnvUpdates, createTab, draftFromRecord, draftToRecord, draftToSend
 import { exportPostman } from "@/pages/postman/lib/postman-collection"
 import { paramsFromUrl, splitUrl, urlWithParams } from "@/pages/postman/lib/url-params"
 import type { ApiCollectionRecord, ApiEnvironmentRecord, ApiHistoryRecord, ApiRequestRecord, ApiRunResult, ApiSendOptions } from "@vessel/type"
-import { Activity, ChevronRight, Cookie, Eye, FlaskConical, Globe, HardDrive, Loader2, Send, Timer, Upload } from "lucide-react"
+import { Activity, ChevronRight, CircleQuestionMark, Cookie, Eye, FlaskConical, Globe, HardDrive, Loader2, Send, Timer, Upload } from "lucide-react"
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react"
 import { useNavigate } from "react-router-dom"
 
@@ -98,6 +99,7 @@ export default function PostmanPage() {
   const [cookiesOpen, setCookiesOpen] = useState(false)
   const [runner, setRunner] = useState<{ name: string; result: ApiRunResult | null } | null>(null)
   const [closing, setClosing] = useState<string[] | null>(null)
+  const [helpOpen, setHelpOpen] = useState(false)
   const tabsRef = useRef(tabs)
   useEffect(() => {
     tabsRef.current = tabs
@@ -388,7 +390,10 @@ export default function PostmanPage() {
 
         <StatusBar
           left={<>
-            <button type="button" data-title={`${activeTab.draft.method} ${activeTab.draft.url}，点击复制 URL`} onClick={() => void navigator.clipboard.writeText(activeTab.draft.url).then(() => toast.success("已复制请求地址"))}>
+            <button type="button" aria-label="使用说明" data-title="使用说明：脚本、环境变量与 pm 对象" onClick={() => setHelpOpen(true)}>
+              <CircleQuestionMark />
+            </button>
+            <button type="button" className="vessel-status-separated" data-title={`${activeTab.draft.method} ${activeTab.draft.url}，点击复制 URL`} onClick={() => void navigator.clipboard.writeText(activeTab.draft.url).then(() => toast.success("已复制请求地址"))}>
               <Send />
               <span className="font-mono font-semibold text-amber-600 dark:text-amber-400">{activeTab.draft.method}</span>
               <span className="max-w-64 truncate">{activeTab.draft.name}</span>
@@ -415,6 +420,7 @@ export default function PostmanPage() {
         {importOpen && <ImportDialog onClose={() => setImportOpen(false)} onCurl={(draft) => addTab(createTab(draft))} onImported={async (list) => { if (list) setEnvironments(list); await loadData(); setSidebarTab("collections") }} />}
         {codeOpen && <CodeDialog draft={activeTab.draft} vars={vars} onClose={() => setCodeOpen(false)} />}
         {cookiesOpen && <CookiesDialog onClose={() => setCookiesOpen(false)} />}
+        {helpOpen && <ApiHelpDialog onClose={() => setHelpOpen(false)} />}
         {runner && <RunnerDialog name={runner.name} result={runner.result} onClose={() => setRunner(null)} />}
         <ConfirmDialog
           open={!!closing}

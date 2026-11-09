@@ -22,7 +22,10 @@ export interface ImportedEnvironment {
 export type ImportResult = { kind: "collection"; payload: ApiImportPayload; name: string; environment?: ImportedEnvironment; count: number } | { kind: "environment"; environment: ImportedEnvironment }
 
 const uid = (prefix: string) => `${prefix}-${crypto.randomUUID()}`
-const toRows = (list: PostmanKV[] | undefined): KV[] => (Array.isArray(list) ? list.filter((row) => row.type !== "file").map((row) => ({ key: String(row.key ?? ""), value: String(row.value ?? ""), enabled: !row.disabled })) : [])
+const toRows = (list: PostmanKV[] | undefined): KV[] =>
+  Array.isArray(list)
+    ? list.map((row) => (row.type === "file" ? { key: String(row.key ?? ""), value: String((Array.isArray(row.src) ? row.src[0] : row.src) ?? ""), enabled: !row.disabled, type: "file" as const } : { key: String(row.key ?? ""), value: String(row.value ?? ""), enabled: !row.disabled }))
+    : []
 const authValue = (list: unknown, key: string) => (Array.isArray(list) ? String((list as PostmanKV[]).find((row) => row.key === key)?.value ?? "") : "")
 const script = (item: PostmanItem, listen: string) => {
   const exec = item.event?.find((event) => event.listen === listen)?.script?.exec
@@ -90,7 +93,7 @@ function requestOut(record: ApiRequestRecord) {
     ...(draft.tests.trim() ? [{ listen: "test", script: { type: "text/javascript", exec: exec(draft.tests) } }] : [])
   ]
   const body =
-    draft.bodyType === "raw" ? { mode: "raw", raw: draft.bodyRaw, options: { raw: { language: draft.rawType } } } : draft.bodyType === "x-www-form-urlencoded" ? { mode: "urlencoded", urlencoded: kvOut(draft.bodyForm) } : draft.bodyType === "form-data" ? { mode: "formdata", formdata: kvOut(draft.bodyForm).map((row) => ({ ...row, type: "text" })) } : undefined
+    draft.bodyType === "raw" ? { mode: "raw", raw: draft.bodyRaw, options: { raw: { language: draft.rawType } } } : draft.bodyType === "x-www-form-urlencoded" ? { mode: "urlencoded", urlencoded: kvOut(draft.bodyForm) } : draft.bodyType === "form-data" ? { mode: "formdata", formdata: draft.bodyForm.filter((row) => row.key).map((row) => ({ key: row.key, ...(row.type === "file" ? { type: "file", src: row.value } : { value: row.value, type: "text" }), ...(row.enabled ? {} : { disabled: true }) })) } : undefined
   const auth =
     draft.authType === "bearer" ? { type: "bearer", bearer: [{ key: "token", value: draft.auth.token, type: "string" }] } : draft.authType === "basic" ? { type: "basic", basic: [{ key: "username", value: draft.auth.username, type: "string" }, { key: "password", value: draft.auth.password, type: "string" }] } : draft.authType === "apiKey" ? { type: "apikey", apikey: [{ key: "key", value: draft.auth.apiKeyName, type: "string" }, { key: "value", value: draft.auth.apiKeyValue, type: "string" }, { key: "in", value: draft.auth.apiKeyLocation, type: "string" }] } : undefined
   return {

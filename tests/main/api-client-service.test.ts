@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync } from "node:fs"
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs"
 import { createServer } from "node:http"
 import type { AddressInfo } from "node:net"
 import { tmpdir } from "node:os"
@@ -9,7 +9,14 @@ import { ApiClientStore } from "@main/modules/api-client/store"
 
 it("runs scripts around a real request, keeps cookies and returns binary bodies as base64", async () => {
   const seen: { url?: string; cookie?: string; token?: string }[] = []
+  let upload = ""
   const server = createServer((req, res) => {
+    if (req.url === "/upload") {
+      const chunks: Buffer[] = []
+      req.on("data", (chunk) => chunks.push(chunk))
+      req.on("end", () => { upload = Buffer.concat(chunks).toString(); res.writeHead(200).end("ok") })
+      return
+    }
     seen.push({ url: req.url, cookie: req.headers.cookie, token: req.headers["x-token"] as string | undefined })
     if (req.url?.startsWith("/img")) {
       res.writeHead(200, { "Content-Type": "image/png" }).end(Buffer.from([137, 80, 78, 71]))
@@ -40,6 +47,16 @@ it("runs scripts around a real request, keeps cookies and returns binary bodies 
     const image = await service.sendRequest({ method: "GET", url: `${base}/img` })
     expect(seen[1].cookie).toBe("sid=42")
     expect(image).toMatchObject({ bodyEncoding: "base64", body: Buffer.from([137, 80, 78, 71]).toString("base64"), sizeBytes: 4 })
+
+    const file = join(directory, "hello.txt")
+    writeFileSync(file, "file-content-42")
+    const uploaded = await service.sendRequest({ method: "POST", url: `${base}/upload`, bodyType: "form-data", bodyContent: JSON.stringify([{ key: "note", value: "hi", enabled: true }, { key: "doc", value: file, enabled: true, type: "file" }]) })
+    expect(uploaded.status).toBe(200)
+    expect(upload).toContain('name="doc"; filename="hello.txt"')
+    expect(upload).toContain("file-content-42")
+    expect(upload).toContain('name="note"')
+    const missing = await service.sendRequest({ method: "POST", url: `${base}/upload`, bodyType: "form-data", bodyContent: JSON.stringify([{ key: "doc", value: join(directory, "nope.bin"), enabled: true, type: "file" }]) })
+    expect(missing).toMatchObject({ status: 0, statusText: "File Error" })
 
     const invalid = await service.sendRequest({ method: "GET", url: "http://exa mple.com" })
     expect(invalid.status).toBe(0)

@@ -42,6 +42,7 @@ describe("cURL", () => {
     expect(draft.headers.map((h) => h.key)).toEqual(["content-type", "Authorization"])
     expect(parseCurl("curl -XPUT -u me:pw -d a=1 -d b=x%20y https://x.test")).toMatchObject({ method: "PUT", authType: "basic", auth: { username: "me", password: "pw" }, bodyType: "x-www-form-urlencoded", bodyForm: [{ key: "a", value: "1", enabled: true }, { key: "b", value: "x y", enabled: true }] })
     expect(parseCurl("curl -G https://x.test/s -d q=1").url).toBe("https://x.test/s?q=1")
+    expect(parseCurl(`curl https://x.test/u -F 'a=1' -F 'doc=@"/tmp/my file.png";type=image/png'`).bodyForm).toEqual([{ key: "a", value: "1", enabled: true }, { key: "doc", value: "/tmp/my file.png", enabled: true, type: "file" }])
     expect(() => parseCurl("wget x")).toThrow()
   })
 
@@ -52,6 +53,9 @@ describe("cURL", () => {
     expect(parsed).toMatchObject({ method: "POST", url: "https://x.test/it's", bodyRaw: '{\n  "n": "o\'k"\n}' })
     expect(parsed.headers).toContainEqual({ key: "Authorization", value: "Bearer tok", enabled: true })
     for (const language of ["fetch", "axios", "python", "http"] as const) expect(generateSnippet(language, normalizeRequest(draft)).length).toBeGreaterThan(20)
+    const upload = newDraft({ method: "POST", url: "https://x.test/u", bodyType: "form-data", bodyForm: [{ key: "doc", value: "/tmp/a.png", enabled: true, type: "file" }] })
+    expect(parseCurl(generateSnippet("curl", normalizeRequest(upload))).bodyForm).toEqual(upload.bodyForm)
+    expect(generateSnippet("python", normalizeRequest(upload))).toContain('open("/tmp/a.png", "rb")')
   })
 })
 

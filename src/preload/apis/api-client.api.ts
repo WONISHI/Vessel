@@ -30,6 +30,7 @@ export const apiClientAPI = {
   importItems: (payload: ApiImportPayload): Promise<void> => ipcRenderer.invoke("api-client:import", payload),
   listCookies: (): Promise<ApiCookieRecord[]> => ipcRenderer.invoke("api-client:cookies:list"),
   deleteCookies: (filter?: { domain: string; path?: string; name?: string }): Promise<ApiCookieRecord[]> => ipcRenderer.invoke("api-client:cookies:delete", filter),
+  pickFile: (): Promise<string | null> => ipcRenderer.invoke("api-client:pick-file"),
   saveFile: (name: string, content: string, encoding?: "text" | "base64"): Promise<boolean> => ipcRenderer.invoke("api-client:save-file", name, content, encoding),
 
   /** Lists history. */

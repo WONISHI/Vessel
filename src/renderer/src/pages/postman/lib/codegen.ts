@@ -1,6 +1,7 @@
 import { interpolate, type KV, type RequestDraft } from "@/pages/postman/lib/model"
 
-type Body = { type: "none" } | { type: "raw"; text: string } | { type: "urlencoded"; fields: [string, string][] } | { type: "form"; fields: [string, string][] }
+type FormField = { key: string; value: string; file?: boolean }
+type Body = { type: "none" } | { type: "raw"; text: string } | { type: "urlencoded"; fields: [string, string][] } | { type: "form"; fields: FormField[] }
 
 export interface NormalizedRequest {
   method: string
@@ -44,7 +45,7 @@ export function normalizeRequest(draft: RequestDraft, vars: Record<string, strin
     } else if (draft.bodyType === "x-www-form-urlencoded") {
       body = { type: "urlencoded", fields: enabled(draft.bodyForm) }
       if (!has("Content-Type")) headers.push(["Content-Type", "application/x-www-form-urlencoded"])
-    } else if (draft.bodyType === "form-data") body = { type: "form", fields: enabled(draft.bodyForm) }
+    } else if (draft.bodyType === "form-data") body = { type: "form", fields: draft.bodyForm.filter((row) => row.enabled && row.key).map((row) => (row.type === "file" ? { key: v(row.key), value: row.value, file: true } : { key: v(row.key), value: v(row.value) })) }
   }
   return { method: draft.method, url, headers, body }
 }
@@ -59,7 +60,7 @@ function curl(req: NormalizedRequest) {
   for (const [key, value] of req.headers) lines.push(`--header ${shellQuote(`${key}: ${value}`)}`)
   if (req.body.type === "raw") lines.push(`--data-raw ${shellQuote(req.body.text)}`)
   if (req.body.type === "urlencoded") for (const [key, value] of req.body.fields) lines.push(`--data-urlencode ${shellQuote(`${key}=${value}`)}`)
-  if (req.body.type === "form") for (const [key, value] of req.body.fields) lines.push(`--form ${shellQuote(`${key}=${value}`)}`)
+  if (req.body.type === "form") for (const field of req.body.fields) lines.push(`--form ${shellQuote(field.file ? `${field.key}=@"${field.value}"` : `${field.key}=${field.value}`)}`)
   return lines.join(" \\\n  ")
 }
 
@@ -67,7 +68,7 @@ function fetchSnippet(req: NormalizedRequest) {
   const out: string[] = []
   if (req.body.type === "form") {
     out.push("const formData = new FormData()")
-    for (const [key, value] of req.body.fields) out.push(`formData.append(${js(key)}, ${js(value)})`)
+    for (const field of req.body.fields) out.push(field.file ? `formData.append(${js(field.key)}, fileInput.files[0]) // ${field.value}` : `formData.append(${js(field.key)}, ${js(field.value)})`)
     out.push("")
   }
   const body = req.body.type === "raw" ? js(req.body.text) : req.body.type === "urlencoded" ? js(encodeForm(req.body.fields)) : req.body.type === "form" ? "formData" : null
@@ -82,7 +83,7 @@ function axiosSnippet(req: NormalizedRequest) {
   const out = ['import axios from "axios"', ""]
   if (req.body.type === "form") {
     out.push("const data = new FormData()")
-    for (const [key, value] of req.body.fields) out.push(`data.append(${js(key)}, ${js(value)})`)
+    for (const field of req.body.fields) out.push(field.file ? `data.append(${js(field.key)}, fileInput.files[0]) // ${field.value}` : `data.append(${js(field.key)}, ${js(field.value)})`)
     out.push("")
   }
   out.push("const response = await axios.request({", `  method: ${js(req.method.toLowerCase())},`, `  url: ${js(req.url)},`)
@@ -109,9 +110,13 @@ function pythonSnippet(req: NormalizedRequest) {
     out.push(`payload = ${py(req.body.text)}`)
     args.push("data=payload.encode(\"utf-8\")")
   }
-  if (req.body.type === "urlencoded" || req.body.type === "form") {
+  if (req.body.type === "urlencoded") {
     out.push(`payload = {${req.body.fields.map(([k, val]) => `\n    ${py(k)}: ${py(val)}`).join(",")}\n}`)
-    args.push(req.body.type === "form" ? "files={k: (None, v) for k, v in payload.items()}" : "data=payload")
+    args.push("data=payload")
+  }
+  if (req.body.type === "form") {
+    out.push(`files = [${req.body.fields.map((field) => `\n    (${py(field.key)}, ${field.file ? `(${py(field.value.split(/[\\/]/).pop() ?? "file")}, open(${py(field.value)}, "rb"))` : `(None, ${py(field.value)})`})`).join(",")}\n]`)
+    args.push("files=files")
   }
   out.push("", `response = requests.request(${py(req.method)}, ${args.join(", ")})`, "print(response.status_code, response.text)")
   return out.join("\n")
@@ -128,7 +133,7 @@ function httpSnippet(req: NormalizedRequest) {
   const lines = [`${req.method} ${target} HTTP/1.1`]
   if (host) lines.push(`Host: ${host}`)
   for (const [key, value] of req.headers) lines.push(`${key}: ${value}`)
-  const body = req.body.type === "raw" ? req.body.text : req.body.type === "urlencoded" ? encodeForm(req.body.fields) : req.body.type === "form" ? req.body.fields.map(([k, val]) => `--boundary\nContent-Disposition: form-data; name="${k}"\n\n${val}`).join("\n") + "\n--boundary--" : ""
+  const body = req.body.type === "raw" ? req.body.text : req.body.type === "urlencoded" ? encodeForm(req.body.fields) : req.body.type === "form" ? req.body.fields.map((field) => (field.file ? `--boundary\nContent-Disposition: form-data; name="${field.key}"; filename="${field.value.split(/[\\/]/).pop()}"\n\n< ${field.value}` : `--boundary\nContent-Disposition: form-data; name="${field.key}"\n\n${field.value}`)).join("\n") + "\n--boundary--" : ""
   return body ? `${lines.join("\n")}\n\n${body}` : lines.join("\n")
 }
 
