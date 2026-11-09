@@ -76,7 +76,7 @@ export const gitAPI = {
   getStashes: (cwd: string): Promise<{ index: number; name: string; date: string }[]> => ipcRenderer.invoke("git:stashes", cwd),
 
   /** Performs the stash save operation. */
-  stashSave: (cwd: string, message?: string, files?: string[]): Promise<void> => ipcRenderer.invoke("git:stash-save", cwd, message, files),
+  stashSave: (cwd: string, message?: string, files?: string[], options?: { keepIndex?: boolean }): Promise<void> => ipcRenderer.invoke("git:stash-save", cwd, message, files, options),
 
   /** Performs the stash pop operation. */
   stashPop: (cwd: string, index?: number): Promise<void> => ipcRenderer.invoke("git:stash-pop", cwd, index),

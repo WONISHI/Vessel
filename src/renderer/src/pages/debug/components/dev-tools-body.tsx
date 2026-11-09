@@ -2,6 +2,8 @@ import { Button } from "@/components/ui/button"
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable-panels"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useSidebar } from "@/components/ui/sidebar"
+import { StatusBar } from "@/components/ui/status-bar"
+import { Layers, Wrench } from "lucide-react"
 import { groups } from "@/pages/debug/components/index-shared"
 import { RouterView } from "@vessel/react-router/components"
 import { useLocation, useNavigate } from "react-router-dom"
@@ -12,10 +14,12 @@ export function DevToolsBody() {
     navigate = useNavigate()
   const { open, openMobile, isMobile } = useSidebar()
   const expanded = isMobile ? openMobile : open
+  const current = groups.flatMap((group) => group.items.map((item) => ({ ...item, group: group.title }))).find((item) => pathname.endsWith("/" + item.id))
   return (
+    <div className="flex h-full w-full min-w-0 flex-1 flex-col">
     <ResizablePanelGroup
       orientation="horizontal"
-      className="dev-tools h-full bg-white"
+      className="dev-tools min-h-0 flex-1 bg-white"
     >
       {expanded && (
         <>
@@ -59,5 +63,19 @@ export function DevToolsBody() {
         </main>
       </ResizablePanel>
     </ResizablePanelGroup>
+    <StatusBar
+      left={current && (
+        <button type="button" data-title={`${current.group} · ${current.title}`} onClick={() => navigate(`/devtools/${current.id}`)}>
+          <current.icon />
+          {current.title}
+        </button>
+      )}
+    >
+      <footer aria-label="开发工具信息" className="vessel-document-stats">
+        <span><Wrench />{groups.reduce((total, group) => total + group.items.length, 0)} 个工具</span>
+        {current && <span className="vessel-status-separated"><Layers />{current.group}</span>}
+      </footer>
+    </StatusBar>
+    </div>
   )
 }

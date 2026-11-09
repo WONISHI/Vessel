@@ -496,7 +496,7 @@ export class GitService {
   }
 
   /** Performs the stash save operation. */
-  async stashSave(cwd: string, message?: string, files?: string[]): Promise<void> {
+  async stashSave(cwd: string, message?: string, files?: string[], options?: { keepIndex?: boolean }): Promise<void> {
     // GitLens-style pathspecs: repo-relative with "./" so untracked/pathspec matching is reliable.
     const pathspecs = (files || [])
       .map((file) => file.replace(/\\/g, "/").replace(/^\.\//, "").replace(/^\/+/, ""))
@@ -505,6 +505,7 @@ export class GitService {
     const args = ["stash", "push"]
     // Include untracked whenever pathspecs are used (or for full-workspace stash).
     args.push("--include-untracked")
+    if (options?.keepIndex) args.push("--keep-index")
     if (message) args.push("-m", message)
     if (pathspecs.length > 0) {
       args.push("--", ...pathspecs)

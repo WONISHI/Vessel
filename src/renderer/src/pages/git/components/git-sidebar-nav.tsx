@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
-import { Archive, ArrowDown, ArrowUp, CloudCheck, Clock, FileText, Plus, Search } from "lucide-react"
+import { Archive, ArchiveRestore, ArrowDown, ArrowUp, CloudCheck, Clock, FileText, Plus, Search, Trash2 } from "lucide-react"
 import type { GitPageModel } from "@/pages/git/hooks/use-git-page"
 import { GitBranchTree } from "@/pages/git/components/git-branch-tree"
 
@@ -271,22 +271,24 @@ export function GitSidebarNav({ g }: { g: GitPageModel }) {
                         <span className="font-mono text-stone-400 mr-1">#{s.index}</span>
                         <span className="truncate">{s.name}</span>
                       </span>
-                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 shrink-0">
+                      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 shrink-0">
                         <button
                           type="button"
-                          className="rounded px-1 py-0.5 text-green-700 hover:bg-green-100 text-[10px] font-medium"
+                          aria-label="弹出贮藏"
+                          className="grid size-5 place-items-center rounded text-green-700 hover:bg-green-100 dark:text-green-400 dark:hover:bg-green-500/15"
                           data-title="恢复并弹出此贮藏 (git stash pop)"
                           onClick={() => handleStashPop(s.index)}
                         >
-                          弹出
+                          <ArchiveRestore className="size-3.5" />
                         </button>
                         <button
                           type="button"
-                          className="rounded px-1 py-0.5 text-red-600 hover:bg-red-100 text-[10px] font-medium"
+                          aria-label="删除贮藏"
+                          className="grid size-5 place-items-center rounded text-red-600 hover:bg-red-100 dark:text-red-400 dark:hover:bg-red-500/15"
                           data-title="丢弃此贮藏 (git stash drop)"
                           onClick={() => handleStashDrop(s.index)}
                         >
-                          删除
+                          <Trash2 className="size-3.5" />
                         </button>
                       </div>
                     </div>

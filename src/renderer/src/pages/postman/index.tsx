@@ -13,7 +13,8 @@ import Layout from "@/components/layout/index"
 import { Button } from "@/components/ui/button"
 import { toast } from "@/components/ui/sonner"
 import type { ApiCollectionRecord, ApiEnvironmentRecord, ApiHistoryRecord, ApiRequestRecord, ApiResponseData } from "@vessel/type"
-import { Check, Copy, FolderPlus, Play, Plus, Save, Send, Trash2 } from "lucide-react"
+import { Activity, Check, Copy, FlaskConical, FolderPlus, Globe, HardDrive, Loader2, Play, Plus, Save, Send, Timer, Trash2 } from "lucide-react"
+import { StatusBar } from "@/components/ui/status-bar"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
 
@@ -982,6 +983,28 @@ pm.test("Response time is less than 1000ms", function () {
           </main>
           </ResizablePanel>
         </ResizablePanelGroup>
+        <StatusBar
+          left={<>
+            <button type="button" data-title={`${method} ${url}`} onClick={() => void navigator.clipboard.writeText(url).then(() => toast.success("已复制请求地址"))}>
+              <Send />
+              <span className="font-mono font-semibold text-amber-600 dark:text-amber-400">{method}</span>
+              <span className="max-w-64 truncate">{requestName}</span>
+            </button>
+            <button type="button" className="vessel-status-separated" data-title="切换环境请使用顶部环境选择器" onClick={() => setSidebarTab("environments")}>
+              <Globe />
+              {environments.find((env) => env.id === activeEnvId)?.name ?? "无环境"}
+            </button>
+          </>}
+        >
+          <footer aria-label="响应信息" className="vessel-document-stats">
+            {loading ? <span><Loader2 className="animate-spin" />请求中…</span> : response ? <>
+              <span className={response.status >= 200 && response.status < 300 ? "text-green-700 dark:text-green-400" : response.status >= 400 || response.status === 0 ? "text-red-600 dark:text-red-400" : "text-amber-600 dark:text-amber-400"}><Activity />{response.status} {response.statusText}</span>
+              <span className="vessel-status-separated"><Timer />{response.durationMs} ms</span>
+              <span><HardDrive />{(response.sizeBytes / 1024).toFixed(2)} KB</span>
+              {response.testResults.length > 0 && <span><FlaskConical />测试 {response.testResults.filter((t) => t.passed).length}/{response.testResults.length}</span>}
+            </> : <span className="text-stone-400">尚未发送请求</span>}
+          </footer>
+        </StatusBar>
       </div>
     </Layout>
   )

@@ -1,7 +1,10 @@
 import { toast } from "@/components/ui/sonner"
+import { useState } from "react"
 import type { GitFileStatus } from "@vessel/type"
 import { cleanGitErrorMessage } from "@/pages/git/utils"
 import type { GitRepositoryState } from "@/pages/git/hooks/use-git-repository"
+
+export type StashRequest = { paths?: string[]; defaultMessage: string }
 
 /** 文件暂存 / 放弃 / 贮藏与路径工具 */
 export function useGitFileActions(repo: GitRepositoryState) {
@@ -135,42 +138,33 @@ export function useGitFileActions(repo: GitRepositoryState) {
 
   // 贮藏功能 (支持单文件、多文件、全工作区)
 
-  /** Handles stash files events. */
-  const handleStashFiles = async (paths: string[]) => {
+  const [stashRequest, setStashRequest] = useState<StashRequest | null>(null)
+
+  /** Opens the stash dialog for the given files. */
+  const handleStashFiles = (paths: string[]) => {
     if (!repoPath || paths.length === 0) return
-    const defaultMsg = paths.length === 1 ? `贮藏修改: ${paths[0]}` : `贮藏选中的 ${paths.length} 个文件修改`
-    // Defer past context-menu teardown; otherwise Electron often returns null from prompt with no dialog.
-    await new Promise<void>((resolve) => setTimeout(resolve, 0))
-    const message = window.prompt("请输入贮藏说明 (可选):", defaultMsg)
-    if (message === null) return
-    try {
-      await window.electronAPI.git.stashSave(repoPath, message.trim() || defaultMsg, paths)
-      await refresh()
-      toast.success(`已成功贮藏 ${paths.length} 个文件的修改`)
-    } catch (e: any) {
-      toast.error("贮藏失败", { description: cleanGitErrorMessage(e) })
-    }
+    setStashRequest({ paths, defaultMessage: paths.length === 1 ? `贮藏修改: ${paths[0]}` : `贮藏选中的 ${paths.length} 个文件修改` })
   }
 
-  /** Handles stash all events. */
-  const handleStashAll = async () => {
+  /** Opens the stash dialog for the whole working tree. */
+  const handleStashAll = () => {
     if (!repoPath) return
     const totalChanges = (status?.staged.length || 0) + (status?.unstaged.length || 0) + (status?.untracked.length || 0)
     if (totalChanges === 0) {
       toast.info("当前工作区干净，无未提交的修改")
       return
     }
-    const defaultMsg = `WIP 在 ${branches.current || "HEAD"} (${totalChanges} 个文件)`
-    await new Promise<void>((resolve) => setTimeout(resolve, 0))
-    const message = window.prompt("请输入贮藏说明 (可选):", defaultMsg)
-    if (message === null) return
-    try {
-      await window.electronAPI.git.stashSave(repoPath, message.trim() || defaultMsg)
-      await refresh()
-      toast.success("已成功贮藏工作区修改")
-    } catch (e: any) {
-      toast.error("贮藏失败", { description: cleanGitErrorMessage(e) })
-    }
+    setStashRequest({ defaultMessage: `WIP 在 ${branches.current || "HEAD"} (${totalChanges} 个文件)` })
+  }
+
+  /** Runs the stash described by the open request; errors propagate to the dialog. */
+  const submitStash = async (message: string, keepIndex: boolean) => {
+    if (!repoPath || !stashRequest) return
+    const { paths, defaultMessage } = stashRequest
+    await window.electronAPI.git.stashSave(repoPath, message.trim() || defaultMessage, paths, { keepIndex })
+    setStashRequest(null)
+    await refresh()
+    toast.success(paths ? `已成功贮藏 ${paths.length} 个文件的修改` : "已成功贮藏工作区修改")
   }
 
   /** Handles stash pop events. */
@@ -223,5 +217,5 @@ export function useGitFileActions(repo: GitRepositoryState) {
     }
   }
 
-  return { handleStageFile, handleUnstageFile, handleStageAll, handleUnstageAll, handleDiscard, handleDiscardStaged, handleStageMultiple, handleUnstageMultiple, handleDiscardMultiple, handleDiscardStagedMultiple, handleStashFiles, handleStashAll, handleStashPop, handleStashDrop, getFullPath, copyToClipboard, handleRevealInFinder }
+  return { handleStageFile, handleUnstageFile, handleStageAll, handleUnstageAll, handleDiscard, handleDiscardStaged, handleStageMultiple, handleUnstageMultiple, handleDiscardMultiple, handleDiscardStagedMultiple, handleStashFiles, handleStashAll, stashRequest, setStashRequest, submitStash, handleStashPop, handleStashDrop, getFullPath, copyToClipboard, handleRevealInFinder }
 }

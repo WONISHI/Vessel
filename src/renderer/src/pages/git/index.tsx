@@ -18,6 +18,7 @@ import { GitCommitBar } from "@/pages/git/components/git-commit-bar"
 import { GitHistoryList } from "@/pages/git/components/git-history-list"
 import { GitCommitFiles } from "@/pages/git/components/git-commit-files"
 import { GitDialogs } from "@/pages/git/components/git-dialogs"
+import { GitStatusBar } from "@/pages/git/components/git-status-bar"
 
 /** Renders the source tree page component. */
 export default function SourceTreePage() {
@@ -232,6 +233,7 @@ export default function SourceTreePage() {
         </ResizablePanelGroup>
 
         </div>
+        <GitStatusBar g={g} />
         <GitDialogs g={g} />
       </div>
     </Layout>

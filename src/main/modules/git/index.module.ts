@@ -82,7 +82,7 @@ export class GitModule extends BaseModule {
       "git:stashes": (_e, cwd: string) => gitService.getStashes(cwd),
 
       /** Performs the "git:stash save" operation. */
-      "git:stash-save": (_e, cwd: string, message?: string, files?: string[]) => gitService.stashSave(cwd, message, files),
+      "git:stash-save": (_e, cwd: string, message?: string, files?: string[], options?: { keepIndex?: boolean }) => gitService.stashSave(cwd, message, files, options),
 
       /** Performs the "git:stash pop" operation. */
       "git:stash-pop": (_e, cwd: string, index?: number) => gitService.stashPop(cwd, index),

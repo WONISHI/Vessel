@@ -1,4 +1,5 @@
 import { CreateTagDialog } from "./create-tag-dialog"
+import { StashDialog } from "./stash-dialog"
 import { RepositorySettingsDialog } from "@/pages/git/components/repository-settings-dialog"
 import { TerminalPanel } from "@/components/workspace/components/layout-main/terminal-panel"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -9,13 +10,14 @@ import type { GitPageModel } from "@/pages/git/hooks/use-git-page"
 
 /** 新建分支 / 仓库设置 / 终端 / 合并分支弹窗 */
 export function GitDialogs({ g }: { g: GitPageModel }) {
-  const { repositorySettingsOpen, setRepositorySettingsOpen, terminalOpen, setTerminalOpen, repoPath, branches, createBranchOpen, setCreateBranchOpen, branchStartPoint, setBranchStartPoint, branchNamePrefix, setBranchNamePrefix, mergeBranchOpen, setMergeBranchOpen, refresh } = g
+  const { repositorySettingsOpen, setRepositorySettingsOpen, terminalOpen, setTerminalOpen, repoPath, branches, createBranchOpen, setCreateBranchOpen, branchStartPoint, setBranchStartPoint, branchNamePrefix, setBranchNamePrefix, mergeBranchOpen, setMergeBranchOpen, refresh, stashRequest, setStashRequest, submitStash } = g
 
   return (
     <>
         {g.tagTarget?.repoPath === repoPath && (
           <CreateTagDialog key={repoPath + g.tagTarget.hash} repoPath={repoPath} hash={g.tagTarget.hash} onClose={() => g.setTagTarget(null)} onCreated={refresh} />
         )}
+        {stashRequest && <StashDialog key={stashRequest.defaultMessage} request={stashRequest} onClose={() => setStashRequest(null)} onSubmit={submitStash} />}
         {/* 弹窗：新建分支 */}
         <CreateBranchDialog
           open={createBranchOpen}
