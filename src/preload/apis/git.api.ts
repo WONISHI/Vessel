@@ -95,6 +95,7 @@ export const gitAPI = {
   getTags: (cwd: string): Promise<string[]> => ipcRenderer.invoke("git:tags", cwd),
   deleteTag: (cwd: string, tag: string): Promise<void> => ipcRenderer.invoke("git:delete-tag", cwd, tag),
   pushTag: (cwd: string, remote: string, tag: string): Promise<void> => ipcRenderer.invoke("git:push-tag", cwd, remote, tag),
+  deleteRemoteTag: (cwd: string, remote: string, tag: string): Promise<void> => ipcRenderer.invoke("git:delete-remote-tag", cwd, remote, tag),
 
   getRemoteWebUrl: (cwd: string): Promise<string> => ipcRenderer.invoke("git:remote-web-url", cwd),
 

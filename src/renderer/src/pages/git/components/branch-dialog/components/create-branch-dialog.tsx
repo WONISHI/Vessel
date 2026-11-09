@@ -1,5 +1,8 @@
+import "@/pages/git/components/create-tag-dialog.css"
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { CheckField } from "@/pages/git/components/git-check-field"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { GitBranch } from "lucide-react"
 import { useEffect, useId, useState } from "react"
@@ -24,6 +27,8 @@ export function CreateBranchDialog({
   onCreate: (name: string, startPoint?: string, checkout?: boolean) => void
 }) {
   const startPointId = useId()
+  const nameId = useId()
+  const checkoutId = useId()
   const [name, setName] = useState("")
   const [startPoint, setStartPoint] = useState(initialStartPoint || currentBranch)
   const [checkout, setCheckout] = useState(true)
@@ -43,82 +48,53 @@ export function CreateBranchDialog({
     onOpenChange(false)
   }
 
+  const branchName = name.trim()
+  const exists = branches.includes(branchName)
   return (
     <Dialog
       open={open}
       onOpenChange={onOpenChange}
     >
-      <DialogContent className="git-dialog sm:max-w-[420px] bg-white">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-sm font-semibold text-stone-800">
-            <GitBranch className="size-4 text-green-600" />
-            新建分支 (New Branch)
-          </DialogTitle>
-        </DialogHeader>
+      <DialogContent showCloseButton={false} className="git-dialog git-tag-dialog flex max-h-[90vh] max-w-[460px] flex-col gap-0 overflow-hidden p-0">
+        <div className="flex items-center gap-3 border-b border-stone-200/80 px-5 py-3.5 dark:border-stone-700/70">
+          <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-green-50 text-green-600 dark:bg-green-500/10 dark:text-green-400"><GitBranch className="size-4" /></span>
+          <DialogHeader className="min-w-0 space-y-0.5 text-left">
+            <DialogTitle className="text-[15px] font-semibold">新建分支</DialogTitle>
+            <DialogDescription className="truncate text-xs">基于 {initialStartPoint && !branches.includes(initialStartPoint) && initialStartPoint !== currentBranch ? `提交 ${initialStartPoint.slice(0, 7)}` : startPoint || "当前分支"} 创建新分支</DialogDescription>
+          </DialogHeader>
+        </div>
+        <form className="flex min-h-0 flex-1 flex-col" onSubmit={(event) => { event.preventDefault(); if (!exists) handleConfirm() }}>
+          <div className="grid min-h-0 flex-1 grid-cols-[4rem_minmax(0,1fr)] items-center gap-x-3 gap-y-3 overflow-y-auto px-5 py-4 text-xs">
+            <label htmlFor={nameId} className="text-right text-stone-500 dark:text-stone-400">分支名称</label>
+            <Input id={nameId} autoFocus autoComplete="off" spellCheck={false} value={name} onChange={(event) => setName(event.target.value)} placeholder="例如 feature/login" className="h-8 font-mono text-xs md:text-xs" />
+            {exists && <p className="col-start-2 -mt-1.5 text-[11px] text-amber-600 dark:text-amber-400">分支已存在，请换一个名称</p>}
 
-        <div className="space-y-3 py-2 text-xs">
-          <div>
-            <label className="mb-1 block font-medium text-stone-600">分支名称</label>
-            <input
-              autoFocus
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="例如: feature/login 或 bugfix/typo"
-              className="w-full rounded-md border border-stone-200 px-3 py-1.5 text-xs outline-none focus:border-green-600 focus:ring-1 focus:ring-green-600"
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handleConfirm()
-              }}
-            />
-          </div>
-
-          <div>
-            <label htmlFor={startPointId} className="mb-1 block font-medium text-stone-600">基于起点 (Start Point)</label>
-            <Select value={startPoint} onValueChange={setStartPoint}>
-              <SelectTrigger id={startPointId} className="w-full text-xs">
+            <label htmlFor={startPointId} className="text-right text-stone-500 dark:text-stone-400">起点</label>
+            <Select value={startPoint} onValueChange={(value) => { if (value) setStartPoint(value) }}>
+              <SelectTrigger id={startPointId} className="git-tag-field h-8 w-full text-xs">
                 <SelectValue placeholder="选择起点" />
               </SelectTrigger>
               <SelectContent>
-                {currentBranch && <SelectItem value={currentBranch}>{currentBranch} (当前分支)</SelectItem>}
+                {currentBranch && <SelectItem value={currentBranch} className="text-xs">{currentBranch}（当前分支）</SelectItem>}
                 {initialStartPoint && initialStartPoint !== currentBranch && !branches.includes(initialStartPoint) && (
-                  <SelectItem value={initialStartPoint}>提交起点: {initialStartPoint.slice(0, 7)}</SelectItem>
+                  <SelectItem value={initialStartPoint} className="text-xs">提交 {initialStartPoint.slice(0, 7)}</SelectItem>
                 )}
                 {branches
                   .filter((branch) => branch && branch !== currentBranch)
                   .map((branch) => (
-                    <SelectItem key={branch} value={branch}>{branch}</SelectItem>
+                    <SelectItem key={branch} value={branch} className="text-xs">{branch}</SelectItem>
                   ))}
               </SelectContent>
             </Select>
+
+            <span className="text-right text-stone-500 dark:text-stone-400">检出</span>
+            <CheckField id={checkoutId} checked={checkout} onChange={setCheckout}>创建后立即切换到该分支</CheckField>
           </div>
-
-          <label className="flex items-center gap-2 text-stone-600 cursor-pointer pt-1">
-            <input
-              type="checkbox"
-              checked={checkout}
-              onChange={(e) => setCheckout(e.target.checked)}
-              className="rounded border-stone-300 text-green-600 focus:ring-green-500"
-            />
-            <span>创建后立即检出切换到该分支 (Checkout new branch)</span>
-          </label>
-        </div>
-
-        <DialogFooter className="gap-2 sm:gap-0">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onOpenChange(false)}
-          >
-            取消
-          </Button>
-          <Button
-            size="sm"
-            disabled={!name.trim()}
-            onClick={handleConfirm}
-            className="bg-green-600 text-white hover:bg-green-700"
-          >
-            创建分支
-          </Button>
-        </DialogFooter>
+          <div className="flex shrink-0 justify-end gap-2 border-t border-stone-200/80 px-5 py-3 dark:border-stone-700/70">
+            <Button type="button" variant="outline" size="sm" className="git-tag-cancel h-8 text-xs" onClick={() => onOpenChange(false)}>取消</Button>
+            <Button type="submit" size="sm" className="git-tag-submit h-8 min-w-16 text-xs" disabled={!branchName || exists}>创建分支</Button>
+          </div>
+        </form>
       </DialogContent>
     </Dialog>
   )

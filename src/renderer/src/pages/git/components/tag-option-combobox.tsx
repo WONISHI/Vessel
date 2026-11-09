@@ -7,10 +7,10 @@ import { Command, CommandInput, CommandList, CommandEmpty, CommandItem } from "@
 /** Boolean options use the shadcn Popover + Command combobox pattern. */
 export function TagOptionCombobox({ label, value, onChange, disabled }: { label: string; value: boolean; onChange: (value: boolean) => void; disabled?: boolean }) {
   const [open, setOpen] = useState(false)
-  return <div className="flex min-w-0 items-center justify-between gap-3 text-sm">
+  return <div className="flex min-w-0 items-center justify-between gap-3 text-xs">
     <span>{label}</span>
     <Popover open={open && !disabled} onOpenChange={setOpen}>
-      <PopoverTrigger asChild><Button type="button" variant="outline" role="combobox" aria-label={label} aria-expanded={open && !disabled} disabled={disabled} className="tag-option-trigger h-8 w-24 shrink-0 justify-between text-xs">{value ? "开启" : "关闭"}<ChevronsUpDown className="size-3 opacity-50" /></Button></PopoverTrigger>
+      <PopoverTrigger asChild><Button type="button" variant="outline" role="combobox" aria-label={label} aria-expanded={open && !disabled} disabled={disabled} className="tag-option-trigger h-7 w-20 shrink-0 justify-between text-xs">{value ? "开启" : "关闭"}<ChevronsUpDown className="size-3 opacity-50" /></Button></PopoverTrigger>
       <PopoverContent align="end" className="w-40 p-1">
         <Command>
           <CommandInput placeholder="搜索选项…" />

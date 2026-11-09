@@ -12,6 +12,8 @@ import { StrictMode, lazy, Suspense } from "react"
 import { createRoot } from "react-dom/client"
 
 import { GlobalErrorBoundary } from "@/components/core/error-boundary/crash-fallback"
+import Logo from "@/assets/logo.png"
+import DarkLogo from "@/assets/logo-dark.svg"
 
 // 监听未捕获的致命运行时错误
 window.addEventListener("error", (event) => {
@@ -32,10 +34,21 @@ const MainApplication = lazy(async () => {
 const StandalonePreview = lazy(() => import("@/components/transit/standalone-preview"))
 const standalonePreview = new URLSearchParams(window.location.search).has("standalonePreview")
 
+/** Mirrors the static splash in index.html (styles live there) so the boot → lazy-load handoff doesn't flash. */
+function BootSplash() {
+  return (
+    <div className="boot-splash" role="status" aria-label="正在加载">
+      <img className="boot-splash-light" src={Logo} alt="Vessel" />
+      <img className="boot-splash-dark" src={DarkLogo} alt="" aria-hidden="true" />
+      <div className="boot-splash-bar" />
+    </div>
+  )
+}
+
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <GlobalErrorBoundary>
-      <Suspense fallback={<div role="status" className="p-6 text-sm text-stone-500">正在加载…</div>}>{standalonePreview ? <StandalonePreview /> : <MainApplication />}</Suspense>
+      <Suspense fallback={<BootSplash />}>{standalonePreview ? <StandalonePreview /> : <MainApplication />}</Suspense>
     </GlobalErrorBoundary>
   </StrictMode>
 )

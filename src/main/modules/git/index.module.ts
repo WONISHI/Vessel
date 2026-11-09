@@ -102,6 +102,7 @@ export class GitModule extends BaseModule {
       "git:tags": (_e, cwd: string) => gitService.getTags(cwd),
       "git:delete-tag": (_e, cwd: string, tag: string) => gitService.deleteTag(cwd, tag),
       "git:push-tag": (_e, cwd: string, remote: string, tag: string) => gitService.pushTag(cwd, remote, tag),
+      "git:delete-remote-tag": (_e, cwd: string, remote: string, tag: string) => gitService.deleteRemoteTag(cwd, remote, tag),
 
       /** Performs the "git:remote url" operation. */
       "git:remote-web-url": (_e, cwd: string) => gitService.getRemoteWebUrl(cwd),

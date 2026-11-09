@@ -32,6 +32,9 @@ it("creates annotated and lightweight tags at selected commits and pushes only t
     expect(git("ls-remote", "--tags", "origin")).not.toContain("refs/tags/light")
     await gitService.deleteTag(root, "light")
     expect(await gitService.getTags(root)).toEqual(["v1"])
+    await gitService.deleteRemoteTag(root, "origin", "v1")
+    expect(git("ls-remote", "--tags", "origin")).not.toContain("refs/tags/v1")
+    await gitService.deleteRemoteTag(root, "origin", "v1")
     await expect(gitService.createTag(root, "-bad", first, {})).rejects.toThrow()
   } finally { await rm(root, { recursive: true, force: true }) }
 })

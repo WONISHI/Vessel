@@ -32,6 +32,19 @@
     <style>
       html, body, #root { margin: 0; height: 100%; background: #ffffff; }
       @media (prefers-color-scheme: dark) { html, body, #root { background: #22272e; } }
+      .boot-splash { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; font: 500 12px/1 -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif; color: #a8a29e; letter-spacing: .04em; user-select: none; -webkit-app-region: drag; }
+      .boot-splash img { width: 72px; height: 72px; object-fit: contain; animation: boot-splash-breathe 1.6s ease-in-out infinite; }
+      .boot-splash .boot-splash-dark { display: none; }
+      .boot-splash-bar { position: relative; width: 96px; height: 2px; overflow: hidden; border-radius: 2px; background: rgba(120, 113, 108, .15); }
+      .boot-splash-bar::after { content: ""; position: absolute; inset: 0; width: 40%; border-radius: inherit; background: #16a34a; animation: boot-splash-slide 1.2s ease-in-out infinite; }
+      @keyframes boot-splash-breathe { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .72; transform: scale(.96); } }
+      @keyframes boot-splash-slide { 0% { transform: translateX(-100%); } 100% { transform: translateX(250%); } }
+      @media (prefers-color-scheme: dark) {
+        .boot-splash { color: #768390; }
+        .boot-splash .boot-splash-light { display: none; }
+        .boot-splash .boot-splash-dark { display: block; }
+      }
+      @media (prefers-reduced-motion: reduce) { .boot-splash img, .boot-splash-bar::after { animation: none; } }
     </style>
 
     <link
@@ -45,7 +58,13 @@
     <!-- Vditor otherwise fetches this sprite synchronously and injects it as inline JS,
          which our CSP blocks. Its loader recognizes this ID and skips injection. -->
     <script id="vditorIconScript" src="./vendor/vditor/dist/js/icons/ant.js"></script>
-    <div id="root"></div>
+    <div id="root">
+      <div class="boot-splash" role="status" aria-label="正在加载">
+        <img class="boot-splash-light" src="./src/assets/logo.png" alt="Vessel" />
+        <img class="boot-splash-dark" src="./src/assets/logo-dark.svg" alt="" aria-hidden="true" />
+        <div class="boot-splash-bar"></div>
+      </div>
+    </div>
 
     <script
       type="module"

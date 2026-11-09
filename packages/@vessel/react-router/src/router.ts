@@ -1,5 +1,5 @@
 import { createContext, createElement, useCallback, useContext, useEffect, useRef, useState, type ComponentType, type LazyExoticComponent } from "react"
-import { Navigate, Outlet, createBrowserRouter, createHashRouter, createMemoryRouter, generatePath, matchRoutes, useBlocker, useLocation, type Location, type Params, type RouteMatch, type RouteObject } from "react-router-dom"
+import { Navigate, NavigationType, Outlet, createBrowserRouter, createHashRouter, createMemoryRouter, generatePath, matchRoutes, useBlocker, useLocation, useNavigationType, type Location, type Params, type RouteMatch, type RouteObject } from "react-router-dom"
 
 import type { AfterNavigationHook, AppRouteRecordRaw, AppRouter, CreateRouterOptions, GuardOutcome, NavigationFailure, NavigationGuard, NavigationGuardReturn, RouteLocationMatched, RouteLocationNormalized, RouteLocationRaw, RoutePropsOption, RouterErrorHandler } from "#vessel-react-router/types"
 
@@ -760,10 +760,12 @@ function RouterRuntime({ router }: { router: RouterController }) {
   const currentRouteRef = useRef(router.currentRoute)
   const guardRunIdRef = useRef(0)
 
-  /** Checks whether block. */
+  const navigationType = useNavigationType()
+
+  /** Checks whether block. POP is guarded after the fact: blocking it relies on a go(±1) round-trip that can desync history and router state. */
   const shouldBlock = useCallback(
-    ({ currentLocation, nextLocation }: { currentLocation: Location; nextLocation: Location }) => {
-      return ready && router.hasBeforeGuards() && !isSameLocation(currentLocation, nextLocation)
+    ({ currentLocation, nextLocation, historyAction }: { currentLocation: Location; nextLocation: Location; historyAction: NavigationType }) => {
+      return ready && historyAction !== NavigationType.Pop && router.hasBeforeGuards() && !isSameLocation(currentLocation, nextLocation)
     },
     [ready, router]
   )
@@ -848,8 +850,38 @@ function RouterRuntime({ router }: { router: RouterController }) {
 
     currentRouteRef.current = to
     router.setCurrentRoute(to)
-    void router.runAfterHooks(to, from)
-  }, [location, ready, router])
+
+    if (navigationType !== NavigationType.Pop || !router.hasBeforeGuards()) {
+      void router.runAfterHooks(to, from)
+      return
+    }
+
+    const runId = ++guardRunIdRef.current
+
+    router
+      .runBeforeGuards(to, from)
+      .then((outcome) => {
+        if (runId !== guardRunIdRef.current) {
+          return
+        }
+
+        if (outcome.type === "allow") {
+          void router.runAfterHooks(to, from)
+          return
+        }
+
+        void router.runAfterHooks(to, from, { type: "aborted" })
+        void router.replace(outcome.type === "redirect" ? outcome.to : from.fullPath)
+      })
+      .catch((error) => {
+        if (runId !== guardRunIdRef.current) {
+          return
+        }
+
+        router.emitError(error, to, from)
+        void router.runAfterHooks(to, from, { type: "error", error })
+      })
+  }, [location, navigationType, ready, router])
 
   return ready ? createElement(Outlet) : null
 }

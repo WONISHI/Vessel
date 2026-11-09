@@ -581,6 +581,14 @@ export class GitService {
     if (result.exitCode !== 0) throw new Error(result.stderr || "推送标签失败")
   }
 
+  async deleteRemoteTag(cwd: string, remote: string, tag: string): Promise<void> {
+    if (!remote || remote.startsWith("-") || !tag || tag.startsWith("-")) throw new Error("远程仓库或标签无效")
+    const remotes = await runGit(["remote"], cwd)
+    if (remotes.exitCode !== 0 || !remotes.stdout.split("\n").includes(remote)) throw new Error("远程仓库不存在")
+    const result = await runGit(["push", remote, "--delete", `refs/tags/${tag}`], cwd)
+    if (result.exitCode !== 0 && !/remote ref does not exist/i.test(result.stderr)) throw new Error(result.stderr || "删除远程标签失败")
+  }
+
   /** Returns the remote repository URL, prioritizing origin. */
   async getRemoteUrl(cwd: string, remote = "origin"): Promise<string> {
     if (!cwd) return ""
