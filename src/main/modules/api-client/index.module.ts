@@ -1,7 +1,9 @@
 import { ApiClientService, type ApiSendOptions } from "@main/modules/api-client/api-client-service"
 import { ApiClientStore } from "@main/modules/api-client/store"
 import { BaseModule } from "@main/modules/base/index"
-import { app, ipcMain } from "electron"
+import type { ApiImportPayload, ApiOrderItem } from "@vessel/type/api-client"
+import { BrowserWindow, app, dialog, ipcMain } from "electron"
+import { writeFile } from "node:fs/promises"
 import { join } from "node:path"
 
 export class ApiClientModule extends BaseModule {
@@ -44,6 +46,24 @@ export class ApiClientModule extends BaseModule {
 
       /** Performs the "api client:requests:delete" operation. */
       "api-client:requests:delete": (_e, id: string) => store.deleteRequest(id),
+      "api-client:requests:duplicate": (_e, id: string) => store.duplicateRequest(id),
+      "api-client:reorder": (_e, items: ApiOrderItem[]) => store.reorder(items),
+      "api-client:import": (_e, payload: ApiImportPayload) => store.importItems(payload),
+
+      // Cookies
+      "api-client:cookies:list": () => store.listCookies(),
+      "api-client:cookies:delete": (_e, filter?: { domain: string; path?: string; name?: string }) => store.deleteCookies(filter),
+
+      /** Saves response bodies / exported collections through a native save dialog. */
+      "api-client:save-file": async (event, name: string, content: string, encoding: "text" | "base64" = "text") => {
+        if (typeof name !== "string" || typeof content !== "string") throw new Error("文件参数无效")
+        const owner = BrowserWindow.fromWebContents(event.sender)
+        const options = { title: "保存文件", defaultPath: name }
+        const result = owner ? await dialog.showSaveDialog(owner, options) : await dialog.showSaveDialog(options)
+        if (result.canceled || !result.filePath) return false
+        await writeFile(result.filePath, encoding === "base64" ? Buffer.from(content, "base64") : content)
+        return true
+      },
 
       // 历史记录 History
 

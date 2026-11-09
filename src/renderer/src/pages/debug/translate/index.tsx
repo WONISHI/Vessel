@@ -82,6 +82,7 @@ export default function TranslateTool() {
             </Button>
           </div>
           <div className="translate-source-field rounded-xl border bg-background">
+            <ScrollArea type="hover" className="h-44">
             <Textarea
               autoFocus
               aria-label="原文"
@@ -96,8 +97,9 @@ export default function TranslateTool() {
                 }
               }}
               onChange={(event) => { setInput(event.target.value); clearResult() }}
-              className="translate-source-input h-44 resize-none border-0 bg-transparent p-4 text-base shadow-none focus-visible:ring-0"
+              className="translate-source-input min-h-44 resize-none overflow-hidden border-0 bg-transparent p-4 text-base shadow-none [field-sizing:content] focus-visible:ring-0"
             />
+            </ScrollArea>
             <div className="flex items-center justify-between px-3 pb-2 text-xs text-muted-foreground">
               <span>{from === "auto" && detectedLabel ? `检测到 ${detectedLabel} · ` : ""}{input.length}/{maxLength}</span>
               <Button size="icon" variant="ghost" className="translate-clear-button" aria-label="清空原文" disabled={busy || !input} onClick={() => { setInput(""); clearResult() }}><X size={16} /></Button>
@@ -112,9 +114,11 @@ export default function TranslateTool() {
             </SelectContent>
           </Select>
           <div className="rounded-xl border border-transparent bg-muted">
-            <div role="status" className="h-44 overflow-y-auto whitespace-pre-wrap break-words p-4 text-base">
-              {busy ? "正在翻译…" : result?.text || "译文"}
-            </div>
+            <ScrollArea type="hover" className="h-44">
+              <div role="status" className="whitespace-pre-wrap break-words p-4 text-base">
+                {busy ? "正在翻译…" : result?.text || "译文"}
+              </div>
+            </ScrollArea>
             <div className="flex justify-end px-3 pb-2">
               <Button size="icon" variant="ghost" className="translate-copy-button" aria-label="复制译文" disabled={!result?.text} onClick={() => copy(result?.text ?? "")}><Copy size={16} /></Button>
             </div>

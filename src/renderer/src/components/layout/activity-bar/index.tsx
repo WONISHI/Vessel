@@ -425,7 +425,7 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="developer-tool-title text-xs font-medium text-stone-800 dark:text-stone-100">开发工具</div>
-                        <div className="developer-tool-description truncate text-[10px] text-stone-400 dark:text-stone-500">Console / 存储 / 调试工具</div>
+                        <div className="developer-tool-description truncate text-[10px] text-stone-400 dark:text-stone-500">JSON / 颜色 / 编解码 / 翻译</div>
                       </div>
                     </button>
                   </div>

@@ -3,6 +3,7 @@ import { useState } from "react"
 import { Archive } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { CheckField } from "./git-check-field"
 import { cleanGitErrorMessage } from "@/pages/git/utils"
@@ -41,9 +42,11 @@ export function StashDialog({ request, onClose, onSubmit }: { request: StashRequ
               <span className="text-right text-stone-500 dark:text-stone-400">选项</span>
               <CheckField id="stash-keep-index" checked={keepIndex} disabled={busy} onChange={setKeepIndex}>保留已暂存的修改<span className="ml-1 text-stone-400">（--keep-index）</span></CheckField>
             </div>
-            {paths && paths.length > 1 && <ul className="max-h-32 space-y-0.5 overflow-y-auto rounded-lg border border-stone-200/80 bg-stone-50/60 p-2 font-mono text-[11px] text-stone-500 dark:border-stone-700/70 dark:bg-white/[.03] dark:text-stone-400">
-              {paths.map((path) => <li key={path} className="truncate" title={path}>{path}</li>)}
-            </ul>}
+            {paths && paths.length > 1 && <ScrollArea type="hover" className="rounded-lg border border-stone-200/80 bg-stone-50/60 dark:border-stone-700/70 dark:bg-white/[.03] [&_[data-radix-scroll-area-viewport]]:max-h-32">
+              <ul className="space-y-0.5 p-2 pr-3 font-mono text-[11px] text-stone-500 dark:text-stone-400">
+                {paths.map((path) => <li key={path} className="truncate">{path}</li>)}
+              </ul>
+            </ScrollArea>}
             {error && <p role="alert" className="rounded-md bg-red-50 px-2.5 py-2 text-[11px] text-red-600 dark:bg-red-950/30 dark:text-red-400">{error}</p>}
           </div>
           <div className="flex shrink-0 justify-end gap-2 border-t border-stone-200/80 px-5 py-3 dark:border-stone-700/70">

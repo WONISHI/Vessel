@@ -82,21 +82,6 @@ html.dark .api-select-content [role="option"][data-highlighted]:not([data-state=
   color: #fbbf24 !important;
 }
 
-html .api-history-menu [role="menuitem"]:is(:hover, :focus, [data-highlighted]),
-html .api-history-menu [role="menuitem"]:is(:hover, :focus, [data-highlighted]) svg {
-  color: #dc2626 !important;
-}
-html .api-history-menu [role="menuitem"]:is(:hover, :focus, [data-highlighted]) {
-  background-color: #fef2f2 !important;
-}
-html.dark .api-history-menu [role="menuitem"]:is(:hover, :focus, [data-highlighted]),
-html.dark .api-history-menu [role="menuitem"]:is(:hover, :focus, [data-highlighted]) svg {
-  color: #f87171 !important;
-}
-html.dark .api-history-menu [role="menuitem"]:is(:hover, :focus, [data-highlighted]) {
-  background-color: rgba(239, 68, 68, .14) !important;
-}
-
 html #vessel-api-client button.api-save-button:not(:disabled):hover,
 html.dark #vessel-api-client button.api-save-button:not(:disabled):hover {
   background-color: #f59e0b !important;
@@ -119,10 +104,50 @@ html.dark #vessel-api-client button.api-select-trigger:not(:disabled):hover {
   border-color: #f59e0b !important;
 }
 
-html .api-history-menu [role="menuitem"] svg,
-html .api-history-menu [role="menuitem"]:is(:hover, :focus, [data-highlighted]) svg,
-html.dark .api-history-menu [role="menuitem"] svg,
-html.dark .api-history-menu [role="menuitem"]:is(:hover, :focus, [data-highlighted]) svg {
-  color: inherit !important;
-  stroke: currentColor !important;
-}
+/* API context menus: neutral gray hover; destructive items stay red with a light red hover. */
+html .api-history-menu [role="menuitem"]:not([data-disabled]):is(:hover, :focus, [data-highlighted]) { background-color: #f5f5f4 !important; }
+html .api-history-menu [role="menuitem"]:not([data-disabled]):is(:hover, :focus, [data-highlighted]),
+html .api-history-menu [role="menuitem"]:not([data-disabled]):is(:hover, :focus, [data-highlighted]) * { color: #1c1917 !important; }
+html .api-history-menu [role="menuitem"] svg { color: inherit !important; stroke: currentColor !important; }
+html.dark .api-history-menu [role="menuitem"]:not([data-disabled]):is(:hover, :focus, [data-highlighted]) { background-color: rgba(255, 255, 255, .08) !important; }
+html.dark .api-history-menu [role="menuitem"]:not([data-disabled]):is(:hover, :focus, [data-highlighted]),
+html.dark .api-history-menu [role="menuitem"]:not([data-disabled]):is(:hover, :focus, [data-highlighted]) * { color: #e6e8eb !important; }
+html .api-history-menu [role="menuitem"].api-menu-danger,
+html .api-history-menu [role="menuitem"].api-menu-danger:is(:hover, :focus, [data-highlighted]),
+html .api-history-menu [role="menuitem"].api-menu-danger:is(:hover, :focus, [data-highlighted]) * { color: #dc2626 !important; }
+html .api-history-menu [role="menuitem"].api-menu-danger:is(:hover, :focus, [data-highlighted]) { background-color: #fef2f2 !important; }
+html.dark .api-history-menu [role="menuitem"].api-menu-danger,
+html.dark .api-history-menu [role="menuitem"].api-menu-danger:is(:hover, :focus, [data-highlighted]),
+html.dark .api-history-menu [role="menuitem"].api-menu-danger:is(:hover, :focus, [data-highlighted]) * { color: #f87171 !important; }
+html.dark .api-history-menu [role="menuitem"].api-menu-danger:is(:hover, :focus, [data-highlighted]) { background-color: rgba(239, 68, 68, .14) !important; }
+
+/* {{variable}} highlighting: the input text is transparent and a mirrored overlay paints the colours. */
+.api-var-field { background: #fff; }
+.api-var-overlay { color: #1c1917; }
+html #vessel-api-client input.api-var-input,
+html .api-dialog input.api-var-input { color: transparent !important; caret-color: #1c1917; background: transparent !important; }
+.api-var-known { color: #b45309; background: rgba(245, 158, 11, .14); }
+.api-var-unknown { color: #dc2626; background: rgba(239, 68, 68, .12); text-decoration: underline wavy rgba(220, 38, 38, .5); text-underline-offset: 3px; }
+html.dark .api-var-field { background: #1c2025; }
+html.dark .api-var-overlay { color: #e6e8eb; }
+html.dark #vessel-api-client input.api-var-input,
+html.dark .api-dialog input.api-var-input { caret-color: #e6e8eb; }
+html.dark .api-var-known { color: #fbbf24; background: rgba(245, 158, 11, .18); }
+html.dark .api-var-unknown { color: #f87171; background: rgba(248, 113, 113, .14); }
+.api-tab-strip { scrollbar-width: none; }
+.api-tab-strip::-webkit-scrollbar { display: none; }
+
+/* Dialogs are portalled outside .vessel-api-page; map the stone utilities used by shared editors. */
+html.dark .api-dialog :is(.border-stone-200, .border-stone-100, .border-stone-300) { border-color: #30353c !important; }
+html.dark .api-dialog :is([class~="bg-stone-50"], .bg-white) { background: #262a30 !important; }
+html.dark .api-dialog :is(.text-stone-800, .text-stone-700) { color: #e6e8eb !important; }
+html.dark .api-dialog :is(.text-stone-600, .text-stone-500) { color: #9aa1a9 !important; }
+html.dark .api-dialog .text-stone-400 { color: #6b7280 !important; }
+html.dark .api-dialog textarea { background: #1c2025 !important; color: #e6e8eb !important; border-color: #30353c !important; }
+html.dark .api-dialog :is(.text-amber-600, .text-amber-700) { color: #fbbf24 !important; }
+html.dark .api-dialog [class~="hover:bg-amber-50"]:hover { background: rgba(245, 158, 11, .16) !important; }
+
+/* shadcn Checkbox / Radio: keep the amber fill through the page-wide dark hover rule. */
+html.dark .vessel-api-page button.api-checkbox[data-state="checked"] { background-color: #f59e0b !important; border-color: #f59e0b !important; }
+html.dark .vessel-api-page button:is(.api-checkbox, .api-radio):not([data-state="checked"]):hover { border-color: #f59e0b !important; }
+.api-checkbox:not(:disabled):hover, .api-radio:not(:disabled):hover { border-color: #f59e0b; }

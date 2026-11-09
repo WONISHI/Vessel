@@ -1,4 +1,4 @@
-import type { ApiCollectionRecord, ApiEnvironmentRecord, ApiHistoryRecord, ApiRequestRecord, ApiResponseData, ApiSendOptions } from "@vessel/type"
+import type { ApiCollectionRecord, ApiCookieRecord, ApiEnvironmentRecord, ApiHistoryRecord, ApiImportPayload, ApiOrderItem, ApiRequestRecord, ApiResponseData, ApiRunResult, ApiSendOptions } from "@vessel/type"
 import { ipcRenderer } from "electron"
 
 export const apiClientAPI = {
@@ -6,15 +6,7 @@ export const apiClientAPI = {
   send: (options: ApiSendOptions): Promise<ApiResponseData> => ipcRenderer.invoke("api-client:send", options),
 
   /** Runs collection. */
-  runCollection: (
-    collectionId: string,
-    envVars?: Record<string, string>
-  ): Promise<{
-    total: number
-    passed: number
-    failed: number
-    results: { name: string; url: string; status: number; durationMs: number; passed: boolean; testResults: any[] }[]
-  }> => ipcRenderer.invoke("api-client:runner:run", collectionId, envVars),
+  runCollection: (collectionId: string, envVars?: Record<string, string>): Promise<ApiRunResult> => ipcRenderer.invoke("api-client:runner:run", collectionId, envVars),
 
   /** Lists collections. */
   listCollections: (): Promise<ApiCollectionRecord[]> => ipcRenderer.invoke("api-client:collections:list"),
@@ -33,6 +25,12 @@ export const apiClientAPI = {
 
   /** Deletes request. */
   deleteRequest: (id: string): Promise<void> => ipcRenderer.invoke("api-client:requests:delete", id),
+  duplicateRequest: (id: string): Promise<ApiRequestRecord> => ipcRenderer.invoke("api-client:requests:duplicate", id),
+  reorder: (items: ApiOrderItem[]): Promise<void> => ipcRenderer.invoke("api-client:reorder", items),
+  importItems: (payload: ApiImportPayload): Promise<void> => ipcRenderer.invoke("api-client:import", payload),
+  listCookies: (): Promise<ApiCookieRecord[]> => ipcRenderer.invoke("api-client:cookies:list"),
+  deleteCookies: (filter?: { domain: string; path?: string; name?: string }): Promise<ApiCookieRecord[]> => ipcRenderer.invoke("api-client:cookies:delete", filter),
+  saveFile: (name: string, content: string, encoding?: "text" | "base64"): Promise<boolean> => ipcRenderer.invoke("api-client:save-file", name, content, encoding),
 
   /** Lists history. */
   listHistory: (limit?: number): Promise<ApiHistoryRecord[]> => ipcRenderer.invoke("api-client:history:list", limit),
