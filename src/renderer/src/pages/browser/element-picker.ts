@@ -19,6 +19,8 @@ function pickElement() {
     .swatch{display:inline-block;width:12px;height:12px;border:1px solid #e7e5e4;border-radius:3px;vertical-align:middle;margin-right:5px}
     .footer{margin-top:7px;padding-top:6px;border-top:1px solid #f0efed;font-size:10.5px;color:#a8a29e}.hint{color:#2563eb;font-weight:600}
     .close{display:none;position:absolute;top:6px;right:6px;border:0;border-radius:5px;background:transparent;color:#a8a29e;cursor:pointer;width:20px;height:20px}.close:hover{background:#f5f5f4;color:#44403c}
+    .remove{display:none;margin-left:auto;border:1px solid #fecaca;border-radius:5px;background:#fef2f2;color:#dc2626;cursor:pointer;font:600 10.5px/1 inherit;padding:3px 8px}.remove:hover{background:#dc2626;color:#fff}
+    .footer{display:flex;align-items:center}.pinned .remove{display:inline-block}
     .pinned{pointer-events:auto;border-color:#93c5fd;box-shadow:0 8px 30px #2563eb26}.pinned .close{display:block}
   `
   const box = document.createElement("div")
@@ -50,7 +52,11 @@ function pickElement() {
   const hint = document.createElement("span")
   hint.className = "hint"
   hint.textContent = "点击固定"
-  footer.append(hint, document.createTextNode("  ·  Esc 退出"))
+  const remove = document.createElement("button")
+  remove.className = "remove"
+  remove.textContent = "移除元素"
+  remove.setAttribute("aria-label", "从页面移除当前元素")
+  footer.append(hint, document.createTextNode("\u00a0 ·\u00a0 Esc 退出"), remove)
   card.append(footer)
   shadow.append(css, box, card)
   document.documentElement.append(host)
@@ -101,6 +107,18 @@ function pickElement() {
       event.preventDefault()
       event.stopImmediatePropagation()
       close()
+      return
+    }
+    if (event.composedPath().includes(remove)) {
+      event.preventDefault()
+      event.stopImmediatePropagation()
+      if (target && target !== document.documentElement && target !== document.body) target.remove()
+      target = null
+      frozen = false
+      card.hidden = true
+      card.classList.remove("pinned")
+      hint.textContent = "点击固定"
+      box.style.cssText = ""
       return
     }
     event.preventDefault()

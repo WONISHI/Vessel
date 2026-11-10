@@ -24,8 +24,11 @@ import { useNavigate } from "react-router-dom"
 
 const TABS_KEY = "vessel-api-tabs-v1"
 
-/** Restores open request tabs (drafts only; responses are not persisted). */
+let memoryTabs: { tabs: RequestTab[]; activeId: string } | undefined
+
+/** Restores open request tabs; responses survive page switches via the in-memory cache but not app restarts. */
 function loadTabs(): { tabs: RequestTab[]; activeId: string } {
+  if (memoryTabs) return { activeId: memoryTabs.activeId, tabs: memoryTabs.tabs.map((tab) => ({ ...tab, loading: false })) }
   try {
     const stored = JSON.parse(localStorage.getItem(TABS_KEY) || "null") as { tabs: { id: string; draft: RequestDraft; saved: string }[]; activeId: string } | null
     if (stored?.tabs?.length) {
@@ -124,6 +127,7 @@ export default function PostmanPage() {
   }, [loadData])
 
   useEffect(() => {
+    memoryTabs = { tabs, activeId }
     const timer = setTimeout(() => localStorage.setItem(TABS_KEY, JSON.stringify({ tabs: tabs.map(({ id, draft, saved }) => ({ id, draft, saved })), activeId })), 300)
     return () => clearTimeout(timer)
   }, [tabs, activeId])

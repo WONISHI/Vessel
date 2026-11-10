@@ -1,3 +1,4 @@
+import { fileURLToPath } from "node:url"
 import { listAttachments } from "./attachment-library"
 import { generalSettings } from "@main/settings/settings"
 import { createImageResource } from "./image-resource"
@@ -209,6 +210,13 @@ export class FilesModule extends BaseModule {
     ipcMain.handle("workspace:createEntry", (_event, root, parent, name, kind) => createWorkspaceEntry(root, parent, name, kind))
     ipcMain.handle("link:openExternal", async (_event, href: string) => {
       const url = new URL(href)
+      if (url.protocol === "file:") {
+        const file = fileURLToPath(url)
+        if (!/\.(html?|xhtml)$/i.test(file)) throw new Error("仅支持用默认浏览器打开 HTML 文件")
+        const error = await shell.openPath(file)
+        if (error) throw new Error(error)
+        return
+      }
       if (!["https:", "http:", "mailto:"].includes(url.protocol)) throw new Error("不支持的链接协议")
       await shell.openExternal(url.href)
     })

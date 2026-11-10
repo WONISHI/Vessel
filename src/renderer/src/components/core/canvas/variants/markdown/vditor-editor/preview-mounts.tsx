@@ -42,6 +42,9 @@ export function createTableMounter({ tableRoots, workspacePath, tableWorkspace, 
       container.addEventListener("mousedown", (event) => event.stopPropagation())
       container.addEventListener("click", (event) => event.stopPropagation())
       container.addEventListener("mouseup", (event) => event.stopPropagation())
+      // Keep typing inside the table: Vditor's editor-level handlers re-render the block and steal the caret.
+      for (const type of ["keydown", "keyup", "keypress", "input", "beforeinput", "compositionstart", "compositionupdate", "compositionend", "paste", "cut", "copy", "dblclick", "contextmenu", "select"])
+        container.addEventListener(type, (event) => event.stopPropagation())
       previewElement.replaceChildren(container)
 
       for (const [node, root] of tableRoots) {

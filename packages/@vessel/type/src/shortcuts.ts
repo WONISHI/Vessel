@@ -11,6 +11,8 @@ export type ShortcutId =
   | "openTranslate"
   | "openBrowser"
   | "openWorkspace"
+  | "openApi"
+  | "openGit"
   | "command"
   | "selectWorkspace"
   | "findWorkspaceFiles"

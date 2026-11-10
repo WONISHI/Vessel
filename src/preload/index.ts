@@ -204,7 +204,7 @@ const vesselAPI = {
   },
 
   /** Sets browser devtools. */
-  setBrowserDevtools: (id: number | null, bounds?: Electron.Rectangle, appearance?: { font: string; size: number; detached?: boolean }): Promise<void> => ipcRenderer.invoke("browser:devtools", id, bounds, appearance),
+  setBrowserDevtools: (id: number | null, bounds?: Electron.Rectangle, appearance?: { font: string; size: number; detached?: boolean; hidden?: boolean }): Promise<void> => ipcRenderer.invoke("browser:devtools", id, bounds, appearance),
 
   /** Handles browser new tab events. */
   onNavigationRequest: (callback: (request: { id: number; url: string; defaultCurrent: boolean; delayMs: number }) => void) => {

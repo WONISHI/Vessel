@@ -103,6 +103,16 @@ export function CommandPalette() {
           if (!restored) void router.push("/editor")
           break
         }
+        case "openApi":
+          setOpen(false)
+          setFinderOpen(false)
+          void router.push("/api-client")
+          break
+        case "openGit":
+          setOpen(false)
+          setFinderOpen(false)
+          void router.push("/git")
+          break
         case "openTranslate":
           setOpen(false)
           setFinderOpen(false)

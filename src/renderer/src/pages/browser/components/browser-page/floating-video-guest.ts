@@ -130,13 +130,7 @@ export function floatingVideoGuest(command: "list" | "open" | "close" | "bounds"
   for (const value of [1, 1.25, 1.5, 1.75, 2, 2.5, 3, 4, 5, 6]) speed.add(new Option(`${value}×`, String(value)))
   speed.value = speed.querySelector(`option[value="${rate}"]`) ? String(rate) : "1"
   speed.onchange = () => { video.playbackRate = Number(speed.value) }
-  const close = document.createElement("button")
-  close.type = "button"
-  close.textContent = "×"
-  close.setAttribute("aria-label", "关闭悬浮视频")
-  close.onclick = () => {
-    window.clearInterval(titleTimer)
-    window.removeEventListener("resize", keepInView)
+  const dock = () => {
     video.controls = controls
     if (document.pictureInPictureElement !== video) video.playbackRate = rate
     if (style === null) video.removeAttribute("style")
@@ -145,7 +139,51 @@ export function floatingVideoGuest(command: "list" | "open" | "close" | "bounds"
       const anchor = next?.parentNode === parent ? next : null
       moveVideo(parent, anchor)
     } else video.pause()
+  }
+  const close = document.createElement("button")
+  close.type = "button"
+  close.textContent = "×"
+  close.setAttribute("aria-label", "关闭悬浮视频")
+  close.onclick = () => {
+    window.clearInterval(titleTimer)
+    window.removeEventListener("resize", keepInView)
+    dock()
     popup.remove()
+  }
+  const popout = document.createElement("button")
+  popout.type = "button"
+  popout.textContent = "↗"
+  popout.title = "独立窗口播放，可拖出 Vessel"
+  popout.setAttribute("aria-label", popout.title)
+  const pipApi = (window as unknown as {
+    documentPictureInPicture?: { requestWindow(options?: { width?: number; height?: number }): Promise<Window> }
+  }).documentPictureInPicture
+  if (!pipApi) popout.hidden = true
+  popout.onclick = () => {
+    if (!pipApi) return
+    const ratio = video.videoWidth > 0 && video.videoHeight > 0 ? video.videoHeight / video.videoWidth : 9 / 16
+    void pipApi.requestWindow({ width: 520, height: Math.round(520 * ratio) + 40 }).then((pipWin) => {
+      const doc = pipWin.document
+      doc.title = title.textContent || "Vessel 视频"
+      const pipStyle = doc.createElement("style")
+      pipStyle.textContent = "body{margin:0;background:#000;display:flex;flex-direction:column;height:100vh;overflow:hidden}video{flex:1;width:100%;min-height:0;object-fit:contain;background:#000}footer{display:flex;justify-content:flex-end;align-items:center;padding:6px 10px;background:#16181c;color-scheme:dark}select{height:26px;border:1px solid #ffffff16;border-radius:6px;background:#ffffff0d;color:#f4f4f5;font:500 12px system-ui,sans-serif;cursor:pointer}option{background:#24262b}"
+      doc.head.append(pipStyle)
+      const pipFooter = doc.createElement("footer")
+      const pipSpeed = doc.createElement("select")
+      pipSpeed.setAttribute("aria-label", "播放速度")
+      for (const value of [1, 1.25, 1.5, 1.75, 2, 2.5, 3, 4, 5, 6]) pipSpeed.add(new Option(`${value}×`, String(value)))
+      pipSpeed.value = speed.value
+      pipSpeed.onchange = () => { video.playbackRate = Number(pipSpeed.value) }
+      pipFooter.append(pipSpeed)
+      doc.body.append(video, pipFooter)
+      video.controls = true
+      video.style.cssText = "flex:1;width:100%;min-height:0;object-fit:contain;background:#000"
+      window.clearInterval(titleTimer)
+      window.removeEventListener("resize", keepInView)
+      popup.remove()
+      pipWin.addEventListener("pagehide", dock)
+      void video.play().catch(() => {})
+    }).catch(() => {})
   }
   const place = (left: number, top: number) => {
     popup.style.right = "auto"
@@ -174,7 +212,7 @@ export function floatingVideoGuest(command: "list" | "open" | "close" | "bounds"
     place(event.clientX - drag.x, event.clientY - drag.y)
   }
   bar.onlostpointercapture = () => { drag = undefined }
-  bar.append(title, speed, close)
+  bar.append(title, speed, popout, close)
   shadow.append(bar)
   document.documentElement.append(popup)
   popup.showPopover()

@@ -3,7 +3,7 @@ import { newTab, Tab } from "@/pages/browser/components/index-shared"
 import { withGuest } from "@/pages/browser/guest-lifecycle"
 import { browserURL } from "@/pages/browser/url"
 import { matchesShortcut } from "@vessel/utils"
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import type { BrowserState } from "@/pages/browser/components/browser-page/hooks/use-browser-state"
 
 /** 页内查找、控制台挂载、导航与标签操作 */
@@ -98,10 +98,12 @@ export function useBrowserActions(state: BrowserState, visible: boolean) {
       }),
     []
   )
+  const devtoolsCloseTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
   useEffect(() => {
     const element = devtoolsHost.current
     const view = views.current.get(tab.id)
-    if (!visible || !devtoolsOpen || !element || !view) {
+    clearTimeout(devtoolsCloseTimer.current)
+    if (!devtoolsOpen || !element || !view) {
       void window.electronAPI.setBrowserDevtools(null).catch(() => {})
       return
     }
@@ -111,7 +113,7 @@ export function useBrowserActions(state: BrowserState, visible: boolean) {
     const sync = () => {
       const { x, y, width, height } = element.getBoundingClientRect()
       try {
-        void window.electronAPI.setBrowserDevtools(view.getWebContentsId(), { x, y, width, height }, { font: consoleFont, size: consoleSize, detached: dock === "detached" }).catch((error) => {
+        void window.electronAPI.setBrowserDevtools(view.getWebContentsId(), { x, y, width, height }, { font: consoleFont, size: consoleSize, detached: dock === "detached", hidden: !visible }).catch((error) => {
           if (!disposed) {
             update(tab.id, { error: String(error) })
             setDevtoolsOpen(false)
@@ -131,7 +133,8 @@ export function useBrowserActions(state: BrowserState, visible: boolean) {
       observer.disconnect()
       view.removeEventListener("dom-ready", sync)
       window.removeEventListener("resize", sync)
-      void window.electronAPI.setBrowserDevtools(null).catch(() => {})
+      // Defer closing so a dock/font change reuses the open DevTools instead of tearing it down and reopening (which left it blank).
+      devtoolsCloseTimer.current = setTimeout(() => void window.electronAPI.setBrowserDevtools(null).catch(() => {}), 80)
     }
   }, [visible, devtoolsOpen, tab.id, Boolean(tab.url), dock, consoleFont, consoleSize])
 

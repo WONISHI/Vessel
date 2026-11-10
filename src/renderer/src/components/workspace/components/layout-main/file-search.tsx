@@ -33,6 +33,20 @@ export function FileSearch({ path, contentHost }: { path: string; contentHost: R
     window.addEventListener("keydown", handleShortcut, true)
     return () => window.removeEventListener("keydown", handleShortcut, true)
   }, [])
+  const [openPath, setOpenPath] = useState(path)
+  if (openPath !== path) {
+    setOpenPath(path)
+    setOpen(false)
+  }
+  useEffect(() => {
+    const host = contentHost.current
+    if (!host) return
+    const observer = new ResizeObserver(() => {
+      if (!host.getClientRects().length) setOpen(false)
+    })
+    observer.observe(host)
+    return () => observer.disconnect()
+  }, [contentHost])
   useEffect(() => {
     if (!open) return
     let cancelled = false

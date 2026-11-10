@@ -184,3 +184,18 @@ html.dark #vessel-api-client button.api-select-trigger.vessel-field.api-method-t
   box-shadow: none !important;
 }
 html.dark #vessel-api-client button.api-select-trigger.vessel-field.api-method-trigger:not(:disabled):is(*, :hover, :focus, :focus-visible, [data-state="open"]) { border-right-color: #30353c !important; }
+
+/* Monaco 查找框：保证右侧 Aa / ab / .* 开关不遮挡输入框，且不被裁剪 */
+#vessel-api-client .monaco-editor .find-widget .monaco-findInput .monaco-inputbox > .ibwrapper > input.input {
+  padding-right: 76px !important;
+  min-width: 0;
+}
+#vessel-api-client .monaco-editor .find-widget .monaco-findInput .controls {
+  right: 2px;
+  display: flex;
+  align-items: center;
+  gap: 1px;
+}
+#vessel-api-client .monaco-editor .find-widget {
+  overflow: visible;
+}

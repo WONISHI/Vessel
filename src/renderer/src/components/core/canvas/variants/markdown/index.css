@@ -219,6 +219,14 @@
   white-space: normal;
 }
 
+.vessel-vditor .vessel-table-block {
+  margin: 4px 0 !important;
+  padding: 0 !important;
+}
+.vessel-vditor .vessel-table-block .vessel-markdown-table-wrapper {
+  margin: 0 !important;
+}
+
 /* 图片链接浮动编辑栏样式（覆盖 Vditor reset 与外部样式污染） */
 .vessel-image-link-bar,
 .vessel-vditor .vessel-image-link-bar {

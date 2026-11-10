@@ -40,7 +40,7 @@ export function registerBrowserDevtools(host: WebContents) {
     panel = undefined
     inspected = undefined
   }
-  host.ipc.handle("browser:devtools", (_event, id: number | null, bounds?: Electron.Rectangle, options?: { font: string; size: number; detached?: boolean }) => {
+  host.ipc.handle("browser:devtools", (_event, id: number | null, bounds?: Electron.Rectangle, options?: { font: string; size: number; detached?: boolean; hidden?: boolean }) => {
     if (id === null) {
       close()
       return
@@ -91,7 +91,15 @@ export function registerBrowserDevtools(host: WebContents) {
       guest.once("destroyed", close)
     }
     void applyAppearance().catch(console.error)
-    if (detachedWindow) return
+    // Keep DevTools alive (preserving its network log) while the browser page is hidden.
+    const hidden = options?.hidden === true
+    panel.setVisible(!hidden)
+    if (detachedWindow) {
+      if (hidden) detachedWindow.hide()
+      else if (!detachedWindow.isVisible()) detachedWindow.showInactive()
+      return
+    }
+    if (hidden) return
     const size = window.getContentBounds()
     const x = Math.max(0, Math.round(bounds.x)),
       y = Math.max(0, Math.round(bounds.y))
