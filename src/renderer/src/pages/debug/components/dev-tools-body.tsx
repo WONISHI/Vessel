@@ -28,7 +28,7 @@ export function DevToolsBody() {
             minSize="232px"
             maxSize="320px"
           >
-            <aside className="flex h-full flex-col bg-[#FAFAF9]">
+            <aside className="flex h-full flex-col bg-white">
               <h1 className="dev-sidebar-title px-4 py-4 text-sm font-bold text-stone-800">开发工具</h1>
               <ScrollArea className="min-h-0 flex-1 px-2">
                 {groups.map((group) => (

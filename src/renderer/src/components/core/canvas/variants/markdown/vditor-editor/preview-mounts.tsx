@@ -47,6 +47,22 @@ export function createTableMounter({ tableRoots, workspacePath, tableWorkspace, 
         container.addEventListener(type, (event) => event.stopPropagation())
       previewElement.replaceChildren(container)
 
+      // Vditor's undo snapshot moves the selection into the editor, which steals focus from the cell being typed in.
+      // Defer it until focus leaves the table.
+      let undoPending = false
+      const pushUndo = () => {
+        if (container.contains(document.activeElement)) {
+          undoPending = true
+          return
+        }
+        getEditor()?.vditor?.undo?.addToUndoStack(getEditor().vditor)
+      }
+      container.addEventListener("focusout", (event) => {
+        if (!undoPending || container.contains(event.relatedTarget as Node | null)) return
+        undoPending = false
+        setTimeout(() => { if (container.isConnected) pushUndo() }, 0)
+      })
+
       for (const [node, root] of tableRoots) {
         if (!node.isConnected) {
           queueMicrotask(() => root.unmount())
@@ -68,11 +84,11 @@ export function createTableMounter({ tableRoots, workspacePath, tableWorkspace, 
               if (readOnly) return
               const sourceCode = block.querySelector("pre.vditor-ir__marker code")
               if (!sourceCode) return
-              getEditor()?.vditor?.undo?.addToUndoStack(getEditor().vditor)
+              pushUndo()
               sourceCode.textContent = updated + "\n"
               const next = getEditor()?.getValue() || ""
               renderTable(updated)
-              getEditor()?.vditor?.undo?.addToUndoStack(getEditor().vditor)
+              pushUndo()
               changeHandler.current((properties?.raw ?? "") + restoreObsidianImages(next))
             }}
             onFocusAbove={() => {

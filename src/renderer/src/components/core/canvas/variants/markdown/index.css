@@ -226,6 +226,12 @@
   padding: 0 !important;
   min-height: 0 !important;
 }
+/* Vditor draws an empty line box before/after every code-block node via ::before/::after. */
+.vessel-vditor .vessel-table-block::before,
+.vessel-vditor .vessel-table-block::after {
+  content: none !important;
+  display: none !important;
+}
 .vessel-vditor .vessel-table-block .vditor-ir__preview,
 .vessel-vditor .vessel-table-block .vessel-table-container {
   margin: 0 !important;

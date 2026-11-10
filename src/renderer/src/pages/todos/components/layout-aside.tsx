@@ -32,7 +32,7 @@ export default function TodoAside({ todos, selected, onSelect, children }: { chi
           open ? (
             <Sidebar
               collapsible="none"
-              className="todo-date-sidebar !w-full bg-stone-50"
+              className="todo-date-sidebar !w-full bg-white"
             >
               <header className="flex justify-between p-4 text-xs font-semibold text-stone-500">
                 <span>待办日期</span>

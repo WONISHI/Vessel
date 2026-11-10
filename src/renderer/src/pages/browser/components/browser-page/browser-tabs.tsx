@@ -30,7 +30,7 @@ export function BrowserTabs({ b }: { b: BrowserPageModel }) {
                     if (sourceId && sourceId !== item.id) reorderTabs(sourceId, item.id)
                   }}
                   onDragEnd={() => setDragTabId(null)}
-                  className={`browser-tab ${item.id === tab.id ? "selected" : ""} ${item.pinned ? "pinned" : ""}`}
+                  className={`browser-tab ${item.id === tab.id ? "selected" : ""} ${item.pinned ? "pinned" : ""} ${item.videoPlaying ? "playing" : ""}`}
                 >
                   <button
                     onClick={() => {
@@ -41,17 +41,16 @@ export function BrowserTabs({ b }: { b: BrowserPageModel }) {
                     data-title={item.videoPlaying ? `${item.title} · 正在播放视频` : item.title}
                   >
                     <span className="relative flex size-4 shrink-0 items-center justify-center">
-                      <span className={`flex ${item.id === tab.id && item.loading || item.videoPlaying ? "invisible" : ""}`}>
+                      <span className={`flex ${item.id === tab.id && item.loading ? "invisible" : ""}`}>
                         <BrowserFavicon url={item.url} favicon={item.favicon} />
                       </span>
                       {item.id === tab.id && item.loading
                         ? <LoaderCircle size={16} className="absolute inset-0 animate-spin" aria-label="正在加载" />
-                        : item.videoPlaying
-                          ? <AudioLines size={16} className="absolute inset-0 text-green-600" aria-label="正在播放视频" />
-                          : null}
+                        : null}
                     </span>
                     {!item.pinned && <span className="truncate leading-4">{item.title}</span>}
                   </button>
+                  {item.videoPlaying && <AudioLines size={16} className="browser-tab-audio" aria-label="正在播放视频" />}
                   {!item.pinned && (
                     <button
                       data-title="关闭标签页"

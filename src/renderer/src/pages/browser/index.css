@@ -576,3 +576,17 @@ html:not(.dark) .browser-more-item:hover svg {
   border-radius: 12px;
   box-shadow: 0 0 0 1px #0003, 0 4px 12px #0003, 0 16px 40px #0005;
 }
+
+/* Playing indicator sits in the close-button slot; hovering or focusing the tab swaps it back to the close button. */
+.browser-tab-audio {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #16a34a;
+  pointer-events: none;
+}
+.browser-tab.pinned .browser-tab-audio { right: 4px; top: 6px; transform: none; width: 12px; height: 12px; }
+.browser-tab.playing:not(.pinned) > button[aria-label="关闭标签页"] { opacity: 0; }
+.browser-tab.playing:not(.pinned):is(:hover, :focus-within) > button[aria-label="关闭标签页"] { opacity: 1; }
+.browser-tab.playing:not(.pinned):is(:hover, :focus-within) .browser-tab-audio { display: none; }

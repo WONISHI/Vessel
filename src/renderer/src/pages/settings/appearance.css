@@ -709,6 +709,7 @@ html.dark nav[aria-label*="路径"] ol > li :is(span.cursor-pointer, button):hov
 html.dark .diagnostics-breadcrumb { background: var(--vs-bg-panel) !important; border-color: var(--vs-border-subtle) !important; color: var(--vs-text-muted) !important; }
 html.dark .diagnostics-breadcrumb button:hover { background: #ffffff0f !important; color: var(--vs-text-strong) !important; }
 html.dark .diagnostics-breadcrumb [aria-current="page"] { color: var(--vs-accent-text) !important; }
+html.dark .diagnostics-breadcrumb .diagnostics-breadcrumb-separator { color: var(--vs-border-strong, #4b5563) !important; opacity: .9; }
 html.dark .dev-console-page { background: #1a1d21 !important; color: var(--vs-text-strong); }
 html.dark .dev-console-page .console-page-header { background: var(--vs-bg-panel) !important; }
 html.dark .dev-console-page :is(.border, .border-b, .border-t) { border-color: var(--vs-border-subtle) !important; }
