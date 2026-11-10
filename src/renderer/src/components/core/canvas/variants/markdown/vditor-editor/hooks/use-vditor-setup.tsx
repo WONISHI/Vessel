@@ -80,7 +80,7 @@ export function useVditorSetup(state: VditorEditorState, { triggerInsertLinkRef 
     const unbindTaskCheckboxes = bindTaskCheckboxes(element, readOnly)
     const unbindWikiEditing = bindWikiLinkEditing(element)
     const unbindHeadingHandles = readOnly ? () => {} : bindHeadingHandles(element, (heading, x, y) => setHeadingBlockMenu({ heading, x, y }), toolbarHost.current)
-    const unbindTableActions = readOnly ? () => {} : bindTableActions(element)
+    const unbindTableActions = readOnly ? () => {} : bindTableActions(element, (json) => { const current = instance.current; if (current) current.insertValue("\n\n```markdown-table\n" + json + "\n```\n\n", true) })
 
     const imageRoots = new Map<HTMLElement, Root>()
     const tableRoots = new Map<HTMLElement, Root>()

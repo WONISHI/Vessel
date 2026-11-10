@@ -1,11 +1,33 @@
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Plus, Trash2 } from "lucide-react"
+import { generateCellId, serializeMarkdownTable, type MarkdownTableData } from "@vessel/markdown-table"
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Plus, Table2, Trash2 } from "lucide-react"
 import { createElement } from "react"
 import { renderToStaticMarkup } from "react-dom/server"
 
-type TableActionType = "row-above" | "row-below" | "col-left" | "col-right" | "del-row" | "del-col" | "del-table"
+type TableActionType = "convert" | "row-above" | "row-below" | "col-left" | "col-right" | "del-row" | "del-col" | "del-table"
+
+/** Reads a rendered Markdown table into the advanced-table JSON model. */
+function advancedTableJSON(table: HTMLTableElement) {
+  const rows = Array.from(table.rows)
+  const width = Math.max(1, ...rows.map((row) => row.cells.length))
+  const first = rows[0]?.cells
+  const data: MarkdownTableData = {
+    version: 1,
+    caption: "表格",
+    columns: Array.from({ length: width }, (_, index) => {
+      const align = (first?.[index]?.getAttribute("align") || first?.[index]?.style.textAlign || "left") as "left" | "center" | "right"
+      return { align: ["left", "center", "right"].includes(align) ? align : "left" }
+    }),
+    rows: rows.map((row, index) => ({
+      ...(row.parentElement?.tagName === "THEAD" || index === 0 ? { isHeader: index === 0 } : {}),
+      cells: Array.from({ length: width }, (_, col) => ({ id: generateCellId(), text: (row.cells[col]?.innerText ?? "").replace(/\u200b/g, "").trim() }))
+    })),
+    merges: []
+  }
+  return serializeMarkdownTable(data)
+}
 
 /** Performs the trigger table action operation. */
-function triggerTableAction(cell: HTMLTableCellElement, action: TableActionType) {
+function triggerTableAction(cell: HTMLTableCellElement, action: TableActionType, onConvert?: (json: string) => void) {
   const table = cell.closest("table")
   const editor = table?.closest<HTMLElement>('[contenteditable="true"]')
   if (!cell || !editor || !table) return
@@ -16,6 +38,13 @@ function triggerTableAction(cell: HTMLTableCellElement, action: TableActionType)
   const sel = window.getSelection()
   sel?.removeAllRanges()
   sel?.addRange(range)
+
+  if (action === "convert") {
+    const json = advancedTableJSON(table)
+    triggerTableAction(cell, "del-table")
+    setTimeout(() => onConvert?.(json), 60)
+    return
+  }
 
   if (action === "del-table") {
     range.selectNode(table)
@@ -148,7 +177,7 @@ function triggerTableAction(cell: HTMLTableCellElement, action: TableActionType)
 }
 
 /** Floating controls stay outside editable Markdown so they never enter saved content. */
-export function bindTableActions(root: HTMLElement) {
+export function bindTableActions(root: HTMLElement, onConvert?: (json: string) => void) {
   let table: HTMLTableElement | null = null
   let activeMenuCell: HTMLTableCellElement | null = null
   const row = document.createElement("button"),
@@ -201,6 +230,8 @@ export function bindTableActions(root: HTMLElement) {
     { id: "col-left", label: "在左边插入一列", icon: ArrowLeft },
     { id: "col-right", label: "在右边插入一列", icon: ArrowRight },
     { id: "divider" },
+    { id: "convert", label: "转换为高级表格", icon: Table2 },
+    { id: "divider" },
     { id: "del-row", label: "删除当前行", icon: Trash2, danger: true },
     { id: "del-col", label: "删除当前列", icon: Trash2, danger: true },
     { id: "del-table", label: "删除表格", icon: Trash2, danger: true }
@@ -222,7 +253,7 @@ export function bindTableActions(root: HTMLElement) {
     btn.onclick = (e) => {
       e.preventDefault()
       e.stopPropagation()
-      if (activeMenuCell) triggerTableAction(activeMenuCell, item.id)
+      if (activeMenuCell) triggerTableAction(activeMenuCell, item.id, onConvert)
       hideMenu()
     }
     menu.appendChild(btn)
@@ -254,7 +285,7 @@ export function bindTableActions(root: HTMLElement) {
     activeMenuCell = cell
     menu.hidden = false
     const menuWidth = 160
-    const menuHeight = 220
+    const menuHeight = 260
     const x = Math.min(event.clientX, window.innerWidth - menuWidth - 8)
     const y = Math.min(event.clientY, window.innerHeight - menuHeight - 8)
     menu.style.left = `${x}px`
@@ -268,8 +299,19 @@ export function bindTableActions(root: HTMLElement) {
     }
   }
 
-  /** Moves move. */
+  /** Coalesce pointer moves to one layout-reading pass per frame. */
+  let pending: PointerEvent | null = null
+  let frame = 0
   const move = (event: PointerEvent) => {
+    pending = event
+    if (frame) return
+    frame = requestAnimationFrame(() => {
+      frame = 0
+      if (pending) track(pending)
+      pending = null
+    })
+  }
+  const track = (event: PointerEvent) => {
     if (row.contains(event.target as Node) || column.contains(event.target as Node) || menu.contains(event.target as Node)) return
     if (!root.getClientRects().length) {
       hide()
@@ -317,6 +359,7 @@ export function bindTableActions(root: HTMLElement) {
     document.removeEventListener("contextmenu", onContextMenu, true)
     document.removeEventListener("pointerdown", onPointerDown, true)
     document.removeEventListener("pointermove", move)
+    cancelAnimationFrame(frame)
     window.removeEventListener("scroll", hide, true)
     window.removeEventListener("scroll", hideMenu, true)
     row.remove()

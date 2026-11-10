@@ -79,7 +79,7 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
     window.addEventListener("vessel:sync-context", checkSync)
     window.addEventListener("vessel:settings-saved", checkSync)
     window.addEventListener("vessel:sync-status", checkSync)
-    const interval = setInterval(checkSync, 3000)
+    const interval = setInterval(() => { if (!document.hidden) checkSync() }, 10000)
     return () => {
       cancelled = true
       clearInterval(interval)

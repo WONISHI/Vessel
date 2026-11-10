@@ -68,9 +68,10 @@ export const MarkdownTableEditor: React.FC<MarkdownTableEditorProps> = ({
     return initialData || parseMarkdownTable(source)
   })
 
-  // Synchronize when external source changes
+  // Skip re-parsing our own output: re-parsing regenerates cell ids and trims text, which drops focus while typing.
+  const lastEmitted = useRef<string | null>(null)
   useEffect(() => {
-    if (source) {
+    if (source && source !== lastEmitted.current) {
       setTableData(parseMarkdownTable(source))
     }
   }, [source])
@@ -155,6 +156,7 @@ export const MarkdownTableEditor: React.FC<MarkdownTableEditorProps> = ({
       setTableData(next)
       if (onChange) {
         const serialized = serializeMarkdownTable(next)
+        lastEmitted.current = serialized
         onChange(serialized, next)
       }
     },

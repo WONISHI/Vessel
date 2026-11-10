@@ -1,3 +1,4 @@
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { Toaster, toast } from "@/components/ui/sonner"
 import { useDarkAppearance } from "@/hooks/use-dark-appearance"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -18,6 +19,7 @@ export function Office() {
   const [docs, setDocs] = useState<Doc[]>([])
   const [active, setActive] = useState("")
   const [menu, setMenu] = useState(false)
+  const [closing, setClosing] = useState<Doc | null>(null)
   const [renameName, setRenameName] = useState<string | null>(null)
   const [converting, setConverting] = useState("")
   const dark = useDarkAppearance()
@@ -119,14 +121,26 @@ export function Office() {
   }
 
   /** Closes close. */
-  const close = (doc: Doc) => {
-    if (doc.dirty && !confirm(`“${doc.name}”有未保存修改，仍要关闭吗？`)) return
+  const close = (doc: Doc, confirmed = false) => {
+    if (doc.dirty && !confirmed) {
+      setClosing(doc)
+      return
+    }
     const next = docs.filter((item) => item.id !== doc.id)
     setDocs(next)
     if (active === doc.id) setActive(next.at(-1)?.id || "")
   }
   const selected = docs.find((doc) => doc.id === active)
   return (
+    <>
+    <ConfirmDialog
+      open={closing !== null}
+      onOpenChange={(open) => { if (!open) setClosing(null) }}
+      title="关闭未保存的文档"
+      description={closing ? <>“<strong>{closing.name}</strong>”有未保存修改，仍要关闭吗？</> : null}
+      confirmText="仍要关闭"
+      onConfirm={() => { const doc = closing; setClosing(null); if (doc) close(doc, true) }}
+    />
     <div
       data-office-shell
       className="flex h-screen flex-col bg-white text-stone-800"
@@ -335,5 +349,6 @@ export function Office() {
         )}
       </div>
     </div>
+    </>
   )
 }

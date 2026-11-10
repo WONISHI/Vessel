@@ -135,7 +135,7 @@ body {
   cursor: pointer;
 }
 #toolPanel .item-panel:hover {
-  background-color: #ffffff40;
+  background-color: #17171724;
 }
 #toolPanel .item-panel[class*="-active"],
 #toolPanel button[aria-pressed="true"] {
@@ -353,12 +353,12 @@ body,
 .shot-mode-menu button::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: #168bfa; }
 .shot-mode-menu button[data-mode="ocr"]::before { background: #14a3a3; }
 .shot-mode-menu button[data-mode="translate"]::before { background: #9163ff; }
-.shot-mode-menu button:hover { background: #ffffff40; }
+.shot-mode-menu button:hover { background: #17171724; }
 .shot-mode-menu button[aria-checked="true"] { background: rgba(107, 167, 242, .20); }
 .shot-mode-menu::before { content: ''; position: absolute; left: var(--shot-menu-arrow); top: -8px; width: 18px; height: 9px; transform: translateX(-50%); background: var(--shot-menu-surface); clip-path: polygon(50% 0, 100% 100%, 0 100%); }
 .shot-mode-menu[data-side="top"]::before { top: auto; bottom: -8px; transform: translateX(-50%) rotate(180deg); }
 .shot-mode-trigger:hover,
-.shot-mode-trigger[aria-expanded="true"] { border-radius: 10px; background: #ffffff40; }
+.shot-mode-trigger[aria-expanded="true"] { border-radius: 10px; background: #17171724; }
 
 .shot-shape-menu {
   position: fixed;
@@ -424,7 +424,7 @@ body,
   opacity: .7;
 }
 .shot-shape-width[open] > summary,
-.shot-shape-width > summary:hover { background: #ffffff40; }
+.shot-shape-width > summary:hover { background: #17171724; }
 .shot-shape-width-menu {
   position: absolute;
   top: calc(100% + 8px);
@@ -516,7 +516,7 @@ body,
   border-radius: 7px;
 }
 .shot-shape-list button:hover,
-.shot-shape-width-menu button:hover { background: #ffffff40; }
+.shot-shape-width-menu button:hover { background: #17171724; }
 .shot-shape-list button[aria-checked="true"],
 .shot-shape-width-menu button[aria-checked="true"] { background: rgba(107, 167, 242, .20); }
 .shot-shape-menu::before {
@@ -1176,7 +1176,7 @@ body[data-shot-shape="diamond"]:not([data-shot-secondary]) :is(#optionPanel, #op
 :is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip).shot-liquid-glass .item-panel:hover,
 :is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip).shot-liquid-glass .shot-shapes[aria-expanded="true"],
 :is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip).shot-liquid-glass .shot-mode-trigger:hover,
-:is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip).shot-liquid-glass .shot-mode-trigger[aria-expanded="true"] { background-color: #ffffff59; }
+:is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip).shot-liquid-glass .shot-mode-trigger[aria-expanded="true"] { background-color: #17171724; }
 :is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip).shot-liquid-glass .item-panel[class*="-active"],
 :is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip).shot-liquid-glass button[aria-pressed="true"] {
   background-color: #ffffff45;

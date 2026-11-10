@@ -8,8 +8,14 @@ import { useEffect, useState, type ReactNode } from "react"
 export function StatusBar({ left, children, right, after, className }: { left?: ReactNode; children?: ReactNode; right?: ReactNode; after?: ReactNode; className?: string }) {
   const [now, setNow] = useState(() => new Date())
   useEffect(() => {
-    const timer = setInterval(() => setNow(new Date()), 1000)
-    return () => clearInterval(timer)
+    // The clock shows minutes only, so wake once per minute instead of every second.
+    let timer: ReturnType<typeof setTimeout>
+    const tick = () => {
+      setNow(new Date())
+      timer = setTimeout(tick, 60_000 - (Date.now() % 60_000) + 50)
+    }
+    timer = setTimeout(tick, 60_000 - (Date.now() % 60_000) + 50)
+    return () => clearTimeout(timer)
   }, [])
 
   /** Performs the pad operation. */

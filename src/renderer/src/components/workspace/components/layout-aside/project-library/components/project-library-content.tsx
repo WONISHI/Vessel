@@ -78,18 +78,18 @@ export function ProjectLibraryContent({ pinned, onPin, onSelect }: { pinned: boo
       aria-label="项目资源库"
       className="flex h-full min-h-0 flex-col bg-white"
     >
-      <header className="flex items-center gap-1 border-b px-2 py-2">
-        <div className="flex min-w-0 flex-1 gap-1 overflow-hidden">
+      <header className="flex items-center gap-1.5 border-b bg-stone-50/70 px-2 py-2">
+        <div className="flex min-w-0 flex-1 items-center gap-0.5 overflow-hidden rounded-lg bg-stone-200/60 p-0.5">
           {visible.map((project) => (
             <div
               key={project.path}
               data-project-tab
               data-active={project.path === workspace.path}
-              className={`group relative flex min-w-0 items-center rounded-md ${project.path === workspace.path ? (visible.length === 1 ? "max-w-[104px] w-[65%] bg-green-50 text-green-700" : "max-w-[160px] flex-[1.6_1_0%] bg-green-50 text-green-700") : "max-w-[100px] flex-[1_1_0%] text-stone-500"}`}
+              className={`group relative flex min-w-0 items-center rounded-md ${project.path === workspace.path ? (visible.length === 1 ? "max-w-[104px] w-[65%] bg-white font-medium text-green-700 shadow-sm" : "max-w-[160px] flex-[1.6_1_0%] bg-white font-medium text-green-700 shadow-sm") : "max-w-[100px] flex-[1_1_0%] text-stone-500 hover:bg-white/60"}`}
             >
               <button
                 data-title={project.path}
-                className="min-w-0 flex-1 truncate px-2 py-1 text-xs"
+                className="min-w-0 flex-1 truncate px-2 py-1 text-left text-xs leading-4"
                 onClick={() => activate(project)}
               >
                 {project.name}
@@ -161,12 +161,12 @@ export function ProjectLibraryContent({ pinned, onPin, onSelect }: { pinned: boo
           {pinned ? <HardDrive className="!size-3.5" /> : <HardDriveUpload className="!size-3.5" />}
         </Button>
       </header>
-      <div className="flex items-center gap-2 border-b p-3">
-        <FolderOpen className="size-5 shrink-0 text-green-600" />
+      <div className="flex items-center gap-2.5 border-b px-3 py-2.5">
+        <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-green-50 text-green-600"><FolderOpen className="size-4" /></span>
         <div className="min-w-0 flex-1">
-          <h2 className="truncate text-sm font-semibold">{workspace.name}</h2>
+          <h2 className="truncate text-[13px] font-semibold leading-5 text-stone-800">{workspace.name}</h2>
           <p
-            className="truncate text-[10px] text-stone-400"
+            className="truncate text-[10px] leading-4 text-stone-400"
             data-title={workspace.path}
           >
             {workspace.path}
@@ -215,7 +215,7 @@ export function ProjectLibraryContent({ pinned, onPin, onSelect }: { pinned: boo
           viewport={viewport}
         />
       </ScrollArea>
-      <div className="border-t px-3 py-2 text-[10px] text-stone-400">{projects.length} 个项目 / 附件目录</div>
+      <div className="border-t bg-stone-50/70 px-3 py-1.5 text-[10px] leading-4 text-stone-400">{projects.length} 个项目 / 附件目录</div>
     </section>
   )
 }

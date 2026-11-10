@@ -6,6 +6,22 @@ import { installExtensionApiShim } from "../main/browser/extensions/extension-ap
 
 // Extension pages (e.g. iGuge login.html) need Chrome APIs Electron lacks before their own scripts run.
 if (location.protocol === "chrome-extension:") contextBridge.executeInMainWorld({ func: installExtensionApiShim })
+/** Makes navigator.userAgentData agree with the Sec-CH-UA request headers rewritten in browser-identity.ts; mismatches trip bot detection (e.g. GitHub "访问暂时受限"). */
+function alignClientHints(major: string, full: string) {
+  const data = (navigator as Navigator & { userAgentData?: object }).userAgentData as (object & { getHighEntropyValues?: (hints: string[]) => Promise<Record<string, unknown>> }) | undefined
+  if (!data) return
+  const brands = [{ brand: "Chromium", version: major }, { brand: "Google Chrome", version: major }, { brand: "Not_A Brand", version: "99" }]
+  const fullVersionList = [{ brand: "Chromium", version: full }, { brand: "Google Chrome", version: full }, { brand: "Not_A Brand", version: "99.0.0.0" }]
+  const proto = Object.getPrototypeOf(data)
+  Object.defineProperty(proto, "brands", { configurable: true, enumerable: true, get: () => brands.map((item) => ({ ...item })) })
+  const original = proto.getHighEntropyValues
+  if (typeof original === "function")
+    proto.getHighEntropyValues = function (hints: string[]) {
+      return original.call(this, hints).then((value: Record<string, unknown>) => ({ ...value, brands, ...(hints.includes("fullVersionList") ? { fullVersionList } : {}), ...(hints.includes("uaFullVersion") ? { uaFullVersion: full } : {}) }))
+    }
+}
+if (/^https?:$/.test(location.protocol)) contextBridge.executeInMainWorld({ func: alignClientHints, args: [process.versions.chrome.split(".")[0], process.versions.chrome] })
+
 // Narrow page-world bridge: reports state, never input values or page contents.
 contextBridge.exposeInMainWorld("vesselPageBridge", {
   /** Performs the report operation. */

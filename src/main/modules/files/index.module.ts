@@ -13,7 +13,8 @@ import { collectMarkdownImages, readObsidianImage, resolveObsidianImageFile } fr
 import { attachmentDirectory, saveObsidianImage } from "@main/modules/files/save-obsidian-image"
 import { transferWorkspaceFiles } from "@main/modules/files/transfer-workspace-files"
 import { readWikiLink } from "@main/modules/files/wiki-link"
-import { BrowserWindow, clipboard, dialog, ipcMain, shell } from "electron"
+import { app, BrowserWindow, clipboard, dialog, ipcMain, shell } from "electron"
+import { execFile } from "node:child_process"
 import { link, lstat, mkdir, readFile, realpath, rename, stat, unlink, writeFile } from "node:fs/promises"
 import { dirname, isAbsolute, join, relative, sep } from "node:path"
 
@@ -212,7 +213,14 @@ export class FilesModule extends BaseModule {
       const url = new URL(href)
       if (url.protocol === "file:") {
         const file = fileURLToPath(url)
-        if (!/\.(html?|xhtml)$/i.test(file)) throw new Error("仅支持用默认浏览器打开 HTML 文件")
+        if (!/\.(html?|xhtml|pdf|svg|png|jpe?g|gif|webp|avif|bmp|ico|txt|md|json|xml|css|js|mjs|csv|mp4|webm|ogv|mov|m4v|mp3|wav|ogg|m4a|aac|flac)$/i.test(file)) throw new Error("仅支持打开浏览器可预览的文件类型")
+        // Route through the default browser, not the file type's own handler (TextEdit, Preview, ...).
+        const browser = await app.getApplicationInfoForProtocol("https://").catch(() => null)
+        if (browser?.path && process.platform !== "linux") {
+          const [command, args] = process.platform === "darwin" ? ["open", ["-a", browser.path, file]] : [browser.path, [file]]
+          const opened = await new Promise<boolean>((resolve) => execFile(command, args, (error) => resolve(!error)))
+          if (opened) return
+        }
         const error = await shell.openPath(file)
         if (error) throw new Error(error)
         return
