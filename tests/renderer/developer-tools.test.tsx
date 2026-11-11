@@ -1,4 +1,3 @@
-import React from "react"
 import { render, screen, fireEvent, cleanup } from "@testing-library/react"
 import { afterEach, expect, it, vi } from "vitest"
 import { JsonTool, Base64Tool, URLTool } from "@/pages/debug/components/utility-tools"
@@ -39,4 +38,20 @@ it("round trips Unicode Base64 and URL encoding", () => {
     expect(screen.getByLabelText("处理结果")).toHaveProperty("value", "中文 🟢 &/?")
     view.unmount()
   }
+})
+
+it("preserves a JSON draft across route unmounts and keeps explicit clearing", () => {
+  const first = render(<JsonTool />)
+  fireEvent.change(screen.getByLabelText("JSON 编辑器"), { target: { value: '{"draft":"路由切换保留"}' } })
+  first.unmount()
+  const returned = render(<JsonTool />)
+  expect(screen.getByLabelText("JSON 编辑器")).toHaveProperty("value", '{"draft":"路由切换保留"}')
+  fireEvent.click(screen.getByRole("button", { name: "格式化" }))
+  returned.unmount()
+  const formatted = render(<JsonTool />)
+  expect(screen.getByLabelText("JSON 编辑器")).toHaveProperty("value", '{\n  "draft": "路由切换保留"\n}')
+  fireEvent.click(screen.getByRole("button", { name: "清空内容" }))
+  formatted.unmount()
+  render(<JsonTool />)
+  expect(screen.getByLabelText("JSON 编辑器")).toHaveProperty("value", "")
 })

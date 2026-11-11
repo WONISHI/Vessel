@@ -55,6 +55,13 @@ export function installToolbarTooltip(toolbar: HTMLElement) {
       const bounds = tip.getBoundingClientRect()
       tip.style.left = `${Math.max(8, Math.min(innerWidth - bounds.width - 8, rect.left + rect.width / 2 - bounds.width / 2))}px`
       tip.style.top = `${rect.top >= bounds.height + 12 ? rect.top - bounds.height - 10 : Math.min(innerHeight - bounds.height - 8, rect.bottom + 10)}px`
+      const arrow = document.createElement("i")
+      arrow.className = "shot-tip-arrow"
+      arrow.setAttribute("aria-hidden", "true")
+      tip.append(arrow)
+      const tipRect = tip.getBoundingClientRect()
+      tip.dataset.side = tipRect.top < rect.top ? "top" : "bottom"
+      tip.style.setProperty("--shot-tip-arrow", `${Math.max(14, Math.min(tipRect.width - 14, rect.left + rect.width / 2 - tipRect.left))}px`)
       active.setAttribute("aria-describedby", tip.id)
     }, 180)
   }

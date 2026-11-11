@@ -109,11 +109,15 @@ export function useBrowserActions(state: BrowserState, visible: boolean) {
     }
     let disposed = false
 
+    const hasPopup = () => Boolean(document.querySelector(
+      '.vessel-browser-tabs-popup[data-state="open"], .vessel-activity-tools-popup[data-state="open"]'
+    ))
+    let popupOpen = hasPopup()
     /** Synchronizes sync. */
     const sync = () => {
       const { x, y, width, height } = element.getBoundingClientRect()
       try {
-        void window.electronAPI.setBrowserDevtools(view.getWebContentsId(), { x, y, width, height }, { font: consoleFont, size: consoleSize, detached: dock === "detached", hidden: !visible }).catch((error) => {
+        void window.electronAPI.setBrowserDevtools(view.getWebContentsId(), { x, y, width, height }, { font: consoleFont, size: consoleSize, detached: dock === "detached", hidden: !visible || (dock !== "detached" && popupOpen) }).catch((error) => {
           if (!disposed) {
             update(tab.id, { error: String(error) })
             setDevtoolsOpen(false)
@@ -123,6 +127,14 @@ export function useBrowserActions(state: BrowserState, visible: boolean) {
         /* guest 尚未完成挂载，dom-ready 后重试。 */
       }
     }
+    // Native WebContentsViews sit above DOM portals, irrespective of CSS z-index.
+    const popupObserver = new MutationObserver(() => {
+      const next = hasPopup()
+      if (next === popupOpen) return
+      popupOpen = next
+      sync()
+    })
+    popupObserver.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["data-state"] })
     const observer = new ResizeObserver(sync)
     observer.observe(element)
     view.addEventListener("dom-ready", sync)
@@ -131,6 +143,7 @@ export function useBrowserActions(state: BrowserState, visible: boolean) {
     return () => {
       disposed = true
       observer.disconnect()
+      popupObserver.disconnect()
       view.removeEventListener("dom-ready", sync)
       window.removeEventListener("resize", sync)
       // Defer closing so a dock/font change reuses the open DevTools instead of tearing it down and reopening (which left it blank).

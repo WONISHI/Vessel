@@ -6,15 +6,26 @@ import { Button } from "@/components/ui/button"
 import Editor from "@monaco-editor/react"
 import { Archive, Code, Copy, Download, RotateCw, Trash2 } from "lucide-react"
 import type { editor as MonacoEditor } from "monaco-editor"
-import { useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
+
+// Keep a single draft per renderer/window across route unmounts, without writing its contents to disk.
+const draft: { value: string; error: string; view: MonacoEditor.ICodeEditorViewState | null } = { value: "", error: "", view: null }
 
 /** Renders the json tool component. */
 export function JsonTool() {
   const dark = useDarkAppearance()
-  const [value, setValue] = useState("")
-  const [error, setError] = useState("")
+  const [value, setValueState] = useState(() => draft.value)
+  const [error, setErrorState] = useState(() => draft.error)
+  const setValue = (value: string) => { draft.value = value; setValueState(value) }
+  const setError = (error: string) => { draft.error = error; setErrorState(error) }
   const editor = useRef<MonacoEditor.IStandaloneCodeEditor | null>(null)
+
+  useEffect(() => () => {
+    const instance = editor.current
+    if (instance?.getModel()) draft.view = instance.saveViewState()
+    editor.current = null
+  }, [])
 
   /** Replaces replace. */
   const replace = (text: string) => {
@@ -128,6 +139,7 @@ export function JsonTool() {
           beforeMount={registerMonacoTheme}
           onMount={(instance) => {
             editor.current = instance
+            if (draft.view) instance.restoreViewState(draft.view)
           }}
           onChange={(text) => {
             setValue(text ?? "")

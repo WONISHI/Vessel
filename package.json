@@ -311,7 +311,8 @@
     "zustand": "^5.0.10"
   },
   "volta": {
-    "node": "20.20.0"
+    "node": "20.20.0",
+    "pnpm": "10.34.9"
   },
   "workspaces": [
     "packages/@vessel/*"

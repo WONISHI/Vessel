@@ -110,6 +110,6 @@ html.dark .vessel-callout[data-callout-type="quote"] { --co-chevron:url("data:im
 }
 .vessel-callout-foldable.vessel-callout-collapsed::after { background-image: var(--co-chevron); }
 .vessel-callout-heading.vessel-callout-editing { padding: 0 26px; }
-.vessel-callout-heading.vessel-callout-editing::before { display: block; }
+.vessel-callout-heading.vessel-callout-editing::before { display: block; top: .5lh; transform: translateY(-50%); }
 [data-callout-marker] { display: none !important; }
 .vessel-callout > p:first-child { background: transparent !important; }

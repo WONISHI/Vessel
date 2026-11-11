@@ -10,11 +10,13 @@ export function installExtensionApiShim(tabBridgeToken?: string) {
     fetch?: typeof fetch
     XMLHttpRequest?: typeof XMLHttpRequest
     __vesselExtensionShim?: boolean
+    __vesselExtensionShimToken?: string
     open?: (url: string, target?: string) => unknown
     clients?: { openWindow(url: string): Promise<unknown> }
   }
   const chrome = scope.chrome
-  if (!chrome?.runtime?.id || scope.__vesselExtensionShim) return
+  if (!chrome?.runtime?.id || (scope.__vesselExtensionShim && (!tabBridgeToken || scope.__vesselExtensionShimToken === tabBridgeToken))) return
+  scope.__vesselExtensionShimToken = tabBridgeToken
   scope.__vesselExtensionShim = true
 
   /** Creates an inert Chrome event object. */
@@ -100,21 +102,31 @@ export function installExtensionApiShim(tabBridgeToken?: string) {
   }
   chrome.tabs = tabs
 
+  const proxyRequest = async (details: Record<string, unknown>) => {
+    if (!tabBridgeToken || !scope.fetch) throw new Error("扩展代理桥接未就绪，请重启 Vessel")
+    const response = await scope.fetch("http://127.0.0.1:35678/api/extension-proxy", {
+      method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${tabBridgeToken}` }, body: JSON.stringify(details)
+    })
+    const data = await response.json()
+    if (!response.ok) throw new Error(data.error || "扩展代理配置失败")
+    return data
+  }
+  const proxyCall = (details: Record<string, unknown>, callback?: unknown) => {
+    const pending = proxyRequest(details)
+    if (typeof callback !== "function") return pending
+    void pending.then((data) => callback(data), (error) => {
+      chrome.runtime.lastError = { message: String(error) }
+      try { callback() } finally { delete chrome.runtime.lastError }
+    })
+    return undefined
+  }
   const proxy = chrome.proxy || {}
-  if (!proxy.settings) {
-    let value: unknown = { mode: "system" }
-    proxy.settings = {
-      get: (_details: unknown, callback?: unknown) => reply({ value, levelOfControl: "controllable_by_this_extension" }, callback),
-      set: (details: { value?: unknown }, callback?: unknown) => {
-        value = details?.value ?? value
-        return reply(undefined, callback)
-      },
-      clear: (_details: unknown, callback?: unknown) => {
-        value = { mode: "system" }
-        return reply(undefined, callback)
-      },
-      onChange: event()
-    }
+  // Replace inert/native partial APIs as Electron does not implement chrome.proxy.
+  proxy.settings = {
+    get: (_details: unknown, callback?: unknown) => proxyCall({ action: "get" }, callback),
+    set: (details: { value?: unknown; scope?: string }, callback?: unknown) => proxyCall({ action: "set", value: details.value, scope: details.scope }, callback),
+    clear: (_details: unknown, callback?: unknown) => proxyCall({ action: "clear" }, callback),
+    onChange: event()
   }
   proxy.onProxyError ||= event()
   chrome.proxy = proxy
@@ -160,17 +172,41 @@ export function installExtensionApiShim(tabBridgeToken?: string) {
   }
 
   const webRequest = chrome.webRequest || {}
-  if (!webRequest.onAuthRequired) {
-    webRequest.onAuthRequired = event()
-  } else if (typeof webRequest.onAuthRequired.addListener === "function") {
-    const originalAddListener = webRequest.onAuthRequired.addListener.bind(webRequest.onAuthRequired)
-    webRequest.onAuthRequired.addListener = (...args: unknown[]) => {
+  if (tabBridgeToken) {
+    const listeners = new Set<(...args: any[]) => any>()
+    let polling = false
+    const handled = new Set<string>()
+    const poll = async () => {
+      if (!listeners.size) { polling = false; return }
       try {
-        return originalAddListener(...args)
-      } catch {
-        return undefined
-      }
+        const requests = await proxyRequest({ action: "auth-poll" })
+        for (const details of requests) {
+          if (handled.has(details.requestId)) continue
+          handled.add(details.requestId)
+          if (handled.size > 256) handled.delete(handled.values().next().value!)
+          let answered = false
+          const answer = (result: any) => {
+            if (answered) return
+            answered = true
+            void proxyRequest({ action: "auth-reply", requestId: details.requestId, authCredentials: result?.authCredentials }).catch(() => {})
+          }
+          for (const listener of listeners) {
+            try {
+              const result = listener(details, answer)
+              if (result?.then) void result.then(answer).catch(() => {})
+              else if (result) answer(result)
+            } catch { /* A faulty listener must not stop subsequent auth requests. */ }
+          }
+        }
+      } catch { /* Retry while an auth listener remains registered. */ }
+      setTimeout(poll, 500)
     }
-  }
+    webRequest.onAuthRequired = {
+      addListener(listener: (...args: any[]) => any) { listeners.add(listener); if (!polling) { polling = true; void poll() } },
+      removeListener(listener: (...args: any[]) => any) { listeners.delete(listener) },
+      hasListener: (listener: (...args: any[]) => any) => listeners.has(listener),
+      hasListeners: () => listeners.size > 0
+    }
+  } else webRequest.onAuthRequired ||= event()
   chrome.webRequest = webRequest
 }

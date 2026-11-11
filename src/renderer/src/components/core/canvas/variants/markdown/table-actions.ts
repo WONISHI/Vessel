@@ -274,6 +274,11 @@ export function bindTableActions(root: HTMLElement, onConvert?: (json: string) =
   /** Handles context menu events. */
   const onContextMenu = (event: MouseEvent) => {
     const target = event.target as HTMLElement
+    // Embedded advanced tables own their cell operations; do not intercept their React menu.
+    if (target.closest(".vessel-markdown-table-wrapper, .vessel-table-container")) {
+      hideMenu()
+      return
+    }
     const cell = target.closest<HTMLTableCellElement>("td, th")
     const t = cell?.closest("table")
     if (!cell || !t || !root.contains(t)) {
@@ -323,6 +328,7 @@ export function bindTableActions(root: HTMLElement, onConvert?: (json: string) =
       return
     }
     const candidate = Array.from(root.querySelectorAll<HTMLTableElement>(".vditor-ir table, .vditor-wysiwyg table")).find((element) => {
+      if (element.closest(".vessel-markdown-table-wrapper, .vessel-table-container")) return false
       const bounds = cellBounds(element)
       return event.clientX >= bounds.left - 5 && event.clientX <= bounds.right + 26 && event.clientY >= bounds.top - 5 && event.clientY <= bounds.bottom + 26
     })

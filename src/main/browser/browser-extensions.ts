@@ -1,3 +1,4 @@
+import { registerExtensionProxy, releaseExtensionProxy } from "./extensions/extension-proxy"
 import { loadExtensionWithWorker } from "@main/browser/extensions/extension-worker"
 import { storeSessionFetch } from "@main/browser/extensions/extension-store-fetch"
 import { prepareStoreExtension, webStoreExtensionId } from "@main/browser/extensions/extension-store"
@@ -63,10 +64,14 @@ async function load(record: BrowserExtension) {
       host.send("browser:new-tab", target)
       return true
     })
+    const manifest = JSON.parse(await readFile(join(record.path, "manifest.json"), "utf8"))
+    await releaseExtensionProxy(record.key)
+    registerExtensionProxy(tabBridgeToken, record.key, () => record.enabled && manifest.permissions?.includes("proxy"))
     const runtimePath = await prepareExtensionRuntime(record.path, join(app.getPath("userData"), "browser-extension-runtime"), tabBridgeToken)
     const extension = await loadExtensionWithWorker(session.fromPartition("persist:vessel-browser"), runtimePath)
     Object.assign(record, { extensionId: extension.id, name: extension.name, version: extension.version, error: undefined })
   } catch (error) {
+    await releaseExtensionProxy(record.key)
     record.error = String(error)
     record.extensionId = undefined
   }
@@ -441,6 +446,7 @@ export function registerBrowserExtensions(host: WebContents) {
       const record = records.find((item) => item.key === key)
       if (!record) throw new Error("扩展不存在")
       closePopup(key)
+      await releaseExtensionProxy(record.key)
       if (record.extensionId) extensions().removeExtension(record.extensionId)
       record.extensionId = undefined
       record.error = undefined
@@ -452,6 +458,7 @@ export function registerBrowserExtensions(host: WebContents) {
     mutate(async () => {
       const record = records.find((item) => item.key === key)
       closePopup(key)
+      if (record) await releaseExtensionProxy(record.key)
       if (record?.extensionId) extensions().removeExtension(record.extensionId)
       records = records.filter((item) => item.key !== key)
       if (record?.managedDirectory && dirname(record.managedDirectory) === join(app.getPath("userData"), "browser-extension-packages") && basename(record.managedDirectory).startsWith("import-")) await rm(record.managedDirectory, { recursive: true, force: true })

@@ -1,3 +1,4 @@
+import { extensionProxyRequest } from "@main/browser/extensions/extension-proxy"
 import { getBrowserBookmarks, setBrowserBookmarks } from "@main/browser/browser-tools"
 import { hasExtensionBridgeToken, openExtensionTab } from "@main/browser/extensions/extension-tab-bridge"
 import { BaseModule } from "@main/modules/base/index"
@@ -152,6 +153,18 @@ export class ExtensionBridgeModule extends BaseModule {
 
     const parsedUrl = new URL(req.url || "/", `http://127.0.0.1:${BRIDGE_PORT}`)
     const pathname = parsedUrl.pathname
+    if (pathname === "/api/extension-proxy" && req.method === "POST") {
+      const token = req.headers.authorization?.replace(/^Bearer /, "") || ""
+      if (!hasExtensionBridgeToken(token)) { res.writeHead(403); res.end(); return }
+      try {
+        const body = await this.parseBody<Record<string, unknown>>(req)
+        const result = await extensionProxyRequest(token, body)
+        res.writeHead(200, { "Content-Type": "application/json" }); res.end(JSON.stringify(result))
+      } catch (error) {
+        res.writeHead(400, { "Content-Type": "application/json" }); res.end(JSON.stringify({ error: error instanceof Error ? error.message : "代理配置失败" }))
+      }
+      return
+    }
     if (pathname === "/api/extension-login-diagnostic" && req.method === "POST") {
       const authorized = hasExtensionBridgeToken(req.headers.authorization?.replace(/^Bearer /, ""))
       if (!authorized) { res.writeHead(403); res.end(); return }

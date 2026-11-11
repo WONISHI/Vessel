@@ -311,7 +311,7 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
                   event.preventDefault()
                   setMoreToolsTooltipOpen(false)
                 }}
-                className="z-[300] max-h-[var(--radix-popover-content-available-height)] w-56 overflow-hidden rounded-xl border border-stone-200 bg-white p-0 shadow-xl dark:!border-white/10 dark:!bg-[#1f2329] dark:shadow-[0_12px_32px_rgba(0,0,0,.5)]"
+                className="vessel-activity-tools-popup z-[510] max-h-[var(--radix-popover-content-available-height)] w-56 overflow-hidden rounded-xl border border-stone-200 bg-white p-0 shadow-xl dark:!border-white/10 dark:!bg-[#1f2329] dark:shadow-[0_12px_32px_rgba(0,0,0,.5)]"
                 onMouseEnter={() => {
                   if (closeTimer.current) clearTimeout(closeTimer.current)
                 }}

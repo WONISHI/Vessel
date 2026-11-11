@@ -63,22 +63,43 @@ function pickElement() {
   let frozen = false
   let target: Element | null = null
 
+  const documents = new Set<Document>()
+  const frames = new Set<HTMLIFrameElement>()
+  const observers: MutationObserver[] = []
+  // Translate frame-local coordinates into the top document's viewport.
+  const offset = (doc: Document) => {
+    let x = 0, y = 0
+    let view = doc.defaultView
+    while (view && view !== window) {
+      const frame = view.frameElement as HTMLElement | null
+      if (!frame) break
+      const rect = frame.getBoundingClientRect()
+      x += rect.left + frame.clientLeft
+      y += rect.top + frame.clientTop
+      view = frame.ownerDocument.defaultView
+    }
+    return { x, y }
+  }
+
   /** Draws draw. */
   const draw = () => {
     if (!target?.isConnected) return
     const rect = target.getBoundingClientRect()
-    Object.assign(box.style, { left: `${rect.left}px`, top: `${rect.top}px`, width: `${rect.width}px`, height: `${rect.height}px` })
+    const origin = offset(target.ownerDocument)
+    Object.assign(box.style, { left: `${rect.left + origin.x}px`, top: `${rect.top + origin.y}px`, width: `${rect.width}px`, height: `${rect.height}px` })
   }
 
   /** Shows show. */
   const show = (event: MouseEvent) => {
     if (frozen) return
-    const element = event.composedPath()[0]
-    if (!(element instanceof Element) || element === host) return
-    target = element
+    const hit = event.composedPath()[0]
+    if (!hit || (hit as Node).nodeType !== 1 || hit === host) return
+    const picked = hit as Element
+    target = picked
     draw()
+    const element = picked
     const rect = element.getBoundingClientRect(),
-      style = getComputedStyle(element)
+      style = element.ownerDocument.defaultView!.getComputedStyle(element)
     selector.textContent =
       element.tagName.toLowerCase() +
       (element.id ? "#" + element.id : "") +
@@ -96,8 +117,9 @@ function pickElement() {
     values[4].textContent = (element.getAttribute("aria-label") || element.getAttribute("title") || element.textContent?.trim() || "(无文本)").slice(0, 60)
     values[5].textContent = element.getAttribute("role") || element.tagName.toLowerCase()
     card.hidden = false
-    card.style.left = `${Math.max(8, Math.min(event.clientX + 16, innerWidth - card.offsetWidth - 8))}px`
-    card.style.top = `${Math.max(8, Math.min(event.clientY + 16, innerHeight - card.offsetHeight - 8))}px`
+    const origin = offset(element.ownerDocument)
+    card.style.left = `${Math.max(8, Math.min(event.clientX + origin.x + 16, innerWidth - card.offsetWidth - 8))}px`
+    card.style.top = `${Math.max(8, Math.min(event.clientY + origin.y + 16, innerHeight - card.offsetHeight - 8))}px`
   }
 
   /** Performs the click operation. */
@@ -133,9 +155,14 @@ function pickElement() {
 
   /** Closes close. */
   const close = () => {
-    document.removeEventListener("mousemove", show, true)
-    document.removeEventListener("click", click, true)
-    document.removeEventListener("keydown", key, true)
+    observers.forEach((observer) => observer.disconnect())
+    frames.forEach((frame) => frame.removeEventListener("load", frameLoaded))
+    documents.forEach((doc) => {
+      doc.removeEventListener("mousemove", show, true)
+      doc.removeEventListener("click", click, true)
+      doc.removeEventListener("keydown", key, true)
+      doc.removeEventListener("scroll", draw, true)
+    })
     window.removeEventListener("scroll", draw, true)
     window.removeEventListener("resize", draw)
     host.remove()
@@ -151,9 +178,29 @@ function pickElement() {
   }
   exit.addEventListener("click", close)
   host.addEventListener("vessel-close", close)
-  document.addEventListener("mousemove", show, true)
-  document.addEventListener("click", click, true)
-  document.addEventListener("keydown", key, true)
+  const frameLoaded = () => scan(document)
+  function scan(doc: Document) {
+    if (!documents.has(doc)) {
+      documents.add(doc)
+      doc.addEventListener("mousemove", show, true)
+      doc.addEventListener("click", click, true)
+      doc.addEventListener("keydown", key, true)
+      doc.addEventListener("scroll", draw, true)
+      const observer = new MutationObserver(() => scan(doc))
+      observer.observe(doc, { childList: true, subtree: true })
+      observers.push(observer)
+    }
+    doc.querySelectorAll("iframe").forEach((frame) => {
+      if (!frames.has(frame)) {
+        frames.add(frame)
+        frame.addEventListener("load", frameLoaded)
+      }
+      try {
+        if (frame.contentDocument) scan(frame.contentDocument)
+      } catch { /* Cross-origin documents require Chromium DevTools inspection. */ }
+    })
+  }
+  scan(document)
   window.addEventListener("scroll", draw, true)
   window.addEventListener("resize", draw)
 }

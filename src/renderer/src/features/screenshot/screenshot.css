@@ -135,7 +135,7 @@ body {
   cursor: pointer;
 }
 #toolPanel .item-panel:hover {
-  background-color: #17171724;
+  background-color: #ffffff40;
 }
 #toolPanel .item-panel[class*="-active"],
 #toolPanel button[aria-pressed="true"] {
@@ -327,7 +327,7 @@ body,
   border: 0;
   border-radius: 14px;
   /* Match #toolPanel / #optionPanel liquid-glass without stealing ::before/::after for the arrow. */
-  --shot-menu-surface: #ffffff70;
+  --shot-menu-surface: #ebeff34a;
   background: linear-gradient(135deg, #ffffff70, #e8edf145 55%, #ffffff59);
   backdrop-filter: blur(18px) saturate(135%);
   -webkit-backdrop-filter: blur(18px) saturate(135%);
@@ -353,12 +353,12 @@ body,
 .shot-mode-menu button::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: #168bfa; }
 .shot-mode-menu button[data-mode="ocr"]::before { background: #14a3a3; }
 .shot-mode-menu button[data-mode="translate"]::before { background: #9163ff; }
-.shot-mode-menu button:hover { background: #17171724; }
+.shot-mode-menu button:hover { background: #ffffff40; }
 .shot-mode-menu button[aria-checked="true"] { background: rgba(107, 167, 242, .20); }
-.shot-mode-menu::before { content: ''; position: absolute; left: var(--shot-menu-arrow); top: -8px; width: 18px; height: 9px; transform: translateX(-50%); background: var(--shot-menu-surface); clip-path: polygon(50% 0, 100% 100%, 0 100%); }
+.shot-mode-menu::before { content: ''; position: absolute; left: var(--shot-menu-arrow); top: -8px; width: 18px; height: 9px; transform: translateX(-50%); background: var(--shot-menu-surface); backdrop-filter: blur(18px) saturate(135%); -webkit-backdrop-filter: blur(18px) saturate(135%); clip-path: polygon(50% 0, 100% 100%, 0 100%); }
 .shot-mode-menu[data-side="top"]::before { top: auto; bottom: -8px; transform: translateX(-50%) rotate(180deg); }
 .shot-mode-trigger:hover,
-.shot-mode-trigger[aria-expanded="true"] { border-radius: 10px; background: #17171724; }
+.shot-mode-trigger[aria-expanded="true"] { border-radius: 10px; background: #ffffff40; }
 
 .shot-shape-menu {
   position: fixed;
@@ -375,7 +375,7 @@ body,
   padding: 4px 8px;
   border: 0;
   border-radius: 14px;
-  --shot-menu-surface: #ffffff70;
+  --shot-menu-surface: #ebeff34a;
   background: linear-gradient(135deg, #ffffff70, #e8edf145 55%, #ffffff59);
   backdrop-filter: blur(18px) saturate(135%);
   -webkit-backdrop-filter: blur(18px) saturate(135%);
@@ -424,7 +424,7 @@ body,
   opacity: .7;
 }
 .shot-shape-width[open] > summary,
-.shot-shape-width > summary:hover { background: #17171724; }
+.shot-shape-width > summary:hover { background: #ffffff40; }
 .shot-shape-width-menu {
   position: absolute;
   top: calc(100% + 8px);
@@ -516,7 +516,7 @@ body,
   border-radius: 7px;
 }
 .shot-shape-list button:hover,
-.shot-shape-width-menu button:hover { background: #17171724; }
+.shot-shape-width-menu button:hover { background: #ffffff40; }
 .shot-shape-list button[aria-checked="true"],
 .shot-shape-width-menu button[aria-checked="true"] { background: rgba(107, 167, 242, .20); }
 .shot-shape-menu::before {
@@ -528,6 +528,8 @@ body,
   height: 9px;
   transform: translateX(-50%);
   background: var(--shot-menu-surface);
+  backdrop-filter: blur(18px) saturate(135%);
+  -webkit-backdrop-filter: blur(18px) saturate(135%);
   clip-path: polygon(50% 0, 100% 100%, 0 100%);
 }
 .shot-shape-menu[data-side="top"]::before { top: auto; bottom: -8px; transform: translateX(-50%) rotate(180deg); }
@@ -550,7 +552,7 @@ body,
   padding: 4px 8px;
   border: 0;
   border-radius: 14px;
-  --shot-menu-surface: #ffffff70;
+  --shot-menu-surface: #ebeff34a;
   background: linear-gradient(135deg, #ffffff70, #e8edf145 55%, #ffffff59);
   backdrop-filter: blur(18px) saturate(135%);
   -webkit-backdrop-filter: blur(18px) saturate(135%);
@@ -566,6 +568,8 @@ body,
   height: 9px;
   transform: translateX(-50%);
   background: var(--shot-menu-surface);
+  backdrop-filter: blur(18px) saturate(135%);
+  -webkit-backdrop-filter: blur(18px) saturate(135%);
   clip-path: polygon(50% 0, 100% 100%, 0 100%);
 }
 .shot-step-menu[data-side="top"]::before { top: auto; bottom: -8px; transform: translateX(-50%) rotate(180deg); }
@@ -819,7 +823,7 @@ body[data-shot-shape="diamond"]:not([data-shot-secondary]) :is(#optionPanel, #op
   width: 18px !important;
   height: 9px !important;
   border: 0 !important;
-  background: #ffffff70 !important;
+  background: #ebeff34a !important;
   backdrop-filter: blur(18px) saturate(135%);
   -webkit-backdrop-filter: blur(18px) saturate(135%);
   clip-path: polygon(50% 0, 100% 100%, 0 100%);
@@ -1176,7 +1180,7 @@ body[data-shot-shape="diamond"]:not([data-shot-secondary]) :is(#optionPanel, #op
 :is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip).shot-liquid-glass .item-panel:hover,
 :is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip).shot-liquid-glass .shot-shapes[aria-expanded="true"],
 :is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip).shot-liquid-glass .shot-mode-trigger:hover,
-:is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip).shot-liquid-glass .shot-mode-trigger[aria-expanded="true"] { background-color: #17171724; }
+:is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip).shot-liquid-glass .shot-mode-trigger[aria-expanded="true"] { background-color: #ffffff59; }
 :is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip).shot-liquid-glass .item-panel[class*="-active"],
 :is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip).shot-liquid-glass button[aria-pressed="true"] {
   background-color: #ffffff45;
@@ -1213,12 +1217,12 @@ body[data-shot-shape="diamond"]:not([data-shot-secondary]) :is(#optionPanel, #op
   }
   #optionPanel .text-select-panel .text-item:hover { background: #ffffff1f; }
   #optionIcoController {
-    background: #303841d9 !important;
+    background: #232a32cd !important;
     backdrop-filter: blur(18px) saturate(135%);
   }
   .shot-mode-menu {
     color-scheme: dark;
-    --shot-menu-surface: #303841d9;
+    --shot-menu-surface: #232a32cd;
     color: #f1f5f9;
     background: linear-gradient(135deg, #303841d9, #20262ecc 55%, #343c46d9);
     box-shadow: 0 8px 24px #0005;
@@ -1229,14 +1233,14 @@ body[data-shot-shape="diamond"]:not([data-shot-secondary]) :is(#optionPanel, #op
   .shot-mode-trigger[aria-expanded="true"] { background: #ffffff1f; }
   .shot-shape-menu {
     color-scheme: dark;
-    --shot-menu-surface: #303841d9;
+    --shot-menu-surface: #232a32cd;
     color: #f1f5f9;
     background: linear-gradient(135deg, #303841d9, #20262ecc 55%, #343c46d9);
     box-shadow: 0 8px 24px #0005;
   }
   .shot-step-menu {
     color-scheme: dark;
-    --shot-menu-surface: #303841d9;
+    --shot-menu-surface: #232a32cd;
     color: #f1f5f9;
     background: linear-gradient(135deg, #303841d9, #20262ecc 55%, #343c46d9);
     box-shadow: 0 8px 24px #0005;
@@ -1395,3 +1399,26 @@ body:has(#toolPanel .text-active) #textInputPanel,
 body:has(#toolPanel .item-panel:has(.text-active)) #textInputPanel {
   display: none !important;
 }
+
+/* Tooltip pointer: same surface and blur as the menu pointers. */
+.shot-toolbar-tooltip .shot-tip-arrow {
+  position: absolute;
+  top: -8px;
+  left: var(--shot-tip-arrow, 50%);
+  width: 18px;
+  height: 9px;
+  transform: translateX(-50%);
+  background: #ebeff34a;
+  backdrop-filter: blur(18px) saturate(135%);
+  -webkit-backdrop-filter: blur(18px) saturate(135%);
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+  pointer-events: none;
+}
+.shot-toolbar-tooltip[data-side="top"] .shot-tip-arrow { top: auto; bottom: -8px; transform: translateX(-50%) rotate(180deg); }
+@media (prefers-color-scheme: dark) {
+  .shot-toolbar-tooltip .shot-tip-arrow { background: #232a32cd; }
+}
+
+/* Mode trigger hover also covers the dot to its left. */
+#toolPanel .shot-toolbar-heading .shot-toolbar-dot { position: relative; z-index: 1; pointer-events: none; }
+#toolPanel .shot-toolbar-heading .shot-mode-trigger { margin-left: -22px; padding-left: 22px; }

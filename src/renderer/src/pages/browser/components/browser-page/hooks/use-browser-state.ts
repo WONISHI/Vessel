@@ -1,9 +1,10 @@
+import { pinnedTabsFirst } from "@/pages/browser/tab-order"
 import { useActivatedTabs } from "@/pages/browser/use-activated-tabs"
 import { BROWSER_ACTIVE_TAB_KEY, BROWSER_TABS_KEY, loadSavedBrowserTabs, newTab, PAGE_EXTRACTOR_SCRIPT, SavedBrowserTab, shortcuts, Tab } from "@/pages/browser/components/index-shared"
 import { publishBrowserTabs } from "@/pages/browser/tab-state"
 import { useRouter } from "@vessel/react-router"
 import type { WebviewTag } from "electron"
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState, type SetStateAction } from "react"
 
 /** 浏览器页的标签、查找、控制台与书签状态及持久化 */
 export function useBrowserState(visible: boolean) {
@@ -15,7 +16,10 @@ export function useBrowserState(visible: boolean) {
   if (!initialTabsState.current) {
     initialTabsState.current = loadSavedBrowserTabs()
   }
-  const [tabs, setTabs] = useState<Tab[]>(() => initialTabsState.current!.tabs)
+  const [tabs, setTabState] = useState<Tab[]>(() => pinnedTabsFirst(initialTabsState.current!.tabs))
+  const setTabs = useCallback((value: SetStateAction<Tab[]>) => {
+    setTabState((current) => pinnedTabsFirst(typeof value === "function" ? value(current) : value))
+  }, [])
   const [findOpen, setFindOpen] = useState(false)
   const [matchCase, setMatchCase] = useState(false)
   const [findText, setFindText] = useState("")
