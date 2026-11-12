@@ -162,7 +162,7 @@ export function CrashFallbackView({ error, onReset, simulated = false }: CrashFa
             <Button
               variant="outline"
               onClick={handleRelaunch}
-              className="gap-2 hover:border-green-600 hover:bg-green-600 hover:!text-white"
+              className="gap-2 hover:!bg-stone-100 hover:!text-foreground dark:hover:!bg-stone-800"
             >
               <RotateCcw className="h-4 w-4" />
               重启应用
