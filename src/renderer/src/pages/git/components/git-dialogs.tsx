@@ -1,3 +1,4 @@
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { CreateTagDialog } from "./create-tag-dialog"
 import { StashDialog } from "./stash-dialog"
 import { RepositorySettingsDialog } from "@/pages/git/components/repository-settings-dialog"
@@ -14,6 +15,14 @@ export function GitDialogs({ g }: { g: GitPageModel }) {
 
   return (
     <>
+        <ConfirmDialog
+          open={!!g.confirmation}
+          onOpenChange={(open) => { if (!open) g.settleConfirmation(false) }}
+          title="确认操作"
+          description={g.confirmation}
+          confirmText="确认"
+          onConfirm={() => g.settleConfirmation(true)}
+        />
         {g.tagTarget?.repoPath === repoPath && (
           <CreateTagDialog key={repoPath + g.tagTarget.hash} repoPath={repoPath} hash={g.tagTarget.hash} onClose={() => g.setTagTarget(null)} onCreated={refresh} />
         )}

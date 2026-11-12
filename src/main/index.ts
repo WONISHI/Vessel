@@ -17,7 +17,7 @@ import { registerTerminal } from "@main/terminal/terminal"
 import { registerTransit } from "@main/transit/transit"
 import icon from "@resources/icon.png?asset"
 import dockIconPath from "@resources/icon_108x108.png?asset"
-import { app, BrowserWindow, ipcMain, nativeImage, nativeTheme, protocol, screen, shell, type Rectangle } from "electron"
+import { app, BrowserWindow, dialog, ipcMain, nativeImage, nativeTheme, protocol, screen, shell, type Rectangle } from "electron"
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import { join } from "path"
 
@@ -171,6 +171,18 @@ function createWindow(): void {
     if (applicationWindow === mainWindow) applicationWindow = undefined
   })
 
+  mainWindow.webContents.on("will-prevent-unload", (event) => {
+    const response = dialog.showMessageBoxSync(mainWindow, {
+      type: "warning",
+      title: "存在未保存的修改",
+      message: "页面中有未保存的内容，是否仍要离开？",
+      detail: "刷新或关闭页面可能丢失尚未保存的修改。请取消并保存后再操作。",
+      buttons: ["取消", "仍然离开"], defaultId: 0, cancelId: 0, noLink: true
+    })
+    // Electron uses preventDefault here to allow the blocked unload to proceed.
+    if (response === 1) event.preventDefault()
+  })
+
   mainWindow.webContents.on("render-process-gone", () => {
     isAppCrashed = true
   })
@@ -299,22 +311,39 @@ app.on("window-all-closed", () => {
 })
 
 let drainingTextWrites = false
+let skipWriteDrain = false
 app.on("before-quit", (event) => {
+  if (skipWriteDrain) { mainApps.dispose(); return }
   if (drainingTextWrites) {
     event.preventDefault()
     return
   }
   const pending = drainTextFileWrites()
-  if (pending) {
-    event.preventDefault()
-    drainingTextWrites = true
-    void pending.then(() => {
+  if (!pending) { mainApps.dispose(); return }
+  event.preventDefault()
+  drainingTextWrites = true
+  void (async () => {
+    let timer: ReturnType<typeof setTimeout> | undefined
+    try {
+      const completed = pending.then(() => true)
+      for (;;) {
+        const saved = await Promise.race([completed, new Promise<false>((resolve) => { timer = setTimeout(() => resolve(false), 10000) })])
+        clearTimeout(timer)
+        if (saved) break
+        const { response } = await dialog.showMessageBox({
+          type: "warning", title: "仍在保存文件", message: "文件保存耗时较长，是否继续等待？",
+          detail: "直接退出可能丢失尚未保存的修改。", buttons: ["继续等待", "退出应用"], defaultId: 0, cancelId: 0, noLink: true
+        })
+        if (response === 1) { skipWriteDrain = true; break }
+      }
       drainingTextWrites = false
       app.quit()
-    })
-    return
-  }
-  mainApps.dispose()
+    } catch (error) {
+      console.error("退出时等待文件保存失败", error)
+      drainingTextWrites = false
+      dialog.showErrorBox("暂时无法退出", "等待文件保存时发生错误，请检查文件保存状态后再次退出。")
+    } finally { clearTimeout(timer) }
+  })()
 })
 
 app.on("will-quit", () => {

@@ -252,7 +252,7 @@ export default function DevTool() {
    *
    */
   const refreshPage = useCallback(() => {
-    window.location.reload()
+    void window.electronAPI.reloadWindow().catch((error) => toast.error("刷新失败", { description: String(error) }))
   }, [])
 
   /**

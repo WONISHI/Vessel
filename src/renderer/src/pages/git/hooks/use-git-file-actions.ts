@@ -1,5 +1,5 @@
 import { toast } from "@/components/ui/sonner"
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import type { GitFileStatus } from "@vessel/type"
 import { cleanGitErrorMessage } from "@/pages/git/utils"
 import type { GitRepositoryState } from "@/pages/git/hooks/use-git-repository"
@@ -9,6 +9,24 @@ export type StashRequest = { paths?: string[]; defaultMessage: string }
 /** 文件暂存 / 放弃 / 贮藏与路径工具 */
 export function useGitFileActions(repo: GitRepositoryState) {
   const { repoPath, status, branches, refresh } = repo
+  const [confirmation, setConfirmation] = useState<string | null>(null)
+  const pendingConfirmation = useRef<((accepted: boolean) => void) | null>(null)
+  const settleConfirmation = (accepted: boolean) => {
+    const resolve = pendingConfirmation.current
+    pendingConfirmation.current = null
+    setConfirmation(null)
+    resolve?.(accepted)
+  }
+  const requestConfirmation = (description: string) => new Promise<boolean>((resolve) => {
+    pendingConfirmation.current?.(false)
+    pendingConfirmation.current = resolve
+    setConfirmation(description)
+  })
+  useEffect(() => () => {
+    pendingConfirmation.current?.(false)
+    pendingConfirmation.current = null
+  }, [repoPath])
+
 
   // 操作函数
 
@@ -54,7 +72,7 @@ export function useGitFileActions(repo: GitRepositoryState) {
 
   /** Handles discard events. */
   const handleDiscard = async (file: GitFileStatus) => {
-    if (!confirm(`确定放弃对文件 ${file.path} 的所有修改吗？此操作无法撤销。`)) return
+    if (!await requestConfirmation(`确定放弃对文件 ${file.path} 的所有修改吗？此操作无法撤销。`)) return
     try {
       await window.electronAPI.git.discard(repoPath, [file.path], file.status === "?")
       await refresh()
@@ -66,7 +84,7 @@ export function useGitFileActions(repo: GitRepositoryState) {
 
   /** Handles discard staged events. */
   const handleDiscardStaged = async (file: GitFileStatus) => {
-    if (!confirm(`确定放弃对已暂存文件 ${file.path} 的所有修改吗？此操作无法撤销。`)) return
+    if (!await requestConfirmation(`确定放弃对已暂存文件 ${file.path} 的所有修改吗？此操作无法撤销。`)) return
     try {
       await window.electronAPI.git.unstage(repoPath, [file.path])
       await window.electronAPI.git.discard(repoPath, [file.path], false)
@@ -104,7 +122,7 @@ export function useGitFileActions(repo: GitRepositoryState) {
   /** Handles discard multiple events. */
   const handleDiscardMultiple = async (paths: string[]) => {
     if (!repoPath || paths.length === 0) return
-    if (!confirm(`确定放弃选中的 ${paths.length} 个文件的所有修改吗？此操作无法撤销。`)) return
+    if (!await requestConfirmation(`确定放弃选中的 ${paths.length} 个文件的所有修改吗？此操作无法撤销。`)) return
     try {
       const unstagedList = [...(status?.unstaged || []), ...(status?.untracked || [])]
       const untrackedPaths = paths.filter((p) => unstagedList.find((f) => f.path === p)?.status === "?")
@@ -125,7 +143,7 @@ export function useGitFileActions(repo: GitRepositoryState) {
   /** Handles discard staged multiple events. */
   const handleDiscardStagedMultiple = async (paths: string[]) => {
     if (!repoPath || paths.length === 0) return
-    if (!confirm(`确定放弃选中的 ${paths.length} 个已暂存文件的所有修改吗？此操作无法撤销。`)) return
+    if (!await requestConfirmation(`确定放弃选中的 ${paths.length} 个已暂存文件的所有修改吗？此操作无法撤销。`)) return
     try {
       await window.electronAPI.git.unstage(repoPath, paths)
       await window.electronAPI.git.discard(repoPath, paths, false)
@@ -182,7 +200,7 @@ export function useGitFileActions(repo: GitRepositoryState) {
   /** Handles stash drop events. */
   const handleStashDrop = async (index = 0) => {
     if (!repoPath) return
-    if (!confirm(`确定删除贮藏 stash@{${index}} 吗？此操作无法撤销。`)) return
+    if (!await requestConfirmation(`确定删除贮藏 stash@{${index}} 吗？此操作无法撤销。`)) return
     try {
       await window.electronAPI.git.stashDrop(repoPath, index)
       await refresh()
@@ -217,5 +235,5 @@ export function useGitFileActions(repo: GitRepositoryState) {
     }
   }
 
-  return { handleStageFile, handleUnstageFile, handleStageAll, handleUnstageAll, handleDiscard, handleDiscardStaged, handleStageMultiple, handleUnstageMultiple, handleDiscardMultiple, handleDiscardStagedMultiple, handleStashFiles, handleStashAll, stashRequest, setStashRequest, submitStash, handleStashPop, handleStashDrop, getFullPath, copyToClipboard, handleRevealInFinder }
+  return { confirmation, settleConfirmation, handleStageFile, handleUnstageFile, handleStageAll, handleUnstageAll, handleDiscard, handleDiscardStaged, handleStageMultiple, handleUnstageMultiple, handleDiscardMultiple, handleDiscardStagedMultiple, handleStashFiles, handleStashAll, stashRequest, setStashRequest, submitStash, handleStashPop, handleStashDrop, getFullPath, copyToClipboard, handleRevealInFinder }
 }

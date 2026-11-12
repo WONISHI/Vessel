@@ -57,7 +57,7 @@ export const Guest = memo(function Guest({ tab, visible, register, update }: { t
         } catch {}
       }
       sync()
-      updateRef.current(tab.id, { loading: false, ready: true })
+      updateRef.current(tab.id, { ready: true })
     }
 
     /** Starts start. */
@@ -68,6 +68,8 @@ export const Guest = memo(function Guest({ tab, visible, register, update }: { t
         updateRef.current(tab.id, { loading: true, error: "", videoPlaying: false })
       }
     }
+
+    const loading = () => updateRef.current(tab.id, { loading: true, error: "" })
 
     /** Stops stop. */
     const stop = () => {
@@ -109,6 +111,7 @@ export const Guest = memo(function Guest({ tab, visible, register, update }: { t
     view.addEventListener("did-navigate-in-page", sync)
     view.addEventListener("page-title-updated", sync)
     view.addEventListener("did-start-navigation", start)
+    view.addEventListener("did-start-loading", loading)
     view.addEventListener("did-stop-loading", stop)
     view.addEventListener("did-fail-load", fail)
     return () => {
@@ -123,6 +126,7 @@ export const Guest = memo(function Guest({ tab, visible, register, update }: { t
       view.removeEventListener("did-navigate-in-page", sync)
       view.removeEventListener("page-title-updated", sync)
       view.removeEventListener("did-start-navigation", start)
+      view.removeEventListener("did-start-loading", loading)
       view.removeEventListener("did-stop-loading", stop)
       view.removeEventListener("did-fail-load", fail)
     }

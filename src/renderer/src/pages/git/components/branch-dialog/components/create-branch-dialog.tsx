@@ -1,7 +1,7 @@
 import "@/pages/git/components/create-tag-dialog.css"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogPortal, DialogTitle } from "@/components/ui/dialog"
 import { CheckField } from "@/pages/git/components/git-check-field"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { GitBranch } from "lucide-react"
@@ -52,10 +52,14 @@ export function CreateBranchDialog({
   const exists = branches.includes(branchName)
   return (
     <Dialog
+      modal={false}
       open={open}
       onOpenChange={onOpenChange}
     >
-      <DialogContent showCloseButton={false} className="git-dialog git-tag-dialog flex max-h-[90vh] max-w-[460px] flex-col gap-0 overflow-hidden p-0">
+      {open && <DialogPortal>
+        <div aria-hidden="true" className="fixed inset-y-0 right-0 left-[52px] z-50 bg-black/[.04] backdrop-blur-[3px]" />
+      </DialogPortal>}
+      <DialogContent showCloseButton={false} className="left-[calc(50%+26px)] w-[calc(100%-52px)] git-dialog git-tag-dialog flex max-h-[90vh] max-w-[460px] flex-col gap-0 overflow-hidden p-0">
         <div className="flex items-center gap-3 border-b border-stone-200/80 px-5 py-3.5 dark:border-stone-700/70">
           <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-green-50 text-green-600 dark:bg-green-500/10 dark:text-green-400"><GitBranch className="size-4" /></span>
           <DialogHeader className="min-w-0 space-y-0.5 text-left">

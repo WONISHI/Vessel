@@ -11,10 +11,12 @@ export function useBrowserActions(state: BrowserState, visible: boolean) {
   const { tabs, setTabs, findOpen, setFindOpen, matchCase, findText, setFindResult, findInput, devtoolsOpen, setDevtoolsOpen, dock, consoleFont, consoleSize, devtoolsHost, setActive, setInput, bookmarks, setBookmarks, views, tab } = state
 
 
+  const findRequest = useRef<number | undefined>(undefined)
+
   /** Performs the search page operation. */
   const searchPage = (forward = true, next = false) => {
     const view = views.current.get(tab.id)
-    if (findText) withGuest(view, (guest) => guest.findInPage(findText, { forward, findNext: next, matchCase }))
+    if (findText) findRequest.current = withGuest(view, (guest) => guest.findInPage(findText, { forward, findNext: next, matchCase }))
     else withGuest(view, (guest) => guest.stopFindInPage("clearSelection"))
   }
   useEffect(() => {
@@ -65,25 +67,37 @@ export function useBrowserActions(state: BrowserState, visible: boolean) {
     }
   }, [visible, tab.id])
   useEffect(() => {
+    if (!visible) return
     const view = views.current.get(tab.id)
-
-    /** Performs the result operation. */
-    const result = (event: Electron.FoundInPageEvent) => setFindResult({ ...event.result, tabId: tab.id, text: findText })
-    view?.addEventListener("found-in-page", result)
-
-    /** Finds find. */
-    const find = () => {
-      if (findOpen && findText) withGuest(view, (guest) => guest.findInPage(findText, { matchCase }))
-      else withGuest(view, (guest) => guest.stopFindInPage("clearSelection"))
+    findRequest.current = undefined
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const result = (event: Electron.FoundInPageEvent) => {
+      if (event.result.requestId !== findRequest.current) return
+      setFindResult({ ...event.result, tabId: tab.id, text: findText })
     }
+    const find = () => {
+      clearTimeout(timer)
+      if (!findOpen || !findText) {
+        withGuest(view, (guest) => guest.stopFindInPage("clearSelection"))
+        return
+      }
+      timer = setTimeout(() => {
+        findRequest.current = withGuest(view, (guest) => guest.findInPage(findText, { matchCase, findNext: false }))
+      }, 180)
+    }
+    view?.addEventListener("found-in-page", result)
     view?.addEventListener("dom-ready", find)
     find()
     return () => {
+      clearTimeout(timer)
       view?.removeEventListener("dom-ready", find)
       view?.removeEventListener("found-in-page", result)
-      withGuest(view, (guest) => guest.stopFindInPage("clearSelection"))
     }
-  }, [findText, findOpen, tab.id, matchCase])
+  }, [visible, findText, findOpen, tab.id, matchCase])
+  useEffect(() => {
+    const view = views.current.get(tab.id)
+    return () => { withGuest(view, (guest) => guest.stopFindInPage("clearSelection")) }
+  }, [visible, tab.id])
 
   /** Refreshes the current state. */
   const update = useCallback(

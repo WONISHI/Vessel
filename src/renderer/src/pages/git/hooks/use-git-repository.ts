@@ -1,8 +1,9 @@
+import { getCommitDraft } from "@/pages/git/commit-drafts"
 import { type GitRemoteOperation } from "@/pages/git/components/operation-loading"
 import { toast } from "@/components/ui/sonner"
 import { computeGitTopology } from "@/pages/git/components/git-graph"
 import type { GitCommitDetail, GitCommitItem, GitFileStatus, GitStatusResult } from "@vessel/type"
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { cleanGitErrorMessage, findCommitIndexForBranch, getInitialRepoPath, persistGitRepoPath } from "@/pages/git/utils"
 
 /** 仓库数据状态、刷新逻辑与派生计数 */
@@ -86,7 +87,7 @@ export function useGitRepository() {
   const [stashes, setStashes] = useState<{ index: number; name: string; date: string }[]>([])
 
   // Commit 表单
-  const commitMessage = useRef("")
+  const commitMessage = useMemo(() => getCommitDraft(repoPath), [repoPath])
   const [commitMessageReset, setCommitMessageReset] = useState(0)
   useEffect(() => {
     if (!repoPath) return

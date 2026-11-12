@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { TextWithArrows } from "@/components/ui/text-with-arrows"
+import { GitOutputDetails } from "@/pages/git/components/git-output-details"
 import { toast } from "@/components/ui/sonner"
 import { cleanGitErrorMessage } from "@/pages/git/utils"
 import type { GitRepositoryState } from "@/pages/git/hooks/use-git-repository"
@@ -143,7 +143,7 @@ export function useGitCommitActions(repo: GitRepositoryState) {
     try {
       const res = await window.electronAPI.git.merge(repoPath, branch)
       if (res.success) toast.success(`已合并分支: ${branch}`)
-      else toast.warning(`合并完成，请检查冲突：${res.output}`)
+      else toast.warning("合并完成，请检查冲突", { description: <GitOutputDetails output={res.output} /> })
       await refresh()
     } catch (e: any) {
       toast.error("合并失败", { description: cleanGitErrorMessage(e) })
@@ -158,7 +158,7 @@ export function useGitCommitActions(repo: GitRepositoryState) {
     setLoading(true)
     try {
       const res = await window.electronAPI.git.pull(repoPath, remote, branch)
-      toast.success(<TextWithArrows text={res.output || "拉取成功"} />)
+      toast.success("拉取成功", { description: res.output ? <GitOutputDetails output={res.output} /> : undefined })
       await refresh()
     } catch (e: any) {
       toast.error("拉取失败", { description: cleanGitErrorMessage(e) })
@@ -177,7 +177,7 @@ export function useGitCommitActions(repo: GitRepositoryState) {
     setLoading(true)
     try {
       const res = await window.electronAPI.git.push(repoPath, remote, branch)
-      toast.success(<TextWithArrows text={res.output || "推送成功"} />)
+      toast.success("推送成功", { description: res.output ? <GitOutputDetails output={res.output} /> : undefined })
       await refresh()
     } catch (e: any) {
       toast.error("推送失败", { description: cleanGitErrorMessage(e) })
