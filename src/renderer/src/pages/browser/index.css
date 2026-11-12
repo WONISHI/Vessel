@@ -31,9 +31,6 @@
   width: var(--browser-tab-height);
   flex-shrink: 0;
 }
-.browser-tab.pinned .browser-tab-select {
-  padding-right: 8px;
-}
 .browser-tab[data-dragging="true"] {
   opacity: 0.5;
 }
@@ -580,7 +577,25 @@ html:not(.dark) .browser-more-item:hover svg {
   color: #16a34a;
   pointer-events: none;
 }
-.browser-tab.pinned.playing .browser-tab-select { padding-right: 28px; }
+.browser-tab.pinned.playing .browser-tab-select { padding-right: 54px; }
+.browser-tab.pinned .browser-tab-audio { right: 32px; }
 .browser-tab.playing:not(.pinned) > button[aria-label="关闭标签页"] { opacity: 0; }
 .browser-tab.playing:not(.pinned):is(:hover, :focus-within) > button[aria-label="关闭标签页"] { opacity: 1; }
 .browser-tab.playing:not(.pinned):is(:hover, :focus-within) .browser-tab-audio { display: none; }
+
+.browser-tab-pin-close {
+  display: flex;
+  width: 16px;
+  height: 16px;
+  align-items: center;
+  justify-content: center;
+}
+.browser-tab-pin-close .browser-tab-close-icon {
+  display: none;
+}
+.browser-tab-pin-close:is(:hover, :focus-visible) .browser-tab-pin-icon {
+  display: none;
+}
+.browser-tab-pin-close:is(:hover, :focus-visible) .browser-tab-close-icon {
+  display: block;
+}

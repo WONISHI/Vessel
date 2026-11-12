@@ -40,25 +40,25 @@ export function BrowserTabs({ b }: { b: BrowserPageModel }) {
                     className="browser-tab-select flex min-w-0 flex-1 items-center gap-2"
                     data-title={item.videoPlaying ? `${item.title} · 正在播放视频` : item.title}
                   >
-                    {item.pinned ? <Pin size={16} className="shrink-0" aria-label="已固定" /> : <span className="relative flex size-4 shrink-0 items-center justify-center">
+                    <span className="relative flex size-4 shrink-0 items-center justify-center">
                       <span className={`flex ${item.id === tab.id && item.loading ? "invisible" : ""}`}>
                         <BrowserFavicon url={item.url} favicon={item.favicon} />
                       </span>
                       {item.id === tab.id && item.loading
                         ? <LoaderCircle size={16} className="absolute inset-0 animate-spin" aria-label="正在加载" />
                         : null}
-                    </span>}
+                    </span>
                     <span className="truncate leading-4">{item.title}</span>
                   </button>
                   {item.videoPlaying && <AudioLines size={16} className="browser-tab-audio" aria-label="正在播放视频" />}
-                  {!item.pinned && (
-                    <button
-                      data-title="关闭标签页"
-                      onClick={() => close(item.id)} aria-label="关闭标签页"
-                    >
-                      <X size={14} />
-                    </button>
-                  )}
+                  <button
+                    className={item.pinned ? "browser-tab-pin-close" : undefined}
+                    data-title="关闭标签页"
+                    onClick={() => close(item.id)} aria-label="关闭标签页"
+                  >
+                    {item.pinned && <Pin size={16} className="browser-tab-pin-icon" aria-label="已固定" />}
+                    <X size={14} className={item.pinned ? "browser-tab-close-icon" : undefined} />
+                  </button>
                 </div>
               </ContextMenuTrigger>
               <ContextMenuContent className="w-44">

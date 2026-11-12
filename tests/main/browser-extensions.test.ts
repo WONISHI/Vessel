@@ -2,7 +2,7 @@ import { mkdtemp, writeFile, rm, readFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { expect, it, vi } from "vitest"
-const mocks = vi.hoisted(() => ({ directory: "", selection: "", options: undefined as unknown, load: vi.fn(async () => ({ id: "ext-id", name: "Test", version: "1.0" })), remove: vi.fn() }))
+const mocks = vi.hoisted(() => ({ directory: "", selection: "", options: undefined as unknown, load: vi.fn(async () => ({ id: "ext-id", name: "Test", version: "1.0", manifest: { manifest_version: 3 } })), remove: vi.fn() }))
 vi.mock("@main/browser/browser-identity", () => ({ applyBrowserIdentity: vi.fn() }))
 vi.mock("@main/browser/browser-site-compatibility", () => ({ registerBrowserSiteCompatibility: vi.fn() }))
 vi.mock("electron", () => ({

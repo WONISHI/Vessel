@@ -1,5 +1,6 @@
 import "./create-tag-dialog.css"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { CheckField } from "./git-check-field"
 import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -132,10 +133,12 @@ export function CreateTagDialog({ repoPath, hash, onClose, onCreated }: { repoPa
                 <PopoverContent align="start" className="w-[var(--radix-popover-trigger-width)] p-0" onOpenAutoFocus={(event) => event.preventDefault()}>
                   <Command>
                     <CommandInput placeholder="搜索标签…" className="text-xs" />
-                    <CommandList className="max-h-48">
-                      <CommandEmpty className="py-4 text-center text-xs text-stone-400">没有匹配的标签</CommandEmpty>
-                      {tags.map((item) => <CommandItem key={item} value={item} className="font-mono text-xs" onSelect={() => { setName(item); setTagMenu(false) }}><Check className={item === tag ? "opacity-100" : "opacity-0"} />{item}</CommandItem>)}
-                    </CommandList>
+                    <ScrollArea className="[&_[data-radix-scroll-area-viewport]]:max-h-48">
+                      <CommandList className="max-h-none overflow-visible">
+                        <CommandEmpty className="py-4 text-center text-xs text-stone-400">没有匹配的标签</CommandEmpty>
+                        {tags.map((item) => <CommandItem key={item} value={item} className="font-mono text-xs" onSelect={() => { setName(item); setTagMenu(false) }}><Check className={item === tag ? "opacity-100" : "opacity-0"} />{item}</CommandItem>)}
+                      </CommandList>
+                    </ScrollArea>
                   </Command>
                 </PopoverContent>
               </Popover>

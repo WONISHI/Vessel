@@ -26,12 +26,20 @@ export function registerExtensionProxy(token: string, key: string, allowed: () =
   })
 }
 
+/** Revoke first so requests queued by an unloading extension cannot reapply its proxy. */
 export async function releaseExtensionProxy(key: string) {
-  for (const [token, item] of permissions) if (item.key === key) {
-    if (owner === token) await extensionProxyRequest(token, { action: "clear" })
-    permissions.delete(token)
-    for (const request of pending.values()) if (request.token === token) request.finish()
-  }
+  const tokens = new Set([...permissions].filter(([, item]) => item.key === key).map(([token]) => token))
+  for (const token of tokens) permissions.delete(token)
+  for (const request of pending.values()) if (tokens.has(request.token)) request.finish()
+  const operation = queue.then(async () => {
+    if (!tokens.has(owner)) return
+    await browser().setProxy({ mode: "system" })
+    owner = ""
+    value = { mode: "system" }
+    await browser().closeAllConnections()
+  })
+  queue = operation.then(() => {}, () => {})
+  return operation
 }
 
 export async function extensionProxyRequest(token: string, data: any) {
@@ -52,9 +60,9 @@ export async function extensionProxyRequest(token: string, data: any) {
     if (data.action === "clear" && owner !== token) return {}
     const next = data.action === "clear" ? { mode: "system" } : data.value
     await browser().setProxy(extensionProxyConfig(next))
-    await browser().closeAllConnections()
     owner = data.action === "clear" ? "" : token
     value = next
+    await browser().closeAllConnections()
     return {}
   })
   queue = operation.then(() => {}, () => {})

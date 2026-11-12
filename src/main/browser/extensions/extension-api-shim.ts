@@ -10,6 +10,7 @@ export function installExtensionApiShim(tabBridgeToken?: string) {
     fetch?: typeof fetch
     XMLHttpRequest?: typeof XMLHttpRequest
     __vesselExtensionShim?: boolean
+    __vesselProxyAuth?: { listeners: Set<(...args: any[]) => any>; handled: Set<string>; polling: boolean }
     __vesselExtensionShimToken?: string
     open?: (url: string, target?: string) => unknown
     clients?: { openWindow(url: string): Promise<unknown> }
@@ -20,7 +21,7 @@ export function installExtensionApiShim(tabBridgeToken?: string) {
   scope.__vesselExtensionShim = true
 
   /** Creates an inert Chrome event object. */
-  const event = () => ({ addListener() {}, removeListener() {}, hasListener: () => false, hasListeners: () => false })
+  const event = () => ({ addListener() { /* Unsupported event. */ }, removeListener() { /* Unsupported event. */ }, hasListener: () => false, hasListeners: () => false })
 
   /** Resolves through both the callback and Promise styles used by MV2/MV3 extensions. */
   const reply = <T,>(value: T, callback?: unknown) => {
@@ -40,13 +41,13 @@ export function installExtensionApiShim(tabBridgeToken?: string) {
         // Report only fixed endpoint names and booleans; never account, code, token or response bodies.
         if (tabBridgeToken && typeof init?.body === "string") {
           let endpoint = ""
-          try { endpoint = new URL(typeof input === "string" ? input : input instanceof URL ? input.href : input.url).pathname } catch {}
+          try { endpoint = new URL(typeof input === "string" ? input : input instanceof URL ? input.href : input.url).pathname } catch { /* Optional diagnostic data may be unavailable. */ }
           if (["/page/muser/login", "/chromeext/email/sendcode_v2", "/chromeext/v2/email_login"].includes(endpoint)) {
             let fields: Record<string, unknown> = {}
-            try { fields = JSON.parse(init.body) } catch {}
+            try { fields = JSON.parse(init.body) } catch { /* Optional diagnostic data may be unavailable. */ }
             void pending.then(async (response) => {
               let data: Record<string, unknown> = {}
-              try { data = await response.clone().json() } catch {}
+              try { data = await response.clone().json() } catch { /* Optional diagnostic data may be unavailable. */ }
               await originalFetch("http://127.0.0.1:35678/api/extension-login-diagnostic", {
                 method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${tabBridgeToken}` },
                 body: JSON.stringify({ endpoint, status: response.status, tokenPresent: Boolean(fields.token), runtimeIdMatched: fields.runtime_id === runtimeId,
@@ -103,9 +104,9 @@ export function installExtensionApiShim(tabBridgeToken?: string) {
   chrome.tabs = tabs
 
   const proxyRequest = async (details: Record<string, unknown>) => {
-    if (!tabBridgeToken || !scope.fetch) throw new Error("扩展代理桥接未就绪，请重启 Vessel")
+    if (!scope.__vesselExtensionShimToken || !scope.fetch) throw new Error("扩展代理桥接未就绪，请重启 Vessel")
     const response = await scope.fetch("http://127.0.0.1:35678/api/extension-proxy", {
-      method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${tabBridgeToken}` }, body: JSON.stringify(details)
+      method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${scope.__vesselExtensionShimToken}` }, body: JSON.stringify(details)
     })
     const data = await response.json()
     if (!response.ok) throw new Error(data.error || "扩展代理配置失败")
@@ -172,12 +173,11 @@ export function installExtensionApiShim(tabBridgeToken?: string) {
   }
 
   const webRequest = chrome.webRequest || {}
-  if (tabBridgeToken) {
-    const listeners = new Set<(...args: any[]) => any>()
-    let polling = false
-    const handled = new Set<string>()
+  {
+    const state = scope.__vesselProxyAuth ||= { listeners: new Set<(...args: any[]) => any>(), handled: new Set<string>(), polling: false }
+    const { listeners, handled } = state
     const poll = async () => {
-      if (!listeners.size) { polling = false; return }
+      if (!listeners.size) { state.polling = false; return }
       try {
         const requests = await proxyRequest({ action: "auth-poll" })
         for (const details of requests) {
@@ -202,11 +202,11 @@ export function installExtensionApiShim(tabBridgeToken?: string) {
       setTimeout(poll, 500)
     }
     webRequest.onAuthRequired = {
-      addListener(listener: (...args: any[]) => any) { listeners.add(listener); if (!polling) { polling = true; void poll() } },
+      addListener(listener: (...args: any[]) => any) { listeners.add(listener); if (!state.polling) { state.polling = true; void poll() } },
       removeListener(listener: (...args: any[]) => any) { listeners.delete(listener) },
       hasListener: (listener: (...args: any[]) => any) => listeners.has(listener),
       hasListeners: () => listeners.size > 0
     }
-  } else webRequest.onAuthRequired ||= event()
+  }
   chrome.webRequest = webRequest
 }
