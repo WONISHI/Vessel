@@ -48,6 +48,12 @@ export function secureBrowserGuests(contents: WebContents) {
   registerBrowserProxy(contents)
   registerBrowserDevtools(contents)
   registerBrowserTools(contents)
+  const reloadGuests = new Map<number, () => void>()
+  contents.ipc.handle("browser:reload-tab", (_event, id: number) => {
+    const reload = reloadGuests.get(id)
+    if (!reload) throw new Error("当前标签页已关闭或尚未就绪")
+    reload()
+  })
   const decisions = new Map<number, (current: boolean) => void>()
   let decisionId = 0
   contents.ipc.handle("browser:navigation-answer", (_event, id: number, current: boolean) => {
@@ -118,6 +124,20 @@ export function secureBrowserGuests(contents: WebContents) {
     guest.ipc.on("vessel:navigation-choice", (event, url: unknown) => {
       event.returnValue = typeof url === "string" && url.length < 16384 && chooseNavigation(url)
     })
+    let refreshRequestedUntil = 0
+    const reload = () => {
+      refreshRequestedUntil = Date.now() + 5000
+      cancelDecision?.()
+      guest.reloadIgnoringCache()
+    }
+    reloadGuests.set(guest.id, reload)
+    guest.once("destroyed", () => reloadGuests.delete(guest.id))
+    guest.on("will-prevent-unload", (event) => {
+      if (Date.now() <= refreshRequestedUntil) {
+        refreshRequestedUntil = 0
+        event.preventDefault()
+      }
+    })
     guest.on("before-input-event", (event, input) => {
       if (input.type !== "keyDown") return
       const scrollTop = matchesShortcut(input, "scrollTop")
@@ -126,9 +146,11 @@ export function secureBrowserGuests(contents: WebContents) {
         if (!input.isAutoRepeat) guest.send("vessel:scroll-boundary", scrollTop)
         return
       }
-      if (matchesShortcut(input, "refreshBrowser")) {
+      if (matchesShortcut(input, "refreshBrowser") || (input.code === "F5" && !input.control && !input.meta && !input.alt && !input.shift)) {
         event.preventDefault()
-        if (!input.isAutoRepeat) guest.reload()
+        if (!input.isAutoRepeat) {
+          reload()
+        }
         return
       }
       if (matchesShortcut(input, "devtools")) {

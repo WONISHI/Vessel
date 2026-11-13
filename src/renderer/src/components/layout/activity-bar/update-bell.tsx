@@ -1,3 +1,5 @@
+import { openInAppBrowser } from "@/lib/app-browser"
+import { useRouter } from "@vessel/react-router"
 import Logo from "@/assets/logo.png"
 import DarkLogo from "@/assets/logo-dark.svg"
 import { Button } from "@/components/ui/button"
@@ -10,6 +12,7 @@ import { toast } from "sonner"
 type UpdateState = Awaited<ReturnType<Window["electronAPI"]["getAppUpdate"]>>
 
 export function UpdateBell({ dark }: { dark: boolean }) {
+  const router = useRouter()
   const [open, setOpen] = useState(false)
   const [tooltipOpen, setTooltipOpen] = useState(false)
   const [state, setState] = useState<UpdateState>()
@@ -71,7 +74,7 @@ export function UpdateBell({ dark }: { dark: boolean }) {
         </div>
         <div className="mt-3 flex justify-center gap-2 [&_button]:h-7 [&_button]:px-2.5 [&_button]:text-xs [&_button:hover]:!text-white">
           {state?.status === "unsupported" && (
-            <Button size="sm" variant="outline" onClick={() => run(() => window.electronAPI.openExternal("https://github.com/WONISHI/Vessel/releases"))}>下载新版</Button>
+            <Button size="sm" variant="outline" onClick={() => { setOpen(false); openInAppBrowser("https://github.com/WONISHI/Vessel/releases", (path) => router.push(path)) }}>下载新版</Button>
           )}
           {nextVersion && <Button size="sm" variant="outline" onClick={() => setOpen(false)}>稍候更新</Button>}
           {state?.status === "available" && <Button size="sm" onClick={() => run(window.electronAPI.downloadAppUpdate)}>立刻更新</Button>}

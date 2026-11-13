@@ -113,6 +113,11 @@ function watchWindowShortcuts(window: BrowserWindow) {
   const { webContents } = window
   webContents.on("before-input-event", (event, input) => {
     if (input.type !== "keyDown") return
+    if ((input.code === "F5" || input.key === "F5") && !input.control && !input.meta && !input.alt && !input.shift) {
+      event.preventDefault()
+      if (!input.isAutoRepeat) void webContents.executeJavaScript(`window.dispatchEvent(new Event("vessel-browser-refresh"))`).catch((error) => console.error("浏览器刷新失败", error))
+      return
+    }
     if (!is.dev) {
       if (input.code === "KeyR" && (input.control || input.meta)) event.preventDefault()
       if (input.code === "KeyI" && ((input.alt && input.meta) || (input.control && input.shift))) event.preventDefault()

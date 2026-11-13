@@ -22,6 +22,7 @@ export interface BrowserToolsAPI {
   onBrowserBookmarksUpdated(callback: (items: { url: string; title: string }[]) => void): () => void
   listBrowserHistory(): Promise<HistoryEntry[]>
   deleteBrowserHistory(id: number | null): Promise<void>
+  reloadBrowserTab(id: number): Promise<void>
   printBrowserPage(id: number): Promise<void>
   listBrowserDevices(): Promise<BrowserDevice[]>
   emulateBrowserDevice(id: number, device: BrowserDevice | null): Promise<void>

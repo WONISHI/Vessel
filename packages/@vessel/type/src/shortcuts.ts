@@ -8,6 +8,8 @@ export type ShortcutItem = {
 }
 
 export type ShortcutId =
+  | "openResources"
+  | "openDevtools"
   | "openTranslate"
   | "openBrowser"
   | "openWorkspace"

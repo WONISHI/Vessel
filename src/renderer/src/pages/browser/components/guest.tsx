@@ -1,3 +1,4 @@
+import { devServerError } from "@/pages/browser/dev-server-error"
 import { browserNavigationError } from "@/pages/browser/navigation-error"
 import { guestAppearanceScript } from "@/pages/browser/guest-appearance"
 import { useDarkAppearance } from "@/hooks/use-dark-appearance"
@@ -65,7 +66,7 @@ export const Guest = memo(function Guest({ tab, visible, register, update }: { t
       if (event.isMainFrame && !event.isInPlace) {
         mediaRevision++
         setDocumentReady(0)
-        updateRef.current(tab.id, { loading: true, error: "", videoPlaying: false })
+        updateRef.current(tab.id, { loading: true, error: "", devError: undefined, videoPlaying: false })
       }
     }
 
@@ -102,6 +103,11 @@ export const Guest = memo(function Guest({ tab, visible, register, update }: { t
       if (event.channel === "vessel-focus-address") window.dispatchEvent(new CustomEvent("vessel-browser-focus-address", { detail: view.getWebContentsId() }))
       if (event.channel === "vessel-find") window.dispatchEvent(new CustomEvent("vessel-browser-find", { detail: view.getWebContentsId() }))
     }
+    const consoleMessage = (event: Electron.ConsoleMessageEvent) => {
+      const error = devServerError(view.src, event.message, event.level)
+      if (error) updateRef.current(tab.id, { devError: error })
+    }
+    view.addEventListener("console-message", consoleMessage)
     view.addEventListener("media-started-playing", syncVideoPlaying)
     view.addEventListener("media-paused", syncVideoPlaying)
     view.addEventListener("ipc-message", message)
@@ -116,6 +122,7 @@ export const Guest = memo(function Guest({ tab, visible, register, update }: { t
     view.addEventListener("did-fail-load", fail)
     return () => {
       mediaRevision++
+      view.removeEventListener("console-message", consoleMessage)
       view.removeEventListener("media-started-playing", syncVideoPlaying)
       view.removeEventListener("media-paused", syncVideoPlaying)
       view.removeEventListener("ipc-message", message)

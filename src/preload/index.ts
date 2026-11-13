@@ -53,6 +53,7 @@ const vesselAPI = {
   deleteBrowserHistory: (id: number | null) => ipcRenderer.invoke("browser:history:delete", id),
 
   /** Performs the print browser page operation. */
+  reloadBrowserTab: (id: number): Promise<void> => ipcRenderer.invoke("browser:reload-tab", id),
   printBrowserPage: (id: number) => ipcRenderer.invoke("browser:print", id),
 
   /** Lists browser devices. */

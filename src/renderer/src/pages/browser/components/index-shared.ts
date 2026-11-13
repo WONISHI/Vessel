@@ -185,7 +185,7 @@ export const PAGE_EXTRACTOR_SCRIPT = `(() => {
     };
   }
 })()`
-export type Tab = { videoPlaying?: boolean; ready?: boolean; openerId?: string; favicon?: string; id: string; url: string; title: string; loading: boolean; back: boolean; forward: boolean; error: string; zoom: number; pinned?: boolean }
+export type Tab = { devError?: string; videoPlaying?: boolean; ready?: boolean; openerId?: string; favicon?: string; id: string; url: string; title: string; loading: boolean; back: boolean; forward: boolean; error: string; zoom: number; pinned?: boolean }
 
 /** Performs the new tab operation. */
 export const newTab = (): Tab => ({ id: crypto.randomUUID(), url: "", title: "新标签页", loading: false, back: false, forward: false, error: "", zoom: 1 })

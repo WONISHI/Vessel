@@ -1,3 +1,5 @@
+import { openInAppBrowser } from "@/lib/app-browser"
+import { useRouter } from "@vessel/react-router"
 import { useState } from "react"
 import { GitOutputDetails } from "@/pages/git/components/git-output-details"
 import { toast } from "@/components/ui/sonner"
@@ -6,6 +8,7 @@ import type { GitRepositoryState } from "@/pages/git/hooks/use-git-repository"
 
 /** 提交、分支与远程操作 */
 export function useGitCommitActions(repo: GitRepositoryState) {
+  const router = useRouter()
   const { repoPath, setLoading, setRemoteOperation, remotePending, status, branches, commits, commitMessage, setCommitMessageReset, isAmend, setIsAmend, refresh } = repo
 
   /** Handles checkout commit events. */
@@ -79,7 +82,7 @@ export function useGitCommitActions(repo: GitRepositoryState) {
         toast.error("未找到有效的远程仓库地址，请先关联远程仓库 (Remote)")
         return
       }
-      await window.electronAPI.openExternal(url)
+      openInAppBrowser(url, (path) => router.push(path))
     } catch (e: any) {
       toast.error("打开远程仓库失败", { description: cleanGitErrorMessage(e) })
     }

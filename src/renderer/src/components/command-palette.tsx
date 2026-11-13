@@ -113,6 +113,16 @@ export function CommandPalette() {
           setFinderOpen(false)
           void router.push("/git")
           break
+        case "openResources":
+          setOpen(false)
+          setFinderOpen(false)
+          void router.push("/resources")
+          break
+        case "openDevtools":
+          setOpen(false)
+          setFinderOpen(false)
+          void router.push("/devtools")
+          break
         case "openTranslate":
           setOpen(false)
           setFinderOpen(false)

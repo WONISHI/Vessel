@@ -123,6 +123,7 @@ export interface VesselAPI extends AppUpdateAPI, BrowserProxyAPI, BrowserToolsAP
   onOpenSettings: (callback: () => void) => () => void
   onCommandPalette: (callback: (command?: string) => void) => () => void
   onBrowserToggleDevtools: (callback: (id: number) => void) => () => void
+  reloadBrowserTab: (id: number) => Promise<void>
   onBrowserFind: (callback: (id: number) => void) => () => void
   setBrowserDevtools: (id: number | null, bounds?: { x: number; y: number; width: number; height: number }, appearance?: { font: string; size: number; detached?: boolean; hidden?: boolean }) => Promise<void>
   onNavigationRequest(callback: (request: { id: number; url: string; defaultCurrent: boolean; delayMs: number }) => void): () => void

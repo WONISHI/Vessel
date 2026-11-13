@@ -78,6 +78,19 @@ export function BrowserPage({ visible = true }: { visible?: boolean }) {
           >
             <div className="relative h-full min-h-0 min-w-0 flex-1 bg-white">
               <NavigationNotice />
+              {tab.devError && <div role="alert" className="absolute inset-x-4 top-4 z-40 max-h-[50%] overflow-auto rounded-lg border border-red-300 bg-background p-4 text-foreground shadow-lg">
+                <div className="flex items-center justify-between gap-3">
+                  <strong className="text-sm text-red-600">本地开发页面出现错误</strong>
+                  <button type="button" aria-label="关闭开发错误提示" onClick={() => b.update(tab.id, { devError: undefined })}>×</button>
+                </div>
+                <p className="mt-2 text-xs text-muted-foreground">开发服务连接断开或页面脚本加载失败。请检查开发服务及代码，修复后刷新页面。</p>
+                <details className="mt-2" open>
+                  <summary className="cursor-pointer text-xs">错误详情</summary>
+                  <pre className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap break-all text-xs">{tab.devError}</pre>
+                </details>
+                <button type="button" className="mt-3 rounded border px-3 py-1 text-xs" onClick={() => b.reloadTab(tab.id)}>重新加载页面</button>
+              </div>}
+
               {findOpen && (
                 <BrowserFindBar b={b} />
               )}

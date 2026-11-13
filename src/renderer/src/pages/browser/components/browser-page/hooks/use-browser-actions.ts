@@ -16,7 +16,7 @@ export function useBrowserActions(state: BrowserState, visible: boolean) {
   /** Performs the search page operation. */
   const searchPage = (forward = true, next = false) => {
     const view = views.current.get(tab.id)
-    if (findText) findRequest.current = withGuest(view, (guest) => guest.findInPage(findText, { forward, findNext: next, matchCase }))
+    if (findText) findRequest.current = withGuest(view, (guest) => guest.findInPage(findText, { forward, findNext: !next, matchCase }))
     else withGuest(view, (guest) => guest.stopFindInPage("clearSelection"))
   }
   useEffect(() => {
@@ -41,12 +41,21 @@ export function useBrowserActions(state: BrowserState, visible: boolean) {
         event.preventDefault()
         if (!event.repeat) setDevtoolsOpen((open) => !open)
       }
-      if (!event.defaultPrevented && matchesShortcut(event, "refreshBrowser")) {
+      if (matchesShortcut(event, "refreshBrowser")) {
         event.preventDefault()
-        if (!event.repeat) withGuest(views.current.get(tab.id), (guest) => guest.reload())
+        if (!event.repeat) refreshCurrentTab()
       }
     }
-    window.addEventListener("keydown", keydown)
+    window.addEventListener("keydown", keydown, true)
+    const refreshCurrentTab = () => {
+      const view = views.current.get(tab.id)
+      if (!view?.isConnected) return
+      try {
+        void window.electronAPI.reloadBrowserTab(view.getWebContentsId()).catch((error) => console.error("刷新当前浏览器标签失败", error))
+      } catch (error) { console.error("刷新当前浏览器标签失败", error) }
+    }
+    window.addEventListener("vessel-browser-refresh", refreshCurrentTab)
+
 
     /** Performs the page find operation. */
     const pageFind = (event: Event) => {
@@ -60,7 +69,8 @@ export function useBrowserActions(state: BrowserState, visible: boolean) {
       if (withGuest(views.current.get(tab.id), (guest) => guest.getWebContentsId()) === id) show()
     })
     return () => {
-      window.removeEventListener("keydown", keydown)
+      window.removeEventListener("keydown", keydown, true)
+      window.removeEventListener("vessel-browser-refresh", refreshCurrentTab)
       window.removeEventListener("vessel-browser-find", pageFind)
       stopDevtools?.()
       unsubscribe()
@@ -82,7 +92,7 @@ export function useBrowserActions(state: BrowserState, visible: boolean) {
         return
       }
       timer = setTimeout(() => {
-        findRequest.current = withGuest(view, (guest) => guest.findInPage(findText, { matchCase, findNext: false }))
+        findRequest.current = withGuest(view, (guest) => guest.findInPage(findText, { matchCase, findNext: true }))
       }, 180)
     }
     view?.addEventListener("found-in-page", result)

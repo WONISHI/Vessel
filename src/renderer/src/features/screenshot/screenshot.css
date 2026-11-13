@@ -1422,3 +1422,20 @@ body:has(#toolPanel .item-panel:has(.text-active)) #textInputPanel {
 /* Mode trigger hover also covers the dot to its left. */
 #toolPanel .shot-toolbar-heading .shot-toolbar-dot { position: relative; z-index: 1; pointer-events: none; }
 #toolPanel .shot-toolbar-heading .shot-mode-trigger { margin-left: -22px; padding-left: 22px; }
+
+/* Secondary-panel pointers are filled triangles without a bright edge. */
+#optionIcoController,
+.shot-mode-menu::before,
+.shot-shape-menu::before,
+.shot-step-menu::before {
+  border: 0 !important;
+  outline: none !important;
+  box-shadow: none !important;
+  filter: none !important;
+}
+/* Suppress the screenshot library's original outlined pointer decoration. */
+#optionIcoController::before,
+#optionIcoController::after {
+  display: none !important;
+}
+#optionIcoController > * { display: none !important; }
