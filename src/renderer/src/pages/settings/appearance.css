@@ -633,7 +633,8 @@ html.dark [data-sonner-toast][data-type="error"] :is([data-button], [data-close-
 [data-sonner-toast].vessel-error-toast [data-description] { width: 100%; box-sizing: border-box; }
 .toast-error-text { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.7; }
 .toast-error-preview { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 6; max-height: 10.2em; overflow: hidden; }
-.toast-error-scroll { height: 300px; max-height: 50vh; }
+.toast-error-scroll { height: auto; max-height: min(300px, 50vh); }
+.toast-error-scroll [data-radix-scroll-area-viewport] { height: auto; max-height: min(300px, 50vh); }
 .toast-error-scroll .toast-error-text { padding-right: 12px; }
 .toast-error-scroll [data-radix-scroll-area-viewport] > div { display: block !important; }
 [data-sonner-toast] .toast-error-toggle { display: block; margin-top: 8px; padding: 3px 0; color: #15803d; font-size: 12px; cursor: pointer; }
