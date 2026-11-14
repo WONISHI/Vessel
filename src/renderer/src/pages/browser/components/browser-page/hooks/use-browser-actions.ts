@@ -8,15 +8,40 @@ import type { BrowserState } from "@/pages/browser/components/browser-page/hooks
 
 /** 页内查找、控制台挂载、导航与标签操作 */
 export function useBrowserActions(state: BrowserState, visible: boolean) {
-  const { tabs, setTabs, findOpen, setFindOpen, matchCase, findText, setFindResult, findInput, devtoolsOpen, setDevtoolsOpen, dock, consoleFont, consoleSize, devtoolsHost, setActive, setInput, bookmarks, setBookmarks, views, tab } = state
+  const { tabs, setTabs, findOpen, setFindOpen, matchCase, findText, setFindResult, findInput, devtoolsOpen, setDevtoolsOpen, dock, setDock, consoleFont, consoleSize, devtoolsHost, setActive, setInput, bookmarks, setBookmarks, views, tab } = state
 
+
+  /** Reloads tab. */
+  const reloadTab = (id: string) => {
+    const view = views.current.get(id)
+    if (!view?.isConnected) return
+    try {
+      void window.electronAPI.reloadBrowserTab(view.getWebContentsId()).catch((error) => console.error("刷新浏览器标签失败", error))
+    } catch (error) { console.error("刷新浏览器标签失败", error) }
+  }
 
   const findRequest = useRef<number | undefined>(undefined)
+  const earlyFindResults = useRef(new Map<number, Electron.FoundInPageResult>())
+  const findRevision = useRef(0)
+  const runFind = (view: ReturnType<typeof views.current.get>, text: string, options: Electron.FindInPageOptions) => {
+    const revision = ++findRevision.current
+    findRequest.current = undefined
+    earlyFindResults.current.clear()
+    // Some Electron webview bridges deliver the result before the request ID is available.
+    const request = withGuest(view, (guest) => guest.findInPage(text, options))
+    void Promise.resolve(request).then((id) => {
+      if (revision !== findRevision.current || typeof id !== "number") return
+      findRequest.current = id
+      const result = earlyFindResults.current.get(id)
+      earlyFindResults.current.clear()
+      if (result) setFindResult({ ...result, tabId: tab.id, text })
+    }).catch((error) => console.error("网页查找失败", error))
+  }
 
   /** Performs the search page operation. */
   const searchPage = (forward = true, next = false) => {
     const view = views.current.get(tab.id)
-    if (findText) findRequest.current = withGuest(view, (guest) => guest.findInPage(findText, { forward, findNext: !next, matchCase }))
+    if (findText) runFind(view, findText, { forward, findNext: !next, matchCase })
     else withGuest(view, (guest) => guest.stopFindInPage("clearSelection"))
   }
   useEffect(() => {
@@ -47,13 +72,7 @@ export function useBrowserActions(state: BrowserState, visible: boolean) {
       }
     }
     window.addEventListener("keydown", keydown, true)
-    const refreshCurrentTab = () => {
-      const view = views.current.get(tab.id)
-      if (!view?.isConnected) return
-      try {
-        void window.electronAPI.reloadBrowserTab(view.getWebContentsId()).catch((error) => console.error("刷新当前浏览器标签失败", error))
-      } catch (error) { console.error("刷新当前浏览器标签失败", error) }
-    }
+    const refreshCurrentTab = () => reloadTab(tab.id)
     window.addEventListener("vessel-browser-refresh", refreshCurrentTab)
 
 
@@ -82,6 +101,11 @@ export function useBrowserActions(state: BrowserState, visible: boolean) {
     findRequest.current = undefined
     let timer: ReturnType<typeof setTimeout> | undefined
     const result = (event: Electron.FoundInPageEvent) => {
+      if (findRequest.current === undefined) {
+        if (earlyFindResults.current.size >= 16) earlyFindResults.current.clear()
+        earlyFindResults.current.set(event.result.requestId, event.result)
+        return
+      }
       if (event.result.requestId !== findRequest.current) return
       setFindResult({ ...event.result, tabId: tab.id, text: findText })
     }
@@ -92,13 +116,15 @@ export function useBrowserActions(state: BrowserState, visible: boolean) {
         return
       }
       timer = setTimeout(() => {
-        findRequest.current = withGuest(view, (guest) => guest.findInPage(findText, { matchCase, findNext: true }))
+        runFind(view, findText, { matchCase, findNext: true })
       }, 180)
     }
     view?.addEventListener("found-in-page", result)
     view?.addEventListener("dom-ready", find)
     find()
     return () => {
+      ++findRevision.current
+      earlyFindResults.current.clear()
       clearTimeout(timer)
       view?.removeEventListener("dom-ready", find)
       view?.removeEventListener("found-in-page", result)
@@ -122,6 +148,14 @@ export function useBrowserActions(state: BrowserState, visible: boolean) {
       }),
     []
   )
+  const pendingInspect = useRef<{ x: number; y: number } | undefined>(undefined)
+  const [inspectRevision, setInspectRevision] = useState(0)
+  const inspectPage = (point: { x: number; y: number }) => {
+    pendingInspect.current = point
+    setDock("bottom")
+    setDevtoolsOpen(true)
+    setInspectRevision((revision) => revision + 1)
+  }
   const devtoolsCloseTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
   useEffect(() => {
     const element = devtoolsHost.current
@@ -134,14 +168,25 @@ export function useBrowserActions(state: BrowserState, visible: boolean) {
     let disposed = false
 
     const hasPopup = () => Boolean(document.querySelector(
-      '.vessel-browser-tabs-popup[data-state="open"], .vessel-activity-tools-popup[data-state="open"]'
+      '.vessel-browser-tabs-popup[data-state="open"], .vessel-activity-tools-popup[data-state="open"], .dev-actions-menu[data-state="open"], [role="dialog"][data-state="open"]'
     ))
     let popupOpen = hasPopup()
     /** Synchronizes sync. */
     const sync = () => {
       const { x, y, width, height } = element.getBoundingClientRect()
+      const control = document.querySelector<HTMLElement>('[data-vessel-control="true"]')
+      const button = control?.querySelector("button")
+      const rect = button?.getBoundingClientRect()
+      const style = button && getComputedStyle(button)
+      const controlOverlay = control && !control.hidden && rect && style && dock !== "detached" ? {
+        x: rect.x - x, y: rect.y - y, width: rect.width, height: rect.height,
+        icon: button.querySelector("svg")?.outerHTML || "", color: style.color,
+        background: style.backgroundColor, border: style.borderColor, shadow: style.boxShadow
+      } : undefined
       try {
-        void window.electronAPI.setBrowserDevtools(view.getWebContentsId(), { x, y, width, height }, { font: consoleFont, size: consoleSize, detached: dock === "detached", hidden: !visible || (dock !== "detached" && popupOpen) }).catch((error) => {
+        const inspect = pendingInspect.current
+        pendingInspect.current = undefined
+        void window.electronAPI.setBrowserDevtools(view.getWebContentsId(), { x, y, width, height }, { font: consoleFont, size: consoleSize, detached: dock === "detached", hidden: !visible || (dock !== "detached" && popupOpen), inspect, control: controlOverlay }).catch((error) => {
           if (!disposed) {
             update(tab.id, { error: String(error) })
             setDevtoolsOpen(false)
@@ -152,13 +197,16 @@ export function useBrowserActions(state: BrowserState, visible: boolean) {
       }
     }
     // Native WebContentsViews sit above DOM portals, irrespective of CSS z-index.
-    const popupObserver = new MutationObserver(() => {
+    let syncFrame = 0
+    const popupObserver = new MutationObserver((mutations) => {
       const next = hasPopup()
-      if (next === popupOpen) return
+      const controlChanged = mutations.some(({ target }) => target instanceof Element && target.closest('[data-vessel-control="true"]'))
+      if (next === popupOpen && !controlChanged) return
       popupOpen = next
-      sync()
+      cancelAnimationFrame(syncFrame)
+      syncFrame = requestAnimationFrame(sync)
     })
-    popupObserver.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["data-state"] })
+    popupObserver.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["data-state", "class", "style", "hidden"] })
     const observer = new ResizeObserver(sync)
     observer.observe(element)
     view.addEventListener("dom-ready", sync)
@@ -168,12 +216,13 @@ export function useBrowserActions(state: BrowserState, visible: boolean) {
       disposed = true
       observer.disconnect()
       popupObserver.disconnect()
+      cancelAnimationFrame(syncFrame)
       view.removeEventListener("dom-ready", sync)
       window.removeEventListener("resize", sync)
       // Defer closing so a dock/font change reuses the open DevTools instead of tearing it down and reopening (which left it blank).
       devtoolsCloseTimer.current = setTimeout(() => void window.electronAPI.setBrowserDevtools(null).catch(() => {}), 80)
     }
-  }, [visible, devtoolsOpen, tab.id, Boolean(tab.url), dock, consoleFont, consoleSize])
+  }, [visible, devtoolsOpen, tab.id, Boolean(tab.url), dock, consoleFont, consoleSize, inspectRevision])
 
   /** Performs the navigate operation. */
   const navigate = (value: string) => {
@@ -228,8 +277,12 @@ export function useBrowserActions(state: BrowserState, visible: boolean) {
   }
 
   /** Adds tab right of. */
-  const addTabRightOf = (targetId: string) => {
-    const item = newTab()
+  const addTabRightOf = (targetId: string, duplicate = false) => {
+    const source = duplicate ? tabs.find((item) => item.id === targetId) : undefined
+    if (duplicate && !source) return
+    const item: Tab = source
+      ? { ...newTab(), url: source.url, title: source.title, favicon: source.favicon, zoom: source.zoom, loading: !!source.url, openerId: source.id }
+      : newTab()
     setTabs((current) => {
       const index = current.findIndex((t) => t.id === targetId)
       if (index < 0) return [...current, item]
@@ -239,12 +292,6 @@ export function useBrowserActions(state: BrowserState, visible: boolean) {
     })
     setActive(item.id)
     setInput(null)
-  }
-
-  /** Reloads tab. */
-  const reloadTab = (id: string) => {
-    const view = views.current.get(id)
-    withGuest(view, (guest) => guest.reload())
   }
 
   /** Toggles pin tab. */
@@ -313,5 +360,5 @@ export function useBrowserActions(state: BrowserState, visible: boolean) {
     void window.electronAPI.syncBrowserBookmarks(next).catch(() => {})
   }
 
-  return { searchPage, update, navigate, add, close, addTabRightOf, reloadTab, togglePinTab, closeOtherTabs, closeRightTabs, dragTabId, setDragTabId, reorderTabs, zoom, bookmark }
+  return { inspectPage, searchPage, update, navigate, add, close, addTabRightOf, reloadTab, togglePinTab, closeOtherTabs, closeRightTabs, dragTabId, setDragTabId, reorderTabs, zoom, bookmark }
 }

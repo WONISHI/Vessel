@@ -1,9 +1,10 @@
+import { GitPageDialog as Dialog, GitPageDialogContent as DialogContent } from "@/pages/git/components/git-page-dialog"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { CreateTagDialog } from "./create-tag-dialog"
 import { StashDialog } from "./stash-dialog"
 import { RepositorySettingsDialog } from "@/pages/git/components/repository-settings-dialog"
 import { TerminalPanel } from "@/components/workspace/components/layout-main/terminal-panel"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { toast } from "@/components/ui/sonner"
 import { CreateBranchDialog, MergeBranchDialog } from "@/pages/git/components/branch-dialog"
 import { cleanGitErrorMessage } from "@/pages/git/utils"
@@ -16,6 +17,8 @@ export function GitDialogs({ g }: { g: GitPageModel }) {
   return (
     <>
         <ConfirmDialog
+          activityBarAccessible
+          statusBarAccessible
           open={!!g.confirmation}
           onOpenChange={(open) => { if (!open) g.settleConfirmation(false) }}
           title="确认操作"

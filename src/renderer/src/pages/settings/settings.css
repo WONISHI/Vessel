@@ -71,18 +71,18 @@
 }
 
 .vessel-settings header button:not([role="combobox"]):not(:disabled):hover,
-.vessel-settings .settings-card button:not([role="combobox"], .settings-attachment-trigger):not(:disabled):hover {
+.vessel-settings .settings-card button:not([role="combobox"], .settings-attachment-trigger, .settings-section-trigger):not(:disabled):hover {
   color: #ffffff !important;
   background: #17a34a !important;
 }
 
 .vessel-settings header button:not([role="combobox"]):not(:disabled):hover *,
-.vessel-settings .settings-card button:not([role="combobox"], .settings-attachment-trigger):not(:disabled):hover * {
+.vessel-settings .settings-card button:not([role="combobox"], .settings-attachment-trigger, .settings-section-trigger):not(:disabled):hover * {
   color: #ffffff !important;
 }
 
 .vessel-settings header button:not([role="combobox"]):not(:disabled):hover svg,
-.vessel-settings .settings-card button:not([role="combobox"], .settings-attachment-trigger):not(:disabled):hover svg {
+.vessel-settings .settings-card button:not([role="combobox"], .settings-attachment-trigger, .settings-section-trigger):not(:disabled):hover svg {
   color: #ffffff !important;
   stroke: #ffffff !important;
 }

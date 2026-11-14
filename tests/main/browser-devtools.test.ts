@@ -1,71 +1,43 @@
+import { EventEmitter } from "node:events"
 import { expect, it, vi } from "vitest"
-import type { WebContents } from "electron"
-vi.mock("node:fs", () => ({ readFileSync: () => Buffer.from("font") }))
-const mocks = vi.hoisted(() => {
-  const panel = { setBounds: vi.fn(), webContents: { on: vi.fn(), isDestroyed: () => false, setZoomFactor: vi.fn(), insertCSS: vi.fn().mockResolvedValue("css"), removeInsertedCSS: vi.fn(), close: vi.fn(), loadURL: vi.fn().mockResolvedValue(undefined), executeJavaScript: vi.fn().mockResolvedValue([{ title: "Phone", width: 390 }]) } }
-  const host = { ipc: { handle: vi.fn() }, once: vi.fn() }
-  const guest = { hostWebContents: host, setDevToolsWebContents: vi.fn(), openDevTools: vi.fn(), once: vi.fn(), removeListener: vi.fn(), closeDevTools: vi.fn(), isDestroyed: () => false }
-  const detached = { contentView: { addChildView: vi.fn(), removeChildView: vi.fn() }, getContentSize: () => [1000, 600], on: vi.fn(), isDestroyed: () => false, destroy: vi.fn() }
-  return { panel, host, guest, detached, window: { contentView: { addChildView: vi.fn(), removeChildView: vi.fn() }, getContentBounds: () => ({ width: 1200, height: 800 }) } }
-})
+
+const mock = vi.hoisted(() => ({ handlers: new Map<string, (...args: any[]) => any>(), guest: undefined as any, window: undefined as any, panel: undefined as any }))
 vi.mock("electron", () => ({
-  BrowserWindow: class {
-    static fromWebContents() {
-      return mocks.window
-    }
-    constructor() {
-      return mocks.detached
-    }
-  },
+  BrowserWindow: { fromWebContents: () => mock.window },
+  webContents: { fromId: () => mock.guest },
   WebContentsView: class {
-    constructor() {
-      return mocks.panel
-    }
-  },
-  webContents: { fromId: (id: number) => (id === 1 ? mocks.guest : { hostWebContents: {} }) }
+    visible = true
+    webContents = Object.assign(new EventEmitter(), {
+      ipc: new EventEmitter(), isDestroyed: () => false, close: vi.fn(), send: vi.fn(), isLoading: () => false,
+      setZoomFactor: vi.fn(), insertCSS: vi.fn().mockResolvedValue("css"), removeInsertedCSS: vi.fn()
+    })
+    setBounds = vi.fn()
+    setVisible(value: boolean) { this.visible = value }
+    getVisible() { return this.visible }
+    constructor() { mock.panel = this }
+  }
 }))
-import { registerBrowserDevtools } from "@main/browser/browser-devtools"
-it("positions only the host's guest console and applies validated font preferences", async () => {
-  registerBrowserDevtools(mocks.host as unknown as WebContents)
-  const handle = mocks.host.ipc.handle.mock.calls[0][1]
-  handle({}, 1, { x: 800, y: 100, width: 400, height: 700 }, { font: "Consolas", size: 16 })
-  expect(mocks.panel.setBounds).toHaveBeenCalledWith({ x: 800, y: 100, width: 400, height: 700 })
-  expect(mocks.guest.setDevToolsWebContents).toHaveBeenCalledWith(mocks.panel.webContents)
-  expect(mocks.panel.webContents.setZoomFactor).toHaveBeenCalledWith(16 / 13)
-  expect(mocks.panel.webContents.insertCSS.mock.calls[0][0]).toContain('"Consolas"')
-  expect(() => handle({}, 2, { x: 0, y: 0, width: 100, height: 100 })).toThrow()
-  expect(() => handle({}, 1, { x: 0, y: 0, width: 100, height: 100 }, { font: "invalid", size: 16 })).toThrow()
-  await Promise.resolve()
-  handle({}, null)
-  expect(mocks.guest.closeDevTools).toHaveBeenCalled()
-  handle({}, 1, { x: 0, y: 0, width: 0, height: 0 }, { font: "Plus Jakarta Sans", size: 13, detached: true })
-  expect(mocks.detached.contentView.addChildView).toHaveBeenCalledWith(mocks.panel)
-  expect(mocks.panel.setBounds).toHaveBeenLastCalledWith({ x: 0, y: 0, width: 1000, height: 600 })
-  handle({}, null)
-  expect(mocks.detached.destroy).toHaveBeenCalled()
-})
+vi.mock("@vessel/utils", () => ({ matchesShortcut: () => false }))
+import { registerBrowserDevtools } from "../../src/main/browser/browser-devtools"
 
-it("closes temporary device-catalog contents after extraction and reuses only the plain list", async () => {
-  mocks.host.ipc.handle.mockClear(); mocks.panel.webContents.close.mockClear()
-  registerBrowserDevtools(mocks.host as unknown as WebContents)
-  const handler = mocks.host.ipc.handle.mock.calls.find(([name]) => name === "browser:devices")![1]
-  const first = handler({})
-  const second = handler({})
-  expect(await first).toEqual([{ title: "Phone", width: 390 }])
-  await second
-  expect(mocks.panel.webContents.loadURL).toHaveBeenCalledOnce()
-  expect(mocks.panel.webContents.close).toHaveBeenCalledOnce()
-  await handler({})
-  expect(mocks.panel.webContents.loadURL).toHaveBeenCalledOnce()
-})
-
-it('closes a failed catalog and allows a fresh retry', async () => {
-  mocks.host.ipc.handle.mockClear(); mocks.panel.webContents.close.mockClear(); mocks.panel.webContents.loadURL.mockClear()
-  mocks.panel.webContents.loadURL.mockRejectedValueOnce(new Error('load failed'))
-  registerBrowserDevtools(mocks.host as unknown as WebContents)
-  const handler = mocks.host.ipc.handle.mock.calls.find(([name]) => name === 'browser:devices')![1]
-  await expect(handler({})).rejects.toThrow('load failed')
-  expect(mocks.panel.webContents.close).toHaveBeenCalledOnce()
-  await expect(handler({})).resolves.toEqual([{ title: 'Phone', width: 390 }])
-  expect(mocks.panel.webContents.close).toHaveBeenCalledTimes(2)
+it("attaches DevTools before inspecting and mirrors the host control above its native surface", () => {
+  const host = Object.assign(new EventEmitter(), { ipc: { handle: (name: string, handler: (...args: any[]) => any) => mock.handlers.set(name, handler) }, isDestroyed: () => false, send: vi.fn() })
+  const order: string[] = []
+  mock.guest = Object.assign(new EventEmitter(), { id: 7, hostWebContents: host, session: {}, isDestroyed: () => false, closeDevTools: vi.fn(), setDevToolsWebContents: () => order.push("attach"), openDevTools: () => order.push("open"), inspectElement: vi.fn(() => order.push("inspect")) })
+  mock.window = { contentView: { addChildView: vi.fn(), removeChildView: vi.fn() }, getContentBounds: () => ({ width: 1000, height: 800 }) }
+  registerBrowserDevtools(host as any)
+  const sync = mock.handlers.get("browser:devtools")!
+  const control = { x: 900, y: 250, width: 48, height: 48, icon: "<svg/>", color: "gray", background: "white", border: "gray", shadow: "none" }
+  sync({}, 7, { x: 52, y: 400, width: 948, height: 368 }, { font: "Menlo", size: 13, inspect: { x: 110, y: 90 }, control })
+  expect(order).toEqual(["attach", "open", "inspect"])
+  expect(mock.guest.inspectElement).toHaveBeenCalledWith(110, 90)
+  expect(mock.panel.webContents.send).toHaveBeenCalledWith("browser:control-overlay", control)
+  mock.panel.webContents.ipc.emit("browser:devtools-control", {})
+  expect(host.send).toHaveBeenCalledWith("browser:control", undefined)
+  sync({}, 7, { x: 52, y: 400, width: 948, height: 368 }, { font: "Menlo", size: 13, hidden: true })
+  expect(mock.panel.visible).toBe(false)
+  host.send.mockClear()
+  mock.panel.webContents.ipc.emit("browser:devtools-control", {})
+  expect(host.send).not.toHaveBeenCalled()
+  expect(order).toEqual(["attach", "open", "inspect"])
 })

@@ -1,3 +1,4 @@
+import { FileThemeIcon } from "@/features/file-icons"
 import { lazyWithRetry } from "@/lib/lazy-retry"
 import { fileEntryOptions } from "@/components/workspace/components/layout-aside/layout-workspace-sidebar/create-entry/components/file-entry-options"
 import { addTransitFile } from "@/components/transit/state"
@@ -229,7 +230,7 @@ export function FileActions({
                   requestRename()
                 }}
               >
-                {node.type === "directory" ? <FolderOpen className="size-4 shrink-0 text-amber-600" /> : <File className="size-4 shrink-0 text-violet-500" />}
+                <FileThemeIcon name={node.path} directory={node.type === "directory"} className="size-4 shrink-0 object-contain" fallback={node.type === "directory" ? <FolderOpen className="size-4 shrink-0 text-amber-600" /> : <File className="size-4 shrink-0 text-violet-500" />} />
                 <div className="flex min-w-0 flex-1 items-center rounded-md border border-green-600 bg-white px-1.5 py-0.5 shadow-[0_0_0_3px_rgba(22,163,74,0.1)]">
                   <input
                     autoFocus

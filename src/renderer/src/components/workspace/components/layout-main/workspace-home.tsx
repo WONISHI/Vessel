@@ -1,3 +1,4 @@
+import { FileThemeIcon } from "@/features/file-icons"
 import { useDarkAppearance } from "@/hooks/use-dark-appearance"
 import vesselLogo from "@/assets/vessel.png"
 import { VditorEditor } from "@/components/core/canvas/variants/markdown/vditor-editor"
@@ -187,7 +188,7 @@ export default function WorkspaceHome() {
                   >
                     <div className="mb-2 flex items-center justify-between">
                       <span className={cn("workspace-file-icon flex size-7 items-center justify-center rounded-md border", meta.badgeClass)}>
-                        <Icon className="size-4" />
+                        <FileThemeIcon name={file.path} className="size-4 object-contain" fallback={<Icon className="size-4" />} />
                       </span>
                       <span className="workspace-file-type font-mono text-[10px] uppercase text-stone-400 transition-colors group-hover:text-emerald-600">{meta.ext}</span>
                     </div>

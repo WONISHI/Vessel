@@ -23,3 +23,6 @@ tmp/python-build-standalone/
 
 # Local project-analysis sources must not enter repository history
 /tmp/contest-analysis/
+
+# Generated offline file icon libraries
+/src/renderer/public/vendor/file-icons/

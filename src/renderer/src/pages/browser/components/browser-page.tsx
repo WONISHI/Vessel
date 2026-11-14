@@ -1,3 +1,4 @@
+import { BrowserContextMenu } from "./browser-page/browser-context-menu"
 import { NavigationNotice } from "@/pages/browser/components/browser-page/navigation-notice"
 import browserLoading from "@/assets/vessel-browser-loading/loading.svg"
 import ActivityBar from "@/components/layout/activity-bar/index"
@@ -77,6 +78,7 @@ export function BrowserPage({ visible = true }: { visible?: boolean }) {
             }
           >
             <div className="relative h-full min-h-0 min-w-0 flex-1 bg-white">
+              <BrowserContextMenu key={tab.id} b={b} visible={visible} />
               <NavigationNotice />
               {tab.devError && <div role="alert" className="absolute inset-x-4 top-4 z-40 max-h-[50%] overflow-auto rounded-lg border border-red-300 bg-background p-4 text-foreground shadow-lg">
                 <div className="flex items-center justify-between gap-3">

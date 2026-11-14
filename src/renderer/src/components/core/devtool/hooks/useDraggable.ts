@@ -64,6 +64,7 @@ export function useDraggable() {
   }
   return {
     position,
+    setPosition,
     dragging,
     handlePointerDown,
 

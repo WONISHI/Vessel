@@ -99,6 +99,14 @@ export const Guest = memo(function Guest({ tab, visible, register, update }: { t
         const icon = event.args[0]
         if (typeof icon === "string" && /^(https?:\/\/|data:image\/)/i.test(icon)) updateRef.current(tab.id, { favicon: icon })
       }
+      if (event.channel === "vessel-context-menu") {
+        const point = event.args[0]
+        if (point && Number.isFinite(point.x) && Number.isFinite(point.y)) {
+          const rect = view.getBoundingClientRect()
+          const scale = rect.width / (view.offsetWidth || rect.width || 1)
+          window.dispatchEvent(new CustomEvent("vessel-browser-context-menu", { detail: { tabId: tab.id, guestId: view.getWebContentsId(), x: point.x, y: point.y, left: rect.left + point.x * view.getZoomFactor() * scale, top: rect.top + point.y * view.getZoomFactor() * scale } }))
+        }
+      }
       if (event.channel === "vessel-navigation") sync()
       if (event.channel === "vessel-focus-address") window.dispatchEvent(new CustomEvent("vessel-browser-focus-address", { detail: view.getWebContentsId() }))
       if (event.channel === "vessel-find") window.dispatchEvent(new CustomEvent("vessel-browser-find", { detail: view.getWebContentsId() }))

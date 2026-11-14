@@ -41,19 +41,19 @@ describe("computeGitTopology", () => {
     expect(nodes[0].column).toBe(0)
     // 应该包含直行线（连接主分支 B）和分支线（分支到列 1 的 A）
     expect(nodes[0].lines).toContainEqual({ fromCol: 0, toCol: 0, type: "straight", color: "#2563eb" })
-    expect(nodes[0].lines).toContainEqual({ fromCol: 0, toCol: 1, type: "branch", color: "#16a34a" })
+    expect(nodes[0].lines).toContainEqual({ fromCol: 0, toCol: 1, type: "branch", color: "#dc2626" })
 
     // A 应该在列 1
     expect(nodes[1].column).toBe(1)
     // C 应该在列 1，并且在列 1 保持平行（不提前重叠进列 0）
     expect(nodes[2].column).toBe(1)
-    expect(nodes[2].lines).toContainEqual({ fromCol: 1, toCol: 1, type: "straight", color: "#16a34a" })
+    expect(nodes[2].lines).toContainEqual({ fromCol: 1, toCol: 1, type: "straight", color: "#dc2626" })
     expect(nodes[2].lines).toContainEqual({ fromCol: 0, toCol: 0, type: "straight", color: "#2563eb" })
 
     // B 应该在列 0，并在进入 Root 时将列 1 的分支平滑汇入列 0
     expect(nodes[3].column).toBe(0)
     expect(nodes[3].lines).toContainEqual({ fromCol: 0, toCol: 0, type: "straight", color: "#2563eb" })
-    expect(nodes[3].lines).toContainEqual({ fromCol: 1, toCol: 0, type: "merge", color: "#16a34a" })
+    expect(nodes[3].lines).toContainEqual({ fromCol: 1, toCol: 0, type: "merge", color: "#dc2626" })
 
     // Root 应该在列 0
     expect(nodes[4].column).toBe(0)

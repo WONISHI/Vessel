@@ -1,3 +1,4 @@
+import { GitPageDialog as Dialog, GitPageDialogContent as DialogContent } from "@/pages/git/components/git-page-dialog"
 import "./create-tag-dialog.css"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -12,7 +13,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { cleanGitErrorMessage } from "@/pages/git/utils"
 import { toast } from "sonner"
 

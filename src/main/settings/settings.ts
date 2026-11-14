@@ -90,6 +90,9 @@ function load() {
 /** Validates validate. */
 function validate(value: AppSettings): AppSettings {
   if (!value || !value.backup) throw new Error("设置格式无效")
+  if (value.fileIconTheme !== undefined && !["default", "catppuccin", "symbols"].includes(value.fileIconTheme)) throw new Error("文件图标库无效")
+  if (value.catppuccinFlavor !== undefined && !["auto", "latte", "frappe", "macchiato", "mocha"].includes(value.catppuccinFlavor)) throw new Error("图标配色无效")
+  for (const flag of [value.fileIconWorkspace, value.fileIconResources, value.fileTypeBadgesEnabled, value.fileTypeBadgesWorkspace, value.fileTypeBadgesResources]) if (flag !== undefined && typeof flag !== "boolean") throw new Error("图标应用范围无效")
   const delay = value.navigationDelayMs ?? 3000
   if (!Number.isInteger(delay) || delay < 0 || delay > 2147483647) throw new Error("跳转等待时间必须为有效的非负整数毫秒")
   if (!["light", "dark", "system"].includes(value.theme) || ![5, 10, 30].includes(value.backup.minutes) || !Number.isInteger(value.fontSize) || value.fontSize < 12 || value.fontSize > 18) throw new Error("设置选项无效")
@@ -124,6 +127,13 @@ function validate(value: AppSettings): AppSettings {
   const avatar = text(value.avatar, 3_000_000)
   if (avatar && !/^data:image\/(png|jpeg);base64,[A-Za-z0-9+/=]+$/.test(avatar)) throw new Error("头像格式无效")
   return {
+    fileTypeBadgesEnabled: value.fileTypeBadgesEnabled === true,
+    fileTypeBadgesWorkspace: value.fileTypeBadgesWorkspace === true,
+    fileTypeBadgesResources: value.fileTypeBadgesResources !== false,
+    fileIconTheme: value.fileIconTheme ?? "default",
+    fileIconWorkspace: value.fileIconWorkspace === true,
+    fileIconResources: value.fileIconResources !== false,
+    catppuccinFlavor: value.catppuccinFlavor ?? "auto",
     searchEngine: ["bing", "google", "baidu", "duckduckgo"].includes(value.searchEngine || "") ? value.searchEngine : "bing",
     proxyEnabled: value.proxyEnabled === true,
     externalScreenshot: value.externalScreenshot !== false,

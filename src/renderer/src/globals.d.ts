@@ -92,6 +92,9 @@ interface StorageInfo {
 
 /** preload 暴露给 React 渲染进程的完整 API。 */
 interface VesselAPI extends AppUpdateAPI, BrowserProxyAPI, BrowserToolsAPI, SettingsAPI, BrowserExtensionsAPI, TodosAPI, TerminalAPI, FileWatchAPI, NativeMenuAPI {
+  browserPageAction(id: number, action: string, point?: { x: number; y: number }): Promise<string | undefined>
+  vaultRequest(action: string, data?: Record<string, string>): Promise<any>
+  onVaultCandidate(callback: (candidate: { id: string; origin: string; username: string }) => void): () => void
   moveImageToAttachments(root: string, path: string): Promise<string>
   listAttachments(root: string): Promise<Array<{ name: string; path: string; size: number; relativePath: string; mtime: number }>>
   translateText(text: string, from: string, to: string): Promise<{ text: string; detectedLanguage: string; alternatives?: { word: string; partOfSpeech: string; meanings: string[] }[] }>
@@ -121,12 +124,13 @@ interface VesselAPI extends AppUpdateAPI, BrowserProxyAPI, BrowserToolsAPI, Sett
   openOffice(): Promise<string>
   saveOffice(name: string, bytes: Uint8Array): Promise<boolean>
 
+  onBrowserControl: (callback: (delta?: { dx: number; dy: number }) => void) => () => void
   onBrowserDevtoolsClosed: (callback: () => void) => () => void
   onOpenSettings: (callback: () => void) => () => void
   onCommandPalette: (callback: (command?: string) => void) => () => void
   onBrowserToggleDevtools: (callback: (id: number) => void) => () => void
   onBrowserFind: (callback: (id: number) => void) => () => void
-  setBrowserDevtools: (id: number | null, bounds?: { x: number; y: number; width: number; height: number }, appearance?: { font: string; size: number; detached?: boolean; hidden?: boolean }) => Promise<void>
+  setBrowserDevtools: (id: number | null, bounds?: { x: number; y: number; width: number; height: number }, appearance?: { font: string; size: number; detached?: boolean; hidden?: boolean; inspect?: { x: number; y: number }; control?: { x: number; y: number; width: number; height: number; icon: string; color: string; background: string; border: string; shadow: string } }) => Promise<void>
   onNavigationRequest(callback: (request: { id: number; url: string; defaultCurrent: boolean; delayMs: number }) => void): () => void
   onNavigationDismiss(callback: (id: number) => void): () => void
   answerNavigation(id: number, current: boolean): Promise<void>

@@ -7,9 +7,16 @@ import { CaseSensitive, Copy, Trash2 } from "lucide-react"
 import { useState } from "react"
 import { convertCase } from "./convert"
 
+// Preserve the draft while route components are unmounted during navigation.
+let inputDraft = ""
+
 /** Converts the current input into common identifier styles. */
 export function CaseConvertTool() {
-  const [input, setInput] = useState("")
+  const [input, setInputValue] = useState(() => inputDraft)
+  const setInput = (value: string) => {
+    inputDraft = value
+    setInputValue(value)
+  }
   return (
     <div className="flex h-full min-h-0 flex-col">
       <header className="tool-page-header">

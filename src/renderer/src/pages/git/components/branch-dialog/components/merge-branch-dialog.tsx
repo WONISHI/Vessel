@@ -1,5 +1,6 @@
+import { GitPageDialog as Dialog, GitPageDialogContent as DialogContent } from "@/pages/git/components/git-page-dialog"
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { GitMerge } from "lucide-react"
 import { useState } from "react"
 
@@ -66,7 +67,7 @@ export function MergeBranchDialog({ open, onOpenChange, currentBranch, branches,
             size="sm"
             disabled={!selectedBranch}
             onClick={handleConfirm}
-            className="bg-purple-600 text-white hover:bg-purple-700"
+            className="bg-green-600 text-white hover:bg-green-700"
           >
             开始合并
           </Button>

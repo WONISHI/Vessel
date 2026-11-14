@@ -4,6 +4,9 @@ import { existsSync } from "node:fs"
 import { join } from "node:path"
 export type { GitCommitDetail, GitCommitItem, GitDiffResult, GitFileStatus, GitStatusResult } from "@vessel/type/git"
 
+// Only user-facing history roots; --all also includes refs/stash and other internal refs.
+const HISTORY_REVISIONS = ["--branches", "--remotes", "--tags", "HEAD"]
+
 /** 执行 git 命令：优先使用 dugite，若不可用或报错则回退至系统 git */
 export async function runGit(args: string[], cwd: string): Promise<{ stdout: string; stderr: string; exitCode: number }> {
   try {
@@ -213,7 +216,7 @@ export class GitService {
   async getLogCount(cwd: string, allBranches = false): Promise<number> {
     const args = ["rev-list", "--count"]
     if (allBranches) {
-      args.push("--all")
+      args.push(...HISTORY_REVISIONS)
     } else {
       args.push("HEAD")
     }
@@ -237,7 +240,7 @@ export class GitService {
     const format = "%H|%P|%an|%ae|%at|%s|%D"
     const args = ["log", "--topo-order"]
     if (allBranches) {
-      args.push("--all")
+      args.push(...HISTORY_REVISIONS)
     }
     args.push(`-n${Math.max(1, Math.min(500, Math.floor(maxCount)))}`)
     args.push(`--skip=${Math.max(0, Math.floor(skip))}`)

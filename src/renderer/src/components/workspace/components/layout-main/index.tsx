@@ -1,4 +1,5 @@
 import { addTransitFile } from "@/components/transit/state"
+import { FileThemeIcon } from "@/features/file-icons"
 import { getFilePresentation } from "@/components/workspace/components/layout-aside/layout-workspace-sidebar/utils"
 import { BackupStatus } from "@/components/backup-status"
 import CanvasContent from "@/components/core/canvas/index"
@@ -14,7 +15,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { DocumentTabs } from "@/components/workspace/components/layout-main/document-tabs"
 import { FileSearch } from "@/components/workspace/components/layout-main/file-search"
 import { StatusTarget } from "@/components/workspace/components/layout-main/status-context"
-import { resolveTerminalDirectory, TerminalPanel } from "@/components/workspace/components/layout-main/terminal-panel"
+import { TerminalPanel } from "@/components/workspace/components/layout-main/terminal-panel"
 import { lazyWithRetry } from "@/lib/lazy-retry"
 import { useWorkspace } from "@/components/workspace/hooks/useWorkspace"
 import { cn } from "@/lib/utils"
@@ -74,7 +75,7 @@ export default function LayoutMain({ resources = false }: { resources?: boolean 
     if (splitPath && !files.some((file) => file.path === splitPath)) setSplitPath(null)
   }, [files, splitPath])
   const [statusTarget, setStatusTarget] = useState<HTMLDivElement | null>(null)
-  const [terminal, setTerminal] = useState<{ file?: string } | null>(null)
+  const [terminal, setTerminal] = useState(false)
   const location = useLocation()
   const home = resources ? !activeFilePath : ["/editor", "/resources"].includes(location.pathname)
   const [edges, setEdges] = useState({ left: false, right: false })
@@ -196,11 +197,8 @@ export default function LayoutMain({ resources = false }: { resources?: boolean 
                         >
                           {pinned.includes(file.path) ? (
                             <Pin className="!size-[15px] text-[#646a73]" />
-                          ) : /\.(excalidraw(\.md)?|canvas)$/i.test(file.name) ? (
-                            <LayoutTemplate className={cn("!size-[15px]", active ? "text-amber-600" : "text-amber-500")} />
-                          ) : (
-                            <File className={cn("!size-[15px]", active ? "text-[#646a73]" : "text-[#8f959e]")} />
-                          )}
+                          ) : <FileThemeIcon name={file.path} className="!size-[15px] shrink-0 object-contain" fallback={/\.(excalidraw(\.md)?|canvas)$/i.test(file.name) ? <LayoutTemplate className={cn("!size-[15px]", active ? "text-amber-600" : "text-amber-500")} /> : <File className={cn("!size-[15px]", active ? "text-[#646a73]" : "text-[#8f959e]")} />} />}
+
                           <span className="truncate">{file.name}</span>
                         </Button>
                         {!pinned.includes(file.path) && (
@@ -318,7 +316,7 @@ export default function LayoutMain({ resources = false }: { resources?: boolean 
           )}
           <TabSwitcher
             triggerClassName="[&:hover>button]:bg-green-600 [&:hover>button]:!text-white [&:hover>button_svg]:!text-white [&:hover>button_svg]:!stroke-white [&[data-state=open]>button]:bg-green-600 [&[data-state=open]>button]:!text-white [&[data-state=open]>button_svg]:!text-white [&[data-state=open]>button_svg]:!stroke-white"
-            tabs={openFiles.map((file) => ({ id: file.path, title: file.name, active: file.path === activeFilePath, icon: <File className={cn("size-3.5", getFilePresentation(file.name).color)} /> }))}
+            tabs={openFiles.map((file) => ({ id: file.path, title: file.name, active: file.path === activeFilePath, icon: <FileThemeIcon name={file.path} className="size-3.5 shrink-0 object-contain" fallback={<File className={cn("size-3.5", getFilePresentation(file.name).color)} />} /> }))}
             onSelect={(id) => {
               const file = openFiles.find((file) => file.path === id)
               if (file) openWorkspaceFile(file)
@@ -439,7 +437,7 @@ export default function LayoutMain({ resources = false }: { resources?: boolean 
                     className="flex min-h-0 flex-col"
                   >
                     <div className="flex h-9 shrink-0 items-center gap-2 border-b px-3 text-xs text-stone-600">
-                      <File className="size-3.5" />
+                      <FileThemeIcon name={splitPath} className="size-3.5 shrink-0 object-contain" fallback={<File className="size-3.5" />} />
                       <span
                         className="min-w-0 flex-1 truncate"
                         data-title={splitPath}
@@ -476,7 +474,7 @@ export default function LayoutMain({ resources = false }: { resources?: boolean 
                     aria-pressed={!!terminal}
                     className={`h-6 gap-1 rounded px-2 text-xs ${terminal ? "bg-green-100 text-green-700 hover:bg-green-200" : "text-stone-600 hover:bg-stone-200"}`}
                     aria-label={terminal ? "关闭控制台" : "打开控制台"}
-                    onClick={() => setTerminal((current) => (current ? null : { file: home ? undefined : activeFilePath || undefined }))}
+                    onClick={() => setTerminal((current) => !current)}
                   >
                     <Terminal className="!size-3.5" />
                     控制台
@@ -505,10 +503,10 @@ export default function LayoutMain({ resources = false }: { resources?: boolean 
                 minSize="15%"
               >
                 <TerminalPanel
-                  key={resolveTerminalDirectory(workspace.path, home ? undefined : activeFilePath || undefined)}
+                  key={workspace.path}
                   root={workspace.path}
                   file={home ? undefined : activeFilePath || undefined}
-                  onClose={() => setTerminal(null)}
+                  onClose={() => setTerminal(false)}
                 />
               </ResizablePanel>
             </>

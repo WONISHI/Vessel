@@ -1,7 +1,8 @@
 import react from "@vitejs/plugin-react"
 import { defineConfig } from "electron-vite"
 import { execFileSync } from "node:child_process"
-import { cpSync, mkdirSync, statSync } from "node:fs"
+import { chmodSync, cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync } from "node:fs"
+import { tmpdir } from "node:os"
 import { createRequire } from "node:module"
 import { resolve } from "path"
 import svgr from "vite-plugin-svgr"
@@ -46,6 +47,15 @@ function localVditorAssets() {
       const destination = resolveFromRoot("src/renderer/public/vendor/vditor/dist")
       mkdirSync(destination, { recursive: true })
       copyLocalAssets(source, destination)
+    }
+  }
+}
+
+function localFileIconAssets() {
+  return {
+    name: "vessel-local-file-icon-assets",
+    configResolved() {
+      execFileSync(process.execPath, [resolveFromRoot("scripts/prepare-file-icon-assets.cjs")], { stdio: "inherit", cwd: projectRoot })
     }
   }
 }
@@ -171,8 +181,31 @@ function patchScreenShotPlugin() {
   }
 }
 
+/** Build a universal, offline macOS authentication helper into the main output. */
+function macPasswordAuthentication() {
+  let output = ""
+  return {
+    name: "vessel-mac-password-authentication",
+    configResolved(config: { build: { outDir: string } }) { output = config.build.outDir },
+    generateBundle(this: { emitFile: (asset: { type: "asset"; fileName: string; source: Buffer }) => void }) {
+      if (process.platform !== "darwin") return
+      const temporary = mkdtempSync(resolve(tmpdir(), "vessel-auth-"))
+      try {
+        const binary = resolve(temporary, "vessel-auth")
+        execFileSync("/usr/bin/xcrun", ["clang", "-arch", "arm64", "-arch", "x86_64", "-mmacosx-version-min=11.0", "-fobjc-arc", resolveFromRoot("native/vessel-auth.m"), "-framework", "AppKit", "-framework", "LocalAuthentication", "-o", binary])
+        execFileSync("/usr/bin/codesign", ["--force", "--sign", "-", binary])
+        this.emitFile({ type: "asset", fileName: "vessel-auth", source: readFileSync(binary) })
+      } finally { rmSync(temporary, { recursive: true, force: true }) }
+    },
+    closeBundle() {
+      if (process.platform === "darwin") chmodSync(resolve(output, "vessel-auth"), 0o755)
+    }
+  }
+}
+
 export default defineConfig({
   main: {
+    plugins: [macPasswordAuthentication()],
     root: projectRoot,
     // Workspace 包导出 TS 源码，必须编译进产物，不能留给 Electron require。
     build: {
@@ -196,7 +229,7 @@ export default defineConfig({
   preload: {
     root: projectRoot,
     build: {
-      rollupOptions: { input: { index: resolveFromRoot("src/preload/index.ts"), screenshot: resolveFromRoot("src/preload/screenshot.ts"), "browser-guest": resolveFromRoot("src/preload/browser-guest.ts") } },
+      rollupOptions: { input: { index: resolveFromRoot("src/preload/index.ts"), screenshot: resolveFromRoot("src/preload/screenshot.ts"), "browser-guest": resolveFromRoot("src/preload/browser-guest.ts"), "browser-devtools": resolveFromRoot("src/preload/browser-devtools.ts") } },
       externalizeDeps: { exclude: ["@electron-toolkit/preload", "@vessel/obsidian", "@vessel/utils", "@vessel/react-router", "@vessel/sync", "@vessel/type"] }
     },
     resolve: {
@@ -243,6 +276,6 @@ export default defineConfig({
         }).map(([find, replacement]) => ({ find, replacement }))
       ]
     },
-    plugins: [localMattingAssets(), localOcrAssets(), localVditorAssets(), patchScreenShotPlugin(), react(), svgr()]
+    plugins: [localMattingAssets(), localOcrAssets(), localVditorAssets(), localFileIconAssets(), patchScreenShotPlugin(), react(), svgr()]
   }
 })

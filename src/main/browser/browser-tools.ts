@@ -1,6 +1,6 @@
 import { BrowserHistory } from "@main/browser/browser-history"
 import type { BrowserDevice } from "@vessel/type"
-import { app, BrowserWindow, session, webContents, type WebContents } from "electron"
+import { app, BrowserWindow, dialog, session, webContents, type WebContents } from "electron"
 import { join } from "node:path"
 let history: BrowserHistory | undefined
 
@@ -39,6 +39,24 @@ export function registerBrowserTools(host: WebContents) {
     if (!target || target.hostWebContents !== host || (target.session !== session.fromPartition("persist:vessel-browser") && !(allowTransit && target.session === session.fromPartition("persist:vessel-transit")))) throw new Error("浏览器页面无效")
     return target
   }
+  host.ipc.handle("browser:page-action", async (_event, id: number, action: string) => {
+    const target = guest(id)
+    if (action === "save") {
+      const result = await dialog.showSaveDialog({ defaultPath: "page.html", filters: [{ name: "HTML 网页", extensions: ["html"] }] })
+      if (!result.canceled && result.filePath && !target.isDestroyed()) await target.savePage(result.filePath, "HTMLOnly")
+      return
+    }
+    if (action === "source") {
+      const url = target.getURL()
+      if (!/^(https?:|file:)/.test(url)) throw new Error("不支持的网页地址")
+      const response = await target.session.fetch(url)
+      if (!response.ok) throw new Error(`读取源代码失败：${response.status}`)
+      const text = await response.text()
+      if (text.length > 4 * 1024 * 1024) throw new Error("网页源代码过大")
+      return text
+    }
+    throw new Error("不支持的网页操作")
+  })
   host.ipc.handle("browser:bookmarks:sync", (_event, items) => {
     const valid = Array.isArray(items) ? items.filter((item) => item && typeof item.url === "string" && /^https?:\/\//i.test(item.url)).map((item) => ({ url: item.url, title: String(item.title || item.url) })) : []
     store().setBookmarks(valid)

@@ -1,3 +1,5 @@
+import { useShowFileTypeBadges } from "@/features/file-icons/state"
+import { FileThemeIcon } from "@/features/file-icons"
 import { Button } from "@/components/ui/button"
 import { getFilePresentation } from "@/components/workspace/components/layout-aside/layout-workspace-sidebar/utils"
 import type { WorkspaceNode } from "@/components/workspace/types/workspace"
@@ -20,6 +22,7 @@ export default function FileTreeItem({ node, rootPath, selected, expanded, loadi
   const path = node.path.replace(/\\/g, "/")
   const tooltipPath = root && (path === root || path.startsWith(`${root}/`)) ? `${root.split("/").pop()}${path.slice(root.length)}` : node.path
   const folder = node.type === "directory"
+  const showTypeBadge = useShowFileTypeBadges()
   const appearance = getFilePresentation(node.name)
   return (
     <Button
@@ -39,17 +42,9 @@ export default function FileTreeItem({ node, rootPath, selected, expanded, loadi
       </span>
       {loading ? (
         <LoaderCircle className="!size-3.5 animate-spin text-stone-400" />
-      ) : folder ? (
-        <Folder
-          data-tree-icon="folder"
-          className="!size-3.5 text-amber-500"
-        />
-      ) : (
-        <File
-          data-tree-icon="file"
-          className={cn("!size-3.5", appearance.color)}
-        />
-      )}
+      ) : <FileThemeIcon name={node.path} directory={folder} expanded={expanded} root={node.path === rootPath} className="!size-3.5 shrink-0 object-contain"
+        fallback={folder ? <Folder data-tree-icon="folder" className="!size-3.5 text-amber-500" /> : <File data-tree-icon="file" className={cn("!size-3.5", appearance.color)} />} />}
+
       <span
         data-tree-label
         className={cn("min-w-0 flex-1 truncate text-left", folder && "font-semibold")}
@@ -59,7 +54,7 @@ export default function FileTreeItem({ node, rootPath, selected, expanded, loadi
       {error ? (
         <span className="text-[10px] text-red-500">重试</span>
       ) : (
-        !folder &&
+        !folder && showTypeBadge &&
         appearance.label && (
           <span
             data-tree-badge={appearance.label?.toLowerCase()}

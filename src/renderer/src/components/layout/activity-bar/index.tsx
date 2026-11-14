@@ -385,6 +385,7 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
                         <div className="developer-tool-title text-xs font-medium text-stone-800 dark:text-stone-100">Git</div>
                         <div className="developer-tool-description truncate text-[10px] text-stone-400 dark:text-stone-500">代码版本管理与分支</div>
                       </div>
+
                     </button>
 
                     {/* 2. API (接口调试与管理) */}
@@ -406,6 +407,7 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
                         <div className="developer-tool-title text-xs font-medium text-stone-800 dark:text-stone-100">API</div>
                         <div className="developer-tool-description truncate text-[10px] text-stone-400 dark:text-stone-500">接口调试与请求管理</div>
                       </div>
+
                     </button>
 
                     {/* 3. 开发者工具 (DevTools) */}
@@ -427,6 +429,7 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
                         <div className="developer-tool-title text-xs font-medium text-stone-800 dark:text-stone-100">开发工具</div>
                         <div className="developer-tool-description truncate text-[10px] text-stone-400 dark:text-stone-500">JSON / 颜色 / 编解码 / 翻译</div>
                       </div>
+
                     </button>
                   </div>
                 </ScrollArea>

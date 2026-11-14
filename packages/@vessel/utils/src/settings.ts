@@ -1,6 +1,13 @@
 import type { AppSettings } from "@vessel/type"
 
 export const defaultSettings: AppSettings = {
+  fileTypeBadgesEnabled: false,
+  fileTypeBadgesWorkspace: false,
+  fileTypeBadgesResources: true,
+  fileIconTheme: "default",
+  fileIconWorkspace: false,
+  fileIconResources: true,
+  catppuccinFlavor: "auto",
   searchEngine: "bing",
   proxyEnabled: false,
   externalScreenshot: true,

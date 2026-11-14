@@ -94,6 +94,7 @@ export function BrowserStatusLeft({ b }: { b: BrowserPageModel }) {
                 </Tooltip>
               </TooltipProvider>
               <ConfirmDialog
+                activityBarAccessible
                 open={confirmOpen}
                 onOpenChange={(open) => {
                   if (!busy) {
@@ -106,8 +107,7 @@ export function BrowserStatusLeft({ b }: { b: BrowserPageModel }) {
                   openable ? (
                     <>
                       确定使用系统默认浏览器打开以下链接吗？
-                      <br />
-                      <strong>{tab.url}</strong>
+                      <span className="mt-1.5 block max-h-24 overflow-y-auto rounded-md border border-stone-200 bg-stone-50 px-2 py-1.5 font-mono text-[11px] font-normal leading-normal text-stone-600 select-text [overflow-wrap:anywhere] [word-break:normal] dark:border-stone-700 dark:bg-stone-800 dark:text-stone-300">{tab.url}</span>
                     </>
                   ) : null
                 }

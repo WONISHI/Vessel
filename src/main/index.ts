@@ -1,3 +1,4 @@
+import { registerVault } from "./vault/service"
 import { registerWindowSwitcher } from "./window-switcher"
 import { registerAppUpdate } from "./app-update"
 import { drainTextFileWrites } from "@main/modules/files/index.module"
@@ -154,7 +155,7 @@ function createWindow(): void {
       webviewTag: true,
       sandbox: false,
       contextIsolation: true,
-      nodeIntegration: true
+      nodeIntegration: false
     }
   })
   trackWindowState(mainWindow)
@@ -220,6 +221,7 @@ function createWindow(): void {
     mainWindow.setOverlayIcon(null, "")
     mainWindow.on("focus", () => mainWindow.setOverlayIcon(null, ""))
   }
+  registerVault(mainWindow.webContents)
   secureBrowserGuests(mainWindow.webContents)
   mainWindow.webContents.ipc.handle("tools:translate", async (_event, text, from, to) => {
     const { translateText } = await import("@main/translate")

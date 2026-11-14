@@ -1,3 +1,4 @@
+import { gitChangeMarker, gitChangeMarkerClass } from "./file-change-marker"
 import { gitChangeStatusTitle } from "@/pages/git/components/file-change-status"
 import { getFilePresentation } from "@/components/workspace/components/layout-aside/layout-workspace-sidebar/utils"
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger } from "@/components/ui/context-menu"
@@ -69,7 +70,7 @@ export function GitStagedFiles({ g }: { g: GitPageModel }) {
                                   >
                                     <span className="flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden">
                                       <File className={`size-3.5 shrink-0 ${getFilePresentation(file.path).color}`} />
-                                      <span className="w-3.5 shrink-0 text-center font-bold text-green-600" data-title={gitChangeStatusTitle(file.status)} aria-label={gitChangeStatusTitle(file.status)}>{file.status}</span>
+                                      <span className={`w-3.5 shrink-0 text-center font-bold ${gitChangeMarkerClass(file.status)}`} data-title={gitChangeStatusTitle(file.status)} aria-label={gitChangeStatusTitle(file.status)}>{gitChangeMarker(file.status)}</span>
                                       <span
                                         className="truncate"
                                         data-title={file.path}

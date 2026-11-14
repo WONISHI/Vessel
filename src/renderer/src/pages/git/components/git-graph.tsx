@@ -12,14 +12,15 @@ export interface GraphNode {
   }>
 }
 
-const LANE_COLORS = [
+const BRANCH_COLORS = [
   "#2563eb", // blue
+  "#dc2626", // red
+  "#f59e0b", // orange
+  "#eab308", // yellow
   "#16a34a", // green
-  "#ea580c", // orange
   "#9333ea", // purple
   "#0891b2", // cyan
-  "#e11d48", // rose
-  "#d97706" // amber
+  "#e11d48" // rose
 ]
 
 const ROW_HEIGHT = 32
@@ -28,27 +29,78 @@ const COL_WIDTH = 18
 /** 计算 Git 提交拓扑图的列位置与连线 */
 export function computeGitTopology(commits: GitCommitItem[]): { nodes: GraphNode[]; maxColumns: number } {
   const nodes: GraphNode[] = []
-  let activeLanes: (string | null)[] = [] // 存每列当前等待连接的 commit hash
+  const byHash = new Map(commits.map((commit) => [commit.hash, commit]))
+  const mainPath = new Set<string>()
+  let mainHash: string | undefined = commits[0]?.hash
+  while (mainHash && !mainPath.has(mainHash)) {
+    mainPath.add(mainHash)
+    mainHash = byHash.get(mainHash)?.parents[0]
+  }
+  // Plan colors from the visible topology before drawing. Simple side paths can
+  // reuse red after joining the main path; nested histories reserve deeper colors.
+  // This avoids changing colors just because a newer, unrelated merge is added.
+  const nesting = new Map<string, number>()
+  const joins = new Map<string, string | undefined>()
+  const preferredColors = new Map<string, number>()
+  for (let index = commits.length - 1; index >= 0; index--) {
+    const commit = commits[index]
+    if (mainPath.has(commit.hash)) {
+      nesting.set(commit.hash, 0)
+      joins.set(commit.hash, commit.hash)
+      preferredColors.set(commit.hash, 0)
+      continue
+    }
+    const depth = (nesting.get(commit.parents[0]) ?? 0) + Number(commit.parents.length > 1)
+    const join = joins.get(commit.parents[0])
+    nesting.set(commit.hash, depth)
+    joins.set(commit.hash, join)
+    const reserved = new Set<number>()
+    for (let level = 1; level <= Math.min(depth, BRANCH_COLORS.length - 2); level++) reserved.add(level)
+    // Paths meeting at a merge share that boundary row. Keep its older side-path
+    // colors reserved until the newer path is allocated, rather than freeing early.
+    for (const parent of (join ? byHash.get(join)?.parents.slice(1) : undefined) ?? []) {
+      const color = preferredColors.get(parent)
+      if (color !== undefined) reserved.add(color)
+    }
+    const available = BRANCH_COLORS.findIndex((_, color) => color > 0 && !reserved.has(color))
+    preferredColors.set(commit.hash, available > 0 ? available : 1)
+  }
+  // Only a nested shared tail that ends directly at another merge needs a
+  // boundary override. Ordinary merge sections keep the existing color plan.
+  const boundaryColors = new Map<string, number>()
+  type Lane = { hash: string; tip: string; color: string }
+  let activeLanes: (Lane | null)[] = []
+  const createLane = (hash: string, lanes: (Lane | null)[], preferred = boundaryColors.get(hash) ?? (preferredColors.get(hash) || 1)): Lane => {
+    const used = new Set(lanes.map((lane) => lane?.color))
+    let color = BRANCH_COLORS[0]
+    for (let attempt = 0; attempt < BRANCH_COLORS.length; attempt++) {
+      const colorIndex = (preferred + attempt) % BRANCH_COLORS.length
+      if (preferred > 0 && colorIndex === 0) continue
+      color = BRANCH_COLORS[colorIndex]
+      if (!used.has(color)) break
+    }
+    return { hash, tip: hash, color }
+  }
 
   let maxCols = 1
 
   for (let r = 0; r < commits.length; r++) {
     const commit = commits[r]
-    let col = activeLanes.indexOf(commit.hash)
+    let col = activeLanes.findIndex((lane) => lane?.hash === commit.hash)
 
     // 如果当前 commit 不在任何现有轨道中，分配第一个空闲轨道
     if (col === -1) {
       col = activeLanes.indexOf(null)
       if (col === -1) {
         col = activeLanes.length
-        activeLanes.push(commit.hash)
+        activeLanes.push(createLane(commit.hash, activeLanes, r === 0 ? 0 : undefined))
       } else {
-        activeLanes[col] = commit.hash
+        activeLanes[col] = createLane(commit.hash, activeLanes)
       }
     }
 
     maxCols = Math.max(maxCols, activeLanes.length)
-    const nodeColor = LANE_COLORS[col % LANE_COLORS.length]
+    const nodeColor = activeLanes[col]!.color
 
     const nextLanes = [...activeLanes]
     nextLanes[col] = null // 当前 commit 已处理完，移除
@@ -59,33 +111,50 @@ export function computeGitTopology(commits: GitCommitItem[]): { nodes: GraphNode
     if (parents.length > 0) {
       // 主分支 parent 保持在当前列，各分支平行延伸不提前重叠
       const primaryParent = parents[0]
-      nextLanes[col] = primaryParent
+      nextLanes[col] = { ...activeLanes[col]!, hash: primaryParent }
 
       // 多 parent 合并提交，优先复用已在等待该 parent 的轨道
       for (let p = 1; p < parents.length; p++) {
         const branchParent = parents[p]
-        let pCol = nextLanes.indexOf(branchParent)
+        let pCol = nextLanes.findIndex((lane) => lane?.hash === branchParent)
         if (pCol === -1) {
           pCol = nextLanes.indexOf(null)
           if (pCol === -1) {
             pCol = nextLanes.length
-            nextLanes.push(branchParent)
+            nextLanes.push(createLane(branchParent, nextLanes))
           } else {
-            nextLanes[pCol] = branchParent
+            nextLanes[pCol] = createLane(branchParent, nextLanes)
+          }
+        } else if (pCol !== col && nextLanes[pCol]!.tip !== branchParent) {
+          // A nested merge reaches an existing path's shared tail. Its incoming
+          // segment keeps its color; the shared tail starts a separate identity.
+          const boundary = byHash.get(joins.get(branchParent) ?? "")
+          const boundaryParent = boundary?.parents.length === 2 ? boundary.parents[1] : undefined
+          const redAvailable = !nextLanes.some((lane) => lane?.color === BRANCH_COLORS[1])
+          const isMainMergeTail = mainPath.has(commit.hash) && !mainPath.has(branchParent)
+            && byHash.get(branchParent)?.parents.length === 1
+          if (isMainMergeTail && boundaryParent && preferredColors.get(boundaryParent) === 1 && redAvailable) {
+            // At a merge-to-merge boundary, use red for the shared tail and
+            // orange for the following side path. Do not rotate other sections.
+            nextLanes[pCol] = createLane(branchParent, nextLanes, 1)
+            boundaryColors.set(boundaryParent, 2)
+          } else {
+            const previousColor = BRANCH_COLORS.indexOf(nextLanes[pCol]!.color)
+            nextLanes[pCol] = createLane(branchParent, nextLanes, Math.min(previousColor + 1, BRANCH_COLORS.length - 1))
           }
         }
         lines.push({
           fromCol: col,
           toCol: pCol,
           type: "branch",
-          color: LANE_COLORS[pCol % LANE_COLORS.length]
+          color: nextLanes[pCol]!.color
         })
       }
     }
 
     // 检查下一个紧接着要渲染的提交
     const nextCommitHash = r + 1 < commits.length ? commits[r + 1].hash : null
-    const primaryNextCol = nextCommitHash ? nextLanes.indexOf(nextCommitHash) : -1
+    const primaryNextCol = nextCommitHash ? nextLanes.findIndex((lane) => lane?.hash === nextCommitHash) : -1
 
     // 处理当前提交的主轨道连线
     if (parents.length > 0) {
@@ -113,25 +182,25 @@ export function computeGitTopology(commits: GitCommitItem[]): { nodes: GraphNode
     for (let c = 0; c < activeLanes.length; c++) {
       if (c === col || activeLanes[c] === null) continue
 
-      if (activeLanes[c] === commit.hash) {
+      if (activeLanes[c]?.hash === commit.hash) {
         // 该轨道已到达当前提交，汇入当前提交列并关闭
         lines.push({
           fromCol: c,
           toCol: col,
           type: "merge",
-          color: LANE_COLORS[c % LANE_COLORS.length]
+          color: activeLanes[c]!.color
         })
         nextLanes[c] = null
         continue
       }
 
-      if (nextCommitHash && nextLanes[c] === nextCommitHash && c !== primaryNextCol && primaryNextCol !== -1) {
+      if (nextCommitHash && nextLanes[c]?.hash === nextCommitHash && c !== primaryNextCol && primaryNextCol !== -1) {
         // 该轨道在进入下一个提交节点时汇入主轨道
         lines.push({
           fromCol: c,
           toCol: primaryNextCol,
           type: "merge",
-          color: LANE_COLORS[c % LANE_COLORS.length]
+          color: activeLanes[c]!.color
         })
         nextLanes[c] = null
       } else {
@@ -139,7 +208,7 @@ export function computeGitTopology(commits: GitCommitItem[]): { nodes: GraphNode
           fromCol: c,
           toCol: c,
           type: "straight",
-          color: LANE_COLORS[c % LANE_COLORS.length]
+          color: activeLanes[c]!.color
         })
       }
     }

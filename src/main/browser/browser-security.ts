@@ -1,3 +1,4 @@
+import { attachVaultGuest } from "../vault/service"
 import { registerBrowserDevtools } from "@main/browser/browser-devtools"
 import { registerBrowserExtensions } from "@main/browser/browser-extensions"
 import { registerBrowserProxy } from "@main/browser/browser-proxy"
@@ -74,6 +75,7 @@ export function secureBrowserGuests(contents: WebContents) {
     preferences.allowRunningInsecureContent = false
   })
   contents.on("did-attach-webview", (_event, guest) => {
+    if (guest.session === session.fromPartition("persist:vessel-browser")) attachVaultGuest(guest, contents)
     let cancelDecision: (() => void) | undefined
     let resumeFormUntil = 0
     let anchor: { url: string; source: string; expires: number } | undefined

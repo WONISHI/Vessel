@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react"
 interface TerminalSessionItem {
   key: number
   index: number
+  directory: string
 }
 
 interface WorkspaceTerminalPanelState {
@@ -16,8 +17,8 @@ interface WorkspaceTerminalPanelState {
 
 const panelStateCache = new Map<string, WorkspaceTerminalPanelState>()
 
-/** Resolves the folder path that owns the terminal panel for a given file or workspace root. */
-export function resolveTerminalDirectory(root: string, file?: string): string {
+/** Resolves the starting directory for a new terminal from the current file. */
+function resolveTerminalDirectory(root: string, file?: string): string {
   if (!file) return root
   const split = Math.max(file.lastIndexOf("/"), file.lastIndexOf("\\"))
   return split >= root.length ? file.slice(0, split) : root
@@ -25,22 +26,22 @@ export function resolveTerminalDirectory(root: string, file?: string): string {
 
 /** Renders the terminal panel component. */
 export function TerminalPanel({ root, file, onClose }: { root: string; file?: string; onClose?: () => void }) {
+  const cached = panelStateCache.get(root)
   const targetDir = resolveTerminalDirectory(root, file)
-  const cached = panelStateCache.get(targetDir)
   const nextKey = useRef(cached?.nextKey ?? 2)
-  const [sessions, setSessions] = useState<TerminalSessionItem[]>(() => cached?.sessions ?? [{ key: 1, index: 1 }])
+  const [sessions, setSessions] = useState<TerminalSessionItem[]>(() => cached?.sessions ?? [{ key: 1, index: 1, directory: targetDir }])
   const [activeKey, setActiveKey] = useState(() => cached?.activeKey ?? 1)
   const [cwds, setCwds] = useState<Record<number, string>>(() => cached?.cwds ?? {})
   const [error, setError] = useState("")
 
   useEffect(() => {
-    panelStateCache.set(targetDir, {
+    panelStateCache.set(root, {
       nextKey: nextKey.current,
       sessions,
       activeKey,
       cwds
     })
-  }, [targetDir, sessions, activeKey, cwds])
+  }, [root, sessions, activeKey, cwds])
 
   /** Creates a new terminal session and switches to it. */
   const handleCreateTerminal = () => {
@@ -51,23 +52,23 @@ export function TerminalPanel({ root, file, onClose }: { root: string; file?: st
     setError("")
     const key = nextKey.current++
     const nextIndex = sessions.length > 0 ? Math.max(...sessions.map((item) => item.index)) + 1 : 1
-    setSessions((prev) => [...prev, { key, index: nextIndex }])
+    setSessions((prev) => [...prev, { key, index: nextIndex, directory: targetDir }])
     setActiveKey(key)
   }
 
   /** Kills the active terminal session, or closes the panel when the last session is removed. */
   const handleDeleteTerminal = () => {
     setError("")
-    disposeTerminalSession(targetDir, activeKey)
+    disposeTerminalSession(root, activeKey)
     if (sessions.length <= 1) {
-      panelStateCache.delete(targetDir)
+      panelStateCache.delete(root)
       if (onClose) {
         onClose()
         return
       }
       const key = nextKey.current++
       setCwds({})
-      setSessions([{ key, index: 1 }])
+      setSessions([{ key, index: 1, directory: targetDir }])
       setActiveKey(key)
       return
     }
@@ -165,7 +166,7 @@ export function TerminalPanel({ root, file, onClose }: { root: string; file?: st
             key={item.key}
             sessionKey={item.key}
             root={root}
-            directory={targetDir}
+            directory={item.directory}
             active={item.key === activeKey}
             onCwdChange={(cwd) => setCwds((prev) => (prev[item.key] === cwd ? prev : { ...prev, [item.key]: cwd }))}
             onError={setError}

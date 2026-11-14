@@ -59,8 +59,16 @@ export default function DevTool() {
   const [enabledTypes, setEnabledTypes] = useState<Record<LogType, boolean>>(() => readEnabledTypes())
   const [logs, setLogs] = useState<DevToolLog[]>([])
   const { showToast, dismissByType, dismissAll, showEnabledHistory } = useDevToolToast()
-  const { position, dragging, handlePointerDown, consumeDragClick } = useDraggable()
+  const { position, setPosition, dragging, handlePointerDown, consumeDragClick } = useDraggable()
   const [menuOpen, setMenuOpen] = useState(false)
+  useEffect(() => window.electronAPI.onBrowserControl((delta) => {
+    if (!delta) { setMenuOpen(true); return }
+    const rect = document.querySelector('[data-vessel-control="true"] button')?.getBoundingClientRect()
+    if (rect) setPosition((current) => ({
+      x: Math.max(0, Math.min(innerWidth - rect.width, (current?.x ?? rect.x) + delta.dx)),
+      y: Math.max(0, Math.min(innerHeight - rect.height, (current?.y ?? rect.y) + delta.dy))
+    }))
+  }), [setPosition])
 
   /**
    * 是否存在 Error

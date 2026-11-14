@@ -26,6 +26,13 @@ export function FileSearch({ path, contentHost }: { path: string; contentHost: R
       if (!matchesShortcut(event, "find")) return
       event.preventDefault()
       event.stopPropagation()
+      const activeDocument = contentHost.current?.querySelector<HTMLElement>('[data-document-tab][aria-hidden="false"]') ?? contentHost.current
+      const office = activeDocument?.querySelector<HTMLIFrameElement>("iframe[data-vessel-office-frame]")
+      if (office?.contentWindow) {
+        setOpen(false)
+        office.contentWindow.postMessage({ type: "office:find" }, new URL(office.src, location.href).origin)
+        return
+      }
       setOpen(true)
       searchInput.current?.focus()
       searchInput.current?.select()

@@ -58,6 +58,58 @@ it("counts all commits and pages past the original 150-record limit without dupl
   }
 })
 
+it("excludes stash snapshots from history and counts while preserving branches, tags and detached HEAD", async () => {
+  const root = await mkdtemp(join(tmpdir(), "vessel-git-history-stash-"))
+  const git = (...args: string[]) => execFileSync("git", args, { cwd: root, encoding: "utf8" }).trim()
+  try {
+    git("init", "--quiet", "-b", "master")
+    git("config", "user.name", "History Test")
+    git("config", "user.email", "history@example.test")
+    await writeFile(join(root, "tracked.txt"), "base")
+    git("add", ".")
+    git("-c", "commit.gpgSign=false", "commit", "--quiet", "-m", "base")
+    const base = git("rev-parse", "HEAD")
+    const tree = git("rev-parse", "HEAD^{tree}")
+    const makeCommit = (message: string) => git("-c", "commit.gpgSign=false", "commit-tree", tree, "-p", base, "-m", message)
+    const feature = makeCommit("local branch")
+    const remote = makeCommit("remote branch")
+    const tagged = makeCommit("tag only")
+    const detached = makeCommit("detached HEAD")
+    const internal = makeCommit("internal ref")
+    git("update-ref", "refs/heads/feature", feature)
+    git("update-ref", "refs/remotes/origin/feature", remote)
+    git("tag", "v1", tagged)
+    git("update-ref", "refs/internal/snapshot", internal)
+    git("checkout", "--quiet", "--detach", detached)
+
+    const service = new GitService()
+    expect(await service.getLogCount(root, true)).toBe(5)
+    await writeFile(join(root, "tracked.txt"), "staged")
+    git("add", ".")
+    await writeFile(join(root, "tracked.txt"), "unstaged")
+    await writeFile(join(root, "untracked.txt"), "untracked")
+    git("stash", "push", "--include-untracked", "-m", "keep this stash")
+    const stash = git("rev-parse", "refs/stash")
+    const stashOnly = git("rev-list", "refs/stash", "--not", "HEAD").split("\n")
+    expect(stashOnly).toHaveLength(3)
+
+    const logs = await service.getLog(root, 100, 0, true)
+    expect(new Set(logs.map((item) => item.hash))).toEqual(new Set([base, feature, remote, tagged, detached]))
+    expect(logs.some((item) => stashOnly.includes(item.hash))).toBe(false)
+    expect(await service.getLogCount(root, true)).toBe(logs.length)
+    const pages = [...await service.getLog(root, 2, 0, true), ...await service.getLog(root, 3, 2, true)]
+    expect(pages.map((item) => item.hash)).toEqual(logs.map((item) => item.hash))
+    expect(await service.getLog(root, 2, 5, true)).toEqual([])
+    expect((await service.getLog(root)).map((item) => item.hash)).toEqual([detached, base])
+    expect(await service.getLogCount(root)).toBe(2)
+    expect(await service.getStashes(root)).toHaveLength(1)
+    expect(git("rev-parse", "refs/stash")).toBe(stash)
+    expect(git("stash", "list")).toContain("keep this stash")
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
 it("converts remote transport URLs to repository web URLs without changing commit links", () => {
   expect(formatGitRemoteWebUrl("git@github.com:owner/repo.git")).toBe("https://github.com/owner/repo")
   expect(formatGitRemoteWebUrl("https://user:secret@gitlab.com/group/repo.git")).toBe("https://gitlab.com/group/repo")

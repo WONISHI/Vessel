@@ -2,7 +2,7 @@ import { BrowserFavicon } from "@/components/browser-favicon"
 import { TabSwitcher } from "@/components/tab-switcher"
 import { Button } from "@/components/ui/button"
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger } from "@/components/ui/context-menu"
-import { AudioLines, LoaderCircle, Pin, Plus, RotateCw, X } from "lucide-react"
+import { Copy, AudioLines, LoaderCircle, Pin, Plus, RotateCw, X } from "lucide-react"
 import type { BrowserPageModel } from "@/pages/browser/components/browser-page/hooks/use-browser-page"
 
 /** 顶部标签栏 */
@@ -65,6 +65,10 @@ export function BrowserTabs({ b }: { b: BrowserPageModel }) {
                 <ContextMenuItem onSelect={() => addTabRightOf(item.id)}>
                   <Plus />
                   在右侧新增标签页
+                </ContextMenuItem>
+                <ContextMenuItem onSelect={() => addTabRightOf(item.id, true)}>
+                  <Copy />
+                  复制标签页
                 </ContextMenuItem>
                 <ContextMenuItem onSelect={() => reloadTab(item.id)}>
                   <RotateCw />

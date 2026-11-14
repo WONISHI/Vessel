@@ -1,3 +1,4 @@
+import { PasswordVault } from "@/pages/browser/components/password-vault"
 import { bindDoubleSpace } from "../../../../../../shared/double-space"
 import { FloatingVideo } from "./floating-video"
 import { SearchEnginePicker } from "./search-engine-picker"
@@ -11,16 +12,18 @@ import { BrowserMore } from "@/pages/browser/components/tools"
 import { elementPickerScript } from "@/pages/browser/element-picker"
 import { withGuest } from "@/pages/browser/guest-lifecycle"
 import { browserURL } from "@/pages/browser/url"
-import { ArrowLeft, ArrowRight, Bookmark, Bug, Home, Info, LoaderCircle, LockKeyhole, Pin, RotateCw, Search, SquareDashedMousePointer, X } from "lucide-react"
+import { ArrowLeft, ArrowRight, Bookmark, Bug, Home, Info, LoaderCircle, LockKeyhole, Pin, RotateCw, Search, Sparkles, SquareDashedMousePointer, X } from "lucide-react"
 import type { BrowserPageModel } from "@/pages/browser/components/browser-page/hooks/use-browser-page"
 
 /** 地址栏与导航工具条 */
 export function BrowserToolbar({ b, visible = true }: { b: BrowserPageModel; visible?: boolean }) {
-  const { deviceMode, setDeviceMode, setTabs, setFindOpen, devtoolsOpen, setDevtoolsOpen, setActive, input, setInput, bookmarks, views, tab, getActivePageData, update, navigate, zoom, bookmark } = b
+  const { reloadTab, deviceMode, setDeviceMode, setTabs, setFindOpen, devtoolsOpen, setDevtoolsOpen, setActive, input, setInput, bookmarks, views, tab, getActivePageData, update, navigate, zoom, bookmark } = b
 
   const address = useRef<HTMLFormElement>(null)
   const [focused, setFocused] = useState(false)
   const [engineOpen, setEngineOpen] = useState(false)
+  const [decodedAddress, setDecodedAddress] = useState<string | null>(null)
+  useEffect(() => { setDecodedAddress(null) }, [tab.id, tab.url, tab.loading])
   useEffect(() => {
     if (!visible) return
     const focusAddress = () => {
@@ -66,7 +69,7 @@ export function BrowserToolbar({ b, visible = true }: { b: BrowserPageModel; vis
                 onClick={() => {
                   const view = views.current.get(tab.id)
                   if (tab.loading) withGuest(view, (guest) => guest.stop())
-                  else withGuest(view, (guest) => guest.reload())
+                  else reloadTab(tab.id)
                 }}
               >
                 {tab.loading ? <X /> : <RotateCw />}
@@ -113,13 +116,13 @@ export function BrowserToolbar({ b, visible = true }: { b: BrowserPageModel; vis
                   autoCapitalize="none"
                   aria-label="搜索或输入网址"
                   placeholder="搜索或输入网址"
-                  value={editing ? fullAddress : fullAddress.replace(/^https?:\/\//i, "")}
+                  value={editing ? (decodedAddress ?? fullAddress) : fullAddress.replace(/^https?:\/\//i, "")}
                   suppressSuggestions={engineOpen}
                   onDoubleClick={(event) => {
                     event.preventDefault()
                     event.currentTarget.select()
                   }}
-                  onChange={(event) => setInput(event.target.value)}
+                  onChange={(event) => { setDecodedAddress(null); setInput(event.target.value) }}
                   onFocus={(event) => {
                     setFocused(true)
                     const field = event.currentTarget
@@ -128,17 +131,24 @@ export function BrowserToolbar({ b, visible = true }: { b: BrowserPageModel; vis
                     })
                   }}
                 />
+                <PasswordVault url={tab.url} guestId={() => withGuest(views.current.get(tab.id), (guest) => guest.getWebContentsId())} />
                 <button
                   type="button"
-                  data-title="收藏当前页面"
-                  aria-label={bookmarks.some((item) => item.url === tab.url) ? "取消书签" : "添加书签"}
-                  disabled={!tab.url}
-                  onClick={bookmark}
+                  data-title={focused ? (decodedAddress === null ? "解码地址" : "恢复原编码地址") : "收藏当前页面"}
+                  aria-label={focused ? (decodedAddress === null ? "解码地址" : "恢复原编码地址") : bookmarks.some((item) => item.url === tab.url) ? "取消书签" : "添加书签"}
+                  disabled={focused ? !fullAddress : !tab.url}
+                  onMouseDown={(event) => { if (focused) event.preventDefault() }}
+                  onClick={() => {
+                    if (!focused) { bookmark(); return }
+                    if (decodedAddress !== null) { setDecodedAddress(null); return }
+                    try { setDecodedAddress(decodeURIComponent(fullAddress)) }
+                    catch { setDecodedAddress(fullAddress.replace(/(?:%[0-9a-f]{2})+/gi, (value) => { try { return decodeURIComponent(value) } catch { return value } })) }
+                  }}
                 >
-                  <Bookmark
+                  {focused ? <Sparkles size={16} /> : <Bookmark
                     size={16}
                     fill={bookmarks.some((item) => item.url === tab.url) ? "currentColor" : "none"}
-                  />
+                  />}
                 </button>
               </form>
               <FloatingVideo visible={visible} tabId={tab.id} url={tab.url} getGuest={() => views.current.get(tab.id)} />

@@ -18,6 +18,13 @@ import { gitAPI } from "@preload/apis/git.api"
 const api = {}
 
 const vesselAPI = {
+  browserPageAction: (id: number, action: string, point?: { x: number; y: number }) => ipcRenderer.invoke("browser:page-action", id, action, point),
+  vaultRequest: (action: string, data?: Record<string, string>) => ipcRenderer.invoke("vault:request", action, data),
+  onVaultCandidate: (callback: (candidate: { id: string; origin: string; username: string }) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, candidate: { id: string; origin: string; username: string }) => callback(candidate)
+    ipcRenderer.on("vault:candidate", handler)
+    return () => ipcRenderer.removeListener("vault:candidate", handler)
+  },
   moveImageToAttachments: (root: string, path: string) => ipcRenderer.invoke("attachments:moveImage", root, path),
   listAttachments: (root: string) => ipcRenderer.invoke("attachments:list", root),
   translateText: (text: string, from: string, to: string) => ipcRenderer.invoke("tools:translate", text, from, to),
@@ -146,6 +153,12 @@ const vesselAPI = {
   ...browserProxyAPI,
   ...fileWatchAPI,
 
+  onBrowserControl: (callback: (delta?: { dx: number; dy: number }) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, delta?: { dx: number; dy: number }) => callback(delta)
+    ipcRenderer.on("browser:control", listener)
+    return () => ipcRenderer.removeListener("browser:control", listener)
+  },
+
   /** Handles browser devtools closed events. */
   onBrowserDevtoolsClosed: (callback: () => void) => {
     ipcRenderer.on("browser:devtools-closed", callback)
@@ -205,7 +218,7 @@ const vesselAPI = {
   },
 
   /** Sets browser devtools. */
-  setBrowserDevtools: (id: number | null, bounds?: Electron.Rectangle, appearance?: { font: string; size: number; detached?: boolean; hidden?: boolean }): Promise<void> => ipcRenderer.invoke("browser:devtools", id, bounds, appearance),
+  setBrowserDevtools: (id: number | null, bounds?: Electron.Rectangle, appearance?: { font: string; size: number; detached?: boolean; hidden?: boolean; inspect?: { x: number; y: number }; control?: { x: number; y: number; width: number; height: number; icon: string; color: string; background: string; border: string; shadow: string } }): Promise<void> => ipcRenderer.invoke("browser:devtools", id, bounds, appearance),
 
   /** Handles browser new tab events. */
   onNavigationRequest: (callback: (request: { id: number; url: string; defaultCurrent: boolean; delayMs: number }) => void) => {

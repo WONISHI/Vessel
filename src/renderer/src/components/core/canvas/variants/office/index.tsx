@@ -71,6 +71,7 @@ export default function OfficeCanvas({ activeFilePath }: { activeFilePath: strin
     <div className="relative flex min-h-0 flex-1 flex-col">
       {url ? (
         <iframe
+          data-vessel-office-frame
           ref={frame}
           name={`Office · ${activeFilePath.split(/[\\/]/).pop()}`}
           aria-label={`ONLYOFFICE ${activeFilePath.split(/[\\/]/).pop()}`}

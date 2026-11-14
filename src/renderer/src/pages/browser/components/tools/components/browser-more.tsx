@@ -3,7 +3,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { HistorySheet } from "@/pages/browser/components/history-sheet"
 import type { HistoryEntry } from "@vessel/type"
 import type { WebviewTag } from "electron"
-import { History, MoreHorizontal, Printer, Search, Smartphone, ZoomIn, ZoomOut } from "lucide-react"
+import { KeyRound, History, MoreHorizontal, Printer, Search, Smartphone, ZoomIn, ZoomOut } from "lucide-react"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
@@ -16,9 +16,10 @@ export function BrowserMore({ visible = true, zoom, zoomFactor, onFind, onNaviga
 
   useEffect(() => {
     if (!visible) {
-      setOpen(false)
-      setHistoryOpen(false)
+      const timer = setTimeout(() => { setOpen(false); setHistoryOpen(false) }, 0)
+      return () => clearTimeout(timer)
     }
+    return undefined
   }, [visible])
 
   /** Refreshes refresh. */
@@ -100,6 +101,9 @@ export function BrowserMore({ visible = true, zoom, zoomFactor, onFind, onNaviga
           >
             <History />
             历史记录
+          </DropdownMenuItem>
+          <DropdownMenuItem className={itemClass} onSelect={() => run(() => window.dispatchEvent(new Event("vessel-open-password-vault")))}>
+            <KeyRound />账号和密码
           </DropdownMenuItem>
           <DropdownMenuItem
             className={itemClass}

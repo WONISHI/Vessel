@@ -1,3 +1,5 @@
+import { installBrowserContextMenu } from "./browser-context-menu"
+import { bindVaultForms } from "./vault-forms"
 import { bindDoubleSpace } from "../shared/double-space"
 import { scrollBoundary } from "../shared/scroll-boundary"
 import { bindWebStoreInstall } from "./webstore-install"
@@ -87,3 +89,12 @@ ipcRenderer.on("vessel:scroll-boundary", (_event, top: boolean) => {
 })
 
 bindDoubleSpace(window, () => ipcRenderer.sendToHost("vessel-focus-address"))
+
+bindVaultForms()
+
+if (/^https?:$/.test(location.protocol) || location.protocol === "file:") {
+  contextBridge.exposeInMainWorld("vesselContextMenu", (details: { x: number; y: number }) => {
+    if (Number.isFinite(details?.x) && Number.isFinite(details?.y)) ipcRenderer.sendToHost("vessel-context-menu", { x: details.x, y: details.y })
+  })
+  contextBridge.executeInMainWorld({ func: installBrowserContextMenu })
+}

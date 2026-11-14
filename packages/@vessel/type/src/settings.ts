@@ -1,4 +1,11 @@
 export interface AppSettings {
+  fileTypeBadgesEnabled?: boolean
+  fileTypeBadgesWorkspace?: boolean
+  fileTypeBadgesResources?: boolean
+  fileIconTheme?: "default" | "catppuccin" | "symbols"
+  fileIconWorkspace?: boolean
+  fileIconResources?: boolean
+  catppuccinFlavor?: "auto" | "latte" | "frappe" | "macchiato" | "mocha"
   searchEngine?: "bing" | "google" | "baidu" | "duckduckgo"
   proxyEnabled?: boolean
   externalScreenshot?: boolean

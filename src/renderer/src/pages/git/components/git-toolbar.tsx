@@ -1,3 +1,5 @@
+import { openInAppBrowser } from "@/lib/app-browser"
+import { useRouter } from "@vessel/react-router"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 import { toast } from "@/components/ui/sonner"
@@ -8,6 +10,7 @@ import type { GitPageModel } from "@/pages/git/hooks/use-git-page"
 
 /** 顶部操作工具栏 */
 export function GitToolbar({ g }: { g: GitPageModel }) {
+  const router = useRouter()
   const { setRepositorySettingsOpen, setTerminalOpen, repoPath, setRepoPath, libraryProjects, isRepo, setActiveTab, loading, remoteOperation, status, stashes, setCreateBranchOpen, setBranchStartPoint, setMergeBranchOpen, refresh, handleStashAll, handlePull, handlePush, handleFetch } = g
   const [toolbarToolsOpen, setToolbarToolsOpen] = useState(true)
   const toolbarToolsRef = useRef<HTMLDivElement>(null)
@@ -143,7 +146,7 @@ export function GitToolbar({ g }: { g: GitPageModel }) {
               try {
                 const url = await window.electronAPI.git.getRemoteWebUrl(repoPath)
                 if (!url) { toast.error("未找到有效的远程仓库地址"); return }
-                await window.electronAPI.openExternal(url)
+                openInAppBrowser(url, (path) => router.push(path))
               } catch (error) { toast.error("打开远程仓库失败", { description: cleanGitErrorMessage(error) }) }
             }}><GitFork className="size-4" /><span>显示远程仓库</span></button>
             <button type="button" disabled={!repoPath} className="flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs text-stone-700 hover:bg-stone-200/70 disabled:opacity-40" data-title="在文件管理器中显示当前仓库" onClick={async () => {

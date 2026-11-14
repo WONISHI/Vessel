@@ -20,21 +20,21 @@ interface CachedSession {
 
 const sessionCache = new Map<string, CachedSession>()
 
-/** Returns the cache key for a directory-scoped terminal session. */
-function getSessionCacheKey(directory: string, sessionKey: number): string {
-  return `${directory}::${sessionKey}`
+/** Returns the cache key for a workspace-scoped terminal session. */
+function getSessionCacheKey(root: string, sessionKey: number): string {
+  return `${root}::${sessionKey}`
 }
 
 /** Permanently disposes a cached terminal session and terminates its underlying pty process. */
-export function disposeTerminalSession(directory: string, sessionKey: number): void {
-  const cacheKey = getSessionCacheKey(directory, sessionKey)
+export function disposeTerminalSession(root: string, sessionKey: number): void {
+  const cacheKey = getSessionCacheKey(root, sessionKey)
   const cached = sessionCache.get(cacheKey)
   if (!cached) return
   sessionCache.delete(cacheKey)
   cached.dispose()
 }
 
-/** Renders a single persistent xterm.js session instance scoped to a folder. */
+/** Renders a single persistent xterm.js session instance scoped to a workspace. */
 export function TerminalSession({
   root,
   directory,
@@ -59,7 +59,7 @@ export function TerminalSession({
   useEffect(() => {
     const hostElement = host.current
     if (!hostElement) return
-    const cacheKey = getSessionCacheKey(directory, sessionKey)
+    const cacheKey = getSessionCacheKey(root, sessionKey)
     let entry = sessionCache.get(cacheKey)
 
     if (!entry) {
@@ -189,7 +189,7 @@ export function TerminalSession({
 
   useEffect(() => {
     if (!active || !host.current) return
-    const cacheKey = getSessionCacheKey(directory, sessionKey)
+    const cacheKey = getSessionCacheKey(root, sessionKey)
     const entry = sessionCache.get(cacheKey)
     if (!entry) return
     const frame = requestAnimationFrame(() => {
@@ -204,7 +204,7 @@ export function TerminalSession({
       entry.terminal.focus()
     })
     return () => cancelAnimationFrame(frame)
-  }, [active, directory, sessionKey])
+  }, [active, root, sessionKey])
 
   return (
     <div

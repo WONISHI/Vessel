@@ -10,6 +10,8 @@ import type { GitPageModel } from "@/pages/git/hooks/use-git-page"
 /** 提交历史工具条与拓扑列表 */
 export function GitHistoryList({ g }: { g: GitPageModel }) {
   const { loading, branches, commits, unpushedHashes, commitTotal, branchCommitTotal, historyLoading, historyFailed, selectedCommitIndex, setSelectedCommitIndex, historyFocusNonce, historyScope, setHistoryScope, setCreateBranchOpen, setBranchStartPoint, loadMoreHistory, topology, aheadCount, branchSyncedTotal, behindCount, copyToClipboard, handleCheckoutCommit, handleCreateTag, handleResetBranch, handleUndoLastCommit, handleRevertCommit, handleOpenRemoteCommit } = g
+  const graphWidth = getGraphWidth(topology.maxColumns)
+  const historyColumns = `${graphWidth}px minmax(0, 1fr) 360px`
 
   useEffect(() => {
     if (!historyFocusNonce) return
@@ -86,20 +88,22 @@ export function GitHistoryList({ g }: { g: GitPageModel }) {
                     </div>
                   </div>
 
-                  <ScrollArea className="flex-1 min-h-0">
-                    <div className="relative min-w-[700px]">
+                  <ScrollArea className="min-w-0 flex-1 min-h-0 [&_[data-radix-scroll-area-viewport]>div]:!block">
+                    <div className="relative w-full" style={{ minWidth: Math.max(700, graphWidth + 396) }}>
                       {/* 表头 (参考 SourceTree: 图表 | 描述 | 提交 | 作者 | 日期) */}
-                      <div className="git-history-table-header sticky top-0 z-20 flex h-7 items-center gap-3 pr-3 text-[11px] font-medium text-stone-500 dark:text-stone-400 border-b border-stone-200 dark:border-stone-800 bg-stone-100/95 dark:bg-[#20242a] backdrop-blur-xs select-none">
+                      <div style={{ gridTemplateColumns: historyColumns }} className="git-history-table-header sticky top-0 z-20 grid h-7 items-center gap-3 pr-3 text-[11px] font-medium text-stone-500 dark:text-stone-400 border-b border-stone-200 dark:border-stone-800 bg-stone-100/95 dark:bg-[#20242a] backdrop-blur-xs select-none">
                         <div
-                          style={{ width: getGraphWidth(topology.maxColumns), minWidth: getGraphWidth(topology.maxColumns) }}
+                          style={{ width: graphWidth, minWidth: graphWidth }}
                           className="shrink-0 pl-3.5"
                         >
                           图表
                         </div>
-                        <span className="flex-1">描述</span>
-                        <span className="w-20 shrink-0">提交</span>
-                        <span className="w-28 shrink-0">作者</span>
-                        <span className="w-36 shrink-0">日期</span>
+                        <span className="min-w-0">描述</span>
+                        <div className="sticky right-0 z-20 grid h-full grid-cols-[80px_112px_144px] items-center gap-3 bg-stone-100 dark:bg-[#20242a]">
+                          <span>提交</span>
+                          <span>作者</span>
+                          <span>日期</span>
+                        </div>
                       </div>
 
                       {/* 提交列表信息容器 */}
@@ -121,20 +125,20 @@ export function GitHistoryList({ g }: { g: GitPageModel }) {
                             <ContextMenu key={c.hash}>
                               <ContextMenuTrigger asChild>
                                 <div
-                                  style={{ height: 32 }}
+                                  style={{ height: 32, gridTemplateColumns: historyColumns }}
                                   data-git-history-selected={isSelected}
                                   onClick={() => setSelectedCommitIndex(idx)}
                                   onContextMenu={() => setSelectedCommitIndex(idx)}
-                                  className={`flex items-center gap-3 pr-3 text-xs cursor-pointer border-b border-stone-100 transition-colors ${isSelected ? "bg-blue-50 text-blue-900 font-medium" : "hover:bg-stone-50 text-stone-700"}`}
+                                  className={`group/history-row grid items-center gap-3 pr-3 text-xs cursor-pointer border-b border-stone-100 transition-colors ${isSelected ? "bg-blue-50 text-blue-900 font-medium" : "hover:bg-stone-50 text-stone-700"}`}
                                 >
                                   {/* 左侧拓扑图占位 */}
                                   <div
-                                    style={{ width: getGraphWidth(topology.maxColumns), minWidth: getGraphWidth(topology.maxColumns) }}
+                                    style={{ width: graphWidth, minWidth: graphWidth }}
                                     className="shrink-0"
                                   />
                                   {/* 描述 (含分支标签与提交信息) */}
                                   <span
-                                    className="truncate flex-1"
+                                    className="min-w-0 truncate"
                                     data-title={c.message}
                                   >
                                     {c.refs.map((r) => {
@@ -161,12 +165,11 @@ export function GitHistoryList({ g }: { g: GitPageModel }) {
                                     })}
                                     {c.message}
                                   </span>
-                                  {/* 提交哈希 */}
-                                  <span className="w-20 shrink-0 font-mono text-[11px] text-stone-400">{c.shortHash}</span>
-                                  {/* 作者 */}
-                                  <span className="w-28 shrink-0 truncate text-stone-500 text-[11px]">{c.author}</span>
-                                  {/* 日期 */}
-                                  <span className="w-36 shrink-0 text-stone-400 text-[11px]">{c.date}</span>
+                                  <div className={`sticky right-0 z-10 grid h-full grid-cols-[80px_112px_144px] items-center gap-3 transition-colors ${isSelected ? "bg-blue-50 dark:bg-[#2f343b]" : "bg-white group-hover/history-row:bg-stone-50 dark:bg-[#22272e] dark:group-hover/history-row:bg-[#2d333b]"}`}>
+                                    <span className="font-mono text-[11px] text-stone-400">{c.shortHash}</span>
+                                    <span className="min-w-0 truncate text-stone-500 text-[11px]" data-title={c.author}>{c.author}</span>
+                                    <span className="text-stone-400 text-[11px]">{c.date}</span>
+                                  </div>
                                 </div>
                               </ContextMenuTrigger>
                               <ContextMenuContent className="w-56">

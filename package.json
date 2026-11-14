@@ -9,6 +9,7 @@
     "appId": "com.wonishi.vessel",
     "productName": "Vessel",
     "asarUnpack": [
+      "**/vessel-auth",
       "**/node_modules/@vscode/ripgrep*/bin/**/*",
       "**/node_modules/better-sqlite3/**/*",
       "**/node_modules/node-pty/**/*",
@@ -196,6 +197,7 @@
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.2",
     "@electron-toolkit/utils": "^4.0.0",
+    "@noble/hashes": "2.2.0",
     "@parcel/watcher": "^2.6.0",
     "@vessel/clipper": "file:packages/@vessel/clipper",
     "@vessel/sync": "file:packages/@vessel/sync",

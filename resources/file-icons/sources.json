@@ -1,0 +1,14 @@
+{
+  "catppuccin": {
+    "repository": "https://github.com/catppuccin/vscode-icons",
+    "version": "1.26.0",
+    "assets": 3280,
+    "sha256": "e8bedff68d513ce0984225b716dc2c8f3d0b3656ed2dc02ff67d7c93806e8b9c"
+  },
+  "symbols": {
+    "repository": "https://github.com/miguelsolorio/vscode-symbols",
+    "version": "0.0.25",
+    "assets": 371,
+    "sha256": "5bf604b3d45a6867eb8bd52e096f2102a3485f2ee782597879ff689a396038c7"
+  }
+}

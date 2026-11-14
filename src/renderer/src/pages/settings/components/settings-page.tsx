@@ -1,3 +1,5 @@
+import { FileTypeBadgeSettings } from "./file-type-badge-settings"
+import { FileIconSettings } from "./file-icon-settings"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { AppUpdateSettings } from "./app-update-settings"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
@@ -452,6 +454,8 @@ export function SettingsPage() {
                       </div>
                     </Row>
                   </div>
+                  <FileIconSettings value={draft} onChange={(patch) => setDraft((current) => ({ ...current, ...patch }))} />
+                  <FileTypeBadgeSettings value={draft} onChange={(patch) => setDraft((current) => ({ ...current, ...patch }))} />
                   <div className="settings-card p-5">
                     <h3>字体预览</h3>
                     <div

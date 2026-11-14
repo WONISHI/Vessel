@@ -1,3 +1,4 @@
+import { FileIconScope } from "@/features/file-icons/state"
 import { WorkspaceActivityContext, useWorkspaceActivityTracker } from "@/components/workspace/hooks/useWorkspaceActivity"
 import Layout from "@/components/layout/index"
 import LayoutAside from "@/components/workspace/components/layout-aside/index"
@@ -11,6 +12,7 @@ export default function WorkspacePage({ workspace, initialFile, scope = "workspa
   const workspaceController = useWorkspaceController(workspace, initialFile, scope, false, active)
   const activity = useWorkspaceActivityTracker(workspace.path)
   return (
+    <FileIconScope.Provider value={scope}>
     <WorkspaceProvider value={workspaceController}>
       <WorkspaceActivityContext.Provider value={activity}>
         <Layout aside={null}>
@@ -20,5 +22,6 @@ export default function WorkspacePage({ workspace, initialFile, scope = "workspa
         </Layout>
       </WorkspaceActivityContext.Provider>
     </WorkspaceProvider>
+    </FileIconScope.Provider>
   )
 }

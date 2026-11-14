@@ -1,3 +1,4 @@
+import { hideOfficeFeatureTips } from "./hide-feature-tips"
 import { convertOfficeMarkdown, saveConvertedMarkdown } from "@main/office/markdown"
 import { app, BrowserWindow, dialog, type WebContents } from "electron"
 import { readFile, realpath, rename, stat, writeFile } from "node:fs/promises"
@@ -41,7 +42,10 @@ export function serveOffice() {
           res.writeHead(403).end()
           return
         }
-        const data = await readFile(path)
+        let data = await readFile(path)
+        if (isOffice && /\/web-apps\/apps\/[^/]+\/main\/app\.js$/.test(pathname)) {
+          data = Buffer.from(hideOfficeFeatureTips(data.toString("utf8")))
+        }
         res.setHeader("Content-Type", types[extname(path)] || "application/octet-stream")
         res.end(req.method === "HEAD" ? undefined : data)
       } catch (error) {

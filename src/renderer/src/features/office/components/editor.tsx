@@ -38,6 +38,15 @@ export function Editor() {
         document.documentElement.classList.toggle("dark", event.data.dark === true)
         return
       }
+      if (event.data?.type === "office:find") {
+        const editorFrame = document.querySelector<HTMLIFrameElement>('iframe[name="frameEditor"]')
+        try {
+          const button = editorFrame?.contentDocument?.querySelector<HTMLButtonElement>("#slot-btn-search button, #id-toolbar-btn-search, #left-btn-searchbar")
+          if (button && !button.disabled) { button.click(); return }
+          report({ status: "编辑器查找尚未就绪，请稍后重试" })
+        } catch { report({ status: "无法打开编辑器查找" }) }
+        return
+      }
       if (event.data?.type === "office:init") {
         setReady(false)
         setLoadError("")
