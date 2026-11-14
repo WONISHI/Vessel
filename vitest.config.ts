@@ -26,7 +26,7 @@ export default defineConfig({
   test: {
     projects: [
       { extends: true, test: { name: "main", environment: "node", include: ["tests/main/**/*.test.ts", "packages/@vessel/*/tests/**/*.test.ts"] } },
-      { extends: true, test: { name: "renderer", environment: "jsdom", include: ["tests/renderer/**/*.test.ts", "tests/renderer/**/*.test.tsx"] } }
+      { extends: true, test: { name: "renderer", environment: "jsdom", server: { deps: { inline: ["@tomplum/react-git-log"] } }, include: ["tests/renderer/**/*.test.ts", "tests/renderer/**/*.test.tsx"] } }
     ],
     clearMocks: true,
     restoreMocks: true,

@@ -1,23 +1,61 @@
-import { useEffect } from "react"
-import { TextWithArrows } from "@/components/ui/text-with-arrows"
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
 import { HistoryLoadMore } from "@/pages/git/components/history-load-more"
-import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuSub, ContextMenuSubContent, ContextMenuSubTrigger, ContextMenuTrigger } from "@/components/ui/context-menu"
+import { ContextMenu, ContextMenuTrigger } from "@/components/ui/context-menu"
+import { GitCommitContextMenu } from "./git-commit-context-menu"
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
-import { getGraphWidth, GitGraphSvg } from "@/pages/git/components/git-graph"
-import { ArrowDown, ArrowUp, Copy, GitBranch, GitCommit, Globe, CloudCheck, RotateCcw, Tag, Undo2 } from "lucide-react"
+import { GitLog } from "@tomplum/react-git-log"
+import { toGitLogEntries } from "./git-log-entries"
+import { useDarkAppearance } from "@/hooks/use-dark-appearance"
+import "./git-log.css"
+import { ArrowDown, ArrowUp, CloudCheck } from "lucide-react"
 import type { GitPageModel } from "@/pages/git/hooks/use-git-page"
 
 /** 提交历史工具条与拓扑列表 */
 export function GitHistoryList({ g }: { g: GitPageModel }) {
-  const { loading, branches, commits, unpushedHashes, commitTotal, branchCommitTotal, historyLoading, historyFailed, selectedCommitIndex, setSelectedCommitIndex, historyFocusNonce, historyScope, setHistoryScope, setCreateBranchOpen, setBranchStartPoint, loadMoreHistory, topology, aheadCount, branchSyncedTotal, behindCount, copyToClipboard, handleCheckoutCommit, handleCreateTag, handleResetBranch, handleUndoLastCommit, handleRevertCommit, handleOpenRemoteCommit } = g
-  const graphWidth = getGraphWidth(topology.maxColumns)
-  const historyColumns = `${graphWidth}px minmax(0, 1fr) 360px`
+  const { loading, branches, commits, commitTotal, branchCommitTotal, historyLoading, historyFailed, selectedCommitIndex, setSelectedCommitIndex, historyFocusNonce, historyScope, setHistoryScope, loadMoreHistory, aheadCount, branchSyncedTotal, behindCount, status } = g
+  const dark = useDarkAppearance()
+  const logRoot = useRef<HTMLDivElement>(null)
+  const selectedHash = useRef<string | undefined>(undefined)
+  const [contextHash, setContextHash] = useState<string>()
+  const entries = useMemo(() => toGitLogEntries(commits, branches.current), [commits, branches.current])
+  const indices = useMemo(() => new Map(commits.map((commit, index) => [commit.hash, index])), [commits])
+  const contextIndex = contextHash ? indices.get(contextHash) : undefined
+  const indexStatus = useMemo(() => {
+    const files = new Map([...(status?.unstaged ?? []), ...(status?.untracked ?? []), ...(status?.staged ?? []), ...(status?.conflicts ?? [])].map((file) => [file.path, file]))
+    return {
+      added: [...files.values()].filter((file) => file.status === "A" || file.status === "?").length,
+      deleted: [...files.values()].filter((file) => file.status === "D").length,
+      modified: [...files.values()].filter((file) => file.status !== "A" && file.status !== "?" && file.status !== "D").length
+    }
+  }, [status])
+
+  // The library has no header-label API. Localise only its native headings.
+  useLayoutEffect(() => {
+    const labels: Record<string, string> = {
+      "Branch / Tag": "分支 / 标签",
+      Graph: "提交图",
+      "Commit message": "提交信息",
+      Author: "作者",
+      Timestamp: "提交时间"
+    }
+    logRoot.current?.querySelectorAll("h4, [id^='react-git-log-table-header-']").forEach((heading) => {
+      const label = labels[heading.textContent ?? ""]
+      if (label) heading.textContent = label
+    })
+  })
 
   useEffect(() => {
-    if (!historyFocusNonce) return
-    const row = document.querySelector<HTMLElement>("[data-git-history-selected=\"true\"]")
-    row?.scrollIntoView({ block: "nearest", behavior: "smooth" })
-  }, [historyFocusNonce, selectedCommitIndex])
+    const hash = commits[selectedCommitIndex]?.hash
+    if (!hash) return
+    const node = logRoot.current?.querySelector<HTMLElement>(`[id="commit-node-${hash}"]`)
+    // The library has no controlled selection prop. Drive its public node click
+    // so sidebar navigation highlights the same native row and graph node.
+    if (node && selectedHash.current !== hash) {
+      selectedHash.current = hash
+      node.click()
+    }
+    if (historyFocusNonce) node?.scrollIntoView({ block: "nearest", behavior: "smooth" })
+  }, [commits, selectedCommitIndex, historyFocusNonce])
 
   return (
     <>
@@ -89,193 +127,45 @@ export function GitHistoryList({ g }: { g: GitPageModel }) {
                   </div>
 
                   <ScrollArea className="min-w-0 flex-1 min-h-0 [&_[data-radix-scroll-area-viewport]>div]:!block">
-                    <div className="relative w-full" style={{ minWidth: Math.max(700, graphWidth + 396) }}>
-                      {/* 表头 (参考 SourceTree: 图表 | 描述 | 提交 | 作者 | 日期) */}
-                      <div style={{ gridTemplateColumns: historyColumns }} className="git-history-table-header sticky top-0 z-20 grid h-7 items-center gap-3 pr-3 text-[11px] font-medium text-stone-500 dark:text-stone-400 border-b border-stone-200 dark:border-stone-800 bg-stone-100/95 dark:bg-[#20242a] backdrop-blur-xs select-none">
-                        <div
-                          style={{ width: graphWidth, minWidth: graphWidth }}
-                          className="shrink-0 pl-3.5"
-                        >
-                          图表
+                    <ContextMenu>
+                      <ContextMenuTrigger asChild>
+                        <div ref={logRoot} className="git-log-demo" onContextMenuCapture={(event) => {
+                          const target = event.target as HTMLElement
+                          const row = target.closest('[id^="react-git-log-table-row-"]')
+                          const graphCell = target.closest('[id^="graph-column-row-"]')
+                          const rowNumber = row?.id.match(/row-(\d+)$/)?.[1] ?? graphCell?.id.match(/row-(\d+)-/)?.[1]
+                          const node = rowNumber === undefined ? null : logRoot.current?.querySelector<HTMLElement>(`[id^="graph-column-row-${rowNumber}-col-"] [id^="commit-node-"][role="button"]`)
+                          const hash = node?.id.slice("commit-node-".length)
+                          const index = hash ? indices.get(hash) : undefined
+                          if (index === undefined) { event.preventDefault(); return }
+                          setContextHash(hash)
+                          setSelectedCommitIndex(index)
+                        }}>
+                          {commits.length > 0 && <GitLog
+                            entries={entries}
+                            currentBranch={branches.current || "HEAD"}
+                            theme={dark ? "dark" : "light"}
+                            colours={dark ? "rainbow-dark" : "rainbow-light"}
+                            showHeaders
+                            showGitIndex
+                            indexStatus={indexStatus}
+                            defaultGraphWidth={120}
+                            rowSpacing={0}
+                            onSelectCommit={(commit) => {
+                              selectedHash.current = commit?.hash
+                              if (commit?.hash === "index") { g.setActiveTab("status"); return }
+                              const index = commit && indices.get(commit.hash)
+                              if (index !== undefined) setSelectedCommitIndex(index)
+                            }}
+                          >
+                            <GitLog.Tags />
+                            <GitLog.GraphHTMLGrid nodeSize={14} nodeTheme="default" breakPointTheme="dot" />
+                            <GitLog.Table />
+                          </GitLog>}
                         </div>
-                        <span className="min-w-0">描述</span>
-                        <div className="sticky right-0 z-20 grid h-full grid-cols-[80px_112px_144px] items-center gap-3 bg-stone-100 dark:bg-[#20242a]">
-                          <span>提交</span>
-                          <span>作者</span>
-                          <span>日期</span>
-                        </div>
-                      </div>
-
-                      {/* 提交列表信息容器 */}
-                      <div className="relative w-full">
-                        {/* SVG 拓扑轨道列 (绝对定位浮层，自然悬浮在每行背景之上) */}
-                        <div className="pointer-events-none absolute left-0 top-0 z-10">
-                          <GitGraphSvg
-                            nodes={topology.nodes}
-                            maxColumns={topology.maxColumns}
-                            selectedIndex={selectedCommitIndex}
-                            onSelectIndex={(idx) => setSelectedCommitIndex(idx)}
-                            currentBranch={branches.current}
-                          />
-                        </div>
-
-                        {commits.map((c, idx) => {
-                          const isSelected = idx === selectedCommitIndex
-                          return (
-                            <ContextMenu key={c.hash}>
-                              <ContextMenuTrigger asChild>
-                                <div
-                                  style={{ height: 32, gridTemplateColumns: historyColumns }}
-                                  data-git-history-selected={isSelected}
-                                  onClick={() => setSelectedCommitIndex(idx)}
-                                  onContextMenu={() => setSelectedCommitIndex(idx)}
-                                  className={`group/history-row grid items-center gap-3 pr-3 text-xs cursor-pointer border-b border-stone-100 transition-colors ${isSelected ? "bg-blue-50 text-blue-900 font-medium" : "hover:bg-stone-50 text-stone-700"}`}
-                                >
-                                  {/* 左侧拓扑图占位 */}
-                                  <div
-                                    style={{ width: graphWidth, minWidth: graphWidth }}
-                                    className="shrink-0"
-                                  />
-                                  {/* 描述 (含分支标签与提交信息) */}
-                                  <span
-                                    className="min-w-0 truncate"
-                                    data-title={c.message}
-                                  >
-                                    {c.refs.map((r) => {
-                                      const isTag = r.startsWith("tag:")
-                                      const isHead = r.startsWith("HEAD -> ") || r === branches.current
-                                      const isRemote = r.startsWith("origin/") || r.includes("/")
-                                      const badgeClass = isTag
-                                        ? "bg-amber-100 text-amber-800 border-amber-200"
-                                        : isHead
-                                        ? "bg-emerald-100 text-emerald-800 border-emerald-200 font-bold"
-                                        : isRemote
-                                        ? "bg-purple-100 text-purple-800 border-purple-200"
-                                        : "bg-blue-100 text-blue-800 border-blue-200"
-
-                                      return (
-                                        <span
-                                          key={r}
-                                          data-git-sidebar-hover
-                                          className={`mr-1.5 rounded border px-1 py-0.5 text-[10px] font-medium ${badgeClass}`}
-                                        >
-                                          <TextWithArrows text={r} />
-                                        </span>
-                                      )
-                                    })}
-                                    {c.message}
-                                  </span>
-                                  <div className={`sticky right-0 z-10 grid h-full grid-cols-[80px_112px_144px] items-center gap-3 transition-colors ${isSelected ? "bg-blue-50 dark:bg-[#2f343b]" : "bg-white group-hover/history-row:bg-stone-50 dark:bg-[#22272e] dark:group-hover/history-row:bg-[#2d333b]"}`}>
-                                    <span className="font-mono text-[11px] text-stone-400">{c.shortHash}</span>
-                                    <span className="min-w-0 truncate text-stone-500 text-[11px]" data-title={c.author}>{c.author}</span>
-                                    <span className="text-stone-400 text-[11px]">{c.date}</span>
-                                  </div>
-                                </div>
-                              </ContextMenuTrigger>
-                              <ContextMenuContent className="w-56">
-                                <ContextMenuItem onSelect={() => void handleCheckoutCommit(c.hash)}>
-                                  <GitCommit className="size-3.5 text-stone-500" />
-                                  <span>检出此提交 ({c.shortHash})</span>
-                                </ContextMenuItem>
-                                <ContextMenuItem
-                                  onSelect={() => {
-                                    setBranchStartPoint(c.hash)
-                                    setCreateBranchOpen(true)
-                                  }}
-                                >
-                                  <GitBranch className="size-3.5 text-indigo-500" />
-                                  <span>在此处创建分支…</span>
-                                </ContextMenuItem>
-                                <ContextMenuItem onSelect={() => void handleCreateTag(c.hash)}>
-                                  <Tag className="size-3.5 text-stone-500" />
-                                  <span>在此处创建标签…</span>
-                                </ContextMenuItem>
-
-                                <ContextMenuSeparator />
-
-                                {idx === 0 && (
-                                  <>
-                                    <ContextMenuSub>
-                                      <ContextMenuSubTrigger className="text-amber-700 focus:text-amber-800 font-medium">
-                                        <Undo2 className="size-3.5 text-amber-600" />
-                                        <span>撤销最后一次提交…</span>
-                                      </ContextMenuSubTrigger>
-                                      <ContextMenuSubContent className="w-64">
-                                        <ContextMenuItem onSelect={() => void handleUndoLastCommit("mixed")}>
-                                          <div className="flex flex-col gap-0.5">
-                                            <span className="font-medium text-stone-800">保留修改在工作区 (推荐)</span>
-                                            <span className="text-[10px] text-stone-400">git reset HEAD~1 (退回未暂存区)</span>
-                                          </div>
-                                        </ContextMenuItem>
-                                        <ContextMenuItem onSelect={() => void handleUndoLastCommit("soft")}>
-                                          <div className="flex flex-col gap-0.5">
-                                            <span className="font-medium text-stone-800">保留修改在暂存区</span>
-                                            <span className="text-[10px] text-stone-400">git reset --soft HEAD~1</span>
-                                          </div>
-                                        </ContextMenuItem>
-                                      </ContextMenuSubContent>
-                                    </ContextMenuSub>
-                                    <ContextMenuSeparator />
-                                  </>
-                                )}
-
-                                <ContextMenuSub>
-                                  <ContextMenuSubTrigger className="text-amber-700 focus:text-amber-800">
-                                    <RotateCcw className="size-3.5 text-orange-500" />
-                                    <span>重置当前分支到此处</span>
-                                  </ContextMenuSubTrigger>
-                                  <ContextMenuSubContent className="w-64">
-                                    <ContextMenuItem onSelect={() => void handleResetBranch(c.hash, "mixed")}>
-                                      <div className="flex flex-col gap-0.5">
-                                        <span className="font-medium text-stone-800">混合重置 (--mixed, 默认)</span>
-                                        <span className="text-[10px] text-stone-400">回退到此，修改保留在工作区</span>
-                                      </div>
-                                    </ContextMenuItem>
-                                    <ContextMenuItem onSelect={() => void handleResetBranch(c.hash, "soft")}>
-                                      <div className="flex flex-col gap-0.5">
-                                        <span className="font-medium text-stone-800">软重置 (--soft, 保留暂存)</span>
-                                        <span className="text-[10px] text-stone-400">回退到此，修改保留在暂存区</span>
-                                      </div>
-                                    </ContextMenuItem>
-                                    <ContextMenuItem
-                                      className="text-red-600 focus:text-red-600"
-                                      onSelect={() => void handleResetBranch(c.hash, "hard")}
-                                    >
-                                      <div className="flex flex-col gap-0.5">
-                                        <span className="font-medium text-red-600">强行重置 (--hard, 丢弃修改)</span>
-                                        <span className="text-[10px] text-red-400">⚠️ 丢弃所有改动，强制对齐该提交</span>
-                                      </div>
-                                    </ContextMenuItem>
-                                  </ContextMenuSubContent>
-                                </ContextMenuSub>
-
-                                <ContextMenuItem onSelect={() => void handleRevertCommit(c.hash)}>
-                                  <Undo2 className="size-3.5 text-stone-500" />
-                                  <span>回滚此提交 (Revert)</span>
-                                </ContextMenuItem>
-
-                                <ContextMenuSeparator />
-
-                                <ContextMenuItem onSelect={() => copyToClipboard(c.hash, "提交 SHA-1")}>
-                                  <Copy className="size-3.5 text-stone-500" />
-                                  <span>复制提交 SHA-1</span>
-                                </ContextMenuItem>
-                                <ContextMenuItem onSelect={() => copyToClipboard(c.message, "提交信息")}>
-                                  <Copy className="size-3.5 text-stone-500" />
-                                  <span>复制提交信息</span>
-                                </ContextMenuItem>
-                                {branches.remote.length > 0 && !unpushedHashes.has(c.hash) && (
-                                  <ContextMenuItem onSelect={() => void handleOpenRemoteCommit(c.hash)}>
-                                    <Globe className="size-3.5 text-stone-500" />
-                                    <span>打开远程仓库</span>
-                                  </ContextMenuItem>
-                                )}
-                              </ContextMenuContent>
-                            </ContextMenu>
-                          )
-                        })}
-                      </div>
-                    </div>
+                      </ContextMenuTrigger>
+                      {contextIndex !== undefined && <GitCommitContextMenu g={g} c={commits[contextIndex]} idx={contextIndex} />}
+                    </ContextMenu>
                     <HistoryLoadMore loaded={commits.length} total={commitTotal} loading={historyLoading} failed={historyFailed} paused={loading} onLoad={() => void loadMoreHistory()} />
                     <ScrollBar orientation="horizontal" />
                   </ScrollArea>

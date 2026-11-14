@@ -1,13 +1,18 @@
 import { EditorLoading } from "@/components/ui/editor-loading"
 import { StatusSlot } from "@/components/workspace/components/layout-main/status-slot"
+import { useDarkAppearance } from "@/hooks/use-dark-appearance"
 import { useEffect, useRef, useState } from "react"
 
 /** Renders the office canvas component. */
 export default function OfficeCanvas({ activeFilePath }: { activeFilePath: string }) {
+  const dark = useDarkAppearance()
   const frame = useRef<HTMLIFrameElement>(null)
   const [url, setUrl] = useState("")
   const [error, setError] = useState("")
   const [status, setStatus] = useState("正在加载…")
+  useEffect(() => {
+    if (url) frame.current?.contentWindow?.postMessage({ type: "office:theme", dark }, new URL(url).origin)
+  }, [dark, url])
   useEffect(() => {
     let active = true
     let document: Awaited<ReturnType<typeof window.electronAPI.readOfficePath>> | undefined
@@ -24,6 +29,7 @@ export default function OfficeCanvas({ activeFilePath }: { activeFilePath: strin
       if (event.source !== frame.current?.contentWindow || event.origin !== origin) return
       if (event.data?.type === "office:ready") {
         ready = true
+        frame.current?.contentWindow?.postMessage({ type: "office:theme", dark: globalThis.document.documentElement.classList.contains("dark") }, origin)
         initialize()
       }
       if (event.data?.type === "office:state") setStatus(event.data.dirty ? "未保存" : event.data.status || "本地编辑")

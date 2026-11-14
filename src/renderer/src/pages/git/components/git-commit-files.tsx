@@ -4,10 +4,20 @@ import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator,
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Copy, File, FileText, FolderOpen } from "lucide-react"
 import type { GitPageModel } from "@/pages/git/hooks/use-git-page"
+import { useState } from "react"
 
 /** 选定提交的详情与变更文件 */
 export function GitCommitFiles({ g }: { g: GitPageModel }) {
   const { repoPath, commitDetail, setDiffText, getFullPath, copyToClipboard, handleRevealInFinder } = g
+  const [selection, setSelection] = useState<{ commit: string; path: string }>()
+  const selectionKey = `${repoPath}:${commitDetail?.hash}`
+  const selectedPath = selection?.commit === selectionKey ? selection.path : commitDetail?.files[0]?.path
+  if (selection && selection.commit !== selectionKey) setSelection(undefined)
+  const viewDiff = (path: string) => {
+    if (!commitDetail) return
+    setSelection({ commit: selectionKey, path })
+    void window.electronAPI.git.getDiff(repoPath, path, false, commitDetail.hash).then((res) => setDiffText(res.diff))
+  }
 
   return (
                       <ScrollArea className="git-commit-files-scroll flex-1 min-h-0 min-w-0 p-3 text-xs">
@@ -25,13 +35,19 @@ export function GitCommitFiles({ g }: { g: GitPageModel }) {
                                 <ContextMenu key={f.path}>
                                   <ContextMenuTrigger asChild>
                                     <div
-                                      className="group flex items-center justify-between gap-2 rounded px-2 py-1 hover:bg-stone-100 cursor-pointer text-xs"
-                                      onClick={() => {
-                                        window.electronAPI.git.getDiff(repoPath, f.path, false, commitDetail.hash).then((res) => setDiffText(res.diff))
+                                      className="git-commit-file-row group flex items-center justify-between gap-2 rounded px-2 py-1 hover:bg-stone-100 cursor-pointer text-xs"
+                                      data-commit-file-selected={selectedPath === f.path}
+                                      role="button"
+                                      tabIndex={0}
+                                      aria-pressed={selectedPath === f.path}
+                                      onKeyDown={(event) => {
+                                        if (event.key === "Enter" || event.key === " ") {
+                                          event.preventDefault()
+                                          viewDiff(f.path)
+                                        }
                                       }}
-                                      onContextMenu={() => {
-                                        window.electronAPI.git.getDiff(repoPath, f.path, false, commitDetail.hash).then((res) => setDiffText(res.diff))
-                                      }}
+                                      onClick={() => viewDiff(f.path)}
+                                      onContextMenu={() => viewDiff(f.path)}
                                     >
                                       <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden">
                                         {/* 2号: 文件图标 */}
@@ -53,9 +69,7 @@ export function GitCommitFiles({ g }: { g: GitPageModel }) {
                                   </ContextMenuTrigger>
                                   <ContextMenuContent className="w-52">
                                     <ContextMenuItem
-                                      onSelect={() => {
-                                        window.electronAPI.git.getDiff(repoPath, f.path, false, commitDetail.hash).then((res) => setDiffText(res.diff))
-                                      }}
+                                      onSelect={() => viewDiff(f.path)}
                                     >
                                       <FileText className="size-3.5 text-stone-500" />
                                       <span>查看文件差异</span>

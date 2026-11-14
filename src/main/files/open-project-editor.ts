@@ -1,23 +1,33 @@
 import { execFile } from "node:child_process"
 import { realpath, stat } from "node:fs/promises"
-import { isAbsolute } from "node:path"
+import { isAbsolute, relative, resolve, sep } from "node:path"
 import { promisify } from "node:util"
 
 const run = promisify(execFile)
 
 /** Launch an editor with an argument array, preserving spaces and avoiding a shell. */
-export async function openProjectInEditor(path: unknown): Promise<string> {
+export async function openProjectInEditor(path: unknown, filePath?: unknown): Promise<string> {
   if (typeof path !== "string" || !isAbsolute(path) || path.includes("\0")) throw new Error("项目路径无效")
   const root = await realpath(path)
   if (!(await stat(root)).isDirectory()) throw new Error("项目路径不是文件夹")
+  let file: string | undefined
+  if (filePath !== undefined) {
+    if (typeof filePath !== "string" || !filePath || filePath.includes("\0")) throw new Error("文件路径无效")
+    file = await realpath(resolve(root, filePath))
+    const offset = relative(root, file)
+    if (isAbsolute(offset) || offset === ".." || offset.startsWith(`..${sep}`)) throw new Error("文件不在项目目录内")
+    if (!(await stat(file)).isFile()) throw new Error("指定路径不是文件")
+  }
+  const codeArgs = file ? ["--new-window", root, "--goto", file] : [root]
+  const stormArgs = file ? [root, file] : [root]
   const candidates = process.platform === "darwin"
     ? [
-        { name: "VS Code", executable: "/usr/bin/open", args: ["-b", "com.microsoft.VSCode", root] },
-        { name: "WebStorm", executable: "/usr/bin/open", args: ["-b", "com.jetbrains.WebStorm", root] }
+        { name: "VS Code", executable: "/usr/bin/open", args: file ? ["-n", "-b", "com.microsoft.VSCode", "--args", ...codeArgs] : ["-b", "com.microsoft.VSCode", root] },
+        { name: "WebStorm", executable: "/usr/bin/open", args: file ? ["-n", "-b", "com.jetbrains.WebStorm", "--args", ...stormArgs] : ["-b", "com.jetbrains.WebStorm", root] }
       ]
     : [
-        { name: "VS Code", executable: process.platform === "win32" ? "Code.exe" : "code", args: [root] },
-        { name: "WebStorm", executable: process.platform === "win32" ? "webstorm64.exe" : "webstorm", args: [root] }
+        { name: "VS Code", executable: process.platform === "win32" ? "Code.exe" : "code", args: codeArgs },
+        { name: "WebStorm", executable: process.platform === "win32" ? "webstorm64.exe" : "webstorm", args: stormArgs }
       ]
   for (const candidate of candidates) {
     try {

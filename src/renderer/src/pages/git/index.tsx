@@ -176,7 +176,7 @@ export default function SourceTreePage() {
                   id="git-history-graph"
                   defaultSize="65%"
                   minSize="20%"
-                  maxSize="85%"
+                  maxSize="100%"
                   className="flex min-h-0 flex-col"
                 >
                   {/* 历史视图顶部工具条 (分支范围切换与统计) */}
@@ -190,7 +190,7 @@ export default function SourceTreePage() {
                 <ResizablePanel
                   id="git-history-detail"
                   defaultSize="35%"
-                  minSize="15%"
+                  minSize="0%"
                   maxSize="80%"
                   className="flex min-h-0 flex-col bg-white"
                 >

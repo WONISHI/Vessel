@@ -139,7 +139,7 @@ export class FilesModule extends BaseModule {
   protected onActivate(): void {
     ipcMain.handle("code:diagnostics", (_event, path, content) => getCodeDiagnostics(path, content))
     ipcMain.handle("workspace:restoreTabs", (_event, root: string, paths: string[]) => restoreWorkspaceTabs(root, paths))
-    ipcMain.handle("workspace:openInEditor", (_event, root: unknown) => openProjectInEditor(root))
+    ipcMain.handle("workspace:openInEditor", (_event, root: unknown, filePath?: unknown) => openProjectInEditor(root, filePath))
     ipcMain.handle("workspace:revealFile", async (_event, root: string, path: string) => {
       const base = await realpath(root),
         source = await realpath(path),

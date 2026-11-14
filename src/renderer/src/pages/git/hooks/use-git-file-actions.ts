@@ -235,5 +235,14 @@ export function useGitFileActions(repo: GitRepositoryState) {
     }
   }
 
-  return { confirmation, settleConfirmation, handleStageFile, handleUnstageFile, handleStageAll, handleUnstageAll, handleDiscard, handleDiscardStaged, handleStageMultiple, handleUnstageMultiple, handleDiscardMultiple, handleDiscardStagedMultiple, handleStashFiles, handleStashAll, stashRequest, setStashRequest, submitStash, handleStashPop, handleStashDrop, getFullPath, copyToClipboard, handleRevealInFinder }
+  const handleOpenInEditor = async (filePath: string) => {
+    if (!repoPath) return
+    try {
+      await window.electronAPI.openProjectInEditor(repoPath, filePath)
+    } catch (error) {
+      toast.error("在编辑器中打开失败", { description: cleanGitErrorMessage(error) })
+    }
+  }
+
+  return { confirmation, settleConfirmation, handleStageFile, handleUnstageFile, handleStageAll, handleUnstageAll, handleDiscard, handleDiscardStaged, handleStageMultiple, handleUnstageMultiple, handleDiscardMultiple, handleDiscardStagedMultiple, handleStashFiles, handleStashAll, stashRequest, setStashRequest, submitStash, handleStashPop, handleStashDrop, getFullPath, copyToClipboard, handleRevealInFinder, handleOpenInEditor }
 }

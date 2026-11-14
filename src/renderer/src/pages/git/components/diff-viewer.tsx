@@ -1,7 +1,10 @@
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 import { toast } from "@/components/ui/sonner"
 import { AlignJustify, Check, Columns, Copy } from "lucide-react"
-import { Fragment, useState } from "react"
+import { Fragment, useMemo, useState } from "react"
+import { Decoration, Diff, Hunk, parseDiff } from "react-diff-view"
+import "react-diff-view/style/index.css"
+import "./diff-viewer.css"
 
 export interface DiffViewerProps {
   diffText: string
@@ -10,69 +13,20 @@ export interface DiffViewerProps {
   onToggleStage?: () => void
 }
 
-interface ParsedHunk {
-  header: string
-  lines: Array<{
-    type: "add" | "delete" | "normal" | "header"
-    oldLine?: number
-    newLine?: number
-    content: string
-  }>
-}
-
-/** Parses unified diff. */
-function parseUnifiedDiff(diff: string): ParsedHunk[] {
-  if (!diff) return []
-  const rawLines = diff.split("\n")
-  const hunks: ParsedHunk[] = []
-  let currentHunk: ParsedHunk | null = null
-  let oldLine = 0
-  let newLine = 0
-
-  for (const line of rawLines) {
-    if (line.startsWith("@@")) {
-      const match = line.match(/@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@/)
-      if (match) {
-        oldLine = parseInt(match[1], 10)
-        newLine = parseInt(match[2], 10)
-      }
-      currentHunk = { header: line, lines: [] }
-      hunks.push(currentHunk)
-      continue
-    }
-
-    if (!currentHunk) continue
-
-    if (line.startsWith("+") && !line.startsWith("+++")) {
-      currentHunk.lines.push({
-        type: "add",
-        newLine: newLine++,
-        content: line.slice(1)
-      })
-    } else if (line.startsWith("-") && !line.startsWith("---")) {
-      currentHunk.lines.push({
-        type: "delete",
-        oldLine: oldLine++,
-        content: line.slice(1)
-      })
-    } else if (!line.startsWith("\\")) {
-      currentHunk.lines.push({
-        type: "normal",
-        oldLine: oldLine++,
-        newLine: newLine++,
-        content: line.startsWith(" ") ? line.slice(1) : line
-      })
-    }
-  }
-
-  return hunks
-}
-
 /** Renders the diff viewer component. */
 export function DiffViewer({ diffText, filePath, isStaged, onToggleStage }: DiffViewerProps) {
   const [viewMode, setViewMode] = useState<"unified" | "split">("unified")
   const [copied, setCopied] = useState(false)
-  const hunks = parseUnifiedDiff(diffText)
+  const files = useMemo(() => {
+    // Untracked files arrive as a unified patch without git's file header.
+    const header = diffText.search(/^diff --git /m)
+    const patch = header >= 0 ? diffText.slice(header) : `diff --git a/file b/file\n${diffText}`
+    try {
+      return parseDiff(patch, { nearbySequences: "zip" })
+    } catch {
+      return []
+    }
+  }, [diffText])
 
   /** Handles copy events. */
   const handleCopy = () => {
@@ -142,109 +96,24 @@ export function DiffViewer({ diffText, filePath, isStaged, onToggleStage }: Diff
 
       {/* Diff 内容滚动区 (4号) */}
       <ScrollArea className="flex-1 min-h-0 font-mono text-[11px] leading-5">
-        {viewMode === "unified" ? (
-          <table className="w-full border-collapse">
-            <tbody>
-              {hunks.map((hunk, hIdx) => (
-                <Fragment key={hIdx}>
-                  <tr className="bg-blue-50 text-blue-600">
-                    <td
-                      colSpan={3}
-                      className="px-3 py-1 font-semibold select-none"
-                    >
-                      {hunk.header}
-                    </td>
-                  </tr>
-                  {hunk.lines.map((line, lIdx) => {
-                    const isAdd = line.type === "add"
-                    const isDel = line.type === "delete"
-                    return (
-                      <tr
-                        key={lIdx}
-                        className={isAdd ? "bg-green-50/70 hover:bg-green-100/70 text-green-900" : isDel ? "bg-red-50/70 hover:bg-red-100/70 text-red-900" : "hover:bg-stone-50 text-stone-700"}
-                      >
-                        <td className="w-10 select-none border-r border-stone-200/50 pr-2 text-right text-stone-400">{line.oldLine || ""}</td>
-                        <td className="w-10 select-none border-r border-stone-200/50 pr-2 text-right text-stone-400">{line.newLine || ""}</td>
-                        <td className="px-3 whitespace-pre-wrap break-all">
-                          <span className="inline-block w-4 font-bold select-none text-stone-400">{isAdd ? "+" : isDel ? "-" : " "}</span>
-                          {line.content}
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </Fragment>
-              ))}
-            </tbody>
-          </table>
-        ) : (
-          /* Split 分栏对比模式 */
-          <div className="flex divide-x divide-stone-200">
-            <div className="w-1/2 overflow-x-auto">
-              <table className="w-full border-collapse">
-                <tbody>
-                  {hunks.map((hunk, hIdx) => (
-                    <Fragment key={hIdx}>
-                      <tr className="bg-blue-50 text-blue-600">
-                        <td
-                          colSpan={2}
-                          className="px-2 py-0.5 font-semibold select-none truncate"
-                        >
-                          {hunk.header}
-                        </td>
-                      </tr>
-                      {hunk.lines
-                        .filter((l) => l.type !== "add")
-                        .map((line, lIdx) => (
-                          <tr
-                            key={lIdx}
-                            className={line.type === "delete" ? "bg-red-50/70 text-red-900" : "text-stone-700 hover:bg-stone-50"}
-                          >
-                            <td className="w-10 select-none border-r border-stone-200/50 pr-2 text-right text-stone-400">{line.oldLine || ""}</td>
-                            <td className="px-2 whitespace-pre-wrap break-all">
-                              <span className="inline-block w-3 font-bold select-none text-stone-400">{line.type === "delete" ? "-" : " "}</span>
-                              {line.content}
-                            </td>
-                          </tr>
-                        ))}
+        <div className="git-code-diff">
+          {files.map((file, index) => (
+            <Fragment key={`${file.oldPath}-${file.newPath}-${index}`}>
+              {files.length > 1 && <div className="git-diff-file-name">{file.newPath === "/dev/null" ? file.oldPath : file.newPath}</div>}
+              {file.hunks.length ? (
+                <Diff viewType={viewMode} diffType={file.type} hunks={file.hunks} optimizeSelection>
+                  {(hunks) => hunks.map((hunk) => (
+                    <Fragment key={`${hunk.oldStart}-${hunk.newStart}`}>
+                      <Decoration><div className="git-diff-hunk-header">{hunk.content}</div></Decoration>
+                      <Hunk hunk={hunk} />
                     </Fragment>
                   ))}
-                </tbody>
-              </table>
-            </div>
-            <div className="w-1/2 overflow-x-auto">
-              <table className="w-full border-collapse">
-                <tbody>
-                  {hunks.map((hunk, hIdx) => (
-                    <Fragment key={hIdx}>
-                      <tr className="bg-blue-50 text-blue-600">
-                        <td
-                          colSpan={2}
-                          className="px-2 py-0.5 font-semibold select-none truncate"
-                        >
-                          {hunk.header}
-                        </td>
-                      </tr>
-                      {hunk.lines
-                        .filter((l) => l.type !== "delete")
-                        .map((line, lIdx) => (
-                          <tr
-                            key={lIdx}
-                            className={line.type === "add" ? "bg-green-50/70 text-green-900" : "text-stone-700 hover:bg-stone-50"}
-                          >
-                            <td className="w-10 select-none border-r border-stone-200/50 pr-2 text-right text-stone-400">{line.newLine || ""}</td>
-                            <td className="px-2 whitespace-pre-wrap break-all">
-                              <span className="inline-block w-3 font-bold select-none text-stone-400">{line.type === "add" ? "+" : " "}</span>
-                              {line.content}
-                            </td>
-                          </tr>
-                        ))}
-                    </Fragment>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
+                </Diff>
+              ) : <div className="p-3 text-stone-500">该文件无可显示的文本差异（二进制或文件信息变更）</div>}
+            </Fragment>
+          ))}
+          {!files.length && <pre className="m-0 whitespace-pre-wrap p-3">{diffText}</pre>}
+        </div>
         <ScrollBar orientation="horizontal" />
       </ScrollArea>
     </div>

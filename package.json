@@ -199,6 +199,7 @@
     "@electron-toolkit/utils": "^4.0.0",
     "@noble/hashes": "2.2.0",
     "@parcel/watcher": "^2.6.0",
+    "@tomplum/react-git-log": "^3.5.1",
     "@vessel/clipper": "file:packages/@vessel/clipper",
     "@vessel/sync": "file:packages/@vessel/sync",
     "@vitalets/google-translate-api": "^9.2.1",
@@ -207,6 +208,7 @@
     "dugite": "^3.2.3",
     "electron-updater": "^6.8.11",
     "node-pty": "^1.1.0",
+    "react-diff-view": "^3.3.3",
     "typescript": "^5.9.3",
     "yaml": "^2.9.1",
     "yauzl": "^3.4.0"

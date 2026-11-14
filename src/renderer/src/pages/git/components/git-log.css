@@ -1,0 +1,31 @@
+/* Keep the native demo's Tags / Graph / Table, node shapes and themed highlights. */
+.git-log-demo {
+  min-width: 820px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 14px;
+  background: #fff;
+}
+html.dark .git-log-demo {
+  background: #20242a;
+}
+
+.git-log-demo #react-git-log > :last-child {
+  min-width: 0;
+}
+
+/* Upstream places the 2px right border at 50% by counting a 2px content
+   width from left: calc(50% - 3px). Tailwind's border-box reset otherwise
+   removes that content width and shifts the visible stroke 2px left. */
+.git-log-demo #react-git-log [id^="vertical-line-"],
+.git-log-demo #react-git-log [id="head-commit-vertical-line"] {
+  box-sizing: content-box;
+}
+
+/* The library fixes rows at 40px internally. Scale Tags, Graph and Table
+   together so rows become 34px and text ~12px without desynchronising edges. */
+.git-log-demo #react-git-log {
+  zoom: 0.85;
+}

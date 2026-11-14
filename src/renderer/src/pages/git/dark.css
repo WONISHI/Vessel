@@ -370,3 +370,28 @@ html.dark .vessel-git-page .git-navigation [data-git-branch-row="leaf"][data-git
   background: #2f343b !important;
   color: #ffffff !important;
 }
+
+.vessel-git-page .git-commit-file-row {
+  transition: background-color 120ms ease;
+}
+.vessel-git-page .git-commit-file-row:is(:hover, :focus-visible) {
+  background: #f5f5f4;
+}
+.vessel-git-page .git-commit-file-row[data-commit-file-selected="true"] {
+  background: #e7e5e4;
+}
+.vessel-git-page .git-commit-file-row[data-commit-file-selected="true"]:is(:hover, :focus-visible) {
+  background: #d6d3d1;
+}
+html.dark .vessel-git-page .git-commit-file-row {
+  background: transparent !important;
+}
+html.dark .vessel-git-page .git-commit-file-row:is(:hover, :focus-visible) {
+  background: #30353d !important;
+}
+html.dark .vessel-git-page .git-commit-file-row[data-commit-file-selected="true"] {
+  background: #3a4048 !important;
+}
+html.dark .vessel-git-page .git-commit-file-row[data-commit-file-selected="true"]:is(:hover, :focus-visible) {
+  background: #444b55 !important;
+}

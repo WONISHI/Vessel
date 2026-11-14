@@ -327,40 +327,64 @@
   justify-content: center;
   background: #faf9f7;
 }
-.browser-loading-card {
-  background: white;
+.browser-loading-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: min(320px, calc(100% - 40px));
+  color: #292524;
+  text-align: center;
+}
+.browser-loading-visual {
+  position: relative;
+  margin-bottom: 18px;
+  padding: 22px;
+  background: radial-gradient(ellipse, #dcfce7 0%, transparent 70%);
+}
+.browser-loading-window {
+  width: 144px;
+  overflow: hidden;
   border: 1px solid #e7e5e4;
-  border-radius: 14px;
-  padding: 12px 34px 22px;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 8px 24px #15803d0d, 0 2px 5px #00000005;
+}
+.browser-loading-window-top {
   display: flex;
   align-items: center;
-  flex-direction: column;
-  gap: 12px;
-  box-shadow: 0 8px 30px #0000000f;
-  font-size: 13px;
-  color: #57534e;
+  gap: 4px;
+  height: 25px;
+  padding: 0 10px;
+  border-bottom: 1px solid #f0eeec;
 }
-.browser-loading-card img {
-  width: 120px;
-  height: 120px;
+.browser-loading-window-top i { width: 4px; height: 4px; border-radius: 50%; background: #d6d3d1; }
+.browser-loading-window-body { display: flex; align-items: center; gap: 12px; padding: 18px 14px; }
+.browser-loading-window-body svg { width: 26px; height: 26px; color: #16a34a; stroke-width: 1.5; }
+.browser-loading-skeleton { display: grid; gap: 7px; flex: 1; }
+.browser-loading-skeleton i { height: 5px; border-radius: 4px; background: #e7e5e4; }
+.browser-loading-skeleton i:last-child { width: 65%; }
+.browser-loading-window-track { height: 3px; overflow: hidden; background: #f0fdf4; }
+.browser-loading-window-track::after {
+  content: "";
+  display: block;
+  width: 40%;
+  height: 100%;
+  border-radius: 4px;
+  background: #22c55e;
+  animation: browser-loading-sweep 1.6s ease-in-out infinite;
 }
-.browser-loading-card small {
-  max-width: 200px;
+.browser-loading-content strong { font-size: 14px; font-weight: 500; letter-spacing: .02em; }
+.browser-loading-content small {
+  max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   color: #a8a29e;
-  font-size: 11px;
+  font-size: 12px;
 }
-.browser-loading-dots span {
-  animation: browser-dot 1.4s infinite;
-}
-.browser-loading-dots span:nth-child(2) {
-  animation-delay: 0.2s;
-}
-.browser-loading-dots span:nth-child(3) {
-  animation-delay: 0.4s;
-}
+@keyframes browser-loading-sweep { from { transform: translateX(-100%); } to { transform: translateX(350%); } }
+@media (prefers-reduced-motion: reduce) { .browser-loading-window-track::after { animation: none; width: 100%; opacity: .5; } }
 .browser-loading-bar {
   position: absolute;
   top: 0;
@@ -518,12 +542,15 @@
 }
 
 html.dark .browser-page-loading { background: #22272e; }
-html.dark .browser-loading-card {
-  background: #22272e;
-  border-color: #444c56;
-  color: #cdd9e5;
-  box-shadow: 0 8px 30px #00000026;
-}
+html.dark .browser-loading-content { color: #e6e8eb; }
+html.dark .browser-loading-visual { background: radial-gradient(ellipse, #22443488 0%, transparent 70%); }
+html.dark .browser-loading-window { background: #292f37; border-color: #3c444f; box-shadow: 0 8px 24px #00000018; }
+html.dark .browser-loading-window-top { border-color: #3c444f; }
+html.dark .browser-loading-window-top i,
+html.dark .browser-loading-skeleton i { background: #48515e; }
+html.dark .browser-loading-window-body svg { color: #4ade80; }
+html.dark .browser-loading-window-track { background: #223b30; }
+html.dark .browser-loading-content small { color: #8c96a3; }
 
 /* Match the workspace locate button in light mode. */
 html:not(.dark) .browser-more-item[data-highlighted],

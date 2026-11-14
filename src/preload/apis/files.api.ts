@@ -33,7 +33,7 @@ export const filesAPI = {
 
   /** Performs the reveal workspace file operation. */
   restoreWorkspaceTabs: (root: string, paths: string[]): Promise<Record<string, string | null>> => ipcRenderer.invoke("workspace:restoreTabs", root, paths),
-  openProjectInEditor: (root: string): Promise<string> => ipcRenderer.invoke("workspace:openInEditor", root),
+  openProjectInEditor: (root: string, filePath?: string): Promise<string> => ipcRenderer.invoke("workspace:openInEditor", root, filePath),
   revealWorkspaceFile: (root: string, path: string): Promise<void> => ipcRenderer.invoke("workspace:revealFile", root, path),
 
   /** Reads image file. */

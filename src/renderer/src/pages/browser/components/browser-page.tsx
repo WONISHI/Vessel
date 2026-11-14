@@ -1,6 +1,6 @@
 import { BrowserContextMenu } from "./browser-page/browser-context-menu"
 import { NavigationNotice } from "@/pages/browser/components/browser-page/navigation-notice"
-import browserLoading from "@/assets/vessel-browser-loading/loading.svg"
+import { BrowserLoading } from "./browser-page/browser-loading"
 import ActivityBar from "@/components/layout/activity-bar/index"
 import Layout from "@/components/layout/index"
 import { ResizableSplit } from "@/components/ui/resizable-split"
@@ -104,21 +104,7 @@ export function BrowserPage({ visible = true }: { visible?: boolean }) {
                   aria-label="正在加载页面"
                 >
                   <div className="browser-loading-bar" />
-                  <div className="browser-loading-card">
-                    <img
-                      src={browserLoading}
-                      alt=""
-                    />
-                    <div>
-                      正在加载页面
-                      <span className="browser-loading-dots">
-                        <span>.</span>
-                        <span>.</span>
-                        <span>.</span>
-                      </span>
-                    </div>
-                    <small data-title={tab.url}>{tab.url}</small>
-                  </div>
+                  <BrowserLoading url={tab.url} />
                 </div>
               )}
               {tab.loading && tab.ready && (

@@ -3,12 +3,12 @@ import { gitChangeStatusTitle } from "@/pages/git/components/file-change-status"
 import { getFilePresentation } from "@/components/workspace/components/layout-aside/layout-workspace-sidebar/utils"
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger } from "@/components/ui/context-menu"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Archive, CheckSquare, Copy, File, FileText, FolderOpen, Plus, Trash2 } from "lucide-react"
+import { Archive, CheckSquare, Copy, CodeXml, File, FileText, FolderOpen, Plus, Trash2 } from "lucide-react"
 import type { GitPageModel } from "@/pages/git/hooks/use-git-page"
 
 /** 未暂存更改列表 */
 export function GitUnstagedFiles({ g }: { g: GitPageModel }) {
-  const { status, selectedFile, setSelectedFile, selectedUnstagedPaths, setSelectedUnstagedPaths, handleUnstagedItemClick, handleUnstagedContextMenu, handleStageFile, handleStageAll, handleDiscard, handleStageMultiple, handleDiscardMultiple, handleStashFiles, getFullPath, copyToClipboard, handleRevealInFinder } = g
+  const { status, selectedFile, setSelectedFile, selectedUnstagedPaths, setSelectedUnstagedPaths, handleUnstagedItemClick, handleUnstagedContextMenu, handleStageFile, handleStageAll, handleDiscard, handleStageMultiple, handleDiscardMultiple, handleStashFiles, getFullPath, copyToClipboard, handleRevealInFinder, handleOpenInEditor } = g
 
   return (
     <>
@@ -158,6 +158,10 @@ export function GitUnstagedFiles({ g }: { g: GitPageModel }) {
                                       <ContextMenuItem onSelect={() => setSelectedFile(file)}>
                                         <FileText className="size-3.5 text-stone-500" />
                                         <span>查看文件差异</span>
+                                      </ContextMenuItem>
+                                      <ContextMenuItem onSelect={() => void handleOpenInEditor(file.path)}>
+                                        <CodeXml className="size-3.5 text-stone-500" />
+                                        <span>在编辑器中打开</span>
                                       </ContextMenuItem>
                                       <ContextMenuItem onSelect={() => void handleRevealInFinder(file.path)}>
                                         <FolderOpen className="size-3.5 text-stone-500" />

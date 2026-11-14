@@ -1,16 +1,38 @@
 import { EditorLoading } from "@/components/ui/editor-loading"
 import { Doc } from "@/features/office/components/office-components-shared"
 import { loadOfficeAPI } from "@/features/office/office-loader"
+import { useDarkAppearance } from "@/hooks/use-dark-appearance"
 import { useEffect, useRef, useState } from "react"
 import { OnlyOfficeEditor } from "wasm-onlyoffice-sdk/react"
 
 /** Renders the editor component. */
 export function Editor() {
+  const dark = useDarkAppearance()
   const exportAction = useRef("office:save")
   const [ready, setReady] = useState(false)
   const [apiReady, setApiReady] = useState(false)
   const [loadError, setLoadError] = useState("")
   const [doc, setDoc] = useState<Doc>()
+  useEffect(() => {
+    if (!doc || !apiReady) return
+    const theme = dark ? "theme-dark" : "theme-classic-light"
+    // The SDK reads its theme prop only at mount. Switch the running editor
+    // through its theme manager so unsaved edits and selection are preserved.
+    let attempts = 0
+    const apply = () => {
+      const frame = document.querySelector<HTMLIFrameElement>('iframe[name="frameEditor"]')
+      const runtime = frame?.contentWindow as (Window & { Common?: { UI?: { Themes?: { get(id: string): unknown; setTheme(id: string): void } } } }) | null
+      const themes = runtime?.Common?.UI?.Themes
+      if (!themes?.get(theme)) return false
+      themes.setTheme(theme)
+      return true
+    }
+    if (apply()) return
+    const timer = window.setInterval(() => {
+      if (apply() || ++attempts >= 120) window.clearInterval(timer)
+    }, 250)
+    return () => window.clearInterval(timer)
+  }, [dark, doc, apiReady])
   useEffect(() => {
     let active = true
     void loadOfficeAPI().then(
@@ -79,7 +101,7 @@ export function Editor() {
           file={doc.file}
           newDocument={doc.newDocument}
           language="zh"
-          theme="theme-classic-light"
+          theme={dark ? "theme-dark" : "theme-classic-light"}
           user={{ id: "local", name: "本地用户" }}
           style={{ height: "100vh" }}
           onReady={() => {
