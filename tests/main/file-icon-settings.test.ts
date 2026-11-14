@@ -27,5 +27,7 @@ it("migrates old settings to current icons/resources-only and persists validated
     await save({ fileIconTheme: "catppuccin", fileIconWorkspace: true, fileIconResources: false, catppuccinFlavor: "frappe", fileTypeBadgesEnabled: true, fileTypeBadgesWorkspace: true, fileTypeBadgesResources: false })
     const disk = JSON.parse(await readFile(join(mock.directory, "settings.json"), "utf8"))
     expect(disk.settings).toMatchObject({ fileIconTheme: "catppuccin", fileIconWorkspace: true, fileIconResources: false, catppuccinFlavor: "frappe", fileTypeBadgesEnabled: true, fileTypeBadgesWorkspace: true, fileTypeBadgesResources: false })
+    await save({ fileIconTheme: "material" })
+    expect(JSON.parse(await readFile(join(mock.directory, "settings.json"), "utf8")).settings.fileIconTheme).toBe("material")
   } finally { await rm(mock.directory, { recursive: true, force: true }) }
 })

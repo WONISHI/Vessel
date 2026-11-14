@@ -1,6 +1,6 @@
 import { StatusBar } from "@/components/ui/status-bar"
 import type { GitCommitItem } from "@vessel/type"
-import { ArrowDown, ArrowUp, Clock, GitBranch, GitCommitHorizontal, User } from "lucide-react"
+import { ArrowDown, ArrowUp, Clock, FolderGit2, GitBranch, GitCommitHorizontal, User } from "lucide-react"
 import { useEffect, useState } from "react"
 import type { GitPageModel } from "@/pages/git/hooks/use-git-page"
 
@@ -35,10 +35,15 @@ export function GitStatusBar({ g }: { g: GitPageModel }) {
   }, [repoPath, isRepo, branches.current, status])
 
   const ready = !!repoPath && isRepo
+  const projectName = repoPath.replace(/\\/g, "/").split("/").filter(Boolean).at(-1) || repoPath
   return (
     <StatusBar
       left={ready && <>
-        <button type="button" data-title={`当前分支：${branches.current || "HEAD（游离）"}，点击定位到分支最新提交`} onClick={() => navigateToBranchTip(branches.current)} disabled={!branches.current}>
+        <span className="inline-flex h-6 min-w-0 items-center gap-[5px] px-[7px]" data-title={`当前项目：${projectName}\n${repoPath}`}>
+          <FolderGit2 className="shrink-0" />
+          <span className="max-w-40 truncate">{projectName}</span>
+        </span>
+        <button type="button" className="vessel-status-separated" data-title={`当前分支：${branches.current || "HEAD（游离）"}，点击定位到分支最新提交`} onClick={() => navigateToBranchTip(branches.current)} disabled={!branches.current}>
           <GitBranch />
           <span className="max-w-48 truncate">{branches.current || "HEAD（游离）"}</span>
           {aheadCount > 0 && <span className="flex items-center text-green-700 dark:text-green-400"><ArrowUp className="!size-3" />{aheadCount}</span>}

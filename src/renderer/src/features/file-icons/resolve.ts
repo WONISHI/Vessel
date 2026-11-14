@@ -1,11 +1,12 @@
 import catppuccin from "./catppuccin.json"
 import symbols from "./symbols.json"
-export type FileIconTheme = "default" | "catppuccin" | "symbols"
+import material from "./material.json"
+export type FileIconTheme = "default" | "catppuccin" | "symbols" | "material"
 export type CatppuccinFlavor = "auto" | "latte" | "frappe" | "macchiato" | "mocha"
 type Associations = { file?: string; folder?: string; folderExpanded?: string; rootFolder?: string; rootFolderExpanded?: string; fileNames?: Record<string, string>; fileExtensions?: Record<string, string>; languageIds?: Record<string, string>; folderNames?: Record<string, string>; folderNamesExpanded?: Record<string, string>; rootFolderNames?: Record<string, string>; rootFolderNamesExpanded?: Record<string, string> }
 type IconTheme = Associations & { light?: Associations; iconDefinitions: Record<string, { iconPath: string }> }
-const themes: Record<"catppuccin" | "symbols", IconTheme> = { catppuccin, symbols }
-for (const theme of Object.values(themes)) {
+const themes: Record<Exclude<FileIconTheme, "default">, IconTheme> = { catppuccin, symbols, material }
+for (const full of Object.values(themes)) for (const theme of [full, full.light].filter((value): value is Associations => !!value)) {
   for (const key of ["fileNames", "fileExtensions", "folderNames", "folderNamesExpanded", "rootFolderNames", "rootFolderNamesExpanded"] as const) {
     if (theme[key]) theme[key] = Object.fromEntries(Object.entries(theme[key]!).map(([name, icon]) => [name.toLowerCase(), icon]))
   }
@@ -22,7 +23,10 @@ function named(mapping: Record<string, string> | undefined, parts: string[]): st
 export function resolveFileIcon(themeId: FileIconTheme, path: string, options: { directory?: boolean; expanded?: boolean; root?: boolean; dark?: boolean; languageId?: string } = {}): string | undefined {
   if (themeId === "default") return undefined
   const full = themes[themeId]
-  const theme: Associations = options.dark === false && full.light ? { ...full, ...full.light } : full
+  const theme: Associations = options.dark === false && full.light ? {
+    ...full, ...full.light,
+    ...Object.fromEntries((["fileNames", "fileExtensions", "languageIds", "folderNames", "folderNamesExpanded", "rootFolderNames", "rootFolderNamesExpanded"] as const).map(key => [key, { ...full[key], ...full.light?.[key] }]))
+  } : full
   const parts = path.replace(/\\/g, "/").toLowerCase().split("/").filter(Boolean)
   if (options.directory) {
     if (options.root) return (options.expanded && named(theme.rootFolderNamesExpanded, parts)) || named(theme.rootFolderNames, parts) || (options.expanded && theme.rootFolderExpanded) || theme.rootFolder || theme.folder

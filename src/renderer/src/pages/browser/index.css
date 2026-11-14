@@ -321,6 +321,7 @@
 .browser-page-loading {
   position: absolute;
   inset: 0;
+  overflow: hidden;
   z-index: 220;
   display: flex;
   align-items: center;

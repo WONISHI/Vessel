@@ -2,7 +2,7 @@ export interface AppSettings {
   fileTypeBadgesEnabled?: boolean
   fileTypeBadgesWorkspace?: boolean
   fileTypeBadgesResources?: boolean
-  fileIconTheme?: "default" | "catppuccin" | "symbols"
+  fileIconTheme?: "default" | "catppuccin" | "symbols" | "material"
   fileIconWorkspace?: boolean
   fileIconResources?: boolean
   catppuccinFlavor?: "auto" | "latte" | "frappe" | "macchiato" | "mocha"

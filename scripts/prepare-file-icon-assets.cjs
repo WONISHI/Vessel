@@ -1,6 +1,6 @@
 const fs = require('node:fs'), path = require('node:path'), zlib = require('node:zlib'), crypto = require('node:crypto')
 const root = path.resolve(__dirname, '..')
-for (const id of ['catppuccin', 'symbols']) {
+for (const id of ['catppuccin', 'symbols', 'material']) {
   const archive = fs.readFileSync(path.join(root, `resources/file-icons/${id}.json.gz`))
   const hash = crypto.createHash('sha256').update(archive).digest('hex')
   const destination = path.join(root, `src/renderer/public/vendor/file-icons/${id}`), stamp = path.join(destination, '.version')

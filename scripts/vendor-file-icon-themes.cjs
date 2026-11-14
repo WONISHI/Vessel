@@ -54,6 +54,7 @@ for (const [theme, files, prefix] of [[catTheme, catFiles, 'mocha/'], [symbolsTh
   for (const definition of Object.values(theme.iconDefinitions)) if (!(prefix + definition.iconPath in files)) throw new Error(`Missing ${definition.iconPath}`)
 }
 const provenance = {
+  ...JSON.parse(fs.readFileSync(path.join(root, "resources/file-icons/sources.json"), "utf8")),
   catppuccin: { repository: 'https://github.com/catppuccin/vscode-icons', ...save('catppuccin', cat, catFiles, catTheme) },
   symbols: { repository: 'https://github.com/miguelsolorio/vscode-symbols', ...save('symbols', symbols, symbolsFiles, symbolsTheme) }
 }

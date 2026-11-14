@@ -1,4 +1,4 @@
-import React, { useState } from "react"
+import { useState } from "react"
 import { act, cleanup, fireEvent, render } from "@testing-library/react"
 import { afterEach, beforeEach, expect, it } from "vitest"
 import { FileThemeIcon } from "@/features/file-icons"
@@ -19,6 +19,9 @@ it("keeps current icons by default and independently applies a library to resour
   expect(result.getByText("resource-default")).toBeTruthy()
   expect(result.queryByText("workspace-default")).toBeNull()
   expect(result.container.querySelector('img')?.getAttribute('data-file-icon-theme')).toBe('symbols')
+  act(() => setFileIconSettings({ fileIconTheme: "material", fileIconWorkspace: true, fileIconResources: true }))
+  expect(result.container.querySelectorAll('img[data-file-icon-theme="material"]')).toHaveLength(2)
+  expect(result.container.querySelector('img')?.getAttribute('src')).toContain('/material/vue.svg')
   act(() => setFileIconSettings({ fileIconTheme: "default", fileIconWorkspace: true, fileIconResources: true }))
   expect(result.container.querySelector('img')).toBeNull()
 })

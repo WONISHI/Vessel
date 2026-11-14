@@ -90,7 +90,7 @@ function load() {
 /** Validates validate. */
 function validate(value: AppSettings): AppSettings {
   if (!value || !value.backup) throw new Error("设置格式无效")
-  if (value.fileIconTheme !== undefined && !["default", "catppuccin", "symbols"].includes(value.fileIconTheme)) throw new Error("文件图标库无效")
+  if (value.fileIconTheme !== undefined && !["default", "catppuccin", "symbols", "material"].includes(value.fileIconTheme)) throw new Error("文件图标库无效")
   if (value.catppuccinFlavor !== undefined && !["auto", "latte", "frappe", "macchiato", "mocha"].includes(value.catppuccinFlavor)) throw new Error("图标配色无效")
   for (const flag of [value.fileIconWorkspace, value.fileIconResources, value.fileTypeBadgesEnabled, value.fileTypeBadgesWorkspace, value.fileTypeBadgesResources]) if (flag !== undefined && typeof flag !== "boolean") throw new Error("图标应用范围无效")
   const delay = value.navigationDelayMs ?? 3000

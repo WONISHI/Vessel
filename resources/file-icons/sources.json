@@ -10,5 +10,11 @@
     "version": "0.0.25",
     "assets": 371,
     "sha256": "5bf604b3d45a6867eb8bd52e096f2102a3485f2ee782597879ff689a396038c7"
+  },
+  "material": {
+    "repository": "https://github.com/material-extensions/vscode-material-icon-theme",
+    "version": "5.40.0",
+    "assets": 1256,
+    "sha256": "65d40e25a3b3c04523c94b971d287b3c4005037b2c9ad9109d12f7948abd07cc"
   }
 }

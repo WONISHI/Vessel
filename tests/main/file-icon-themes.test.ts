@@ -4,12 +4,15 @@ import { describe, expect, it } from "vitest"
 import { fileIconNames, fileIconURL, resolveFileIcon } from "@/features/file-icons/resolve"
 import catppuccin from "@/features/file-icons/catppuccin.json"
 import symbols from "@/features/file-icons/symbols.json"
+import material from "@/features/file-icons/material.json"
 
 describe("complete offline file icon themes", () => {
   it("contains every shipped SVG and resolves every association across all palettes", () => {
-    for (const [id, theme, count, palettes] of [["catppuccin", catppuccin, 3280, ["latte", "frappe", "macchiato", "mocha", "css-variables"]], ["symbols", symbols, 371, [""]]] as const) {
+    for (const [id, theme, count, palettes] of [["catppuccin", catppuccin, 3280, ["latte", "frappe", "macchiato", "mocha", "css-variables"]], ["symbols", symbols, 371, [""]], ["material", material, 1256, [""]]] as const) {
       const files = JSON.parse(gunzipSync(readFileSync(`resources/file-icons/${id}.json.gz`)).toString()) as Record<string, string>
       expect(Object.keys(files)).toHaveLength(count)
+      const registered = new Set(Object.values(theme.iconDefinitions).map(icon => icon.iconPath))
+      if (id === "material") for (const path of Object.keys(files)) expect(registered.has(path), path).toBe(true)
       for (const definition of Object.values(theme.iconDefinitions)) for (const palette of palettes) {
         const path = `${palette ? palette + "/" : ""}${definition.iconPath}`
         expect(files[path], path).toContain("<svg")
@@ -22,6 +25,16 @@ describe("complete offline file icon themes", () => {
     }
     expect(fileIconNames("catppuccin")).toHaveLength(656)
     expect(fileIconNames("symbols")).toHaveLength(371)
+    expect(fileIconNames("material")).toHaveLength(1256)
+  })
+  it("resolves Material file, folder and light variants with dark associations as fallback", () => {
+    expect(resolveFileIcon("material", "PACKAGE.JSON", { dark: false })).toBe("nodejs")
+    expect(resolveFileIcon("material", "index.ts", { dark: false })).toBe("typescript")
+    expect(resolveFileIcon("material", "src", { directory: true })).toBe("folder-src")
+    expect(resolveFileIcon("material", "src", { directory: true, expanded: true })).toBe("folder-src-open")
+    expect(resolveFileIcon("material", "view.jinja", { dark: false })).toBe("jinja_light")
+    expect(resolveFileIcon("material", "view.jinja", { dark: true })).toBe("jinja")
+    expect(fileIconURL("material", "jinja_light")).toContain("/material/jinja_light.svg")
   })
   it("uses exact names, compound extensions, folder names and expanded variants", () => {
     expect(resolveFileIcon("catppuccin", "/project/PACKAGE.JSON")).toBe("package-json")

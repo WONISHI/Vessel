@@ -12,7 +12,7 @@ import { getFilePresentation } from "@/components/workspace/components/layout-as
 import { Row } from "./row"
 
 type IconSettings = Pick<AppSettings, "fileIconTheme" | "fileIconWorkspace" | "fileIconResources" | "catppuccinFlavor">
-const labels = { default: "默认（当前图标）", catppuccin: "Catppuccin Icons", symbols: "Symbols" }
+const labels = { default: "默认（当前图标）", catppuccin: "Catppuccin Icons", symbols: "Symbols", material: "Material Icon Theme" }
 const samples = ["src", "package.json", "index.ts", "App.vue", "README.md", "index.tsx", ".gitignore", "Dockerfile"]
 export function FileIconSettings({ value, onChange }: { value: IconSettings; onChange: (patch: IconSettings) => void }) {
   const [open, setOpen] = useState(false), [query, setQuery] = useState("")
