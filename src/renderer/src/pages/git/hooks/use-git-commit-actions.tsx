@@ -7,7 +7,7 @@ import { cleanGitErrorMessage } from "@/pages/git/utils"
 import type { GitRepositoryState } from "@/pages/git/hooks/use-git-repository"
 
 /** 提交、分支与远程操作 */
-export function useGitCommitActions(repo: GitRepositoryState) {
+export function useGitCommitActions(repo: GitRepositoryState, requestConfirmation: (description: string, tone?: "danger" | "primary") => Promise<boolean>) {
   const router = useRouter()
   const { repoPath, setLoading, setRemoteOperation, remotePending, status, branches, commits, commitMessage, setCommitMessageReset, isAmend, setIsAmend, refresh } = repo
 
@@ -51,7 +51,7 @@ export function useGitCommitActions(repo: GitRepositoryState) {
     }
     const lastCommit = commits[0]
     const modeDesc = mode === "soft" ? "撤销提交并将修改保留在【暂存区】" : "撤销提交并将修改保留在【工作区 (未暂存)】"
-    if (!confirm(`确定撤销最后一次提交吗？\n\n提交：${lastCommit.shortHash} ${lastCommit.message}\n操作：${modeDesc}，代码改动不会丢失。`)) return
+    if (!await requestConfirmation(`确定撤销最后一次提交吗？\n\n提交：${lastCommit.shortHash} ${lastCommit.message}\n操作：${modeDesc}，代码改动不会丢失。`, "primary")) return
     try {
       await window.electronAPI.git.reset(repoPath, "HEAD~1", mode)
       await refresh()

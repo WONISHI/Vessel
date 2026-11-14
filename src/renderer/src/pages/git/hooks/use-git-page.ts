@@ -8,7 +8,7 @@ export function useGitPage() {
   const repo = useGitRepository()
   const selection = useGitFileSelection(repo)
   const fileActions = useGitFileActions(repo)
-  const commitActions = useGitCommitActions(repo)
+  const commitActions = useGitCommitActions(repo, fileActions.requestConfirmation)
   return { ...repo, ...selection, ...fileActions, ...commitActions }
 }
 

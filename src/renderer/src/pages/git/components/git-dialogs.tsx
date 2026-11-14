@@ -22,7 +22,8 @@ export function GitDialogs({ g }: { g: GitPageModel }) {
           open={!!g.confirmation}
           onOpenChange={(open) => { if (!open) g.settleConfirmation(false) }}
           title="确认操作"
-          description={g.confirmation}
+          description={<span className="whitespace-pre-line">{g.confirmation}</span>}
+          tone={g.confirmationTone}
           confirmText="确认"
           onConfirm={() => g.settleConfirmation(true)}
         />

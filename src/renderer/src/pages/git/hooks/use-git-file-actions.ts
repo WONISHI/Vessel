@@ -10,6 +10,7 @@ export type StashRequest = { paths?: string[]; defaultMessage: string }
 export function useGitFileActions(repo: GitRepositoryState) {
   const { repoPath, status, branches, refresh } = repo
   const [confirmation, setConfirmation] = useState<string | null>(null)
+  const [confirmationTone, setConfirmationTone] = useState<"danger" | "primary">("danger")
   const pendingConfirmation = useRef<((accepted: boolean) => void) | null>(null)
   const settleConfirmation = (accepted: boolean) => {
     const resolve = pendingConfirmation.current
@@ -17,9 +18,10 @@ export function useGitFileActions(repo: GitRepositoryState) {
     setConfirmation(null)
     resolve?.(accepted)
   }
-  const requestConfirmation = (description: string) => new Promise<boolean>((resolve) => {
+  const requestConfirmation = (description: string, tone: "danger" | "primary" = "danger") => new Promise<boolean>((resolve) => {
     pendingConfirmation.current?.(false)
     pendingConfirmation.current = resolve
+    setConfirmationTone(tone)
     setConfirmation(description)
   })
   useEffect(() => () => {
@@ -244,5 +246,5 @@ export function useGitFileActions(repo: GitRepositoryState) {
     }
   }
 
-  return { confirmation, settleConfirmation, handleStageFile, handleUnstageFile, handleStageAll, handleUnstageAll, handleDiscard, handleDiscardStaged, handleStageMultiple, handleUnstageMultiple, handleDiscardMultiple, handleDiscardStagedMultiple, handleStashFiles, handleStashAll, stashRequest, setStashRequest, submitStash, handleStashPop, handleStashDrop, getFullPath, copyToClipboard, handleRevealInFinder, handleOpenInEditor }
+  return { confirmation, confirmationTone, requestConfirmation, settleConfirmation, handleStageFile, handleUnstageFile, handleStageAll, handleUnstageAll, handleDiscard, handleDiscardStaged, handleStageMultiple, handleUnstageMultiple, handleDiscardMultiple, handleDiscardStagedMultiple, handleStashFiles, handleStashAll, stashRequest, setStashRequest, submitStash, handleStashPop, handleStashDrop, getFullPath, copyToClipboard, handleRevealInFinder, handleOpenInEditor }
 }
