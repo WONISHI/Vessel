@@ -6,7 +6,7 @@ import { promisify } from "node:util"
 const run = promisify(execFile)
 
 /** Launch an editor with an argument array, preserving spaces and avoiding a shell. */
-export async function openProjectInEditor(path: unknown, filePath?: unknown): Promise<string> {
+export async function openProjectInEditor(path: unknown, filePath?: unknown, line?: unknown, column?: unknown): Promise<string> {
   if (typeof path !== "string" || !isAbsolute(path) || path.includes("\0")) throw new Error("项目路径无效")
   const root = await realpath(path)
   if (!(await stat(root)).isDirectory()) throw new Error("项目路径不是文件夹")
@@ -18,8 +18,11 @@ export async function openProjectInEditor(path: unknown, filePath?: unknown): Pr
     if (isAbsolute(offset) || offset === ".." || offset.startsWith(`..${sep}`)) throw new Error("文件不在项目目录内")
     if (!(await stat(file)).isFile()) throw new Error("指定路径不是文件")
   }
-  const codeArgs = file ? ["--new-window", root, "--goto", file] : [root]
-  const stormArgs = file ? [root, file] : [root]
+  for (const value of [line, column]) if (value !== undefined && (!Number.isSafeInteger(value) || Number(value) < 1 || Number(value) > 10000000)) throw new Error("源码行列位置无效")
+  if ((line !== undefined || column !== undefined) && !file) throw new Error("定位源码需要指定文件")
+  const position = file && line !== undefined ? `${file}:${line}:${column ?? 1}` : file
+  const codeArgs = file ? [line !== undefined ? "--reuse-window" : "--new-window", root, "--goto", position!] : [root]
+  const stormArgs = file ? [root, ...(line !== undefined ? ["--line", String(line), "--column", String(column ?? 1)] : []), file] : [root]
   const candidates = process.platform === "darwin"
     ? [
         { name: "VS Code", executable: "/usr/bin/open", args: file ? ["-n", "-b", "com.microsoft.VSCode", "--args", ...codeArgs] : ["-b", "com.microsoft.VSCode", root] },

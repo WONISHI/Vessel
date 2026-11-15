@@ -1,10 +1,12 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { ArrowLeft, ArrowRight, Code, Download, RotateCw, SquareDashedMousePointer } from "lucide-react"
+import { ArrowLeft, ArrowRight, Code, Download, QrCode, RotateCw, SquareDashedMousePointer } from "lucide-react"
 import { toast } from "sonner"
+import { mobilePageURL } from "@/pages/browser/mobile-page-url"
 import { withGuest } from "@/pages/browser/guest-lifecycle"
 import type { BrowserPageModel } from "./hooks/use-browser-page"
 
+import BrowserMobileDialog from "./browser-mobile-dialog"
 const BrowserSourceDialog = lazy(() => import("./browser-source-dialog"))
 
 const itemClassName = "rounded-md text-xs [&_svg]:size-3.5"
@@ -14,6 +16,9 @@ export function BrowserContextMenu({ b, visible }: { b: BrowserPageModel; visibl
   // Keep the last anchor after closing; clearing it during exit moves the menu to (0, 0).
   const [point, setPoint] = useState<Point | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [mobile, setMobile] = useState<{ tabId: string; url: string } | null>(null)
+  const pendingMobile = useRef<{ tabId: string; url: string } | null>(null)
+  const shareURL = mobilePageURL(b.tab.url)
   const sourceRequest = useRef(0)
   const [source, setSource] = useState<{ url: string; text: string } | null>(null)
   useEffect(() => {
@@ -24,6 +29,7 @@ export function BrowserContextMenu({ b, visible }: { b: BrowserPageModel; visibl
     }
     window.addEventListener("vessel-browser-context-menu", show)
     return () => {
+      pendingMobile.current = null
       sourceRequest.current++
       window.removeEventListener("vessel-browser-context-menu", show)
     }
@@ -41,17 +47,27 @@ export function BrowserContextMenu({ b, visible }: { b: BrowserPageModel; visibl
   return <>
     <DropdownMenu modal={false} open={visible && menuOpen} onOpenChange={setMenuOpen}>
       <DropdownMenuTrigger asChild><span data-browser-context-anchor aria-hidden="true" style={{ position: "fixed", left: point?.left ?? 0, top: point?.top ?? 0, width: 1, height: 1, pointerEvents: "none" }} /></DropdownMenuTrigger>
-      <DropdownMenuContent align="start" sideOffset={0} data-radix-context-menu-content="" className="w-48 z-[510] rounded-lg data-[state=closed]:animate-none" onCloseAutoFocus={(event) => event.preventDefault()}>
+      <DropdownMenuContent align="start" sideOffset={0} data-radix-context-menu-content="" className="w-48 z-[510] rounded-lg data-[state=closed]:animate-none" onCloseAutoFocus={(event) => {
+        event.preventDefault()
+        // Wait for the menu's FocusScope to finish unmounting before opening
+        // another non-modal focus scope. The selecting click must not dismiss it.
+        const next = pendingMobile.current
+        pendingMobile.current = null
+        const request = sourceRequest.current
+        if (next) queueMicrotask(() => { if (request === sourceRequest.current) setMobile(next) })
+      }}>
         <DropdownMenuItem className={itemClassName} disabled={!b.tab.back} onSelect={() => move(false)}><ArrowLeft />后退</DropdownMenuItem>
         <DropdownMenuItem className={itemClassName} disabled={!b.tab.forward} onSelect={() => move(true)}><ArrowRight />前进</DropdownMenuItem>
         <DropdownMenuItem className={itemClassName} onSelect={() => b.reloadTab(b.tab.id)}><RotateCw />重新加载</DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem className={itemClassName} onSelect={() => void action("save")}><Download />存储为…</DropdownMenuItem>
+        {shareURL && <DropdownMenuItem className={itemClassName} onSelect={() => { pendingMobile.current = { tabId: b.tab.id, url: shareURL }; setMenuOpen(false) }}><QrCode />手机访问…</DropdownMenuItem>}
         <DropdownMenuItem className={itemClassName} onSelect={() => void action("source")}><Code />显示网页源代码</DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem className={itemClassName} onSelect={() => { if (point) b.inspectPage({ x: point.x, y: point.y }) }}><SquareDashedMousePointer />检查</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
+    {mobile && visible && mobile.tabId === b.tab.id && mobile.url === shareURL && <BrowserMobileDialog url={mobile.url} onClose={() => setMobile(null)} />}
     {source && visible && <Suspense fallback={null}>
       <BrowserSourceDialog source={source} onClose={() => setSource(null)} />
     </Suspense>}

@@ -1,7 +1,7 @@
 import { beforeEach, expect, it, vi } from "vitest"
 const mocks = vi.hoisted(() => ({ launch: vi.fn() }))
 vi.mock("node:child_process", () => ({
-  execFile: (file: string, args: string[], _options: unknown, callback: Function) => {
+  execFile: (file: string, args: string[], _options: unknown, callback: (error: unknown, stdout?: string, stderr?: string) => void) => {
     try { mocks.launch(file, args); callback(null, "", "") } catch (error) { callback(error, "", "") }
   }
 }))
@@ -41,5 +41,17 @@ it("rejects files outside the project and invalid file input before launching", 
   await expect(openProjectInEditor("/projects/demo", "../other/file.ts")).rejects.toThrow("文件不在项目目录内")
   await expect(openProjectInEditor("/projects/demo", "/outside/file.ts")).rejects.toThrow("文件不在项目目录内")
   await expect(openProjectInEditor("/projects/demo", "")).rejects.toThrow("文件路径无效")
+  expect(mocks.launch).not.toHaveBeenCalled()
+})
+
+it("passes validated line and column to VS Code and WebStorm", async () => {
+  await openProjectInEditor("/projects/demo", "src/App.vue", 42, 7)
+  expect(mocks.launch.mock.calls[0][1].at(-1)).toBe("/projects/demo/src/App.vue:42:7")
+  mocks.launch.mockImplementationOnce(() => { throw new Error("not installed") })
+  await openProjectInEditor("/projects/demo", "src/App.vue", 42, 7)
+  expect(mocks.launch.mock.calls[2][1].slice(-6)).toEqual(["/projects/demo", "--line", "42", "--column", "7", "/projects/demo/src/App.vue"])
+})
+it("rejects invalid source positions before opening an editor", async () => {
+  for (const line of [0, -1, NaN, 1.5, "10"]) await expect(openProjectInEditor("/projects/demo", "src/App.vue", line, 1)).rejects.toThrow("行列")
   expect(mocks.launch).not.toHaveBeenCalled()
 })

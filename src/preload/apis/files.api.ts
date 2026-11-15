@@ -4,6 +4,10 @@ import { ipcRenderer } from "electron"
 
 /** 向渲染进程提供受控的文件 IPC 接口，不暴露 Node 文件系统对象。 */
 export const filesAPI = {
+  sourceProjectPick: (): Promise<string | null> => ipcRenderer.invoke("source-project:pick"),
+  sourceProjectStart: (options: { root: string; config?: string; mode?: string; port?: number }) => ipcRenderer.invoke("source-project:start", options),
+  sourceProjectStatus: () => ipcRenderer.invoke("source-project:status"),
+  sourceProjectStop: (): Promise<void> => ipcRenderer.invoke("source-project:stop"),
   shareFilesToWechat: (root: string, paths: string[]): Promise<{ opened: boolean }> => ipcRenderer.invoke("file:share-wechat", root, paths),
   /** Parses and queries an Obsidian Base against the current workspace. */
   queryBase: (root: string, path: string, viewIndex?: number): Promise<BaseQueryResult> => ipcRenderer.invoke("obsidian:query-base", root, path, viewIndex),

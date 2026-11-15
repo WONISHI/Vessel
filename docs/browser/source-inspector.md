@@ -1,0 +1,35 @@
+# 本地项目元素定位源码（第一版）
+
+## 使用
+
+1. 更新代码后重启 Vessel，确保新的主进程与 preload 接口生效。
+2. 打开活动栏浏览器，选择“更多 → 本地项目调试”。
+3. 选择包含 Vite 配置的项目目录，按需填写配置文件相对路径、mode 和端口。
+4. 点击“启动并打开”。服务会读取项目原有配置，使用该项目安装的 Vite、Vue 和本机 Node。
+5. 点击地址栏右侧 `</>`“定位源码”，移动鼠标查看绿色高亮，点击元素定位到源文件行列。
+6. 优先打开 VS Code，不可用时尝试 WebStorm。Esc 或再次点击定位按钮退出；切换窗口也会退出。
+7. 在“本地项目调试”中查看日志、停止服务或重新打开页面。
+
+## 机制和边界
+
+- 不修改项目源文件、Vite 配置、package.json、锁文件，不向业务项目安装依赖。
+- Vessel 在临时目录启动独立 Node 子进程，通过 Vite JavaScript API 临时加入开发插件。
+- 插件使用项目自己的 Vue SFC 编译器解析模板，在交付给浏览器的代码中增加元素位置标记，并生成 source map。
+- 定位请求仅接受本次服务的临时令牌与已登记的元素标记。实际文件经过 realpath 校验，只允许打开所选项目目录内的文件。
+- 第一版支持 Vue 3 + Vite 的普通 HTML 内联模板。原生标签对应模板位置；第三方组件可能只能定位到外层带标记的项目元素。
+- 不支持 HTTPS、iframe 内部、Pug、外部模板，以及所选目录外的共享源码。直接访问其他进程启动的 localhost 不会自动获得源码标记。
+- 直接启动 Vite，不执行 package.json 脚本中的前置任务或自定义环境变量命令；需要时先自行完成前置任务，在界面设置 mode。
+- 每次托管一个服务。开发服务与缓存位于临时目录；Vite/项目插件本身仍可能生成正常开发缓存或生成文件。
+- 首次使用需要本机可运行 Node、项目依赖已安装。本功能不会自动安装项目依赖。
+
+## 验证
+
+- 隔离项目使用 Vite 5 与 Vue 3 验证模板元素精确行列、鉴权、文件内容保持不变、服务关闭。
+- 使用 RSZX portal 已安装的 Vite 3 / Vue 3 依赖，在临时项目中重复同一验证，不启动业务项目。
+- 编辑器参数通过 mock 验证；尚未进行 VS Code/WebStorm 实际界面的端到端验收。
+
+复现集成测试（依赖目录需含 Vite、@vitejs/plugin-vue、Vue）：
+
+```sh
+VESSEL_INSPECTOR_FIXTURE=/path/to/project npx vitest run tests/main/source-inspector.integration.test.ts tests/main/open-project-editor.test.ts
+```

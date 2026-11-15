@@ -181,6 +181,10 @@ interface VesselAPI extends AppUpdateAPI, BrowserProxyAPI, BrowserToolsAPI, Sett
 
   /** 读取文件内容。 */
   restoreWorkspaceTabs(root: string, paths: string[]): Promise<Record<string, string | null>>
+  sourceProjectPick(): Promise<string | null>
+  sourceProjectStart(options: { root: string; config?: string; mode?: string; port?: number }): Promise<{ root: string; url: string; logs: string; running: boolean } | null>
+  sourceProjectStatus(): Promise<{ root: string; url: string; logs: string; running: boolean } | null>
+  sourceProjectStop(): Promise<void>
   openProjectInEditor(root: string, filePath?: string): Promise<string>
   revealWorkspaceFile: (root: string, path: string) => Promise<void>
   readClipboardImage: () => Promise<string | null>

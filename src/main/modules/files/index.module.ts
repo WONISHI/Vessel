@@ -3,6 +3,7 @@ import { listAttachments } from "./attachment-library"
 import { generalSettings } from "@main/settings/settings"
 import { createImageResource } from "./image-resource"
 import { restoreWorkspaceTabs } from "@main/files/restore-tabs"
+import { registerSourceInspector, disposeSourceInspector } from "@main/source-inspector"
 import { openProjectInEditor } from "@main/files/open-project-editor"
 import { shareFilesToWechat } from "./share-wechat"
 import { disposeCodeDiagnostics, getCodeDiagnostics } from "@main/diagnostics/code-diagnostics"
@@ -137,6 +138,7 @@ export async function mutateWorkspaceFile(root: string, path: string, name?: str
 export class FilesModule extends BaseModule {
   /** Handles activate events. */
   protected onActivate(): void {
+    registerSourceInspector()
     ipcMain.handle("code:diagnostics", (_event, path, content) => getCodeDiagnostics(path, content))
     ipcMain.handle("workspace:restoreTabs", (_event, root: string, paths: string[]) => restoreWorkspaceTabs(root, paths))
     ipcMain.handle("workspace:openInEditor", (_event, root: unknown, filePath?: unknown) => openProjectInEditor(root, filePath))
@@ -234,6 +236,7 @@ export class FilesModule extends BaseModule {
 
   /** Handles dispose events. */
   protected onDispose(): void {
+    disposeSourceInspector()
     ipcMain.removeHandler("code:diagnostics")
     disposeCodeDiagnostics()
     ipcMain.removeHandler("workspace:restoreTabs")
