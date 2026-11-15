@@ -4,6 +4,7 @@ import { ContextMenu, ContextMenuTrigger } from "@/components/ui/context-menu"
 import { GitCommitContextMenu } from "./git-commit-context-menu"
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 import { GitLog } from "@tomplum/react-git-log"
+import { syncGitRefLayout } from "./git-ref-layout"
 import { toGitLogEntries } from "./git-log-entries"
 import { useDarkAppearance } from "@/hooks/use-dark-appearance"
 import "./git-log.css"
@@ -78,6 +79,34 @@ export function GitHistoryList({ g }: { g: GitPageModel }) {
       }
     })
     return () => badges.forEach(badge => badge.remove())
+  })
+
+  useLayoutEffect(() => {
+    const root = logRoot.current
+    if (!root) return
+    let frame = 0
+    const sync = () => syncGitRefLayout(root, ["index", ...commits.map(commit => commit.hash)])
+    const schedule = () => { cancelAnimationFrame(frame); frame = requestAnimationFrame(sync) }
+    sync()
+    const resize = new ResizeObserver(schedule)
+    resize.observe(root)
+    const log = root.querySelector("#react-git-log")
+    for (const column of Array.from(log?.children ?? []).slice(0, 2)) resize.observe(column)
+    // The graph can add virtual lanes without resizing its outer column.
+    const changes = new MutationObserver(schedule)
+    if (log?.children[1]) changes.observe(log.children[1], { childList: true, subtree: true, attributes: true, attributeFilter: ["style", "class"] })
+    if (log?.children[0]) changes.observe(log.children[0], { childList: true, subtree: true, characterData: true })
+    window.addEventListener("resize", schedule)
+    window.visualViewport?.addEventListener("resize", schedule)
+    document.fonts?.addEventListener("loadingdone", schedule)
+    return () => {
+      cancelAnimationFrame(frame)
+      resize.disconnect()
+      changes.disconnect()
+      window.removeEventListener("resize", schedule)
+      window.visualViewport?.removeEventListener("resize", schedule)
+      document.fonts?.removeEventListener("loadingdone", schedule)
+    }
   })
 
   useEffect(() => {

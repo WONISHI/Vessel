@@ -41,3 +41,18 @@ html.dark .git-log-demo {
   white-space: nowrap;
   flex-shrink: 0;
 }
+
+/* Reserve intrinsic space for all refs rather than letting them overflow left. */
+.git-log-demo #react-git-log > :first-child {
+  flex: 0 0 var(--vessel-ref-width, 175px);
+  width: var(--vessel-ref-width, 175px);
+  max-width: none;
+}
+.git-log-demo #react-git-log > :first-child > :last-child {
+  box-sizing: border-box;
+  width: 100%;
+  padding-inline: 12px;
+}
+.git-log-demo [id^="tag-label-"] {
+  flex-shrink: 0;
+}
