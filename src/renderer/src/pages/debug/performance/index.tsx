@@ -1,7 +1,7 @@
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { PageBackButton } from '@/pages/debug/components/page-back-button'
 import { usePerformance, type PerformancePoint } from './use-performance'
-import { Clock3, Monitor, Copy, Activity } from 'lucide-react'
+import { Clock3, Monitor, Copy, Activity, Zap } from 'lucide-react'
 import { useState } from 'react'
 import './performance.css'
 
@@ -19,6 +19,8 @@ function MemoryTrend({ points }: { points: PerformancePoint[] }) {
 export default function PerformancePage() {
   const { snapshot, history, renderer, fps, error, visible } = usePerformance()
   const [copyStatus, setCopyStatus] = useState('')
+  const [optimizing, setOptimizing] = useState(false)
+  const [optimizeStatus, setOptimizeStatus] = useState('')
   const cpu = snapshot?.cpuPercent
   const main = snapshot?.mainMemory
   const worker = main?.diagnosticsWorker
@@ -27,8 +29,17 @@ export default function PerformancePage() {
     try { await navigator.clipboard.writeText(JSON.stringify({ snapshot, currentRenderer: renderer, history, note: 'working set may count shared memory more than once; URLs omit credentials and query values' }, null, 2)); setCopyStatus('已复制') }
     catch { setCopyStatus('复制失败') }
   }
+  const optimize = async () => {
+    setOptimizing(true); setOptimizeStatus('')
+    try {
+      const result = await window.electronAPI.optimizeMemory()
+      const freed = result.beforeBytes - result.afterBytes
+      setOptimizeStatus(freed > 0 ? `已释放 ${size(freed)}` : '已清理，当前无可回收内存')
+    } catch { setOptimizeStatus('优化失败') }
+    finally { setOptimizing(false); setTimeout(() => setOptimizeStatus(''), 6000) }
+  }
   return <div className="performance-page">
-    <header className="performance-header"><div className="flex items-center gap-2"><PageBackButton /><div><h2>性能监控</h2><p>进程来源 / 内存明细 / 历史趋势</p></div></div><div className="performance-actions"><button type="button" onClick={copy} disabled={!snapshot}><Copy size={13} />{copyStatus || '复制诊断'}</button><span className="performance-status" data-live={Boolean(snapshot && !error && visible)} role="status"><Clock3 size={13} />{error ? '采样失败' : !visible ? '已暂停' : snapshot ? 'Live' : '连接中'}</span></div></header>
+    <header className="performance-header"><div className="flex items-center gap-2"><PageBackButton /><div><h2>性能监控</h2><p>进程来源 / 内存明细 / 历史趋势</p></div></div><div className="performance-actions"><button type="button" onClick={optimize} disabled={optimizing} data-title="回收各进程的 JS 堆与缓存，不影响数据"><Zap size={13} />{optimizing ? '优化中…' : optimizeStatus || '优化内存'}</button><button type="button" onClick={copy} disabled={!snapshot}><Copy size={13} />{copyStatus || '复制诊断'}</button><span className="performance-status" data-live={Boolean(snapshot && !error && visible)} role="status"><Clock3 size={13} />{error ? '采样失败' : !visible ? '已暂停' : snapshot ? 'Live' : '连接中'}</span></div></header>
     <ScrollArea className="performance-scroll" type="hover">
     <div className="performance-body">
       {error && <div role="alert" className="performance-error">无法读取性能数据：{error}（将自动重试）</div>}

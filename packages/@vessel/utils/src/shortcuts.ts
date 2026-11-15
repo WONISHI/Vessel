@@ -6,7 +6,7 @@ export { type KeyInput, type ShortcutId } from "@vessel/type"
 export const shortcuts = {
   selectWorkspace: { label: "选择工作区", key: "e", mod: true, shift: true, scope: "全局" },
   findWorkspaceFiles: { label: "查找工作区文件", key: "f", mod: true, shift: true, scope: "全局" },
-  visitLink: { label: "访问链接", key: "l", mod: true, shift: true, scope: "全局" },
+  visitLink: { label: "访问链接", key: "k", mod: true, scope: "全局" },
   reloadApp: { label: "刷新页面", key: "r", mod: true, shift: true, scope: "全局" },
   toggleTheme: { label: "切换主题", key: "j", mod: true, shift: true, scope: "全局" },
   showControls: { label: "显示控制按钮", key: "y", mod: true, shift: true, scope: "全局" },

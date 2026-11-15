@@ -6,7 +6,7 @@ import { join } from "node:path"
 import { credentialOrigin, derive, salt, seal, unseal, type Sealed } from "./crypto"
 
 type Entry = { id: string; origin: string; username: string; password: string; updated: number }
-type Document = { version: 1; salt: string; wrapped: string; records: { id: string; data: Sealed }[]; never: Sealed; catalog?: string }
+type Document = { version: 1; auto?: boolean; salt: string; wrapped: string; records: { id: string; data: Sealed }[]; never: Sealed; catalog?: string }
 const aad = "vessel-vault-v1"
 let key: Buffer | undefined, document: Document | undefined, loading: Promise<void> | undefined
 let generation = 0, lastAttempt = 0, busy = false
@@ -22,6 +22,26 @@ export function lockVault() {
 }
 function touch() { clearTimeout(idle); idle = setTimeout(lockVault, 5 * 60 * 1000); idle.unref() }
 function requireKey(activity = true) { if (!key) throw new Error("保险库已锁定，请先解锁"); if (activity) touch(); return key }
+/** Chrome-style vault: the data key is random and protected only by the OS keychain, so no master password is needed. */
+let autoPending: Promise<void> | undefined
+async function ensureAuto() {
+  autoPending ||= (async () => {
+    requireSystem()
+    if (!document) {
+      const created = randomBytes(32)
+      try {
+        const wrapped = safeStorage.encryptString(JSON.stringify({ auto: true, key: created.toString("base64") })).toString("base64")
+        await persist({ version: 1, auto: true, salt: salt(), wrapped, records: [], catalog: safeStorage.encryptString("[]").toString("base64"), never: seal(created, "[]", `${aad}:never`) })
+        key = Buffer.from(created)
+      } finally { created.fill(0) }
+    } else if (document.auto && !key) {
+      const unwrapped = JSON.parse(safeStorage.decryptString(Buffer.from(document.wrapped, "base64"))) as { key?: string }
+      if (typeof unwrapped.key !== "string") throw new Error("保险库无法解密")
+      key = Buffer.from(unwrapped.key, "base64")
+    }
+  })().finally(() => { autoPending = undefined })
+  await autoPending
+}
 async function load() {
   loading ||= (async () => {
     try {
@@ -54,6 +74,7 @@ function denied(k: Buffer): string[] { return JSON.parse(unseal(k, document!.nev
 async function verify(password: string) {
   requireSystem()
   if (!document) throw new Error("尚未创建保险库")
+  if (document.auto) return Buffer.from(key ?? randomBytes(0))
   if (Date.now() - lastAttempt < 1500) throw new Error("请稍后重试")
   lastAttempt = Date.now()
   const derived = await derive(password, document.salt)
@@ -68,12 +89,36 @@ function notify(host: WebContents, id: string) {
 export function attachVaultGuest(guest: WebContents, host: WebContents) {
   guests.set(guest.id, { guest, host })
   guest.once("destroyed", () => { guests.delete(guest.id); for (const [id, c] of candidates) if (c.guest === guest) candidates.delete(id) })
-  guest.ipc.on("vault:submit", (event, value: unknown) => {
+  // Autofill suggestions: usernames only; the password is sent to the page solely after the user clicks a suggestion.
+  guest.ipc.handle("vault:suggest", async (event) => {
+    if (event.senderFrame !== guest.mainFrame) return []
+    try {
+      const origin = credentialOrigin(guest.getURL())
+      await load()
+      if (!document?.auto) return []
+      await ensureAuto()
+      return key ? entries(key).filter((entry) => entry.origin === origin).map(({ id, username }) => ({ id, username })) : []
+    } catch { return [] }
+  })
+  guest.ipc.on("vault:use", async (event, id: unknown) => {
+    if (event.senderFrame !== guest.mainFrame || typeof id !== "string") return
+    try {
+      await load()
+      if (!document?.auto) return
+      await ensureAuto()
+      const entry = key ? entries(key).find((item) => item.id === id) : undefined
+      if (!entry || credentialOrigin(guest.getURL()) !== entry.origin) return
+      guest.mainFrame.send("vault:fill", { origin: entry.origin, username: entry.username, password: entry.password })
+    } catch { /* The page keeps its own form when the vault is unavailable. */ }
+  })
+  guest.ipc.on("vault:submit", async (event, value: unknown) => {
     if (event.senderFrame !== guest.mainFrame || !value || typeof value !== "object") return
     const data = value as { username?: unknown; password?: unknown }
     if (typeof data.username !== "string" || typeof data.password !== "string" || !data.password || data.password.length > 4096 || data.username.length > 1024) return
     try {
       const origin = credentialOrigin(guest.getURL())
+      await load()
+      if (!document || document.auto) await ensureAuto()
       if (key && (denied(key).includes(origin) || entries(key).some((entry) => entry.origin === origin && entry.username === data.username && entry.password === data.password))) return
       for (const [id, c] of candidates) if (c.expires < Date.now() || c.guest === guest) candidates.delete(id)
       if (candidates.size >= 20) return
@@ -97,9 +142,14 @@ export function registerVault(host: WebContents) {
     if (event.senderFrame !== host.mainFrame) throw new Error("不允许的保险库调用来源")
     if (!data || typeof data !== "object" || Object.values(data).some((value) => typeof value !== "string" || value.length > 4096)) throw new Error("无效的保险库参数")
     await load()
-    if (action === "status") return { initialized: !!document, unlocked: !!key }
+    if (action === "status") {
+      if (!document) return { initialized: false, unlocked: true, auto: true }
+      if (document.auto) await ensureAuto()
+      return { initialized: true, unlocked: !!key, auto: !!document.auto }
+    }
     if (action === "catalog") {
       if (!document) return { items: [], requiresUnlock: false }
+      if (document.auto) await ensureAuto()
       requireSystem()
       if (key && !document.catalog) return { items: entries(key).map(({ password: _password, ...entry }) => entry), requiresUnlock: false }
       if (!document.catalog) return { items: [], requiresUnlock: true }
@@ -111,28 +161,21 @@ export function registerVault(host: WebContents) {
     if (busy) throw new Error("保险库正在处理，请稍候")
     busy = true
     try {
-      if (action === "create") {
-        if (document) throw new Error("保险库已存在")
-        requireSystem()
-        const revision = generation, value = salt(), derived = await derive(data.password, value), created = randomBytes(32)
-        try {
-          if (revision !== generation) throw new Error("操作已取消")
-          const wrapped = safeStorage.encryptString(JSON.stringify(seal(derived, created.toString("base64"), aad))).toString("base64")
-          await persist({ version: 1, salt: value, wrapped, records: [], catalog: safeStorage.encryptString("[]").toString("base64"), never: seal(created, "[]", `${aad}:never`) })
-          if (revision === generation) { key = Buffer.from(created); touch() }
-        } finally { derived.fill(0); created.fill(0) }
-        return
-      }
+      if (action === "create") { await ensureAuto(); return }
       if (action === "unlock") {
         const revision = generation, decrypted = await verify(data.password)
         if (revision !== generation) { decrypted.fill(0); throw new Error("解锁已取消") }
-        key?.fill(0); key = decrypted; touch(); await persist(document!); return
+        key?.fill(0); key = decrypted; touch()
+        // One-time migration: after a successful master-password unlock the vault no longer needs it.
+        const wrapped = safeStorage.encryptString(JSON.stringify({ auto: true, key: decrypted.toString("base64") })).toString("base64")
+        await persist({ ...document!, auto: true, wrapped }); return
       }
       if (action === "candidate" && data.choice === "dismiss") {
         const pending = candidates.get(data.id)
         if (pending && guests.get(pending.guest.id)?.host === host) candidates.delete(data.id)
         return
       }
+      if (document?.auto || !document) await ensureAuto()
       const k = requireKey(action !== "list")
       if (action === "reveal") {
         if (!entries(k).some((entry) => entry.id === data.id)) throw new Error("账号不存在")
@@ -194,7 +237,7 @@ export function registerVault(host: WebContents) {
         return
       }
       if (action === "export") {
-        if (data.password === data.exportPassword) throw new Error("导出口令应与主密码不同")
+        if (!document!.auto && data.password === data.exportPassword) throw new Error("导出口令应与主密码不同")
         const revision = generation, check = await verify(data.password)
         check.fill(0)
         if (revision !== generation) throw new Error("保险库已锁定")

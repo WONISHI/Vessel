@@ -81,7 +81,7 @@ export function Editor() {
           return
         }
         try {
-          exportAction.current = event.data.action === "markdown" ? "office:convert-markdown" : "office:save"
+          exportAction.current = "office:save"
           runtime.editor.asc_DownloadAs(new runtime.asc_CDownloadOptions(runtime.c_oAscFileType[event.data.format]))
         } catch (error) {
           report({ status: `导出失败：${String(error)}`, exportFailed: true })

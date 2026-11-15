@@ -4,7 +4,7 @@ import { useDarkAppearance } from "@/hooks/use-dark-appearance"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Doc, formatOfficeError, isPdf, kinds, pdfKind, requestHost } from "@/features/office/components/office-components-shared"
 import { PdfPane } from "@/features/office/components/pdf-pane"
-import { FileDown, FileText, FolderOpen, Plus, Save, X } from "lucide-react"
+import { FileText, FolderOpen, Plus, Save, X } from "lucide-react"
 import { useEffect, useLayoutEffect, useRef, useState } from "react"
 
 /** Renders the office component. */
@@ -58,28 +58,6 @@ export function Office() {
       }
       if (event.data?.type === "office:state") setDocs((items) => items.map((doc) => (doc.id === id ? { ...doc, dirty: event.data.dirty ?? doc.dirty, status: event.data.status ?? doc.status, name: event.data.name ?? doc.name } : doc)))
       if (event.data?.exportFailed) setConverting("")
-      if (event.data?.type === "office:convert-markdown" && event.ports[0]) {
-        const doc = docsRef.current.find((doc) => doc.id === id)!
-        const extension = /\.(xlsx?|ods|csv)$/i.test(doc.name) ? ".xlsx" : /\.(pptx?|odp)$/i.test(doc.name) ? ".pptx" : ".docx"
-        const port = event.ports[0]
-        void requestHost<{ saved: boolean; path?: string }>({ type: "office:convert-markdown", name: doc.name.replace(/\.[^.]+$/, "") + extension, bytes: event.data.bytes })
-          .then(
-            (result) => {
-              result.saved ? toast.success("Markdown 已保存", { description: result.path }) : toast.info("已取消保存 Markdown")
-              port.postMessage(result)
-            },
-            (error) => {
-              const formatted = formatOfficeError(error)
-              toast.error(formatted)
-              port.postMessage({ error: formatted })
-            }
-          )
-          .finally(() => {
-            setConverting("")
-            port.close()
-          })
-        return
-      }
       if (event.data?.type === "office:save" && event.ports[0]) {
         const doc = docsRef.current.find((doc) => doc.id === id)!
         const extension = /\.(xlsx?|ods|csv)$/i.test(doc.name) ? ".xlsx" : /\.(pptx?|odp)$/i.test(doc.name) ? ".pptx" : ".docx"
@@ -238,26 +216,6 @@ export function Office() {
           {selected?.dirty ? " · 未保存" : ""}
         </span>
         <div className="flex items-center gap-4">
-          {selected && (
-            <button
-              disabled={!!converting || selected.status === "正在加载…"}
-              className="flex items-center gap-1 rounded px-2 py-1 text-stone-600 hover:bg-stone-100 disabled:opacity-50"
-              onClick={() => {
-                setConverting(selected.id)
-                if (isPdf(selected.name)) {
-                  void selected
-                    .file!.arrayBuffer()
-                    .then((bytes) => requestHost<{ saved: boolean; path?: string }>({ type: "office:convert-markdown", name: selected.name, bytes: new Uint8Array(bytes) }))
-                    .then((result) => (result.saved ? toast.success("Markdown 已保存", { description: result.path }) : toast.info("已取消保存 Markdown")))
-                    .catch((error) => toast.error(formatOfficeError(error)))
-                    .finally(() => setConverting(""))
-                } else frames.current.get(selected.id)?.contentWindow?.postMessage({ type: "office:export", action: "markdown", format: /\.(xlsx?|ods|csv)$/i.test(selected.name) ? "XLSX" : /\.(pptx?|odp)$/i.test(selected.name) ? "PPTX" : "DOCX" }, location.origin)
-              }}
-            >
-              <FileDown size={13} />
-              {converting === selected.id ? "正在转换…" : "转为 Markdown"}
-            </button>
-          )}
           {selected && (
             <Popover
               open={renameName !== null}

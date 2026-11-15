@@ -125,3 +125,20 @@ html.dark [data-radix-select-item][data-state="checked"] {
   background: #3a424d !important;
   color: #e6e8eb !important;
 }
+
+/* Consecutive setting sections share one frame instead of floating as separate cards. */
+.settings-card-group {
+  margin-bottom: 16px;
+  border: 1px solid hsl(var(--border));
+  border-radius: 14px;
+  background: hsl(var(--card));
+  overflow: hidden;
+}
+.settings-card-group > .settings-card {
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+}
+.settings-card-group > .settings-card + .settings-card {
+  border-top: 1px solid hsl(var(--border));
+}

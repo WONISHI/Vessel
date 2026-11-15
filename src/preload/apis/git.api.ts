@@ -6,6 +6,8 @@ export const gitAPI = {
   searchCommits: (cwd: string, options: GitSearchOptions): Promise<GitSearchResult> => ipcRenderer.invoke("git:search", cwd, options),
   getRepositorySettings: (cwd: string): Promise<GitRepositorySettings> => ipcRenderer.invoke("git:repository-settings", cwd),
   saveRepositorySettings: (cwd: string, settings: GitRepositorySettings): Promise<void> => ipcRenderer.invoke("git:save-repository-settings", cwd, settings),
+  getGitDecorations: (cwd: string): Promise<{ entries: { path: string; code: "M" | "A" | "U" | "D" | "C" | "R" }[] } | null> => ipcRenderer.invoke("git:decorations", cwd),
+
   /** Checks whether repo. */
   isRepo: (cwd: string): Promise<boolean> => ipcRenderer.invoke("git:is-repo", cwd),
 

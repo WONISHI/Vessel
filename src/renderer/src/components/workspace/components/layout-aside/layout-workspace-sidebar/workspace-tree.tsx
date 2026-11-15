@@ -7,6 +7,8 @@ import { InlineEntryEditor, type EntryDraft } from "@/components/workspace/compo
 import { FileActions } from "@/components/workspace/components/layout-aside/layout-workspace-sidebar/file-actions"
 import FileTreeItem from "@/components/workspace/components/layout-aside/layout-workspace-sidebar/file-tree-item"
 import { sortWorkspaceNodes, type FileSortBy, type FileSortOrder } from "@/components/workspace/components/layout-aside/layout-workspace-sidebar/utils"
+import { useShowGitDecorations } from "@/features/file-icons/state"
+import { refreshGitDecorations } from "@/features/git-decorations"
 import { useFileChanges } from "@/components/workspace/hooks/file-changes"
 import { useWorkspace } from "@/components/workspace/hooks/useWorkspace"
 import type { WorkspaceNode } from "@/components/workspace/types/workspace"
@@ -51,6 +53,16 @@ export default function WorkspaceTree({
   sortOrder?: FileSortOrder
 }) {
   const { workspace, openFiles, activeFilePath, openWorkspaceFile, renameWorkspaceTab, expandedFolders, setDirectoryExpanded } = useWorkspace()
+  const showGit = useShowGitDecorations()
+  // Git status only changes with Git activity: refresh on mount, focus and Git page events, never per edit.
+  useEffect(() => {
+    if (!showGit || !workspace.path) return
+    const refresh = () => { void refreshGitDecorations(workspace.path) }
+    refresh()
+    window.addEventListener("focus", refresh)
+    window.addEventListener("vessel:git-changed", refresh)
+    return () => { window.removeEventListener("focus", refresh); window.removeEventListener("vessel:git-changed", refresh) }
+  }, [showGit, workspace.path])
   const [selection, setSelection] = useState<string[]>([])
   const anchor = useRef<string | undefined>(undefined)
   useEffect(() => {

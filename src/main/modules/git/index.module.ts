@@ -1,4 +1,5 @@
 import { searchGitCommits } from "./search"
+import { getGitDecorations } from "./git-decorations"
 import type { GitSearchOptions, GitTagOptions } from "@vessel/type/git"
 import { getRepositorySettings, saveRepositorySettings } from "@main/modules/git/repository-settings"
 import type { GitRepositorySettings } from "@vessel/type/git"
@@ -16,6 +17,7 @@ export class GitModule extends BaseModule {
       "git:repository-settings": (_e, cwd: string) => getRepositorySettings(cwd),
       "git:save-repository-settings": (_e, cwd: string, settings: GitRepositorySettings) => saveRepositorySettings(cwd, settings),
       "git:is-repo": (_e, cwd: string) => gitService.isRepo(cwd),
+      "git:decorations": (_e, cwd: string) => getGitDecorations(cwd),
 
       /** Performs the "git:init" operation. */
       "git:init": (_e, cwd: string) => gitService.init(cwd),

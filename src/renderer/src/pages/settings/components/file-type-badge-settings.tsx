@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { ChevronDown, Tags } from "lucide-react"
+import { ChevronDown } from "lucide-react"
 import type { AppSettings } from "@vessel/type"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Switch } from "@/components/ui/switch"
@@ -12,7 +12,7 @@ export function FileTypeBadgeSettings({ value, onChange }: { value: BadgeSetting
   const workspace = value.fileTypeBadgesWorkspace === true, resources = value.fileTypeBadgesResources !== false
   return <Collapsible open={open} onOpenChange={setOpen} className="settings-card">
     <CollapsibleTrigger className="settings-section-trigger flex w-full items-center gap-3 p-5 text-left transition-colors hover:bg-muted/40">
-      <Tags className="size-5 shrink-0 text-green-600" /><div className="min-w-0 flex-1"><h3>文件类型徽标</h3><p className="mt-1 text-xs text-muted-foreground">{enabled ? "已开启" : "已关闭"} · {workspace && "工作区"}{workspace && resources && "、"}{resources && "项目资源库"}{!workspace && !resources && "未启用应用范围"}</p></div><ChevronDown className={`size-4 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
+      <div className="min-w-0 flex-1"><h3>文件类型徽标</h3><p className="mt-1 text-xs text-muted-foreground">{enabled ? "已开启" : "已关闭"} · {workspace && "工作区"}{workspace && resources && "、"}{resources && "项目资源库"}{!workspace && !resources && "未启用应用范围"}</p></div><ChevronDown className={`size-4 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
     </CollapsibleTrigger>
     <CollapsibleContent className="border-t">
       <Row title="显示文件类型徽标" description="在文件树右侧显示 MD、XLSX 等文件类型标记"><Switch aria-label="显示文件类型徽标" checked={enabled} onCheckedChange={(checked) => onChange({ fileTypeBadgesEnabled: checked })} /></Row>

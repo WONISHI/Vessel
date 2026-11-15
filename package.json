@@ -120,13 +120,6 @@
         ]
       },
       {
-        "from": "resources/markitdown",
-        "to": "markitdown",
-        "filter": [
-          "**/*"
-        ]
-      },
-      {
         "from": "packages/@vessel/clipper/dist",
         "to": "extensions/clipper",
         "filter": [
@@ -147,7 +140,7 @@
       "zh_TW",
       "en"
     ],
-    "beforePack": "scripts/prepare-markitdown-package.cjs"
+    "beforePack": "scripts/prepare-package.cjs"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
@@ -191,8 +184,7 @@
     "typecheck:clipper": "npm run typecheck --workspace=@vessel/clipper",
     "assets:matting": "node scripts/prepare-matting-assets.cjs",
     "check:components": "node scripts/checks/component-boundaries.cjs",
-    "check:conventions": "node scripts/checks/source-conventions.cjs && npm run check:components",
-    "assets:markitdown": "node scripts/prepare-markitdown.cjs"
+    "check:conventions": "node scripts/checks/source-conventions.cjs && npm run check:components"
   },
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.2",

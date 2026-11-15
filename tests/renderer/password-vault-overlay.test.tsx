@@ -4,7 +4,7 @@ import { PasswordVault } from "@/pages/browser/components/password-vault"
 vi.mock("@/components/ui/scroll-area", () => ({ ScrollArea: ({ children }: { children: React.ReactNode }) => <div>{children}</div> }))
 afterEach(() => { cleanup(); vi.unstubAllGlobals() })
 it("leaves activity and status navigation interactive when the vault is open", () => {
-  vi.stubGlobal("electronAPI", { onVaultCandidate: () => () => {}, vaultRequest: vi.fn().mockResolvedValue({ initialized: false, unlocked: false }) })
+  vi.stubGlobal("electronAPI", { onVaultCandidate: () => () => {}, vaultRequest: vi.fn().mockResolvedValue({ initialized: false, unlocked: true, auto: true }) })
   const navigate = vi.fn()
   render(<><button onClick={navigate}>活动栏</button><PasswordVault /></>)
   fireEvent.click(screen.getByRole("button", { name: "密码保险库" }))

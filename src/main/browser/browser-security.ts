@@ -159,7 +159,8 @@ export function secureBrowserGuests(contents: WebContents) {
         event.preventDefault()
         if (!input.isAutoRepeat) contents.send("browser:toggle-devtools", guest.id)
       }
-      const command = commandShortcutIds.find((id) => matchesShortcut(input, id))
+      // ⌘K belongs to the page (command palettes, search); only the app shell handles 访问链接.
+      const command = commandShortcutIds.find((id) => id !== "visitLink" && matchesShortcut(input, id))
       if (command) {
         event.preventDefault()
         if (!input.isAutoRepeat) contents.send("app:command", command)

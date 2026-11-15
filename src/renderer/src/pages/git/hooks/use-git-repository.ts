@@ -10,6 +10,7 @@ export function useGitRepository() {
   const [repositorySettingsOpen, setRepositorySettingsOpen] = useState(false)
   const [terminalOpen, setTerminalOpen] = useState(false)
   const [repoPath, setRepoPath] = useState<string>(getInitialRepoPath)
+  const lastGitSignature = useRef("")
   const [libraryProjects, setLibraryProjects] = useState<{ name: string; path: string }[]>([])
 
   // 记住 Git 页选中的仓库，切到其他路由再回来仍显示同一项
@@ -146,6 +147,12 @@ export function useGitRepository() {
       setCommitTotal(totalRes)
       setBranchCommitTotal(branchTotalRes ?? totalRes)
       setStatus(statusRes)
+      // Notify the resource-library tree only when the change set really differs, never on every reload.
+      const signature = JSON.stringify([statusRes.staged, statusRes.unstaged, statusRes.untracked, statusRes.conflicts].map((list) => list.map((file) => `${file.path}:${file.status}`)))
+      if (signature !== lastGitSignature.current) {
+        lastGitSignature.current = signature
+        window.dispatchEvent(new Event("vessel:git-changed"))
+      }
       setBranches(branchRes)
       setCommits(logRes)
       setStashes(stashRes || [])

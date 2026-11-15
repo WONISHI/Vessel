@@ -153,37 +153,20 @@ export function floatingVideoGuest(command: "list" | "open" | "close" | "bounds"
   const popout = document.createElement("button")
   popout.type = "button"
   popout.textContent = "↗"
-  popout.title = "独立窗口播放，可拖出 Vessel"
+  popout.title = "独立悬浮窗口：可拖到 Vessel 之外，始终置顶"
   popout.setAttribute("aria-label", popout.title)
-  const pipApi = (window as unknown as {
-    documentPictureInPicture?: { requestWindow(options?: { width?: number; height?: number }): Promise<Window> }
-  }).documentPictureInPicture
-  if (!pipApi) popout.hidden = true
+  if (!document.pictureInPictureEnabled) popout.hidden = true
   popout.onclick = () => {
-    if (!pipApi) return
-    const ratio = video.videoWidth > 0 && video.videoHeight > 0 ? video.videoHeight / video.videoWidth : 9 / 16
-    void pipApi.requestWindow({ width: 520, height: Math.round(520 * ratio) + 40 }).then((pipWin) => {
-      const doc = pipWin.document
-      doc.title = title.textContent || "Vessel 视频"
-      const pipStyle = doc.createElement("style")
-      pipStyle.textContent = "body{margin:0;background:#000;display:flex;flex-direction:column;height:100vh;overflow:hidden}video{flex:1;width:100%;min-height:0;object-fit:contain;background:#000}footer{display:flex;justify-content:flex-end;align-items:center;padding:6px 10px;background:#16181c;color-scheme:dark}select{height:26px;border:1px solid #ffffff16;border-radius:6px;background:#ffffff0d;color:#f4f4f5;font:500 12px system-ui,sans-serif;cursor:pointer}option{background:#24262b}"
-      doc.head.append(pipStyle)
-      const pipFooter = doc.createElement("footer")
-      const pipSpeed = doc.createElement("select")
-      pipSpeed.setAttribute("aria-label", "播放速度")
-      for (const value of [1, 1.25, 1.5, 1.75, 2, 2.5, 3, 4, 5, 6]) pipSpeed.add(new Option(`${value}×`, String(value)))
-      pipSpeed.value = speed.value
-      pipSpeed.onchange = () => { video.playbackRate = Number(pipSpeed.value) }
-      pipFooter.append(pipSpeed)
-      doc.body.append(video, pipFooter)
-      video.controls = true
-      video.style.cssText = "flex:1;width:100%;min-height:0;object-fit:contain;background:#000"
-      window.clearInterval(titleTimer)
-      window.removeEventListener("resize", keepInView)
-      popup.remove()
-      pipWin.addEventListener("pagehide", dock)
-      void video.play().catch(() => {})
-    }).catch(() => {})
+    // Native picture-in-picture is an OS-level always-on-top window that can be dragged anywhere on screen.
+    video.disablePictureInPicture = false
+    video.removeAttribute("disablepictureinpicture")
+    void video.requestPictureInPicture().then(() => {
+      // Dock the in-page player back; the video element keeps playing in the native window.
+      close.click()
+    }).catch(() => {
+      popout.title = "当前视频不支持独立悬浮窗口"
+      popout.style.opacity = "0.4"
+    })
   }
   const place = (left: number, top: number) => {
     popup.style.right = "auto"

@@ -1,3 +1,4 @@
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { Image } from "@/components/ui/image"
 import { parseImageReference, resizeImageReference } from "@vessel/obsidian"
 import { Check, Copy, Link, Trash2, X } from "lucide-react"
@@ -6,6 +7,9 @@ import { toast } from "sonner"
 
 /** Renders the obsidian image component. */
 export function ObsidianImage({ reference, root, documentPath, onChange, onFocusAbove, onFocusBelow, readOnly = false }: { onFocusAbove?: () => void; onFocusBelow?: () => void; readOnly?: boolean; reference: string; root: string; documentPath: string; onChange: (reference: string) => void }) {
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState("")
   const embed = parseImageReference(reference)!
   const [showLink, setShowLink] = useState(false)
   const [draftUrl, setDraftUrl] = useState(() => (embed ? embed.target : reference))
@@ -104,6 +108,25 @@ export function ObsidianImage({ reference, root, documentPath, onChange, onFocus
   }
 
   return (
+    <>
+    <ConfirmDialog
+      open={deleteTarget !== null}
+      onOpenChange={(open) => { if (!open) { setDeleteTarget(null); setDeleteError("") } }}
+      title="永久删除图片文件"
+      description={<>确定永久删除这个图片文件吗？<br /><strong className="break-all">{deleteTarget}</strong><br />同时移除当前文档中的这处图片引用。文件不会移入废纸篓，其他文档对它的引用也将失效。</>}
+      confirmText={deleting ? "删除中…" : "永久删除"}
+      busy={deleting}
+      error={deleteError}
+      onConfirm={() => {
+        if (!deleteTarget || deleting) return
+        setDeleting(true)
+        setDeleteError("")
+        void window.electronAPI.deleteObsidianImage(root, documentPath, reference, deleteTarget)
+          .then(() => { setDeleteTarget(null); onChange(""); toast.success("已删除图片文件及当前引用") })
+          .catch((error) => setDeleteError(String(error).replace(/^Error invoking remote method '[^']+': (?:Error: )?/, "")))
+          .finally(() => setDeleting(false))
+      }}
+    />
     <span
       className="vessel-obsidian-image relative block bg-white"
       onBlur={(event) => {
@@ -266,10 +289,7 @@ export function ObsidianImage({ reference, root, documentPath, onChange, onFocus
         onViewLink={handleOpenLink}
         onDelete={readOnly ? undefined : handleDelete}
         onDeleteFile={readOnly || /^(?:https?:|data:|blob:)/i.test(embed.target) ? undefined : async () => {
-          if (await window.electronAPI.deleteObsidianImage(root, documentPath, reference)) {
-            onChange("")
-            toast.success("已删除图片文件及当前引用")
-          }
+          setDeleteTarget(await window.electronAPI.prepareDeleteObsidianImage(root, documentPath, reference))
         }}
         sourceKey={`${root}:${documentPath}:${reference}`}
         loadSource={loadSource}
@@ -279,5 +299,6 @@ export function ObsidianImage({ reference, root, documentPath, onChange, onFocus
         onResizeEnd={readOnly ? undefined : (width) => onChange(resizeImageReference(reference, width))}
       />
     </span>
+    </>
   )
 }

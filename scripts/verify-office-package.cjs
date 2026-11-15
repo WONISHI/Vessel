@@ -11,10 +11,6 @@ module.exports = async (context) => {
     if (!source.equals(packed)) throw new Error(`Clipper resource corrupted: ${entry}`)
   }
   console.log("Packaged Clipper resources OK")
-  const python = path.join(root, "markitdown", ...(context.electronPlatformName === "win32" ? ["python.exe"] : ["bin", "python3"]))
-  await fs.access(python)
-  // Execute from the copied location to catch non-relocatable runtimes before shipping.
-  execFileSync(python, ["-I", "-c", "from markitdown import MarkItDown; from markitdown.converters import PdfConverter; print('Packaged MarkItDown PDF runtime OK')"], { stdio: "inherit", timeout: 120000 })
   if (context.electronPlatformName === "win32") {
     const arch = context.arch === 3 ? "arm64" : "x64"
     const nativeRoot = path.join(root, "app.asar.unpacked/node_modules")

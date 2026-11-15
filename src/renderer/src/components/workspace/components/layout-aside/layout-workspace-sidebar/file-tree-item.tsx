@@ -1,4 +1,5 @@
-import { useShowFileTypeBadges } from "@/features/file-icons/state"
+import { useShowFileTypeBadges, useShowGitDecorations } from "@/features/file-icons/state"
+import { gitDecorationStyle, useGitDecoration } from "@/features/git-decorations"
 import { FileThemeIcon } from "@/features/file-icons"
 import { Button } from "@/components/ui/button"
 import { getFilePresentation } from "@/components/workspace/components/layout-aside/layout-workspace-sidebar/utils"
@@ -24,6 +25,9 @@ export default function FileTreeItem({ node, rootPath, selected, expanded, loadi
   const folder = node.type === "directory"
   const showTypeBadge = useShowFileTypeBadges()
   const appearance = getFilePresentation(node.name)
+  const showGit = useShowGitDecorations()
+  const gitCode = useGitDecoration(showGit ? rootPath : undefined, node.path, folder)
+  const git = gitCode && gitDecorationStyle[gitCode]
   return (
     <Button
       data-workspace-tree-row
@@ -47,7 +51,7 @@ export default function FileTreeItem({ node, rootPath, selected, expanded, loadi
 
       <span
         data-tree-label
-        className={cn("min-w-0 flex-1 truncate text-left", folder && "font-semibold")}
+        className={cn("min-w-0 flex-1 truncate text-left", folder && "font-semibold", git?.text)}
       >
         {node.name}
       </span>
@@ -64,6 +68,9 @@ export default function FileTreeItem({ node, rootPath, selected, expanded, loadi
           </span>
         )
       )}
+      {!error && git && (folder
+        ? <span aria-label={git.title} data-git-status={gitCode} className={cn("size-1.5 shrink-0 rounded-full bg-current opacity-60", git.text)} />
+        : <span aria-label={git.title} data-git-status={gitCode} className={cn("w-3 shrink-0 text-center text-[10px] font-semibold leading-4", git.text)}>{git.label}</span>)}
     </Button>
   )
 }

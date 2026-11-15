@@ -2,6 +2,7 @@ export interface AppSettings {
   fileTypeBadgesEnabled?: boolean
   fileTypeBadgesWorkspace?: boolean
   fileTypeBadgesResources?: boolean
+  gitDecorationsEnabled?: boolean
   fileIconTheme?: "default" | "catppuccin" | "symbols" | "material"
   fileIconWorkspace?: boolean
   fileIconResources?: boolean

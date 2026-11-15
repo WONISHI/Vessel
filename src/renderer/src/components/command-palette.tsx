@@ -138,6 +138,8 @@ export function CommandPalette() {
     const key = (event: KeyboardEvent) => {
       const command = commandShortcutIds.find((id) => matchesShortcut(event, id))
       if (!command) return
+      // ⌘K already inserts a link while editing Markdown.
+      if (command === "visitLink" && event.target instanceof Element && event.target.closest(".vditor-reset")) return
       event.preventDefault()
       event.stopImmediatePropagation()
       if (!event.repeat) execute(command)

@@ -121,7 +121,6 @@ const vesselAPI = {
   pickOfficeFile: (): Promise<{ token: string; name: string; bytes: Uint8Array } | null> => ipcRenderer.invoke("office:pick"),
 
   /** Converts the current Office export and asks for an output folder. */
-  convertOfficeMarkdown: (name: string, bytes: Uint8Array): Promise<{ saved: boolean; path?: string }> => ipcRenderer.invoke("office:convert-markdown", name, bytes),
   /** Performs the commit office operation. */
   commitOffice: (name: string, bytes: Uint8Array, token?: string): Promise<{ saved: boolean; name?: string; token?: string }> => ipcRenderer.invoke("office:commit", name, bytes, token),
 

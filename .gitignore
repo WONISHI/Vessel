@@ -16,9 +16,6 @@ src/renderer/public/ocr/runtime/
 # Bundled IS-Net resources; prepare with npm run assets:matting
 /src/renderer/public/vendor/imgly/
 
-# Local MarkItDown Python environment
-.venv-markitdown/
-resources/markitdown/
 tmp/python-build-standalone/
 
 # Local project-analysis sources must not enter repository history
@@ -26,3 +23,7 @@ tmp/python-build-standalone/
 
 # Generated offline file icon libraries
 /src/renderer/public/vendor/file-icons/
+
+# Local MarkItDown Python environment (feature removed; keep the leftover folders ignored)
+.venv-markitdown/
+resources/markitdown/

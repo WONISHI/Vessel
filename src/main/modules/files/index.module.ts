@@ -14,7 +14,7 @@ import { collectMarkdownImages, readObsidianImage, resolveObsidianImageFile } fr
 import { attachmentDirectory, saveObsidianImage } from "@main/modules/files/save-obsidian-image"
 import { transferWorkspaceFiles } from "@main/modules/files/transfer-workspace-files"
 import { readWikiLink } from "@main/modules/files/wiki-link"
-import { app, BrowserWindow, clipboard, dialog, ipcMain, shell } from "electron"
+import { app, clipboard, ipcMain, shell } from "electron"
 import { execFile } from "node:child_process"
 import { link, lstat, mkdir, readFile, realpath, rename, stat, unlink, writeFile } from "node:fs/promises"
 import { dirname, isAbsolute, join, relative, sep } from "node:path"
@@ -184,19 +184,16 @@ export class FilesModule extends BaseModule {
       const { attachmentLibraryEnabled, attachmentFolders } = generalSettings()
       return saveObsidianImage(root, documentPath, source, attachmentLibraryEnabled ? attachmentFolders ?? [] : undefined)
     })
-    ipcMain.handle("obsidian:deleteImage", async (event, root: string, documentPath: string, reference: string) => {
+    ipcMain.handle("obsidian:prepareDeleteImage", async (_event, root: string, documentPath: string, reference: string) => {
       const path = await resolveObsidianImageFile(root, documentPath, reference)
       if (path === await realpath(documentPath)) throw new Error("不能删除当前文档")
-      const options: Electron.MessageBoxOptions = {
-        type: "warning", title: "物理删除图片", message: "确定永久删除这个图片文件？",
-        detail: `${path}\n\n同时移除当前文档中的这处图片引用。文件不会移入废纸篓，其他文档对它的引用也将失效。`,
-        buttons: ["取消", "永久删除"], defaultId: 0, cancelId: 0, noLink: true
-      }
-      const parent = BrowserWindow.fromWebContents(event.sender)
-      const result = parent ? await dialog.showMessageBox(parent, options) : await dialog.showMessageBox(options)
-      if (result.response !== 1) return false
-      // Recheck canonical workspace containment after the confirmation dialog.
-      if (await resolveObsidianImageFile(root, documentPath, reference) !== path) throw new Error("图片路径已变化，请重试")
+      return path
+    })
+    ipcMain.handle("obsidian:deleteImage", async (_event, root: string, documentPath: string, reference: string, confirmedPath: string) => {
+      const path = await resolveObsidianImageFile(root, documentPath, reference)
+      if (path === await realpath(documentPath)) throw new Error("不能删除当前文档")
+      // The renderer confirmed this exact file; recheck canonical workspace containment before deleting.
+      if (path !== confirmedPath) throw new Error("图片路径已变化，请重试")
       await unlink(path)
       return true
     })

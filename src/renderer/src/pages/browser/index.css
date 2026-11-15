@@ -621,9 +621,6 @@ html:not(.dark) .browser-more-item:hover svg {
 .browser-tab-pin-close .browser-tab-close-icon {
   display: none;
 }
-.browser-tab-pin-close:is(:hover, :focus-visible) .browser-tab-pin-icon {
-  display: none;
-}
-.browser-tab-pin-close:is(:hover, :focus-visible) .browser-tab-close-icon {
-  display: block;
-}
+/* Pinned tabs always show the pin; they are closed from the context menu, not by the pin slot. */
+.browser-tab-pin-close { pointer-events: none; cursor: default; }
+.browser-tab > .browser-tab-pin-close { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); }

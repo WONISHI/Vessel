@@ -109,7 +109,7 @@ describe("CommandPalette theme toggle", () => {
     expect(localStorage.getItem("vessel-control-visible")).toBe("true")
     fireEvent.keyDown(window, { key: "f", ctrlKey: true, shiftKey: true })
     expect(await screen.findByRole("textbox", { name: "搜索工作区文件" })).toBeTruthy()
-    fireEvent.keyDown(window, { key: "l", ctrlKey: true, shiftKey: true })
+    fireEvent.keyDown(window, { key: "k", ctrlKey: true })
     expect(await screen.findByPlaceholderText("输入命令或链接…")).toHaveProperty("value", "https://")
   })
   it("shows shortcuts in the menu and handles commands forwarded from browser guests", async () => {

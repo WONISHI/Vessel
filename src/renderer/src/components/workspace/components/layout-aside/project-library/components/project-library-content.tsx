@@ -4,6 +4,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import WorkspaceTree from "@/components/workspace/components/layout-aside/layout-workspace-sidebar/workspace-tree"
 import { Project } from "@/components/workspace/components/layout-aside/project-library/components/project-library-shared"
 import { useWorkspace } from "@/components/workspace/hooks/useWorkspace"
+import { GitDecorationScope } from "@/features/file-icons/state"
 import { readLibraryMeta, updateLibraryMeta } from "@/pages/resources/library-state"
 import { Ellipsis, ExternalLink, FolderOpen, HardDrive, HardDriveUpload, Plus, RefreshCw, X } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
@@ -210,10 +211,12 @@ export function ProjectLibraryContent({ pinned, onPin, onSelect }: { pinned: boo
         viewportRef={setViewport}
         className="min-h-0 flex-1 p-2"
       >
-        <WorkspaceTree
-          key={`${workspace.path}:${revision}`}
-          viewport={viewport}
-        />
+        <GitDecorationScope.Provider value>
+          <WorkspaceTree
+            key={`${workspace.path}:${revision}`}
+            viewport={viewport}
+          />
+        </GitDecorationScope.Provider>
       </ScrollArea>
       <div className="border-t bg-stone-50/70 px-3 py-1.5 text-[10px] leading-4 text-stone-400">{projects.length} 个项目 / 附件目录</div>
     </section>

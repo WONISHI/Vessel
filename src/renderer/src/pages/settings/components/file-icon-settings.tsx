@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { ChevronDown, File, Folder, Palette } from "lucide-react"
+import { ChevronDown, File, Folder } from "lucide-react"
 import type { AppSettings } from "@vessel/type"
 import { Switch } from "@/components/ui/switch"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
@@ -20,7 +20,7 @@ export function FileIconSettings({ value, onChange }: { value: IconSettings; onC
   const names = fileIconNames(theme)
   return <Collapsible open={open} onOpenChange={setOpen} className="settings-card">
     <CollapsibleTrigger className="settings-section-trigger flex w-full items-center gap-3 p-5 text-left transition-colors hover:bg-muted/40">
-      <Palette className="size-5 shrink-0 text-green-600" /><div className="min-w-0 flex-1"><h3>文件图标</h3><p className="mt-1 text-xs text-muted-foreground">{labels[theme]} · {value.fileIconWorkspace ? "工作区" : ""}{value.fileIconWorkspace && value.fileIconResources !== false ? "、" : ""}{value.fileIconResources !== false ? "项目资源库" : ""}{!value.fileIconWorkspace && value.fileIconResources === false ? "未启用应用范围" : ""}</p></div><ChevronDown className={`size-4 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
+      <div className="min-w-0 flex-1"><h3>文件图标</h3><p className="mt-1 text-xs text-muted-foreground">{labels[theme]} · {value.fileIconWorkspace ? "工作区" : ""}{value.fileIconWorkspace && value.fileIconResources !== false ? "、" : ""}{value.fileIconResources !== false ? "项目资源库" : ""}{!value.fileIconWorkspace && value.fileIconResources === false ? "未启用应用范围" : ""}</p></div><ChevronDown className={`size-4 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
     </CollapsibleTrigger>
     <CollapsibleContent className="border-t">
       <Row title="图标库" description="按文件名、类型和文件夹名称自动匹配">

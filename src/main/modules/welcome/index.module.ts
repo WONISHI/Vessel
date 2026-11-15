@@ -9,6 +9,7 @@ import { generalSettings, isIgnoredEntry, parseIgnoredPatterns } from "@main/set
 import { app, BrowserWindow, dialog, ipcMain, screen } from "electron"
 import { release, totalmem } from "node:os"
 import { createPerformanceSampler } from "./performance"
+import { optimizeMemory } from "./memory-optimizer"
 import { getDatabaseStorageBytes } from "./system-info"
 import type { SystemInfo } from "@vessel/type"
 import { readdir, realpath, stat } from "fs/promises"
@@ -179,6 +180,7 @@ export class WelcomeModule extends BaseModule {
       const readMainMemory = createMainMemoryReader()
       const samplePerformance = createPerformanceSampler(() => app.getAppMetrics(), totalmem, Date.now, () => ({ ...collectPerformanceSources(), mainMemory: readMainMemory() }))
       this.registerHandler("performance:snapshot", () => samplePerformance())
+      this.registerHandler("performance:optimizeMemory", () => optimizeMemory())
       this.registerHandler("system:info", async (event): Promise<SystemInfo> => {
         const window = BrowserWindow.fromWebContents(event.sender)
         const display = window ? screen.getDisplayMatching(window.getBounds()) : screen.getPrimaryDisplay()

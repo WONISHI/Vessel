@@ -1,5 +1,6 @@
 import { FileTypeBadgeSettings } from "./file-type-badge-settings"
 import { FileIconSettings } from "./file-icon-settings"
+import { GitDecorationSettings } from "./git-decoration-settings"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { AppUpdateSettings } from "./app-update-settings"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
@@ -389,6 +390,7 @@ export function SettingsPage() {
                 <>
                   <h2>外观设置</h2>
                   <p className="settings-description">自定义应用的主题、字体和显示大小</p>
+                  <div className="settings-card-group">
                   <div className="settings-card">
                     <Row
                       title="主题模式"
@@ -456,6 +458,8 @@ export function SettingsPage() {
                   </div>
                   <FileIconSettings value={draft} onChange={(patch) => setDraft((current) => ({ ...current, ...patch }))} />
                   <FileTypeBadgeSettings value={draft} onChange={(patch) => setDraft((current) => ({ ...current, ...patch }))} />
+                  <GitDecorationSettings value={draft} onChange={(patch) => setDraft((current) => ({ ...current, ...patch }))} />
+                  </div>
                   <div className="settings-card p-5">
                     <h3>字体预览</h3>
                     <div

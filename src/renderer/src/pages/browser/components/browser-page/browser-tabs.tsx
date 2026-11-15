@@ -54,10 +54,11 @@ export function BrowserTabs({ b }: { b: BrowserPageModel }) {
                   <button
                     className={item.pinned ? "browser-tab-pin-close" : undefined}
                     data-title="关闭标签页"
-                    onClick={() => close(item.id)} aria-label="关闭标签页"
+                    onClick={() => close(item.id)} aria-label={item.pinned ? "已固定" : "关闭标签页"}
+                    disabled={item.pinned}
+                    tabIndex={item.pinned ? -1 : undefined}
                   >
-                    {item.pinned && <Pin size={16} className="browser-tab-pin-icon" aria-label="已固定" />}
-                    <X size={14} className={item.pinned ? "browser-tab-close-icon" : undefined} />
+                    {item.pinned ? <Pin size={16} className="browser-tab-pin-icon" aria-hidden="true" /> : <X size={14} />}
                   </button>
                 </div>
               </ContextMenuTrigger>

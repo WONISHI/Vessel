@@ -12,7 +12,7 @@ import { Eye, EyeOff } from "lucide-react"
 type Entry = { id: string; origin: string; username: string; updated: number }
 type Candidate = { id: string; origin: string; username: string }
 export function PasswordVault({ guestId, url }: { guestId?: () => number | undefined; url?: string }) {
-  const [open, setOpen] = useState(false), [state, setState] = useState({ initialized: false, unlocked: false })
+  const [open, setOpen] = useState(false), [state, setState] = useState<{ initialized: boolean; unlocked: boolean; auto?: boolean }>({ initialized: false, unlocked: true, auto: true })
   const [password, setPassword] = useState(""), [confirmation, setConfirmation] = useState(""), [exportPassword, setExportPassword] = useState("")
   const [items, setItems] = useState<Entry[]>([]), [candidate, setCandidate] = useState<Candidate | null>(null)
   const [manage, setManage] = useState(false), [unlockRequested, setUnlockRequested] = useState(false), [requiresUnlock, setRequiresUnlock] = useState(false)
@@ -95,7 +95,12 @@ export function PasswordVault({ guestId, url }: { guestId?: () => number | undef
       if (revision !== revealRevision.current) return false
       setRevealed({ id, password: result.password })
       return true
-    } catch (reason) { setError(reason instanceof Error ? reason.message : String(reason)); return false }
+    } catch (reason) {
+      // Cancelling or failing the system authentication simply leaves the password hidden.
+      const message = (reason instanceof Error ? reason.message : String(reason)).replace(/^Error invoking remote method '[^']+': (?:Error: )?/, "")
+      if (!message.includes("系统身份验证")) setError(message)
+      return false
+    }
     finally { setBusy(false) }
   }
   let origin = ""
@@ -137,12 +142,12 @@ export function PasswordVault({ guestId, url }: { guestId?: () => number | undef
       <DialogPortal>
         <div data-vault-overlay aria-hidden="true" className="fixed top-0 right-0 bottom-8 left-[52px] z-[220] bg-black/[.04] backdrop-blur-[3px]" />
       </DialogPortal>
-      <PanelContent {...(manage ? { showOverlay: false, side: "right" as const } : {})} onSubmit={(event) => event.stopPropagation()} className={manage ? "z-[221] top-0 bottom-8 flex h-auto w-[calc(100%-52px)] flex-col sm:max-w-xl" : "z-[221] left-[calc(50%+26px)] flex max-h-[85vh] w-[calc(100%-84px)] flex-col"}>
-        <DialogHeader><DialogTitle>{manage ? "账号和密码" : "密码保险库"}</DialogTitle><DialogDescription>{manage ? "查看 Vessel 保存的所有网站账号，密码默认隐藏。查看密码需要验证身份。" : "本地加密保存。检测到 HTTPS 登录账号密码后询问保存，闲置 5 分钟或锁屏后自动锁定。主密码遗忘无法恢复。"}</DialogDescription></DialogHeader>
+      <PanelContent {...(manage ? { showOverlay: false, side: "right" as const } : {})} onSubmit={(event) => event.stopPropagation()} className={manage ? "z-[221] top-0 bottom-8 flex h-auto w-[calc(100%-52px)] flex-col gap-3 p-4 sm:max-w-sm" : "z-[221] left-[calc(50%+26px)] flex max-h-[85vh] w-[calc(100%-84px)] flex-col gap-3 p-4 sm:max-w-sm"}>
+        <DialogHeader><DialogTitle className="text-base">{manage ? "账号和密码" : candidate ? "保存密码？" : "账号和密码设置"}</DialogTitle><DialogDescription>{manage ? "查看 Vessel 保存的所有网站账号，密码默认隐藏。查看密码需要验证身份。" : candidate ? "Vessel 会用系统钥匙串加密保存在本机，之后可在浏览器菜单的“账号和密码”中查看。" : "账号和密码使用系统钥匙串加密保存在本机；查看密码需要通过系统身份验证。"}</DialogDescription></DialogHeader>
         <ScrollArea className={manage ? "min-h-0 flex-1" : "min-h-0 flex-1 [&_[data-radix-scroll-area-viewport]]:max-h-[55vh]"}>
           <div className="space-y-3 pr-3 text-sm">
             {manage ? <>
-              <PasswordAccounts items={items} revealed={revealed} busy={busy} requiresUnlock={requiresUnlock} onReveal={(id) => void reveal(id)} onSettings={() => setManage(false)} />
+              <PasswordAccounts items={items} revealed={revealed} busy={busy} requiresUnlock={requiresUnlock} onReveal={(id) => void reveal(id)} onDelete={setDeleteId} onSettings={() => setManage(false)} />
               {unlockForm}
             </> : <>
             {candidate && !state.unlocked && <div className="rounded border p-3 text-sm">
@@ -160,17 +165,17 @@ export function PasswordVault({ guestId, url }: { guestId?: () => number | undef
               {!state.initialized && <Input type="password" aria-label="确认主密码" autoComplete="new-password" placeholder="再次输入主密码" value={confirmation} onChange={(event) => setConfirmation(event.target.value)} />}
               <Button disabled={busy || password.length < 12} type="submit">{state.initialized ? "解锁" : "创建保险库"}</Button>
             </form> : <>
-              <Button variant="outline" disabled={busy} onClick={() => void run("lock")}>锁定保险库</Button>
+              {!state.auto && <Button variant="outline" disabled={busy} onClick={() => void run("lock")}>锁定保险库</Button>}
               {candidate && <div className="space-y-2 rounded border p-3">
-                <p>保存或更新此账号？</p><p className="break-all">{candidate.origin} · {candidate.username || "未提供账号"}</p>
+                <p>保存此网站的账号和密码？</p><p className="break-all">{candidate.origin} · {candidate.username || "未提供账号"}</p>
                 <div className="flex flex-wrap gap-2">
                   <Button disabled={busy} onClick={() => void run("candidate", { id: candidate.id, choice: "save" })}>保存 / 更新</Button>
                   <Button variant="outline" disabled={busy} onClick={() => void run("candidate", { id: candidate.id, choice: "dismiss" })}>此次不保存</Button>
                   <Button variant="outline" disabled={busy} onClick={() => void run("candidate", { id: candidate.id, choice: "never" })}>此网站永不保存</Button>
                 </div>
               </div>}
-              <p className="text-muted-foreground">已保存 {items.length} 个账号；只能填充到相同 HTTPS 来源，包含端口。</p>
-              {items.map((item) => <div key={item.id} className="space-y-2 rounded border p-3">
+              {!candidate && <p className="text-muted-foreground">已保存 {items.length} 个账号；只能填充到相同 HTTPS 来源，包含端口。</p>}
+              {!candidate && items.map((item) => <div key={item.id} className="space-y-2 rounded border p-3">
                 <p className="break-all">{item.origin}</p><p className="break-all">{item.username || "未提供账号"}</p>
                 <div className="flex items-center gap-2">
                   <span className="min-w-0 flex-1 break-all font-mono text-xs select-text" aria-label="已保存密码">{revealed?.id === item.id ? revealed.password : "••••••••"}</span>
@@ -187,17 +192,16 @@ export function PasswordVault({ guestId, url }: { guestId?: () => number | undef
                   <Button variant="outline" disabled={busy} onClick={() => setDeleteId(item.id)}>删除</Button>
                 </div>
               </div>)}
-              <details className="rounded border p-3"><summary className="cursor-pointer">加密导出备份</summary>
-                <p className="my-2 text-xs text-muted-foreground">重新输入主密码。导出时设置独立口令，导入时输入备份口令；重复账号会保留当前记录。</p>
-                <Input className="mb-2" type="password" aria-label="导出验证主密码" autoComplete="off" placeholder="当前主密码" value={password} onChange={(event) => setPassword(event.target.value)} />
+              {!candidate && <details className="rounded border p-3"><summary className="cursor-pointer">加密导出备份</summary>
+                <p className="my-2 text-xs text-muted-foreground">导出时设置独立口令，导入时输入备份口令；重复账号会保留当前记录。</p>
+                {!state.auto && <Input className="mb-2" type="password" aria-label="导出验证主密码" autoComplete="off" placeholder="当前主密码" value={password} onChange={(event) => setPassword(event.target.value)} />}
                 <Input className="mb-2" type="password" aria-label="导出口令" autoComplete="new-password" placeholder="独立导出口令（至少 12 个字符）" value={exportPassword} onChange={(event) => setExportPassword(event.target.value)} />
-                <Button disabled={busy || password.length < 12 || exportPassword.length < 12 || exportPassword === password} onClick={() => void run("export", { password, exportPassword })}>导出加密备份</Button>
-                <Button className="ml-2" variant="outline" disabled={busy || password.length < 12 || exportPassword.length < 12} onClick={() => void run("import", { password, exportPassword })}>导入加密备份</Button>
-              </details>
+                <Button disabled={busy || (!state.auto && (password.length < 12 || exportPassword === password)) || exportPassword.length < 12} onClick={() => void run("export", { password, exportPassword })}>导出加密备份</Button>
+                <Button className="ml-2" variant="outline" disabled={busy || (!state.auto && password.length < 12) || exportPassword.length < 12} onClick={() => void run("import", { password, exportPassword })}>导入加密备份</Button>
+              </details>}
             </>}
             </>}
             {error && <p role="alert" className="break-all text-sm text-red-600">{error}</p>}
-            {busy && <p role="status">正在处理…</p>}
           </div>
         </ScrollArea>
       </PanelContent>

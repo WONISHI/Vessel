@@ -93,7 +93,9 @@ export interface VesselAPI extends AppUpdateAPI, BrowserProxyAPI, BrowserToolsAP
   moveImageToAttachments(root: string, path: string): Promise<string>
   listAttachments(root: string): Promise<Array<{ name: string; path: string; size: number; relativePath: string; mtime: number }>>
   translateText(text: string, from: string, to: string): Promise<{ text: string; detectedLanguage: string; alternatives?: { word: string; partOfSpeech: string; meanings: string[] }[] }>
+  getGitDecorations: (cwd: string) => Promise<{ entries: { path: string; code: "M" | "A" | "U" | "D" | "C" | "R" }[] } | null>
   getPerformanceSnapshot: () => Promise<import("@vessel/type").PerformanceSnapshot>
+  optimizeMemory: () => Promise<{ beforeBytes: number; afterBytes: number; targets: number; failed: number }>
   shareFilesToWechat: (root: string, paths: string[]) => Promise<{ opened: boolean }>
   getSystemInfo: () => Promise<import("@vessel/type").SystemInfo>
   searchContent(options: ContentSearchOptions): Promise<ContentSearchResult>
@@ -192,7 +194,8 @@ export interface VesselAPI extends AppUpdateAPI, BrowserProxyAPI, BrowserToolsAP
 
   saveContent: (path: string, content: string) => Promise<void>
 
-  deleteObsidianImage: (root: string, documentPath: string, reference: string) => Promise<boolean>
+  prepareDeleteObsidianImage: (root: string, documentPath: string, reference: string) => Promise<string>
+  deleteObsidianImage: (root: string, documentPath: string, reference: string, confirmedPath: string) => Promise<boolean>
   openDevTool: () => Promise<void>
   previewScreenshot: () => Promise<void>
   onRequestClose?: (callback: () => void) => () => void
