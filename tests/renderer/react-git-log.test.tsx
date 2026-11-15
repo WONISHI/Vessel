@@ -87,3 +87,17 @@ it("shows actual deduplicated working tree counts in the native index row", () =
   fireEvent.click(screen.getByText("// WIP"))
   expect(g.setActiveTab).toHaveBeenCalledWith("status")
 })
+
+it("shows newly created HEAD tags immediately without a new commit and removes deleted tags", () => {
+  const g = model()
+  const { rerender, container } = render(<GitHistoryList g={g} />)
+  const tagged = [{ ...commits[0], refs: [...commits[0].refs, "tag: v1.0.9", "tag: release"] }, ...commits.slice(1)]
+  rerender(<GitHistoryList g={{ ...g, commits: tagged }} />)
+  expect(screen.getByText("v1.0.9")).toBeTruthy()
+  expect(screen.getByText("release")).toBeTruthy()
+  expect(screen.getAllByText("master").length).toBeGreaterThan(0)
+  expect(container.querySelectorAll('[data-testid^="react-git-log-table-row-"]')).toHaveLength(5)
+  rerender(<GitHistoryList g={g} />)
+  expect(screen.queryByText("v1.0.9")).toBeNull()
+  expect(screen.queryByText("release")).toBeNull()
+})

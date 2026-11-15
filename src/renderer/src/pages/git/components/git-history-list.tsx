@@ -44,6 +44,42 @@ export function GitHistoryList({ g }: { g: GitPageModel }) {
     })
   })
 
+  // Upstream accepts only one `branch` per commit. Keep the real HEAD branch
+  // for graph layout, and add its tags to the native ref row instead of
+  // changing branch identity (which would also change graph colours/lanes).
+  useLayoutEffect(() => {
+    const badges: HTMLElement[] = []
+    commits.forEach((commit, index) => {
+      if (!commit.refs.some(ref => ref === "HEAD" || ref.startsWith("HEAD -> "))) return
+      const label = logRoot.current?.querySelector<HTMLElement>(`[id="tag-label-${index + 1}"]`)
+      if (!label) return
+      for (const ref of commit.refs.filter(ref => ref.startsWith("tag:"))) {
+        const name = ref.replace(/^tag:\s*/, "")
+        const badge = label.cloneNode(false) as HTMLElement
+        badge.removeAttribute("id")
+        badge.removeAttribute("data-testid")
+        badge.dataset.vesselHeadTag = name
+        badge.title = `标签：${name}`
+        badge.textContent = name
+        const icon = document.createElementNS("http://www.w3.org/2000/svg", "svg")
+        icon.setAttribute("viewBox", "0 0 24 24")
+        icon.setAttribute("width", "16")
+        icon.setAttribute("height", "16")
+        icon.setAttribute("fill", "none")
+        icon.setAttribute("stroke", "currentColor")
+        icon.setAttribute("stroke-width", "2")
+        icon.setAttribute("aria-hidden", "true")
+        const path = document.createElementNS("http://www.w3.org/2000/svg", "path")
+        path.setAttribute("d", "M20 13 13 20a2 2 0 0 1-3 0L2 12V2h10l8 8a2 2 0 0 1 0 3ZM7 7h.01")
+        icon.append(path)
+        badge.append(icon)
+        label.before(badge)
+        badges.push(badge)
+      }
+    })
+    return () => badges.forEach(badge => badge.remove())
+  })
+
   useEffect(() => {
     const hash = commits[selectedCommitIndex]?.hash
     if (!hash) return

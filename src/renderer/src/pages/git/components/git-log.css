@@ -29,3 +29,15 @@ html.dark .git-log-demo {
 .git-log-demo #react-git-log {
   zoom: 0.85;
 }
+
+/* Multiple refs may point at HEAD; keep tag badges alongside its branch badge. */
+.git-log-demo [data-vessel-head-tag] {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-right: 4px;
+  max-width: 140px;
+  overflow: hidden;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
