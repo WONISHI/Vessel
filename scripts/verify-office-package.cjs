@@ -5,6 +5,12 @@ const { execFileSync } = require("node:child_process")
 const required = ["v9.3.0.24-1/web-apps/apps/api/documents/api.js", "v9.3.0.24-1/web-apps/apps/api/documents/preload.html", "v9.3.0.24-1/web-apps/apps/documenteditor/main/index.html", "v9.3.0.24-1/sdkjs/word/sdk-all.js", "x2t/x2t.js", "x2t/x2t.wasm"]
 module.exports = async (context) => {
   const root = context.electronPlatformName === "darwin" ? path.join(context.appOutDir, context.packager.appInfo.productFilename + ".app", "Contents/Resources") : path.join(context.appOutDir, "resources")
+  if (context.electronPlatformName === "darwin") {
+    for (const name of ["vessel-auth", "vessel-clipboard"]) {
+      await fs.access(path.join(root, "app.asar.unpacked/out/main", name), fs.constants.X_OK)
+    }
+    console.log("Packaged native helpers OK")
+  }
   for (const entry of ["manifest.json", "popup/index.js", "content.js", "icons/icon16.png", "icons/icon48.png", "icons/icon128.png"]) {
     const source = await fs.readFile(path.resolve(__dirname, "../packages/@vessel/clipper/dist", entry))
     const packed = await fs.readFile(path.join(root, "extensions/clipper", entry))

@@ -1,6 +1,7 @@
 import { registerVault } from "./vault/service"
 import { registerWindowSwitcher } from "./window-switcher"
 import { startClipboardHistory } from "./clipboard/service"
+import { reportStartupError } from "./startup-errors"
 import { registerAppUpdate } from "./app-update"
 import { drainTextFileWrites } from "@main/modules/files/index.module"
 import { registerImageResources } from "@main/modules/files/image-resource"
@@ -297,8 +298,12 @@ app.whenReady().then(() => {
 
   ipcMain.on("ping", () => console.log("pong"))
 
-  startClipboardHistory()
   createWindow()
+  try {
+    startClipboardHistory()
+  } catch (error) {
+    reportStartupError("剪贴板初始化失败，主窗口继续运行", error)
+  }
   installApplicationMenu(() => {
     if (!applicationWindow || applicationWindow.isDestroyed()) createWindow()
     return applicationWindow
@@ -313,6 +318,11 @@ app.whenReady().then(() => {
       applicationWindow.focus()
     }
   })
+}).catch((error) => {
+  const log = reportStartupError("Vessel 启动失败", error)
+  const message = error instanceof Error ? error.message : String(error)
+  dialog.showErrorBox("Vessel 启动失败", `${message}${log ? `\n\n详细日志：${log}` : ""}`)
+  app.quit()
 })
 
 app.on("window-all-closed", () => {

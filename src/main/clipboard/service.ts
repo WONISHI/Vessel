@@ -7,6 +7,7 @@ import { join } from "node:path"
 import { fileURLToPath } from "node:url"
 import { promisify } from "node:util"
 import { ClipboardHistory, clipboardTextKind, MAX_CAPTURE_BYTES, type ClipboardCapture } from "./history"
+import { clipboardHelperPath } from "./native-helper"
 
 type Options = { directory?: string; helperPath?: string; preloadPath?: string; monitor?: boolean; registerShortcut?: boolean; loadPanel?: (window: BrowserWindow) => Promise<unknown> }
 let activeService: ReturnType<typeof startClipboardHistory> | undefined
@@ -17,7 +18,7 @@ export function startClipboardHistory(options: Options = {}) {
   const directory = options.directory || app.getPath("userData")
   mkdirSync(directory, { recursive: true })
   const history = new ClipboardHistory(join(directory, "clipboard-history.sqlite"))
-  const helper = options.helperPath || join(__dirname, "vessel-clipboard")
+  const helper = options.helperPath || clipboardHelperPath(__dirname, app.isPackaged)
   const preferencePath = join(directory, "clipboard-history-settings.json")
   let paused = false
   try { paused = JSON.parse(readFileSync(preferencePath, "utf8")).paused === true } catch { /* First launch. */ }
@@ -200,7 +201,13 @@ export function startClipboardHistory(options: Options = {}) {
   app.once("will-quit", dispose)
   if (options.monitor !== false) {
     if (process.platform === "darwin" && existsSync(helper)) {
-      watcher = spawn(helper, [], { stdio: ["ignore", "pipe", "ignore"] })
+      try {
+        watcher = spawn(helper, [], { stdio: ["ignore", "pipe", "ignore"] })
+      } catch (error) {
+        console.warn("剪贴板原生监听未启动，改用轮询", error)
+        fallback()
+        return service
+      }
       let pending = ""
       watcher.stdout?.on("data", (data: Buffer) => {
         pending += data.toString("utf8")
