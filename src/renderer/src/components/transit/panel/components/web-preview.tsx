@@ -1,4 +1,5 @@
 import { type TransitItem } from "@/components/transit/state"
+import { guestFindScript } from "@/pages/browser/guest-find"
 import { webviewAttributes } from "@/pages/browser/webview-attributes"
 import { ChevronLeft, ChevronRight, RotateCw, Search, X } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
@@ -10,7 +11,9 @@ export function WebPreview({ item, searchRequest = 0 }: { item: TransitItem; sea
   const [query, setQuery] = useState("")
   const searchInput = useRef<HTMLInputElement>(null)
   useEffect(() => {
-    if (searchRequest) { setFindOpen(true); requestAnimationFrame(() => searchInput.current?.focus()) }
+    if (!searchRequest) return
+    const frame = requestAnimationFrame(() => { setFindOpen(true); requestAnimationFrame(() => searchInput.current?.focus()) })
+    return () => cancelAnimationFrame(frame)
   }, [searchRequest])
   const ref = useRef<Electron.WebviewTag>(null)
   const [ready, setReady] = useState(false)
@@ -59,13 +62,25 @@ export function WebPreview({ item, searchRequest = 0 }: { item: TransitItem; sea
     }
   }, [item.preview])
 
-  useEffect(() => {
+  const findTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
+  const find = (next = false, forward = true) => {
+    clearTimeout(findTimer.current)
     if (!ready) return
-    const view = ref.current
-    if (findOpen && query) view?.findInPage(query)
-    else view?.stopFindInPage("clearSelection")
-    return () => { try { view?.stopFindInPage("clearSelection") } catch { /* Guest may already be destroyed. */ } }
+    try {
+      void ref.current?.executeJavaScript(guestFindScript(findOpen ? query : "", { next, forward })).catch((error) => console.warn("网页查找失败", error))
+    } catch { /* Guest may already be destroyed. */ }
+  }
+  useEffect(() => {
+    if (findOpen && query) findTimer.current = setTimeout(() => find(), 180)
+    else find()
+    return () => { clearTimeout(findTimer.current) }
   }, [query, findOpen, ready])
+  useEffect(() => {
+    const view = ref.current
+    return () => {
+      try { void view?.executeJavaScript(guestFindScript("")).catch(() => {}) } catch { /* Guest may already be destroyed. */ }
+    }
+  }, [])
 
   /** Performs the act operation. */
   const act = (action: "goBack" | "goForward" | "reload") => {
@@ -81,7 +96,11 @@ export function WebPreview({ item, searchRequest = 0 }: { item: TransitItem; sea
         <Search className="size-3.5" />
         <input ref={searchInput} aria-label="搜索中转网页内容" placeholder="在网页中搜索…" className="min-w-0 flex-1 bg-transparent py-1 outline-none" value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => {
           if (event.key === "Escape") setFindOpen(false)
-          if (event.key === "Enter" && ready && query) ref.current?.findInPage(query, { forward: !event.shiftKey, findNext: true })
+          if (event.key === "Enter" && !event.nativeEvent.isComposing) {
+            event.preventDefault()
+            event.stopPropagation()
+            find(true, !event.shiftKey)
+          }
         }} />
         <button aria-label="关闭网页搜索" onClick={() => setFindOpen(false)}><X className="size-3.5" /></button>
       </div>}

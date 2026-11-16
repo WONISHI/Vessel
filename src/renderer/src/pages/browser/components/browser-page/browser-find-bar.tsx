@@ -3,10 +3,10 @@ import type { BrowserPageModel } from "@/pages/browser/components/browser-page/h
 
 /** 页内查找浮层 */
 export function BrowserFindBar({ b }: { b: BrowserPageModel }) {
-  const { setFindOpen, matchCase, setMatchCase, findText, setFindText, findResult, findInput, findPosition, setFindPosition, findDrag, tab, searchPage } = b
+  const { setFindOpen, matchCase, setMatchCase, findText, setFindText, findResult, findInput, findPosition, setFindPosition, findDrag: findDragRef, tab, searchPage } = b
 
   return (
-                <form
+                <div
                   className="browser-find browser-find-bottom"
                   style={findPosition ? { position: "fixed", left: findPosition.x, top: findPosition.y, right: "auto", bottom: "auto" } : undefined}
                   onPointerDown={(event) => {
@@ -15,27 +15,23 @@ export function BrowserFindBar({ b }: { b: BrowserPageModel }) {
                     event.currentTarget.setPointerCapture(event.pointerId)
                     const rect = event.currentTarget.getBoundingClientRect()
                     document.body.classList.add("vessel-find-dragging")
-                    findDrag.current = { x: event.clientX, y: event.clientY, left: rect.left, top: rect.top }
+                    findDragRef.current = { x: event.clientX, y: event.clientY, left: rect.left, top: rect.top }
                   }}
                   onPointerMove={(event) => {
-                    const start = findDrag.current
+                    const start = findDragRef.current
                     if (!start) return
                     const rect = event.currentTarget.getBoundingClientRect()
                     setFindPosition({ x: Math.max(0, Math.min(innerWidth - rect.width, start.left + event.clientX - start.x)), y: Math.max(0, Math.min(innerHeight - rect.height, start.top + event.clientY - start.y)) })
                   }}
                   onPointerUp={() => {
-                    findDrag.current = null
+                    findDragRef.current = null
                     document.body.classList.remove("vessel-find-dragging")
                   }}
                   onPointerCancel={() => {
-                    findDrag.current = null
+                    findDragRef.current = null
                     document.body.classList.remove("vessel-find-dragging")
                   }}
                   aria-label="网页查找"
-                  onSubmit={(event) => {
-                    event.preventDefault()
-                    searchPage(true, true)
-                  }}
                 >
                   <Search
                     size={15}
@@ -50,9 +46,10 @@ export function BrowserFindBar({ b }: { b: BrowserPageModel }) {
                     onChange={(event) => setFindText(event.target.value)}
                     onKeyDown={(event) => {
                       if (event.key === "Escape") setFindOpen(false)
-                      if (event.key === "Enter" && event.shiftKey) {
+                      if (event.key === "Enter" && !event.nativeEvent.isComposing) {
                         event.preventDefault()
-                        searchPage(false, true)
+                        event.stopPropagation()
+                        searchPage(!event.shiftKey)
                       }
                     }}
                   />
@@ -61,12 +58,13 @@ export function BrowserFindBar({ b }: { b: BrowserPageModel }) {
                     type="button"
                     aria-label="上一个匹配"
                     disabled={!findText || !findResult.matches}
-                    onClick={() => searchPage(false, true)}
+                    onClick={() => searchPage(false)}
                   >
                     <ChevronUp size={15} />
                   </button>
                   <button
-                    type="submit"
+                    type="button"
+                    onClick={() => searchPage(true)}
                     aria-label="下一个匹配"
                     disabled={!findText || !findResult.matches}
                   >
@@ -89,6 +87,6 @@ export function BrowserFindBar({ b }: { b: BrowserPageModel }) {
                   >
                     <X size={15} />
                   </button>
-                </form>
+                </div>
   )
 }

@@ -4,11 +4,12 @@ import { withGuest } from "@/pages/browser/guest-lifecycle"
 import { browserURL } from "@/pages/browser/url"
 import { matchesShortcut } from "@vessel/utils"
 import { useCallback, useEffect, useRef, useState } from "react"
+import { useBrowserFind } from "./use-browser-find"
 import type { BrowserState } from "@/pages/browser/components/browser-page/hooks/use-browser-state"
 
 /** 页内查找、控制台挂载、导航与标签操作 */
 export function useBrowserActions(state: BrowserState, visible: boolean) {
-  const { tabs, setTabs, findOpen, setFindOpen, matchCase, findText, setFindResult, findInput, devtoolsOpen, setDevtoolsOpen, dock, setDock, consoleFont, consoleSize, devtoolsHost, setActive, setInput, bookmarks, setBookmarks, views, tab } = state
+  const { tabs, setTabs, setFindOpen, findInput, devtoolsOpen, setDevtoolsOpen, dock, setDock, consoleFont, consoleSize, devtoolsHost, setActive, setInput, bookmarks, setBookmarks, views, tab } = state
 
 
   /** Reloads tab. */
@@ -20,30 +21,7 @@ export function useBrowserActions(state: BrowserState, visible: boolean) {
     } catch (error) { console.error("刷新浏览器标签失败", error) }
   }
 
-  const findRequest = useRef<number | undefined>(undefined)
-  const earlyFindResults = useRef(new Map<number, Electron.FoundInPageResult>())
-  const findRevision = useRef(0)
-  const runFind = (view: ReturnType<typeof views.current.get>, text: string, options: Electron.FindInPageOptions) => {
-    const revision = ++findRevision.current
-    findRequest.current = undefined
-    earlyFindResults.current.clear()
-    // Some Electron webview bridges deliver the result before the request ID is available.
-    const request = withGuest(view, (guest) => guest.findInPage(text, options))
-    void Promise.resolve(request).then((id) => {
-      if (revision !== findRevision.current || typeof id !== "number") return
-      findRequest.current = id
-      const result = earlyFindResults.current.get(id)
-      earlyFindResults.current.clear()
-      if (result) setFindResult({ ...result, tabId: tab.id, text })
-    }).catch((error) => console.error("网页查找失败", error))
-  }
-
-  /** Performs the search page operation. */
-  const searchPage = (forward = true, next = false) => {
-    const view = views.current.get(tab.id)
-    if (findText) runFind(view, findText, { forward, findNext: !next, matchCase })
-    else withGuest(view, (guest) => guest.stopFindInPage("clearSelection"))
-  }
+  const searchPage = useBrowserFind(state, visible)
   useEffect(() => {
     if (!visible) return
 
@@ -94,45 +72,6 @@ export function useBrowserActions(state: BrowserState, visible: boolean) {
       stopDevtools?.()
       unsubscribe()
     }
-  }, [visible, tab.id])
-  useEffect(() => {
-    if (!visible) return
-    const view = views.current.get(tab.id)
-    findRequest.current = undefined
-    let timer: ReturnType<typeof setTimeout> | undefined
-    const result = (event: Electron.FoundInPageEvent) => {
-      if (findRequest.current === undefined) {
-        if (earlyFindResults.current.size >= 16) earlyFindResults.current.clear()
-        earlyFindResults.current.set(event.result.requestId, event.result)
-        return
-      }
-      if (event.result.requestId !== findRequest.current) return
-      setFindResult({ ...event.result, tabId: tab.id, text: findText })
-    }
-    const find = () => {
-      clearTimeout(timer)
-      if (!findOpen || !findText) {
-        withGuest(view, (guest) => guest.stopFindInPage("clearSelection"))
-        return
-      }
-      timer = setTimeout(() => {
-        runFind(view, findText, { matchCase, findNext: true })
-      }, 180)
-    }
-    view?.addEventListener("found-in-page", result)
-    view?.addEventListener("dom-ready", find)
-    find()
-    return () => {
-      ++findRevision.current
-      earlyFindResults.current.clear()
-      clearTimeout(timer)
-      view?.removeEventListener("dom-ready", find)
-      view?.removeEventListener("found-in-page", result)
-    }
-  }, [visible, findText, findOpen, tab.id, matchCase])
-  useEffect(() => {
-    const view = views.current.get(tab.id)
-    return () => { withGuest(view, (guest) => guest.stopFindInPage("clearSelection")) }
   }, [visible, tab.id])
 
   /** Refreshes the current state. */
