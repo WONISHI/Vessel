@@ -1,5 +1,6 @@
 import type { FileMenuCommand, FileMenuState } from "@vessel/type"
 import { installFileMenuDialog } from "./file-dialog"
+import { showClipboardHistory } from "../clipboard/service"
 import { app, BrowserWindow, ipcMain, Menu, MenuItem, type MenuItemConstructorOptions } from "electron"
 
 /** Builds the full native menu template based on current application state. */
@@ -87,6 +88,7 @@ function buildMenuTemplate(
         { label: "复制", role: "copy" },
         { label: "粘贴", role: "paste" },
         { label: "粘贴并匹配样式", role: "pasteAndMatchStyle" },
+        { label: "剪贴板历史", click: showClipboardHistory },
         { type: "separator" },
         { label: "全选", role: "selectAll" }
       ]

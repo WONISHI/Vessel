@@ -1,5 +1,6 @@
 import { registerVault } from "./vault/service"
 import { registerWindowSwitcher } from "./window-switcher"
+import { startClipboardHistory } from "./clipboard/service"
 import { registerAppUpdate } from "./app-update"
 import { drainTextFileWrites } from "@main/modules/files/index.module"
 import { registerImageResources } from "@main/modules/files/image-resource"
@@ -102,7 +103,7 @@ function initialDark(): boolean {
   try {
     const theme = JSON.parse(readFileSync(join(app.getPath("userData"), "settings.json"), "utf8"))?.theme
     if (theme === "dark" || theme === "light") nativeTheme.themeSource = theme
-  } catch {}
+  } catch { /* Use the system appearance when preferences are unavailable. */ }
   return nativeTheme.shouldUseDarkColors
 }
 
@@ -296,6 +297,7 @@ app.whenReady().then(() => {
 
   ipcMain.on("ping", () => console.log("pong"))
 
+  startClipboardHistory()
   createWindow()
   installApplicationMenu(() => {
     if (!applicationWindow || applicationWindow.isDestroyed()) createWindow()

@@ -40,6 +40,14 @@ export interface VirtualTreeProps<T> {
   /** 每层缩进距离（px），默认 12；0 表示不缩进。 */
   indent?: number
   rowHeight?: number
+  /** Space between rows; excluded from the interactive row height. */
+  rowGap?: number
+  showGuides?: boolean
+  guideOffset?: number
+  /** Natural row width for a horizontally scrollable tree. */
+  contentWidth?: number
+  /** Apply indentation inside row content so selection spans the entire tree. */
+  fullRow?: boolean
   overscan?: number
   selectedId?: string
   renderRow: (row: VirtualTreeRow<T>) => React.ReactNode

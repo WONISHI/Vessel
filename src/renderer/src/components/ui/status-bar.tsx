@@ -1,12 +1,14 @@
 import "@/components/ui/status-bar.css"
 import { ReadOnlyDatePopover } from "@/components/read-only-date-popover"
 import { cn } from "@/lib/utils"
-import { CalendarDays, Clock3 } from "lucide-react"
+import { CalendarDays, Clock3, PanelLeftClose, PanelLeftOpen } from "lucide-react"
+import { setActivityBarCollapsed, useActivityBarCollapsed } from "@/features/activity-bar/collapse"
 import { useEffect, useState, type ReactNode } from "react"
 
 /** Renders the status bar component. */
 export function StatusBar({ left, children, right, after, className }: { left?: ReactNode; children?: ReactNode; right?: ReactNode; after?: ReactNode; className?: string }) {
   const [now, setNow] = useState(() => new Date())
+  const collapsed = useActivityBarCollapsed()
   useEffect(() => {
     // The clock shows minutes only, so wake once per minute instead of every second.
     let timer: ReturnType<typeof setTimeout>
@@ -25,6 +27,16 @@ export function StatusBar({ left, children, right, after, className }: { left?: 
       aria-label="底部状态栏"
       className={cn("vessel-status-bar", className)}
     >
+      <button
+        type="button"
+        aria-label={collapsed ? "展开活动栏" : "折叠活动栏"}
+        aria-pressed={collapsed}
+        data-title={collapsed ? "展开活动栏" : "折叠活动栏"}
+        onClick={() => setActivityBarCollapsed(!collapsed)}
+        className="vessel-status-panel-toggle"
+      >
+        {collapsed ? <PanelLeftOpen /> : <PanelLeftClose />}
+      </button>
       {left && <div className="vessel-status-left">{left}</div>}
       <div className="flex min-w-0 flex-1 items-center justify-end overflow-hidden">{children}</div>
       {right}

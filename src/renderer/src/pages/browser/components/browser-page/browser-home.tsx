@@ -2,7 +2,14 @@ import { HistoryInput } from "@/pages/browser/components/history-input"
 import { newTab, shortcuts } from "@/pages/browser/components/index-shared"
 import { browserURL } from "@/pages/browser/url"
 import { Globe, Search } from "lucide-react"
+import { useState } from "react"
 import type { BrowserPageModel } from "@/pages/browser/components/browser-page/hooks/use-browser-page"
+
+/** Site logo for a shortcut tile; falls back to the first letter when the icon cannot load. */
+function ShortcutLogo({ src, fallback }: { src: string; fallback: string }) {
+  const [failed, setFailed] = useState(false)
+  return failed ? <>{fallback}</> : <img alt="" src={src} referrerPolicy="no-referrer" className="size-6 object-contain" onError={() => setFailed(true)} />
+}
 
 /** 空白标签页首页 */
 export function BrowserHome({ b }: { b: BrowserPageModel }) {
@@ -46,7 +53,7 @@ export function BrowserHome({ b }: { b: BrowserPageModel }) {
                         key={item.url}
                         onClick={() => navigate(item.url)}
                       >
-                        <span>{item.title[0]}</span>
+                        <span>{item.favicon ? <ShortcutLogo src={item.favicon} fallback={item.title[0]} /> : item.title[0]}</span>
                         {item.title}
                       </button>
                     ))}

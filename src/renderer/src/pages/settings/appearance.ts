@@ -1,5 +1,6 @@
 import "@/pages/settings/appearance.css"
 import { setFileIconSettings } from "@/features/file-icons/state"
+import { setDirectoryTreeSettings } from "@/features/directory-tree/state"
 import type { AppSettings } from "@vessel/type"
 
 let themeTransitionActive = false
@@ -30,6 +31,7 @@ function commitAppearance(settings: AppSettings, dark: boolean) {
 /** Merge repeated settings notifications and finish each whole-page reveal before the next switch. */
 export function applyAppearance(settings: AppSettings) {
   setFileIconSettings(settings)
+  setDirectoryTreeSettings(settings)
   latestAppearance = settings
   if (themeTransitionActive) return
   const root = document.documentElement

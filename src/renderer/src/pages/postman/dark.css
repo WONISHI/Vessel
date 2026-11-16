@@ -199,3 +199,12 @@ html.dark #vessel-api-client button.api-select-trigger.vessel-field.api-method-t
 #vessel-api-client .monaco-editor .find-widget {
   overflow: visible;
 }
+
+/* Selected request / environment rows: a translucent amber tint instead of the light khaki fill. */
+html.dark #vessel-api-client .bg-amber-100\/70 {
+  background-color: rgba(245, 158, 11, 0.16) !important;
+  color: #f5e7c4 !important;
+}
+html.dark #vessel-api-client .bg-amber-100\/70 * { color: inherit; }
+html.dark #vessel-api-client .bg-amber-100\/70 [class*="text-emerald"],
+html.dark #vessel-api-client .bg-amber-100\/70 [class*="text-green"] { color: #4ade80 !important; }

@@ -1,3 +1,7 @@
+import { useDirectoryTreeLayout } from "@/features/directory-tree/state"
+import { fileTreeRowStyle } from "../../tree-layout"
+import { FileThemeIcon } from "@/features/file-icons"
+import { File, Folder } from "lucide-react"
 import { createMindmapDocument } from "@/components/core/canvas/variants/mindmap/document"
 import { createMarkdownTableDocument } from "@/components/core/canvas/variants/markdown-table/document"
 import { createNewExcalidrawContent } from "@/components/core/canvas/variants/excalidraw/parser"
@@ -8,6 +12,7 @@ import { useCallback, useEffect, useRef, useState } from "react"
 
 /** Renders the inline entry editor component. */
 export function InlineEntryEditor({ draft, onFinish }: { draft: EntryDraft; onFinish: (created: boolean) => void }) {
+  const layout = useDirectoryTreeLayout()
   const { workspace, openWorkspaceFile } = useWorkspace()
   const suffix = draft.kind === "file" && draft.extension ? `.${draft.extension}` : ""
   const [name, setName] = useState(suffix ? "未命名" : "")
@@ -88,20 +93,23 @@ export function InlineEntryEditor({ draft, onFinish }: { draft: EntryDraft; onFi
   }
   return (
     <form
-      className="flex w-full min-w-0 flex-1 flex-wrap items-center gap-1 pl-7 pr-2"
+      className="flex w-full min-w-0 flex-1 items-center"
+      style={fileTreeRowStyle(layout, true)}
       onSubmit={(event) => {
         event.preventDefault()
         void submit()
       }}
     >
-      <div className="flex min-w-0 flex-1 items-center rounded-sm border border-green-600 bg-transparent px-1.5 ">
+      <FileThemeIcon name={name + suffix} directory={draft.kind === "directory"} className="!size-[var(--tree-icon-size)] shrink-0 object-contain" fallback={draft.kind === "directory" ? <Folder className="!size-[var(--tree-icon-size)] shrink-0 text-amber-500" /> : <File className="!size-[var(--tree-icon-size)] shrink-0 text-stone-400" />} />
+      <div style={{ height: layout.rowHeight - 2 }} className="flex min-w-0 flex-1 items-center rounded-[2px] border border-green-600 bg-transparent px-0.5">
         <input
           autoFocus
           placeholder="未命名"
           ref={focusInput}
           onFocus={(event) => event.target.select()}
           aria-label={draft.kind === "file" ? "新文件名称" : "新文件夹名称"}
-          className="h-6 min-w-0 flex-1 !rounded-none !border-0 !bg-transparent p-0 text-xs !shadow-none !outline-none !ring-0"
+          style={{ height: layout.rowHeight - 4, fontSize: layout.fontSize }}
+          className="min-w-0 flex-1 !rounded-none !border-0 !bg-transparent p-0 !shadow-none !outline-none !ring-0"
           onBlur={() => {
             if (!error) void submit()
           }}

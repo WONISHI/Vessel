@@ -1,4 +1,6 @@
 .vessel-vditor.vditor {
+  position: relative;
+  isolation: isolate;
   border: 0;
   border-radius: 0;
   box-shadow: none;
@@ -781,7 +783,7 @@ html.dark .vessel-vditor pre code .hljs-comment { color: #768390; }
 
 /* shadcn task controls live outside contenteditable; native inputs preserve Markdown AST. */
 .vessel-native-task-checkbox { opacity: 0 !important; pointer-events: none !important; }
-.vessel-task-checkbox-layer { position: fixed; inset: 0; pointer-events: none; z-index: 21; }
+.vessel-task-checkbox-layer { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 1; }
 .vessel-task-checkbox { border-color: #a8a29e; background: #fff; border-radius: 3px; }
 .vessel-task-checkbox[data-state="checked"] { background: #16a34a; border-color: #16a34a; color: #fff; }
 .vessel-task-checkbox:disabled { opacity: 1; }

@@ -6,7 +6,7 @@ import { createRoot } from "react-dom/client"
 export function bindTaskCheckboxes(root: HTMLElement, readOnly = false) {
   const overlay = document.createElement("div")
   overlay.className = "vessel-task-checkbox-layer"
-  document.body.append(overlay)
+  root.append(overlay)
   const reactRoot = createRoot(overlay)
   const tracked = new Map<HTMLInputElement, { hidden: string | null; tabindex: string | null; id: number }>()
   let sequence = 0
@@ -17,6 +17,9 @@ export function bindTaskCheckboxes(root: HTMLElement, readOnly = false) {
   const paint = () => {
     frame = 0
     if (disposed) return
+    // Vditor replaces the host children while initializing or changing modes.
+    if (overlay.parentElement !== root) root.append(overlay)
+    const origin = overlay.getBoundingClientRect()
     const inputs = Array.from(root.querySelectorAll<HTMLInputElement>('.vditor-reset li input[type="checkbox"]'))
     const live = new Set(inputs)
     for (const [input, original] of tracked) {
@@ -42,7 +45,7 @@ export function bindTaskCheckboxes(root: HTMLElement, readOnly = false) {
         checked: input.checked,
         disabled: readOnly || input.disabled,
         "aria-label": label,
-        style: { position: "fixed", left: rect.left, top: rect.top, width: rect.width, height: rect.height, pointerEvents: "auto" },
+        style: { position: "absolute", left: rect.left - origin.left, top: rect.top - origin.top, width: rect.width, height: rect.height, pointerEvents: "auto" },
         /** Keeps clicking a checkbox from moving the editor caret. */
         onMouseDown: (event) => event.preventDefault(),
         /** Delegates task changes to the native editor control. */
@@ -67,7 +70,9 @@ export function bindTaskCheckboxes(root: HTMLElement, readOnly = false) {
   }
   /** Coalesces editor mutations and scrolling into one frame. */
   const schedule = () => { if (!disposed && !frame) frame = requestAnimationFrame(paint) }
-  const mutations = new MutationObserver(schedule)
+  const mutations = new MutationObserver((records) => {
+    if (records.some((record) => !overlay.contains(record.target))) schedule()
+  })
   mutations.observe(root, { childList: true, subtree: true, attributes: true, attributeFilter: ["checked", "disabled"] })
   const size = new ResizeObserver(schedule)
   size.observe(root)

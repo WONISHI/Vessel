@@ -10,25 +10,14 @@ import { toast } from "sonner"
 export function TransitButton({ menuItem = false, onOpenChange }: { menuItem?: boolean; onOpenChange?: (open: boolean) => void }) {
   const { items, selected } = useTransit()
   const [open, setOpen] = useState(false)
-  const notifyOpen = useRef(onOpenChange)
-  notifyOpen.current = onOpenChange
+  const notifyOpenRef = useRef(onOpenChange)
   useEffect(() => {
-    notifyOpen.current?.(open)
-    return () => notifyOpen.current?.(false)
+    notifyOpenRef.current = onOpenChange
+  }, [onOpenChange])
+  useEffect(() => {
+    notifyOpenRef.current?.(open)
+    return () => notifyOpenRef.current?.(false)
   }, [open])
-  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
-
-  /** Performs the enter operation. */
-  const enter = () => {
-    clearTimeout(timer.current)
-    setOpen(true)
-  }
-
-  /** Performs the leave operation. */
-  const leave = () => {
-    timer.current = setTimeout(() => setOpen(false), 250)
-  }
-  useEffect(() => () => clearTimeout(timer.current), [])
   return (
     <Popover
       open={open}
@@ -42,8 +31,6 @@ export function TransitButton({ menuItem = false, onOpenChange }: { menuItem?: b
           data-transit-button={!menuItem ? "true" : undefined}
           aria-pressed={Boolean(selected)}
           aria-label={`中转站，${items.length} 个`}
-          onMouseEnter={enter}
-          onMouseLeave={leave}
           className={`${menuItem ? "relative flex h-[38px] w-full items-center justify-start gap-2.5 px-2.5 text-xs" : "relative size-[38px]"} rounded-[10px] hover:!bg-[#f0efed] ${menuItem ? "hover:!text-stone-500" : "hover:!text-[#a8a29e]"} ${selected ? "!bg-emerald-50 !text-green-700" : menuItem ? "text-stone-500" : "text-[#a8a29e]"}`}
         >
           <Pin className={menuItem ? "!size-4" : "!size-5"} />
@@ -55,8 +42,6 @@ export function TransitButton({ menuItem = false, onOpenChange }: { menuItem?: b
         sideOffset={10}
         onOpenAutoFocus={(e) => e.preventDefault()}
         onCloseAutoFocus={(e) => e.preventDefault()}
-        onMouseEnter={enter}
-        onMouseLeave={leave}
         className="z-[310] w-[280px] overflow-hidden rounded-xl border-stone-200 bg-white p-0 text-stone-800 shadow-xl"
       >
         <div className="flex items-center gap-2 border-b px-3 py-2.5 text-sm font-semibold">
@@ -105,7 +90,6 @@ export function TransitButton({ menuItem = false, onOpenChange }: { menuItem?: b
         <button
           className="transit-read-clipboard flex w-full items-center gap-2 border-t px-3 py-2.5 text-xs text-stone-500 hover:bg-stone-50 hover:text-green-600"
           onClick={() => {
-            clearTimeout(timer.current)
             void window.electronAPI
               .importTransitFiles()
               .then((files) => {

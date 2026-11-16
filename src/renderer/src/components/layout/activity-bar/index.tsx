@@ -1,4 +1,5 @@
 import { UpdateBell } from "./update-bell"
+import { useActivityBarCollapsed } from "@/features/activity-bar/collapse"
 import { useDarkAppearance } from "@/hooks/use-dark-appearance"
 import { applyAppearance } from "@/pages/settings/appearance"
 import { useActivityOverflow } from "@/components/layout/activity-bar/use-activity-overflow"
@@ -24,6 +25,7 @@ import { toast } from "sonner"
 /** 左侧窄活动栏：应用入口、活动切换和外观标识。 */
 export default function LayoutActivityBar({ activity, onActivityChange, onResourceEnter, onResourceLeave }: LayoutActivityBarProps) {
   const dark = useDarkAppearance()
+  const collapsed = useActivityBarCollapsed()
   const location = useLocation()
   const [moreToolsOpen, setMoreToolsOpen] = useState(false)
   const [moreToolsTooltipOpen, setMoreToolsTooltipOpen] = useState(false)
@@ -158,6 +160,7 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
     },
     []
   )
+  if (collapsed) return null
   return (
     <TooltipProvider delayDuration={250}>
       <nav

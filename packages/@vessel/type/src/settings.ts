@@ -1,4 +1,28 @@
+export interface DirectoryTreeDimensions {
+  sidebarWidth: number
+  rowHeight: number
+  fontSize: number
+  indent: number
+  gap: number
+}
+export interface DirectoryTreeSettings {
+  layoutEnabled: boolean
+  layoutWorkspace: boolean
+  layoutResources: boolean
+  guidesEnabled: boolean
+  guidesWorkspace: boolean
+  guidesResources: boolean
+  gapEnabled: boolean
+  gapWorkspace: boolean
+  gapResources: boolean
+  folderBoldWorkspace: boolean
+  folderBoldResources: boolean
+  workspace: DirectoryTreeDimensions
+  resources: DirectoryTreeDimensions
+}
+
 export interface AppSettings {
+  directoryTree?: DirectoryTreeSettings
   fileTypeBadgesEnabled?: boolean
   fileTypeBadgesWorkspace?: boolean
   fileTypeBadgesResources?: boolean

@@ -1,7 +1,7 @@
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Keys } from "@/pages/settings/components/shortcuts/components/keys"
 import { categories, category } from "@/pages/settings/components/shortcuts/components/shortcuts-shared"
-import { windowSwitchShortcut, windowCycleShortcut, screenshotShortcut, shortcutLabel, shortcuts, type ShortcutId } from "@vessel/utils"
+import { clipboardShortcut, windowSwitchShortcut, windowCycleShortcut, screenshotShortcut, shortcutLabel, shortcuts, type ShortcutId } from "@vessel/utils"
 import { Input } from "@/components/ui/input"
 import { useState } from "react"
 import { ChevronDown } from "lucide-react"
@@ -15,6 +15,7 @@ export function ShortcutSettings() {
   rows.unshift({ id: "switchWindow", group: "全局与导航", title: windowSwitchShortcut.label, scope: windowSwitchShortcut.scope, keys: mac ? windowSwitchShortcut.mac : windowSwitchShortcut.windows })
   rows.unshift({ id: "cycleWindow", group: "全局与导航", title: windowCycleShortcut.label, scope: windowCycleShortcut.scope, keys: mac ? windowCycleShortcut.mac : windowCycleShortcut.windows })
   rows.unshift({ id: "screenshot", group: "截图", title: screenshotShortcut.label, scope: screenshotShortcut.scope, keys: mac ? screenshotShortcut.mac : screenshotShortcut.windows })
+  rows.unshift({ id: "clipboard", group: "全局与导航", title: clipboardShortcut.label, scope: clipboardShortcut.scope, keys: mac ? clipboardShortcut.mac : clipboardShortcut.windows })
   const normalize = (value: string) => value.toLowerCase().replace(/⌘/g, "command").replace(/control/g, "ctrl").replace(/[\s+]/g, "")
   const keyword = normalize(query)
   const matches = rows.filter((row) => [row.title, row.scope, row.group, row.keys].some((value) => normalize(value).includes(keyword)))

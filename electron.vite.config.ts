@@ -181,7 +181,7 @@ function patchScreenShotPlugin() {
   }
 }
 
-/** Build a universal, offline macOS authentication helper into the main output. */
+/** Build universal macOS authentication and pasteboard helpers into the main output. */
 function macPasswordAuthentication() {
   let output = ""
   return {
@@ -191,14 +191,16 @@ function macPasswordAuthentication() {
       if (process.platform !== "darwin") return
       const temporary = mkdtempSync(resolve(tmpdir(), "vessel-auth-"))
       try {
-        const binary = resolve(temporary, "vessel-auth")
-        execFileSync("/usr/bin/xcrun", ["clang", "-arch", "arm64", "-arch", "x86_64", "-mmacosx-version-min=11.0", "-fobjc-arc", resolveFromRoot("native/vessel-auth.m"), "-framework", "AppKit", "-framework", "LocalAuthentication", "-o", binary])
-        execFileSync("/usr/bin/codesign", ["--force", "--sign", "-", binary])
-        this.emitFile({ type: "asset", fileName: "vessel-auth", source: readFileSync(binary) })
+        for (const name of ["vessel-auth", "vessel-clipboard"]) {
+          const binary = resolve(temporary, name)
+          execFileSync("/usr/bin/xcrun", ["clang", "-arch", "arm64", "-arch", "x86_64", "-mmacosx-version-min=11.0", "-fobjc-arc", resolveFromRoot(`native/${name}.m`), "-framework", "AppKit", "-framework", "LocalAuthentication", "-o", binary])
+          execFileSync("/usr/bin/codesign", ["--force", "--sign", "-", binary])
+          this.emitFile({ type: "asset", fileName: name, source: readFileSync(binary) })
+        }
       } finally { rmSync(temporary, { recursive: true, force: true }) }
     },
     closeBundle() {
-      if (process.platform === "darwin") chmodSync(resolve(output, "vessel-auth"), 0o755)
+      if (process.platform === "darwin") for (const name of ["vessel-auth", "vessel-clipboard"]) chmodSync(resolve(output, name), 0o755)
     }
   }
 }
@@ -229,7 +231,7 @@ export default defineConfig({
   preload: {
     root: projectRoot,
     build: {
-      rollupOptions: { input: { index: resolveFromRoot("src/preload/index.ts"), screenshot: resolveFromRoot("src/preload/screenshot.ts"), "browser-guest": resolveFromRoot("src/preload/browser-guest.ts"), "browser-devtools": resolveFromRoot("src/preload/browser-devtools.ts") } },
+      rollupOptions: { input: { index: resolveFromRoot("src/preload/index.ts"), clipboard: resolveFromRoot("src/preload/clipboard.ts"), screenshot: resolveFromRoot("src/preload/screenshot.ts"), "browser-guest": resolveFromRoot("src/preload/browser-guest.ts"), "browser-devtools": resolveFromRoot("src/preload/browser-devtools.ts") } },
       externalizeDeps: { exclude: ["@electron-toolkit/preload", "@vessel/obsidian", "@vessel/utils", "@vessel/react-router", "@vessel/sync", "@vessel/type"] }
     },
     resolve: {
@@ -254,7 +256,7 @@ export default defineConfig({
     },
     worker: { format: "es" },
     optimizeDeps: { exclude: ["wasm-onlyoffice-sdk", "@vessel/obsidian"] },
-    build: { minify: "esbuild", reportCompressedSize: false, rollupOptions: { input: { index: resolveFromRoot("src/renderer/index.html"), office: resolveFromRoot("src/renderer/office.html"), screenshot: resolveFromRoot("src/renderer/screenshot.html") } } },
+    build: { minify: "esbuild", reportCompressedSize: false, rollupOptions: { input: { index: resolveFromRoot("src/renderer/index.html"), office: resolveFromRoot("src/renderer/office.html"), screenshot: resolveFromRoot("src/renderer/screenshot.html"), clipboard: resolveFromRoot("src/renderer/clipboard.html") } } },
     resolve: {
       dedupe: ["react", "react-dom"],
       alias: [

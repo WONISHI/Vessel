@@ -174,7 +174,7 @@ export default function LayoutWorkspaceSidebar({ activity }: LayoutWorkspaceSide
       aria-label="工作区侧边栏"
       className="flex h-full w-full min-h-0 flex-col"
     >
-      <header className="flex items-center justify-between px-3.5 pb-2 pt-3 text-xs font-semibold text-stone-500">
+      <header className="flex h-9 shrink-0 items-center justify-between gap-2 px-3 text-xs font-semibold text-stone-500">
         <Tooltip>
           <TooltipTrigger asChild>
             <span
@@ -320,7 +320,7 @@ export default function LayoutWorkspaceSidebar({ activity }: LayoutWorkspaceSide
       </header>
       <ScrollArea
         viewportRef={attachViewport}
-        className="min-h-0 flex-1 px-2 pb-3"
+        className="min-h-0 min-w-0 flex-1 pb-2 [&_[data-radix-scroll-area-viewport]>div]:!block"
       >
         {activity !== "tools" ? (
           <WorkspaceTree

@@ -1,8 +1,9 @@
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from "@/components/ui/context-menu"
 import WorkspaceTree from "@/components/workspace/components/layout-aside/layout-workspace-sidebar/workspace-tree"
-import { Project } from "@/components/workspace/components/layout-aside/project-library/components/project-library-shared"
+import { Project, projectCache } from "@/components/workspace/components/layout-aside/project-library/components/project-library-shared"
 import { useWorkspace } from "@/components/workspace/hooks/useWorkspace"
 import { GitDecorationScope } from "@/features/file-icons/state"
 import { readLibraryMeta, updateLibraryMeta } from "@/pages/resources/library-state"
@@ -13,9 +14,9 @@ import { useEffect, useRef, useState } from "react"
 export function ProjectLibraryContent({ pinned, onPin, onSelect }: { pinned: boolean; onPin: () => void; onSelect: (project: Project) => void }) {
   const { workspace } = useWorkspace()
   const [openingEditor, setOpeningEditor] = useState(false)
-  const [projects, setProjects] = useState<Project[]>([])
+  const [projects, setProjects] = useState<Project[]>(() => projectCache.projects ?? [])
   const [error, setError] = useState("")
-  const [ready, setReady] = useState(false)
+  const [ready, setReady] = useState(() => projectCache.projects !== null)
   const [viewport, setViewport] = useState<HTMLDivElement | null>(null)
   const [revision, setRevision] = useState(0)
   const writes = useRef(Promise.resolve())
@@ -26,6 +27,7 @@ export function ProjectLibraryContent({ pinned, onPin, onSelect }: { pinned: boo
       .then((saved) => {
         if (cancelled) return
         const valid = Array.isArray(saved) ? saved.filter((p) => typeof p.path === "string" && typeof p.name === "string") : []
+        projectCache.projects = valid
         setProjects(valid)
         setReady(true)
       })
@@ -40,6 +42,7 @@ export function ProjectLibraryContent({ pinned, onPin, onSelect }: { pinned: boo
     }
   }, [workspace.path, workspace.name])
   useEffect(() => {
+    if (ready) projectCache.projects = projects
     if (ready) updateLibraryMeta({ count: projects.length })
     if (ready)
       writes.current = writes.current
@@ -74,42 +77,50 @@ export function ProjectLibraryContent({ pinned, onPin, onSelect }: { pinned: boo
     if (current) visible.splice(2, 1, current)
   }
   const overflow = projects.filter((p) => !visible.includes(p))
+  const closeProject = (project: Project) => {
+    const rest = projects.filter((item) => item.path !== project.path)
+    setProjects(rest)
+    // Closing the open project moves to its neighbour instead of leaving a stale tab behind.
+    if (project.path === workspace.path && rest.length) activate(rest[Math.min(projects.findIndex((item) => item.path === project.path), rest.length - 1)])
+    const meta = readLibraryMeta()
+    const pins = (meta.pins || []).filter((item) => item.path !== project.path)
+    updateLibraryMeta({ pins, lastPinned: meta.lastPinned?.path === project.path ? pins.at(-1) : meta.lastPinned })
+  }
   return (
     <section
       aria-label="项目资源库"
-      className="flex h-full min-h-0 flex-col bg-white"
+      className="flex h-full min-h-0 flex-col bg-white dark:bg-[#22272e]"
     >
-      <header className="flex items-center gap-1.5 border-b bg-stone-50/70 px-2 py-2">
-        <div className="flex min-w-0 flex-1 items-center gap-0.5 overflow-hidden rounded-lg bg-stone-200/60 p-0.5">
+      <header className="flex items-center gap-1.5 border-b bg-stone-50/70 px-2 py-2 dark:bg-white/[.03]">
+        <div className="flex min-w-0 flex-1 items-center gap-0.5 overflow-hidden rounded-lg bg-stone-200/60 p-0.5 dark:bg-white/10">
           {visible.map((project) => (
-            <div
-              key={project.path}
-              data-project-tab
-              data-active={project.path === workspace.path}
-              className={`group relative flex min-w-0 items-center rounded-md ${project.path === workspace.path ? (visible.length === 1 ? "max-w-[104px] w-[65%] bg-white font-medium text-green-700 shadow-sm" : "max-w-[160px] flex-[1.6_1_0%] bg-white font-medium text-green-700 shadow-sm") : "max-w-[100px] flex-[1_1_0%] text-stone-500 hover:bg-white/60"}`}
-            >
-              <button
-                data-title={project.path}
-                className="min-w-0 flex-1 truncate px-2 py-1 text-left text-xs leading-4"
-                onClick={() => activate(project)}
-              >
-                {project.name}
-              </button>
-              {project.path !== workspace.path && (
-                <button
-                  aria-label={`关闭项目 ${project.name}`}
-                  className="absolute right-0 rounded bg-white px-1 opacity-0 group-hover:opacity-100 focus:opacity-100"
-                  onClick={() => {
-                    setProjects((list) => list.filter((p) => p.path !== project.path))
-                    const meta = readLibraryMeta()
-                    const pins = (meta.pins || []).filter((p) => p.path !== project.path)
-                    updateLibraryMeta({ pins, lastPinned: meta.lastPinned?.path === project.path ? pins.at(-1) : meta.lastPinned })
-                  }}
+            <ContextMenu key={project.path}>
+              <ContextMenuTrigger asChild>
+                <div
+                  data-project-tab
+                  data-active={project.path === workspace.path}
+                  className={`group relative flex min-w-0 items-center rounded-md ${project.path === workspace.path ? (visible.length === 1 ? "max-w-[104px] w-[65%] bg-white font-medium text-green-700" : "max-w-[160px] flex-[1.6_1_0%] bg-white font-medium text-green-700") : "max-w-[100px] flex-[1_1_0%] text-stone-500"}`}
                 >
-                  <X size={12} />
-                </button>
-              )}
-            </div>
+                  <button
+                    data-title={project.path}
+                    className="min-w-0 flex-1 truncate px-2 py-1 text-left text-xs leading-4"
+                    onClick={() => activate(project)}
+                  >
+                    {project.name}
+                  </button>
+                  {(
+                    <button
+                      aria-label={`关闭项目 ${project.name}`}
+                      className="pointer-events-none absolute right-0.5 rounded bg-transparent px-1 text-stone-500 opacity-0 hover:bg-stone-300/60 hover:text-stone-800 dark:text-stone-400 dark:hover:bg-white/15 dark:hover:text-white group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100 focus:pointer-events-auto focus:opacity-100"
+                      onClick={() => closeProject(project)}
+                    >
+                      <X size={12} />
+                    </button>
+                  )}
+                </div>
+              </ContextMenuTrigger>
+              {<ContextMenuContent><ContextMenuItem onSelect={() => closeProject(project)}><X className="size-3.5" />关闭项目</ContextMenuItem></ContextMenuContent>}
+            </ContextMenu>
           ))}
         </div>
         {!!overflow.length && (
@@ -163,7 +174,7 @@ export function ProjectLibraryContent({ pinned, onPin, onSelect }: { pinned: boo
         </Button>
       </header>
       <div className="flex items-center gap-2.5 border-b px-3 py-2.5">
-        <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-green-50 text-green-600"><FolderOpen className="size-4" /></span>
+        <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-green-50 text-green-600 dark:bg-green-500/15 dark:text-green-400"><FolderOpen className="size-4" /></span>
         <div className="min-w-0 flex-1">
           <h2 className="truncate text-[13px] font-semibold leading-5 text-stone-800">{workspace.name}</h2>
           <p
@@ -208,8 +219,8 @@ export function ProjectLibraryContent({ pinned, onPin, onSelect }: { pinned: boo
         </p>
       )}
       <ScrollArea
-        viewportRef={setViewport}
-        className="min-h-0 flex-1 p-2"
+        viewportRef={setViewport} horizontal
+        className="min-h-0 flex-1 py-1"
       >
         <GitDecorationScope.Provider value>
           <WorkspaceTree
@@ -218,7 +229,7 @@ export function ProjectLibraryContent({ pinned, onPin, onSelect }: { pinned: boo
           />
         </GitDecorationScope.Provider>
       </ScrollArea>
-      <div className="border-t bg-stone-50/70 px-3 py-1.5 text-[10px] leading-4 text-stone-400">{projects.length} 个项目 / 附件目录</div>
+      <div className="border-t bg-stone-50/70 px-3 py-1.5 dark:bg-white/[.03] text-[10px] leading-4 text-stone-400">{projects.length} 个项目 / 附件目录</div>
     </section>
   )
 }

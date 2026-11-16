@@ -10,6 +10,7 @@
     "productName": "Vessel",
     "asarUnpack": [
       "**/vessel-auth",
+      "**/vessel-clipboard",
       "**/node_modules/@vscode/ripgrep*/bin/**/*",
       "**/node_modules/better-sqlite3/**/*",
       "**/node_modules/node-pty/**/*",

@@ -13,7 +13,7 @@ beforeEach(() => {
   localStorage.setItem("app_current_workspace", JSON.stringify({ path: "/work" }))
   Object.assign(window, {
     electronAPI: {
-      getAppState: vi.fn().mockResolvedValue([{ name: "附件", path: "/projects/assets" }]),
+      getAppState: vi.fn().mockResolvedValue([{ name: "Vessel", path: "/projects/Vessel" }, { name: "附件", path: "/projects/assets" }]),
       setAppState: vi.fn().mockResolvedValue(undefined),
       openDirectory: vi.fn().mockResolvedValue({ name: "新增项目", path: "/projects/new" })
     }
@@ -50,6 +50,14 @@ it("adds directories only to the resource library", async () => {
   expect(JSON.parse(localStorage.getItem("app_current_workspace")!).path).toBe("/work")
   expect(navigate).not.toHaveBeenCalled()
 })
+
+it("keeps project closing available from the context menu without a hover-only control", async () => {
+  render(<ProjectLibrary pinned={false} onPin={() => {}} />)
+  const project = await screen.findByRole("button", { name: "附件", exact: true })
+  fireEvent.contextMenu(project, { clientX: 20, clientY: 20 })
+  fireEvent.click(await screen.findByRole("menuitem", { name: "关闭项目" }))
+  await waitFor(() => expect(window.electronAPI.setAppState).toHaveBeenLastCalledWith("project-library", [{ name: "Vessel", path: "/projects/Vessel" }]))
+})
 it("computes the pin state from the selected project, not the current page", async () => {
   localStorage.setItem("resource-library-meta", JSON.stringify({ pins: [{ name: "Vessel", path: "/projects/Vessel" }], lastPinned: { name: "Vessel", path: "/projects/Vessel" } }))
   render(
@@ -58,7 +66,7 @@ it("computes the pin state from the selected project, not the current page", asy
       onPin={() => {}}
     />
   )
-  expect(screen.getByRole("button", { name: "取消固定资源库" })).toBeTruthy()
+  expect(await screen.findByRole("button", { name: "取消固定资源库" })).toBeTruthy()
   fireEvent.click(await screen.findByText("附件"))
   expect(screen.getByRole("button", { name: "固定资源库" })).toBeTruthy()
   fireEvent.click(screen.getByRole("button", { name: "固定资源库" }))

@@ -1,6 +1,8 @@
 import type { AppSettings } from "@vessel/type"
+import { defaultDirectoryTreeSettings } from "./directory-tree"
 
 export const defaultSettings: AppSettings = {
+  directoryTree: structuredClone(defaultDirectoryTreeSettings),
   fileTypeBadgesEnabled: false,
   fileTypeBadgesWorkspace: false,
   fileTypeBadgesResources: true,

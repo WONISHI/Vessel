@@ -1,3 +1,5 @@
+import { useDirectoryTreeLayout } from "@/features/directory-tree/state"
+import { fileTreeRowStyle } from "./tree-layout"
 import { FileThemeIcon } from "@/features/file-icons"
 import { lazyWithRetry } from "@/lib/lazy-retry"
 import { fileEntryOptions } from "@/components/workspace/components/layout-aside/layout-workspace-sidebar/create-entry/components/file-entry-options"
@@ -34,6 +36,7 @@ export function FileActions({
   onSearchDirectory?: (path: string) => void
   onRenamingChange?: (renaming: boolean) => void
 }) {
+  const layout = useDirectoryTreeLayout()
   const { workspace, renameWorkspaceTab, closeWorkspaceFiles, openFiles, openWorkspaceFile } = useWorkspace()
   const targets = selectedNodes?.some((item) => item.path === node.path) ? selectedNodes : [node]
   const multiple = targets.length > 1
@@ -210,7 +213,7 @@ export function FileActions({
         <ContextMenuTrigger asChild>
           <div
             data-file-context-open={menuOpen}
-            className={`w-full min-w-0 rounded-md ${menuOpen ? "[&>button]:!bg-[#f0efed]" : ""}`}
+            className={`w-full min-w-0 rounded-[2px] ${menuOpen ? "[&>button]:!bg-[#f0efed]" : ""}`}
             onContextMenu={() => {
               setError("")
               setName(node.name)
@@ -223,15 +226,16 @@ export function FileActions({
                   event.preventDefault()
                   event.stopPropagation()
                 }}
-                className="flex min-w-0 items-center gap-2 rounded-md bg-stone-50 px-2 py-1"
+                className="flex min-w-0 items-center rounded-[2px] bg-stone-50"
+                style={fileTreeRowStyle(layout, true)}
                 onClick={(event) => event.stopPropagation()}
                 onSubmit={(event) => {
                   event.preventDefault()
                   requestRename()
                 }}
               >
-                <FileThemeIcon name={node.path} directory={node.type === "directory"} className="size-4 shrink-0 object-contain" fallback={node.type === "directory" ? <FolderOpen className="size-4 shrink-0 text-amber-600" /> : <File className="size-4 shrink-0 text-violet-500" />} />
-                <div className="flex min-w-0 flex-1 items-center rounded-md border border-green-600 bg-white px-1.5 py-0.5 shadow-[0_0_0_3px_rgba(22,163,74,0.1)]">
+                <FileThemeIcon name={node.path} directory={node.type === "directory"} className="!size-[var(--tree-icon-size)] shrink-0 object-contain" fallback={node.type === "directory" ? <FolderOpen className="!size-[var(--tree-icon-size)] shrink-0 text-amber-600" /> : <File className="!size-[var(--tree-icon-size)] shrink-0 text-violet-500" />} />
+                <div style={{ height: layout.rowHeight - 2 }} className="flex min-w-0 flex-1 items-center rounded-[2px] border border-green-600 bg-white px-0.5">
                   <input
                     autoFocus
                     ref={focusInput}
@@ -255,7 +259,8 @@ export function FileActions({
                         setRenaming(false)
                       }
                     }}
-                    className="min-w-0 flex-1 bg-transparent text-xs outline-none"
+                    style={{ height: layout.rowHeight - 4, fontSize: layout.fontSize }}
+                    className="min-w-0 flex-1 bg-transparent p-0 outline-none"
                   />
                 </div>
               </form>

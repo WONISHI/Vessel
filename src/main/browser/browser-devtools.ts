@@ -13,10 +13,16 @@ export function registerBrowserDevtools(host: WebContents) {
   let cssKey: string | undefined
   let controlState = ""
 
-  /** Applies appearance. */
-  const applyAppearance = async () => {
+  let appliedKey = ""
+  let appliedBounds = ""
+  let appliedVisible: boolean | undefined
+  /** Applies appearance only when it really changed: re-injecting CSS / zoom on every layout sync blanks DevTools and collapses console objects. */
+  const applyAppearance = async (force = false) => {
     const target = panel?.webContents
     if (!target || target.isDestroyed()) return
+    const key = `${appearance.font}|${appearance.size}`
+    if (!force && key === appliedKey && cssKey) return
+    appliedKey = key
     target.setZoomFactor(appearance.size / 13)
     if (cssKey) await target.removeInsertedCSS(cssKey)
     const family = appearance.font === "system-ui" || appearance.font === "monospace" ? appearance.font : JSON.stringify(appearance.font)
@@ -40,6 +46,9 @@ export function registerBrowserDevtools(host: WebContents) {
     if (detached && !detached.isDestroyed()) detached.destroy()
     controlState = ""
     cssKey = undefined
+    appliedKey = ""
+    appliedBounds = ""
+    appliedVisible = undefined
     panel = undefined
     inspected = undefined
   }
@@ -67,7 +76,9 @@ export function registerBrowserDevtools(host: WebContents) {
       })
       panel.webContents.on("did-finish-load", () => {
         panel?.webContents.send("browser:control-overlay", controlState ? JSON.parse(controlState) : undefined)
-        void applyAppearance().catch(console.error)
+        // A fresh page has none of the injected CSS yet.
+        cssKey = undefined
+        void applyAppearance(true).catch(console.error)
       })
       // F12 inside the DevTools panel itself toggles (closes) it through the same renderer path as the page/toolbar.
       const inspectedId = guest.id
@@ -102,7 +113,10 @@ export function registerBrowserDevtools(host: WebContents) {
     if (appearanceChanged) void applyAppearance().catch(console.error)
     // Keep DevTools alive (preserving its network log) while the browser page is hidden.
     const hidden = options?.hidden === true
-    panel.setVisible(!hidden)
+    if (appliedVisible !== !hidden) {
+      appliedVisible = !hidden
+      panel.setVisible(!hidden)
+    }
     if (detachedWindow) {
       if (hidden) detachedWindow.hide()
       else if (!detachedWindow.isVisible()) detachedWindow.showInactive()
@@ -124,7 +138,13 @@ export function registerBrowserDevtools(host: WebContents) {
     const size = window.getContentBounds()
     const x = Math.max(0, Math.round(bounds.x)),
       y = Math.max(0, Math.round(bounds.y))
-    panel.setBounds({ x, y, width: Math.max(0, Math.min(Math.round(bounds.width), size.width - x)), height: Math.max(0, Math.min(Math.round(bounds.height), size.height - y)) })
+    const next = { x, y, width: Math.max(0, Math.min(Math.round(bounds.width), size.width - x)), height: Math.max(0, Math.min(Math.round(bounds.height), size.height - y)) }
+    const nextKey = `${next.x},${next.y},${next.width},${next.height}`
+    // Identical bounds would only make DevTools re-layout (and drop expanded console objects) for nothing.
+    if (nextKey !== appliedBounds) {
+      appliedBounds = nextKey
+      panel.setBounds(next)
+    }
   })
   let catalog: WebContentsView | undefined
   let devices: Promise<import("@vessel/type").BrowserDevice[]> | undefined

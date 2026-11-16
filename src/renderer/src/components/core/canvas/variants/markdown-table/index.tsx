@@ -78,6 +78,7 @@ export default function MarkdownTableCanvas({ activeFilePath, workspacePath }: {
         {data ? (
           <LinkedTableEditor
             root={root}
+            documentPath={activeFilePath}
             data={data}
             onChange={(_source, next) => writer.current(serializeMarkdownTable(next))}
           />

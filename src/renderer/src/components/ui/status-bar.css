@@ -79,3 +79,20 @@ html.dark .vessel-status-bar button[data-sync-state="running"]:hover { color: #9
   transform: scale(1.25);
   transform-origin: center;
 }
+
+.vessel-status-bar .vessel-status-panel-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  margin-right: 2px;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  transition: background .12s;
+}
+.vessel-status-bar .vessel-status-panel-toggle:hover { background: #e7e5e4; color: #1c1917; }
+html.dark .vessel-status-bar .vessel-status-panel-toggle:hover { background: #ffffff1a; color: #fff; }

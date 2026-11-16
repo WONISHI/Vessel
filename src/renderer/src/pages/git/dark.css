@@ -197,7 +197,7 @@ html .git-dialog button:not(:disabled):is(:hover, :active, :focus-visible) {
   opacity: 0;
   transform: translateX(12px);
 }
-html.dark .vessel-git-page .git-toolbar-divider { background: #414954; }
+html.dark .vessel-git-page .git-toolbar-divider { background: #343a42; }
 @media (prefers-reduced-motion: reduce) {
   .git-toolbar-tools, .git-toolbar-tools-content { transition: none; }
 }
@@ -227,7 +227,7 @@ html.dark .vessel-git-page :is(.git-toolbar-tools-toggle, .git-toolbar-tools) {
   background-color: #262a30;
 }
 html.dark .vessel-git-page .git-toolbar-tools-toggle::before {
-  background: linear-gradient(to right, transparent, rgba(0, 0, 0, .32));
+  background: linear-gradient(to right, transparent, rgba(0, 0, 0, .12));
 }
 
 .git-repository-settings .git-settings-input {

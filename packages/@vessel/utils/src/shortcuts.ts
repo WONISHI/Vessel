@@ -64,6 +64,7 @@ export function shortcutLabel(id: ShortcutId, mac: boolean) {
 }
 
 export const screenshotShortcut = { label: "端外截图", scope: "全局", mac: "Control+X", windows: "F1" }
+export const clipboardShortcut = { label: "打开剪贴板历史", scope: "系统全局", mac: "Control + V", windows: "Ctrl + Shift + V" }
 
 /** Performs the markdown hotkey operation. */
 export function markdownHotkey(id: ShortcutId) {

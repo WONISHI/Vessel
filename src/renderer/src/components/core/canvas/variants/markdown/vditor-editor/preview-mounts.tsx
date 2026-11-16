@@ -24,7 +24,7 @@ export type PreviewMountDeps = {
 }
 
 /** 创建表格代码块挂载函数 */
-export function createTableMounter({ tableRoots, workspacePath, tableWorkspace, readOnly, changeHandler, properties, getEditor }: PreviewMountDeps) {
+export function createTableMounter({ tableRoots, workspacePath, documentPath, tableWorkspace, readOnly, changeHandler, properties, getEditor }: PreviewMountDeps) {
   return (previewElement: HTMLElement) => {
       const block = previewElement.closest<HTMLElement>("[data-type=code-block]")
       if (!block) return
@@ -77,6 +77,7 @@ export function createTableMounter({ tableRoots, workspacePath, tableWorkspace, 
         root.render(
           <LinkedTableEditor
             root={workspacePath}
+            documentPath={documentPath}
             onOpenFile={tableWorkspace?.openWorkspaceFile}
             readOnly={readOnly}
             source={currentSource}

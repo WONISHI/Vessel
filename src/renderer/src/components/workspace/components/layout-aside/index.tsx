@@ -89,7 +89,8 @@ export default function LayoutAside({ resources = false, children }: { resources
         <div
           onMouseEnter={show}
           onMouseLeave={hide}
-          className="project-library-sheet fixed inset-y-0 left-[52px] z-40 w-[280px] shadow-xl"
+          className="project-library-sheet fixed inset-y-0 left-[52px] z-40 shadow-xl"
+          style={{ width }}
         >
           <ProjectLibrary
             pinned={resources}

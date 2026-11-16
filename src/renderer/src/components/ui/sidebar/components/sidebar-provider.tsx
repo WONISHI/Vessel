@@ -3,6 +3,7 @@ import { TooltipProvider } from "@/components/ui/tooltip"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { cn } from "@/lib/utils"
 import { matchesShortcut } from "@vessel/utils"
+import { useDirectoryTreeSidebarWidth } from "@/features/directory-tree/state"
 import * as React from "react"
 
 /** Renders the sidebar provider component. */
@@ -14,13 +15,7 @@ export const SidebarProvider = React.forwardRef<
     onOpenChange?: (open: boolean) => void
   }
 >(({ defaultOpen = true, open: openProp, onOpenChange: setOpenProp, className, style, children, ...props }, ref) => {
-  const [width, updateWidth] = React.useState(() => Math.max(232, Math.min(600, Number(localStorage.getItem("vessel-sidebar-width")) || 232)))
-
-  /** Sets width. */
-  const setWidth = React.useCallback((value: number) => {
-    updateWidth(value)
-    localStorage.setItem("vessel-sidebar-width", String(value))
-  }, [])
+  const [width, setWidth] = useDirectoryTreeSidebarWidth()
   const isMobile = useIsMobile()
   const [openMobile, setOpenMobile] = React.useState(false)
 

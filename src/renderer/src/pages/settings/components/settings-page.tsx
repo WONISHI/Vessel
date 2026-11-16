@@ -1,4 +1,5 @@
 import { FileTypeBadgeSettings } from "./file-type-badge-settings"
+import { DirectoryTreeSettingsPanel } from "./directory-tree-settings"
 import { FileIconSettings } from "./file-icon-settings"
 import { GitDecorationSettings } from "./git-decoration-settings"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
@@ -459,6 +460,7 @@ export function SettingsPage() {
                   <FileIconSettings value={draft} onChange={(patch) => setDraft((current) => ({ ...current, ...patch }))} />
                   <FileTypeBadgeSettings value={draft} onChange={(patch) => setDraft((current) => ({ ...current, ...patch }))} />
                   <GitDecorationSettings value={draft} onChange={(patch) => setDraft((current) => ({ ...current, ...patch }))} />
+                  <DirectoryTreeSettingsPanel value={draft} onChange={(patch) => setDraft((current) => ({ ...current, ...patch }))} />
                   </div>
                   <div className="settings-card p-5">
                     <h3>字体预览</h3>

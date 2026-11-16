@@ -3,7 +3,7 @@ import { createS3Storage } from "@main/sync/settings-s3"
 import { acquireSyncDiagnostics } from "@main/sync/sync-diagnostics"
 import { collectFiles, createSyncExcludeFilter, parseSyncExcludeRules, DEFAULT_CONFLICT_STRATEGY, type SyncProgress } from "@vessel/sync"
 import type { AppSettings, BackupStatus } from "@vessel/type"
-import { defaultSettings, isIgnoredEntry, isLegacyDefaultIgnoredFiles, parseIgnoredPatterns } from "@vessel/utils"
+import { defaultSettings, isIgnoredEntry, isLegacyDefaultIgnoredFiles, normalizeDirectoryTreeSettings, parseIgnoredPatterns } from "@vessel/utils"
 import { app, safeStorage, type WebContents } from "electron"
 import { createHash } from "node:crypto"
 import { EventEmitter } from "node:events"
@@ -127,6 +127,7 @@ function validate(value: AppSettings): AppSettings {
   const avatar = text(value.avatar, 3_000_000)
   if (avatar && !/^data:image\/(png|jpeg);base64,[A-Za-z0-9+/=]+$/.test(avatar)) throw new Error("头像格式无效")
   return {
+    directoryTree: normalizeDirectoryTreeSettings(value.directoryTree),
     fileTypeBadgesEnabled: value.fileTypeBadgesEnabled === true,
     fileTypeBadgesWorkspace: value.fileTypeBadgesWorkspace === true,
     fileTypeBadgesResources: value.fileTypeBadgesResources !== false,

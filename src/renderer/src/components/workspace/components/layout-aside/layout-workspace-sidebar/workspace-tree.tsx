@@ -1,3 +1,4 @@
+import { useDirectoryTreeLayout } from "@/features/directory-tree/state"
 import { treeRevealScrollTop } from "@/components/workspace/components/layout-aside/layout-workspace-sidebar/reveal-scroll"
 import { useTreeDragAutoScroll } from "@/components/workspace/components/layout-aside/layout-workspace-sidebar/use-tree-drag-scroll"
 import { Button } from "@/components/ui/button"
@@ -53,6 +54,8 @@ export default function WorkspaceTree({
   sortOrder?: FileSortOrder
 }) {
   const { workspace, openFiles, activeFilePath, openWorkspaceFile, renameWorkspaceTab, expandedFolders, setDirectoryExpanded } = useWorkspace()
+  const layout = useDirectoryTreeLayout()
+  const { rowHeight, indent, gap } = layout
   const showGit = useShowGitDecorations()
   // Git status only changes with Git activity: refresh on mount, focus and Git page events, never per edit.
   useEffect(() => {
@@ -227,23 +230,23 @@ export default function WorkspaceTree({
   const selectedNodes = rows.filter((row) => selectedPaths.has(row.id)).map((row) => row.item)
   const draftIndex = rows.findIndex((row) => row.id === "__draft__")
   useEffect(() => {
-    if (viewport && draftIndex >= 0) viewport.scrollTo({ top: draftIndex * 32 < viewport.scrollTop ? draftIndex * 32 : draftIndex * 32 + 32 > viewport.scrollTop + viewport.clientHeight ? draftIndex * 32 + 32 - viewport.clientHeight : viewport.scrollTop })
-  }, [viewport, draftIndex, draft])
+    if (viewport && draftIndex >= 0) viewport.scrollTo({ top: treeRevealScrollTop(draftIndex, viewport.scrollTop, viewport.clientHeight, rowHeight, gap) })
+  }, [viewport, draftIndex, draft, rowHeight, gap])
   const isRootReveal = revealPath === workspace.path
   const revealIndex = rows.findIndex((row) => row.id === revealPath)
   useLayoutEffect(() => {
     if (viewport && isRootReveal && !draft) {
-      viewport.scrollTo({ top: 0, behavior: "instant" })
+      viewport.scrollTo({ top: 0, left: 0, behavior: "instant" })
       setSelection([])
       onRevealed?.()
     } else if (viewport && revealIndex >= 0 && !draft && revealPath) {
-      const top = revealCentered ? Math.max(0, revealIndex * 32 + 16 - viewport.clientHeight / 2) : treeRevealScrollTop(revealIndex, viewport.scrollTop, viewport.clientHeight)
+      const top = revealCentered ? Math.max(0, revealIndex * (rowHeight + gap) + rowHeight / 2 - viewport.clientHeight / 2) : treeRevealScrollTop(revealIndex, viewport.scrollTop, viewport.clientHeight, rowHeight, gap)
       if (top !== viewport.scrollTop) viewport.scrollTo({ top, behavior: "instant" })
       viewport.dispatchEvent(new Event("vessel:tree-reveal"))
       setSelection([revealPath])
       onRevealed?.()
     }
-  }, [viewport, isRootReveal, revealIndex, revealPath, revealCentered, draft, onRevealed])
+  }, [viewport, isRootReveal, revealIndex, revealPath, revealCentered, draft, onRevealed, rowHeight, gap])
   if (!recent && !root)
     return (
       <p
@@ -269,7 +272,12 @@ export default function WorkspaceTree({
     <>
       <VirtualTree
         rows={rows}
-        indent={16}
+        indent={indent}
+        rowHeight={rowHeight}
+        rowGap={gap}
+        showGuides={layout.guides}
+        guideOffset={layout.padding + 6}
+        fullRow
         viewport={viewport}
         selectedId={draft ? "__draft__" : activeFilePath}
         renderRow={({ item: node, expanded }) =>

@@ -6,6 +6,15 @@ it("preserves scrolling for visible rows including viewport boundaries", () => {
   expect(treeRevealScrollTop(15, 320, 320)).toBe(320)
   expect(treeRevealScrollTop(19, 320, 320)).toBe(320)
 })
+
+it("reveals compact 22px rows without scrolling a visible row", () => {
+  expect(treeRevealScrollTop(10, 220, 220, 22)).toBe(220)
+  expect(treeRevealScrollTop(20, 220, 220, 22)).toBe(242)
+})
+it("includes row gaps when revealing the nearest row edge", () => {
+  expect(treeRevealScrollTop(10, 300, 240, 26, 4)).toBe(300)
+  expect(treeRevealScrollTop(20, 300, 240, 26, 4)).toBe(386)
+})
 it("reveals offscreen and partially visible rows using the nearest edge", () => {
   expect(treeRevealScrollTop(9, 320, 320)).toBe(288)
   expect(treeRevealScrollTop(20, 320, 320)).toBe(352)

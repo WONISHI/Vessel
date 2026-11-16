@@ -67,6 +67,9 @@ export function fillTable(table: HTMLTableElement, row: number, column: number, 
 }
 
 /** Drag across cells (or Shift-click) to select a rectangle; single-cell editing stays native. */
+/** Events from the embedded advanced-table editor belong to its own inputs. */
+const embedded = (event: Event) => event.target instanceof Element && !!event.target.closest(".vessel-table-container")
+
 export function bindTablePaste(root: HTMLElement) {
   type Cell = HTMLTableCellElement
   let anchor: Cell | null = null,
@@ -113,6 +116,7 @@ export function bindTablePaste(root: HTMLElement) {
     if (table && selection && !selection.isCollapsed && table.contains(selection.anchorNode) && table.contains(selection.focusNode)) collapseTextSelection()
   }
   const selectStart = (event: Event) => {
+    if (embedded(event)) return
     if (end && cellAt(event.target)) event.preventDefault()
   }
 
@@ -167,6 +171,7 @@ export function bindTablePaste(root: HTMLElement) {
 
   /** Performs the click operation. */
   const click = (event: MouseEvent) => {
+    if (embedded(event)) return
     if (end) {
       event.preventDefault()
       event.stopImmediatePropagation()
@@ -175,6 +180,7 @@ export function bindTablePaste(root: HTMLElement) {
 
   /** Copies copy. */
   const copy = (event: ClipboardEvent) => {
+    if (embedded(event)) return
     const area = bounds()
     if (!area || !event.clipboardData) return
     const values = Array.from({ length: area.bottom - area.top + 1 }, (_, y) =>
@@ -191,6 +197,7 @@ export function bindTablePaste(root: HTMLElement) {
 
   /** Pastes paste. */
   const paste = (event: ClipboardEvent) => {
+    if (embedded(event)) return
     const selection = window.getSelection()
     if (!selection?.rangeCount || !event.clipboardData || event.clipboardData.files.length) return
     const area = bounds()
@@ -217,6 +224,7 @@ export function bindTablePaste(root: HTMLElement) {
 
   /** Performs the key operation. */
   const key = (event: KeyboardEvent) => {
+    if (embedded(event)) return
     const area = bounds()
     if ((event.key === "Delete" || event.key === "Backspace") && !event.isComposing && !event.ctrlKey && !event.metaKey && !event.altKey && area && area.table.isConnected) {
       const editor = area.table.closest<HTMLElement>('[contenteditable="true"]')
