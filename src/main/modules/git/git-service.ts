@@ -1,20 +1,21 @@
-import type { GitTagOptions, GitCommitDetail, GitCommitItem, GitDiffResult, GitFileStatus, GitStatusResult } from "@vessel/type/git"
+import type { GitTagOptions, GitCommitDetail, GitCommitItem, GitDiffResult, GitFileStatus, GitStatusResult, GitStashPopResult, GitStashEntry, GitStashFile, GitStashDetail } from "@vessel/type/git"
 import { spawn } from "node:child_process"
 import { existsSync } from "node:fs"
+import { lstat } from "node:fs/promises"
 import { join } from "node:path"
 export type { GitCommitDetail, GitCommitItem, GitDiffResult, GitFileStatus, GitStatusResult } from "@vessel/type/git"
 
 // Only user-facing history roots; --all also includes refs/stash and other internal refs.
 const HISTORY_REVISIONS = ["--branches", "--remotes", "--tags", "HEAD"]
 
-/** 执行 git 命令：优先使用 dugite，若不可用或报错则回退至系统 git */
+/** 执行 Git 命令：优先使用 dugite，无法启动时回退；命令非零退出码不重试 */
 export async function runGit(args: string[], cwd: string): Promise<{ stdout: string; stderr: string; exitCode: number }> {
   try {
     const { exec } = await import("dugite")
     const res = await exec(args, cwd)
-    if (res.exitCode === 0 || (args[0] === "diff" && res.exitCode === 1)) {
-      return { stdout: res.stdout, stderr: res.stderr, exitCode: res.exitCode }
-    }
+    // A nonzero Git exit may already have changed the index/worktree (e.g. a
+    // conflicted stash apply). Only inability to launch Git permits fallback.
+    return { stdout: res.stdout, stderr: res.stderr, exitCode: res.exitCode }
   } catch {
     // 降级回退到系统 git
   }
@@ -44,6 +45,7 @@ export async function runGit(args: string[], cwd: string): Promise<{ stdout: str
 }
 
 export class GitService {
+  private readonly restoringStashes = new Set<string>()
   /** Checks whether repo. */
   async isRepo(cwd: string): Promise<boolean> {
     if (!cwd || !existsSync(cwd)) return false
@@ -79,6 +81,7 @@ export class GitService {
     }
 
     const res = await runGit(["status", "--porcelain=v1", "-z", "-b", "-uall"], cwd)
+    if (res.exitCode !== 0) throw new Error(res.stderr || "Git status failed")
     const lines = res.stdout.split("\0")
 
     let branch = "HEAD"
@@ -476,26 +479,73 @@ export class GitService {
   }
 
   /** Returns stashes. */
-  async getStashes(cwd: string): Promise<{ index: number; name: string; date: string }[]> {
-    const res = await runGit(["stash", "list"], cwd)
+  async getStashes(cwd: string): Promise<GitStashEntry[]> {
+    const res = await runGit(["stash", "list", "--format=%gd%x00%H%x00%gs"], cwd)
     if (res.exitCode !== 0) return []
-    const stashes: { index: number; name: string; date: string }[] = []
+    const stashes: GitStashEntry[] = []
     for (const line of res.stdout.split("\n")) {
-      const match = line.match(/^stash@\{(\d+)\}:\s*(.+)$/)
+      const [selector, hash, subject] = line.split("\0")
+      const match = selector.match(/^stash@\{(\d+)\}$/)
       if (match) {
         const index = parseInt(match[1], 10)
-        const rest = match[2].trim()
+        const rest = subject?.trim() || ""
         const colonIdx = rest.indexOf(":")
         const dateOrBranch = colonIdx > -1 ? rest.slice(0, colonIdx).trim() : ""
         const name = colonIdx > -1 ? rest.slice(colonIdx + 1).trim() : rest
         stashes.push({
           index,
+          hash,
           name: name || rest,
           date: dateOrBranch
         })
       }
     }
     return stashes
+  }
+
+  /** Read the saved trees, never the current worktree or merge commit display. */
+  async getStashDetail(cwd: string, reference: number | string): Promise<GitStashDetail> {
+    const valid = typeof reference === "number" ? Number.isSafeInteger(reference) && reference >= 0 : /^[a-f\d]{40,64}$/i.test(reference)
+    if (!valid) throw new Error("贮藏标识无效")
+    const ref = typeof reference === "number" ? `stash@{${reference}}` : reference
+    const resolved = await runGit(["rev-parse", "--verify", `${ref}^{commit}`], cwd)
+    if (resolved.exitCode !== 0) throw new Error(resolved.stderr || "贮藏记录不存在")
+    const hash = resolved.stdout.trim()
+    const files = new Map<string, GitStashFile>()
+    for (const source of ["worktree", "index"] as const) {
+      const target = source === "index" ? `${hash}^2` : hash
+      const result = await runGit(["diff", "--name-status", "-z", "--find-renames", `${hash}^1`, target], cwd)
+      if (result.exitCode !== 0) throw new Error(result.stderr || "无法读取贮藏文件")
+      const entries = result.stdout.split("\0")
+      for (let index = 0; index < entries.length;) {
+        const code = entries[index++]
+        if (!code) continue
+        const original = entries[index++]
+        const renamed = /^[RC]/.test(code)
+        const path = renamed ? entries[index++] : original
+        if (path && !files.has(path)) files.set(path, { path, status: code[0] as GitFileStatus["status"], ...(renamed ? { oldPath: original } : {}), source })
+      }
+    }
+    const untrackedRef = await runGit(["rev-parse", "--verify", "--quiet", `${hash}^3`], cwd)
+    if (untrackedRef.exitCode === 0) {
+      const result = await runGit(["ls-tree", "-r", "--name-only", "-z", `${hash}^3`], cwd)
+      if (result.exitCode !== 0) throw new Error(result.stderr || "无法读取贮藏的未跟踪文件")
+      for (const path of result.stdout.split("\0").filter(Boolean)) if (!files.has(path)) files.set(path, { path, status: "?", source: "untracked" })
+    }
+    return { hash, files: [...files.values()] }
+  }
+
+  async getStashDiff(cwd: string, hash: string, filePath: string): Promise<GitDiffResult> {
+    const detail = await this.getStashDetail(cwd, hash)
+    const file = detail.files.find((file) => file.path === filePath)
+    if (!file) throw new Error("文件不在此贮藏中")
+    const options = ["-c", "core.quotepath=false"]
+    const args = file.source === "untracked"
+      ? [...options, "show", "--format=", "--no-ext-diff", "--no-textconv", "--no-color", `${detail.hash}^3`, "--", file.path]
+      : [...options, "diff", "--no-ext-diff", "--no-textconv", "--no-color", "--find-renames", `${detail.hash}^1`, file.source === "index" ? `${detail.hash}^2` : detail.hash, "--", ...(file.oldPath ? [file.oldPath] : []), file.path]
+    const result = await runGit(args, cwd)
+    if (result.exitCode !== 0) throw new Error(result.stderr || "无法读取贮藏差异")
+    return { diff: result.stdout }
   }
 
   /** Performs the stash save operation. */
@@ -522,9 +572,83 @@ export class GitService {
   }
 
   /** Performs the stash pop operation. */
-  async stashPop(cwd: string, index = 0): Promise<void> {
-    const res = await runGit(["stash", "pop", `stash@{${index}}`], cwd)
-    if (res.exitCode !== 0) throw new Error(res.stderr || "Stash pop failed")
+  async stashPop(cwd: string, index = 0, expectedHash?: string): Promise<GitStashPopResult> {
+    return this.restoreStash(cwd, index, false, expectedHash)
+  }
+
+  async stashApply(cwd: string, index = 0, expectedHash?: string): Promise<GitStashPopResult> {
+    return this.restoreStash(cwd, index, true, expectedHash)
+  }
+
+  private async restoreStash(cwd: string, index: number, keep: boolean, expectedHash?: string): Promise<GitStashPopResult> {
+    if (!Number.isSafeInteger(index) || index < 0) throw new Error("贮藏编号无效")
+    const directory = await runGit(["rev-parse", "--absolute-git-dir"], cwd)
+    if (directory.exitCode !== 0) throw new Error(directory.stderr || "无法读取仓库")
+    const key = directory.stdout.trim()
+    if (this.restoringStashes.has(key)) throw new Error("正在恢复贮藏，请等待完成后再操作")
+    this.restoringStashes.add(key)
+    try {
+      return await this.applyStash(cwd, index, keep, expectedHash)
+    } finally {
+      this.restoringStashes.delete(key)
+    }
+  }
+
+  private async applyStash(cwd: string, index: number, keep: boolean, expectedHash?: string): Promise<GitStashPopResult> {
+    const before = await this.getStatus(cwd)
+    if (before.conflicts.length) throw new Error("请先解决当前冲突，再弹出其他贮藏")
+    const ref = await runGit(["rev-parse", "--verify", `stash@{${index}}`], cwd)
+    if (ref.exitCode !== 0) throw new Error(ref.stderr || "该贮藏不存在")
+    const hash = ref.stdout.trim()
+    if (expectedHash !== undefined && expectedHash !== hash) throw new Error("贮藏列表已变化，请刷新后重新选择；当前文件和贮藏均未修改")
+    const detail = await this.getStashDetail(cwd, hash)
+    const caseConfig = await runGit(["config", "--bool", "core.ignorecase"], cwd)
+    const normalize = (path: string) => caseConfig.stdout.trim() === "true" ? path.toLowerCase() : path
+    const touched = detail.files.flatMap((file) => [file.path, ...(file.oldPath ? [file.oldPath] : [])]).map(normalize)
+    const overlaps = (path: string) => touched.some((saved) => saved === path || saved.startsWith(`${path}/`) || path.startsWith(`${saved}/`))
+    const dirty = [...new Set([...before.staged, ...before.unstaged, ...before.untracked]
+      .flatMap((file) => [file.path, ...(file.oldPath ? [file.oldPath] : [])]).filter((path) => overlaps(normalize(path))))]
+    // Ignored files and dangling symlinks are absent from status, but must also
+    // stop an untracked restore before Git partially merges other files.
+    for (const file of detail.files.filter((file) => file.source === "untracked")) {
+      const segments = file.path.split("/")
+      for (let index = 1; index <= segments.length; index++) {
+        const path = segments.slice(0, index).join("/")
+        try {
+          const entry = await lstat(join(cwd, path))
+          if (index === segments.length || !entry.isDirectory()) { dirty.push(path); break }
+        } catch (error) {
+          if ((error as NodeJS.ErrnoException).code === "ENOENT") break
+          throw error
+        }
+      }
+    }
+    if (dirty.length) throw new Error(`以下文件已有本地修改，与贮藏涉及的路径重叠，已停止恢复，未覆盖任何文件。请先提交或另行贮藏当前修改：\n${dirty.join("\n")}`)
+    // Apply a stable object ID; remove its reflog entry only after application.
+    // Never reuse a previous conflict resolution implicitly for a stash restore.
+    const res = await runGit(["-c", "rerere.enabled=false", "-c", "rerere.autoupdate=false", "stash", "apply", hash], cwd)
+    const output = `${res.stdout}\n${res.stderr}`.trim()
+    const after = await this.getStatus(cwd)
+    const conflicts = after.conflicts.map((file) => file.path)
+    const conflictOnly = res.exitCode === 1 && conflicts.length > 0 && /^CONFLICT \(/m.test(output)
+      && !/^(?:error:|fatal:)|(?:could not|failed to) restore untracked|would be overwritten|index was not unstashed/im.test(output)
+    if (res.exitCode !== 0 && !conflictOnly) throw new Error(output || "Stash pop failed")
+
+    // An unresolved merge is not a successful pop. Both versions stay recoverable.
+    if (keep || conflicts.length) return { conflicts, dropped: false, output }
+
+    // An external stash push can change ordinal numbers while apply is running.
+    const list = await runGit(["stash", "list", "--format=%H%x00%gd"], cwd)
+    if (list.exitCode !== 0) throw new Error("贮藏内容已应用，但无法读取贮藏记录；原记录已保留")
+    const entry = list.stdout.split("\n").map((line) => line.split("\0")).find(([id]) => id === hash)
+    const selector = entry?.[1]
+    if (selector && /^stash@\{\d+\}$/.test(selector)) {
+      const current = await runGit(["rev-parse", "--verify", selector], cwd)
+      if (current.exitCode !== 0 || current.stdout.trim() !== hash) throw new Error("贮藏列表已变化，内容已应用，记录暂未删除")
+      const dropped = await runGit(["stash", "drop", selector], cwd)
+      if (dropped.exitCode !== 0) throw new Error(`贮藏内容已应用，但删除记录失败：${dropped.stderr || dropped.stdout}`)
+    }
+    return { conflicts, dropped: true, output }
   }
 
   /** Performs the stash drop operation. */

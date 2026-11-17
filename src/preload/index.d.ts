@@ -124,6 +124,8 @@ export interface VesselAPI extends AppUpdateAPI, BrowserProxyAPI, BrowserToolsAP
   onBrowserDevtoolsClosed: (callback: () => void) => () => void
   onOpenSettings: (callback: () => void) => () => void
   onCommandPalette: (callback: (command?: string) => void) => () => void
+  getWindowFullscreenState(): Promise<boolean>
+  onWindowFullscreenChanged(callback: (fullscreen: boolean) => void): () => void
   onBrowserToggleDevtools: (callback: (id: number) => void) => () => void
   reloadBrowserTab: (id: number) => Promise<void>
   onBrowserFind: (callback: (id: number) => void) => () => void

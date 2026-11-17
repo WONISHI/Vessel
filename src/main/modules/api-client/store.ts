@@ -170,6 +170,7 @@ export class ApiClientStore {
         this.db.prepare("INSERT INTO api_collections (id, name, parent_id, created_at, sort_order) VALUES (?, ?, ?, ?, ?)").run(item.id, item.name, item.parentId, Date.now(), item.parentId ? index : this.nextOrder("api_collections", "parent_id", null))
       })
       payload.requests.forEach((item, index) => this.saveRequest({ ...item, sortOrder: item.sortOrder ?? index }))
+      payload.environments?.forEach((environment) => this.saveEnvironment({ ...environment, isActive: false }))
     })()
   }
 

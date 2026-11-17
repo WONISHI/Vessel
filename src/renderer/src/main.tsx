@@ -33,6 +33,7 @@ const MainApplication = lazy(async () => {
 })
 const StandalonePreview = lazy(() => import("@/components/transit/standalone-preview"))
 const standalonePreview = new URLSearchParams(window.location.search).has("standalonePreview")
+if (!standalonePreview) document.documentElement.dataset.mainTitlebar = "true"
 
 /** Mirrors the static splash in index.html (styles live there) so the boot → lazy-load handoff doesn't flash. */
 function BootSplash() {

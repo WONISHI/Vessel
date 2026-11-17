@@ -1,4 +1,4 @@
-import { ScrollArea } from "@/components/ui/scroll-area"
+import { TransitTextPreview } from "@/components/transit/text-preview"
 import { lazyWithRetry } from "@/lib/lazy-retry"
 import { TransitDock, type TransitDockMode } from "@/components/transit/panel/components/transit-dock"
 import { TransitStatus } from "@/components/transit/panel/components/transit-status"
@@ -101,7 +101,7 @@ export function TransitPanel() {
           item={item}
         />
       ) : (
-        <ScrollArea className="transit-text-scroll min-h-0 min-w-0 flex-1"><div className="transit-text-panel"><pre className="transit-clipboard-text">{item.content}</pre><p className="transit-type-hint"><Clipboard />来自剪贴板</p></div></ScrollArea>
+        <TransitTextPreview key={item.id} content={item.content} />
       )}
       </div>
       <TransitStatus item={item} file={loaded?.id === item.id ? loaded.file : undefined} onSearch={() => setSearchRequest((value) => value + 1)} onRefresh={() => setRefresh((value) => value + 1)} />
@@ -121,7 +121,7 @@ export function TransitPanel() {
         side="right"
         onInteractOutside={(e) => e.preventDefault()}
         onOpenAutoFocus={(e) => e.preventDefault()}
-        style={dock === "floating" && !full ? { left: position.x, right: "auto", top: position.y, bottom: "auto", height: "80vh", width: Math.min(width, window.innerWidth) } : { left: 52, width: "calc(100vw - 52px)" }}
+        style={dock === "floating" && !full ? { left: position.x, right: "auto", top: position.y, bottom: "auto", height: "80vh", width: Math.min(width, window.innerWidth) } : { left: 52, width: "calc(100vw - 52px)", top: "var(--app-titlebar-height, 0px)", height: "calc(100dvh - var(--app-titlebar-height, 0px))" }}
         className="z-[240] pointer-events-none [&_.vessel-panel-separator]:pointer-events-auto !max-w-none border-0 bg-transparent p-0 shadow-none"
       >
         {dock === "floating" && !full ? (

@@ -16,6 +16,28 @@ export interface GitStatusResult {
   conflicts: GitFileStatus[]
 }
 
+export interface GitStashEntry {
+  index: number
+  name: string
+  date: string
+  hash?: string
+}
+
+export interface GitStashFile extends GitFileStatus {
+  source: "worktree" | "index" | "untracked"
+}
+
+export interface GitStashDetail {
+  hash: string
+  files: GitStashFile[]
+}
+
+export interface GitStashPopResult {
+  conflicts: string[]
+  dropped: boolean
+  output: string
+}
+
 export interface GitCommitItem {
   hash: string
   shortHash: string

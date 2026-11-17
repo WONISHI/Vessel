@@ -69,6 +69,7 @@ export interface ApiRunResult {
 }
 
 export interface ApiImportPayload {
+  environments?: ApiEnvironmentRecord[]
   collections: { id: string; name: string; parentId: string | null }[]
   requests: ApiRequestRecord[]
 }

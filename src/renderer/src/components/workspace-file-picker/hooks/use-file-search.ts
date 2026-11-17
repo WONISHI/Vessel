@@ -1,5 +1,6 @@
 import type { WorkspaceNode } from "@/components/workspace/types/workspace"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
+import { isQuickOpenPath } from "../searchable-path"
 
 /** Searches filenames and literal document contents, discarding stale responses as the query changes. */
 export function useFileSearch(root: string, query: string) {
@@ -20,21 +21,25 @@ export function useFileSearch(root: string, query: string) {
     /** Indexes filenames across the entire workspace, independently of tree visibility settings. */
     const scan = async () => {
       try {
-        let count = 0
-        while (pending.length && !cancelled) {
-          const directory = pending.shift()!
-          count++
+        let publishedAt = 0
+        let cursor = 0
+        while (cursor < pending.length && !cancelled) {
+          const directory = pending[cursor++]
           const nodes = await window.electronAPI.readWorkspaceDirectory(root, directory, { includeIgnored: true }).catch((reason) => {
             if (!cancelled) setError(String(reason))
             return []
           })
           for (const node of nodes) {
+            if (!isQuickOpenPath(node.path)) continue
             if (node.type === "directory") {
               pending.push(node.path)
               collected.push(node)
             } else collected.push(node)
           }
-          if (!cancelled && count % 25 === 0) setFiles([...collected])
+          if (!cancelled && performance.now() - publishedAt >= 200) {
+            publishedAt = performance.now()
+            setFiles([...collected])
+          }
         }
         if (!cancelled) setFiles([...collected])
       } catch (reason) {
@@ -60,10 +65,10 @@ export function useFileSearch(root: string, query: string) {
     setBusy(true)
     const timer = setTimeout(() => {
       void window.electronAPI
-        .searchContent({ root, query: query.trim(), regex: false, caseSensitive: false })
+        .searchContent({ root, query: query.trim(), regex: false, caseSensitive: false, exclude: "**/node_modules/**,**/.git/**" })
         .then((result) => {
           if (cancelled) return
-          setContentFiles([...new Map(result.matches.map((match) => [match.path, { name: match.path.split(/[\\/]/).pop() || match.path, path: match.path, type: "file" as const }])).values()])
+          setContentFiles([...new Map(result.matches.filter((match) => isQuickOpenPath(match.path)).map((match) => [match.path, { name: match.path.split(/[\\/]/).pop() || match.path, path: match.path, type: "file" as const }])).values()])
           if (result.truncated) setLimited(true)
         })
         .catch((reason) => {
@@ -79,5 +84,6 @@ export function useFileSearch(root: string, query: string) {
     }
   }, [root, query])
   const keyword = query.trim().toLocaleLowerCase()
-  return { files: [...new Map([...files.filter((file) => file.path.toLocaleLowerCase().includes(keyword)), ...contentFiles].map((file) => [file.path, file])).values()], busy: busy || indexing, error, limited }
+  const matches = useMemo(() => [...new Map([...files.filter((file) => file.path.toLocaleLowerCase().includes(keyword)), ...contentFiles].map((file) => [file.path, file])).values()], [files, contentFiles, keyword])
+  return { files: matches, busy: busy || indexing, error, limited }
 }

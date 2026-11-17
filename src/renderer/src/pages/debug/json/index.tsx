@@ -1,3 +1,4 @@
+import { parseJsonInput } from "./parse-json-input"
 import { registerMonacoTheme } from "@/components/core/canvas/variants/code/theme"
 import { useDarkAppearance } from "@/hooks/use-dark-appearance"
 import "@/components/core/canvas/variants/code/monaco"
@@ -43,7 +44,7 @@ export function JsonTool() {
   /** Transforms transform. */
   const transform = (compact: boolean) => {
     try {
-      replace(JSON.stringify(JSON.parse(value), null, compact ? undefined : 2))
+      replace(JSON.stringify(parseJsonInput(value), null, compact ? undefined : 2))
     } catch (error) {
       setError(error instanceof Error ? error.message : String(error))
     }
@@ -66,7 +67,7 @@ export function JsonTool() {
         </span>
         <div className="tool-page-heading">
           <h2>JSON 格式化</h2>
-          <p>本地处理，即时转换</p>
+          <p>本地处理，支持转义 JSON 字符串</p>
         </div>
         <div className="tool-page-actions">
           <Button

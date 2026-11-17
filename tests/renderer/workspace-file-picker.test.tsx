@@ -1,8 +1,13 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
-import { afterEach, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, expect, it, vi } from "vitest"
+import { setFileIconSettings } from "@/features/file-icons/state"
 import { WorkspaceFilePicker } from "@/components/workspace-file-picker"
 
+beforeEach(() => {
+ vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} })
+})
 afterEach(() => {
+  setFileIconSettings({})
   cleanup()
   vi.unstubAllGlobals()
 })
@@ -40,7 +45,7 @@ it("lists current tabs first and searches filenames plus contained links before 
   expect(await screen.findByRole("button", { name: /service.md/ })).toBeTruthy()
   fireEvent.click(await screen.findByRole("button", { name: /linked.md/ }))
   await waitFor(() => expect(openFile).toHaveBeenCalledWith({ name: "linked.md", path: "/vault/notes/linked.md", type: "file" }))
-  expect(searchContent).toHaveBeenCalledWith({ root: "/vault", query: "service", regex: false, caseSensitive: false })
+  expect(searchContent).toHaveBeenCalledWith({ root: "/vault", query: "service", regex: false, caseSensitive: false, exclude: "**/node_modules/**,**/.git/**" })
   expect(close).toHaveBeenCalledTimes(1)
 })
 
@@ -93,22 +98,26 @@ it("indexes unopened nested files before typing and opens them", async () => {
 })
 
 
-it("keeps folders previously excluded by the picker and lets users reach results beyond the first 100", async () => {
+it("keeps total scroll height stable and virtualizes results beyond the first 100 files", async () => {
   vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} })
   const read = vi.fn(async (_root: string, path: string) => path === "/vault"
-    ? [{ name: "node_modules", path: "/vault/node_modules", type: "directory" }]
-    : Array.from({ length: 105 }, (_, i) => ({ name: `file-${i}.md`, path: `/vault/node_modules/file-${i}.md`, type: "file" })))
+    ? [{ name: "notes", path: "/vault/notes", type: "directory" }]
+    : Array.from({ length: 105 }, (_, i) => ({ name: `file-${i}.md`, path: `/vault/notes/file-${i}.md`, type: "file" })))
   Object.defineProperty(window, "electronAPI", { configurable: true, value: { readWorkspaceDirectory: read, searchContent: vi.fn() } })
   render(<WorkspaceFilePicker workspace={{ root: "/vault", files: [], openFile: vi.fn() }} onClose={() => {}} />)
-  expect(await screen.findByText("继续向下滚动加载更多")).toBeTruthy()
-  expect(read).toHaveBeenCalledWith("/vault", "/vault/node_modules", { includeIgnored: true })
+  await waitFor(() => expect(screen.getByRole("status").textContent).toContain("106 个结果"))
+  expect(document.querySelector("[data-virtual-quick-results]")?.getAttribute("style")).toContain("3180px")
+  expect(document.querySelectorAll(".workspace-file-picker-row").length).toBeLessThan(40)
+  expect(read).toHaveBeenCalledWith("/vault", "/vault/notes", { includeIgnored: true })
   expect(screen.queryByRole("button", { name: /file-104.md/ })).toBeNull()
   const viewport = document.querySelector("[data-radix-scroll-area-viewport]")!
-  Object.defineProperties(viewport, { scrollHeight: { configurable: true, value: 3000 }, clientHeight: { configurable: true, value: 300 }, scrollTop: { configurable: true, writable: true, value: 2700 } })
+  Object.defineProperties(viewport, { scrollHeight: { configurable: true, value: 3180 }, clientHeight: { configurable: true, value: 300 }, scrollTop: { configurable: true, writable: true, value: 2880 } })
   expect(screen.getByRole("status").textContent).toContain("106 个结果")
   fireEvent.scroll(viewport)
   expect(screen.getByRole("button", { name: /file-104.md/ })).toBeTruthy()
-  expect(screen.getByRole("status").textContent).toContain("已显示 106 个")
+  expect(viewport.scrollTop).toBe(2880)
+  expect(document.querySelector("[data-virtual-quick-results]")?.getAttribute("style")).toContain("3180px")
+  expect(document.querySelectorAll(".workspace-file-picker-row").length).toBeLessThan(40)
   fireEvent.change(screen.getByRole("textbox", { name: "搜索工作区文件" }), { target: { value: "file-" } })
   expect(viewport.scrollTop).toBe(0)
   expect(screen.queryByRole("button", { name: /file-104.md/ })).toBeNull()
@@ -148,4 +157,40 @@ it("navigates results with arrow keys and opens the selected file with Enter", a
   expect(screen.getByRole("button", { name: /second.md/ }).hasAttribute("data-active")).toBe(false)
   fireEvent.keyDown(input, { key: "Enter" })
   expect(openFile).toHaveBeenCalledWith(files[1])
+})
+
+it('excludes dependency files from indexing, open tabs and content matches', async () => {
+  const read = vi.fn(async (_root: string, path: string) => path === '/vault'
+    ? [{ name: 'node_modules', path: '/vault/node_modules', type: 'directory' }, { name: 'src', path: '/vault/src', type: 'directory' }]
+    : [{ name: 'app.ts', path: '/vault/src/app.ts', type: 'file' }])
+  Object.defineProperty(window, 'electronAPI', { configurable: true, value: { readWorkspaceDirectory: read, searchContent: vi.fn(async () => ({ matches: [{ path: '/vault/node_modules/dependency.ts' }, { path: '/vault/src/needle.ts' }], truncated: false })) } })
+  render(<WorkspaceFilePicker workspace={{ root: '/vault', files: [{ name: 'opened-dependency.ts', path: '/vault/node_modules/opened-dependency.ts', type: 'file' }], openFile: vi.fn() }} onClose={() => {}} />)
+  expect(await screen.findByRole('button', { name: /app.ts/ })).toBeTruthy()
+  expect(read).not.toHaveBeenCalledWith('/vault', '/vault/node_modules', expect.anything())
+  expect(screen.queryByText('opened-dependency.ts')).toBeNull()
+  fireEvent.change(screen.getByLabelText('搜索工作区文件'), { target: { value: 'needle' } })
+  expect(await screen.findByRole('button', { name: /needle.ts/ })).toBeTruthy()
+  expect(screen.queryByText('dependency.ts')).toBeNull()
+})
+
+
+it.each(["workspace", "resources"] as const)("uses the %s tree icon theme and shows keyboard guidance", async (scope) => {
+  setFileIconSettings({ fileIconTheme: "material", fileIconWorkspace: scope === "workspace", fileIconResources: scope === "resources" })
+  Object.defineProperty(window, "electronAPI", { configurable: true, value: { readWorkspaceDirectory: vi.fn(async () => []), searchContent: vi.fn() } })
+  const { container } = render(<WorkspaceFilePicker workspace={{ scope, root: "/vault", files: [{ name: "App.vue", path: "/vault/App.vue", type: "file" }], openFile: vi.fn() }} onClose={() => {}} />)
+  expect(container.ownerDocument.querySelector('img[data-file-icon-theme="material"]')?.getAttribute("src")).toContain("/material/vue.svg")
+  expect(screen.getByText("打开文件")).toBeTruthy()
+  expect(screen.getByText("esc")).toBeTruthy()
+  expect(document.querySelector(".workspace-picker-results")?.className).not.toContain("-mx-4")
+})
+
+it('binds scrolling for a large list already present when the picker first mounts', async () => {
+  Object.defineProperty(window, 'electronAPI', { configurable: true, value: { readWorkspaceDirectory: vi.fn(async () => []), searchContent: vi.fn() } })
+  render(<WorkspaceFilePicker workspace={{ root: '/vault', files: Array.from({ length: 5000 }, (_, index) => ({ name: `note-${index}.md`, path: `/vault/note-${index}.md`, type: 'file' as const })), openFile: vi.fn() }} onClose={() => {}} />)
+  const viewport = document.querySelector('[data-radix-scroll-area-viewport]')!
+  Object.defineProperties(viewport, { clientHeight: { configurable: true, value: 240 }, scrollTop: { configurable: true, writable: true, value: 90000 } })
+  fireEvent.scroll(viewport)
+  expect(await screen.findByRole('button', { name: /note-3000.md/ })).toBeTruthy()
+  expect(document.querySelectorAll('.workspace-file-picker-row').length).toBeLessThan(60)
+  expect(document.querySelector('[data-virtual-quick-results]')?.getAttribute('style')).toContain('150000px')
 })

@@ -4,12 +4,13 @@ import type { GitRepositoryState } from "@/pages/git/hooks/use-git-repository"
 
 /** 文件列表多选交互与快捷键全选 */
 export function useGitFileSelection(repo: GitRepositoryState) {
-  const { activeTab, status, setSelectedFile, selectedStagedPaths, setSelectedStagedPaths, selectedUnstagedPaths, setSelectedUnstagedPaths, lastStagedClickedIndex, setLastStagedClickedIndex, lastUnstagedClickedIndex, setLastUnstagedClickedIndex, activeFileSection, setActiveFileSection } = repo
+  const { activeTab, status, setSelectedFile, selectedStagedPaths, setSelectedStagedPaths, selectedUnstagedPaths, setSelectedUnstagedPaths, lastStagedClickedIndex, setLastStagedClickedIndex, lastUnstagedClickedIndex, setLastUnstagedClickedIndex, activeFileSection, setActiveFileSection, selectedConflictPaths, setSelectedConflictPaths, lastConflictClickedIndex, setLastConflictClickedIndex } = repo
 
   // 快捷键多选交互 (Click, Cmd/Ctrl+Click, Shift+Click)
 
   /** Handles staged item click events. */
   const handleStagedItemClick = (e: React.MouseEvent, file: GitFileStatus, idx: number) => {
+    setSelectedConflictPaths([])
     setActiveFileSection("staged")
     const isMeta = e.metaKey || e.ctrlKey
     const isShift = e.shiftKey
@@ -40,6 +41,7 @@ export function useGitFileSelection(repo: GitRepositoryState) {
 
   /** Handles staged context menu events. */
   const handleStagedContextMenu = (file: GitFileStatus, idx: number) => {
+    setSelectedConflictPaths([])
     setActiveFileSection("staged")
     setSelectedFile(file)
     if (!selectedStagedPaths.includes(file.path)) {
@@ -51,6 +53,7 @@ export function useGitFileSelection(repo: GitRepositoryState) {
 
   /** Handles unstaged item click events. */
   const handleUnstagedItemClick = (e: React.MouseEvent, file: GitFileStatus, idx: number) => {
+    setSelectedConflictPaths([])
     setActiveFileSection("unstaged")
     const isMeta = e.metaKey || e.ctrlKey
     const isShift = e.shiftKey
@@ -81,6 +84,7 @@ export function useGitFileSelection(repo: GitRepositoryState) {
 
   /** Handles unstaged context menu events. */
   const handleUnstagedContextMenu = (file: GitFileStatus, idx: number) => {
+    setSelectedConflictPaths([])
     setActiveFileSection("unstaged")
     setSelectedFile(file)
     if (!selectedUnstagedPaths.includes(file.path)) {
@@ -88,6 +92,39 @@ export function useGitFileSelection(repo: GitRepositoryState) {
       setSelectedStagedPaths([])
       setLastUnstagedClickedIndex(idx)
     }
+  }
+
+  const handleConflictItemClick = (event: React.MouseEvent, file: GitFileStatus, index: number) => {
+    setActiveFileSection("conflicts")
+    setSelectedStagedPaths([])
+    setSelectedUnstagedPaths([])
+    setSelectedFile(file)
+    const files = status?.conflicts || []
+    if (event.shiftKey && lastConflictClickedIndex >= 0 && lastConflictClickedIndex < files.length) {
+      setSelectedConflictPaths(files.slice(Math.min(index, lastConflictClickedIndex), Math.max(index, lastConflictClickedIndex) + 1).map((entry) => entry.path))
+    } else {
+      setSelectedConflictPaths((previous) => event.metaKey || event.ctrlKey ? previous.includes(file.path) ? previous.filter((path) => path !== file.path) : [...previous, file.path] : [file.path])
+      setLastConflictClickedIndex(index)
+    }
+  }
+  const handleConflictChecked = (file: GitFileStatus, index: number, checked: boolean) => {
+    setActiveFileSection("conflicts")
+    setSelectedStagedPaths([])
+    setSelectedUnstagedPaths([])
+    setSelectedFile(file)
+    setLastConflictClickedIndex(index)
+    setSelectedConflictPaths((previous) => checked ? [...new Set([...previous, file.path])] : previous.filter((path) => path !== file.path))
+  }
+  const handleConflictContextMenu = (file: GitFileStatus, index: number) => {
+    if (!selectedConflictPaths.includes(file.path)) {
+      setSelectedConflictPaths([file.path])
+      setSelectedStagedPaths([])
+      setSelectedUnstagedPaths([])
+      setLastConflictClickedIndex(index)
+      setActiveFileSection("conflicts")
+      setSelectedFile(file)
+    }
+    else { setActiveFileSection("conflicts"); setSelectedFile(file) }
   }
 
   // 快捷键全选 (Cmd+A / Ctrl+A)
@@ -103,17 +140,29 @@ export function useGitFileSelection(repo: GitRepositoryState) {
       if (activeTab === "status") {
         e.preventDefault()
         const allUnstaged = [...(status?.unstaged || []), ...(status?.untracked || [])]
-        if (activeFileSection === "staged" && (status?.staged.length || 0) > 0) {
+        if (activeFileSection === "conflicts" && status?.conflicts.length) {
+          setSelectedConflictPaths(status.conflicts.map((file) => file.path))
+          setSelectedStagedPaths([])
+          setSelectedUnstagedPaths([])
+        } else if (activeFileSection === "staged" && (status?.staged.length || 0) > 0) {
+          setSelectedConflictPaths([])
           setSelectedStagedPaths(status!.staged.map((f) => f.path))
           setSelectedUnstagedPaths([])
         } else if (allUnstaged.length > 0) {
+          setSelectedConflictPaths([])
           setSelectedUnstagedPaths(allUnstaged.map((f) => f.path))
           setSelectedStagedPaths([])
           setActiveFileSection("unstaged")
         } else if ((status?.staged.length || 0) > 0) {
+          setSelectedConflictPaths([])
           setSelectedStagedPaths(status!.staged.map((f) => f.path))
           setSelectedUnstagedPaths([])
           setActiveFileSection("staged")
+        } else if (status?.conflicts.length) {
+          setSelectedConflictPaths(status.conflicts.map((file) => file.path))
+          setSelectedStagedPaths([])
+          setSelectedUnstagedPaths([])
+          setActiveFileSection("conflicts")
         }
       }
     }
@@ -122,5 +171,5 @@ export function useGitFileSelection(repo: GitRepositoryState) {
     return () => window.removeEventListener("keydown", handleKeyDown)
   }, [activeTab, activeFileSection, status])
 
-  return { handleStagedItemClick, handleStagedContextMenu, handleUnstagedItemClick, handleUnstagedContextMenu }
+  return { handleConflictItemClick, handleConflictChecked, handleConflictContextMenu, handleStagedItemClick, handleStagedContextMenu, handleUnstagedItemClick, handleUnstagedContextMenu }
 }

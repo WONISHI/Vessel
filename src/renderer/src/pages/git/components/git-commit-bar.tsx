@@ -12,7 +12,7 @@ export function GitCommitBar({ g }: { g: GitPageModel }) {
                     <CommitMessageInput
                       draft={commitMessage}
                       resetVersion={commitMessageReset}
-                      onSubmit={() => { if (status?.staged.length) void handleCommit() }}
+                      onSubmit={() => { if (status?.staged.length && !status.conflicts.length) void handleCommit() }}
                     />
                     <div className="mt-2 flex items-center justify-between">
                       <div className="flex items-center gap-3">
@@ -39,7 +39,7 @@ export function GitCommitBar({ g }: { g: GitPageModel }) {
                       </div>
                       <Button
                         size="sm"
-                        disabled={!status?.staged.length}
+                        disabled={!status?.staged.length || !!status?.conflicts.length}
                         onClick={handleCommit}
                         className="bg-green-600 text-white hover:bg-green-700 h-7 text-xs px-3"
                       >

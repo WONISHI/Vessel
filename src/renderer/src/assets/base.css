@@ -21,6 +21,15 @@ body,
   display: flex;
 }
 
+/* Main-window titlebar shares macOS's native traffic-light row. Preview windows keep their native frame. */
+html[data-main-titlebar="true"] {
+  --app-titlebar-height: 36px;
+  --layout-top-offset: var(--app-titlebar-height);
+}
+html[data-main-titlebar="true"] #root { padding-top: var(--app-titlebar-height); }
+html[data-main-titlebar="true"] .h-dvh { height: calc(100dvh - var(--app-titlebar-height)); }
+html[data-main-titlebar="true"] .min-h-svh { min-height: calc(100svh - var(--app-titlebar-height)); }
+
 body,
 html {
   font-family: "Plus Jakarta Sans", system-ui, sans-serif;

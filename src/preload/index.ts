@@ -117,6 +117,12 @@ const vesselAPI = {
 
   /** Synchronizes native window chrome with the applied renderer theme. */
   setWindowAppearance: (dark: boolean): Promise<void> => ipcRenderer.invoke("app:appearance", dark),
+  getWindowFullscreenState: (): Promise<boolean> => ipcRenderer.invoke("app:window-fullscreen"),
+  onWindowFullscreenChanged: (callback: (fullscreen: boolean) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, fullscreen: boolean) => callback(fullscreen)
+    ipcRenderer.on("app:window-fullscreen-changed", listener)
+    return () => ipcRenderer.removeListener("app:window-fullscreen-changed", listener)
+  },
   /** Picks an Office document. */
   pickOfficeFile: (): Promise<{ token: string; name: string; bytes: Uint8Array } | null> => ipcRenderer.invoke("office:pick"),
 

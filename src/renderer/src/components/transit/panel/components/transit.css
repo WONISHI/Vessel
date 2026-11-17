@@ -1,4 +1,5 @@
 .transit-sheet, .transit-dock-menu {
+  -webkit-app-region: no-drag;
   --transit-bg: #fff; --transit-soft: #faf9f7; --transit-status: #f5f5f4;
   --transit-border: #f0efed; --transit-strong-border: #e7e5e4; --transit-hover: #eceae7;
   --transit-text: #44403c; --transit-dim: #78716c; --transit-faint: #a8a29e;
@@ -19,6 +20,7 @@ html.dark :is(.transit-sheet, .transit-dock-menu) {
 .transit-bar-item:disabled { opacity: .3; pointer-events: none; }
 .transit-bar-item.transit-active { background: var(--transit-active); color: var(--transit-green); }
 .transit-top-bar { justify-content: flex-end; border-bottom: 1px solid var(--transit-border); }
+.transit-top-bar, .transit-bar button, .transit-dock-menu button { -webkit-app-region: no-drag; }
 .transit-close:hover { background: #ef44441a; color: #dc2626; }
 .transit-strip-bar { gap: 3px; background: var(--transit-soft); border-bottom: 1px solid var(--transit-border); }
 .transit-strip-tabs { display: flex; gap: 3px; flex: 1; min-width: 0; overflow-x: auto; scrollbar-width: none; }
@@ -28,7 +30,8 @@ html.dark :is(.transit-sheet, .transit-dock-menu) {
 .transit-strip-count { padding: 0 5px; font: 11px ui-monospace, monospace; color: var(--transit-faint); }
 .transit-sheet-body { display: flex; flex-direction: column; flex: 1; min-height: 0; min-width: 0; overflow: hidden; }
 .transit-text-panel { padding: 16px; }
-.transit-clipboard-text { margin: 0; padding: 14px; background: var(--transit-soft); border: 1px solid var(--transit-border); border-radius: 8px; color: var(--transit-text); white-space: pre-wrap; overflow-wrap: anywhere; font: 13px/1.7 ui-monospace, monospace; }
+.transit-clipboard-text { margin: 0; padding: 14px; background: var(--transit-soft); border: 1px solid var(--transit-border); border-radius: 8px; color: var(--transit-text); white-space: pre-wrap; overflow-wrap: anywhere; font: 12px/1.6 ui-monospace, monospace; }
+.transit-sheet .vditor-reset { font-size: 13px !important; line-height: 1.65 !important; }
 .transit-type-hint { display: flex; align-items: center; gap: 5px; margin-top: 10px; font-size: 11px; color: var(--transit-faint); }
 .transit-type-hint svg { width: 12px; height: 12px; }
 .transit-status-bar .vessel-status-left { flex-shrink: 1; overflow: hidden; }

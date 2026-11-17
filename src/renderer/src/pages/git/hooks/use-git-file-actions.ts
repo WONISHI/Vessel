@@ -30,6 +30,28 @@ export function useGitFileActions(repo: GitRepositoryState) {
   }, [repoPath])
 
 
+  const [resolvingConflicts, setResolvingConflicts] = useState(false)
+  const resolving = useRef(false)
+  const handleResolveConflicts = async (paths: string[]) => {
+    if (!repoPath || resolving.current) return
+    const selected = [...new Set(paths)].filter((path) => status?.conflicts.some((file) => file.path === path))
+    if (!selected.length) return
+    resolving.current = true
+    setResolvingConflicts(true)
+    try {
+      await window.electronAPI.git.stage(repoPath, selected)
+      await refresh()
+      repo.setSelectedConflictPaths([])
+      repo.setSelectedUnstagedPaths([])
+      repo.setSelectedStagedPaths(selected)
+      repo.setActiveFileSection("staged")
+      toast.success(`已将 ${selected.length} 个文件标记为已解决并暂存`)
+    } catch (error) {
+      await refresh()
+      toast.error("标记解决并暂存失败", { description: cleanGitErrorMessage(error) })
+    } finally { resolving.current = false; setResolvingConflicts(false) }
+  }
+
   // 操作函数
 
   /** Handles stage file events. */
@@ -55,7 +77,11 @@ export function useGitFileActions(repo: GitRepositoryState) {
   /** Handles stage all events. */
   const handleStageAll = async () => {
     try {
-      await window.electronAPI.git.stageAll(repoPath)
+      if (status?.conflicts.length) {
+        const paths = [...status.unstaged, ...status.untracked].map((file) => file.path)
+        if (!paths.length) return
+        await window.electronAPI.git.stage(repoPath, paths)
+      } else await window.electronAPI.git.stageAll(repoPath)
       await refresh()
     } catch (e: any) {
       toast.error("全部暂存失败", { description: cleanGitErrorMessage(e) })
@@ -187,17 +213,33 @@ export function useGitFileActions(repo: GitRepositoryState) {
     toast.success(paths ? `已成功贮藏 ${paths.length} 个文件的修改` : "已成功贮藏工作区修改")
   }
 
-  /** Handles stash pop events. */
-  const handleStashPop = async (index = 0) => {
-    if (!repoPath) return
+  const restoring = useRef(false)
+  const [restoringStash, setRestoringStash] = useState(false)
+  const restoreStash = async (index: number, keep: boolean) => {
+    if (!repoPath || restoring.current) return
+    restoring.current = true
+    setRestoringStash(true)
     try {
-      await window.electronAPI.git.stashPop(repoPath, index)
+      const expectedHash = repo.stashes?.find((entry) => entry.index === index)?.hash
+      const result = keep ? await window.electronAPI.git.stashApply(repoPath, index, expectedHash) : await window.electronAPI.git.stashPop(repoPath, index, expectedHash)
       await refresh()
-      toast.success("已恢复贮藏内容")
+      repo.setActiveTab("status")
+      if (result?.conflicts.length) {
+        repo.setActiveFileSection("conflicts")
+        repo.setSelectedStagedPaths([])
+        repo.setSelectedUnstagedPaths([])
+        repo.setSelectedConflictPaths([result.conflicts[0]])
+        repo.setSelectedFile({ path: result.conflicts[0], status: "U" })
+        toast.warning(`贮藏合并产生冲突，${result.conflicts.length} 个文件需要手动处理`, { description: "原贮藏记录已保留，未自动选择任一版本。请在冲突文件区修复后暂存。" })
+      } else toast.success(result?.dropped ? "已恢复贮藏内容并删除对应记录" : "已应用贮藏，原记录已保留")
     } catch (e: any) {
-      toast.error("弹出贮藏失败", { description: cleanGitErrorMessage(e) })
-    }
+      await refresh()
+      repo.setActiveTab("status")
+      toast.error(keep ? "应用贮藏失败，原记录已保留" : "弹出贮藏失败", { description: cleanGitErrorMessage(e) })
+    } finally { restoring.current = false; setRestoringStash(false) }
   }
+  const handleStashPop = (index = 0) => restoreStash(index, false)
+  const handleStashApply = (index = 0) => restoreStash(index, true)
 
   /** Handles stash drop events. */
   const handleStashDrop = async (index = 0) => {
@@ -246,5 +288,5 @@ export function useGitFileActions(repo: GitRepositoryState) {
     }
   }
 
-  return { confirmation, confirmationTone, requestConfirmation, settleConfirmation, handleStageFile, handleUnstageFile, handleStageAll, handleUnstageAll, handleDiscard, handleDiscardStaged, handleStageMultiple, handleUnstageMultiple, handleDiscardMultiple, handleDiscardStagedMultiple, handleStashFiles, handleStashAll, stashRequest, setStashRequest, submitStash, handleStashPop, handleStashDrop, getFullPath, copyToClipboard, handleRevealInFinder, handleOpenInEditor }
+  return { restoringStash, handleStashApply, resolvingConflicts, handleResolveConflicts, confirmation, confirmationTone, requestConfirmation, settleConfirmation, handleStageFile, handleUnstageFile, handleStageAll, handleUnstageAll, handleDiscard, handleDiscardStaged, handleStageMultiple, handleUnstageMultiple, handleDiscardMultiple, handleDiscardStagedMultiple, handleStashFiles, handleStashAll, stashRequest, setStashRequest, submitStash, handleStashPop, handleStashDrop, getFullPath, copyToClipboard, handleRevealInFinder, handleOpenInEditor }
 }

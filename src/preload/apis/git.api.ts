@@ -1,5 +1,5 @@
 import type { GitRepositorySettings, GitTagOptions, GitSearchOptions, GitSearchResult } from "@vessel/type/git"
-import type { GitCommitDetail, GitCommitItem, GitDiffResult, GitStatusResult } from "@vessel/type"
+import type { GitCommitDetail, GitCommitItem, GitDiffResult, GitStatusResult, GitStashPopResult, GitStashEntry, GitStashDetail } from "@vessel/type"
 import { ipcRenderer } from "electron"
 
 export const gitAPI = {
@@ -75,13 +75,17 @@ export const gitAPI = {
   merge: (cwd: string, branch: string): Promise<{ success: boolean; output: string }> => ipcRenderer.invoke("git:merge", cwd, branch),
 
   /** Returns stashes. */
-  getStashes: (cwd: string): Promise<{ index: number; name: string; date: string }[]> => ipcRenderer.invoke("git:stashes", cwd),
+  getStashes: (cwd: string): Promise<GitStashEntry[]> => ipcRenderer.invoke("git:stashes", cwd),
 
   /** Performs the stash save operation. */
   stashSave: (cwd: string, message?: string, files?: string[], options?: { keepIndex?: boolean }): Promise<void> => ipcRenderer.invoke("git:stash-save", cwd, message, files, options),
 
   /** Performs the stash pop operation. */
-  stashPop: (cwd: string, index?: number): Promise<void> => ipcRenderer.invoke("git:stash-pop", cwd, index),
+  stashPop: (cwd: string, index?: number, expectedHash?: string): Promise<GitStashPopResult> => ipcRenderer.invoke("git:stash-pop", cwd, index, expectedHash),
+
+  stashApply: (cwd: string, index?: number, expectedHash?: string): Promise<GitStashPopResult> => ipcRenderer.invoke("git:stash-apply", cwd, index, expectedHash),
+  getStashDetail: (cwd: string, reference: number | string): Promise<GitStashDetail> => ipcRenderer.invoke("git:stash-detail", cwd, reference),
+  getStashDiff: (cwd: string, hash: string, filePath: string): Promise<GitDiffResult> => ipcRenderer.invoke("git:stash-diff", cwd, hash, filePath),
 
   /** Performs the stash drop operation. */
   stashDrop: (cwd: string, index?: number): Promise<void> => ipcRenderer.invoke("git:stash-drop", cwd, index),

@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
-import { Archive, ArchiveRestore, ArrowDown, ArrowUp, CloudCheck, Clock, FileText, Plus, Search, Trash2 } from "lucide-react"
+import { Archive, ArchiveRestore, Copy, ArrowDown, ArrowUp, CloudCheck, Clock, FileText, Plus, Search, Trash2 } from "lucide-react"
 import type { GitPageModel } from "@/pages/git/hooks/use-git-page"
 import { GitBranchTree } from "@/pages/git/components/git-branch-tree"
 
@@ -152,7 +152,7 @@ export function GitSidebarNav({ g }: { g: GitPageModel }) {
                     <FileText className="size-3.5 text-stone-500" />
                     文件状态
                   </span>
-                  {!!(status?.unstaged.length || status?.staged.length || status?.untracked.length) && <span className="rounded-full bg-amber-100 px-1.5 text-[10px] font-bold text-amber-700">{(status?.unstaged.length || 0) + (status?.staged.length || 0) + (status?.untracked.length || 0)}</span>}
+                  {!!(status?.conflicts.length || status?.unstaged.length || status?.staged.length || status?.untracked.length) && <span className="rounded-full bg-amber-100 px-1.5 text-[10px] font-bold text-amber-700">{(status?.unstaged.length || 0) + (status?.staged.length || 0) + (status?.untracked.length || 0) + (status?.conflicts.length || 0)}</span>}
                 </button>
 
                 <button
@@ -254,17 +254,25 @@ export function GitSidebarNav({ g }: { g: GitPageModel }) {
                   <span className="flex items-center gap-1">
                     <Archive className="size-3" />
                     <span>贮藏 (STASHES)</span>
+                    <span className="text-[10px] font-normal">最新在上</span>
                   </span>
                   {stashes.length > 0 && <span className="rounded-full bg-stone-200 px-1.5 text-[10px] text-stone-600 font-medium">{stashes.length}</span>}
                 </div>
                 {stashes.length === 0 ? (
                   <div className="px-2 py-1 text-[11px] text-stone-400 italic">暂无贮藏记录</div>
                 ) : (
-                  stashes.map((s) => (
+                  // Git's stash@{0} is newest. Sort a copy and keep each original selector.
+                  [...stashes].sort((a, b) => a.index - b.index).map((s) => (
                     <div
-                      key={s.index}
+                      key={s.hash || s.index}
+                      data-git-stash-row
+                      role="button"
+                      tabIndex={0}
+                      data-git-selected={activeTab === "stash" && (g.selectedStash?.hash && s.hash ? g.selectedStash.hash === s.hash : g.selectedStash?.index === s.index)}
+                      onClick={() => void g.viewStash(s)}
+                      onKeyDown={(event) => { if (event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) { event.preventDefault(); void g.viewStash(s) } }}
                       data-git-sidebar-hover
-                      className="group flex items-center justify-between rounded-md px-2 py-1 text-stone-600 hover:bg-stone-100 text-[11px]"
+                      className={`group flex cursor-pointer items-center justify-between rounded-md px-2 py-1 text-stone-600 hover:bg-stone-100 text-[11px] ${activeTab === "stash" && g.selectedStash?.hash === s.hash && s.hash ? "bg-stone-200" : ""}`}
                       data-title={`stash@{${s.index}}: ${s.name}`}
                     >
                       <span className="truncate flex-1 mr-1">
@@ -275,18 +283,21 @@ export function GitSidebarNav({ g }: { g: GitPageModel }) {
                         <button
                           type="button"
                           aria-label="弹出贮藏"
+                          disabled={g.restoringStash}
                           className="grid size-5 place-items-center rounded text-green-700 hover:bg-green-100 dark:text-green-400 dark:hover:bg-green-500/15"
-                          data-title="恢复并弹出此贮藏 (git stash pop)"
-                          onClick={() => handleStashPop(s.index)}
+                          data-title="合并恢复；成功后删除记录，冲突时保留；本地修改重叠时停止"
+                          onClick={(event) => { event.stopPropagation(); void handleStashPop(s.index) }}
                         >
                           <ArchiveRestore className="size-3.5" />
                         </button>
+                        <button type="button" aria-label="应用贮藏并保留" disabled={g.restoringStash} className="grid size-5 place-items-center rounded text-blue-600 hover:bg-blue-100 dark:text-blue-400" data-title="应用并保留此贮藏（git stash apply，冲突时也保留）" onClick={(event) => { event.stopPropagation(); void g.handleStashApply(s.index) }}><Copy className="size-3.5" /></button>
                         <button
                           type="button"
                           aria-label="删除贮藏"
+                          disabled={g.restoringStash}
                           className="grid size-5 place-items-center rounded text-red-600 hover:bg-red-100 dark:text-red-400 dark:hover:bg-red-500/15"
                           data-title="丢弃此贮藏 (git stash drop)"
-                          onClick={() => handleStashDrop(s.index)}
+                          onClick={(event) => { event.stopPropagation(); void handleStashDrop(s.index) }}
                         >
                           <Trash2 className="size-3.5" />
                         </button>

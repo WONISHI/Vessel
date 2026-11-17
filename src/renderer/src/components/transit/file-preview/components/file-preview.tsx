@@ -1,7 +1,8 @@
 import { useDarkAppearance } from "@/hooks/use-dark-appearance"
 import { registerMonacoTheme } from "@/components/core/canvas/variants/code/theme"
 import { codeLanguage } from "@/components/core/canvas/variants/code/language"
-import { VditorEditor } from "@/components/core/canvas/variants/markdown/vditor-editor"
+import MarkdownCanvas from "@/components/core/canvas/variants/markdown"
+import "@/components/core/canvas/variants/code/monaco"
 import { PdfDocument } from "@/components/core/canvas/variants/pdf"
 import { OfficePreview } from "@/components/transit/file-preview/components/office-preview"
 import type { TransitItem } from "@/components/transit/state"
@@ -102,13 +103,7 @@ export function FilePreview({ item, onLoaded }: { item: TransitItem; onLoaded?: 
   if (file.kind === "markdown")
     return (
       <div className="min-h-0 flex-1 overflow-hidden [&_.vditor-reset]:!opacity-100 [&_.vditor-reset]:!cursor-text">
-        <VditorEditor
-          value={file.content}
-          workspacePath={item.root!}
-          documentPath={item.content}
-          readOnly
-          onChange={() => {}}
-        />
+        <MarkdownCanvas activeFilePath={item.content} workspacePath={item.root!} />
       </div>
     )
   if (file.kind === "image") return <TransitImageViewer src={file.content} name={item.title} />
@@ -120,7 +115,7 @@ export function FilePreview({ item, onLoaded }: { item: TransitItem; onLoaded?: 
         height="100%"
         language={codeLanguage(item.content) || "plaintext"}
         value={file.content}
-        options={{ readOnly: true, domReadOnly: true, automaticLayout: true, minimap: { enabled: false }, fontSize: 13, scrollBeyondLastLine: false, wordWrap: "on" }}
+        options={{ readOnly: true, domReadOnly: true, automaticLayout: true, minimap: { enabled: false }, fontSize: 12, scrollBeyondLastLine: false, wordWrap: "on" }}
       />
     </div>
   )

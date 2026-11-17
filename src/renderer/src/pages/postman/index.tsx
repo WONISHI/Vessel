@@ -427,6 +427,7 @@ export default function PostmanPage() {
         {helpOpen && <ApiHelpDialog onClose={() => setHelpOpen(false)} />}
         {runner && <RunnerDialog name={runner.name} result={runner.result} onClose={() => setRunner(null)} />}
         <ConfirmDialog
+          activityBarAccessible
           open={!!closing}
           onOpenChange={(open) => { if (!open) setClosing(null) }}
           title="关闭未保存的标签"

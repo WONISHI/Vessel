@@ -1,3 +1,4 @@
+import { GitStashDetails } from "@/pages/git/components/git-stash-details"
 import { GitSearchPanel } from "@/pages/git/components/git-search-panel"
 import { GitOperationLoading } from "@/pages/git/components/operation-loading"
 import type { AsideActivity } from "@/components/layout/activity-bar/activity"
@@ -12,6 +13,7 @@ import "@/pages/git/dark.css"
 import { useGitPage } from "@/pages/git/hooks/use-git-page"
 import { GitToolbar } from "@/pages/git/components/git-toolbar"
 import { GitSidebarNav } from "@/pages/git/components/git-sidebar-nav"
+import { GitConflictFiles } from "@/pages/git/components/git-conflict-files"
 import { GitStagedFiles } from "@/pages/git/components/git-staged-files"
 import { GitUnstagedFiles } from "@/pages/git/components/git-unstaged-files"
 import { GitCommitBar } from "@/pages/git/components/git-commit-bar"
@@ -92,6 +94,8 @@ export default function SourceTreePage() {
               </div>
             ) : activeTab === "search" ? (
               <GitSearchPanel key={g.repoPath} g={g} />
+            ) : activeTab === "stash" ? (
+              <GitStashDetails g={g} />
             ) : activeTab === "status" ? (
               /* 视图 1: 文件状态视图 (1号占60%，4号占40%，3号使用Resizable拖拽调整) */
               <ResizablePanelGroup
@@ -111,10 +115,16 @@ export default function SourceTreePage() {
                     orientation="vertical"
                     className="flex-1 min-h-0 h-full w-full"
                   >
+                    {!!status?.conflicts.length && <>
+                      <ResizablePanel id="git-conflicts-panel" defaultSize="25%" minSize="15%" maxSize="65%" className="flex min-h-0 min-w-0 flex-col">
+                        <GitConflictFiles g={g} />
+                      </ResizablePanel>
+                      <ResizableHandle aria-label="调整冲突与暂存区域高度" />
+                    </>}
                     {/* 已暂存区 */}
                     <ResizablePanel
                       id="git-staged-panel"
-                      defaultSize="50%"
+                      defaultSize={status?.conflicts.length ? "37.5%" : "50%"}
                       minSize="15%"
                       maxSize="85%"
                       className="flex flex-col min-h-0 min-w-0"
@@ -128,7 +138,7 @@ export default function SourceTreePage() {
                     {/* 2号: 未暂存区 */}
                     <ResizablePanel
                       id="git-unstaged-panel"
-                      defaultSize="50%"
+                      defaultSize={status?.conflicts.length ? "37.5%" : "50%"}
                       minSize="15%"
                       maxSize="85%"
                       className="flex flex-col min-h-0 min-w-0"
@@ -156,8 +166,11 @@ export default function SourceTreePage() {
                     diffText={diffText}
                     filePath={selectedFile?.path}
                     isStaged={status?.staged.some((f) => f.path === selectedFile?.path)}
+                    isConflict={status?.conflicts.some((file) => file.path === selectedFile?.path)}
+                    stageDisabled={g.resolvingConflicts}
                     onToggleStage={() => {
                       if (!selectedFile) return
+                      if (status?.conflicts.some((file) => file.path === selectedFile.path)) { void g.handleResolveConflicts([selectedFile.path]); return }
                       const isStaged = status?.staged.some((f) => f.path === selectedFile.path)
                       if (isStaged) handleUnstageFile(selectedFile.path)
                       else handleStageFile(selectedFile.path)

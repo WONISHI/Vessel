@@ -149,6 +149,7 @@ function createWindow(): void {
     minWidth: MIN_WIDTH,
     minHeight: MIN_HEIGHT,
     show: false,
+    ...(process.platform === "darwin" ? { titleBarStyle: "hiddenInset" as const } : {}),
     backgroundColor: dark ? "#22272E" : "#FFFFFF",
     autoHideMenuBar: true,
     icon: icon,
@@ -161,6 +162,12 @@ function createWindow(): void {
     }
   })
   trackWindowState(mainWindow)
+  mainWindow.webContents.ipc.handle("app:window-fullscreen", () => mainWindow.isFullScreen())
+  const publishFullscreen = () => {
+    if (!mainWindow.webContents.isDestroyed()) mainWindow.webContents.send("app:window-fullscreen-changed", mainWindow.isFullScreen())
+  }
+  mainWindow.on("enter-full-screen", publishFullscreen)
+  mainWindow.on("leave-full-screen", publishFullscreen)
   // Start loading immediately; every handler below is registered synchronously before any renderer IPC can arrive.
   if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
     void mainWindow.loadURL(process.env["ELECTRON_RENDERER_URL"])

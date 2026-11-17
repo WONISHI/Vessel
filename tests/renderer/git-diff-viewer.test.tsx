@@ -48,3 +48,12 @@ it("reports binary changes and empty diffs without rendering an empty table", ()
   rerender(<DiffViewer diffText="" />)
   expect(screen.getByText("该文件暂无差异变更")).toBeTruthy()
 })
+
+it("keeps combined conflict diffs visible and offers the resolve-and-stage action", () => {
+  const patch = "diff --cc test.md\nindex abc123,def456..000000\n--- a/test.md\n+++ b/test.md\n@@@ -1,1 -1,1 +1,5 @@@\n++<<<<<<< Updated upstream\n +current\n++=======\n+ stashed\n++>>>>>>> Stashed changes\n"
+  const onToggleStage = vi.fn()
+  render(<DiffViewer diffText={patch} isConflict onToggleStage={onToggleStage} />)
+  expect(screen.getByText(/<<<<<<< Updated upstream/)).toBeTruthy()
+  fireEvent.click(screen.getByRole("button", { name: "标记解决并暂存" }))
+  expect(onToggleStage).toHaveBeenCalledOnce()
+})

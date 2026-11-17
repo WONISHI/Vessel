@@ -5,7 +5,7 @@ import { paramsFromUrl } from "@/pages/postman/lib/url-params"
 const SCHEMA = "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 
 type PostmanKV = { key?: string; value?: unknown; disabled?: boolean; type?: string; src?: unknown }
-type PostmanItem = { name?: string; item?: PostmanItem[]; request?: PostmanRequest | string; event?: { listen?: string; script?: { exec?: string | string[] } }[] }
+type PostmanItem = { auth?: PostmanRequest["auth"]; variable?: PostmanKV[]; name?: string; item?: PostmanItem[]; request?: PostmanRequest | string; event?: { listen?: string; script?: { exec?: string | string[] } }[] }
 type PostmanRequest = {
   method?: string
   url?: string | { raw?: string; protocol?: string; host?: string | string[]; path?: string | string[]; query?: PostmanKV[] }
@@ -19,7 +19,7 @@ export interface ImportedEnvironment {
   variables: KV[]
 }
 
-export type ImportResult = { kind: "collection"; payload: ApiImportPayload; name: string; environment?: ImportedEnvironment; count: number } | { kind: "environment"; environment: ImportedEnvironment }
+export type ImportResult = { kind: "collection"; payload: ApiImportPayload; name: string; environment?: ImportedEnvironment; count: number; environments?: ImportedEnvironment[]; warnings?: string[]; format?: string } | { kind: "environment"; environment: ImportedEnvironment }
 
 const uid = (prefix: string) => `${prefix}-${crypto.randomUUID()}`
 const toRows = (list: PostmanKV[] | undefined): KV[] =>
@@ -62,23 +62,29 @@ function draftOf(item: PostmanItem, collectionId: string): RequestDraft {
 
 /** Parses a Postman v2/v2.1 collection or a Postman environment export. */
 export function importPostman(json: unknown): ImportResult {
-  const data = json as { info?: { name?: string; schema?: string }; item?: PostmanItem[]; variable?: PostmanKV[]; name?: string; values?: PostmanKV[] }
+  const data = json as { auth?: PostmanRequest["auth"]; event?: PostmanItem["event"]; info?: { name?: string; schema?: string }; item?: PostmanItem[]; variable?: PostmanKV[]; name?: string; values?: PostmanKV[] }
   if (data && Array.isArray(data.values) && !data.item) return { kind: "environment", environment: { name: data.name || "导入的环境", variables: toRows(data.values) } }
   if (!data || !Array.isArray(data.item)) throw new Error("不是有效的 Postman Collection（缺少 item）")
   const payload: ApiImportPayload = { collections: [], requests: [] }
   const name = data.info?.name || "导入的集合"
   const rootId = uid("col")
   payload.collections.push({ id: rootId, name, parentId: null })
-  const walk = (items: PostmanItem[], parentId: string) => {
+  const walk = (items: PostmanItem[], parentId: string, inheritedAuth: PostmanRequest["auth"], before: string, after: string) => {
     items.forEach((item, index) => {
       if (Array.isArray(item.item)) {
         const id = uid("col")
         payload.collections.push({ id, name: item.name || "文件夹", parentId })
-        walk(item.item, id)
-      } else payload.requests.push({ ...draftToRecord(draftOf(item, parentId), uid("req")), sortOrder: index })
+        walk(item.item, id, item.auth ?? inheritedAuth, [before, script(item, "prerequest")].filter(Boolean).join("\n"), [after, script(item, "test")].filter(Boolean).join("\n"))
+      } else {
+        const request = typeof item.request === "string" ? { url: item.request } : (item.request || {})
+        const draft = draftOf({ ...item, request: { ...request, auth: request.auth ?? inheritedAuth } }, parentId)
+        draft.preRequest = [before, draft.preRequest].filter(Boolean).join("\n")
+        draft.tests = [after, draft.tests].filter(Boolean).join("\n")
+        payload.requests.push({ ...draftToRecord(draft, uid("req")), sortOrder: index })
+      }
     })
   }
-  walk(data.item, rootId)
+  walk(data.item, rootId, data.auth, script(data as PostmanItem, "prerequest"), script(data as PostmanItem, "test"))
   const variables = toRows(data.variable)
   return { kind: "collection", payload, name, count: payload.requests.length, environment: variables.length ? { name: `${name} 变量`, variables } : undefined }
 }

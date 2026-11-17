@@ -55,3 +55,16 @@ it("preserves a JSON draft across route unmounts and keeps explicit clearing", (
   render(<JsonTool />)
   expect(screen.getByLabelText("JSON 编辑器")).toHaveProperty("value", "")
 })
+
+it("formats and compresses a copied escaped JSON string as an object", () => {
+  render(<JsonTool />)
+  const input = String.raw`"{\\"key\\":\\"2108449341377019905\\",\\"title\\":\\"考后复核材料申报\\",\\"data\\":{\\"url\\":\\"https\://example.test/file.pdf\\"},\\"metadata\\":{\\"usePassApi\\":true}}"`
+  fireEvent.change(screen.getByLabelText("JSON 编辑器"), { target: { value: input } })
+  fireEvent.click(screen.getByRole("button", { name: "格式化" }))
+  expect(screen.queryByRole("alert")).toBeNull()
+  const formatted = (screen.getByLabelText("JSON 编辑器") as HTMLTextAreaElement).value
+  expect(formatted).toContain('\n  "key": "2108449341377019905"')
+  expect(JSON.parse(formatted).data.url).toBe("https://example.test/file.pdf")
+  fireEvent.click(screen.getByRole("button", { name: "压缩" }))
+  expect((screen.getByLabelText("JSON 编辑器") as HTMLTextAreaElement).value).toBe(JSON.stringify(JSON.parse(formatted)))
+})

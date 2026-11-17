@@ -1,4 +1,5 @@
 import { browserNavigationError } from "@/pages/browser/navigation-error"
+import { popupOverlapsPane } from "@/pages/browser/popup-overlap"
 import { newTab, Tab } from "@/pages/browser/components/index-shared"
 import { withGuest } from "@/pages/browser/guest-lifecycle"
 import { browserURL } from "@/pages/browser/url"
@@ -106,9 +107,13 @@ export function useBrowserActions(state: BrowserState, visible: boolean) {
     }
     let disposed = false
 
-    const hasPopup = () => Boolean(document.querySelector(
+    const hasPopup = () => Array.from(document.querySelectorAll<HTMLElement>(
       '.vessel-browser-tabs-popup[data-state="open"], .vessel-activity-tools-popup[data-state="open"], .dev-actions-menu[data-state="open"], [role="dialog"][data-state="open"]'
-    ))
+    )).some((popup) => {
+      const pane = element.getBoundingClientRect()
+      const rect = popup.getBoundingClientRect()
+      return popupOverlapsPane(rect, pane)
+    })
     let popupOpen = hasPopup()
     /** Synchronizes sync. */
     const sync = () => {

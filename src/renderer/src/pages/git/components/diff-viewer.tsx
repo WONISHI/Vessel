@@ -10,15 +10,19 @@ export interface DiffViewerProps {
   diffText: string
   filePath?: string
   isStaged?: boolean
+  isConflict?: boolean
+  stageDisabled?: boolean
   onToggleStage?: () => void
 }
 
 /** Renders the diff viewer component. */
-export function DiffViewer({ diffText, filePath, isStaged, onToggleStage }: DiffViewerProps) {
+export function DiffViewer({ diffText, filePath, isStaged, isConflict, stageDisabled, onToggleStage }: DiffViewerProps) {
   const [viewMode, setViewMode] = useState<"unified" | "split">("unified")
   const [copied, setCopied] = useState(false)
   const files = useMemo(() => {
     // Untracked files arrive as a unified patch without git's file header.
+    // Combined merge diffs are shown verbatim so conflict markers remain visible.
+    if (/^diff --(?:cc|combined) /m.test(diffText)) return []
     const header = diffText.search(/^diff --git /m)
     const patch = header >= 0 ? diffText.slice(header) : `diff --git a/file b/file\n${diffText}`
     try {
@@ -57,9 +61,10 @@ export function DiffViewer({ diffText, filePath, isStaged, onToggleStage }: Diff
             <button
               type="button"
               onClick={onToggleStage}
+              disabled={stageDisabled}
               className={`shrink-0 whitespace-nowrap rounded px-2.5 py-1 text-[11px] font-medium transition-colors ${isStaged ? "border border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100" : "border border-green-300 bg-green-50 text-green-700 hover:bg-green-100"}`}
             >
-              {isStaged ? "取消暂存该文件" : "暂存该文件"}
+              {isConflict ? "标记解决并暂存" : isStaged ? "取消暂存该文件" : "暂存该文件"}
             </button>
           )}
 

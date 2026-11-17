@@ -395,3 +395,6 @@ html.dark .vessel-git-page .git-commit-file-row[data-commit-file-selected="true"
 html.dark .vessel-git-page .git-commit-file-row[data-commit-file-selected="true"]:is(:hover, :focus-visible) {
   background: #444b55 !important;
 }
+
+html.dark .vessel-git-page [data-git-conflict-header] { background: #402b30 !important; color: #fda4af !important; }
+html.dark .vessel-git-page [data-git-conflict-header] .bg-red-100 { background: #713039 !important; }

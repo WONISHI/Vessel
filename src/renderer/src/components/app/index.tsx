@@ -1,4 +1,5 @@
 import { NativeFileMenu } from "@/components/native-file-menu"
+import { TopSearch } from "@/components/layout/top-search"
 import type { WorkspaceData } from "@vessel/type"
 import { CommandPalette } from "@/components/command-palette"
 import { TransitPanel } from "@/components/transit/panel"
@@ -152,6 +153,7 @@ function App() {
 
   return (
     <>
+      <TopSearch />
       <Toaster
         position="bottom-right"
         closeButton
