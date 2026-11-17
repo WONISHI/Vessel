@@ -7,7 +7,7 @@ if (!process.argv.includes("--run")) {
   const resources = path.join(bundle, "Contents/Resources")
   if (!fs.existsSync(path.join(resources, "app.asar"))) throw new Error("Missing packaged app.asar")
   const directory = fs.mkdtempSync(path.join(require("node:os").tmpdir(), "vessel-packaged-startup-"))
-  const env = { ...process.env, VESSEL_STARTUP_RESOURCES: resources, VESSEL_STARTUP_PROFILE: directory }
+  const env = { ...process.env, VESSEL_STARTUP_RESOURCES: resources, VESSEL_STARTUP_PROFILE: directory, VESSEL_STARTUP_FAULT: process.argv.includes("--clipboard-db-failure") ? "clipboard-db" : "" }
   delete env.ELECTRON_RUN_AS_NODE
   const child = spawn(require("electron"), [__filename, "--run"], { env, stdio: "inherit" })
   const timeout = setTimeout(() => { console.error("FAIL: packaged startup timed out"); child.kill("SIGKILL") }, 25000)
@@ -18,6 +18,8 @@ if (!process.argv.includes("--run")) {
   const assert = require("node:assert/strict")
   const resources = process.env.VESSEL_STARTUP_RESOURCES
   const profile = process.env.VESSEL_STARTUP_PROFILE
+  const clipboardFault = process.env.VESSEL_STARTUP_FAULT === "clipboard-db"
+  if (clipboardFault) fs.mkdirSync(path.join(profile, "clipboard-history.sqlite"))
   app.setPath("userData", profile)
   Object.defineProperty(app, "isPackaged", { value: true })
   Object.defineProperty(process, "resourcesPath", { value: resources })
@@ -58,13 +60,15 @@ if (!process.argv.includes("--run")) {
           if (status.rootChildren && status.textLength > 20) {
             await delay(500)
             assert.equal(failures.length, 0, failures.map(String).join("\n"))
-            if (process.platform === "darwin") {
+            if (clipboardFault) {
+              assert(fs.readFileSync(path.join(profile, "startup.log"), "utf8").includes("剪贴板初始化失败"), "Clipboard failure must be logged without blocking the window")
+            } else if (process.platform === "darwin") {
               assert(native?.started && native.child.pid, "Native clipboard monitor did not start")
               assert(native.file.includes("app.asar.unpacked"), `Invalid helper path: ${native.file}`)
             }
             assert.equal(app.getPath("userData"), profile, "Smoke check must use an isolated profile")
             fs.writeFileSync(path.join(profile, "startup-preview.png"), (await window.webContents.capturePage()).toPNG())
-            console.log("PASS: real packaged main/preload/renderer, visible main window, native clipboard monitor and isolated profile", JSON.stringify(status))
+            console.log(clipboardFault ? "PASS: clipboard database failure is logged and the main window still renders" : "PASS: real packaged main/preload/renderer, visible main window, native clipboard monitor and isolated profile", JSON.stringify(status))
             console.log("Preview:", path.join(profile, "startup-preview.png"))
             return
           }
@@ -74,7 +78,7 @@ if (!process.argv.includes("--run")) {
       }
       throw new Error("The packaged main window did not render")
     } catch (error) { fail(error); process.exitCode = 1 }
-    finally { quitting = true; native?.child.kill(); app.quit() }
+    finally { quitting = true; app.quit() }
   })
   try { require(path.join(resources, "app.asar/out/main/index.js")) }
   catch (error) { fail(error); app.exit(1) }
