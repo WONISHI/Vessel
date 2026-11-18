@@ -18,7 +18,7 @@ import { applyEnvUpdates, createTab, draftFromRecord, draftToRecord, draftToSend
 import { exportPostman } from "@/pages/postman/lib/postman-collection"
 import { paramsFromUrl, splitUrl, urlWithParams } from "@/pages/postman/lib/url-params"
 import type { ApiCollectionRecord, ApiEnvironmentRecord, ApiHistoryRecord, ApiRequestRecord, ApiRunResult, ApiSendOptions } from "@vessel/type"
-import { Activity, ChevronRight, CircleQuestionMark, Cookie, Eye, FlaskConical, Globe, HardDrive, Loader2, Send, Timer, Upload } from "lucide-react"
+import { Activity, ChevronRight, CircleQuestionMark, Cookie, Eye, FlaskConical, Globe, HardDrive, Loader2, Send, Timer, Import } from "lucide-react"
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react"
 import { useNavigate } from "react-router-dom"
 
@@ -312,7 +312,7 @@ export default function PostmanPage() {
             />
           </div>
           <div className="flex shrink-0 items-center gap-2 text-xs">
-            <button type="button" className={headerButton} onClick={() => setImportOpen(true)} data-title="导入 cURL / Postman 集合"><Upload className="size-3.5" />导入</button>
+            <button type="button" className={headerButton} onClick={() => setImportOpen(true)} data-title="导入 cURL / Postman 集合"><Import className="size-3.5" />导入</button>
             <button type="button" className={headerButton} onClick={() => setCookiesOpen(true)} data-title="管理 Cookies"><Cookie className="size-3.5" />Cookies</button>
             <Select value={activeEnvId ?? "__none__"} onValueChange={(value) => { if (value) activateEnvironment(value === "__none__" ? null : value) }}>
               <SelectTrigger className="api-select-trigger h-8 w-44 text-xs" aria-label="请求环境"><SelectValue /></SelectTrigger>

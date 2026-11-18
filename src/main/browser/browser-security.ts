@@ -130,7 +130,9 @@ export function secureBrowserGuests(contents: WebContents) {
     const reload = () => {
       refreshRequestedUntil = Date.now() + 5000
       cancelDecision?.()
-      guest.reloadIgnoringCache()
+      // A hard reload bypasses Service Workers for the entire new document, including clients.claim().
+      // Normal refresh must keep resource authentication implemented by the page worker.
+      guest.reload()
     }
     reloadGuests.set(guest.id, reload)
     guest.once("destroyed", () => reloadGuests.delete(guest.id))

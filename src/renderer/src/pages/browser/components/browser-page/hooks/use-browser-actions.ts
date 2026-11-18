@@ -10,7 +10,7 @@ import type { BrowserState } from "@/pages/browser/components/browser-page/hooks
 
 /** 页内查找、控制台挂载、导航与标签操作 */
 export function useBrowserActions(state: BrowserState, visible: boolean) {
-  const { tabs, setTabs, setFindOpen, findInput, devtoolsOpen, setDevtoolsOpen, dock, setDock, consoleFont, consoleSize, devtoolsHost, setActive, setInput, bookmarks, setBookmarks, views, tab } = state
+  const { tabs, setTabs, setFindOpen, findInput, devtoolsOpen, setDevtoolsOpen, dock, setDock, consoleFont, consoleSize, devtoolsHost, setActive, setInput, bookmarks, setBookmarks, views, tab, input } = state
 
 
   /** Reloads tab. */
@@ -88,14 +88,23 @@ export function useBrowserActions(state: BrowserState, visible: boolean) {
       }),
     []
   )
-  const pendingInspect = useRef<{ x: number; y: number } | undefined>(undefined)
+  const pendingInspect = useRef<{ x: number; y: number; property?: string; targetKey?: string } | undefined>(undefined)
   const [inspectRevision, setInspectRevision] = useState(0)
-  const inspectPage = (point: { x: number; y: number }) => {
+  const inspectPage = (point: { x: number; y: number; property?: string; targetKey?: string }) => {
     pendingInspect.current = point
-    setDock("bottom")
+    if (!point.property) setDock("bottom")
     setDevtoolsOpen(true)
     setInspectRevision((revision) => revision + 1)
   }
+  useEffect(() => {
+    const inspect = (event: Event) => {
+      const request = (event as CustomEvent<{ id: number; property: string; targetKey: string }>).detail
+      if (!visible || withGuest(views.current.get(tab.id), guest => guest.getWebContentsId()) !== request.id) return
+      inspectPage({ x: 0, y: 0, property: request.property, targetKey: request.targetKey })
+    }
+    window.addEventListener("vessel-browser-inspect-style", inspect)
+    return () => window.removeEventListener("vessel-browser-inspect-style", inspect)
+  }, [visible, tab.id])
   const devtoolsCloseTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
   useEffect(() => {
     const element = devtoolsHost.current
@@ -130,7 +139,7 @@ export function useBrowserActions(state: BrowserState, visible: boolean) {
       try {
         const inspect = pendingInspect.current
         pendingInspect.current = undefined
-        void window.electronAPI.setBrowserDevtools(view.getWebContentsId(), { x, y, width, height }, { font: consoleFont, size: consoleSize, detached: dock === "detached", hidden: !visible || (dock !== "detached" && popupOpen), inspect, control: controlOverlay }).catch((error) => {
+        void window.electronAPI.setBrowserDevtools(view.getWebContentsId(), { x, y, width, height }, { font: consoleFont, size: consoleSize, detached: dock === "detached", hidden: !visible || (dock !== "detached" && popupOpen), pageTitle: tab.title, pageURL: input ?? tab.url, inspect, control: controlOverlay }).catch((error) => {
           if (!disposed) {
             update(tab.id, { error: String(error) })
             setDevtoolsOpen(false)
@@ -166,7 +175,7 @@ export function useBrowserActions(state: BrowserState, visible: boolean) {
       // Defer closing so a dock/font change reuses the open DevTools instead of tearing it down and reopening (which left it blank).
       devtoolsCloseTimer.current = setTimeout(() => void window.electronAPI.setBrowserDevtools(null).catch(() => {}), 80)
     }
-  }, [visible, devtoolsOpen, tab.id, Boolean(tab.url), dock, consoleFont, consoleSize, inspectRevision])
+  }, [visible, devtoolsOpen, tab.id, tab.url, tab.title, input, dock, consoleFont, consoleSize, inspectRevision])
 
   /** Performs the navigate operation. */
   const navigate = (value: string) => {

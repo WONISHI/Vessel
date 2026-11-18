@@ -63,7 +63,7 @@ export function TopSearch() {
   const matching = tabs.filter((tab) => `${tab.title} ${tab.url}`.toLocaleLowerCase().includes(query.toLocaleLowerCase()))
   return <>
     <header style={{ WebkitAppRegion: "drag" } as CSSProperties} className="vessel-main-titlebar fixed inset-x-0 top-0 z-[100] flex h-9 shrink-0 items-center justify-center gap-2 border-b bg-white px-3 text-xs text-stone-500 dark:bg-[#22272e]">
-      <span style={{ left: fullscreen ? 14 : 100 }} className="pointer-events-none absolute flex max-w-[180px] items-center gap-2 truncate font-semibold"><PageIcon className="size-4 shrink-0 text-emerald-600" />{page.label}</span>
+      <span style={{ left: 100, transform: `translateX(${fullscreen ? -86 : 0}px)` }} className="vessel-titlebar-identity pointer-events-none absolute flex max-w-[180px] items-center gap-2 truncate font-semibold"><PageIcon className="size-4 shrink-0 text-emerald-600" />{page.label}</span>
       {searchable && <div style={{ WebkitAppRegion: "no-drag" } as CSSProperties} className="flex min-w-0 items-center gap-2 max-[700px]:ml-[180px]">
       <button type="button" aria-label="后退" className="rounded p-1 hover:bg-stone-200 dark:hover:bg-white/10" onClick={() => window.history.back()}><ArrowLeft className="size-3.5" /></button>
       <button type="button" aria-label="前进" className="rounded p-1 hover:bg-stone-200 dark:hover:bg-white/10" onClick={() => window.history.forward()}><ArrowRight className="size-3.5" /></button>

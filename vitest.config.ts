@@ -1,7 +1,9 @@
+import { guestScriptPlugin } from "./src/shared/guest-script-plugin"
 import { resolve } from "node:path"
 import { defineConfig } from "vitest/config"
 
 export default defineConfig({
+  plugins: [guestScriptPlugin(resolve("."))],
   resolve: {
     dedupe: ["react", "react-dom"],
     alias: [

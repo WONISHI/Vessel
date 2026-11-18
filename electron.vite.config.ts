@@ -1,3 +1,4 @@
+import { guestScriptPlugin } from "./src/shared/guest-script-plugin"
 import react from "@vitejs/plugin-react"
 import { defineConfig } from "electron-vite"
 import { execFileSync } from "node:child_process"
@@ -278,6 +279,6 @@ export default defineConfig({
         }).map(([find, replacement]) => ({ find, replacement }))
       ]
     },
-    plugins: [localMattingAssets(), localOcrAssets(), localVditorAssets(), localFileIconAssets(), patchScreenShotPlugin(), react(), svgr()]
+    plugins: [guestScriptPlugin(projectRoot), localMattingAssets(), localOcrAssets(), localVditorAssets(), localFileIconAssets(), patchScreenShotPlugin(), react(), svgr()]
   }
 })

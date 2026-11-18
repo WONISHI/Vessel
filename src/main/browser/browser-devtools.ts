@@ -1,3 +1,4 @@
+import { revealBrowserStyle } from "./browser-inspect-style"
 import jakartaPath from "@fontsource/plus-jakarta-sans/files/plus-jakarta-sans-latin-400-normal.woff2?asset"
 import { matchesShortcut } from "@vessel/utils"
 import { BrowserWindow, WebContentsView, webContents, type WebContents } from "electron"
@@ -8,6 +9,8 @@ import { readFileSync } from "node:fs"
 export function registerBrowserDevtools(host: WebContents) {
   let panel: WebContentsView | undefined
   let detachedWindow: BrowserWindow | undefined
+  let detachedBounds: Electron.Rectangle | undefined
+  let originalThrottling: boolean | undefined
   let inspected: WebContents | undefined
   let appearance = { font: "Menlo", size: 13 }
   let cssKey: string | undefined
@@ -34,6 +37,7 @@ export function registerBrowserDevtools(host: WebContents) {
   /** Closes close. */
   const close = () => {
     if (inspected && !inspected.isDestroyed()) {
+      if (originalThrottling !== undefined) inspected.setBackgroundThrottling(originalThrottling)
       inspected.removeListener("destroyed", close)
       inspected.closeDevTools()
     }
@@ -42,6 +46,7 @@ export function registerBrowserDevtools(host: WebContents) {
       if (!panel.webContents.isDestroyed()) panel.webContents.close()
     }
     const detached = detachedWindow
+    if (detached && !detached.isDestroyed()) detachedBounds = detached.getNormalBounds()
     detachedWindow = undefined
     if (detached && !detached.isDestroyed()) detached.destroy()
     controlState = ""
@@ -51,8 +56,9 @@ export function registerBrowserDevtools(host: WebContents) {
     appliedVisible = undefined
     panel = undefined
     inspected = undefined
+    originalThrottling = undefined
   }
-  host.ipc.handle("browser:devtools", (_event, id: number | null, bounds?: Electron.Rectangle, options?: { font: string; size: number; detached?: boolean; hidden?: boolean; inspect?: { x: number; y: number }; control?: { x: number; y: number; width: number; height: number; icon: string; color: string; background: string; border: string; shadow: string } }) => {
+  host.ipc.handle("browser:devtools", (_event, id: number | null, bounds?: Electron.Rectangle, options?: { font: string; size: number; detached?: boolean; hidden?: boolean; pageTitle?: string; pageURL?: string; inspect?: { x: number; y: number; property?: string; targetKey?: string }; control?: { x: number; y: number; width: number; height: number; icon: string; color: string; background: string; border: string; shadow: string } }) => {
     if (id === null) {
       close()
       return
@@ -69,7 +75,7 @@ export function registerBrowserDevtools(host: WebContents) {
     if (inspected !== guest || !panel || Boolean(detachedWindow) !== Boolean(options?.detached)) {
       close()
       inspected = guest
-      panel = new WebContentsView({ webPreferences: { session: guest.session, preload: join(__dirname, "../preload/browser-devtools.js"), sandbox: true, contextIsolation: true, nodeIntegration: false } })
+      panel = new WebContentsView({ webPreferences: { session: guest.session, preload: join(__dirname, "../preload/browser-devtools.js"), sandbox: true, contextIsolation: true, nodeIntegration: false, backgroundThrottling: false } })
       panel.webContents.ipc.on("browser:devtools-control", (_event, delta?: { dx: number; dy: number }) => {
         if (delta && ![delta.dx, delta.dy].every(Number.isFinite)) return
         if (!host.isDestroyed() && panel?.getVisible() && !detachedWindow) host.send("browser:control", delta)
@@ -88,7 +94,9 @@ export function registerBrowserDevtools(host: WebContents) {
         if (!input.isAutoRepeat && !host.isDestroyed()) host.send("browser:toggle-devtools", inspectedId)
       })
       if (options?.detached) {
-        detachedWindow = new BrowserWindow({ width: 1000, height: 600, title: "Vessel · 网页控制台", parent: window, skipTaskbar: true, autoHideMenuBar: true, webPreferences: { sandbox: true, nodeIntegration: false } })
+        originalThrottling = guest.getBackgroundThrottling()
+        guest.setBackgroundThrottling(false)
+        detachedWindow = new BrowserWindow({ width: 1000, height: 600, ...detachedBounds, title: "网页控制台", fullscreen: false, fullscreenable: false, skipTaskbar: true, autoHideMenuBar: true, webPreferences: { sandbox: true, nodeIntegration: false, backgroundThrottling: false } })
         detachedWindow.contentView.addChildView(panel)
 
         /** Resizes resize. */
@@ -117,13 +125,18 @@ export function registerBrowserDevtools(host: WebContents) {
       appliedVisible = !hidden
       panel.setVisible(!hidden)
     }
+    const inspect = options?.inspect
+    if (!hidden && inspect?.property && inspect.targetKey && /^[-a-zA-Z0-9_]{1,160}$/.test(inspect.property) && /^__vesselStyleTarget_[a-z0-9]{1,30}$/.test(inspect.targetKey)) {
+      void revealBrowserStyle(panel.webContents, inspect.targetKey, inspect.property).catch(console.error)
+    }
     if (detachedWindow) {
+      detachedWindow.setTitle(`${options?.pageTitle || guest.getTitle() || "网页"} · ${options?.pageURL ?? guest.getURL()}`)
       if (hidden) detachedWindow.hide()
       else if (!detachedWindow.isVisible()) detachedWindow.showInactive()
       return
     }
     if (hidden) return
-    if (options?.inspect && [options.inspect.x, options.inspect.y].every(Number.isFinite)) {
+    if (options?.inspect && !options.inspect.targetKey && [options.inspect.x, options.inspect.y].every(Number.isFinite)) {
       guest.inspectElement(Math.max(0, Math.round(options.inspect.x)), Math.max(0, Math.round(options.inspect.y)))
     }
     const control = options?.control

@@ -11,7 +11,7 @@ import { parseCurl } from "@/pages/postman/lib/curl"
 import { envRows, type KV, type RequestDraft } from "@/pages/postman/lib/model"
 import { importPostman } from "@/pages/postman/lib/postman-collection"
 import type { ApiCollectionRecord, ApiCookieRecord, ApiEnvironmentRecord, ApiRunResult } from "@vessel/type"
-import { Check, Code2, Cookie, Copy, FileUp, Globe, Play, Save, Trash2, Upload } from "lucide-react"
+import { Check, Code2, Cookie, Copy, FileUp, Globe, Play, Save, Trash2, Import } from "lucide-react"
 import { useEffect, useMemo, useRef, useState } from "react"
 
 const errorText = (error: unknown) => (error instanceof Error ? error.message : String(error)).replace(/^Error invoking remote method '[^']+': (Error: )?/, "")
@@ -171,7 +171,7 @@ export function ImportDialog({ onClose, onCurl, onImported }: { onClose: () => v
     void picked.text().then(importText)
   }
   return (
-    <ApiDialog onClose={onClose} icon={Upload} title="导入" description="支持 cURL 命令、Postman Collection v2/v2.1 与 Postman 环境" className="max-w-[560px]" onSubmit={() => void importText(text)} footer={<>
+    <ApiDialog onClose={onClose} icon={Import} title="导入" description="支持 cURL 命令、Postman Collection v2/v2.1 与 Postman 环境" className="max-w-[560px]" onSubmit={() => void importText(text)} footer={<>
       <span className="mr-auto text-[11px] text-muted-foreground">{kind && `识别为：${kind}`}</span>
       <Button type="button" variant="outline" size="sm" className={secondaryButton} onClick={onClose} disabled={busy}>取消</Button>
       <Button type="submit" size="sm" className={primaryButton} disabled={busy || !text.trim()}>导入</Button>

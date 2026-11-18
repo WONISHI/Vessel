@@ -121,7 +121,7 @@ export function TransitPanel() {
         side="right"
         onInteractOutside={(e) => e.preventDefault()}
         onOpenAutoFocus={(e) => e.preventDefault()}
-        style={dock === "floating" && !full ? { left: position.x, right: "auto", top: position.y, bottom: "auto", height: "80vh", width: Math.min(width, window.innerWidth) } : { left: 52, width: "calc(100vw - 52px)", top: "var(--app-titlebar-height, 0px)", height: "calc(100dvh - var(--app-titlebar-height, 0px))" }}
+        style={dock === "floating" && !full ? { left: position.x, right: "auto", top: position.y, bottom: "auto", height: "80vh", width: Math.min(width, window.innerWidth) } : { left: 52, width: "calc(100vw - 52px)", top: 0, height: "100dvh" }}
         className="z-[240] pointer-events-none [&_.vessel-panel-separator]:pointer-events-auto !max-w-none border-0 bg-transparent p-0 shadow-none"
       >
         {dock === "floating" && !full ? (

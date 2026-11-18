@@ -482,42 +482,18 @@ html.dark .vditor-reset .vessel-markdown-table-wrapper table.vessel-table-grid t
    Outer edges removal (1号:左无边框, 2号:底无边框, 3号:右无边框)
    -------------------------------------------------------------------------- */
 
-/* 1号: 去除左外边框 */
+/* Logical edge classes account for cells occupied by rowSpan / colSpan. */
 .vessel-markdown-table-wrapper table.vessel-table-grid .vessel-cell-edge-left,
-.vessel-markdown-table-wrapper table.vessel-table-grid tr > th:first-child,
-.vessel-markdown-table-wrapper table.vessel-table-grid tr > td:first-child,
-.vditor-reset .vessel-markdown-table-wrapper table.vessel-table-grid .vessel-cell-edge-left,
-.vditor-reset .vessel-markdown-table-wrapper table.vessel-table-grid tr > th:first-child,
-.vditor-reset .vessel-markdown-table-wrapper table.vessel-table-grid tr > td:first-child {
+.vditor-reset .vessel-markdown-table-wrapper table.vessel-table-grid .vessel-cell-edge-left {
   border-left: none !important;
 }
-
-/* 3号: 去除右外边框 */
 .vessel-markdown-table-wrapper table.vessel-table-grid .vessel-cell-edge-right,
-.vessel-markdown-table-wrapper table.vessel-table-grid tr > th:last-child,
-.vessel-markdown-table-wrapper table.vessel-table-grid tr > td:last-child,
-.vditor-reset .vessel-markdown-table-wrapper table.vessel-table-grid .vessel-cell-edge-right,
-.vditor-reset .vessel-markdown-table-wrapper table.vessel-table-grid tr > th:last-child,
-.vditor-reset .vessel-markdown-table-wrapper table.vessel-table-grid tr > td:last-child {
+.vditor-reset .vessel-markdown-table-wrapper table.vessel-table-grid .vessel-cell-edge-right {
   border-right: none !important;
 }
-
-/* 2号: 去除底外边框（包括最后一行 tr、所有底边单元格以及表格自身底边，避免双层底边框） */
 .vessel-markdown-table-wrapper table.vessel-table-grid,
-.vessel-markdown-table-wrapper table.vessel-table-grid tr:last-child,
-.vessel-markdown-table-wrapper table.vessel-table-grid tbody tr:last-child,
-.vessel-markdown-table-wrapper table.vessel-table-grid tr:last-child > th,
-.vessel-markdown-table-wrapper table.vessel-table-grid tr:last-child > td,
-.vessel-markdown-table-wrapper table.vessel-table-grid tbody tr:last-child > th,
-.vessel-markdown-table-wrapper table.vessel-table-grid tbody tr:last-child > td,
 .vessel-markdown-table-wrapper table.vessel-table-grid .vessel-cell-edge-bottom,
 .vditor-reset .vessel-markdown-table-wrapper table.vessel-table-grid,
-.vditor-reset .vessel-markdown-table-wrapper table.vessel-table-grid tr:last-child,
-.vditor-reset .vessel-markdown-table-wrapper table.vessel-table-grid tbody tr:last-child,
-.vditor-reset .vessel-markdown-table-wrapper table.vessel-table-grid tr:last-child > th,
-.vditor-reset .vessel-markdown-table-wrapper table.vessel-table-grid tr:last-child > td,
-.vditor-reset .vessel-markdown-table-wrapper table.vessel-table-grid tbody tr:last-child > th,
-.vditor-reset .vessel-markdown-table-wrapper table.vessel-table-grid tbody tr:last-child > td,
 .vditor-reset .vessel-markdown-table-wrapper table.vessel-table-grid .vessel-cell-edge-bottom {
   border-bottom: none !important;
 }

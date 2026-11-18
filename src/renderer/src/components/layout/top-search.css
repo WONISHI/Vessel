@@ -48,3 +48,6 @@ html.dark .quick-picker-row:hover { background: #ffffff08; }
 html.dark .quick-picker-row[aria-selected="true"] { background: #34465e; color: #d7e8ff; }
 html.dark .quick-picker-footer { border-color: #ffffff0d; }
 html.dark .vessel-quick-picker kbd, html.dark .quick-picker-current { border-color: #475364; }
+
+.vessel-titlebar-identity { transition: transform 260ms cubic-bezier(.22, 1, .36, 1); }
+@media (prefers-reduced-motion: reduce) { .vessel-titlebar-identity { transition: none; } }

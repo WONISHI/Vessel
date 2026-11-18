@@ -98,3 +98,10 @@ if (/^https?:$/.test(location.protocol) || location.protocol === "file:") {
   })
   contextBridge.executeInMainWorld({ func: installBrowserContextMenu })
 }
+
+// A narrow bridge for the injected picker; it may only reveal a node on this guest page.
+contextBridge.exposeInMainWorld("vesselInspectStyle", (request: { property?: unknown; targetKey?: unknown }) => {
+  if (typeof request?.property !== "string" || !/^[-a-zA-Z0-9_]{1,160}$/.test(request.property)) return
+  if (typeof request.targetKey !== "string" || !/^__vesselStyleTarget_[a-z0-9]{1,30}$/.test(request.targetKey)) return
+  ipcRenderer.sendToHost("vessel-inspect-style", { property: request.property, targetKey: request.targetKey })
+})

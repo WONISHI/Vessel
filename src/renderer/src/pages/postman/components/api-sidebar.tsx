@@ -6,7 +6,7 @@ import { NameDialog } from "@/pages/postman/components/api-dialog"
 import { ApiRadio } from "@/pages/postman/components/api-controls"
 import { METHOD_COLOR } from "@/pages/postman/lib/model"
 import type { ApiCollectionRecord, ApiEnvironmentRecord, ApiHistoryRecord, ApiRequestRecord } from "@vessel/type"
-import { ChevronRight, Copy, Download, Folder, FolderOpen, FolderPlus, Pencil, Play, Plus, Search, Trash2, Upload, X } from "lucide-react"
+import { ChevronRight, Copy, Download, Folder, FolderOpen, FolderPlus, Pencil, Play, Plus, Search, Trash2, Import, X } from "lucide-react"
 import { useState, type DragEvent, type ReactNode } from "react"
 
 type SidebarTab = "collections" | "history" | "environments"
@@ -298,7 +298,7 @@ export function ApiSidebar(props: ApiSidebarProps) {
           </div>
           {tab === "collections" && <>
             <button type="button" aria-label="新建集合" data-title="新建集合" className={smallButton} onClick={() => newFolder(null)}><FolderPlus className="size-3.5" /></button>
-            <button type="button" aria-label="导入" data-title="导入 cURL / Postman" className={smallButton} onClick={props.onImport}><Upload className="size-3.5" /></button>
+            <button type="button" aria-label="导入" data-title="导入 cURL / Postman" className={smallButton} onClick={props.onImport}><Import className="size-3.5" /></button>
           </>}
           {tab === "history" && history.length > 0 && <button type="button" aria-label="清空历史" data-title="清空历史" className={smallButton} onClick={() => setDeleteRequest({ title: "清空历史", description: "确定清空全部请求历史吗？", run: async () => { await api.clearHistory(); props.onHistoryChange([]) } })}><Trash2 className="size-3.5" /></button>}
         </div>

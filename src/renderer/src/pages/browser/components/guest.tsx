@@ -107,6 +107,12 @@ export const Guest = memo(function Guest({ tab, visible, register, update }: { t
           window.dispatchEvent(new CustomEvent("vessel-browser-context-menu", { detail: { tabId: tab.id, guestId: view.getWebContentsId(), x: point.x, y: point.y, left: rect.left + point.x * view.getZoomFactor() * scale, top: rect.top + point.y * view.getZoomFactor() * scale } }))
         }
       }
+      if (event.channel === "vessel-inspect-style") {
+        const request = event.args[0]
+        if (typeof request?.property === "string" && /^[-a-zA-Z0-9_]{1,160}$/.test(request.property) && typeof request.targetKey === "string" && /^__vesselStyleTarget_[a-z0-9]{1,30}$/.test(request.targetKey)) {
+          window.dispatchEvent(new CustomEvent("vessel-browser-inspect-style", { detail: { id: view.getWebContentsId(), ...request } }))
+        }
+      }
       if (event.channel === "vessel-navigation") sync()
       if (event.channel === "vessel-focus-address") window.dispatchEvent(new CustomEvent("vessel-browser-focus-address", { detail: view.getWebContentsId() }))
       if (event.channel === "vessel-find") window.dispatchEvent(new CustomEvent("vessel-browser-find", { detail: view.getWebContentsId() }))

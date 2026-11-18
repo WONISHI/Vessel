@@ -140,3 +140,18 @@ export function adjustMergesOnDeleteCol(merges: MarkdownTableMerge[], colIndex: 
   }
   return next
 }
+
+/** Include the complete footprint of every merge touched by a rectangular selection. */
+export function expandRangeToMerges(range: TableRange, merges: MarkdownTableMerge[]): TableRange {
+  let result = { ...range }
+  let changed = true
+  while (changed) {
+    changed = false
+    for (const merge of merges) {
+      if (!rangesOverlap(result, merge)) continue
+      const next = { startRow: Math.min(result.startRow, merge.startRow), startCol: Math.min(result.startCol, merge.startCol), endRow: Math.max(result.endRow, merge.endRow), endCol: Math.max(result.endCol, merge.endCol) }
+      if (Object.keys(next).some(key => next[key as keyof TableRange] !== result[key as keyof TableRange])) { result = next; changed = true }
+    }
+  }
+  return result
+}

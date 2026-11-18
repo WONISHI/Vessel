@@ -223,7 +223,7 @@ const vesselAPI = {
   },
 
   /** Sets browser devtools. */
-  setBrowserDevtools: (id: number | null, bounds?: Electron.Rectangle, appearance?: { font: string; size: number; detached?: boolean; hidden?: boolean; inspect?: { x: number; y: number }; control?: { x: number; y: number; width: number; height: number; icon: string; color: string; background: string; border: string; shadow: string } }): Promise<void> => ipcRenderer.invoke("browser:devtools", id, bounds, appearance),
+  setBrowserDevtools: (id: number | null, bounds?: Electron.Rectangle, appearance?: { font: string; size: number; detached?: boolean; hidden?: boolean; pageTitle?: string; pageURL?: string; inspect?: { x: number; y: number; property?: string; targetKey?: string }; control?: { x: number; y: number; width: number; height: number; icon: string; color: string; background: string; border: string; shadow: string } }): Promise<void> => ipcRenderer.invoke("browser:devtools", id, bounds, appearance),
 
   /** Handles browser new tab events. */
   onNavigationRequest: (callback: (request: { id: number; url: string; defaultCurrent: boolean; delayMs: number }) => void) => {

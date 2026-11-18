@@ -184,7 +184,7 @@ export default function LayoutWorkspaceSidebar({ activity }: LayoutWorkspaceSide
               {activity === "files" ? workspaceName : "开发工具"}
             </span>
           </TooltipTrigger>
-          <TooltipContent>{countFileNodes(workspace.files) + addedFiles} 个文件</TooltipContent>
+          <TooltipContent side="bottom">{countFileNodes(workspace.files) + addedFiles} 个文件</TooltipContent>
         </Tooltip>
         {activity === "files" && (
           <div className="flex shrink-0 items-center">

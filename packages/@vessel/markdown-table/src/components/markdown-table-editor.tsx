@@ -8,6 +8,7 @@ import {
   adjustMergesOnInsertCol,
   adjustMergesOnInsertRow,
   getCellMergeInfo,
+  expandRangeToMerges,
   mergeSelection,
   normalizeRange,
   splitMergeAt
@@ -166,13 +167,13 @@ export const MarkdownTableEditor: React.FC<MarkdownTableEditorProps> = ({
   // Selection range normalized
   const activeRange = useMemo(() => {
     if (selection) {
-      return normalizeRange(selection.startRow, selection.startCol, selection.endRow, selection.endCol)
+      return expandRangeToMerges(normalizeRange(selection.startRow, selection.startCol, selection.endRow, selection.endCol), tableData.merges)
     }
     if (activeEdit) {
-      return { startRow: activeEdit.row, startCol: activeEdit.col, endRow: activeEdit.row, endCol: activeEdit.col }
+      return expandRangeToMerges({ startRow: activeEdit.row, startCol: activeEdit.col, endRow: activeEdit.row, endCol: activeEdit.col }, tableData.merges)
     }
     return null
-  }, [selection, activeEdit])
+  }, [selection, activeEdit, tableData.merges])
 
   const isCellSelected = useCallback(
     (row: number, col: number) => {
