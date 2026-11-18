@@ -72,7 +72,7 @@ export function registerBrowserDevtools(host: WebContents) {
       if (!["Plus Jakarta Sans", "Menlo", "Consolas", "Courier New", "monospace", "system-ui"].includes(options.font) || ![11, 12, 13, 14, 16, 18, 20].includes(options.size)) throw new Error("控制台字体设置无效")
       appearance = { font: options.font, size: options.size }
     }
-    if (inspected !== guest || !panel || Boolean(detachedWindow) !== Boolean(options?.detached)) {
+    if (inspected !== guest || !panel) {
       close()
       inspected = guest
       panel = new WebContentsView({ webPreferences: { session: guest.session, preload: join(__dirname, "../preload/browser-devtools.js"), sandbox: true, contextIsolation: true, nodeIntegration: false, backgroundThrottling: false } })
@@ -93,7 +93,16 @@ export function registerBrowserDevtools(host: WebContents) {
         event.preventDefault()
         if (!input.isAutoRepeat && !host.isDestroyed()) host.send("browser:toggle-devtools", inspectedId)
       })
+      window.contentView.addChildView(panel)
+      guest.setDevToolsWebContents(panel.webContents)
+      guest.openDevTools({ mode: "detach", activate: false })
+      guest.once("destroyed", close)
+    }
+    // Move the existing DevTools view between windows without restarting its session.
+    if (Boolean(detachedWindow) !== Boolean(options?.detached)) {
+      appliedBounds = ""
       if (options?.detached) {
+        window.contentView.removeChildView(panel)
         originalThrottling = guest.getBackgroundThrottling()
         guest.setBackgroundThrottling(false)
         detachedWindow = new BrowserWindow({ width: 1000, height: 600, ...detachedBounds, title: "网页控制台", fullscreen: false, fullscreenable: false, skipTaskbar: true, autoHideMenuBar: true, webPreferences: { sandbox: true, nodeIntegration: false, backgroundThrottling: false } })
@@ -113,10 +122,16 @@ export function registerBrowserDevtools(host: WebContents) {
           if (!host.isDestroyed()) host.send("browser:devtools-closed")
         })
         resize()
-      } else window.contentView.addChildView(panel)
-      guest.setDevToolsWebContents(panel.webContents)
-      guest.openDevTools({ mode: "detach", activate: false })
-      guest.once("destroyed", close)
+      } else {
+        const detached = detachedWindow!
+        detachedBounds = detached.getNormalBounds()
+        detached.contentView.removeChildView(panel)
+        detachedWindow = undefined
+        window.contentView.addChildView(panel)
+        detached.destroy()
+        if (originalThrottling !== undefined) guest.setBackgroundThrottling(originalThrottling)
+        originalThrottling = undefined
+      }
     }
     if (appearanceChanged) void applyAppearance().catch(console.error)
     // Keep DevTools alive (preserving its network log) while the browser page is hidden.
@@ -130,6 +145,10 @@ export function registerBrowserDevtools(host: WebContents) {
       void revealBrowserStyle(panel.webContents, inspect.targetKey, inspect.property).catch(console.error)
     }
     if (detachedWindow) {
+      if (controlState) {
+        controlState = ""
+        panel.webContents.send("browser:control-overlay", undefined)
+      }
       detachedWindow.setTitle(`${options?.pageTitle || guest.getTitle() || "网页"} · ${options?.pageURL ?? guest.getURL()}`)
       if (hidden) detachedWindow.hide()
       else if (!detachedWindow.isVisible()) detachedWindow.showInactive()

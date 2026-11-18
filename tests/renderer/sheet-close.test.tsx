@@ -8,7 +8,7 @@ it.each(["right", "left", "top", "bottom"] as const)("keeps the %s Sheet close b
   render(<Sheet open onOpenChange={changed}><SheetContent side={side}><SheetTitle>面板</SheetTitle><SheetDescription>设置</SheetDescription></SheetContent></Sheet>)
   const button = screen.getByRole("button", { name: "关闭面板" })
   expect(button.style.getPropertyValue("-webkit-app-region") || (button.style as any).WebkitAppRegion).toBe("no-drag")
-  expect(screen.getByRole("dialog").className).toContain("z-[200]")
+  expect(screen.getByRole("dialog").className).toContain("z-50")
   fireEvent.click(button)
   expect(changed).toHaveBeenCalledWith(false)
 })

@@ -18,7 +18,7 @@ import { Suspense, useContext, useDeferredValue, useEffect, useMemo, useRef, use
 const ExcalidrawCanvas = lazyWithRetry(() => import("@/components/core/canvas/variants/excalidraw/index"))
 
 /** 即时编辑文档；基于实际渲染标题同步大纲和滚动位置。 */
-export default function MarkdownCanvas({ activeFilePath, workspacePath: customWorkspacePath, highlightKeyword, revealLine }: { activeFilePath: string; workspacePath?: string; highlightKeyword?: string; revealLine?: number }) {
+export default function MarkdownCanvas({ activeFilePath, workspacePath: customWorkspacePath, highlightKeyword, revealLine, showOutline = true, showBreadcrumb = true, showStats = true }: { activeFilePath: string; workspacePath?: string; highlightKeyword?: string; revealLine?: number; showOutline?: boolean; showBreadcrumb?: boolean; showStats?: boolean }) {
   const context = useContext(WorkspaceContext)
   const workspacePath = customWorkspacePath || context?.workspace.path || ""
   const [loaded, setLoaded] = useState<{ path: string; content: string; error?: string } | null>(null)
@@ -56,6 +56,7 @@ export default function MarkdownCanvas({ activeFilePath, workspacePath: customWo
   const [headings, setHeadings] = useState<{ text: string; level: number; color?: string; sourceIndex: number }[]>([])
   const [activeHeading, setActiveHeading] = useState(-1)
   useEffect(() => {
+    if (!showOutline) return
     const host = contentHost.current
     if (!host) return
     let frame = 0
@@ -109,7 +110,7 @@ export default function MarkdownCanvas({ activeFilePath, workspacePath: customWo
       host.removeEventListener("scroll", update, true)
       cancelAnimationFrame(frame)
     }
-  }, [activeFilePath])
+  }, [activeFilePath, showOutline])
 
   useEffect(() => {
     if (!highlightKeyword || !highlightKeyword.trim()) return
@@ -189,6 +190,7 @@ export default function MarkdownCanvas({ activeFilePath, workspacePath: customWo
               key={`${activeFilePath}:${externalRevision}`}
               workspacePath={workspacePath}
               documentPath={activeFilePath}
+              showBreadcrumb={showBreadcrumb}
               value={current.content}
               onChange={(content) => {
                 setLoaded({ path: activeFilePath, content })
@@ -205,7 +207,7 @@ export default function MarkdownCanvas({ activeFilePath, workspacePath: customWo
             />
           )}
         </div>
-        <DocumentOutline
+        {showOutline && <DocumentOutline
           preview={SectionPreview}
           source={outlineSource}
           onSelectFootnote={(id) => {
@@ -222,17 +224,17 @@ export default function MarkdownCanvas({ activeFilePath, workspacePath: customWo
             const target = outlineNodes.current[index]
             if (target instanceof HTMLElement) revealMarkdownElement(target)
           }}
-        />
+        />}
       </div>
       <WikiLinkPreview
         key={`${activeFilePath}:${externalRevision}`}
         host={contentHost}
         workspacePath={workspacePath}
       />
-      <DocumentStats
+      {showStats && <DocumentStats
         source={outlineSource}
         saveStatus={saveState?.path === activeFilePath ? saveState : undefined}
-      />
+      />}
     </div>
   )
 }

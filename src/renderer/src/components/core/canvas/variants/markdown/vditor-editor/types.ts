@@ -1,5 +1,5 @@
 /** VditorEditor 组件属性 */
-export type VditorEditorProps = { onReady?: () => void; readOnly?: boolean; workspacePath: string; documentPath: string; value: string; onChange: (value: string) => void }
+export type VditorEditorProps = { onReady?: () => void; readOnly?: boolean; showBreadcrumb?: boolean; workspacePath: string; documentPath: string; value: string; onChange: (value: string) => void }
 
 import type { VditorEditorState } from "@/components/core/canvas/variants/markdown/vditor-editor/hooks/use-vditor-editor-state"
 import type { LinkTooltipState } from "@/components/core/canvas/variants/markdown/vditor-editor/hooks/use-link-tooltip"

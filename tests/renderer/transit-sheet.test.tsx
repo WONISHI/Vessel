@@ -87,14 +87,14 @@ it("shows decoded image dimensions and byte size with an edit action", async () 
   expect(state.select).toHaveBeenCalledWith(null)
 })
 
-it('keeps the preview below native titlebar controls and supports its toolbar actions', async () => {
+it('aligns the preview with the window top and supports its toolbar actions', async () => {
   vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} })
   const openTransitWindow = vi.fn(async () => {})
   vi.stubGlobal('electronAPI', { openTransitWindow })
   render(<TransitPanel />)
   const sheet = screen.getByRole('dialog')
-  expect(sheet.style.top).toBe('var(--app-titlebar-height, 0px)')
-  expect(sheet.style.height).toBe('calc(100dvh - var(--app-titlebar-height, 0px))')
+  expect(sheet.style.top).toBe('0px')
+  expect(sheet.style.height).toBe('100dvh')
   fireEvent.click(screen.getByRole('button', { name: '展开' }))
   expect(screen.getByRole('button', { name: '还原' })).toBeTruthy()
   fireEvent.click(screen.getByRole('button', { name: '还原' }))

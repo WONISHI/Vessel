@@ -20,7 +20,7 @@ import { EditorCodeMenus } from "@/components/core/canvas/variants/markdown/vdit
 import { EditorBreadcrumb } from "@/components/core/canvas/variants/markdown/vditor-editor/components/editor-breadcrumb"
 
 /** 保留 Vditor 编辑能力，文档显示和大纲由外层 React 组件负责。 */
-export function VditorEditor({ value, onChange, workspacePath, documentPath, readOnly = false, onReady }: VditorEditorProps) {
+export function VditorEditor({ value, onChange, workspacePath, documentPath, readOnly = false, onReady, showBreadcrumb = true }: VditorEditorProps) {
   const state = useVditorEditorState({ value, onChange, workspacePath, documentPath, readOnly, onReady })
   const link = useLinkTooltip(state)
   useVditorSetup(state, link)
@@ -59,7 +59,7 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
           onOpenUrl={(url) => window.open(url, "_blank")}
         />
       )}
-      <EditorBreadcrumb m={m} />
+      {showBreadcrumb && <EditorBreadcrumb m={m} />}
       <div
         ref={toolbarHost}
         className={readOnly ? "hidden" : "vessel-vditor shrink-0 min-w-0 w-full"}

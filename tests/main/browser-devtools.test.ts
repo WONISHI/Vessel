@@ -92,3 +92,40 @@ it("keeps detached geometry on tab switches, updates page titles and disables th
   expect(mock.guest.setBackgroundThrottling).toHaveBeenLastCalledWith(true)
   expect(mock.detached.destroyed).toBe(true)
 })
+
+it("moves the live console between docked and detached windows without reopening DevTools", () => {
+  const host = Object.assign(new EventEmitter(), { ipc: { handle: (name: string, handler: (...args: any[]) => any) => mock.handlers.set(name, handler) }, isDestroyed: () => false, send: vi.fn() })
+  mock.guest = Object.assign(new EventEmitter(), {
+    id: 7, hostWebContents: host, session: {}, isDestroyed: () => false,
+    closeDevTools: vi.fn(), setDevToolsWebContents: vi.fn(), openDevTools: vi.fn(),
+    getTitle: () => "Page", getURL: () => "https://example.com",
+    getBackgroundThrottling: () => true, setBackgroundThrottling: vi.fn()
+  })
+  mock.window = { contentView: { addChildView: vi.fn(), removeChildView: vi.fn() }, getContentBounds: () => ({ width: 1000, height: 800 }) }
+  registerBrowserDevtools(host as any)
+  const sync = mock.handlers.get("browser:devtools")!
+  const bounds = { x: 0, y: 400, width: 1000, height: 300 }
+  const options = { font: "Menlo", size: 13 }
+  const control = { x: 900, y: 250, width: 48, height: 48, icon: "<svg/>", color: "gray", background: "white", border: "gray", shadow: "none" }
+  sync({}, 7, bounds, { ...options, control })
+  const panel = mock.panel
+  sync({}, 7, bounds, { ...options, detached: true })
+  const detached = mock.detached
+  expect(mock.panel).toBe(panel)
+  expect(mock.window.contentView.removeChildView).toHaveBeenCalledWith(panel)
+  expect(detached.contentView.addChildView).toHaveBeenCalledWith(panel)
+  expect(panel.webContents.send).toHaveBeenLastCalledWith("browser:control-overlay", undefined)
+  expect(mock.guest.setBackgroundThrottling).toHaveBeenLastCalledWith(false)
+  sync({}, 7, bounds, options)
+  expect(detached.contentView.removeChildView).toHaveBeenCalledWith(panel)
+  expect(detached.destroyed).toBe(true)
+  expect(mock.window.contentView.addChildView).toHaveBeenLastCalledWith(panel)
+  expect(panel.setBounds).toHaveBeenLastCalledWith(bounds)
+  expect(mock.guest.setBackgroundThrottling).toHaveBeenLastCalledWith(true)
+  expect(mock.guest.setDevToolsWebContents).toHaveBeenCalledOnce()
+  expect(mock.guest.openDevTools).toHaveBeenCalledOnce()
+  expect(mock.guest.closeDevTools).not.toHaveBeenCalled()
+  expect(panel.webContents.close).not.toHaveBeenCalled()
+  sync({}, null)
+  expect(mock.guest.closeDevTools).toHaveBeenCalledOnce()
+})

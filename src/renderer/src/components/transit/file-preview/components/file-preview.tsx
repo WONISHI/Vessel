@@ -102,8 +102,8 @@ export function FilePreview({ item, onLoaded }: { item: TransitItem; onLoaded?: 
     )
   if (file.kind === "markdown")
     return (
-      <div className="min-h-0 flex-1 overflow-hidden [&_.vditor-reset]:!opacity-100 [&_.vditor-reset]:!cursor-text">
-        <MarkdownCanvas activeFilePath={item.content} workspacePath={item.root!} />
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden [&_.vditor-reset]:!opacity-100 [&_.vditor-reset]:!cursor-text">
+        <MarkdownCanvas activeFilePath={item.content} workspacePath={item.root!} showOutline={false} showBreadcrumb={false} showStats={false} />
       </div>
     )
   if (file.kind === "image") return <TransitImageViewer src={file.content} name={item.title} />
