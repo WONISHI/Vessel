@@ -121,3 +121,30 @@ it("opens DevTools at the exact retained node when clicking a style value", asyn
   Reflect.deleteProperty(window, key)
   Reflect.deleteProperty(window, "vesselInspectStyle")
 })
+
+it("shows complete, safe JSON for the selected element and refreshes it when reopening the view", async () => {
+  const { element, root } = openActions()
+  element.setAttribute("data-example", '<img src=x onerror="alert(1)">')
+  const toggle = root.querySelector<HTMLButtonElement>('[aria-label="JSON 视图"]')!
+  toggle.click()
+  await waitFor(() => expect(root.querySelector(".element-json")).toBeTruthy())
+  const json = root.querySelector(".element-json")!
+  const data = JSON.parse(json.textContent!)
+  expect(data.element.tagName).toBe("button")
+  expect(data.element.attributes.id).toBe("target")
+  expect(data.element.attributes["data-example"]).toBe('<img src=x onerror="alert(1)">')
+  expect(data.element.text).toBe("Example")
+  expect(data.element.outerHTML).toBe(element.outerHTML)
+  expect(data.element.bounds).toEqual({ x: 0, y: 0, width: 0, height: 0 })
+  expect(data.userStyles.color).toBe("rgb(12, 34, 56)")
+  expect(Object.keys(data.systemStyles).length).toBeGreaterThan(0)
+  expect(json.querySelector("img")).toBeNull()
+  expect(json.querySelector(".json-token-property")).toBeTruthy()
+  expect(json.querySelector(".json-token-string")).toBeTruthy()
+  expect(json.querySelector(".system-json .json-token-string")).toBeNull()
+  toggle.click()
+  await waitFor(() => expect(root.querySelector(".element-json")).toBeNull())
+  element.style.color = "rgb(99, 88, 77)"
+  toggle.click()
+  await waitFor(() => expect(JSON.parse(root.querySelector(".element-json")!.textContent!).userStyles.color).toBe("rgb(99, 88, 77)"))
+})

@@ -1,6 +1,7 @@
 import { Project, projectCache } from "@/components/workspace/components/layout-aside/project-library/components/project-library-shared"
 import { ProjectPreview } from "@/components/workspace/components/layout-aside/project-library/components/project-preview"
 import { Button } from "@/components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
 import { updateLibraryMeta } from "@/pages/resources/library-state"
 import { FolderPlus } from "lucide-react"
 import { useEffect, useState } from "react"
@@ -45,7 +46,15 @@ export function ProjectLibrary({ pinned, onPin }: { pinned: boolean; onPin: () =
     finally { setBusy(false) }
   }
   if (selected) return <ProjectPreview key={selected.path} project={selected} onSelect={setSelected} pinned={pinned} onPin={onPin} />
-  if (!ready && !error) return <section aria-label="项目资源库" aria-busy="true" className="flex h-full min-h-0 flex-col bg-white dark:bg-[#22272e]"><header className="border-b p-3 text-sm font-semibold">项目资源库</header></section>
+  if (!ready && !error) return (
+    <section aria-label="项目资源库" aria-busy="true" className="flex h-full min-h-0 flex-col bg-white dark:bg-[#22272e]">
+      <header className="border-b p-3 text-sm font-semibold">项目资源库</header>
+      <div role="status" aria-label="正在读取项目目录" className="space-y-3 p-3">
+        <span className="sr-only">正在读取项目目录</span>
+        {Array.from({ length: 8 }, (_, index) => <div key={index} aria-hidden="true" className="flex items-center gap-2"><Skeleton className="size-4 shrink-0" /><Skeleton className={index % 2 ? "h-4 w-3/5" : "h-4 w-4/5"} /></div>)}
+      </div>
+    </section>
+  )
   return (
     <section aria-label="项目资源库" className="flex h-full min-h-0 flex-col bg-white dark:bg-[#22272e]">
       <header className="border-b p-3 text-sm font-semibold">项目资源库</header>

@@ -1,5 +1,5 @@
 import type { AsideActivity } from "@/components/layout/activity-bar/activity"
-import { CalendarDays, FileSpreadsheet, FolderOpen, Globe, Home, ImageIcon, Paperclip, Search, type LucideIcon } from "lucide-react"
+import { FileSpreadsheet, FolderOpen, GitBranch, Globe, Home, ImageIcon, Paperclip, Search, Send, type LucideIcon } from "lucide-react"
 
 /** 活动入口配置，id 与侧边栏视图一一对应。 */
 export const ACTIVITY_ITEMS = [
@@ -8,7 +8,8 @@ export const ACTIVITY_ITEMS = [
   { id: "browser", label: "浏览器", icon: Globe },
   { id: "resources", label: "项目资源库", icon: FolderOpen },
   { id: "office", label: "ONLYOFFICE", icon: FileSpreadsheet },
-  { id: "todos", label: "待办", icon: CalendarDays },
   { id: "image", label: "图片", icon: ImageIcon },
-  { id: "attachments", label: "附件库", icon: Paperclip }
+  { id: "attachments", label: "附件库", icon: Paperclip },
+  { id: "git", label: "Git", icon: GitBranch },
+  { id: "postman", label: "API", icon: Send }
 ] as const satisfies readonly { id: AsideActivity; label: string; icon: LucideIcon }[]

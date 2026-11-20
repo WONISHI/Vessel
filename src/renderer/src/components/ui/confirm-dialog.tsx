@@ -63,7 +63,7 @@ export function ConfirmDialog({
           </span>
           <AlertDialogHeader className="todo-confirm-text">
             <AlertDialogTitle className="todo-confirm-title">{title}</AlertDialogTitle>
-            <AlertDialogDescription className="todo-confirm-description break-all">{description}</AlertDialogDescription>
+            <AlertDialogDescription asChild><div className="todo-confirm-description break-all">{description}</div></AlertDialogDescription>
             {error && (
               <p
                 role="alert"

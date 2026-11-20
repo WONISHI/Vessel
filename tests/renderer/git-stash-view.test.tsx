@@ -10,7 +10,7 @@ import type { GitStashDetail } from "@vessel/type"
 vi.mock("@/pages/git/components/git-branch-tree", () => ({ GitBranchTree: () => null }))
 afterEach(() => { cleanup(); vi.unstubAllGlobals() })
 const hash = "a".repeat(40), otherHash = "b".repeat(40)
-const record = { index: 2, name: "预览测试", date: "main", hash }
+const record = { index: 2, name: "预览测试", date: "2026-11-18T11:47:30+08:00", hash }
 const detail: GitStashDetail = { hash, files: [{ path: "文件.md", status: "M", source: "worktree" }, { path: "new.txt", status: "?", source: "untracked" }] }
 const repo = { repoPath: "/repo", setActiveTab: vi.fn() } as unknown as GitRepositoryState
 
@@ -69,6 +69,7 @@ it("shows saved files and uses the latest record ordinal for apply-with-retentio
   const selectStashFile = vi.fn(), handleStashApply = vi.fn()
   const g = { selectedStash: record, stashes: [{ ...record, index: 0 }], stashDetail: detail, selectedStashFile: detail.files[0], stashDiffText: "", selectStashFile, handleStashApply } as unknown as GitPageModel
   render(<GitStashDetails g={g} />)
+  expect(document.querySelector("time")?.getAttribute("datetime")).toBe(record.date)
   expect(screen.getByText("new.txt")).toBeTruthy()
   fireEvent.click(screen.getByText("new.txt"))
   expect(selectStashFile).toHaveBeenCalledWith(detail.files[1])

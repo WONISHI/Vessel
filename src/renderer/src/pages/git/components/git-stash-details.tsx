@@ -12,9 +12,12 @@ export function GitStashDetails({ g }: { g: GitPageModel }) {
   if (!selected) return <div className="flex flex-1 items-center justify-center text-xs text-stone-400">点击左侧贮藏记录查看文件</div>
   const record = g.stashes.find((entry) => selected.hash && entry.hash ? entry.hash === selected.hash : entry.index === selected.index)
   const disabled = !record || g.restoringStash
+  const createdAt = record?.date || selected.date
+  const created = createdAt ? new Date(createdAt) : null
+  const createdTime = created && Number.isFinite(created.getTime()) ? created : null
   return <div className="flex min-h-0 min-w-0 flex-1 flex-col">
     <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-stone-200 bg-stone-50 px-3 py-2">
-      <div className="min-w-0 flex-1"><div className="truncate text-xs font-semibold" data-title={selected.name}>贮藏 #{record?.index ?? selected.index} · {selected.name}</div><p className="mt-1 text-[10px] text-stone-500">保存的文件：{g.stashDetail?.files.length ?? 0}{!record && " · 此记录已删除"}</p></div>
+      <div className="min-w-0 flex-1"><div className="truncate text-xs font-semibold" data-title={selected.name}>贮藏 #{record?.index ?? selected.index} · {selected.name}</div><p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-stone-500"><span>保存的文件：{g.stashDetail?.files.length ?? 0}</span><span>贮藏时间：{createdTime ? <time dateTime={createdAt}>{createdTime.toLocaleString("zh-CN", { hour12: false })}</time> : "未知"}</span>{!record && <span>此记录已删除</span>}</p></div>
       <div className="flex shrink-0 items-center gap-2">
         <Button size="sm" variant="outline" disabled={disabled} onClick={() => record && void g.handleStashApply(record.index)} className="h-7 text-[11px]"><Copy className="size-3" />应用并保留</Button>
         <Button size="sm" variant="outline" disabled={disabled} data-title="合并恢复；成功后删除记录，冲突时保留；本地修改重叠时停止" onClick={() => record && void g.handleStashPop(record.index)} className="h-7 text-[11px]"><ArchiveRestore className="size-3" />弹出贮藏</Button>

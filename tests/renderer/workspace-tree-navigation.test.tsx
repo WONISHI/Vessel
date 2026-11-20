@@ -85,3 +85,32 @@ it("reuses cached directories without reloading when the sidebar is collapsed an
   expect(read).toHaveBeenCalledTimes(1)
 })
 
+it("refreshes in place without removing rows or the scroll viewport", async () => {
+  const node = { name: "before.md", path: "/vault/before.md", type: "file" }
+  let release!: (nodes: any[]) => void
+  const read = vi.fn().mockResolvedValueOnce([node]).mockImplementationOnce(() => new Promise((resolve) => { release = resolve }))
+  window.electronAPI = { ...window.electronAPI, readWorkspaceDirectory: read } as any
+  const context = { workspace: { name: "vault", path: "/vault" }, openFiles: [], activeFilePath: "", openWorkspaceFile: vi.fn(), expandedFolders: [], setDirectoryExpanded: vi.fn() }
+  const view = render(<WorkspaceContext.Provider value={context as any}><WorkspaceTree viewport={null} /></WorkspaceContext.Provider>)
+  const row = await screen.findByRole("button", { name: "before.md" })
+  view.rerender(<WorkspaceContext.Provider value={context as any}><WorkspaceTree viewport={null} refreshVersion={1} /></WorkspaceContext.Provider>)
+  await waitFor(() => expect(read).toHaveBeenCalledTimes(2))
+  expect(screen.getByRole("button", { name: "before.md" })).toBe(row)
+  await act(async () => release([{ ...node, name: "after.md" }]))
+  await screen.findByRole("button", { name: "after.md" })
+})
+
+it("keeps cached rows when switching among six resource projects", async () => {
+  const read = vi.fn(async (root: string) => [{ name: `${root.slice(1)}.md`, path: `${root}/note.md`, type: "file" }])
+  window.electronAPI = { ...window.electronAPI, readWorkspaceDirectory: read } as any
+  const tree = (path: string) => <WorkspaceContext.Provider value={{ workspace: { name: path, path }, openFiles: [], activeFilePath: "", openWorkspaceFile: vi.fn(), expandedFolders: [], setDirectoryExpanded: vi.fn() } as any}><WorkspaceTree viewport={null} /></WorkspaceContext.Provider>
+  for (let index = 0; index < 6; index++) {
+    const view = render(tree(`/project-${index}`))
+    await screen.findByRole("button", { name: `project-${index}.md` })
+    view.unmount()
+  }
+  render(tree("/project-0"))
+  expect(screen.getByRole("button", { name: "project-0.md" })).toBeTruthy()
+  expect(read).toHaveBeenCalledTimes(6)
+})
+

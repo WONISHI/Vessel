@@ -110,45 +110,50 @@ export default function SourceTreePage() {
                   maxSize="85%"
                   className="git-file-panel flex flex-col min-h-0 min-w-0 bg-stone-50/30"
                 >
-                  {/* 2号: 垂直可调整面板组 (已暂存 / 未暂存，支持 Resizable 拖拽) */}
-                  <ResizablePanelGroup
-                    orientation="vertical"
-                    className="flex-1 min-h-0 h-full w-full"
-                  >
-                    {!!status?.conflicts.length && <>
-                      <ResizablePanel id="git-conflicts-panel" defaultSize="25%" minSize="15%" maxSize="65%" className="flex min-h-0 min-w-0 flex-col">
-                        <GitConflictFiles g={g} />
-                      </ResizablePanel>
-                      <ResizableHandle aria-label="调整冲突与暂存区域高度" />
-                    </>}
-                    {/* 已暂存区 */}
-                    <ResizablePanel
-                      id="git-staged-panel"
-                      defaultSize={status?.conflicts.length ? "37.5%" : "50%"}
-                      minSize="15%"
-                      maxSize="85%"
-                      className="flex flex-col min-h-0 min-w-0"
-                    >
-                      <GitStagedFiles g={g} />
+                  <ResizablePanelGroup orientation="vertical" className="min-h-0 flex-1">
+                    <ResizablePanel id="git-change-lists" minSize="120px" className="flex min-h-0 min-w-0 flex-col">
+                      {/* 2号: 垂直可调整面板组 (已暂存 / 未暂存，支持 Resizable 拖拽) */}
+                      <ResizablePanelGroup
+                        orientation="vertical"
+                        className="flex-1 min-h-0 h-full w-full"
+                      >
+                        {!!status?.conflicts.length && <>
+                          <ResizablePanel id="git-conflicts-panel" defaultSize="25%" minSize="15%" maxSize="65%" className="flex min-h-0 min-w-0 flex-col">
+                            <GitConflictFiles g={g} />
+                          </ResizablePanel>
+                          <ResizableHandle aria-label="调整冲突与暂存区域高度" />
+                        </>}
+                        {/* 已暂存区 */}
+                        <ResizablePanel
+                          id="git-staged-panel"
+                          defaultSize={status?.conflicts.length ? "37.5%" : "50%"}
+                          minSize="15%"
+                          maxSize="85%"
+                          className="flex flex-col min-h-0 min-w-0"
+                        >
+                          <GitStagedFiles g={g} />
+                        </ResizablePanel>
+
+                        {/* 2号: 拖拽调整已暂存与未暂存区域高度的分割线 */}
+                        <ResizableHandle aria-label="调整暂存与未暂存区域高度" />
+
+                        {/* 2号: 未暂存区 */}
+                        <ResizablePanel
+                          id="git-unstaged-panel"
+                          defaultSize={status?.conflicts.length ? "37.5%" : "50%"}
+                          minSize="15%"
+                          maxSize="85%"
+                          className="flex flex-col min-h-0 min-w-0"
+                        >
+                          <GitUnstagedFiles g={g} />
+                        </ResizablePanel>
+                      </ResizablePanelGroup>
                     </ResizablePanel>
-
-                    {/* 2号: 拖拽调整已暂存与未暂存区域高度的分割线 */}
-                    <ResizableHandle aria-label="调整暂存与未暂存区域高度" />
-
-                    {/* 2号: 未暂存区 */}
-                    <ResizablePanel
-                      id="git-unstaged-panel"
-                      defaultSize={status?.conflicts.length ? "37.5%" : "50%"}
-                      minSize="15%"
-                      maxSize="85%"
-                      className="flex flex-col min-h-0 min-w-0"
-                    >
-                      <GitUnstagedFiles g={g} />
+                    <ResizableHandle aria-label="调整提交信息区域高度" />
+                    <ResizablePanel id="git-commit-input" defaultSize="124px" minSize="112px" maxSize="65%" className="flex min-h-0 min-w-0 flex-col">
+                      <GitCommitBar g={g} />
                     </ResizablePanel>
                   </ResizablePanelGroup>
-
-                  {/* 底部提交输入栏 */}
-                  <GitCommitBar g={g} />
                 </ResizablePanel>
 
                 {/* 3号: 拖拽调节宽度的分割线 */}
@@ -165,13 +170,13 @@ export default function SourceTreePage() {
                   <DiffViewer
                     diffText={diffText}
                     filePath={selectedFile?.path}
-                    isStaged={status?.staged.some((f) => f.path === selectedFile?.path)}
+                    isStaged={g.activeFileSection === "staged" && status?.staged.some((f) => f.path === selectedFile?.path)}
                     isConflict={status?.conflicts.some((file) => file.path === selectedFile?.path)}
                     stageDisabled={g.resolvingConflicts}
                     onToggleStage={() => {
                       if (!selectedFile) return
                       if (status?.conflicts.some((file) => file.path === selectedFile.path)) { void g.handleResolveConflicts([selectedFile.path]); return }
-                      const isStaged = status?.staged.some((f) => f.path === selectedFile.path)
+                      const isStaged = g.activeFileSection === "staged" && status?.staged.some((f) => f.path === selectedFile.path)
                       if (isStaged) handleUnstageFile(selectedFile.path)
                       else handleStageFile(selectedFile.path)
                     }}

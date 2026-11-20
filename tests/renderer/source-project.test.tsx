@@ -39,3 +39,14 @@ it("picks marked elements, suppresses the page action, and closes on Escape", as
   fireEvent.click(button)
   expect(pageClick).toHaveBeenCalledOnce()
 })
+
+it("defaults to the current workspace when launched outside the browser", async () => {
+  const start = vi.fn().mockResolvedValue({ root: "/workspace/app", url: "http://localhost:9525/", running: true, logs: "" })
+  vi.stubGlobal("electronAPI", { sourceProjectStatus: vi.fn().mockResolvedValue(null), sourceProjectStart: start })
+  const navigate = vi.fn()
+  render(<SourceProjectDialog open initialRoot="/workspace/app" onOpenChange={vi.fn()} onNavigate={navigate} />)
+  expect((screen.getByLabelText("项目目录") as HTMLInputElement).value).toBe("/workspace/app")
+  fireEvent.click(screen.getByRole("button", { name: "启动并打开" }))
+  await waitFor(() => expect(start).toHaveBeenCalledWith({ root: "/workspace/app", config: "", mode: "development", port: undefined }))
+  await waitFor(() => expect(navigate).toHaveBeenCalledWith("http://localhost:9525/"))
+})

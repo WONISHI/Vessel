@@ -1,12 +1,16 @@
 import { ImageEditorSheet } from "@/components/image-preview/editor-sheet"
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuSub, ContextMenuSubContent, ContextMenuSubTrigger, ContextMenuTrigger } from "@/components/ui/context-menu"
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogPortal, DialogTitle } from "@/components/ui/dialog"
+import { addTransitFile } from "@/components/transit/state"
+import { useActivityBarCollapsed } from "@/features/activity-bar/collapse"
 import { artwork, ImageProps, normalizeSvg } from "@/components/ui/image/components/image-shared"
 import { Resizable } from "@/components/ui/resizable"
 import { cn } from "@/lib/utils"
 import { ImageDown, RotateCw, X } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
+import { useCtrlWheelZoom } from "@/hooks/use-ctrl-wheel-zoom"
+import { LightboxImage } from "./lightbox-image"
 
 /** Renders the image content component. */
 /** Turn any displayable image source into a data URL so the main process can put the original bytes on the clipboard. */
@@ -32,6 +36,11 @@ async function imageDataUrl(source: string, image?: HTMLImageElement | null): Pr
 }
 
 export function ImageContent({
+  onZoomIn,
+  onZoomOut,
+  onToggleDetails,
+  detailsHidden,
+  controlledWidth,
   remote = false,
   src,
   sourceAddress,
@@ -49,6 +58,7 @@ export function ImageContent({
   onFocusBelow,
   onViewLink,
   onLocateFile,
+  onAddToTransit,
   onCopyReference,
   onDelete,
   onDeleteFile,
@@ -67,6 +77,12 @@ export function ImageContent({
   const [zoomed, setZoomed] = useState(false)
   const [downloading, setDownloading] = useState(false)
   const [tool, setTool] = useState<string | null>(null)
+  const activityBarCollapsed = useActivityBarCollapsed()
+  const previewInset = zoomed && !activityBarCollapsed && document.querySelector('nav[aria-label="工作台活动栏"]') ? 52 : 0
+  useCtrlWheelZoom(host, (direction) => {
+    if (direction > 0) onZoomIn?.()
+    else onZoomOut?.()
+  }, loaded && !failed && !!(onZoomIn || onZoomOut))
   useEffect(() => {
     if (!host.current) return
     let active = true
@@ -171,9 +187,11 @@ export function ImageContent({
           <span className="block">
             {resizable ? (
               <Resizable
+                controlledWidth={controlledWidth}
                 defaultWidth={width}
                 defaultWidthPercent={defaultWidthPercent}
                 onResizeEnd={onResizeEnd}
+                zoomOnCtrlWheel={loaded && !failed && !onZoomIn && !onZoomOut}
               >
                 {content}
               </Resizable>
@@ -186,6 +204,14 @@ export function ImageContent({
           onCloseAutoFocus={(event) => event.preventDefault()}
           className="z-[260]"
         >
+          {(onZoomIn || onZoomOut) && <ContextMenuSub>
+            <ContextMenuSubTrigger>缩放</ContextMenuSubTrigger>
+            <ContextMenuSubContent className="z-[260]">
+              <ContextMenuItem disabled={!loaded || failed || !onZoomIn} onSelect={onZoomIn}>放大</ContextMenuItem>
+              <ContextMenuItem disabled={!loaded || failed || !onZoomOut} onSelect={onZoomOut}>缩小</ContextMenuItem>
+            </ContextMenuSubContent>
+          </ContextMenuSub>}
+          {onToggleDetails && <ContextMenuItem onSelect={onToggleDetails}>{detailsHidden ? "显示详细信息" : "隐藏详细信息"}</ContextMenuItem>}
           <ContextMenuSub>
             <ContextMenuSubTrigger>复制</ContextMenuSubTrigger>
             <ContextMenuSubContent className="z-[260]">
@@ -214,6 +240,20 @@ export function ImageContent({
               </ContextMenuItem>
             </ContextMenuSubContent>
           </ContextMenuSub>
+          <ContextMenuItem
+            disabled={!onAddToTransit && (!loaded || !resolved || failed)}
+            onSelect={() => {
+              void (async () => {
+                if (onAddToTransit) await onAddToTransit()
+                else {
+                  const data = await imageDataUrl(resolved!, host.current?.querySelector<HTMLImageElement>("img:last-of-type"))
+                  const file = await window.electronAPI.importTransitImage(data, alt)
+                  addTransitFile(file.root, file.path, file.title)
+                }
+                toast.success("已添加到中转站")
+              })().catch((error) => toast.error("添加到中转站失败", { description: String(error) }))
+            }}
+          >添加到中转站</ContextMenuItem>
           <ContextMenuItem
             disabled={!onDownloadLocal || downloading}
             onSelect={() => {
@@ -312,13 +352,23 @@ export function ImageContent({
         />
       )}
       <Dialog
+        modal={false}
         open={zoomed && loaded && !failed}
         onOpenChange={setZoomed}
       >
+        {zoomed && loaded && !failed && <DialogPortal>
+          <div
+            data-image-preview-overlay
+            aria-hidden="true"
+            style={{ left: previewInset }}
+            className="fixed inset-y-0 right-0 z-[269] bg-black/[.04] backdrop-blur-[3px]"
+          />
+        </DialogPortal>}
         <DialogContent
           showCloseButton={false}
           overlayClassName="z-[269]"
           className="z-[270] max-w-[95vw] w-fit max-h-[95vh] p-6"
+          style={{ left: `calc(50% + ${previewInset / 2}px)`, maxWidth: `calc(100vw - ${previewInset + 24}px)` }}
           aria-describedby={undefined}
           onCloseAutoFocus={(event) => event.preventDefault()}
         >
@@ -337,12 +387,12 @@ export function ImageContent({
               <X className="size-4" />
             </button>
           </div>
-          <img
-            style={{ transform: `rotate(${rotation}deg)` }}
+          <LightboxImage
+            rotation={rotation}
+            maxWidth={`min(90vw, calc(100vw - ${previewInset + 80}px))`}
             src={resolved}
             srcSet={srcSet}
             alt={alt}
-            className="max-h-[85vh] max-w-[90vw] object-contain"
           />
         </DialogContent>
       </Dialog>

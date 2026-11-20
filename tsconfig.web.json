@@ -8,7 +8,9 @@
     "packages/@vessel/type/src/**/*",
     "packages/@vessel/utils/src/**/*",
     "packages/@vessel/obsidian/src/**/*",
-    "packages/@vessel/markdown-table/src/**/*"
+    "packages/@vessel/markdown-table/src/**/*",
+    "packages/@vessel/workspace/src/**/*",
+    "src/shared/vault-origin.ts"
   ],
   "compilerOptions": {
     "composite": true,
@@ -43,6 +45,9 @@
       ],
       "@vessel/obsidian": [
         "./packages/@vessel/obsidian/src/index.ts"
+      ],
+      "@vessel/workspace": [
+        "./packages/@vessel/workspace/src/index.ts"
       ]
     }
   }

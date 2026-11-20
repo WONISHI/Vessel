@@ -1,19 +1,47 @@
-import { useLocation } from "react-router-dom"
-import { useState, useRef, useEffect, type CSSProperties } from "react"
-import { ArrowLeft, ArrowRight, Search, X } from "lucide-react"
+import { layoutScopeForPath, setLayoutScope } from "@/features/layout/visibility-scope"
+import { browserURL } from "@/pages/browser/url"
+import { toast } from "@/components/ui/sonner"
+import { bindDoubleSpace } from "../../../../shared/double-space"
+import { useLocation, useNavigate } from "react-router-dom"
+import { useState, useRef, useEffect, useLayoutEffect, useCallback, type CSSProperties } from "react"
+import { ArrowLeft, ArrowRight, CalendarDays, Plus, Search, Network, Wrench, X } from "lucide-react"
 import { titlebarPage } from "./titlebar-page"
 import { BrowserFavicon } from "@/components/browser-favicon"
 import "./top-search.css"
 import { WorkspaceFilePicker } from "@/components/workspace-file-picker"
 import type { FilePickerRequest, FilePickerWorkspace } from "@/components/workspace-file-picker/types"
-import { useBrowserTabs, selectBrowserTab } from "@/pages/browser/tab-state"
+import { useBrowserTabs, selectBrowserTab, browserTabAction } from "@/pages/browser/tab-state"
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { QuickPickerScrollArea } from "@/components/workspace-file-picker/quick-picker-scroll-area"
 import { QuickPickerFooter } from "@/components/workspace-file-picker/quick-picker-footer"
+import { TransitButton } from "@/components/transit/button"
+import { StatusClock } from "@/components/ui/status-clock"
+import { useStatusBarVisible } from "@/features/status-bar/visibility"
+import { LayoutVisibilityControls } from "./layout-visibility-controls"
 
 /** Shared quick-open entry remains part of the page in native full screen. */
 export function TopSearch() {
-  const { pathname } = useLocation()
+  const location = useLocation()
+  const { pathname } = location
+  const navigate = useNavigate()
+  const layoutScope = layoutScopeForPath(pathname)
+  const featureReturnTo = useRef("/editor")
+  useLayoutEffect(() => {
+    if (!layoutScope) featureReturnTo.current = location.pathname + location.search + location.hash
+  }, [layoutScope, location.pathname, location.search, location.hash])
+  const closeFeature = () => { void navigate(featureReturnTo.current) }
+  const featureName = layoutScope === "graph" ? "关系图谱" : layoutScope === "todos" ? "待办" : "开发工具"
+  useLayoutEffect(() => {
+    setLayoutScope(layoutScope)
+    return () => setLayoutScope(null)
+  }, [layoutScope])
+  const openFeature = (path: string) => {
+    setLayoutScope(layoutScopeForPath(path), true)
+    void navigate(path)
+  }
+  const statusVisible = useStatusBarVisible()
+  const workspacePage = /^\/editor(\/|$)/.test(pathname)
+  const showLayoutControls = !/^\/(settings|debug)(\/|$)/.test(pathname)
   const page = titlebarPage(pathname)
   const PageIcon = page.icon
   const tabs = useBrowserTabs()
@@ -48,7 +76,7 @@ export function TopSearch() {
   const searchable = /^\/(editor|resources|browser)(\/|$)/.test(pathname)
   const browser = pathname.startsWith("/browser")
   const scope: "resources" | "workspace" = pathname.startsWith("/resources") ? "resources" : "workspace"
-  const show = () => {
+  const show = useCallback(() => {
     const bounds = anchor.current?.getBoundingClientRect()
     if (bounds) setPopupStyle({ left: bounds.left, top: bounds.top, width: bounds.width, maxWidth: "calc(100vw - 16px)", transform: "none" })
     setSelected(0)
@@ -59,18 +87,42 @@ export function TopSearch() {
       window.dispatchEvent(new CustomEvent("vessel:request-workspace-files", { detail: provide }))
     }
     setOpen(true)
-  }
+  }, [browser, scope])
+  useEffect(() => {
+    if (!searchable) return
+    const stop = bindDoubleSpace(window, show)
+    const fromGuest = (event: Event) => {
+      if (browser && tabs.some((tab) => tab.active && tab.id === (event as CustomEvent<string>).detail)) show()
+    }
+    window.addEventListener("vessel-browser-open-top-search", fromGuest)
+    return () => { stop(); window.removeEventListener("vessel-browser-open-top-search", fromGuest) }
+  }, [searchable, browser, tabs, show])
   const matching = tabs.filter((tab) => `${tab.title} ${tab.url}`.toLocaleLowerCase().includes(query.toLocaleLowerCase()))
   return <>
-    <header style={{ WebkitAppRegion: "drag" } as CSSProperties} className="vessel-main-titlebar fixed inset-x-0 top-0 z-40 flex h-9 shrink-0 items-center justify-center gap-2 border-b bg-white px-3 text-xs text-stone-500 dark:bg-[#22272e]">
+    <header data-feature-view={layoutScope ? "true" : undefined} data-workspace={workspacePage ? "true" : undefined} data-titlebar-clock={!statusVisible ? "true" : undefined} style={{ WebkitAppRegion: "drag" } as CSSProperties} className="vessel-main-titlebar fixed inset-x-0 top-0 z-40 flex h-9 shrink-0 items-center justify-center gap-2 border-b bg-white px-3 text-xs text-stone-500 dark:bg-[#22272e]">
       <span style={{ left: 100, transform: `translateX(${fullscreen ? -86 : 0}px)` }} className="vessel-titlebar-identity pointer-events-none absolute flex max-w-[180px] items-center gap-2 truncate font-semibold"><PageIcon className="size-4 shrink-0 text-emerald-600" />{page.label}</span>
-      {searchable && <div style={{ WebkitAppRegion: "no-drag" } as CSSProperties} className="flex min-w-0 items-center gap-2 max-[700px]:ml-[180px]">
+      {searchable && <div style={{ WebkitAppRegion: "no-drag" } as CSSProperties} className="vessel-titlebar-search flex min-w-0 items-center gap-2">
       <button type="button" aria-label="后退" className="rounded p-1 hover:bg-stone-200 dark:hover:bg-white/10" onClick={() => window.history.back()}><ArrowLeft className="size-3.5" /></button>
       <button type="button" aria-label="前进" className="rounded p-1 hover:bg-stone-200 dark:hover:bg-white/10" onClick={() => window.history.forward()}><ArrowRight className="size-3.5" /></button>
-      <button ref={anchor} type="button" aria-label={browser ? "搜索浏览器标签" : "搜索文件和已打开标签"} onClick={show} className="flex h-6 w-[min(560px,65vw)] items-center justify-center gap-2 rounded-md border bg-white px-3 dark:bg-white/5">
+      <button ref={anchor} type="button" aria-label={browser ? "搜索浏览器标签" : "搜索文件和已打开标签"} onClick={show} className="flex h-6 min-w-0 flex-1 items-center justify-center gap-2 rounded-md border bg-white px-3 dark:bg-white/5">
         <Search className="size-3.5" /><span className="truncate">{browser ? "搜索标签名称或网址…" : "搜索文件、路径和已打开标签…"}</span>
       </button>
       </div>}
+      <div style={{ WebkitAppRegion: "no-drag" } as CSSProperties} className="vessel-titlebar-actions absolute right-3 top-1/2 flex -translate-y-1/2 items-center gap-2">
+        {!statusVisible && <StatusClock className="vessel-titlebar-clock" />}
+        {workspacePage && <button type="button" aria-label="查看关系图谱" data-title="查看关系图谱" className="flex size-6 items-center justify-center rounded text-stone-500 hover:bg-stone-200 dark:text-stone-400 dark:hover:bg-white/10" aria-pressed={pathname === "/editor/graph"} onClick={() => openFeature("/editor/graph")}>
+          <Network className="size-4" />
+        </button>}
+        <button type="button" aria-label="待办" data-title="待办" aria-pressed={pathname.startsWith("/todos")} className="flex size-6 items-center justify-center rounded text-stone-500 hover:bg-stone-200 dark:text-stone-400 dark:hover:bg-white/10" onClick={() => openFeature("/todos")}>
+          <CalendarDays className="size-4" />
+        </button>
+        <TransitButton />
+        <button type="button" aria-label="开发工具" data-title="开发工具" aria-pressed={pathname.startsWith("/devtools")} className="flex size-6 items-center justify-center rounded text-stone-500 hover:bg-stone-200 dark:text-stone-400 dark:hover:bg-white/10" onClick={() => openFeature("/devtools")}>
+          <Wrench className="size-4" />
+        </button>
+        {showLayoutControls && <LayoutVisibilityControls />}
+        {layoutScope && <button type="button" aria-label={`关闭${featureName}`} data-title="关闭" className="flex size-6 items-center justify-center rounded text-stone-500 transition-colors hover:bg-red-50 hover:text-red-600 focus-visible:bg-red-50 focus-visible:text-red-600 dark:hover:bg-red-500/10 dark:hover:text-red-400" onClick={closeFeature}><X className="size-4" /></button>}
+      </div>
     </header>
     {open && !browser && <WorkspaceFilePicker workspace={workspace} popupStyle={popupStyle} onClose={() => setOpen(false)} />}
     <Dialog modal={false} open={open && browser} onOpenChange={setOpen}>
@@ -80,7 +132,11 @@ export function TopSearch() {
           if (event.nativeEvent.isComposing) return
           if (event.key === "ArrowDown" || event.key === "ArrowUp") { event.preventDefault(); setSelected((value) => Math.max(0, Math.min(matching.length - 1, value + (event.key === "ArrowDown" ? 1 : -1)))) }
           if (event.key === "Enter" && matching[selected]) { event.preventDefault(); selectBrowserTab(matching[selected].id); setOpen(false) }
-        }} />{query ? <button type="button" aria-label="清空搜索" onClick={() => { setQuery(""); setSelected(0) }}><X className="size-3.5" /></button> : <kbd>esc</kbd>}</div>
+        }} />{query ? <button type="button" aria-label="清空搜索" data-title="清空搜索" onClick={() => { setQuery(""); setSelected(0) }}><X className="size-3.5" /></button> : <kbd>esc</kbd>}{query.trim() && <button type="button" aria-label="新增标签页" data-title="在当前标签右侧打开" onClick={() => {
+          setOpen(false)
+          try { browserTabAction("new", undefined, browserURL(query)) }
+          catch (error) { toast.error(String(error)) }
+        }}><Plus className="size-4" /></button>}</div>
         <div className="quick-picker-section"><span>打开的标签页</span><span>{matching.length} 个结果</span></div>
         <QuickPickerScrollArea viewportRef={resultsViewport} className="quick-picker-results"><div role="listbox" aria-label="搜索结果">{matching.map((tab, index) => <button role="option" aria-selected={index === selected} type="button" key={tab.id} className="quick-picker-row" onClick={() => { selectBrowserTab(tab.id); setOpen(false) }}>
           <span className="quick-picker-icon"><BrowserFavicon url={tab.url} favicon={tab.favicon} /></span>

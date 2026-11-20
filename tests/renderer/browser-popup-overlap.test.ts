@@ -1,8 +1,24 @@
 import { expect, it } from 'vitest'
-import { popupOverlapsPane } from '@/pages/browser/popup-overlap'
+import { browserPopupOverlapsPane, popupOverlapsPane } from '@/pages/browser/popup-overlap'
 const pane={left:960,right:1400,top:160,bottom:900,width:440,height:740}
 it('keeps right-docked DevTools visible when the left activity menu opens',()=>{
  expect(popupOverlapsPane({left:52,right:280,top:300,bottom:480,width:228,height:180},pane)).toBe(false)
+})
+it('keeps saved-file preview actions above the native console until the toast is dismissed',()=>{
+ const toast=document.createElement('li')
+ toast.setAttribute('data-sonner-toast','')
+ toast.className='vessel-browser-save-toast'
+ toast.dataset.visible='true'
+ toast.getBoundingClientRect=()=>({left:1000,right:1380,top:800,bottom:880,width:380,height:80} as DOMRect)
+ document.body.append(toast)
+ try {
+  expect(browserPopupOverlapsPane(pane)).toBe(true)
+  toast.dataset.removed='true'
+  expect(browserPopupOverlapsPane(pane)).toBe(false)
+  delete toast.dataset.removed
+  toast.dataset.visible='false'
+  expect(browserPopupOverlapsPane(pane)).toBe(false)
+ } finally { toast.remove() }
 })
 it('hides the native view for a portal that actually overlaps it',()=>{
  expect(popupOverlapsPane({left:900,right:1100,top:200,bottom:400,width:200,height:200},pane)).toBe(true)

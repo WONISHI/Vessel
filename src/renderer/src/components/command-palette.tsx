@@ -7,7 +7,7 @@ import { openInAppBrowser, toURL } from "@/lib/app-browser"
 import { applyAppearance } from "@/pages/settings/appearance"
 import { useRouter } from "@vessel/react-router"
 import { commandShortcutIds, matchesShortcut, shortcutLabel } from "@vessel/utils"
-import { ExternalLink, Eye, EyeOff, Globe, RotateCw, FileSearch, FolderOpen, Moon, Sun, PanelLeftOpen, PanelLeftClose } from "lucide-react"
+import { ExternalLink, Eye, EyeOff, Globe, RotateCw, RotateCcw, FileSearch, FolderOpen, Moon, Sun, PanelLeftOpen, PanelLeftClose } from "lucide-react"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
@@ -72,6 +72,12 @@ export function CommandPalette() {
     setFinderOpen(false)
     setSearch("https://")
     setOpen(true)
+  }
+  const restartApp = () => {
+    setOpen(false)
+    void window.electronAPI?.reportCrash?.(false)
+    if (window.electronAPI?.relaunchApp) void window.electronAPI.relaunchApp()
+    else window.location.reload()
   }
   const reloadApp = () => {
     setOpen(false)
@@ -234,6 +240,10 @@ export function CommandPalette() {
               <RotateCw />
               刷新页面
               {keyHint("reloadApp")}
+            </CommandItem>
+            <CommandItem value="重启应用 重启 Vessel restart relaunch" onSelect={restartApp}>
+              <RotateCcw />
+              重启应用
             </CommandItem>
           </CommandGroup>
           <CommandGroup heading="界面">

@@ -5,7 +5,8 @@ import type { DirectoryTreeLayout } from "@/features/directory-tree/state"
 export function fileTreeRowStyle(layout: DirectoryTreeLayout, editing = false): CSSProperties {
   return {
     height: layout.rowHeight, fontSize: layout.fontSize, lineHeight: `${layout.rowHeight}px`, fontFamily: layout.fontFamily,
-    gap: layout.columnGap, paddingRight: layout.padding,
+    // Radix's 10px overlay scrollbar must not cover badges or inline editors.
+    gap: layout.columnGap, paddingRight: layout.padding + 10,
     paddingLeft: `calc(${layout.padding + (editing ? 12 + layout.columnGap : 0)}px + min(var(--tree-indent, 0px), max(0px, calc(100% - 140px))))`,
     "--tree-icon-size": `${layout.iconSize}px`
   } as CSSProperties

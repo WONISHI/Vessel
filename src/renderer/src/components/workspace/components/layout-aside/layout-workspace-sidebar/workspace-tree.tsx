@@ -2,6 +2,7 @@ import { useDirectoryTreeLayout } from "@/features/directory-tree/state"
 import { treeRevealScrollTop } from "@/components/workspace/components/layout-aside/layout-workspace-sidebar/reveal-scroll"
 import { useTreeDragAutoScroll } from "@/components/workspace/components/layout-aside/layout-workspace-sidebar/use-tree-drag-scroll"
 import { Button } from "@/components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { VirtualTree, type VirtualTreeRow } from "@/components/ui/tree"
 import { InlineEntryEditor, type EntryDraft } from "@/components/workspace/components/layout-aside/layout-workspace-sidebar/create-entry"
@@ -26,6 +27,7 @@ const directoryCache = new Map<string, { reader: unknown; entries: Record<string
 /** Renders the workspace tree component. */
 export default function WorkspaceTree({
   viewport,
+  refreshVersion = 0,
   recent = false,
   draft,
   onDraftFinish,
@@ -42,6 +44,7 @@ export default function WorkspaceTree({
   onCreate?: (parent: string, kind: "file" | "directory", extension?: string) => void
   onSearchDirectory?: (path: string) => void
   viewport: HTMLElement | null
+  refreshVersion?: number
   recent?: boolean
   revealPath?: string
   revealCentered?: boolean
@@ -119,7 +122,7 @@ export default function WorkspaceTree({
       const next = { ...state, [path]: entry }
       directoryCache.delete(workspace.path)
       directoryCache.set(workspace.path, { reader: window.electronAPI?.readWorkspaceDirectory, entries: next })
-      if (directoryCache.size > 3) directoryCache.delete(directoryCache.keys().next().value!)
+      if (directoryCache.size > 12) directoryCache.delete(directoryCache.keys().next().value!)
       return next
     })
   }
@@ -192,6 +195,16 @@ export default function WorkspaceTree({
     // Expanded folders can arrive after the initial session restore.
   }, [expandedFolders, recent])
   useEffect(() => {
+    if (!refreshVersion || recent) return
+    // Keep rows and scroll position while explicit refresh reads new directory data.
+    for (const path of new Set([workspace.path, ...expandedFolders])) {
+      void (async () => {
+        await pending.current.get(path)
+        if (mounted.current) await loadDirectoryChildren(path)
+      })()
+    }
+  }, [refreshVersion])
+  useEffect(() => {
     /** Handles settings saved events. */
     const handleSettingsSaved = () => {
       // Refresh in place: clearing rows collapses the scroll height and resets scrollTop.
@@ -249,12 +262,14 @@ export default function WorkspaceTree({
   }, [viewport, isRootReveal, revealIndex, revealPath, revealCentered, draft, onRevealed, rowHeight, gap])
   if (!recent && !root)
     return (
-      <p
+      <div
         role="status"
-        className="p-2 text-xs text-stone-400"
+        aria-label="正在加载目录"
+        className="space-y-3 p-3 text-xs text-stone-400"
       >
-        正在加载目录…
-      </p>
+        <span className="sr-only">正在加载目录…</span>
+        {Array.from({ length: 8 }, (_, index) => <div key={index} aria-hidden="true" className="flex items-center gap-2"><Skeleton className="size-4 shrink-0" /><Skeleton className={index % 2 ? "h-4 w-3/5" : "h-4 w-4/5"} /></div>)}
+      </div>
     )
   if (!recent && root?.error)
     return (

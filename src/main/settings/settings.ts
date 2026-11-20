@@ -1,3 +1,4 @@
+import { chooseAvatar } from "./avatar"
 import { excludedBackupName, syncBackup } from "@main/sync/settings-backup"
 import { createS3Storage } from "@main/sync/settings-s3"
 import { acquireSyncDiagnostics } from "@main/sync/sync-diagnostics"
@@ -41,7 +42,9 @@ function notifyStatus(status: BackupStatus) {
   if (activeHost && (typeof activeHost.isDestroyed !== "function" || !activeHost.isDestroyed())) {
     try {
       activeHost.send?.("settings:status-changed", status)
-    } catch {}
+    } catch {
+      // The host may close before the status update can be delivered.
+    }
   }
 }
 
@@ -92,6 +95,7 @@ function validate(value: AppSettings): AppSettings {
   if (!value || !value.backup) throw new Error("设置格式无效")
   if (value.fileIconTheme !== undefined && !["default", "catppuccin", "symbols", "material"].includes(value.fileIconTheme)) throw new Error("文件图标库无效")
   if (value.catppuccinFlavor !== undefined && !["auto", "latte", "frappe", "macchiato", "mocha"].includes(value.catppuccinFlavor)) throw new Error("图标配色无效")
+  if (value.browserDevtoolsFollowWindow !== undefined && typeof value.browserDevtoolsFollowWindow !== "boolean") throw new Error("控制台窗口跟随设置无效")
   for (const flag of [value.fileIconWorkspace, value.fileIconResources, value.fileTypeBadgesEnabled, value.fileTypeBadgesWorkspace, value.fileTypeBadgesResources, value.gitDecorationsEnabled]) if (flag !== undefined && typeof flag !== "boolean") throw new Error("图标应用范围无效")
   const delay = value.navigationDelayMs ?? 3000
   if (!Number.isInteger(delay) || delay < 0 || delay > 2147483647) throw new Error("跳转等待时间必须为有效的非负整数毫秒")
@@ -138,6 +142,7 @@ function validate(value: AppSettings): AppSettings {
     catppuccinFlavor: value.catppuccinFlavor ?? "auto",
     searchEngine: ["bing", "google", "baidu", "duckduckgo"].includes(value.searchEngine || "") ? value.searchEngine : "bing",
     proxyEnabled: value.proxyEnabled === true,
+    browserDevtoolsFollowWindow: value.browserDevtoolsFollowWindow === true,
     externalScreenshot: value.externalScreenshot !== false,
     externalPreview: value.externalPreview !== false,
     attachmentLibraryEnabled: typeof value.attachmentLibraryEnabled === "boolean" ? value.attachmentLibraryEnabled : defaultSettings.attachmentLibraryEnabled,
@@ -441,6 +446,7 @@ export function registerSettings(host: WebContents) {
   })
   app.once("will-quit", stopSchedule)
   host.ipc.handle("settings:get", () => publicSettings())
+  host.ipc.handle("settings:choose-avatar", () => chooseAvatar(host))
   host.ipc.handle("settings:backup-export-secret", (_event, workspacePath?: string) => {
     if (workspacePath !== (currentWorkspace ?? undefined)) throw new Error("工作区已切换，请重新打开设置")
     return decrypt()

@@ -90,7 +90,10 @@ export function BrowserPage({ visible = true }: { visible?: boolean }) {
                   <summary className="cursor-pointer text-xs">错误详情</summary>
                   <pre className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap break-all text-xs">{tab.devError}</pre>
                 </details>
-                <button type="button" className="mt-3 rounded border px-3 py-1 text-xs" onClick={() => b.reloadTab(tab.id)}>重新加载页面</button>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button type="button" className="rounded border px-3 py-1 text-xs" onClick={() => b.reloadTab(tab.id)}>重新加载页面</button>
+                  <button type="button" className="rounded border px-3 py-1 text-xs" onClick={() => b.setDevtoolsOpen(true)}>打开浏览器控制台</button>
+                </div>
               </div>}
 
               {findOpen && (

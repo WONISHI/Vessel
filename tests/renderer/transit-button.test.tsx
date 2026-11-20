@@ -7,7 +7,7 @@ afterEach(cleanup)
 
 it("opens the import popup by click, not by hovering or moving through the sidebar", async () => {
   render(<TransitButton />)
-  const trigger = screen.getByRole("button", { name: "中转站，0 个" })
+  const trigger = screen.getByRole("button", { name: "中转站" })
   fireEvent.mouseEnter(trigger)
   expect(screen.queryByText("导入文件")).toBeNull()
   fireEvent.mouseLeave(trigger)

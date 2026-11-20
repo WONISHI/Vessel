@@ -150,7 +150,7 @@ export function FileSearch({ path, contentHost }: { path: string; contentHost: R
             </Button>
           </PopoverTrigger>
         </TooltipTrigger>
-        <TooltipContent>
+        <TooltipContent side="bottom">
           搜索当前文件 <kbd className="ml-2 rounded border px-1 text-[10px]">Ctrl+F</kbd>
         </TooltipContent>
       </Tooltip>

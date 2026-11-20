@@ -1,8 +1,10 @@
-import type { GitRepositorySettings, GitTagOptions, GitSearchOptions, GitSearchResult } from "@vessel/type/git"
+import type { GitPushInfo, GitPushSelection, GitRepositorySettings, GitTagOptions, GitSearchOptions, GitSearchResult } from "@vessel/type/git"
 import type { GitCommitDetail, GitCommitItem, GitDiffResult, GitStatusResult, GitStashPopResult, GitStashEntry, GitStashDetail } from "@vessel/type"
 import { ipcRenderer } from "electron"
 
 export const gitAPI = {
+  getPushInfo: (cwd: string): Promise<GitPushInfo> => ipcRenderer.invoke("git:push-info", cwd),
+  pushSelection: (cwd: string, selection: GitPushSelection): Promise<{ output: string }> => ipcRenderer.invoke("git:push-selection", cwd, selection),
   searchCommits: (cwd: string, options: GitSearchOptions): Promise<GitSearchResult> => ipcRenderer.invoke("git:search", cwd, options),
   getRepositorySettings: (cwd: string): Promise<GitRepositorySettings> => ipcRenderer.invoke("git:repository-settings", cwd),
   saveRepositorySettings: (cwd: string, settings: GitRepositorySettings): Promise<void> => ipcRenderer.invoke("git:save-repository-settings", cwd, settings),

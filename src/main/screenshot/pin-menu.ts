@@ -10,6 +10,19 @@ export function togglePins(pins: Set<BrowserWindow>) {
 export function registerPinMenu(win: BrowserWindow, image: NativeImage, pins: Set<BrowserWindow>) {
   let placement = "all"
   let shadow = true
+  let drag: { x: number; y: number; left: number; top: number } | undefined
+  win.webContents.ipc.handle("shot:pin-drag", (_event, value: unknown) => {
+    if (!value || typeof value !== "object") return
+    const { phase, x, y } = value as { phase?: unknown; x?: unknown; y?: unknown }
+    if (phase === "end") { drag = undefined; return }
+    if (typeof x !== "number" || typeof y !== "number" || !Number.isFinite(x) || !Number.isFinite(y)) return
+    if (phase === "start") {
+      const [left, top] = win.getPosition()
+      drag = { x, y, left, top }
+    } else if (phase === "move" && drag) {
+      win.setPosition(Math.round(drag.left + x - drag.x), Math.round(drag.top + y - drag.y))
+    }
+  })
   win.webContents.ipc.handle("shot:pin-style", (_event, value: unknown) => {
     if (!value || typeof value !== "object") return
     const style = value as { opacity?: unknown; shadow?: unknown }

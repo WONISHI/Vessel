@@ -23,6 +23,7 @@ contextBridge.exposeInMainWorld("screenshotAPI", {
   /** Copies text. */
   copyText: (text: string) => ipcRenderer.invoke("shot:copy-text", text),
 
+  pinDrag: (value: { phase: "start" | "move" | "end"; x: number; y: number }) => ipcRenderer.invoke("shot:pin-drag", value),
   pinMenu: () => ipcRenderer.invoke("shot:pin-menu"),
   pinStyle: (style: { opacity?: number; shadow?: boolean }) => ipcRenderer.invoke("shot:pin-style", style),
   onPinStyleToggle: (callback: () => void) => {

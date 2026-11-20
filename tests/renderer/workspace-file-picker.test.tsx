@@ -194,3 +194,21 @@ it('binds scrolling for a large list already present when the picker first mount
   expect(document.querySelectorAll('.workspace-file-picker-row').length).toBeLessThan(60)
   expect(document.querySelector('[data-virtual-quick-results]')?.getAttribute('style')).toContain('150000px')
 })
+
+it.each(['workspace', 'resources'] as const)('creates a custom file beside the active %s tab and closes immediately', async (scope) => {
+ const createWorkspaceEntry = vi.fn(async () => ({ name: 'notes.txt', path: '/vault/sub/notes.txt', type: 'file' as const }))
+ Object.defineProperty(window, 'electronAPI', { configurable: true, value: {
+  createWorkspaceEntry,
+  readWorkspaceDirectory: vi.fn(async () => []),
+  searchContent: vi.fn(async () => ({ matches: [], truncated: false }))
+ } })
+ const openFile = vi.fn()
+ const close = vi.fn()
+ render(<WorkspaceFilePicker workspace={{ scope, root: '/vault', activePath: '/vault/sub/current.md', files: [], openFile }} onClose={close} />)
+ expect(screen.queryByRole('button', { name: '新增自定义文件' })).toBeNull()
+ fireEvent.change(screen.getByLabelText('搜索工作区文件'), { target: { value: 'notes.txt' } })
+ fireEvent.click(screen.getByRole('button', { name: '新增自定义文件' }))
+ expect(close).toHaveBeenCalledOnce()
+ expect(createWorkspaceEntry).toHaveBeenCalledWith('/vault', '/vault/sub', 'notes.txt', 'file')
+ await waitFor(() => expect(openFile).toHaveBeenCalledWith({ name: 'notes.txt', path: '/vault/sub/notes.txt', type: 'file' }))
+})

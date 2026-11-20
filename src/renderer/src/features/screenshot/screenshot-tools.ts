@@ -2,9 +2,9 @@ import { matchesShortcut } from "@vessel/utils"
 import { clearScreenshotDrawingActives } from "./mode-menu"
 import { SHAPE_STROKE_COLORS } from "./shape-menu"
 import type ScreenShot from "js-web-screen-shot"
+import { clampStepCenter, createStepAt, stepCaptionLayout, stepPointer, STEP_RADIUS, STEP_CAPTION_FONT_SIZE, STEP_CAPTION_LINE_HEIGHT, type Step, type CutBox } from "./step-geometry"
 
-export type Step = { x: number; y: number; number: number; tipX?: number; tipY?: number; text?: string; color?: string }
-export type CutBox = { startX: number; startY: number; width: number; height: number }
+export type { Step, CutBox } from "./step-geometry"
 
 const SECONDARY_STEPS = "steps"
 const STEP_COLOR_STORAGE_KEY = "vessel.screenshot.stepColor"
@@ -19,7 +19,7 @@ export function readScreenshotStepColor(): string {
       const match = STEP_COLORS.find((item) => item.toLowerCase() === value.toLowerCase())
       if (match) return match
     }
-  } catch {}
+  } catch { /* Screenshot overlays can run without persistent storage. */ }
   return DEFAULT_STEP_COLOR
 }
 
@@ -27,7 +27,7 @@ export function readScreenshotStepColor(): string {
 export function writeScreenshotStepColor(color: string) {
   try {
     localStorage.setItem(STEP_COLOR_STORAGE_KEY, color)
-  } catch {}
+  } catch { /* Keep drawing available when storage is unavailable. */ }
 }
 
 function mixHex(hex: string, toward: number, amount: number) {
@@ -57,15 +57,6 @@ function isLightHex(hex: string) {
   return 0.2126 * r + 0.7152 * g + 0.0722 * b > 200
 }
 
-/** Default pointer length for new markers; tip stays independently draggable. */
-function stepPointer(step: Step) {
-  const angle = Math.atan2((step.tipY ?? step.y + 34) - step.y, (step.tipX ?? step.x + 23) - step.x)
-  const length = step.tipX !== undefined && step.tipY !== undefined
-    ? Math.max(28, Math.hypot(step.tipX - step.x, step.tipY - step.y))
-    : 48
-  return { x: step.x + Math.cos(angle) * length, y: step.y + Math.sin(angle) * length }
-}
-
 /**
  * Organic callout matching the blue reference: one outer silhouette (no arc under the
  * pointer), G1-smooth joins into a curved beak, thick concentric ring, soft shadow + light sheen.
@@ -77,7 +68,7 @@ function stepPointer(step: Step) {
 function fillStepBadge(context: CanvasRenderingContext2D, tipX: number, tipY: number, outer: number, color: string) {
   const tipLen = Math.hypot(tipX, tipY)
   const angle = Math.atan2(tipY, tipX)
-  const reach = Math.max(tipLen, outer + 6)
+  const reach = tipLen
   const tx = Math.cos(angle) * reach
   const ty = Math.sin(angle) * reach
   // Full tangent span, then narrow the mouth so the beak reads thinner (blue-ref slender taper).
@@ -108,24 +99,27 @@ function fillStepBadge(context: CanvasRenderingContext2D, tipX: number, tipY: nu
 
   context.beginPath()
   // p1 → tip → p2 → clockwise major arc back to p1 (arrival tangent matches leave-to-tip).
-  context.moveTo(p1x, p1y)
-  context.bezierCurveTo(
-    p1x + t1x * hRing,
-    p1y + t1y * hRing,
-    tx - ax * hTip,
-    ty - ay * hTip,
-    tx,
-    ty
-  )
-  context.bezierCurveTo(
-    tx - ax * hTip,
-    ty - ay * hTip,
-    p2x - t2x * hRing,
-    p2y - t2y * hRing,
-    p2x,
-    p2y
-  )
-  context.arc(0, 0, outer, a2, a1, false)
+  if (tipLen <= outer) context.arc(0, 0, outer, 0, Math.PI * 2)
+  else {
+    context.moveTo(p1x, p1y)
+    context.bezierCurveTo(
+      p1x + t1x * hRing,
+      p1y + t1y * hRing,
+      tx - ax * hTip,
+      ty - ay * hTip,
+      tx,
+      ty
+    )
+    context.bezierCurveTo(
+      tx - ax * hTip,
+      ty - ay * hTip,
+      p2x - t2x * hRing,
+      p2y - t2y * hRing,
+      p2x,
+      p2y
+    )
+    context.arc(0, 0, outer, a2, a1, false)
+  }
   context.closePath()
 
   const sheen = context.createRadialGradient(-outer * 0.08, -outer * 0.12, outer * 0.04, 0, 0, outer)
@@ -148,17 +142,17 @@ function fillStepBadge(context: CanvasRenderingContext2D, tipX: number, tipY: nu
 }
 
 /** Draws step. */
-export function drawStep(context: CanvasRenderingContext2D, step: Step) {
+export function drawStep(context: CanvasRenderingContext2D, step: Step, box?: CutBox) {
   const { x, y, number } = step
   const color = step.color || DEFAULT_STEP_COLOR
   context.save()
   const { x: tipX, y: tipY } = stepPointer(step)
-  const outer = 20
+  const outer = step.radius ?? STEP_RADIUS
   context.translate(x, y)
   fillStepBadge(context, tipX - x, tipY - y, outer, color)
 
   context.fillStyle = isLightHex(color) ? "#171717" : color
-  context.font = '700 16px "Plus Jakarta Sans", sans-serif'
+  context.font = '700 12px "Plus Jakarta Sans", sans-serif'
   context.textAlign = "center"
   context.textBaseline = "middle"
   context.fillText(String(number), 0, 0)
@@ -166,18 +160,15 @@ export function drawStep(context: CanvasRenderingContext2D, step: Step) {
 
   if (step.text) {
     context.save()
-    context.font = '500 14px "Plus Jakarta Sans", "PingFang SC", sans-serif'
+    context.font = `500 ${STEP_CAPTION_FONT_SIZE}px "Plus Jakarta Sans", "PingFang SC", sans-serif`
     context.fillStyle = "#171717"
     context.textAlign = "left"
     context.textBaseline = "top"
-    let line = "", row = 0
-    for (const char of step.text) {
-      if (char === "\n" || (line && context.measureText(line + char).width > 180)) {
-        context.fillText(line, x + 27, y - 10 + row++ * 20)
-        line = char === "\n" ? "" : char
-      } else line += char
-    }
-    context.fillText(line, x + 27, y - 10 + row * 20)
+    const caption = stepCaptionLayout(step, box ?? { startX: 0, startY: 0, width: context.canvas?.width ?? 10000, height: context.canvas?.height ?? 10000 }, (text) => context.measureText(text).width)
+    context.beginPath()
+    context.rect(caption.x, caption.y, caption.width, caption.height)
+    context.clip()
+    caption.lines.forEach((line, row) => context.fillText(line, caption.x + 4, caption.y + 4 + row * STEP_CAPTION_LINE_HEIGHT))
     context.restore()
   }
 }
@@ -195,7 +186,7 @@ export async function mergeSteps(base64: string, box: CutBox, steps: Step[]) {
   context.drawImage(image, 0, 0)
   context.scale(canvas.width / box.width, canvas.height / box.height)
   context.translate(-box.startX, -box.startY)
-  steps.forEach((step) => drawStep(context, step))
+  steps.forEach((step) => drawStep(context, step, box))
   return canvas.toDataURL("image/png")
 }
 
@@ -233,6 +224,7 @@ export function installSteps(plugin: ScreenShot, button: HTMLButtonElement) {
   let selected: Step | undefined
   let moving: Step | undefined
   let dragTip = false
+  let dragStart: { x: number; y: number; centerX: number; centerY: number } | undefined
   let focusText = ""
   let currentColor = readScreenshotStepColor()
   const snapshot = () => history.push(steps.map((step) => ({ ...step })))
@@ -302,7 +294,7 @@ export function installSteps(plugin: ScreenShot, button: HTMLButtonElement) {
     context.beginPath()
     context.rect(box.startX, box.startY, box.width, box.height)
     context.clip()
-    steps.forEach((step) => drawStep(context, active && step === selected ? { ...step, text: "" } : step))
+    steps.forEach((step) => drawStep(context, active && step === selected ? { ...step, text: "" } : step, box))
     if (active && selected) {
       const end = tip(selected)
       context.beginPath()
@@ -316,9 +308,12 @@ export function installSteps(plugin: ScreenShot, button: HTMLButtonElement) {
     context.restore()
     editor.hidden = !active || !selected
     if (selected) {
-      editor.style.left = `${selected.x + 27}px`
-      editor.style.top = `${selected.y - 15}px`
-      editor.style.width = `${Math.max(30, Math.min(192, box.startX + box.width - selected.x - 27))}px`
+      context.font = `500 ${STEP_CAPTION_FONT_SIZE}px "Plus Jakarta Sans", "PingFang SC", sans-serif`
+      const caption = stepCaptionLayout(selected, box, (text) => context.measureText(text).width)
+      editor.style.left = `${caption.x}px`
+      editor.style.top = `${caption.y}px`
+      editor.style.width = `${caption.width}px`
+      editor.style.height = `${caption.height}px`
       if (document.activeElement !== editor) editor.value = selected.text || ""
     }
     document.querySelector("#toolPanel .undo, #toolPanel .undo-disabled")?.classList.toggle("shot-can-undo", history.length > 0)
@@ -361,12 +356,13 @@ export function installSteps(plugin: ScreenShot, button: HTMLButtonElement) {
     const pointed = [...steps].reverse().find((step) => Math.hypot(tip(step).x - event.clientX, tip(step).y - event.clientY) <= 10)
     if (onBorder && !pointed) return
     snapshot()
-    moving = pointed || [...steps].reverse().find((step) => Math.hypot(step.x - event.clientX, step.y - event.clientY) <= 22)
+    moving = pointed || [...steps].reverse().find((step) => Math.hypot(step.x - event.clientX, step.y - event.clientY) <= (step.radius ?? STEP_RADIUS) + 2)
     dragTip = !!pointed
     if (!moving) {
-      moving = { x: event.clientX, y: event.clientY, number: steps.length + 1, color: currentColor }
+      moving = createStepAt({ x: event.clientX, y: event.clientY }, box, steps.length + 1, currentColor)
       steps.push(moving)
     }
+    dragStart = { x: event.clientX, y: event.clientY, centerX: moving.x, centerY: moving.y }
     selected = moving
     editor.blur()
     layer.setPointerCapture(event.pointerId)
@@ -378,24 +374,31 @@ export function installSteps(plugin: ScreenShot, button: HTMLButtonElement) {
     const x = Math.max(box.startX, Math.min(box.startX + box.width, event.clientX))
     const y = Math.max(box.startY, Math.min(box.startY + box.height, event.clientY))
     if (dragTip) {
-      const end = stepPointer({ ...moving, tipX: x, tipY: y })
-      moving.tipX = end.x
-      moving.tipY = end.y
+      moving.tipX = x
+      moving.tipY = y
+      if (Math.hypot(moving.x - x, moving.y - y) < (moving.radius ?? STEP_RADIUS) + 6) {
+        const placed = createStepAt({ x, y }, box, moving.number, moving.color || currentColor)
+        moving.x = placed.x
+        moving.y = placed.y
+      }
     }
-    else {
-      if (moving.tipX !== undefined) moving.tipX += x - moving.x
-      if (moving.tipY !== undefined) moving.tipY += y - moving.y
-      moving.x = x
-      moving.y = y
+    else if (dragStart) {
+      const center = clampStepCenter({ x: dragStart.centerX + x - dragStart.x, y: dragStart.centerY + y - dragStart.y }, box, moving.radius)
+      const end = tip(moving)
+      if (Math.hypot(center.x - end.x, center.y - end.y) >= (moving.radius ?? STEP_RADIUS) + 6) {
+        moving.x = center.x
+        moving.y = center.y
+      }
     }
     redraw()
   }
-  layer.onpointerup = layer.onpointercancel = () => { moving = undefined }
+  layer.onpointerup = layer.onpointercancel = () => { moving = undefined; dragStart = undefined }
   const syncPointer = (event: PointerEvent) => {
     if (!active || moving) return
     const box = plugin.getCutBoxInfo()
     const onBorder = Math.min(Math.abs(event.clientX - box.startX), Math.abs(event.clientX - box.startX - box.width), Math.abs(event.clientY - box.startY), Math.abs(event.clientY - box.startY - box.height)) <= 12
-    layer.style.pointerEvents = onBorder ? "none" : "auto"
+    const pointed = steps.some((step) => Math.hypot(tip(step).x - event.clientX, tip(step).y - event.clientY) <= 10)
+    layer.style.pointerEvents = onBorder && !pointed ? "none" : "auto"
   }
   const toolClick = (event: MouseEvent) => {
     const target = event.target as HTMLElement

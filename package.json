@@ -185,7 +185,9 @@
     "typecheck:clipper": "npm run typecheck --workspace=@vessel/clipper",
     "assets:matting": "node scripts/prepare-matting-assets.cjs",
     "check:components": "node scripts/checks/component-boundaries.cjs",
-    "check:conventions": "node scripts/checks/source-conventions.cjs && npm run check:components"
+    "check:conventions": "node scripts/checks/source-conventions.cjs && npm run check:components",
+    "build:workspace-wasm": "npm run build:wasm --workspace=@vessel/workspace",
+    "typecheck:workspace": "npm run typecheck --workspace=@vessel/workspace"
   },
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.2",
@@ -196,6 +198,7 @@
     "@vessel/clipper": "file:packages/@vessel/clipper",
     "@vessel/sync": "file:packages/@vessel/sync",
     "@vitalets/google-translate-api": "^9.2.1",
+    "@vscode/codicons": "0.0.46-24",
     "@vscode/ripgrep": "^1.18.0",
     "better-sqlite3": "^12.4.1",
     "dugite": "^3.2.3",

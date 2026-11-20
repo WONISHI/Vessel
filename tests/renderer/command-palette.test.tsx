@@ -32,6 +32,20 @@ describe("CommandPalette theme toggle", () => {
     vi.restoreAllMocks()
   })
 
+  it("relaunches the application from the command menu and closes the menu", async () => {
+    const relaunch = vi.fn().mockResolvedValue(undefined)
+    const report = vi.fn().mockResolvedValue(undefined)
+    window.electronAPI.relaunchApp = relaunch
+    window.electronAPI.reportCrash = report
+    render(<CommandPalette />)
+    act(() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "p", metaKey: true })))
+    fireEvent.change(await screen.findByPlaceholderText("输入命令或链接…"), { target: { value: "重启" } })
+    fireEvent.click(await screen.findByText("重启应用"))
+    expect(report).toHaveBeenCalledWith(false)
+    expect(relaunch).toHaveBeenCalledOnce()
+    expect(screen.queryByPlaceholderText("输入命令或链接…")).toBeNull()
+  })
+
   it("uses ScrollArea and keeps keyboard selection scrolling", async () => {
     render(<CommandPalette />)
     act(() => { window.dispatchEvent(new KeyboardEvent("keydown", { key: "p", metaKey: true })) })
@@ -101,7 +115,7 @@ describe("CommandPalette theme toggle", () => {
   it("runs theme, control visibility, file search and link commands directly from shortcuts", async () => {
     localStorage.removeItem("vessel-control-visible")
     render(<CommandPalette />)
-    fireEvent.keyDown(window, { key: "d", ctrlKey: true, shiftKey: true })
+    fireEvent.keyDown(window, { key: "j", ctrlKey: true, shiftKey: true })
     await waitFor(() => expect(document.documentElement.classList.contains("dark")).toBe(true))
     fireEvent.keyDown(window, { key: "u", ctrlKey: true, shiftKey: true })
     expect(localStorage.getItem("vessel-control-visible")).toBe("false")

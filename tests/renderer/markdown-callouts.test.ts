@@ -1,7 +1,7 @@
 import { createRequire } from "node:module"
 import { expect, it } from "vitest"
 import { parseCalloutHeader } from "@vessel/obsidian"
-import { decorateCallouts, bindCallouts, changeCalloutType } from "@/components/core/canvas/variants/markdown/callouts"
+import { decorateCallouts, bindCallouts, changeCalloutType, setCalloutCollapsed } from "@/components/core/canvas/variants/markdown/callouts"
 createRequire(import.meta.url)("vditor/dist/js/lute/lute.min.js")
 it("inserts the first empty-title character after the directive even when the native caret is beside the heading", () => {
   const root = document.createElement("div")
@@ -418,4 +418,23 @@ it.each(["分", "f", ""])("preserves an empty callout directive when IME commits
     root.remove()
     getSelection()?.removeAllRanges()
   }
+})
+
+it("folds ordinary callouts and preserves folding through Markdown reloads", () => {
+  const root = document.createElement("div")
+  root.innerHTML = lute.Md2VditorIRDOM("> [!note] **标题**\n> 正文\n")
+  decorateCallouts(root)
+  const quote = root.querySelector<HTMLElement>("blockquote")!
+  expect(setCalloutCollapsed(quote, true)).toBe(true)
+  expect(quote.classList.contains("vessel-callout-collapsed")).toBe(true)
+  const source = lute.VditorIRDOM2Md(root.innerHTML)
+  expect(source).toContain("[!note]- **标题**")
+  expect(source).toContain("正文")
+  root.innerHTML = lute.Md2VditorIRDOM(source)
+  decorateCallouts(root)
+  const restored = root.querySelector<HTMLElement>("blockquote")!
+  expect(restored.classList.contains("vessel-callout-collapsed")).toBe(true)
+  expect(setCalloutCollapsed(restored, false)).toBe(true)
+  expect(restored.classList.contains("vessel-callout-collapsed")).toBe(false)
+  expect(lute.VditorIRDOM2Md(root.innerHTML)).toContain("[!note]+ **标题**")
 })

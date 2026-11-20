@@ -1,4 +1,5 @@
 import { FileChangeStatus } from "@/pages/git/components/file-change-status"
+import { GitCommitMessage } from "./git-commit-message"
 import { getFilePresentation } from "@/components/workspace/components/layout-aside/layout-workspace-sidebar/utils"
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger } from "@/components/ui/context-menu"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -23,7 +24,7 @@ export function GitCommitFiles({ g }: { g: GitPageModel }) {
                       <ScrollArea className="git-commit-files-scroll flex-1 min-h-0 min-w-0 p-3 text-xs">
                         {commitDetail ? (
                           <div>
-                            <div className="truncate font-semibold text-stone-800 mb-1" data-title={commitDetail.message}>{commitDetail.message}</div>
+                            <GitCommitMessage key={selectionKey} message={commitDetail.message} />
                             <div className="truncate text-stone-400 text-[11px] mb-2" data-title={`${commitDetail.author} <${commitDetail.email}> • ${commitDetail.date}`}>
                               {commitDetail.author} &lt;{commitDetail.email}&gt; • {commitDetail.date}
                             </div>

@@ -1,7 +1,10 @@
 import { BrowserHistory } from "@main/browser/browser-history"
+import { notifyBrowserFileSaved, registerBrowserDownloads } from "./browser-downloads"
 import type { BrowserDevice } from "@vessel/type"
-import { app, BrowserWindow, dialog, session, webContents, type WebContents } from "electron"
+import { app, BrowserWindow, dialog, session, shell, webContents, type WebContents } from "electron"
 import { join } from "node:path"
+import { access } from "node:fs/promises"
+import { fileURLToPath } from "node:url"
 let history: BrowserHistory | undefined
 
 /** Performs the store operation. */
@@ -32,6 +35,7 @@ export function setBrowserBookmarks(items: { url: string; title: string }[]) {
 /** Registers browser tools. */
 export function registerBrowserTools(host: WebContents) {
   store().prune()
+  registerBrowserDownloads(host)
 
   /** Performs the guest operation. */
   const guest = (id: number, allowTransit = false) => {
@@ -41,9 +45,20 @@ export function registerBrowserTools(host: WebContents) {
   }
   host.ipc.handle("browser:page-action", async (_event, id: number, action: string) => {
     const target = guest(id)
+    if (action === "reveal") {
+      const url = new URL(target.getURL())
+      if (url.protocol !== "file:") throw new Error("当前网页不是本地资源")
+      const path = fileURLToPath(url)
+      await access(path).catch(() => { throw new Error("本地资源不存在或无法访问") })
+      shell.showItemInFolder(path)
+      return
+    }
     if (action === "save") {
       const result = await dialog.showSaveDialog({ defaultPath: "page.html", filters: [{ name: "HTML 网页", extensions: ["html"] }] })
-      if (!result.canceled && result.filePath && !target.isDestroyed()) await target.savePage(result.filePath, "HTMLOnly")
+      if (!result.canceled && result.filePath && !target.isDestroyed()) {
+        await target.savePage(result.filePath, "HTMLOnly")
+        await notifyBrowserFileSaved(host, result.filePath, "save")
+      }
       return
     }
     if (action === "source") {

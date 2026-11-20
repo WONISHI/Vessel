@@ -1,5 +1,5 @@
 import { ACTIVITY_ITEMS } from "./activity-bar/constants"
-import { Activity, Binary, Braces, CaseSensitive, Database, GitBranch, House, Languages, Layers, Link, Monitor, Palette, Send, Settings, Wrench } from "lucide-react"
+import { Activity, CalendarDays, Binary, Braces, CaseSensitive, Database, GitBranch, House, Languages, Layers, Link, Monitor, Palette, Send, Settings, Wrench } from "lucide-react"
 
 const tools = {
   json: { label: "JSON 格式化", icon: Braces },
@@ -13,6 +13,7 @@ const tools = {
   storage: { label: "数据存储", icon: Database }
 }
 const pages = {
+  todos: { label: "待办", icon: CalendarDays },
   git: { label: "Git", icon: GitBranch },
   "api-client": { label: "API", icon: Send },
   settings: { label: "设置", icon: Settings },

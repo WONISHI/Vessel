@@ -31,6 +31,19 @@ describe("params ↔ url", () => {
 })
 
 describe("cURL", () => {
+  it.each([
+    ["https://api.test/api/flow/ins/query?token=secret#result", "ins/query"],
+    ["https://api.test/api/users/", "api/users"],
+    ["https://api.test/health", "health"],
+    ["https://api.test:8443/?token=secret", "api.test:8443"],
+    ["https://api.test/v1/%E7%94%A8%E6%88%B7/%E5%88%97%E8%A1%A8", "用户/列表"],
+    ["https://api.test/v1/a+b", "v1/a+b"],
+    ["{{baseUrl}}/api/flow/ins/query?page=1", "ins/query"],
+    ["{{baseUrl}}/", "{{baseUrl}}"]
+  ])("names %s from its last two path segments", (url, name) => {
+    expect(parseCurl(`curl '${url}' -X POST`).name).toBe(name)
+  })
+
   it("tokenizes quotes and continuations", () => {
     expect(tokenizeShell(`curl 'a b' "c \\"d\\"" $'e\\nf' \\\n  g`)).toEqual(["curl", "a b", 'c "d"', "e\nf", "g"])
   })

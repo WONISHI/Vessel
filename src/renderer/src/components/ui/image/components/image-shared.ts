@@ -17,9 +17,15 @@ export interface ImageProps extends Omit<ComponentPropsWithoutRef<"img">, "width
   onFocusBelow?: () => void
   onCopyReference?: () => void
   onLocateFile?: () => Promise<void>
+  onAddToTransit?: () => Promise<void>
   onViewLink?: () => void
   onDelete?: () => void
   onDeleteFile?: () => Promise<void>
+  onZoomIn?: () => void
+  onZoomOut?: () => void
+  onToggleDetails?: () => void
+  detailsHidden?: boolean
+  controlledWidth?: number
   width?: number
   defaultWidthPercent?: number
   resizable?: boolean

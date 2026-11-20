@@ -10,6 +10,7 @@ export default defineConfig({
       { find: /^@vessel\/obsidian\/callouts\/style\.css/, replacement: resolve("packages/@vessel/obsidian/src/callouts/style.css") },
       { find: /^@vessel\/obsidian$/, replacement: resolve("packages/@vessel/obsidian/src/index.ts") },
       ...Object.entries({
+      "@vessel/workspace": resolve("packages/@vessel/workspace/src/index.ts"),
       "@resources": resolve("resources"),
       "#vessel-clipper": resolve("packages/@vessel/clipper/src"),
       "#vessel-obsidian": resolve("packages/@vessel/obsidian/src"),

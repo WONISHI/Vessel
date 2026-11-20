@@ -4,7 +4,7 @@ import { insertEmptyTable } from "../../insert-table"
 import { isEmptyParagraph } from "../../image-paragraph"
 import { CalloutBlockMenu } from "@/components/core/canvas/variants/markdown/callout-block-menu"
 import { CalloutTypeMenu } from "@/components/core/canvas/variants/markdown/callout-type-menu"
-import { changeCalloutType } from "@/components/core/canvas/variants/markdown/callouts"
+import { changeCalloutType, setCalloutCollapsed } from "@/components/core/canvas/variants/markdown/callouts"
 import { FootnoteHoverCard } from "@/components/core/canvas/variants/markdown/footnote-hover-card"
 import { insertFootnote, validFootnoteRange, deleteFootnote } from "@/components/core/canvas/variants/markdown/footnotes"
 import { FootnotePopover } from "@/components/core/canvas/variants/markdown/footnote-popover"
@@ -53,7 +53,17 @@ export function EditorBlockMenus({ m }: { m: VditorEditorModel }) {
         />
       )}
       {calloutBlockMenu && !readOnly && (
-        <CalloutBlockMenu x={calloutBlockMenu.x} y={calloutBlockMenu.y} onClose={() => setCalloutBlockMenu(null)} onFocus={(below) => {
+        <CalloutBlockMenu x={calloutBlockMenu.x} y={calloutBlockMenu.y} collapsed={calloutBlockMenu.quote.classList.contains("vessel-callout-collapsed")} onToggleFold={() => {
+          const editor = instance.current, quote = calloutBlockMenu.quote
+          if (editor && host.current?.contains(quote)) {
+            editor.vditor.undo?.addToUndoStack(editor.vditor)
+            if (setCalloutCollapsed(quote, !quote.classList.contains("vessel-callout-collapsed"))) {
+              editor.vditor.undo?.addToUndoStack(editor.vditor)
+              changeHandler.current((properties?.raw ?? "") + restoreObsidianImages(editor.getValue()))
+            }
+          }
+          setCalloutBlockMenu(null)
+        }} onClose={() => setCalloutBlockMenu(null)} onFocus={(below) => {
           const editor = instance.current, quote = calloutBlockMenu.quote
           if (!editor || !host.current?.contains(quote)) return
           editor.vditor.undo?.addToUndoStack(editor.vditor)

@@ -174,7 +174,7 @@ export function PasswordVault({ guestId, url }: { guestId?: () => number | undef
                   <Button variant="outline" disabled={busy} onClick={() => void run("candidate", { id: candidate.id, choice: "never" })}>此网站永不保存</Button>
                 </div>
               </div>}
-              {!candidate && <p className="text-muted-foreground">已保存 {items.length} 个账号；只能填充到相同 HTTPS 来源，包含端口。</p>}
+              {!candidate && <p className="text-muted-foreground">已保存 {items.length} 个账号；只能填充到相同网站来源，协议、主机和端口均须一致。</p>}
               {!candidate && items.map((item) => <div key={item.id} className="space-y-2 rounded border p-3">
                 <p className="break-all">{item.origin}</p><p className="break-all">{item.username || "未提供账号"}</p>
                 <div className="flex items-center gap-2">

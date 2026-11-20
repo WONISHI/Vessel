@@ -1,3 +1,4 @@
+import { useGitSelectionReveal } from "../hooks/use-git-selection-reveal"
 import { Checkbox } from "@/components/ui/checkbox"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from "@/components/ui/context-menu"
@@ -8,6 +9,7 @@ import type { GitPageModel } from "@/pages/git/hooks/use-git-page"
 export function GitConflictFiles({ g }: { g: GitPageModel }) {
   const files = g.status?.conflicts || []
   const selected = g.selectedConflictPaths.filter((path) => files.some((file) => file.path === path))
+  const selectionRoot = useGitSelectionReveal(g.repoPath, g.selectedFile?.path, g.activeFileSection === "conflicts", !!g.status)
   const resolve = () => void g.handleResolveConflicts(selected)
   return <>
     <div data-git-conflict-header className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-stone-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-800">
@@ -27,11 +29,11 @@ export function GitConflictFiles({ g }: { g: GitPageModel }) {
       </button>
     </div>
     <p className="shrink-0 border-b border-stone-200 px-3 py-1 text-[10px] text-stone-500">在编辑器中修复并保存，再选中文件标记解决并暂存。</p>
-    <ScrollArea className="git-changes-scroll min-h-0 min-w-0 flex-1 p-1">
+    <ScrollArea ref={selectionRoot} className="git-changes-scroll min-h-0 min-w-0 flex-1 p-1">
       <div role="listbox" aria-label="冲突文件" aria-multiselectable="true" className="space-y-0.5">
         {files.map((file, index) => <ContextMenu key={file.path}>
           <ContextMenuTrigger asChild>
-            <div role="option" aria-selected={selected.includes(file.path)} tabIndex={0} data-git-file-selected={selected.includes(file.path)}
+            <div role="option" aria-selected={selected.includes(file.path)} tabIndex={0} data-git-file-selected={selected.includes(file.path)} data-git-primary-file={g.selectedFile?.path === file.path && selected.includes(file.path)}
               className={`group flex w-full min-w-0 cursor-pointer items-center gap-1.5 rounded px-2 py-1 text-xs ${selected.includes(file.path) ? "bg-stone-200 text-stone-900" : "text-stone-700 hover:bg-stone-100"}`}
               onClick={(event) => g.handleConflictItemClick(event, file, index)} onContextMenu={() => g.handleConflictContextMenu(file, index)}
               onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); g.handleConflictChecked(file, index, !selected.includes(file.path)) } }}>

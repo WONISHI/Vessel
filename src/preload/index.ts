@@ -8,7 +8,7 @@ import { fileWatchAPI } from "@preload/apis/file-watch.api"
 import { terminalAPI } from "@preload/apis/terminal.api"
 import { todosAPI } from "@preload/apis/todos.api"
 import { welcomeAPI } from "@preload/apis/welcome.api"
-import type { AppSettings, BackupLogs, BackupStatus, BrowserDevice, TransitFile } from "@vessel/type"
+import type { AppSettings, BackupLogs, BackupStatus, BrowserDevice, BrowserSavedFile, TransitFile } from "@vessel/type"
 import { contextBridge, ipcRenderer, webUtils } from "electron"
 
 import { apiClientAPI } from "@preload/apis/api-client.api"
@@ -18,6 +18,11 @@ import { gitAPI } from "@preload/apis/git.api"
 const api = {}
 
 const vesselAPI = {
+  onBrowserFileSaved: (callback: (file: BrowserSavedFile) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, file: BrowserSavedFile) => callback(file)
+    ipcRenderer.on("browser:file-saved", handler)
+    return () => ipcRenderer.removeListener("browser:file-saved", handler)
+  },
   browserPageAction: (id: number, action: string, point?: { x: number; y: number }) => ipcRenderer.invoke("browser:page-action", id, action, point),
   vaultRequest: (action: string, data?: Record<string, string>) => ipcRenderer.invoke("vault:request", action, data),
   onVaultCandidate: (callback: (candidate: { id: string; origin: string; username: string }) => void) => {
@@ -80,6 +85,7 @@ const vesselAPI = {
   },
 
   /** Returns settings. */
+  chooseAvatar: (): Promise<string | null> => ipcRenderer.invoke("settings:choose-avatar"),
   getSettings: (): Promise<AppSettings> => ipcRenderer.invoke("settings:get"),
   getBackupExportSecret: (workspacePath?: string): Promise<string> => ipcRenderer.invoke("settings:backup-export-secret", workspacePath),
 
@@ -135,6 +141,7 @@ const vesselAPI = {
 
   /** Reads transit clipboard. */
   readTransitClipboard: (): Promise<string | { root: string; path: string; title: string }> => ipcRenderer.invoke("transit:clipboard"),
+  importTransitImage: (data: string, title?: string): Promise<{ root: string; path: string; title: string }> => ipcRenderer.invoke("transit:import-image", data, title),
 
   /** Opens transit window. */
   openTransitWindow: (item: { kind: string; content: string; title: string; root?: string }, tabs?: { root: string; content: string }[]): Promise<void> => ipcRenderer.invoke("transit:window", item, tabs),

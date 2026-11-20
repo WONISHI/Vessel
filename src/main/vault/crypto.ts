@@ -1,3 +1,4 @@
+import { vaultCredentialOrigin } from "../../shared/vault-origin"
 import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto"
 import { argon2idAsync } from "@noble/hashes/argon2.js"
 
@@ -18,7 +19,7 @@ export function unseal(key: Buffer, data: Sealed, aad: string) {
   return Buffer.concat([decipher.update(Buffer.from(data.ciphertext, "base64")), decipher.final()]).toString("utf8")
 }
 export function credentialOrigin(url: string) {
-  const value = new URL(url)
-  if (value.protocol !== "https:") throw new Error("第一版仅支持 HTTPS 网站")
-  return value.origin
+  const origin = vaultCredentialOrigin(url)
+  if (!origin) throw new Error("仅支持 HTTPS 网站或本机 HTTP 开发页面")
+  return origin
 }

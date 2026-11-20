@@ -6,6 +6,7 @@ import { TransitPanel } from "@/components/transit/panel"
 import { addTransitFile } from "@/components/transit/state"
 import { Toaster, toast } from "@/components/ui/sonner"
 import { BrowserKeepAlive } from "@/pages/browser/components/keep-alive"
+import { BrowserSaveNotifications } from "@/pages/browser/components/browser-save-notifications"
 import { setSearchEngine } from "@/pages/browser/url"
 import { OfficeKeepAlive } from "@/pages/office/index"
 import { applyAppearance } from "@/pages/settings/appearance"
@@ -46,7 +47,7 @@ function App() {
       let root: string | null = null
       try {
         root = JSON.parse(localStorage.getItem("app_current_workspace") || "null")?.path || null
-      } catch {}
+      } catch { /* Invalid cached workspace state is treated as no workspace. */ }
       const from = sessionStorage.getItem("vessel-settings-from") || ""
       if (location.pathname.startsWith("/resources") || (location.pathname === "/settings" && from.startsWith("/resources"))) {
         root = null
@@ -164,6 +165,7 @@ function App() {
       <NativeFileMenu />
 
       <BrowserKeepAlive />
+      <BrowserSaveNotifications />
       <OfficeKeepAlive />
       <WorkspaceRouteCache />
       <TransitPanel />

@@ -16,7 +16,10 @@ export type BrowserDevice = {
   userAgent: string
 }
 
+export type BrowserSavedFile = { name: string; url: string; source: "download" | "save" }
+
 export interface BrowserToolsAPI {
+  onBrowserFileSaved(callback: (file: BrowserSavedFile) => void): () => void
   syncBrowserBookmarks(items: { url: string; title: string }[]): Promise<void>
   getBrowserBookmarks(): Promise<{ url: string; title: string }[]>
   onBrowserBookmarksUpdated(callback: (items: { url: string; title: string }[]) => void): () => void

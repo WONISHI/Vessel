@@ -1,6 +1,4 @@
-import { toast } from "@/components/ui/sonner"
 import { PasswordVault } from "@/pages/browser/components/password-vault"
-import { bindDoubleSpace } from "../../../../../../shared/double-space"
 import { FloatingVideo } from "./floating-video"
 import { SearchEnginePicker } from "./search-engine-picker"
 import { useEffect, useRef, useState } from "react"
@@ -13,7 +11,7 @@ import { BrowserMore } from "@/pages/browser/components/tools"
 import { elementPickerScript } from "@/pages/browser/element-picker"
 import { withGuest } from "@/pages/browser/guest-lifecycle"
 import { browserURL } from "@/pages/browser/url"
-import { ArrowLeft, ArrowRight, Bookmark, CodeXml, Bug, Home, Info, LoaderCircle, LockKeyhole, Pin, RotateCw, Search, Sparkles, SquareDashedMousePointer, X } from "lucide-react"
+import { ArrowLeft, ArrowRight, Bookmark, Bug, Home, Info, LoaderCircle, LockKeyhole, Pin, RotateCw, Search, Sparkles, SquareDashedMousePointer, X } from "lucide-react"
 import type { BrowserPageModel } from "@/pages/browser/components/browser-page/hooks/use-browser-page"
 
 /** 地址栏与导航工具条 */
@@ -25,20 +23,6 @@ export function BrowserToolbar({ b, visible = true }: { b: BrowserPageModel; vis
   const [engineOpen, setEngineOpen] = useState(false)
   const [decodedAddress, setDecodedAddress] = useState<string | null>(null)
   useEffect(() => { setDecodedAddress(null) }, [tab.id, tab.url, tab.loading])
-  useEffect(() => {
-    if (!visible) return
-    const focusAddress = () => {
-      const field = address.current?.querySelector("input")
-      field?.focus()
-      field?.select()
-    }
-    const fromGuest = (event: Event) => {
-      if (withGuest(views.current.get(tab.id), (guest) => guest.getWebContentsId()) === (event as CustomEvent<number>).detail) focusAddress()
-    }
-    const stop = bindDoubleSpace(window, focusAddress)
-    window.addEventListener("vessel-browser-focus-address", fromGuest)
-    return () => { stop(); window.removeEventListener("vessel-browser-focus-address", fromGuest) }
-  }, [visible, tab.id])
   const fullAddress = input ?? tab.url
   const editing = focused || engineOpen
 
@@ -165,9 +149,6 @@ export function BrowserToolbar({ b, visible = true }: { b: BrowserPageModel; vis
               >
                 <SquareDashedMousePointer />
               </Button>
-              <Button variant="ghost" size="icon" aria-label="定位源码" data-title="定位源码（Vue 3 + Vite，需从更多 → 本地项目调试启动）" disabled={!/^https?:\/\/(localhost|127\.0\.0\.1)([:/]|$)/i.test(tab.url)} onClick={() => {
-                void withGuest(views.current.get(tab.id), guest => guest.executeJavaScript("!!window.__VESSEL_SOURCE_INSPECTOR__ && (window.__VESSEL_SOURCE_INSPECTOR__.toggle(), true)").then(available => { if (!available) toast.info("请先通过浏览器更多 → 本地项目调试启动 Vue 3 + Vite 项目") }).catch(error => toast.error(`无法定位源码：${String(error)}`)))
-              }}><CodeXml /></Button>
               <Button
                 variant="ghost"
                 size="icon"

@@ -8,13 +8,13 @@ export function GitCommitBar({ g }: { g: GitPageModel }) {
   const { status, branches, commits, commitMessage, commitMessageReset, isAmend, setIsAmend, handleUndoLastCommit, handleCommit } = g
 
   return (
-                  <div className="border-t border-stone-200 p-2.5 bg-white shrink-0">
+                  <div className="flex h-full min-h-0 flex-col bg-white p-2.5 [&>textarea]:min-h-0 [&>textarea]:flex-1">
                     <CommitMessageInput
                       draft={commitMessage}
                       resetVersion={commitMessageReset}
                       onSubmit={() => { if (status?.staged.length && !status.conflicts.length) void handleCommit() }}
                     />
-                    <div className="mt-2 flex items-center justify-between">
+                    <div className="mt-2 flex shrink-0 items-center justify-between">
                       <div className="flex items-center gap-3">
                         <label className="flex items-center gap-1.5 text-[11px] text-stone-500 cursor-pointer">
                           <input

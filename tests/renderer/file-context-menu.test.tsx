@@ -1,10 +1,11 @@
 // @vitest-environment jsdom
-import React from "react"
 import { cleanup, fireEvent, render, screen } from "@testing-library/react"
-import { afterEach, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, expect, it, vi } from "vitest"
+import { localFileURL } from '@vessel/utils'
 import { FileActions } from "@/components/workspace/components/layout-aside/layout-workspace-sidebar/file-actions"
 vi.mock("@vessel/react-router", () => ({ useRouter: () => ({ push: vi.fn() }) }))
 vi.mock("@/components/workspace/hooks/useWorkspace", () => ({ useWorkspace: () => ({ workspace: { path: "/workspace" }, openFiles: [] }) }))
+beforeEach(() => { window.electronAPI = { ...window.electronAPI, getSettings: vi.fn(async () => ({})) } })
 afterEach(cleanup)
 it("keeps the file highlighted until its Radix context menu closes", () => {
   render(
@@ -47,4 +48,21 @@ it("offers batch actions for a multi-selection and copies all selected names", a
   expect(screen.queryByRole("menuitem", { name: "在资源管理器中显示" })).toBeNull()
   fireEvent.click(screen.getByRole("menuitem", { name: "复制文件名" }))
   expect(writeText).toHaveBeenCalledWith("a.png\nb.png")
+})
+
+it.each(['页面 #1.html', 'photo.PNG', 'document.pdf', 'data.json', 'clip.mp4'])('opens %s in the default browser with an encoded local URL', (name) => {
+ const openExternal = vi.fn(async () => {})
+ window.electronAPI = { ...window.electronAPI, openExternal, getSettings: vi.fn(async () => ({})) }
+ const path = `/workspace/${name}`
+ render(<FileActions node={{ name, path, type: 'file' }} onChanged={vi.fn()}><button>{name}</button></FileActions>)
+ fireEvent.contextMenu(screen.getByRole('button', { name }))
+ fireEvent.click(screen.getByRole('menuitem', { name: '在默认浏览器中打开' }))
+ expect(openExternal).toHaveBeenCalledWith(localFileURL(path))
+ expect(screen.queryByRole('menu')).toBeNull()
+})
+
+it.each([{ name: 'folder.html', type: 'directory' as const }, { name: 'app.exe', type: 'file' as const }, { name: 'report.docx', type: 'file' as const }])('hides browser opening for $name', (node) => {
+ render(<FileActions node={{ ...node, path: `/workspace/${node.name}` }} onChanged={vi.fn()}><button>{node.name}</button></FileActions>)
+ fireEvent.contextMenu(screen.getByRole('button', { name: node.name }))
+ expect(screen.queryByRole('menuitem', { name: '在默认浏览器中打开' })).toBeNull()
 })

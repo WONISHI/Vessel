@@ -5,8 +5,11 @@ import { Toaster } from "@/components/ui/sonner"
 import { ChevronLeft, ChevronRight, FileText } from "lucide-react"
 import { useEffect, useState } from "react"
 import "@/components/transit/panel/components/transit.css"
+import { LayoutVisibilityControls } from "@/components/layout/layout-visibility-controls"
+import { useStatusBarVisible } from "@/features/status-bar/visibility"
 
 export default function StandalonePreview() {
+  const statusVisible = useStatusBarVisible()
   const [items, setItems] = useState<TransitItem[]>([])
   const [selected, setSelected] = useState("")
   const [error, setError] = useState("")
@@ -40,8 +43,9 @@ export default function StandalonePreview() {
       </div>
       <button className="transit-bar-item" aria-label="下一个文件" disabled={index < 0 || index >= items.length - 1} onClick={() => setSelected(items[index + 1].id)}><ChevronRight /></button>
       <span className="transit-strip-count">{Math.max(0, index + 1)}/{items.length}</span>
+      <LayoutVisibilityControls activity={false} />
     </nav>
     <main className="flex min-h-0 flex-1 overflow-hidden">{error ? <p role="alert" className="p-5 text-red-600">{error}</p> : item ? <FilePreview key={item.id} item={item} /> : <p className="p-5 text-stone-400">正在读取文件…</p>}</main>
-    <footer className="flex h-8 shrink-0 items-center gap-2 border-t bg-stone-50 px-3 text-xs text-stone-500"><FileText className="size-3.5" /><span className="truncate">{item?.title}</span><span className="ml-auto">独立预览</span></footer>
+    {statusVisible && <footer aria-label="底部状态栏" className="flex h-8 shrink-0 items-center gap-2 border-t bg-stone-50 px-3 text-xs text-stone-500"><FileText className="size-3.5" /><span className="truncate">{item?.title}</span><span className="ml-auto">独立预览</span></footer>}
   </div><Toaster /></TooltipProvider>
 }

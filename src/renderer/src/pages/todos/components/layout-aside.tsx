@@ -1,3 +1,4 @@
+import { StatusBar } from "@/components/ui/status-bar"
 import ActivityBar from "@/components/layout/activity-bar/index"
 import { ResizableSplit } from "@/components/ui/resizable-split"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -14,13 +15,14 @@ export default function TodoAside({ todos, selected, onSelect, children }: { chi
   const { width, setWidth, open } = useSidebar()
   const dates = [...new Set(todos.map((todo) => todo.date))].sort()
   return (
-    <div className="flex h-full min-w-0 flex-1 bg-white">
+    <div className="flex h-full min-h-0 min-w-0 flex-1 overflow-hidden bg-white">
       <ActivityBar
         activity="todos"
         onActivityChange={(activity) => {
           if (activity !== "todos") void router.push(activity === "tools" ? "/devtools" : activity === "files" ? "/editor" : `/${activity}`)
         }}
       />
+      <div className="grid min-h-0 min-w-0 flex-1 grid-rows-[minmax(0,1fr)_auto] overflow-hidden">
       <ResizableSplit
         side="left"
         size={width}
@@ -79,6 +81,8 @@ export default function TodoAside({ todos, selected, onSelect, children }: { chi
       >
         {children}
       </ResizableSplit>
+      <StatusBar left="待办" />
+      </div>
     </div>
   )
 }

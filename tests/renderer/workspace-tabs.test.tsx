@@ -69,3 +69,15 @@ it("provides current workspace tabs and navigation to the file finder but exclud
   act(() => snapshot.openFile({ name: "b.md", path: "/test/b.md", type: "file" }))
   expect(result.current.activeFilePath).toBe("/test/b.md")
 })
+
+it("restores the resource tree without scanning for moved editor tabs", async () => {
+  const file = { name: "moved.md", path: "/project/moved.md" }
+  vi.mocked(window.electronAPI.getAppState).mockResolvedValue({ files: [file], active: file.path, expanded: ["/project/src"] })
+  const recover = vi.fn(() => new Promise(() => {}))
+  window.electronAPI.restoreWorkspaceTabs = recover as any
+  const { result } = renderHook(() => useWorkspaceController({ name: "project", path: "/project", files: [] }, undefined, "resources", true))
+  await waitFor(() => expect(result.current.expandedFolders).toEqual(["/project/src"]))
+  expect(result.current.activeFilePath).toBe(file.path)
+  expect(recover).not.toHaveBeenCalled()
+  expect(window.electronAPI.setAppState).not.toHaveBeenCalled()
+})

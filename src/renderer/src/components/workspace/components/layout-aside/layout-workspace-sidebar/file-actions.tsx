@@ -1,3 +1,4 @@
+import { canOpenInDefaultBrowser } from "../../../../../../../shared/browser-preview"
 import { useDirectoryTreeLayout } from "@/features/directory-tree/state"
 import { fileTreeRowStyle } from "./tree-layout"
 import { FileThemeIcon } from "@/features/file-icons"
@@ -297,6 +298,11 @@ export function FileActions({
                 </ContextMenuItem>
               </ContextMenuSubContent>
             </ContextMenuSub>
+          )}
+          {!multiple && node.type !== "directory" && canOpenInDefaultBrowser(node.name) && (
+            <ContextMenuItem onSelect={() => {
+              void window.electronAPI.openExternal(localFileURL(node.path)).catch((error) => toast.error(String(error)))
+            }}><Globe />在默认浏览器中打开</ContextMenuItem>
           )}
           {!multiple && node.type === "directory" && (
             <>

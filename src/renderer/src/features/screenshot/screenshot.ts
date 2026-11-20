@@ -1,3 +1,4 @@
+import { installPinImageInteractions, type PinDrag } from "./pin-image-interactions"
 import { installLiquidGlass } from "@/features/screenshot/liquid-glass"
 import { installTextOptions, screenshotTextFont, drawScreenshotTextDecoration } from "./text-options"
 import { installTextInputFocus, vesselTextAdapters } from "./text-input"
@@ -20,6 +21,7 @@ import { Check, Circle, Copy, DownloadSimple as Download, Translate as Languages
 import { createElement } from "react"
 import { renderToStaticMarkup } from "react-dom/server"
 type ScreenshotAPI = {
+  pinDrag(value: PinDrag): Promise<void>
   pinMenu(): Promise<void>
   pinStyle(style: { opacity?: number; shadow?: boolean }): Promise<void>
   onPinStyleToggle(callback: () => void): () => void
@@ -367,6 +369,7 @@ void api
       img.src = image
       img.className = "pin-image"
       img.draggable = false
+      installPinImageInteractions(img, api, showError)
       root.append(img, more, styleBar)
     }
   })

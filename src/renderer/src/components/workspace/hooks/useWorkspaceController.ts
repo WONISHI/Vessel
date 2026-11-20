@@ -63,7 +63,11 @@ export function useWorkspaceController(workspace: WorkspaceData, initialFile?: s
       if (saved && Array.isArray(saved.files)) {
         let files = saved.files.filter((file) => typeof file.path === "string" && typeof file.name === "string")
         files = files.filter((file) => !file.path.replace(/\\/g, "/").includes("/src/shared/"))
-        const recovered = await window.electronAPI.restoreWorkspaceTabs?.(workspace.path, files.map((file) => file.path))
+        // The resource preview only needs selection and expansion state. Recovering moved
+        // editor tabs can scan the entire project and must not delay its directory tree.
+        const expanded = (saved.expanded || []).filter((folder) => !folder.replace(/\\/g, "/").includes("/src/shared/"))
+        setExpandedFolders(expanded)
+        const recovered = preview ? undefined : await window.electronAPI.restoreWorkspaceTabs?.(workspace.path, files.map((file) => file.path))
         if (cancelled) return
         if (recovered) {
           files = files.flatMap((file) => {
@@ -71,8 +75,6 @@ export function useWorkspaceController(workspace: WorkspaceData, initialFile?: s
             return path ? [{ ...file, path, name: path.split(/[\\/]/).pop() || file.name }] : []
           }).filter((file, index, all) => all.findIndex((item) => item.path === file.path) === index)
         }
-        const expanded = (saved.expanded || []).filter((folder) => !folder.replace(/\\/g, "/").includes("/src/shared/"))
-        setExpandedFolders(expanded)
 
         if (pendingInitialFile) {
           if (!files.some((item) => item.path === pendingInitialFile)) {

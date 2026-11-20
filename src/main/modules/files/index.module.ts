@@ -1,3 +1,5 @@
+import { readWorkspaceGraph, cancelWorkspaceGraph, disposeWorkspaceGraphs, watchGraphOwner } from "@main/workspace/graph-service"
+import { canOpenInDefaultBrowser } from "../../../shared/browser-preview"
 import { fileURLToPath } from "node:url"
 import { listAttachments } from "./attachment-library"
 import { generalSettings } from "@main/settings/settings"
@@ -207,12 +209,19 @@ export class FilesModule extends BaseModule {
     ipcMain.handle("obsidian:readImage", (_event, root, documentPath, reference) => readObsidianImage(root, documentPath, reference))
     ipcMain.handle("workspace:transferFiles", (_event, root, paths, destination, external, duplicate) => transferWorkspaceFiles(root, paths, destination, external, duplicate === true))
     ipcMain.handle("workspace:mutateFile", (_event, root, path, name) => mutateWorkspaceFile(root, path, name))
+    ipcMain.handle("workspace:graph", (event, root: unknown, requestId?: string) => {
+      watchGraphOwner(event.sender)
+      return readWorkspaceGraph(event.sender.id, root, (graph) => {
+        if (!event.sender.isDestroyed()) event.sender.send("workspace:graph-progress", { root, requestId, graph })
+      })
+    })
+    ipcMain.handle("workspace:graph-cancel", (event) => cancelWorkspaceGraph(event.sender.id))
     ipcMain.handle("workspace:createEntry", (_event, root, parent, name, kind) => createWorkspaceEntry(root, parent, name, kind))
     ipcMain.handle("link:openExternal", async (_event, href: string) => {
       const url = new URL(href)
       if (url.protocol === "file:") {
         const file = fileURLToPath(url)
-        if (!/\.(html?|xhtml|pdf|svg|png|jpe?g|gif|webp|avif|bmp|ico|txt|md|json|xml|css|js|mjs|csv|mp4|webm|ogv|mov|m4v|mp3|wav|ogg|m4a|aac|flac)$/i.test(file)) throw new Error("仅支持打开浏览器可预览的文件类型")
+        if (!canOpenInDefaultBrowser(file)) throw new Error("仅支持打开浏览器可预览的文件类型")
         // Route through the default browser, not the file type's own handler (TextEdit, Preview, ...).
         const browser = await app.getApplicationInfoForProtocol("https://").catch(() => null)
         if (browser?.path && process.platform !== "linux") {
@@ -233,6 +242,9 @@ export class FilesModule extends BaseModule {
 
   /** Handles dispose events. */
   protected onDispose(): void {
+    disposeWorkspaceGraphs()
+    ipcMain.removeHandler("workspace:graph")
+    ipcMain.removeHandler("workspace:graph-cancel")
     disposeSourceInspector()
     ipcMain.removeHandler("code:diagnostics")
     disposeCodeDiagnostics()

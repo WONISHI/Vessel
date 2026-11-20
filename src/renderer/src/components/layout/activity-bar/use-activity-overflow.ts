@@ -16,9 +16,10 @@ export function useActivityOverflow(itemCount: number) {
       const style = getComputedStyle(rail)
       const padding = (parseFloat(style.paddingTop) || 10) + (parseFloat(style.paddingBottom) || 10)
       // Logo: 30 + 8 margin; footer: two 38px controls + 4px gap.
-      // Four gaps separate logo, icon group, More and footer; each icon adds one slot gap.
-      const available = height - padding - 38 - 80 - 38 - 16
-      setCapacity(Math.max(0, Math.min(itemCount, Math.floor(available / 42))))
+      // Reserve a More slot only when the activities do not all fit.
+      const available = height - padding - 38 - 80 - 12
+      const slots = Math.max(0, Math.floor(available / 42))
+      setCapacity(slots >= itemCount ? itemCount : Math.max(0, slots - 1))
     }
     measure()
     const observer = typeof ResizeObserver === "undefined" ? undefined : new ResizeObserver(measure)

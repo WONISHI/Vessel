@@ -113,8 +113,12 @@ export const Guest = memo(function Guest({ tab, visible, register, update }: { t
           window.dispatchEvent(new CustomEvent("vessel-browser-inspect-style", { detail: { id: view.getWebContentsId(), ...request } }))
         }
       }
+      if (event.channel === "vessel-zoom-changed") {
+        const zoom = event.args[0]
+        if (typeof zoom === "number" && Number.isFinite(zoom) && zoom >= 0.5 && zoom <= 2) updateRef.current(tab.id, { zoom })
+      }
       if (event.channel === "vessel-navigation") sync()
-      if (event.channel === "vessel-focus-address") window.dispatchEvent(new CustomEvent("vessel-browser-focus-address", { detail: view.getWebContentsId() }))
+      if (event.channel === "vessel-open-top-search") window.dispatchEvent(new CustomEvent("vessel-browser-open-top-search", { detail: tab.id }))
       if (event.channel === "vessel-find") window.dispatchEvent(new CustomEvent("vessel-browser-find", { detail: view.getWebContentsId() }))
     }
     const consoleMessage = (event: Electron.ConsoleMessageEvent) => {

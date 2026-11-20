@@ -19,6 +19,7 @@ export interface GitStatusResult {
 export interface GitStashEntry {
   index: number
   name: string
+  /** ISO 8601 committer date of the saved stash commit. */
   date: string
   hash?: string
 }
@@ -96,3 +97,13 @@ export interface GitSearchOptions {
   limit?: number
 }
 export interface GitSearchResult { commits: GitCommitItem[]; hasMore: boolean }
+export type GitPushInfo = {
+  remotes: { name: string; url: string }[]
+  branches: { name: string; current: boolean; upstreamRemote: string; upstreamBranch: string }[]
+  remoteBranches: string[]
+}
+export type GitPushSelection = {
+  remote: string
+  branches: { local: string; remote: string; track: boolean }[]
+  tags: boolean
+}

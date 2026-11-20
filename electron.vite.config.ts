@@ -194,7 +194,7 @@ function macPasswordAuthentication() {
       try {
         for (const name of ["vessel-auth", "vessel-clipboard"]) {
           const binary = resolve(temporary, name)
-          execFileSync("/usr/bin/xcrun", ["clang", "-arch", "arm64", "-arch", "x86_64", "-mmacosx-version-min=11.0", "-fobjc-arc", resolveFromRoot(`native/${name}.m`), "-framework", "AppKit", "-framework", "LocalAuthentication", "-o", binary])
+          execFileSync("/usr/bin/xcrun", ["clang", "-arch", "arm64", "-arch", "x86_64", "-mmacosx-version-min=11.0", "-fobjc-arc", resolveFromRoot(`native/${name}.m`), "-framework", "AppKit", "-framework", "LocalAuthentication", "-framework", "ApplicationServices", "-o", binary])
           execFileSync("/usr/bin/codesign", ["--force", "--sign", "-", binary])
           this.emitFile({ type: "asset", fileName: name, source: readFileSync(binary) })
         }
@@ -206,17 +206,25 @@ function macPasswordAuthentication() {
   }
 }
 
+/** Verify the committed Rust artifact; normal app builds never need to install a compiler. */
+function workspaceGraphAssets() {
+  return { name: "vessel-workspace-graph-wasm", configResolved() {
+    execFileSync(process.execPath, [resolveFromRoot("packages/@vessel/workspace/scripts/check-wasm.mjs")], { stdio: "inherit", cwd: projectRoot })
+  } }
+}
+
 export default defineConfig({
   main: {
-    plugins: [macPasswordAuthentication()],
+    plugins: [workspaceGraphAssets(), macPasswordAuthentication()],
     root: projectRoot,
     // Workspace 包导出 TS 源码，必须编译进产物，不能留给 Electron require。
     build: {
-      rollupOptions: { input: { index: resolveFromRoot("src/main/index.ts"), "code-diagnostics-worker": resolveFromRoot("src/main/diagnostics/code-diagnostics-worker.ts") } },
+      rollupOptions: { input: { index: resolveFromRoot("src/main/index.ts"), "code-diagnostics-worker": resolveFromRoot("src/main/diagnostics/code-diagnostics-worker.ts"), "workspace-graph-worker": resolveFromRoot("src/main/workspace/graph-worker.ts") } },
       externalizeDeps: { exclude: ["@vessel/obsidian", "@vessel/utils", "@vessel/react-router", "@vessel/sync", "@vessel/type"] }
     },
     resolve: {
       alias: {
+        "@vessel/workspace": resolveFromRoot("packages/@vessel/workspace/src/index.ts"),
         "@resources": resolveFromRoot("resources"),
         "#vessel-clipper": resolveFromRoot("packages/@vessel/clipper/src"),
         "#vessel-obsidian": resolveFromRoot("packages/@vessel/obsidian/src"),
@@ -237,6 +245,7 @@ export default defineConfig({
     },
     resolve: {
       alias: {
+        "@vessel/workspace": resolveFromRoot("packages/@vessel/workspace/src/index.ts"),
         "@resources": resolveFromRoot("resources"),
         "#vessel-clipper": resolveFromRoot("packages/@vessel/clipper/src"),
         "#vessel-obsidian": resolveFromRoot("packages/@vessel/obsidian/src"),
@@ -266,6 +275,7 @@ export default defineConfig({
         { find: /^@vessel\/obsidian\/callouts\/style\.css/, replacement: resolveFromRoot("packages/@vessel/obsidian/src/callouts/style.css") },
       { find: /^@vessel\/obsidian$/, replacement: resolveFromRoot("packages/@vessel/obsidian/src/index.ts") },
         ...Object.entries({
+        "@vessel/workspace": resolveFromRoot("packages/@vessel/workspace/src/index.ts"),
         "@resources": resolveFromRoot("resources"),
         "#vessel-clipper": resolveFromRoot("packages/@vessel/clipper/src"),
         "#vessel-obsidian": resolveFromRoot("packages/@vessel/obsidian/src"),

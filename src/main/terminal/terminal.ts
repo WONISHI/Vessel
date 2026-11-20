@@ -3,6 +3,19 @@ import { spawn, type IPty } from "node-pty"
 import { randomUUID } from "node:crypto"
 import { realpath, stat } from "node:fs/promises"
 import { dirname, isAbsolute, relative, sep } from "node:path"
+import { terminateTerminalTree } from "./process-tree"
+
+const terminalHosts = new Set<() => void>()
+let quitting = false
+
+/** Runs before application teardown, while every pty and its process ancestry still exist. */
+export function closeAllTerminals() {
+  quitting = true
+  for (const close of terminalHosts) close()
+}
+
+/** A failed file-save drain can abort quitting and leave the application open. */
+export function resumeTerminalStarts() { quitting = false }
 
 /** Performs the terminal directory operation. */
 export async function terminalDirectory(root: string, file?: string) {
@@ -18,16 +31,25 @@ export async function terminalDirectory(root: string, file?: string) {
 /** Registers terminal. */
 export function registerTerminal(host: WebContents) {
   const sessions = new Map<string, IPty>()
+  let disposed = false
+  let revision = 0
 
   /** Closes close. */
   const close = (id: string) => {
     const terminal = sessions.get(id)
     sessions.delete(id)
-    terminal?.kill()
+    if (terminal) terminateTerminalTree(terminal)
   }
+  const closeAll = () => {
+    revision++
+    for (const id of sessions.keys()) close(id)
+  }
+  terminalHosts.add(closeAll)
   host.ipc.handle("terminal:start", async (_event, root: string, file?: string, cols?: number, rows?: number) => {
+    const startedAt = revision
+    if (quitting || disposed) throw new Error("窗口正在关闭")
     const cwd = await terminalDirectory(root, file)
-    if (host.isDestroyed()) throw new Error("窗口已关闭")
+    if (quitting || disposed || host.isDestroyed() || startedAt !== revision) throw new Error("窗口已关闭或正在重新加载")
     if (sessions.size >= 64) throw new Error("最多同时打开 64 个终端")
     const shell = process.platform === "win32" ? "powershell.exe" : process.env.SHELL || "/bin/zsh"
     const env: Record<string, string> = {
@@ -59,9 +81,11 @@ export function registerTerminal(host: WebContents) {
   })
   host.ipc.handle("terminal:close", (_event, id: string) => close(id))
   host.once("destroyed", () => {
-    for (const id of sessions.keys()) close(id)
+    disposed = true
+    closeAll()
+    terminalHosts.delete(closeAll)
   })
   host.on("did-start-navigation", (_event, _url, inPlace, mainFrame) => {
-    if (mainFrame && !inPlace) for (const id of sessions.keys()) close(id)
+    if (mainFrame && !inPlace) closeAll()
   })
 }

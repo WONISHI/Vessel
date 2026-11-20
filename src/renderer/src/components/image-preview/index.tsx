@@ -4,6 +4,7 @@ import { transformImage, type ImageOperation } from "@/components/image-preview/
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Image } from "@/components/ui/image"
+import { addTransitFile } from "@/components/transit/state"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
@@ -23,6 +24,7 @@ export function ImageFilePreview({ root, activeFilePath }: { root: string; activ
   const [edited, setEdited] = useState<string>()
   const [original, setOriginal] = useState({ width: 0, height: 0 })
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 })
+  const [detailsHidden, setDetailsHidden] = useState(false)
   const [display, setDisplay] = useState(480)
   const [busy, setBusy] = useState(false),
     [error, setError] = useState("")
@@ -142,14 +144,20 @@ export function ImageFilePreview({ root, activeFilePath }: { root: string; activ
     : []
   return (
     <div className="vessel-image-viewer flex h-full min-h-0 flex-col bg-white">
-      <div className="grid min-h-0 min-w-0 flex-1 grid-cols-[minmax(0,1fr)_minmax(200px,280px)] gap-4 overflow-hidden p-5">
-        <ScrollArea className="image-viewer-canvas min-h-0 min-w-0 rounded-xl bg-stone-50 [&_[data-radix-scroll-area-viewport]>div]:!flex [&_[data-radix-scroll-area-viewport]>div]:min-h-full">
-          <div className="flex min-w-0 flex-1 items-center justify-center p-4">
+      <div className={`grid min-h-0 min-w-0 flex-1 ${detailsHidden ? "grid-cols-1" : "grid-cols-[minmax(0,1fr)_minmax(200px,280px)]"} gap-4 overflow-hidden p-5`}>
+        <ScrollArea horizontal className="image-viewer-canvas min-h-0 min-w-0 rounded-xl bg-stone-50 [&_[data-radix-scroll-area-viewport]>div]:!flex [&_[data-radix-scroll-area-viewport]>div]:min-h-full">
+          <div className="flex min-w-full w-max shrink-0 items-center justify-center p-4">
             <Image
+              onAddToTransit={edited ? undefined : async () => addTransitFile(root, activeFilePath, file?.name || activeFilePath.split(/[\\/]/).pop() || "图片")}
               sourceKey={edited || activeFilePath}
               src={edited}
               loadSource={edited ? undefined : loadSource}
               width={display}
+              controlledWidth={display}
+              onZoomIn={() => setDisplay((value) => Math.min(1600, value * 1.25))}
+              onZoomOut={() => setDisplay((value) => Math.max(80, value / 1.25))}
+              detailsHidden={detailsHidden}
+              onToggleDetails={() => setDetailsHidden((value) => !value)}
               alt={file?.name || "图片预览"}
               onResizeEnd={setDisplay}
               onError={() => {
@@ -167,7 +175,7 @@ export function ImageFilePreview({ root, activeFilePath }: { root: string; activ
             />
           </div>
         </ScrollArea>
-        <ScrollArea className="min-h-0 min-w-0 pr-2 [&_[data-radix-scroll-area-viewport]>div]:!block">
+        {!detailsHidden && <ScrollArea className="min-h-0 min-w-0 pr-2 [&_[data-radix-scroll-area-viewport]>div]:!block">
           <Card className="image-viewer-details">
             <CardHeader className="p-4">
               <CardTitle className="image-viewer-title text-sm">图片详细信息</CardTitle>
@@ -187,7 +195,7 @@ export function ImageFilePreview({ root, activeFilePath }: { root: string; activ
               <p className="image-viewer-note text-[11px] text-stone-400">旋转和裁剪生成静态 PNG 副本，动图导出为单帧。</p>
             </CardContent>
           </Card>
-        </ScrollArea>
+        </ScrollArea>}
       </div>
       {error && (
         <p

@@ -1,5 +1,5 @@
 import { browserNavigationError } from "@/pages/browser/navigation-error"
-import { popupOverlapsPane } from "@/pages/browser/popup-overlap"
+import { browserPopupOverlapsPane } from "@/pages/browser/popup-overlap"
 import { newTab, Tab } from "@/pages/browser/components/index-shared"
 import { withGuest } from "@/pages/browser/guest-lifecycle"
 import { browserURL } from "@/pages/browser/url"
@@ -10,7 +10,7 @@ import type { BrowserState } from "@/pages/browser/components/browser-page/hooks
 
 /** 页内查找、控制台挂载、导航与标签操作 */
 export function useBrowserActions(state: BrowserState, visible: boolean) {
-  const { tabs, setTabs, setFindOpen, findInput, devtoolsOpen, setDevtoolsOpen, dock, setDock, consoleFont, consoleSize, devtoolsHost, setActive, setInput, bookmarks, setBookmarks, views, tab, input } = state
+  const { tabs, setTabs, setFindOpen, findInput, devtoolsOpen, setDevtoolsOpen, dock, consoleFont, consoleSize, devtoolsHost, setActive, setInput, bookmarks, setBookmarks, views, tab, input } = state
 
 
   /** Reloads tab. */
@@ -92,7 +92,6 @@ export function useBrowserActions(state: BrowserState, visible: boolean) {
   const [inspectRevision, setInspectRevision] = useState(0)
   const inspectPage = (point: { x: number; y: number; property?: string; targetKey?: string }) => {
     pendingInspect.current = point
-    if (!point.property) setDock("bottom")
     setDevtoolsOpen(true)
     setInspectRevision((revision) => revision + 1)
   }
@@ -116,13 +115,7 @@ export function useBrowserActions(state: BrowserState, visible: boolean) {
     }
     let disposed = false
 
-    const hasPopup = () => Array.from(document.querySelectorAll<HTMLElement>(
-      '.vessel-browser-tabs-popup[data-state="open"], .vessel-activity-tools-popup[data-state="open"], .dev-actions-menu[data-state="open"], [role="dialog"][data-state="open"]'
-    )).some((popup) => {
-      const pane = element.getBoundingClientRect()
-      const rect = popup.getBoundingClientRect()
-      return popupOverlapsPane(rect, pane)
-    })
+    const hasPopup = () => browserPopupOverlapsPane(element.getBoundingClientRect())
     let popupOpen = hasPopup()
     /** Synchronizes sync. */
     const sync = () => {
@@ -159,7 +152,7 @@ export function useBrowserActions(state: BrowserState, visible: boolean) {
       cancelAnimationFrame(syncFrame)
       syncFrame = requestAnimationFrame(sync)
     })
-    popupObserver.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["data-state", "class", "style", "hidden"] })
+    popupObserver.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["data-state", "data-visible", "data-removed", "data-mounted", "class", "style", "hidden"] })
     const observer = new ResizeObserver(sync)
     observer.observe(element)
     view.addEventListener("dom-ready", sync)
@@ -289,8 +282,17 @@ export function useBrowserActions(state: BrowserState, visible: boolean) {
   useEffect(() => {
     /** Performs the action operation. */
     const action = (event: Event) => {
-      const detail = (event as CustomEvent<{ action: string; id: string }>).detail
-      if (detail.action === "new") add()
+      const detail = (event as CustomEvent<{ action: string; id: string; url?: string }>).detail
+      if (detail.action === "new" && detail.url) {
+        const item = { ...newTab(), url: detail.url, loading: true }
+        setTabs((current) => {
+          const index = current.findIndex((entry) => entry.id === tab.id)
+          const position = index < 0 ? current.length : index + 1
+          return [...current.slice(0, position), item, ...current.slice(position)]
+        })
+        setActive(item.id)
+        setInput(null)
+      } else if (detail.action === "new") add()
       else if (detail.action === "close") close(detail.id)
     }
     window.addEventListener("vessel-browser-tab-action", action)

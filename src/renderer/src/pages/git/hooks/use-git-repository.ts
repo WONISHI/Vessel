@@ -1,7 +1,9 @@
+import { useGitSelectionState } from "./use-git-selection-state"
+import { reconcileGitFileSelection } from "../file-selection-state"
 import { getCommitDraft } from "@/pages/git/commit-drafts"
 import { type GitRemoteOperation } from "@/pages/git/components/operation-loading"
 import { toast } from "@/components/ui/sonner"
-import type { GitCommitDetail, GitCommitItem, GitFileStatus, GitStatusResult, GitStashEntry } from "@vessel/type"
+import type { GitCommitDetail, GitCommitItem, GitStatusResult, GitStashEntry } from "@vessel/type"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { cleanGitErrorMessage, findCommitIndexForBranch, getInitialRepoPath, persistGitRepoPath } from "@/pages/git/utils"
 
@@ -74,18 +76,12 @@ export function useGitRepository() {
   const [commitDetail, setCommitDetail] = useState<GitCommitDetail | null>(null)
   const [historyScope, setHistoryScope] = useState<"all" | "current">("all")
 
-  // 选中的文件与 Diff
-  const [selectedFile, setSelectedFile] = useState<GitFileStatus | null>(null)
+  // Repository-scoped selection survives route unmounts and stays isolated when switching repositories.
+  const selection = useGitSelectionState(repoPath)
+  const { selectedFile, activeFileSection } = selection
+  const statusRepoPath = useRef(repoPath)
   const [diffText, setDiffText] = useState("")
 
-  // 多选与选区状态
-  const [selectedStagedPaths, setSelectedStagedPaths] = useState<string[]>([])
-  const [selectedUnstagedPaths, setSelectedUnstagedPaths] = useState<string[]>([])
-  const [selectedConflictPaths, setSelectedConflictPaths] = useState<string[]>([])
-  const [lastConflictClickedIndex, setLastConflictClickedIndex] = useState(-1)
-  const [lastStagedClickedIndex, setLastStagedClickedIndex] = useState(-1)
-  const [lastUnstagedClickedIndex, setLastUnstagedClickedIndex] = useState(-1)
-  const [activeFileSection, setActiveFileSection] = useState<"staged" | "unstaged" | "conflicts">("unstaged")
   const [stashes, setStashes] = useState<GitStashEntry[]>([])
 
   // Commit 表单
@@ -148,6 +144,7 @@ export function useGitRepository() {
       if (version !== historyVersion.current) return
       setCommitTotal(totalRes)
       setBranchCommitTotal(branchTotalRes ?? totalRes)
+      statusRepoPath.current = repoPath
       setStatus(statusRes)
       // Notify the resource-library tree only when the change set really differs, never on every reload.
       const signature = JSON.stringify([statusRes.staged, statusRes.unstaged, statusRes.untracked, statusRes.conflicts].map((list) => list.map((file) => `${file.path}:${file.status}`)))
@@ -160,28 +157,7 @@ export function useGitRepository() {
       setStashes(stashRes || [])
       setUnpushedHashes(new Set(unpushedRes || []))
 
-      // 保持当前的多选列表中依然有效的文件
-      setSelectedStagedPaths((prev) => prev.filter((p) => statusRes.staged.some((f) => f.path === p)))
-      setSelectedConflictPaths((prev) => prev.filter((path) => statusRes.conflicts.some((file) => file.path === path)))
-      const allUnstaged = [...statusRes.unstaged, ...statusRes.untracked]
-      setSelectedUnstagedPaths((prev) => prev.filter((p) => allUnstaged.some((f) => f.path === p)))
-
-      // 选定文件：如果当前选中的还在，则保持；否则选第一个可用变更
-      setSelectedFile((prev) => {
-        if (prev) {
-          const stillConflict = statusRes.conflicts.find((file) => file.path === prev.path)
-          if (stillConflict) return stillConflict
-          const stillStaged = statusRes.staged.find((f) => f.path === prev.path)
-          if (stillStaged) return stillStaged
-          const stillUnstaged = allUnstaged.find((f) => f.path === prev.path)
-          if (stillUnstaged) return stillUnstaged
-        }
-        if (statusRes.conflicts.length > 0) return statusRes.conflicts[0]
-        if (statusRes.unstaged.length > 0) return statusRes.unstaged[0]
-        if (statusRes.staged.length > 0) return statusRes.staged[0]
-        if (statusRes.untracked.length > 0) return statusRes.untracked[0]
-        return null
-      })
+      reconcileGitFileSelection(repoPath, statusRes)
     } catch (err: any) {
       if (version !== historyVersion.current) return
       toast.error("读取仓库信息失败", { description: cleanGitErrorMessage(err) })
@@ -266,16 +242,18 @@ export function useGitRepository() {
 
   // 加载选定文件的 Diff
   useEffect(() => {
-    if (!repoPath || !selectedFile || activeTab !== "status") {
+    if (!repoPath || !selectedFile || !status || statusRepoPath.current !== repoPath || activeTab !== "status") {
       setDiffText("")
       return
     }
-    const isStaged = status?.staged.some((f) => f.path === selectedFile.path)
+    let cancelled = false
+    const isStaged = activeFileSection === "staged" && status.staged.some((f) => f.path === selectedFile.path)
     window.electronAPI.git
       .getDiff(repoPath, selectedFile.path, isStaged)
-      .then((res) => setDiffText(res.diff))
-      .catch(() => setDiffText(""))
-  }, [repoPath, selectedFile, status, activeTab])
+      .then((res) => { if (!cancelled) setDiffText(res.diff) })
+      .catch(() => { if (!cancelled) setDiffText("") })
+    return () => { cancelled = true }
+  }, [repoPath, selectedFile, status, activeTab, activeFileSection])
 
   // 加载选定 Commit 的详情
   useEffect(() => {
@@ -349,7 +327,7 @@ export function useGitRepository() {
   const branchSyncedTotal = Math.max(0, branchCommitTotal - aheadCount)
   const behindCount = status?.behind || 0
 
-  return { repositorySettingsOpen, setRepositorySettingsOpen, terminalOpen, setTerminalOpen, repoPath, setRepoPath, libraryProjects, setLibraryProjects, isRepo, setIsRepo, activeTab, setActiveTab, loading, setLoading, remoteOperation, setRemoteOperation, remotePending, status, setStatus, branches, setBranches, commits, setCommits, unpushedHashes, setUnpushedHashes, commitTotal, setCommitTotal, branchCommitTotal, setBranchCommitTotal, historyLoading, setHistoryLoading, historyVersion, historyPending, historyFailed, setHistoryFailed, selectedCommitIndex, setSelectedCommitIndex, historyFocusNonce, navigateToBranchTip, commitDetail, setCommitDetail, historyScope, setHistoryScope, selectedFile, setSelectedFile, diffText, setDiffText, selectedStagedPaths, setSelectedStagedPaths, selectedUnstagedPaths, setSelectedUnstagedPaths, selectedConflictPaths, setSelectedConflictPaths, lastConflictClickedIndex, setLastConflictClickedIndex, lastStagedClickedIndex, setLastStagedClickedIndex, lastUnstagedClickedIndex, setLastUnstagedClickedIndex, activeFileSection, setActiveFileSection, stashes, setStashes, commitMessage, commitMessageReset, setCommitMessageReset, isAmend, setIsAmend, createBranchOpen, setCreateBranchOpen, branchStartPoint, setBranchStartPoint, branchNamePrefix, setBranchNamePrefix, mergeBranchOpen, setMergeBranchOpen, refresh, loadMoreHistory, aheadCount, branchSyncedTotal, behindCount }
+  return { repositorySettingsOpen, setRepositorySettingsOpen, terminalOpen, setTerminalOpen, repoPath, setRepoPath, libraryProjects, setLibraryProjects, isRepo, setIsRepo, activeTab, setActiveTab, loading, setLoading, remoteOperation, setRemoteOperation, remotePending, status, setStatus, branches, setBranches, commits, setCommits, unpushedHashes, setUnpushedHashes, commitTotal, setCommitTotal, branchCommitTotal, setBranchCommitTotal, historyLoading, setHistoryLoading, historyVersion, historyPending, historyFailed, setHistoryFailed, selectedCommitIndex, setSelectedCommitIndex, historyFocusNonce, navigateToBranchTip, commitDetail, setCommitDetail, historyScope, setHistoryScope, ...selection, diffText, setDiffText, stashes, setStashes, commitMessage, commitMessageReset, setCommitMessageReset, isAmend, setIsAmend, createBranchOpen, setCreateBranchOpen, branchStartPoint, setBranchStartPoint, branchNamePrefix, setBranchNamePrefix, mergeBranchOpen, setMergeBranchOpen, refresh, loadMoreHistory, aheadCount, branchSyncedTotal, behindCount }
 }
 
 export type GitRepositoryState = ReturnType<typeof useGitRepository>

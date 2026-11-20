@@ -1,0 +1,5 @@
+{
+  "target": "wasm32-wasip1",
+  "sourceHash": "99bbe0c6da18a075ecfc2a03065835f41b68ef2cd96ef3a7b5ccff5bdc80b780",
+  "binaryHash": "fc89bf678c4f24b82ac64711650e69fc772440abba33737c29c7472490feb092"
+}

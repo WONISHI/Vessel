@@ -22,3 +22,16 @@ it("matches exact HTTPS origin including ports", () => {
   expect(() => credentialOrigin("http://example.test")).toThrow()
   expect(() => credentialOrigin("file:///tmp/login.html")).toThrow()
 })
+
+it.each([
+ ['http://localhost:9525/login', 'http://localhost:9525'],
+ ['http://127.0.0.1:9525/login', 'http://127.0.0.1:9525'],
+ ['http://127.1.2.3:8080/login', 'http://127.1.2.3:8080'],
+ ['http://[::1]:9525/login', 'http://[::1]:9525'],
+ ['http://app.localhost:3000/login', 'http://app.localhost:3000']
+])('accepts local development origin %s', (url, origin) => {
+ expect(credentialOrigin(url)).toBe(origin)
+})
+it.each(['http://localhost.attacker.test:9525', 'http://127.0.0.1.attacker.test', 'http://192.168.1.1', 'http://0.0.0.0', 'file:///tmp/login.html', 'data:text/html,login'])('rejects unsupported origin %s', (url) => {
+ expect(() => credentialOrigin(url)).toThrow()
+})

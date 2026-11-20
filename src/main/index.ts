@@ -16,7 +16,7 @@ import { registerMarkdownOpening } from "@main/files/open-markdown"
 import { registerOffice } from "@main/office/office"
 import { registerScreenshotShortcut, startScreenshot } from "@main/screenshot/screenshot"
 import { registerSettings } from "@main/settings/settings"
-import { registerTerminal } from "@main/terminal/terminal"
+import { closeAllTerminals, registerTerminal, resumeTerminalStarts } from "@main/terminal/terminal"
 import { registerTransit } from "@main/transit/transit"
 import icon from "@resources/icon.png?asset"
 import dockIconPath from "@resources/icon_108x108.png?asset"
@@ -339,6 +339,7 @@ app.on("window-all-closed", () => {
 let drainingTextWrites = false
 let skipWriteDrain = false
 app.on("before-quit", (event) => {
+  closeAllTerminals()
   if (skipWriteDrain) { mainApps.dispose(); return }
   if (drainingTextWrites) {
     event.preventDefault()
@@ -366,6 +367,7 @@ app.on("before-quit", (event) => {
       app.quit()
     } catch (error) {
       console.error("退出时等待文件保存失败", error)
+      resumeTerminalStarts()
       drainingTextWrites = false
       dialog.showErrorBox("暂时无法退出", "等待文件保存时发生错误，请检查文件保存状态后再次退出。")
     } finally { clearTimeout(timer) }
@@ -373,5 +375,6 @@ app.on("before-quit", (event) => {
 })
 
 app.on("will-quit", () => {
+  closeAllTerminals()
   mainApps.dispose()
 })

@@ -50,4 +50,24 @@ html.dark .quick-picker-footer { border-color: #ffffff0d; }
 html.dark .vessel-quick-picker kbd, html.dark .quick-picker-current { border-color: #475364; }
 
 .vessel-titlebar-identity { transition: transform 260ms cubic-bezier(.22, 1, .36, 1); }
+.vessel-titlebar-search { position: absolute; left: 300px; right: 196px; }
+@media (min-width: 1220px) { .vessel-titlebar-search { left: 50%; right: auto; width: 620px; transform: translateX(-50%); } }
 @media (prefers-reduced-motion: reduce) { .vessel-titlebar-identity { transition: none; } }
+
+.vessel-titlebar-clock { flex-shrink: 0; white-space: nowrap; }
+.vessel-titlebar-clock .vessel-status-time { display: flex; height: 24px; align-items: center; gap: 8px; padding: 0 4px; border-radius: 4px; font-size: 11px; font-weight: 500; color: inherit; }
+.vessel-titlebar-clock .vessel-status-time:hover { background: #e7e5e4; }
+html.dark .vessel-titlebar-clock .vessel-status-time:hover { background: #ffffff1a; }
+.vessel-titlebar-clock svg { width: 12px; height: 12px; }
+.vessel-main-titlebar[data-titlebar-clock] .vessel-titlebar-search { left: 260px; right: 436px; width: auto; transform: none; }
+@media (max-width: 960px) {
+  .vessel-main-titlebar[data-titlebar-clock] .vessel-titlebar-search { left: 180px; right: 406px; }
+  .vessel-titlebar-clock .vessel-status-time { font-size: 10px; gap: 4px; }
+}
+
+.vessel-titlebar-actions .vessel-layout-controls { gap: 8px; }
+
+.vessel-main-titlebar[data-workspace] .vessel-titlebar-search { margin-right: 32px; }
+
+.vessel-main-titlebar[data-feature-view] .vessel-titlebar-search { margin-right: 32px; }
+.vessel-main-titlebar[data-feature-view][data-workspace] .vessel-titlebar-search { margin-right: 64px; }

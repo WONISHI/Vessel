@@ -9,6 +9,7 @@ const subscribe = (channel: string, callback: () => void) => {
 const api: ClipboardHistoryAPI = {
   state: (filter) => ipcRenderer.invoke("clipboard:state", filter),
   copy: (id, plainText) => ipcRenderer.invoke("clipboard:copy", id, plainText),
+  paste: (id, plainText) => ipcRenderer.invoke("clipboard:paste", id, plainText),
   pin: (id) => ipcRenderer.invoke("clipboard:pin", id),
   remove: (id) => ipcRenderer.invoke("clipboard:remove", id),
   clear: () => ipcRenderer.invoke("clipboard:clear"),

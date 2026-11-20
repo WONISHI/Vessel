@@ -1,8 +1,9 @@
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { Image } from "@/components/ui/image"
+import { addTransitFile } from "@/components/transit/state"
 import { parseImageReference, resizeImageReference } from "@vessel/obsidian"
 import { Check, Copy, Link, Trash2, X } from "lucide-react"
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useRef, useState } from "react"
 import { toast } from "sonner"
 
 /** Renders the obsidian image component. */
@@ -12,14 +13,11 @@ export function ObsidianImage({ reference, root, documentPath, onChange, onFocus
   const [deleteError, setDeleteError] = useState("")
   const embed = parseImageReference(reference)!
   const [showLink, setShowLink] = useState(false)
-  const [draftUrl, setDraftUrl] = useState(() => (embed ? embed.target : reference))
+  const [linkDraft, setLinkDraft] = useState<{ reference: string; url: string }>()
+  const draftUrl = linkDraft?.reference === reference ? linkDraft.url : embed?.target ?? reference
+  const setDraftUrl = (url: string) => setLinkDraft({ reference, url })
   const [copied, setCopied] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
-
-  useEffect(() => {
-    const nextUrl = embed ? embed.target : reference
-    setDraftUrl(nextUrl)
-  }, [reference])
 
   /** Handles copy link events. */
   const handleCopyLink = (e?: React.MouseEvent) => {
@@ -68,7 +66,7 @@ export function ObsidianImage({ reference, root, documentPath, onChange, onFocus
       return
     }
     let updated = trimmed
-    if (!/^!\[.*\]\(.*\)|\!\[\[.*\]\]$/.test(trimmed)) {
+    if (!/^!\[.*\]\(.*\)|!\[\[.*\]\]$/.test(trimmed)) {
       const isWiki = reference.trim().startsWith("![[")
       if (isWiki) {
         const size = embed?.width ? `|${embed.width}` : ""
@@ -271,6 +269,12 @@ export function ObsidianImage({ reference, root, documentPath, onChange, onFocus
       <Image
         sourceAddress={embed.target}
         onCopyReference={() => void copyReference()}
+        onAddToTransit={/^(?:https?:|data:|blob:)/i.test(embed.target) ? undefined : async () => {
+          const path = await window.electronAPI.resolveObsidianImage(root, documentPath, reference)
+          const parent = path.replace(/[\\/][^\\/]+$/, "")
+          const imageRoot = /^[a-z]:$/i.test(parent) ? `${parent}\\` : parent || (path.startsWith("/") ? "/" : root)
+          addTransitFile(imageRoot, path, path.split(/[\\/]/).pop() || embed.target)
+        }}
         remote={/^https?:/.test(embed.target)}
         onDownloadLocal={
           !readOnly && /^https?:/.test(embed.target)

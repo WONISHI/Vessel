@@ -1,7 +1,9 @@
-import { expect, it, vi } from "vitest"
+import { afterEach, beforeEach, expect, it, vi } from "vitest"
 import { clearScreenshotDrawingActives, installScreenshotModes } from "@/features/screenshot/mode-menu"
 import { installShapeMenu } from "@/features/screenshot/shape-menu"
 import { installOptionArrow } from "@/features/screenshot/option-arrow"
+beforeEach(() => { vi.stubGlobal("matchMedia", vi.fn(() => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() }))) })
+afterEach(() => { vi.unstubAllGlobals() })
 
 it("clears plugin active tiles and hides the option strip", () => {
   document.body.innerHTML = `

@@ -1,4 +1,8 @@
-import { ipcRenderer } from "electron"
+import { contextBridge, ipcRenderer } from "electron"
+
+contextBridge.exposeInMainWorld("vesselDevtools", {
+  saveNodeScreenshot: (data: string): Promise<boolean> => ipcRenderer.invoke("browser:save-node-screenshot", data)
+})
 
 type Control = { x: number; y: number; width: number; height: number; icon: string; color: string; background: string; border: string; shadow: string }
 let control: Control | undefined

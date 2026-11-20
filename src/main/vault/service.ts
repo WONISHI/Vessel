@@ -127,7 +127,7 @@ export function attachVaultGuest(guest: WebContents, host: WebContents) {
       const expiry = setTimeout(() => candidates.delete(id), 60000)
       expiry.unref()
       notify(host, id)
-    } catch { /* Non-HTTPS pages and invalid forms are not captured. */ }
+    } catch { /* Unsupported origins and invalid forms are not captured. */ }
   })
 }
 let installed = false

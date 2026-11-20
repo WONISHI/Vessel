@@ -1,6 +1,7 @@
 import { GitPageDialog as Dialog, GitPageDialogContent as DialogContent } from "@/pages/git/components/git-page-dialog"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { CreateTagDialog } from "./create-tag-dialog"
+import { PushDialog } from "./push-dialog"
 import { StashDialog } from "./stash-dialog"
 import { RepositorySettingsDialog } from "@/pages/git/components/repository-settings-dialog"
 import { TerminalPanel } from "@/components/workspace/components/layout-main/terminal-panel"
@@ -16,6 +17,7 @@ export function GitDialogs({ g }: { g: GitPageModel }) {
 
   return (
     <>
+        {g.pushRequest?.repoPath === repoPath && <PushDialog key={repoPath} repoPath={repoPath} initialRemote={g.pushRequest.remote} initialBranch={g.pushRequest.branch} onClose={() => g.setPushRequest(null)} onPush={g.submitPush} />}
         <ConfirmDialog
           activityBarAccessible
           statusBarAccessible

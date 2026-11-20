@@ -1,3 +1,4 @@
+import type { WorkspaceGraph } from "../../packages/@vessel/workspace/src/graph/types"
 import type { AppUpdateAPI } from "../shared/app-update"
 import type { NativeMenuAPI } from "@vessel/type"
 import type { ElectronAPI } from "@electron-toolkit/preload"
@@ -189,6 +190,9 @@ export interface VesselAPI extends AppUpdateAPI, BrowserProxyAPI, BrowserToolsAP
   transferWorkspaceFiles: (root: string, paths: string[], destination: string, external: boolean, duplicate?: boolean) => Promise<{ source: string; target: string }[]>
   mutateWorkspaceFile: (root: string, path: string, name?: string) => Promise<string>
   createWorkspaceEntry: (root: string, parent: string, name: string, kind: "file" | "directory") => Promise<{ name: string; path: string; type: "file" | "directory" }>
+  readWorkspaceGraph: (root: string, requestId?: string) => Promise<WorkspaceGraph>
+  onWorkspaceGraphProgress: typeof import("@preload/apis/files.api").filesAPI.onWorkspaceGraphProgress
+  cancelWorkspaceGraph: () => Promise<void>
   openExternal: (href: string) => Promise<void>
   getCodeDiagnostics: (path: string, content: string) => Promise<CodeDiagnostic[]>
   queryBase: typeof import("@preload/apis/files.api").filesAPI.queryBase

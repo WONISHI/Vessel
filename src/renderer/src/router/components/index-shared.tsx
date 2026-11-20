@@ -24,6 +24,10 @@ function lazyPage<P extends object>(factory: () => Promise<{ default: ComponentT
 }
 
 const debugLoading: RouteLoadingOptions = { icon: <Bug />, title: "正在加载调试工具", label: "正在准备开发者工具，请稍候…" }
+const GraphPage = lazyWithRetry(() => import("@/components/workspace/graph/graph-page"))
+function WorkspaceGraphPage() {
+  return <Suspense fallback={null}><GraphPage /></Suspense>
+}
 const WorkspaceHome = lazyPage(() => import("@/components/workspace/components/layout-main/workspace-home"))
 const SearchPage = lazyPage(() => import("@/pages/search/index"))
 const EditorRoute = lazyPage<object>(async () => ({ default: (await import("@/pages/editor/index")).EditorRoute }))
@@ -102,7 +106,8 @@ export const routes: AppRouteRecordRaw[] = [
     component: EditorRoute,
     children: [
       { index: true, component: WorkspaceHome },
-      { path: "file", name: "editor-file", component: Canvas }
+      { path: "file", name: "editor-file", component: Canvas },
+      { path: "graph", name: "editor-graph", component: WorkspaceGraphPage, meta: { title: "关系图谱" } }
     ],
     meta: {
       title: "编辑器",

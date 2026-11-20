@@ -1,3 +1,4 @@
+import { canOpenInDefaultBrowser } from "../../../../../../shared/browser-preview"
 import { addTransitFile } from "@/components/transit/state"
 import { FileThemeIcon } from "@/features/file-icons"
 import { getFilePresentation } from "@/components/workspace/components/layout-aside/layout-workspace-sidebar/utils"
@@ -20,11 +21,13 @@ import { lazyWithRetry } from "@/lib/lazy-retry"
 import { useWorkspace } from "@/components/workspace/hooks/useWorkspace"
 import { cn } from "@/lib/utils"
 import { RouterView } from "@vessel/react-router/components"
-import { matchesShortcut } from "@vessel/utils"
-import { ChevronLeft, ChevronRight, Columns2, Copy, FileDown, File, FolderOpen, Home, LayoutTemplate, List, MoreHorizontal, Pin, Terminal, X } from "lucide-react"
+import { localFileURL, matchesShortcut } from "@vessel/utils"
+import { ChevronLeft, ChevronRight, Columns2, Copy, FileDown, File, FolderOpen, Globe, Home, LayoutTemplate, List, MoreHorizontal, Pin, Terminal, X } from "lucide-react"
 import { Suspense, useEffect, useMemo, useRef, useState } from "react"
 import { useLocation } from "react-router-dom"
 import { toast } from "sonner"
+
+
 
 const PdfExportDialog = lazyWithRetry(() => import("@/components/pdf-export/pdf-export-dialog"))
 
@@ -77,11 +80,12 @@ export default function LayoutMain({ resources = false }: { resources?: boolean 
   const [statusTarget, setStatusTarget] = useState<HTMLDivElement | null>(null)
   const [terminal, setTerminal] = useState(false)
   const location = useLocation()
+  const graphPage = !resources && location.pathname === "/editor/graph"
   const home = resources ? !activeFilePath : ["/editor", "/resources"].includes(location.pathname)
   const [edges, setEdges] = useState({ left: false, right: false })
   const tabList = useRef<HTMLDivElement>(null)
   const contentHost = useRef<HTMLDivElement>(null)
-  const activeIndex = home ? -1 : openFiles.findIndex((file) => file.path === activeFilePath)
+  const activeIndex = home || graphPage ? -1 : openFiles.findIndex((file) => file.path === activeFilePath)
   useEffect(() => {
     /** Handles shortcut events. */
     const handleShortcut = (event: KeyboardEvent) => {
@@ -126,7 +130,7 @@ export default function LayoutMain({ resources = false }: { resources?: boolean 
   return (
     <StatusTarget.Provider value={statusTarget}>
       <main className="relative flex min-h-0 min-w-0 flex-1 flex-col bg-white">
-        <nav
+        {!graphPage && <nav
           aria-label="已打开的标签"
           className="flex h-12 shrink-0 items-center gap-1 border-b border-[#e6e8eb] dark:border-[#444c56] bg-white px-2.5"
         >
@@ -145,7 +149,7 @@ export default function LayoutMain({ resources = false }: { resources?: boolean 
                 </Button>
               </span>
             </TooltipTrigger>
-            <TooltipContent>
+            <TooltipContent side="bottom">
               上一个标签页 <kbd className="ml-2 rounded border px-1 text-[10px]">Ctrl+L</kbd>
             </TooltipContent>
           </Tooltip>
@@ -171,7 +175,7 @@ export default function LayoutMain({ resources = false }: { resources?: boolean 
               className="relative flex min-w-0 flex-1 items-center gap-1 overflow-x-auto px-2 py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
             >
               {openFiles.map((file) => {
-                const active = !home && activeFilePath === file.path
+                const active = !home && !graphPage && activeFilePath === file.path
                 const normRoot = workspace.path.replace(/\\/g, "/").replace(/\/+$/, "")
                 const normPath = file.path.replace(/\\/g, "/")
                 const rootName = normRoot.split("/").filter(Boolean).pop() || workspace.name || ""
@@ -238,6 +242,9 @@ export default function LayoutMain({ resources = false }: { resources?: boolean 
                         <FolderOpen />
                         在资源管理器中显示
                       </ContextMenuItem>
+                      {canOpenInDefaultBrowser(file.name) && <ContextMenuItem onSelect={() => {
+                        void window.electronAPI.openExternal(localFileURL(file.path)).catch((error) => toast.error(String(error)))
+                      }}><Globe />在默认浏览器中打开</ContextMenuItem>}
                       {/\.(md|markdown)$/i.test(file.name) && !/\.excalidraw\.md$/i.test(file.name) && (
                         <ContextMenuItem onSelect={() => setPdfExportPath(file.path)}>
                           <FileDown />
@@ -303,11 +310,11 @@ export default function LayoutMain({ resources = false }: { resources?: boolean 
                 </Button>
               </span>
             </TooltipTrigger>
-            <TooltipContent>
+            <TooltipContent side="bottom">
               下一个标签页 <kbd className="ml-2 rounded border px-1 text-[10px]">Ctrl+R</kbd>
             </TooltipContent>
           </Tooltip>
-          {!home && activeFilePath && (
+          {!home && !graphPage && activeFilePath && (
             <FileSearch
               key={activeFilePath}
               path={activeFilePath}
@@ -345,7 +352,7 @@ export default function LayoutMain({ resources = false }: { resources?: boolean 
                   </Button>
                 </DropdownMenuTrigger>
               </TooltipTrigger>
-              <TooltipContent>标签页操作</TooltipContent>
+              <TooltipContent side="bottom">标签页操作</TooltipContent>
             </Tooltip>
             <DropdownMenuContent
               align="end"
@@ -402,7 +409,7 @@ export default function LayoutMain({ resources = false }: { resources?: boolean 
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-        </nav>
+        </nav>}
         <ResizablePanelGroup orientation="vertical">
           <ResizablePanel
             id="editor"
@@ -421,12 +428,12 @@ export default function LayoutMain({ resources = false }: { resources?: boolean 
                   ref={contentHost}
                   className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
                 >
-                  <DocumentTabs files={files} activePath={activeFilePath} workspacePath={workspace.path} home={home}>
+                  <DocumentTabs files={files} activePath={activeFilePath} workspacePath={workspace.path} home={home || graphPage}>
                     {resources ? <Suspense fallback={<RouteLoading icon={<FolderOpen />} title="正在加载项目资源库" label="正在准备工作区，请稍候…" />}><WorkspaceHome /></Suspense> : <RouterView />}
                   </DocumentTabs>
                 </div>
               </ResizablePanel>
-              {splitPath && (
+              {splitPath && !graphPage && (
                 <>
                   <ResizableHandle style={{ order: 1 }} aria-label="调整拆分编辑区宽度" />
                   <ResizablePanel
@@ -467,7 +474,7 @@ export default function LayoutMain({ resources = false }: { resources?: boolean 
               )}
             </ResizablePanelGroup>
             <StatusBar
-              left={
+              left={!graphPage && (
                 <>
                   <Button
                     variant="ghost"
@@ -486,7 +493,7 @@ export default function LayoutMain({ resources = false }: { resources?: boolean 
                     />
                   )}
                 </>
-              }
+              )}
             >
               <div
                 ref={setStatusTarget}
@@ -494,7 +501,7 @@ export default function LayoutMain({ resources = false }: { resources?: boolean 
               />
             </StatusBar>
           </ResizablePanel>
-          {terminal && (
+          {terminal && !graphPage && (
             <>
               <ResizableHandle aria-label="调整终端高度" />
               <ResizablePanel

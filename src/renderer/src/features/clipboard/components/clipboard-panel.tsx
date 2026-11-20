@@ -16,7 +16,7 @@ const timeLabel = (time: number, now: number) => {
 }
 const sizeLabel = (size: number) => size >= 1048576 ? `${(size / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(size / 1024))} KB`
 
-function ClipCard({ entry, index, active, now, select, copy, pin, remove }: { entry: ClipboardEntry; index: number; active: boolean; now: number; select: () => void; copy: () => void; pin: () => void; remove: () => void }) {
+function ClipCard({ entry, index, active, now, select, paste, copy, pin, remove }: { entry: ClipboardEntry; index: number; active: boolean; now: number; select: () => void; paste: () => void; copy: () => void; pin: () => void; remove: () => void }) {
   const kind = kinds.find((kind) => kind.value === entry.kind)!
   const Icon = icons[entry.kind]
   const cardRef = useRef<HTMLElement>(null)
@@ -32,7 +32,7 @@ function ClipCard({ entry, index, active, now, select, copy, pin, remove }: { en
         <button title="删除记录" aria-label="删除记录" onClick={remove}><Trash2 size={14} /></button>
       </div>
     </header>
-    <button className="clip-content" aria-pressed={active} onClick={select} onDoubleClick={copy}>
+    <button className="clip-content" title="粘贴到原来的输入位置" aria-pressed={active} onClick={() => { select(); paste() }}>
       {entry.kind === "image" ? <div className="clip-image">{entry.thumbnail && <img src={entry.thumbnail} alt="剪贴板图片预览" />}</div>
         : entry.kind === "color" ? <div className="clip-color"><span style={{ background: entry.preview.trim() }} /><strong>{entry.preview.trim()}</strong></div>
           : entry.kind === "files" ? <div className="clip-files">{(entry.files.length ? entry.files : [entry.preview]).slice(0, 4).map((file, index) => <div key={index}><File size={25} /><span>{file.split(/[\\/]/).pop()}</span></div>)}{entry.files.length > 4 && <small>另有 {entry.files.length - 4} 个文件</small>}</div>
@@ -100,12 +100,15 @@ export function ClipboardPanel() {
   const copy = (entry: ClipboardEntry | undefined, plainText = false) => {
     if (entry) void run(() => api.copy(entry.id, plainText), `已复制，可使用 ${mac ? "⌘V" : "Ctrl+V"} 粘贴`)
   }
+  const paste = (entry: ClipboardEntry | undefined, plainText = false) => {
+    if (entry) void run(() => api.paste(entry.id, plainText), "已粘贴到原来的输入位置")
+  }
   useEffect(() => {
     const keydown = (event: KeyboardEvent) => {
       if (event.isComposing) return
       if (event.key === "Escape") { event.preventDefault(); if (menu) setMenu(false); else void api?.close(); return }
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "f") { event.preventDefault(); searchRef.current?.focus(); searchRef.current?.select(); return }
-      if ((mac ? event.metaKey : event.ctrlKey) && /^[1-9]$/.test(event.key)) { event.preventDefault(); copy(entries[Number(event.key) - 1]); return }
+      if ((mac ? event.metaKey : event.ctrlKey) && /^[1-9]$/.test(event.key)) { event.preventDefault(); paste(entries[Number(event.key) - 1]); return }
       const input = event.target instanceof HTMLElement && !!event.target.closest("input,textarea")
       if ((event.key === "ArrowRight" || event.key === "ArrowLeft") && (!input || !query)) {
         event.preventDefault()
@@ -119,7 +122,7 @@ export function ClipboardPanel() {
         const next = entries[(index + (event.key === "ArrowDown" ? 1 : -1) + entries.length) % entries.length]
         if (next) setSelected(next.id)
       }
-      if (event.key === "Enter" && (input || event.target === document.body)) { event.preventDefault(); copy(active, event.shiftKey) }
+      if (event.key === "Enter" && (input || event.target === document.body)) { event.preventDefault(); paste(active, event.shiftKey) }
     }
     window.addEventListener("keydown", keydown)
     return () => window.removeEventListener("keydown", keydown)
@@ -148,10 +151,10 @@ export function ClipboardPanel() {
         <button title="关闭 · Esc" aria-label="关闭剪贴板" onClick={() => void api.close()}><X size={17} /></button>
       </div>
     </header>
-    <section className="clipboard-cards" aria-label="复制历史" onWheel={(event) => { if (!event.deltaX) event.currentTarget.scrollLeft += event.deltaY }}>{entries.map((entry, index) => <ClipCard key={entry.id} entry={entry} index={index} active={entry.id === active?.id} now={now} select={() => setSelected(entry.id)} copy={() => copy(entry)} pin={() => void run(() => api.pin(entry.id))} remove={() => void run(() => api.remove(entry.id))} />)}
+    <section className="clipboard-cards" aria-label="复制历史" onWheel={(event) => { if (!event.deltaX) event.currentTarget.scrollLeft += event.deltaY }}>{entries.map((entry, index) => <ClipCard key={entry.id} entry={entry} index={index} active={entry.id === active?.id} now={now} select={() => setSelected(entry.id)} paste={() => paste(entry)} copy={() => copy(entry)} pin={() => void run(() => api.pin(entry.id))} remove={() => void run(() => api.remove(entry.id))} />)}
       {!entries.length && <div className="clipboard-empty"><Clipboard size={30} strokeWidth={1.25} /><strong>{!state ? "正在读取剪贴板" : query || kind || pinnedOnly ? "没有找到匹配的记录" : "复制一点内容，留在这里"}</strong><span>{state?.paused ? "记录已暂停，可在右上角继续记录" : query || kind || pinnedOnly ? "试试其他关键词或切换内容类型" : "在任意应用中复制文本、图片或文件后，即可在这里找到"}</span></div>}
     </section>
-    <footer className="clipboard-footer"><span className="clipboard-status" role="status">{message || (state?.paused ? <><Pause size={11} />记录已暂停</> : <><i />{query || kind || pinnedOnly ? `${entries.length} 条匹配` : `${state?.total || 0} 条记录`}<b>·</b>保存在本机</>)}</span><span className="clipboard-key-hints"><kbd>←</kbd><kbd>→</kbd> 选择 <span /><kbd>↵</kbd> 复制 <span /><kbd>{mac ? "⌘V" : "Ctrl+V"}</kbd> 粘贴 <span /><kbd>esc</kbd> 收起</span></footer>
+    <footer className="clipboard-footer"><span className="clipboard-status" role="status">{message || (state?.paused ? <><Pause size={11} />记录已暂停</> : <><i />{query || kind || pinnedOnly ? `${entries.length} 条匹配` : `${state?.total || 0} 条记录`}<b>·</b>保存在本机</>)}</span><span className="clipboard-key-hints"><kbd>←</kbd><kbd>→</kbd> 选择 <span /><kbd>↵</kbd> 粘贴 <span /><kbd>⇧↵</kbd> 纯文本粘贴 <span /><kbd>esc</kbd> 收起</span></footer>
     {state && !state.shortcutRegistered && <div className="clipboard-shortcut-warning">{state.shortcut} 未注册成功，请检查快捷键占用或系统辅助功能权限。仍可从「编辑 → 剪贴板历史」打开。</div>}
   </main>
 }

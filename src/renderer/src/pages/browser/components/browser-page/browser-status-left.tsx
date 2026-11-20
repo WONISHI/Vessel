@@ -1,26 +1,14 @@
-import { ConfirmDialog } from "@/components/ui/confirm-dialog"
+import { BrowserExternalDialog } from "./browser-external-dialog"
+import { isOpenableUrl } from "@/pages/browser/openable-url"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { ChevronRight, ChevronUp, ExternalLink, Link2, Search } from "lucide-react"
 import { useMemo, useState } from "react"
 import type { BrowserPageModel } from "@/pages/browser/components/browser-page/hooks/use-browser-page"
 
-function isOpenableUrl(value: string | undefined | null): value is string {
-  if (!value) return false
-  try {
-    const url = new URL(value)
-    if (url.protocol === "file:") return /\.(html?|xhtml|pdf|svg|png|jpe?g|gif|webp|avif|bmp|ico|txt|md|json|xml|css|js|mjs|csv|mp4|webm|ogv|mov|m4v|mp3|wav|ogg|m4a|aac|flac)$/i.test(decodeURIComponent(url.pathname))
-    return url.protocol === "http:" || url.protocol === "https:"
-  } catch {
-    return false
-  }
-}
-
 /** 底部状态栏左侧信息 */
 export function BrowserStatusLeft({ b }: { b: BrowserPageModel }) {
   const { toolbarCollapsed, setToolbarCollapsed, setFindOpen, findInput, setFindPosition, tab } = b
   const [confirmOpen, setConfirmOpen] = useState(false)
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState<string>()
   const openable = useMemo(() => isOpenableUrl(tab.url), [tab.url])
 
   return (
@@ -54,7 +42,6 @@ export function BrowserStatusLeft({ b }: { b: BrowserPageModel }) {
                       disabled={!openable}
                       onClick={() => {
                         if (!openable) return
-                        setError(undefined)
                         setConfirmOpen(true)
                       }}
                       className="shrink-0 rounded p-1 text-stone-500 hover:bg-stone-200 hover:text-stone-800 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-stone-500"
@@ -93,45 +80,7 @@ export function BrowserStatusLeft({ b }: { b: BrowserPageModel }) {
                   ) : null}
                 </Tooltip>
               </TooltipProvider>
-              <ConfirmDialog
-                activityBarAccessible
-                open={confirmOpen}
-                onOpenChange={(open) => {
-                  if (!busy) {
-                    setConfirmOpen(open)
-                    if (!open) setError(undefined)
-                  }
-                }}
-                title="在默认浏览器中打开"
-                description={
-                  openable ? (
-                    <>
-                      确定使用系统默认浏览器打开以下链接吗？
-                      <span className="mt-1.5 block max-h-24 overflow-y-auto rounded-md border border-stone-200 bg-stone-50 px-2 py-1.5 font-mono text-[11px] font-normal leading-normal text-stone-600 select-text [overflow-wrap:anywhere] [word-break:normal] dark:border-stone-700 dark:bg-stone-800 dark:text-stone-300">{tab.url}</span>
-                    </>
-                  ) : null
-                }
-                confirmText={busy ? "打开中…" : "打开"}
-                busy={busy}
-                error={error}
-                tone="primary"
-                onConfirm={() => {
-                  if (!openable || busy) return
-                  setBusy(true)
-                  setError(undefined)
-                  void window.electronAPI
-                    .openExternal(tab.url)
-                    .then(() => {
-                      setConfirmOpen(false)
-                    })
-                    .catch((err: unknown) => {
-                      setError(err instanceof Error ? err.message : String(err))
-                    })
-                    .finally(() => {
-                      setBusy(false)
-                    })
-                }}
-              />
+              <BrowserExternalDialog key={tab.url} url={tab.url} open={confirmOpen} onOpenChange={setConfirmOpen} />
             </>
   )
 }

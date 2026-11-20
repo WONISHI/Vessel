@@ -1,0 +1,7 @@
+.vessel-layout-controls { display: flex; align-items: center; flex-shrink: 0; gap: 4px; color: #78716c; }
+.vessel-layout-controls button { display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border-radius: 4px; }
+.vessel-layout-controls button:hover { background: #e7e5e4; }
+.vessel-layout-controls button:focus-visible { outline: 2px solid #16a34a; outline-offset: 1px; }
+.vessel-layout-controls .codicon { font-size: 16px; }
+html.dark .vessel-layout-controls { color: #b5bac1; }
+html.dark .vessel-layout-controls button:hover { background: #ffffff1a; }

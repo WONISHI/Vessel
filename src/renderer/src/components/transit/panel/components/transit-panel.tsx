@@ -11,11 +11,14 @@ import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/
 import { ChevronLeft, ChevronRight, ExternalLink, Clipboard, FileText, Globe, Maximize, Minimize, X } from "lucide-react"
 import { Suspense, useCallback, useRef, useState } from "react"
 import { toast } from "sonner"
+import { LayoutVisibilityControls } from "@/components/layout/layout-visibility-controls"
+import { useActivityBarCollapsed } from "@/features/activity-bar/collapse"
 
 const FilePreview = lazyWithRetry(() => import("@/components/transit/file-preview").then(({ FilePreview }) => ({ default: FilePreview })))
 
 /** Renders the transit panel component. */
 export function TransitPanel() {
+  const activityCollapsed = useActivityBarCollapsed()
   const { items, selected } = useTransit()
   const index = items.findIndex((i) => i.id === selected)
   const item = items[index]
@@ -75,6 +78,7 @@ export function TransitPanel() {
         <button data-title={full ? "还原" : "展开"} aria-label={full ? "还原" : "展开"} onClick={() => setFull(!full)} className="transit-bar-item">{full ? <Minimize /> : <Maximize />}</button>
         <button data-title="独立窗口" aria-label="独立窗口" onClick={() => void window.electronAPI.openTransitWindow(item, items.filter((entry) => entry.kind === "file" && entry.root).map((entry) => ({ root: entry.root!, content: entry.content }))).catch((error) => toast.error(String(error)))} className="transit-bar-item"><ExternalLink /></button>
         <TransitDock value={dock} onChange={changeDock} />
+        <LayoutVisibilityControls className="ml-auto" />
         <button data-title="关闭" aria-label="关闭中转站" onClick={() => selectTransit(null)} className="transit-bar-item transit-close"><X /></button>
       </header>
       <nav aria-label="中转项轮播" className="transit-bar transit-strip-bar">
@@ -121,7 +125,7 @@ export function TransitPanel() {
         side="right"
         onInteractOutside={(e) => e.preventDefault()}
         onOpenAutoFocus={(e) => e.preventDefault()}
-        style={dock === "floating" && !full ? { left: position.x, right: "auto", top: position.y, bottom: "auto", height: "80vh", width: Math.min(width, window.innerWidth) } : { left: 52, width: "calc(100vw - 52px)", top: 0, height: "100dvh" }}
+        style={dock === "floating" && !full ? { left: position.x, right: "auto", top: position.y, bottom: "auto", height: "80vh", width: Math.min(width, window.innerWidth) } : { left: activityCollapsed ? 0 : 52, width: activityCollapsed ? "100vw" : "calc(100vw - 52px)", top: 0, height: "100dvh" }}
         className="z-[240] pointer-events-none [&_.vessel-panel-separator]:pointer-events-auto !max-w-none border-0 bg-transparent p-0 shadow-none"
       >
         {dock === "floating" && !full ? (

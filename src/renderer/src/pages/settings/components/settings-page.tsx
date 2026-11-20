@@ -305,7 +305,15 @@ export function SettingsPage() {
                   <p className="settings-description">应用信息、个人资料和版本详情</p>
                   <AppUpdateSettings />
                   <div className="settings-card flex items-center gap-4 p-6">
-                    <label className="relative cursor-pointer">
+                    <button type="button" aria-label="更换头像" data-title="更换头像" className="relative cursor-pointer rounded-2xl focus-visible:outline-2 focus-visible:outline-green-600" onClick={async () => {
+                      try {
+                        const avatar = await window.electronAPI.chooseAvatar()
+                        if (!avatar) return
+                        update("avatar", avatar)
+                        setError("")
+                        toast.success("头像已更新，点击保存后生效")
+                      } catch (error) { setError(error instanceof Error ? error.message : String(error)) }
+                    }}>
                       <span className="flex size-16 items-center justify-center overflow-hidden rounded-2xl bg-green-100 text-2xl font-bold text-green-700">
                         {draft.avatar ? (
                           <img
@@ -318,24 +326,7 @@ export function SettingsPage() {
                         )}
                       </span>
                       <Camera className="absolute -bottom-1 -right-1 size-6 rounded-full bg-green-600 p-1 text-white" />
-                      <Input
-                        aria-label="更换头像"
-                        type="file"
-                        accept="image/png,image/jpeg"
-                        className="sr-only"
-                        onChange={(event) => {
-                          const file = event.target.files?.[0]
-                          if (!file) return
-                          if (file.size > 2 * 1024 * 1024) {
-                            setError("头像不能超过 2 MB")
-                            return
-                          }
-                          const reader = new FileReader()
-                          reader.onload = () => update("avatar", String(reader.result))
-                          reader.readAsDataURL(file)
-                        }}
-                      />
-                    </label>
+                    </button>
                     <div>
                       <h3 className="text-lg font-semibold">{draft.name || "本地用户"}</h3>
                       <p className="text-xs text-muted-foreground">{draft.email}</p>
@@ -513,6 +504,16 @@ export function SettingsPage() {
                         aria-label="开启代理"
                         checked={!!draft.proxyEnabled}
                         onCheckedChange={(value) => update("proxyEnabled", value)}
+                      />
+                    </Row>
+                    <Row
+                      title="独立控制台跟随 Vessel"
+                      description="Vessel 未全屏时，独立控制台保持在其上方，并随 Vessel 一起显示、隐藏和最小化；全屏时保持独立。"
+                    >
+                      <Switch
+                        aria-label="独立控制台跟随 Vessel"
+                        checked={draft.browserDevtoolsFollowWindow === true}
+                        onCheckedChange={(value) => update("browserDevtoolsFollowWindow", value)}
                       />
                     </Row>
                     <Row

@@ -88,7 +88,11 @@ ipcRenderer.on("vessel:scroll-boundary", (_event, top: boolean) => {
   if (typeof top === "boolean") scrollBoundary(top, scrollPointer)
 })
 
-bindDoubleSpace(window, () => ipcRenderer.sendToHost("vessel-focus-address"))
+ipcRenderer.on("vessel:zoom-changed", (_event, value: number) => {
+  if (Number.isFinite(value) && value >= 0.5 && value <= 2) ipcRenderer.sendToHost("vessel-zoom-changed", value)
+})
+
+bindDoubleSpace(window, () => ipcRenderer.sendToHost("vessel-open-top-search"))
 
 bindVaultForms()
 

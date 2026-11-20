@@ -1,24 +1,22 @@
-import { SourceProjectDialog } from "@/pages/browser/components/source-project-dialog"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuShortcut, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { HistorySheet } from "@/pages/browser/components/history-sheet"
 import type { HistoryEntry } from "@vessel/type"
 import type { WebviewTag } from "electron"
-import { CodeXml, KeyRound, History, MoreHorizontal, Printer, Search, Smartphone, ZoomIn, ZoomOut } from "lucide-react"
+import { KeyRound, History, MoreHorizontal, Printer, Search, Smartphone, ZoomIn, ZoomOut } from "lucide-react"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
 /** Renders the browser more component. */
 export function BrowserMore({ visible = true, zoom, zoomFactor, onFind, onNavigate, guest, deviceMode, onDevice }: { visible?: boolean; zoomFactor: number; zoom: (delta: number) => void; onFind: () => void; onNavigate: (url: string) => void; guest: () => WebviewTag | undefined; deviceMode: boolean; onDevice: () => void }) {
   const [open, setOpen] = useState(false)
-  const [sourceProjectOpen, setSourceProjectOpen] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
   const [history, setHistory] = useState<HistoryEntry[]>([])
   const [error, setError] = useState("")
 
   useEffect(() => {
     if (!visible) {
-      const timer = setTimeout(() => { setOpen(false); setHistoryOpen(false); setSourceProjectOpen(false) }, 0)
+      const timer = setTimeout(() => { setOpen(false); setHistoryOpen(false) }, 0)
       return () => clearTimeout(timer)
     }
     return undefined
@@ -124,7 +122,6 @@ export function BrowserMore({ visible = true, zoom, zoomFactor, onFind, onNaviga
             打印
           </DropdownMenuItem>
           <DropdownMenuSeparator className="mx-1 my-1 bg-stone-100" />
-          <DropdownMenuItem className={itemClass} onSelect={() => run(() => setSourceProjectOpen(true))}><CodeXml />本地项目调试</DropdownMenuItem>
           <DropdownMenuItem
             className={itemClass}
             onSelect={() => run(onDevice)}
@@ -134,7 +131,6 @@ export function BrowserMore({ visible = true, zoom, zoomFactor, onFind, onNaviga
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-      <SourceProjectDialog open={visible && sourceProjectOpen} onOpenChange={setSourceProjectOpen} onNavigate={onNavigate} />
       <HistorySheet
         open={visible && historyOpen}
         onOpenChange={setHistoryOpen}

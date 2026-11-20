@@ -3,21 +3,13 @@ import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { ClipboardPaste, FileText, Globe, Pin, Trash2, Upload } from "lucide-react"
-import { useEffect, useRef, useState } from "react"
+import { useState } from "react"
 import { toast } from "sonner"
 
 /** Renders the transit button component. */
-export function TransitButton({ menuItem = false, onOpenChange }: { menuItem?: boolean; onOpenChange?: (open: boolean) => void }) {
+export function TransitButton() {
   const { items, selected } = useTransit()
   const [open, setOpen] = useState(false)
-  const notifyOpenRef = useRef(onOpenChange)
-  useEffect(() => {
-    notifyOpenRef.current = onOpenChange
-  }, [onOpenChange])
-  useEffect(() => {
-    notifyOpenRef.current?.(open)
-    return () => notifyOpenRef.current?.(false)
-  }, [open])
   return (
     <Popover
       open={open}
@@ -27,18 +19,19 @@ export function TransitButton({ menuItem = false, onOpenChange }: { menuItem?: b
         <Button
           variant="ghost"
           size="icon"
-          data-activity-button={!menuItem ? "true" : undefined}
-          data-transit-button={!menuItem ? "true" : undefined}
+          data-transit-button="true"
+          data-title="中转站"
           aria-pressed={Boolean(selected)}
-          aria-label={`中转站，${items.length} 个`}
-          className={`${menuItem ? "relative flex h-[38px] w-full items-center justify-start gap-2.5 px-2.5 text-xs" : "relative size-[38px]"} rounded-[10px] hover:!bg-[#f0efed] ${menuItem ? "hover:!text-stone-500" : "hover:!text-[#a8a29e]"} ${selected ? "!bg-emerald-50 !text-green-700" : menuItem ? "text-stone-500" : "text-[#a8a29e]"}`}
+          aria-label="中转站"
+          className="relative !size-6 rounded text-stone-500 hover:bg-stone-200 dark:text-stone-400 dark:hover:bg-white/10"
         >
-          <Pin className={menuItem ? "!size-4" : "!size-5"} />
-          {menuItem && "中转站"}
+          <Pin className="!size-4" />
+          {items.length > 0 && <span aria-hidden="true" className="pointer-events-none absolute -right-1.5 top-0 min-w-3 rounded-full bg-green-600 px-0.5 text-center text-[9px] leading-3 text-white">{items.length}</span>}
         </Button>
       </PopoverTrigger>
       <PopoverContent
-        side="right"
+        side="bottom"
+        align="end"
         sideOffset={10}
         onOpenAutoFocus={(e) => e.preventDefault()}
         onCloseAutoFocus={(e) => e.preventDefault()}

@@ -22,6 +22,7 @@ export type ClipboardState = {
 export interface ClipboardHistoryAPI {
   state(filter?: ClipboardFilter): Promise<ClipboardState>
   copy(id: number, plainText?: boolean): Promise<void>
+  paste(id: number, plainText?: boolean): Promise<void>
   pin(id: number): Promise<void>
   remove(id: number): Promise<void>
   clear(): Promise<void>

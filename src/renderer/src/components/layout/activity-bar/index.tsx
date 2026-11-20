@@ -9,7 +9,6 @@ import Logo from "@/assets/logo.png"
 import DarkLogo from "@/assets/logo-dark.svg"
 import { ACTIVITY_ITEMS } from "@/components/layout/activity-bar/constants"
 import type { LayoutActivityBarProps } from "@/components/layout/activity-bar/types"
-import { TransitButton } from "@/components/transit/button"
 import { Button } from "@/components/ui/button"
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from "@/components/ui/context-menu"
 import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar"
@@ -17,7 +16,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { cn } from "@/lib/utils"
 import { selectLastPinned } from "@/pages/resources/library-state"
 import { useRouter } from "@vessel/react-router"
-import { Ellipsis, GitBranch, RefreshCcw, Send, Settings, Sun, Moon, Wrench } from "lucide-react"
+import { Ellipsis, RefreshCcw, Settings, Sun, Moon } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { useLocation } from "react-router-dom"
 import { toast } from "sonner"
@@ -29,9 +28,7 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
   const location = useLocation()
   const [moreToolsOpen, setMoreToolsOpen] = useState(false)
   const [moreToolsTooltipOpen, setMoreToolsTooltipOpen] = useState(false)
-  const transitOpen = useRef(false)
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const isMoreToolsActive = activity === "tools" || activity === "git" || activity === "postman" || ["/devtools", "/git", "/api-client"].some((p) => location.pathname.startsWith(p))
 
   useEffect(() => {
     if (location.pathname === "/editor" || location.pathname.startsWith("/editor/")) sessionStorage.setItem("vessel-last-editor-route", location.pathname + location.search)
@@ -112,7 +109,7 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
     }
   }, [])
   const visibleItems = ACTIVITY_ITEMS.filter((item) => (item.id !== "search" || globalSearchEnabled) && (item.id !== "attachments" || attachmentsEnabled))
-  const { railRef, capacity } = useActivityOverflow(visibleItems.length + 1)
+  const { railRef, capacity } = useActivityOverflow(visibleItems.length)
   const priorityItems = [...visibleItems].sort((a, b) => {
     /** Keeps the workspace and current activity ahead of secondary entries when space is limited. */
     const priority = (id: string) => (id === "files" ? 0 : id === activity ? 1 : 2)
@@ -121,12 +118,16 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
   const shownIds = new Set(priorityItems.slice(0, capacity).map((item) => item.id))
   const shownItems = visibleItems.filter((item) => shownIds.has(item.id))
   const overflowItems = visibleItems.filter((item) => !shownIds.has(item.id))
-  const showTransit = capacity > visibleItems.length
-  const moreActive = isMoreToolsActive || overflowItems.some((item) => item.id === activity)
+  const moreActive = overflowItems.some((item) => item.id === activity)
 
   /** Opens an activity through the same navigation path in the rail and overflow menu. */
   const openActivity = (id: (typeof visibleItems)[number]["id"]) => {
     setMoreToolsOpen(false)
+    if (id === "git" || id === "postman") {
+      onActivityChange(id)
+      void router.push(id === "git" ? "/git" : "/api-client")
+      return
+    }
     if (id === "search" || id === "browser") {
       onActivityChange(id)
       void router.push(id === "search" ? "/search" : "/browser")
@@ -252,10 +253,9 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
           </ContextMenu>
         ))}
 
-        {showTransit && <TransitButton />}
 
-        {/* 合并工具入口按钮：ellipsis-vertical (SourceTree, Postman, 开发者工具) */}
-        <Popover
+        {/* 仅在活动入口放不下时显示折叠菜单。 */}
+        {overflowItems.length > 0 && <Popover
           open={moreToolsOpen}
           onOpenChange={setMoreToolsOpen}
         >
@@ -268,7 +268,7 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
             }}
             onMouseLeave={() => {
               closeTimer.current = setTimeout(() => {
-                if (!transitOpen.current) setMoreToolsOpen(false)
+                setMoreToolsOpen(false)
               }, 250)
             }}
           >
@@ -283,7 +283,7 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
                     variant="ghost"
                     size="icon"
                     data-activity-button
-                    aria-label="更多开发工具"
+                    aria-label="更多活动"
                     onPointerLeave={() => setMoreToolsTooltipOpen(false)}
                     onBlur={() => setMoreToolsTooltipOpen(false)}
                     aria-pressed={moreActive}
@@ -298,11 +298,11 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
                 sideOffset={10}
                 className="border-stone-200 bg-white text-xs text-stone-700"
               >
-                更多工具 (Git / API / 开发工具)
+                更多活动
               </TooltipContent>
             </Tooltip>
 
-            {/* 悬停/点击浮层：显示三个合并按钮 */}
+            {/* 悬停/点击浮层：显示 Git、API 和折叠入口 */}
             {moreToolsOpen && (
               <PopoverContent
                 side="right"
@@ -320,13 +320,13 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
                 }}
                 onMouseLeave={() => {
                   closeTimer.current = setTimeout(() => {
-                    if (!transitOpen.current) setMoreToolsOpen(false)
+                    setMoreToolsOpen(false)
                   }, 200)
                 }}
               >
                 <ScrollArea className="max-h-[calc(var(--radix-popover-content-available-height)-2px)] [&_[data-radix-scroll-area-viewport]]:max-h-[calc(var(--radix-popover-content-available-height)-2px)]">
                   <div className="p-1.5">
-                    {(overflowItems.length > 0 || !showTransit) && (
+                    {overflowItems.length > 0 && (
                       <div className="border-b border-stone-100 pb-1 mb-1 dark:border-white/10">
                         <div className="px-2 py-1 text-[11px] font-semibold text-stone-400 dark:text-stone-500">工作台</div>
                         {overflowItems.map(({ id, label, icon: Icon }) => (
@@ -343,15 +343,6 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
                             {label}
                           </button>
                         ))}
-                        {!showTransit && (
-                          <TransitButton
-                            menuItem
-                            onOpenChange={(open) => {
-                              transitOpen.current = open
-                              if (open && closeTimer.current) clearTimeout(closeTimer.current)
-                            }}
-                          />
-                        )}
                         {overflowItems.some((item) => item.id === "files") && (
                           <button
                             type="button"
@@ -367,79 +358,12 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
                         )}
                       </div>
                     )}
-                    <div className="px-2 py-1 text-[11px] font-semibold text-stone-400 dark:text-stone-500">开发与接口工具</div>
-
-                    {/* 1. Git (代码版本管理) */}
-                    <button
-                      type="button"
-                      data-developer-tool-card
-                      data-active={location.pathname === "/git"}
-                      className={cn("flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-[#f0efed] active:bg-[#ececec]", location.pathname === "/git" && "bg-[#ececec] font-medium")}
-                      onClick={() => {
-                        setMoreToolsOpen(false)
-                        onActivityChange("git")
-                        void router.push("/git")
-                      }}
-                    >
-                      <div className="flex size-7 shrink-0 items-center justify-center rounded-md bg-orange-50 text-orange-600 dark:bg-orange-500/15 dark:text-orange-400">
-                        <GitBranch className="size-4" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="developer-tool-title text-xs font-medium text-stone-800 dark:text-stone-100">Git</div>
-                        <div className="developer-tool-description truncate text-[10px] text-stone-400 dark:text-stone-500">代码版本管理与分支</div>
-                      </div>
-
-                    </button>
-
-                    {/* 2. API (接口调试与管理) */}
-                    <button
-                      type="button"
-                      data-developer-tool-card
-                      data-active={location.pathname === "/api-client"}
-                      className={cn("flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-[#f0efed] active:bg-[#ececec]", location.pathname === "/api-client" && "bg-[#ececec] font-medium")}
-                      onClick={() => {
-                        setMoreToolsOpen(false)
-                        onActivityChange("postman")
-                        void router.push("/api-client")
-                      }}
-                    >
-                      <div className="flex size-7 shrink-0 items-center justify-center rounded-md bg-amber-50 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400">
-                        <Send className="size-4" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="developer-tool-title text-xs font-medium text-stone-800 dark:text-stone-100">API</div>
-                        <div className="developer-tool-description truncate text-[10px] text-stone-400 dark:text-stone-500">接口调试与请求管理</div>
-                      </div>
-
-                    </button>
-
-                    {/* 3. 开发者工具 (DevTools) */}
-                    <button
-                      type="button"
-                      data-developer-tool-card
-                      data-active={location.pathname.startsWith("/devtools")}
-                      className={cn("flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-[#f0efed] active:bg-[#ececec]", location.pathname.startsWith("/devtools") && "bg-[#ececec] font-medium")}
-                      onClick={() => {
-                        setMoreToolsOpen(false)
-                        onActivityChange("tools")
-                        void router.push("/devtools")
-                      }}
-                    >
-                      <div className="flex size-7 shrink-0 items-center justify-center rounded-md bg-blue-50 text-blue-600 dark:bg-blue-500/15 dark:text-blue-400">
-                        <Wrench className="size-4" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="developer-tool-title text-xs font-medium text-stone-800 dark:text-stone-100">开发工具</div>
-                        <div className="developer-tool-description truncate text-[10px] text-stone-400 dark:text-stone-500">JSON / 颜色 / 编解码 / 翻译</div>
-                      </div>
-
-                    </button>
                   </div>
                 </ScrollArea>
               </PopoverContent>
             )}
           </div>
-        </Popover>
+        </Popover>}
         <div className="mt-auto flex flex-col items-center gap-1">
           <UpdateBell dark={dark} />
           <Tooltip>

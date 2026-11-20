@@ -1,4 +1,4 @@
-import type { GitTagOptions, GitCommitDetail, GitCommitItem, GitDiffResult, GitFileStatus, GitStatusResult, GitStashPopResult, GitStashEntry, GitStashFile, GitStashDetail } from "@vessel/type/git"
+import type { GitPushInfo, GitPushSelection, GitTagOptions, GitCommitDetail, GitCommitItem, GitDiffResult, GitFileStatus, GitStatusResult, GitStashPopResult, GitStashEntry, GitStashFile, GitStashDetail } from "@vessel/type/git"
 import { spawn } from "node:child_process"
 import { existsSync } from "node:fs"
 import { lstat } from "node:fs/promises"
@@ -375,7 +375,7 @@ export class GitService {
               .map((l) => `+${l}`)
               .join("\n")
         }
-      } catch {}
+      } catch { /* A deleted/unreadable file has no working-tree diff to display. */ }
     }
 
     return { diff }
@@ -469,6 +469,49 @@ export class GitService {
     return { output: res.stdout || res.stderr }
   }
 
+  async getPushInfo(cwd: string): Promise<GitPushInfo> {
+    const [remotes, refs] = await Promise.all([
+      runGit(["remote", "-v"], cwd),
+      runGit(["for-each-ref", "--format=%(refname)%00%(HEAD)%00%(upstream:remotename)%00%(upstream:remoteref)", "refs/heads", "refs/remotes"], cwd)
+    ])
+    if (remotes.exitCode || refs.exitCode) throw new Error(remotes.stderr || refs.stderr || "无法读取推送分支")
+    const result: GitPushInfo = { remotes: [], branches: [], remoteBranches: [] }
+    for (const line of remotes.stdout.split("\n")) {
+      const match = /^(\S+)\s+(.+)\s+\(push\)$/.exec(line.trim())
+      if (match && !result.remotes.some((remote) => remote.name === match[1])) result.remotes.push({ name: match[1], url: match[2] })
+    }
+    for (const line of refs.stdout.trimEnd().split("\n")) {
+      const [ref, head, upstreamRemote = "", upstream = ""] = line.split("\0")
+      if (ref.startsWith("refs/heads/")) result.branches.push({ name: ref.slice(11), current: head === "*", upstreamRemote, upstreamBranch: upstream.replace(/^refs\/heads\//, "") })
+      else if (ref.startsWith("refs/remotes/") && !ref.endsWith("/HEAD")) result.remoteBranches.push(ref.slice(13))
+    }
+    return result
+  }
+
+  async pushSelection(cwd: string, selection: GitPushSelection): Promise<{ output: string }> {
+    if (!selection || typeof selection.remote !== "string" || !Array.isArray(selection.branches) || typeof selection.tags !== "boolean" || (!selection.branches.length && !selection.tags)) throw new Error("请选择要推送的分支或标签")
+    const info = await this.getPushInfo(cwd)
+    if (!info.remotes.some((remote) => remote.name === selection.remote)) throw new Error("远程仓库不存在")
+    const locals = new Set<string>(), targets = new Set<string>()
+    for (const branch of selection.branches) {
+      if (!branch || typeof branch.local !== "string" || typeof branch.remote !== "string" || typeof branch.track !== "boolean" || !info.branches.some((item) => item.name === branch.local)) throw new Error("本地分支不存在")
+      if (locals.has(branch.local) || targets.has(branch.remote)) throw new Error("推送分支不能重复")
+      const valid = await runGit(["check-ref-format", `refs/heads/${branch.remote}`], cwd)
+      if (valid.exitCode !== 0) throw new Error(`远程分支名称无效：${branch.remote}`)
+      locals.add(branch.local)
+      targets.add(branch.remote)
+    }
+    const result = await runGit(["push", "--porcelain", ...(selection.tags ? ["--tags"] : []), "--", selection.remote, ...selection.branches.map((branch) => `refs/heads/${branch.local}:refs/heads/${branch.remote}`)], cwd)
+    if (result.exitCode !== 0) throw new Error([result.stdout, result.stderr].filter(Boolean).join("\n") || "推送失败")
+    for (const branch of selection.branches.filter((branch) => branch.track)) {
+      for (const [key, value] of [["remote", selection.remote], ["merge", `refs/heads/${branch.remote}`]]) {
+        const config = await runGit(["config", "--local", `branch.${branch.local}.${key}`, value], cwd)
+        if (config.exitCode !== 0) throw new Error(`分支已推送，但设置跟踪失败：${config.stderr}`)
+      }
+    }
+    return { output: result.stdout || result.stderr }
+  }
+
   /** Merges merge. */
   async merge(cwd: string, branch: string): Promise<{ success: boolean; output: string }> {
     const res = await runGit(["merge", "--no-edit", branch], cwd)
@@ -480,23 +523,22 @@ export class GitService {
 
   /** Returns stashes. */
   async getStashes(cwd: string): Promise<GitStashEntry[]> {
-    const res = await runGit(["stash", "list", "--format=%gd%x00%H%x00%gs"], cwd)
+    const res = await runGit(["stash", "list", "--format=%gd%x00%H%x00%gs%x00%cI"], cwd)
     if (res.exitCode !== 0) return []
     const stashes: GitStashEntry[] = []
     for (const line of res.stdout.split("\n")) {
-      const [selector, hash, subject] = line.split("\0")
+      const [selector, hash, subject, createdAt] = line.split("\0")
       const match = selector.match(/^stash@\{(\d+)\}$/)
       if (match) {
         const index = parseInt(match[1], 10)
         const rest = subject?.trim() || ""
         const colonIdx = rest.indexOf(":")
-        const dateOrBranch = colonIdx > -1 ? rest.slice(0, colonIdx).trim() : ""
         const name = colonIdx > -1 ? rest.slice(colonIdx + 1).trim() : rest
         stashes.push({
           index,
           hash,
           name: name || rest,
-          date: dateOrBranch
+          date: createdAt || ""
         })
       }
     }
@@ -771,7 +813,7 @@ export class GitService {
 /** Formats a Git remote repository URL into a web URL for viewing a commit. */
 export function formatGitRemoteWebUrl(rawRemoteUrl: string): string {
   if (!rawRemoteUrl) return ""
-  let s = rawRemoteUrl.trim().replace(/\/+$/, "")
+  const s = rawRemoteUrl.trim().replace(/\/+$/, "")
 
   let base = ""
   if (s.startsWith("http://") || s.startsWith("https://")) {

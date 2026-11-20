@@ -5,11 +5,12 @@ import { GitOutputDetails } from "@/pages/git/components/git-output-details"
 import { toast } from "@/components/ui/sonner"
 import { cleanGitErrorMessage } from "@/pages/git/utils"
 import type { GitRepositoryState } from "@/pages/git/hooks/use-git-repository"
+import type { GitPushSelection } from "@vessel/type/git"
 
 /** 提交、分支与远程操作 */
 export function useGitCommitActions(repo: GitRepositoryState, requestConfirmation: (description: string, tone?: "danger" | "primary") => Promise<boolean>) {
   const router = useRouter()
-  const { repoPath, setLoading, setRemoteOperation, remotePending, status, branches, commits, commitMessage, setCommitMessageReset, isAmend, setIsAmend, refresh } = repo
+  const { repoPath, setLoading, setRemoteOperation, remotePending: remotePendingRef, status, branches, commits, commitMessage: commitMessageRef, setCommitMessageReset, isAmend, setIsAmend, refresh } = repo
 
   /** Handles checkout commit events. */
   const handleCheckoutCommit = async (hash: string) => {
@@ -90,7 +91,7 @@ export function useGitCommitActions(repo: GitRepositoryState, requestConfirmatio
 
   /** Handles commit events. */
   const handleCommit = async () => {
-    const message = commitMessage.current
+    const message = commitMessageRef.current
     if (!message.trim()) {
       toast.error("请输入提交说明 (Commit Message)")
       return
@@ -101,8 +102,8 @@ export function useGitCommitActions(repo: GitRepositoryState, requestConfirmatio
     }
     try {
       await window.electronAPI.git.commit(repoPath, message.trim(), isAmend)
-      if (commitMessage.current === message) {
-        commitMessage.current = ""
+      if (commitMessageRef.current === message) {
+        commitMessageRef.current = ""
         setCommitMessageReset((version) => version + 1)
       }
       setIsAmend(false)
@@ -155,8 +156,8 @@ export function useGitCommitActions(repo: GitRepositoryState, requestConfirmatio
 
   /** Handles pull events. */
   const handlePull = async (remote?: string, branch?: string) => {
-    if (remotePending.current) return
-    remotePending.current = true
+    if (remotePendingRef.current) return
+    remotePendingRef.current = true
     setRemoteOperation("pull")
     setLoading(true)
     try {
@@ -166,26 +167,28 @@ export function useGitCommitActions(repo: GitRepositoryState, requestConfirmatio
     } catch (e: any) {
       toast.error("拉取失败", { description: cleanGitErrorMessage(e) })
     } finally {
-      remotePending.current = false
+      remotePendingRef.current = false
       setRemoteOperation(null)
       setLoading(false)
     }
   }
 
   /** Handles push events. */
-  const handlePush = async (remote?: string, branch?: string) => {
-    if (remotePending.current) return
-    remotePending.current = true
+  const [pushRequest, setPushRequest] = useState<{ repoPath: string; remote?: string; branch?: string } | null>(null)
+  const handlePush = (remote?: string, branch?: string) => {
+    if (!remotePendingRef.current) setPushRequest({ repoPath, remote, branch })
+  }
+  const submitPush = async (selection: GitPushSelection) => {
+    if (remotePendingRef.current) throw new Error("已有远程操作正在进行，请稍后重试")
+    remotePendingRef.current = true
     setRemoteOperation("push")
     setLoading(true)
     try {
-      const res = await window.electronAPI.git.push(repoPath, remote, branch)
+      const res = await window.electronAPI.git.pushSelection(repoPath, selection)
       toast.success("推送成功", { description: res.output ? <GitOutputDetails output={res.output} /> : undefined })
       await refresh()
-    } catch (e: any) {
-      toast.error("推送失败", { description: cleanGitErrorMessage(e) })
     } finally {
-      remotePending.current = false
+      remotePendingRef.current = false
       setRemoteOperation(null)
       setLoading(false)
     }
@@ -193,8 +196,8 @@ export function useGitCommitActions(repo: GitRepositoryState, requestConfirmatio
 
   /** Handles fetch events. */
   const handleFetch = async (remote?: string) => {
-    if (remotePending.current) return
-    remotePending.current = true
+    if (remotePendingRef.current) return
+    remotePendingRef.current = true
     setRemoteOperation("fetch")
     setLoading(true)
     try {
@@ -204,7 +207,7 @@ export function useGitCommitActions(repo: GitRepositoryState, requestConfirmatio
     } catch (e: any) {
       toast.error("抓取失败", { description: cleanGitErrorMessage(e) })
     } finally {
-      remotePending.current = false
+      remotePendingRef.current = false
       setRemoteOperation(null)
       setLoading(false)
     }
@@ -221,5 +224,5 @@ export function useGitCommitActions(repo: GitRepositoryState, requestConfirmatio
     }
   }
 
-  return { tagTarget, setTagTarget, handleCheckoutCommit, handleCreateTag, handleResetBranch, handleUndoLastCommit, handleRevertCommit, handleOpenRemoteCommit, handleCommit, handleCheckoutBranch, handleDeleteBranch, handleMergeBranch, handlePull, handlePush, handleFetch, handleInitRepo }
+  return { pushRequest, setPushRequest, submitPush, tagTarget, setTagTarget, handleCheckoutCommit, handleCreateTag, handleResetBranch, handleUndoLastCommit, handleRevertCommit, handleOpenRemoteCommit, handleCommit, handleCheckoutBranch, handleDeleteBranch, handleMergeBranch, handlePull, handlePush, handleFetch, handleInitRepo }
 }

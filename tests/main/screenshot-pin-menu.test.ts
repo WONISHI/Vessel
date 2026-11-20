@@ -6,9 +6,9 @@ vi.mock("electron", () => ({
 }))
 import { registerPinMenu, togglePins } from "@main/screenshot/pin-menu"
 it("scopes pin menu actions, placement, visibility and style to the pin window", () => {
-  const handlers = new Map<string, Function>()
+  const handlers = new Map<string, (...args: any[]) => unknown>()
   const win = {
-    webContents: { ipc: { handle: (key: string, fn: Function) => handlers.set(key, fn) }, send: vi.fn() },
+    webContents: { ipc: { handle: (key: string, fn: (...args: any[]) => unknown) => handlers.set(key, fn) }, send: vi.fn() },
     setOpacity: vi.fn(), setHasShadow: vi.fn(), setVisibleOnAllWorkspaces: vi.fn(), setAlwaysOnTop: vi.fn(),
     isDestroyed: () => false, isVisible: () => true, hide: vi.fn(), showInactive: vi.fn(), close: vi.fn()
   }
@@ -34,4 +34,19 @@ it("scopes pin menu actions, placement, visibility and style to the pin window",
   expect(win.showInactive).toHaveBeenCalledOnce()
   mocks.template.find((entry) => entry.label === "从桌面移除").click()
   expect(win.close).toHaveBeenCalledOnce()
+})
+
+it("moves only its own pin after a left drag starts and stops when it ends", () => {
+ const handlers = new Map<string, (...args: any[]) => unknown>()
+ const win = { webContents: { ipc: { handle: (key: string, fn: (...args: any[]) => unknown) => handlers.set(key, fn) } }, getPosition: () => [100, 200], setPosition: vi.fn() }
+ registerPinMenu(win as any, {} as any, new Set())
+ const drag = handlers.get('shot:pin-drag')!
+ drag({}, { phase: 'move', x: 20, y: 30 })
+ expect(win.setPosition).not.toHaveBeenCalled()
+ drag({}, { phase: 'start', x: 10, y: 20 })
+ drag({}, { phase: 'move', x: 40, y: 70 })
+ expect(win.setPosition).toHaveBeenCalledWith(130, 250)
+ drag({}, { phase: 'end' })
+ drag({}, { phase: 'move', x: 50, y: 90 })
+ expect(win.setPosition).toHaveBeenCalledOnce()
 })

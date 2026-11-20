@@ -391,6 +391,20 @@ export function bindCallouts(root: HTMLElement, onTypeMenu?: (target: CalloutMen
 }
 
 
+/** Persist folding with the Obsidian +/- directive, preserving the title and body. */
+export function setCalloutCollapsed(quote: HTMLElement, collapsed: boolean): boolean {
+  const heading = quote.querySelector<HTMLElement>(":scope > p:first-child > .vessel-callout-heading")
+  if (!heading) return false
+  const walker = document.createTreeWalker(heading, NodeFilter.SHOW_TEXT)
+  const node = walker.nextNode() as Text | null
+  if (!node || !/^\s*\[![\w-]+\]/.test(node.data)) return false
+  node.data = node.data.replace(/^(\s*\[![\w-]+\])(?:[ \t]*[+-])?/, `$1${collapsed ? "-" : "+"}`)
+  decorateCallouts(quote)
+  quote.classList.toggle("vessel-callout-collapsed", collapsed)
+  heading.setAttribute("aria-expanded", String(!collapsed))
+  return true
+}
+
 /** Replace only the directive's type; keep source title, body and fold markers intact. */
 export function changeCalloutType(quote: HTMLElement, name: string): boolean {
   if (!/^[a-z][a-z0-9-]*$/.test(name)) return false

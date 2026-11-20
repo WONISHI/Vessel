@@ -1,6 +1,7 @@
 import { cleanup, render, screen, waitFor } from "@testing-library/react"
 import { afterEach, expect, it, vi } from "vitest"
 import { ProjectLibrary } from "@/components/workspace/components/layout-aside/project-library/components/project-library"
+import { projectCache } from "@/components/workspace/components/layout-aside/project-library/components/project-library-shared"
 vi.mock("@/components/workspace/components/layout-aside/project-library/components/project-preview", () => ({ ProjectPreview: ({ project }: { project: { name: string } }) => <div>{project.name}</div> }))
 afterEach(() => { cleanup(); localStorage.clear(); vi.unstubAllGlobals() })
 
@@ -18,4 +19,12 @@ it("retains explicitly saved projects", async () => {
   vi.stubGlobal("electronAPI", { getAppState: vi.fn().mockResolvedValue([{ name: "My project", path: "/project" }]) })
   render(<ProjectLibrary pinned={false} onPin={vi.fn()} />)
   await waitFor(() => expect(screen.getByText("My project")).toBeTruthy())
+})
+
+it("shows a directory placeholder while the initial project list is being read", () => {
+  projectCache.projects = null
+  vi.stubGlobal("electronAPI", { getAppState: vi.fn(() => new Promise(() => {})) })
+  render(<ProjectLibrary pinned={false} onPin={vi.fn()} />)
+  expect(screen.getByRole("status", { name: "正在读取项目目录" })).toBeTruthy()
+  expect(screen.queryByText("还没有项目目录")).toBeNull()
 })

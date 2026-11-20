@@ -1,0 +1,63 @@
+.workspace-graph-page,.workspace-graph-page * { box-sizing:border-box; }
+.workspace-graph-page button:not(.workspace-graph-header-button) { border:0; background:none; color:inherit; font:inherit; cursor:pointer; }
+.workspace-graph-page input { color:inherit; }
+.workspace-graph-page { display:flex; flex-direction:column; width:100%; height:100%; min-width:0; min-height:0; flex:1; position:relative; gap:0; padding:0; overflow:hidden; color:#374151; background:#fafbfc; }
+.workspace-graph-heading { color:#292524; }
+html.dark .workspace-graph-heading { color:#e5e7eb; }
+.workspace-graph-muted { color:#9199a5; font-size:11px; line-height:1.7; font-weight:normal; }
+.workspace-graph-refresh { display:flex; align-items:center; gap:6px; font-size:11px; white-space:nowrap; }
+.workspace-graph-refresh:disabled { opacity:.45; }
+.workspace-graph-body { display:flex; flex:1; min-height:0; }
+.workspace-graph-main { position:relative; flex:1; min-width:0; overflow:hidden; }
+.workspace-graph-canvas { position:absolute; inset:0; }
+.workspace-graph-canvas canvas { display:block; width:100%; height:100%; touch-action:none; outline-offset:-2px; }
+.workspace-graph-view-tools { position:absolute; top:14px; left:14px; display:flex; gap:3px; padding:3px; border:1px solid #e5e7eb; border-radius:9px; background:#fff; box-shadow:0 2px 8px #00000004; }
+.workspace-graph-view-tools button { padding:6px; border-radius:5px; }
+.workspace-graph-view-tools button:hover { background:#eef2f5; }
+.workspace-graph-empty,.workspace-graph-loading,.workspace-graph-error { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; padding:30px; text-align:center; font-size:12px; }
+.workspace-graph-empty { color:#939cab; pointer-events:none; }
+.workspace-graph-loading { background:#fafbfce8; color:#6b7280; }
+.workspace-graph-loading svg { color:#10b981; }
+.workspace-graph-loading span { font-size:11px; color:#939cab; }
+.workspace-graph-error { background:#fafbfc; color:#dc2626; overflow:auto; }
+.workspace-graph-error button { padding:6px 18px; border:1px solid currentColor; border-radius:6px; }
+.workspace-graph-hint { position:absolute; bottom:12px; left:15px; font-size:10px; color:#9ba3af; pointer-events:none; }
+.workspace-graph-settings { width:256px; flex-shrink:0; border-left:1px solid #e6e8ec; min-height:0; overflow:hidden; background:#fff; font-size:12px; }
+.workspace-graph-settings-heading { display:flex; justify-content:space-between; margin-bottom:14px; }
+.workspace-graph-settings-scroll { height:100%; width:100%; }
+.workspace-graph-settings-content { padding:16px; }
+.workspace-graph-section { border-top:1px solid #eef0f3; }
+.workspace-graph-section-trigger { display:flex; align-items:center; gap:6px; width:100%; padding:12px 0; font-size:11px; font-weight:600; text-align:left; }
+.workspace-graph-section-trigger svg { transition:transform 150ms ease; }
+.workspace-graph-section-trigger[data-state=open] svg { transform:rotate(90deg); }
+.workspace-graph-section-trigger:hover { color:#10b981; }
+.workspace-graph-section-trigger:focus-visible { outline:2px solid #10b981; outline-offset:-2px; border-radius:4px; }
+.workspace-graph-section-content { padding-bottom:14px; }
+.workspace-graph-range [data-slot=slider-range] { background:#10b981; }
+.workspace-graph-range [data-slot=slider-thumb] { width:12px; height:12px; border:2px solid #10b981; }
+.workspace-graph-range > [data-orientation=horizontal] { margin-top:10px; }
+html.dark .workspace-graph-section { border-color:#343d49; }
+.workspace-graph-settings input:not([type=checkbox]):not([type=range]):not([type=color]) { width:100%; min-width:0; font-size:11px; border:1px solid #e5e7eb; border-radius:6px; padding:6px 8px; background:transparent; outline-color:#10b981; }
+.workspace-graph-check { display:flex; align-items:center; justify-content:space-between; margin-top:10px; font-size:11px; }
+.workspace-graph-check input { accent-color:#10b981; }
+.workspace-graph-range { display:block; font-size:11px; margin-top:14px; }
+.workspace-graph-range output { float:right; color:#9199a5; }
+.workspace-graph-range input { display:block; width:100%; margin-top:8px; accent-color:#10b981; }
+.workspace-graph-group { display:flex; align-items:center; gap:5px; margin:7px 0; }
+.workspace-graph-group input[type=color] { width:21px; height:24px; padding:0; background:transparent; border:0; flex-shrink:0; }
+.workspace-graph-add-group { display:flex; align-items:center; gap:5px; color:#8993a2; font-size:11px; margin-top:8px; }
+.workspace-graph-footer { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:9px 16px; border-top:1px solid #e6e8ec; font-size:10px; color:#939cab; }
+.workspace-graph-footer details pre { position:absolute; bottom:42px; left:16px; right:16px; padding:16px; max-height:220px; overflow:auto; background:#fff; color:#ad7630; border:1px solid #e6e8ec; white-space:pre-wrap; box-shadow:0 4px 20px #0001; z-index:4; }
+html.dark .workspace-graph-page,html.dark .workspace-graph-loading,html.dark .workspace-graph-error { background:#20252d; color:#c1c9d7; }
+html.dark .workspace-graph-settings,html.dark .workspace-graph-view-tools,html.dark .workspace-graph-footer details pre { background:#252b34; }
+html.dark .workspace-graph-page :is(header,footer,aside,details),html.dark .workspace-graph-settings input,html.dark .workspace-graph-view-tools { border-color:#343d49; }
+html.dark .workspace-graph-view-tools button:hover { background:#394353; }
+@media(max-width:720px) { .workspace-graph-settings { width:210px; } .workspace-graph-settings-content { padding:12px; } .workspace-graph-footer { flex-wrap:wrap; } }
+
+.workspace-graph-back { display:grid; place-items:center; width:28px; height:28px; flex-shrink:0; border-radius:5px; }
+.workspace-graph-back:hover { background:#e7e5e4; }
+html.dark .workspace-graph-back:hover { background:#394353; }
+
+.tool-page-header .workspace-graph-refresh-button { display:inline-flex; align-items:center; height:32px; padding:0 12px; gap:6px; border-radius:6px; font-size:12px; font-weight:500; box-shadow:none; }
+.tool-page-header .workspace-graph-refresh-button svg { width:14px; height:14px; flex-shrink:0; }
+.tool-page-header .workspace-graph-refresh-button:disabled { cursor:not-allowed; opacity:.5; }

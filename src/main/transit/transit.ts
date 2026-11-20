@@ -1,6 +1,7 @@
 import { isCodePreviewFile } from "@main/files/code-preview-formats"
 import type { TransitFile } from "@vessel/type"
-import { app, BrowserWindow, clipboard, dialog, type WebContents } from "electron"
+import { app, BrowserWindow, clipboard, dialog, nativeImage, type WebContents } from "electron"
+import { randomUUID } from "node:crypto"
 import { mkdir, readFile, realpath, stat, writeFile } from "node:fs/promises"
 import { basename, dirname, extname, isAbsolute, join, relative } from "node:path"
 
@@ -22,6 +23,18 @@ async function readTransitFile(root: string, file: string): Promise<TransitFile>
 
 /** Registers transit. */
 export function registerTransit(host: WebContents) {
+  host.ipc.handle("transit:import-image", async (_event, data: string, title?: string) => {
+    if (typeof data !== "string" || data.length > 42_000_000 || !/^data:image\//i.test(data)) throw new Error("图片内容无效或超过 30 MB")
+    const image = nativeImage.createFromDataURL(data)
+    if (image.isEmpty()) throw new Error("无法读取图片")
+    const bytes = image.toPNG()
+    if (bytes.length > 50 * 1024 * 1024) throw new Error("预览图片不能超过 50 MB")
+    const root = join(app.getPath("userData"), "transit-images")
+    const path = join(root, `${randomUUID()}.png`)
+    await mkdir(root, { recursive: true })
+    await writeFile(path, bytes)
+    return { root, path, title: typeof title === "string" && title.trim() ? title.trim().slice(0, 120) : "图片.png" }
+  })
   host.ipc.handle("transit:import-files", async () => {
     const owner = BrowserWindow.fromWebContents(host)
     if (!owner) throw new Error("窗口已关闭")

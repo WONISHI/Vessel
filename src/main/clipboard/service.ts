@@ -8,6 +8,7 @@ import { fileURLToPath } from "node:url"
 import { promisify } from "node:util"
 import { ClipboardHistory, clipboardTextKind, MAX_CAPTURE_BYTES, type ClipboardCapture } from "./history"
 import { clipboardHelperPath } from "./native-helper"
+import { captureClipboardTarget, pasteToClipboardTarget, type ClipboardPasteTarget } from "./paste-target"
 
 type Options = { directory?: string; helperPath?: string; preloadPath?: string; monitor?: boolean; registerShortcut?: boolean; loadPanel?: (window: BrowserWindow) => Promise<unknown> }
 let activeService: ReturnType<typeof startClipboardHistory> | undefined
@@ -25,6 +26,8 @@ export function startClipboardHistory(options: Options = {}) {
   let panel: BrowserWindow | undefined
   let loading: Promise<unknown> | undefined
   let previousWindow: BrowserWindow | null = null
+  let pasteTarget: ClipboardPasteTarget | undefined
+  let pasting = false
   let keepOpen = false
   let timer: ReturnType<typeof setInterval> | undefined
   let watcher: ChildProcess | undefined
@@ -95,7 +98,7 @@ export function startClipboardHistory(options: Options = {}) {
     } catch (error) { console.warn("读取剪贴板历史失败", error instanceof Error ? error.message : "未知错误") }
   }
 
-  const copy = async (id: number, plainText = false) => {
+  const writeEntry = async (id: number, plainText = false) => {
     const entry = history.get(id)
     if (!entry) throw new Error("这条记录已不存在")
     if (plainText) {
@@ -112,7 +115,25 @@ export function startClipboardHistory(options: Options = {}) {
       clipboard.write({ text: entry.text, ...(entry.html ? { html: entry.html } : {}), ...(entry.rtf ? { rtf: entry.rtf } : {}), ...(entry.image ? { image: nativeImage.createFromBuffer(entry.image) } : {}) })
     }
     capture(entry.kind === "files" && !plainText ? entry.files : undefined)
+  }
+  const copy = async (id: number, plainText = false) => {
+    await writeEntry(id, plainText)
     if (!keepOpen) hide(true)
+  }
+  const paste = async (id: number, plainText = false) => {
+    if (pasting) return
+    pasting = true
+    const target = pasteTarget
+    try {
+      await writeEntry(id, plainText)
+      hide()
+      await pasteToClipboardTarget(target, helper)
+      if (keepOpen && panel && !panel.isDestroyed()) panel.showInactive()
+    } catch (error) {
+      if (panel && !panel.isDestroyed()) { panel.show(); panel.focus() }
+      const message = error instanceof Error ? error.message : String(error)
+      throw new Error(`自动粘贴失败：${message}`)
+    } finally { pasting = false }
   }
 
   const createPanel = () => {
@@ -133,6 +154,7 @@ export function startClipboardHistory(options: Options = {}) {
     window.webContents.on("will-navigate", (event) => event.preventDefault())
     window.webContents.ipc.handle("clipboard:state", (_event, filter?: ClipboardFilter) => state(filter && typeof filter === "object" ? filter : undefined))
     window.webContents.ipc.handle("clipboard:copy", (_event, id: number, plainText: boolean) => copy(id, plainText === true))
+    window.webContents.ipc.handle("clipboard:paste", (_event, id: number, plainText: boolean) => paste(id, plainText === true))
     window.webContents.ipc.handle("clipboard:pin", (_event, id: number) => { history.pin(id); notify() })
     window.webContents.ipc.handle("clipboard:remove", (_event, id: number) => { history.remove(id); notify() })
     window.webContents.ipc.handle("clipboard:clear", () => { history.clear(); notify() })
@@ -152,6 +174,8 @@ export function startClipboardHistory(options: Options = {}) {
     if (disposed) return
     if (panel?.isVisible()) { hide(true); return }
     previousWindow = BrowserWindow.getFocusedWindow()
+    pasteTarget = await captureClipboardTarget(previousWindow, helper)
+    if (disposed) return
     capture()
     const window = panel && !panel.isDestroyed() ? panel : createPanel()
     const { workArea } = screen.getDisplayNearestPoint(screen.getCursorScreenPoint())
@@ -193,7 +217,7 @@ export function startClipboardHistory(options: Options = {}) {
     history.close()
     if (activeService === service) activeService = undefined
   }
-  const service = { show, dispose, capture, state, copy }
+  const service = { show, dispose, capture, state, copy, paste }
   activeService = service
   register()
   app.on("activate", register)

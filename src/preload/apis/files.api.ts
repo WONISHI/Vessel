@@ -1,9 +1,17 @@
+import type { WorkspaceGraph } from "../../../packages/@vessel/workspace/src/graph/types"
 import type { BaseQueryResult } from "@vessel/obsidian/bases"
 import type { CodeDiagnostic, ContentSearchOptions, ContentSearchResult, ImageFile } from "@vessel/type"
 import { ipcRenderer } from "electron"
 
 /** 向渲染进程提供受控的文件 IPC 接口，不暴露 Node 文件系统对象。 */
 export const filesAPI = {
+  readWorkspaceGraph: (root: string, requestId?: string): Promise<WorkspaceGraph> => ipcRenderer.invoke("workspace:graph", root, requestId),
+  onWorkspaceGraphProgress: (callback: (value: { root: string; requestId?: string; graph: WorkspaceGraph }) => void) => {
+    const listener = (_event: unknown, value: { root: string; requestId?: string; graph: WorkspaceGraph }) => callback(value)
+    ipcRenderer.on("workspace:graph-progress", listener)
+    return () => { ipcRenderer.removeListener("workspace:graph-progress", listener) }
+  },
+  cancelWorkspaceGraph: (): Promise<void> => ipcRenderer.invoke("workspace:graph-cancel"),
   sourceProjectPick: (): Promise<string | null> => ipcRenderer.invoke("source-project:pick"),
   sourceProjectStart: (options: { root: string; config?: string; mode?: string; port?: number }) => ipcRenderer.invoke("source-project:start", options),
   sourceProjectStatus: () => ipcRenderer.invoke("source-project:status"),

@@ -23,6 +23,10 @@ it("stashes only the selected files and can keep staged changes in the index", a
     expect(await readFile(join(root, "b"), "utf8")).toBe("changed")
     expect(git("status", "--porcelain", "--untracked-files=all")).not.toContain("new")
     expect(git("stash", "list")).toContain("pick two")
+    const saved = (await gitService.getStashes(root))[0]
+    expect(saved.name).toBe("pick two")
+    expect(saved.date).toBe(git("show", "--no-patch", "--format=%cI", "stash@{0}"))
+    expect(Number.isFinite(new Date(saved.date).getTime())).toBe(true)
 
     git("add", "b")
     await gitService.stashSave(root, "keep", ["b", "c"], { keepIndex: true })

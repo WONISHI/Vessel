@@ -33,6 +33,7 @@ export interface AppSettings {
   catppuccinFlavor?: "auto" | "latte" | "frappe" | "macchiato" | "mocha"
   searchEngine?: "bing" | "google" | "baidu" | "duckduckgo"
   proxyEnabled?: boolean
+  browserDevtoolsFollowWindow?: boolean
   externalScreenshot?: boolean
   externalPreview?: boolean
   attachmentLibraryEnabled?: boolean
@@ -123,6 +124,7 @@ export interface BackupLogs {
 
 export interface SettingsAPI {
   getSettings(): Promise<AppSettings>
+  chooseAvatar(): Promise<string | null>
   getBackupExportSecret(workspacePath?: string): Promise<string>
   saveSettings(settings: AppSettings, secret?: string): Promise<AppSettings>
   getSettingsInfo(): Promise<{ version: string; electron: string; node: string }>

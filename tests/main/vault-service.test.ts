@@ -70,5 +70,26 @@ it("protects the vault lifecycle, validates IPC and isolates credentials by orig
     expect(await request("list")).toHaveLength(0)
     await request("import", { exportPassword: "another export password" })
     expect(await request("list")).toHaveLength(1)
+    // Local development has the same consent flow and keeps protocol, host and port boundaries.
+    url = "http://localhost:9525/login"
+    const localPrompts = mock.send.mock.calls.length
+    await mock.guestHandlers.get("vault:submit")!({ senderFrame: guestFrame }, { username: "local-user", password: "local-dummy-secret" })
+    expect(mock.send.mock.calls.length).toBe(localPrompts + 1)
+    const localCandidate = mock.send.mock.calls.at(-1)![1]
+    expect(localCandidate.origin).toBe("http://localhost:9525")
+    expect(localCandidate).not.toHaveProperty("password")
+    expect(await request("list")).toHaveLength(1)
+    await request("candidate", { id: localCandidate.id, choice: "save" })
+    const localEntry = (await request("list")).find((item: { origin: string }) => item.origin === "http://localhost:9525")
+    expect(await mock.guestHandlers.get("vault:suggest")!({ senderFrame: guestFrame })).toEqual([{ id: localEntry.id, username: "local-user" }])
+    for (const other of ["http://localhost:9523/login", "http://127.0.0.1:9525/login", "https://localhost:9525/login"]) {
+      url = other
+      expect(await mock.guestHandlers.get("vault:suggest")!({ senderFrame: guestFrame })).toEqual([])
+      await expect(request("fill", { id: localEntry.id, guestId: "1" })).rejects.toThrow("来源")
+    }
+    url = "http://example.test/login"
+    const remotePrompts = mock.send.mock.calls.length
+    await mock.guestHandlers.get("vault:submit")!({ senderFrame: guestFrame }, { username: "remote-user", password: "remote-dummy-secret" })
+    expect(mock.send.mock.calls.length).toBe(remotePrompts)
   } finally { lockVault(); clock.mockRestore(); await rm(mock.directory, { recursive: true, force: true }) }
 }, 60000)

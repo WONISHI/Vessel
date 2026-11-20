@@ -124,8 +124,30 @@ export function parseCurl(command: string): RequestDraft {
   draft.method = method || (forceGet ? "GET" : data.length || form.length ? "POST" : "GET")
   draft.url = url
   draft.params = paramsFromUrl(url, [])
-  try { draft.name = `${draft.method} ${new URL(url).pathname}` } catch { draft.name = "cURL 导入" }
+  draft.name = curlRequestName(url)
   return draft
+}
+
+/** Short endpoint names omit the method, host, query and shared path prefixes. */
+function curlRequestName(url: string): string {
+  const base = splitUrl(url).base
+  let path = base
+  let fallback = "cURL 导入"
+  try {
+    const parsed = new URL(base)
+    path = parsed.pathname
+    fallback = parsed.host || fallback
+  } catch {
+    const template = /^(?:https?:\/\/)?(\{\{[^}]+\}\})(.*)$/.exec(base)
+    if (template) {
+      path = template[2]
+      fallback = template[1]
+    }
+  }
+  const segments = path.split("/").filter(Boolean).slice(-2).map((segment) => {
+    try { return decodeURIComponent(segment) } catch { return segment }
+  })
+  return segments.join("/") || fallback
 }
 
 function safeDecode(text: string) {

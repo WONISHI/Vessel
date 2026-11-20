@@ -1,3 +1,4 @@
+import { toast } from "@/components/ui/sonner"
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { QuickPickerScrollArea } from "./quick-picker-scroll-area"
@@ -10,7 +11,7 @@ import { QuickPickerFooter } from "./quick-picker-footer"
 import { FileThemeIcon } from "@/features/file-icons"
 import { FileIconScope } from "@/features/file-icons/state"
 import { getFilePresentation } from "@/components/workspace/components/layout-aside/layout-workspace-sidebar/utils"
-import { File, Folder } from "lucide-react"
+import { File, Folder, Plus } from "lucide-react"
 import { useRef, useState, useMemo, useCallback, useId, type CSSProperties } from "react"
 
 /** Opens current tabs or workspace files matched by name, path, content or a contained link. */
@@ -35,6 +36,14 @@ export function WorkspaceFilePicker({ workspace, onClose, popupStyle }: { worksp
     if (file.type === "directory") window.dispatchEvent(new CustomEvent("vessel:reveal-file", { detail: file.path }))
     else workspace?.openFile(file)
     onClose()
+  }
+  const createFile = () => {
+    if (!workspace || !query.trim()) return
+    const parent = workspace.activePath?.replace(/[\\/][^\\/]+$/, "") || workspace.root
+    onClose()
+    void window.electronAPI.createWorkspaceEntry(workspace.root, parent, query.trim(), "file")
+      .then((file) => workspace.openFile(file))
+      .catch((error) => toast.error(String(error)))
   }
   return (
     <FileIconScope.Provider value={workspace?.scope ?? "workspace"}><Dialog
@@ -72,6 +81,7 @@ export function WorkspaceFilePicker({ workspace, onClose, popupStyle }: { worksp
       >
         <DialogTitle className={popupStyle ? "sr-only" : "text-xs"}>查找工作区文件</DialogTitle>
         <DialogDescription className="sr-only">搜索整个工作区，包含尚未打开的文件；已打开文件优先显示，支持文件夹、文件名、路径、链接与内容。</DialogDescription>
+        <div className="flex items-center gap-2">
         <Input
           autoFocus
           aria-label="搜索工作区文件"
@@ -83,8 +93,10 @@ export function WorkspaceFilePicker({ workspace, onClose, popupStyle }: { worksp
             setQuery(event.target.value)
             if (viewportRef.current) viewportRef.current.scrollTop = 0
           }}
-          className="h-8 text-xs md:text-xs rounded-lg bg-stone-50 focus-visible:border-green-600 focus-visible:ring-green-100 focus-visible:ring-offset-0"
+          className="min-w-0 flex-1 h-8 text-xs md:text-xs rounded-lg bg-stone-50 focus-visible:border-green-600 focus-visible:ring-green-100 focus-visible:ring-offset-0"
         />
+        {query.trim() && workspace && <button type="button" aria-label="新增自定义文件" data-title="在当前标签文件所在目录新建" onClick={createFile} className="shrink-0 rounded p-1.5 hover:bg-stone-100 dark:hover:bg-white/10"><Plus className="size-4" /></button>}
+        </div>
         <p role="status" className="mt-2 px-1 pb-1 text-[10px] text-stone-400">
           {result.busy ? `正在搜索，已找到 ${files.length} 个结果` : `共找到 ${files.length} 个结果`}
           <span className="ml-2">可滚动查看全部结果</span>

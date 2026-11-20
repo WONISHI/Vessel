@@ -31,7 +31,7 @@ it("shows file metadata without fetching a second copy", () => {
   expect(screen.getByText("2 行")).toBeTruthy()
 })
 it("switches fragments from the icon strip and closes the sheet", () => {
-  vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} })
+  vi.stubGlobal("ResizeObserver", class { observe = vi.fn(); unobserve = vi.fn(); disconnect = vi.fn() })
   render(<TransitPanel />)
   expect(screen.getAllByRole("tab")).toHaveLength(2)
   fireEvent.click(screen.getByRole("tab", { name: "片段二" }))
@@ -44,7 +44,7 @@ it("shows four tabs per page and the remaining two when advancing past item four
   const original = state.items
   state.items = Array.from({ length: 6 }, (_, index) => ({ id: `item-${index}`, kind: "text", title: `片段${index + 1}`, content: `内容${index + 1}` }))
   state.selected = "item-3"
-  vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} })
+  vi.stubGlobal("ResizeObserver", class { observe = vi.fn(); unobserve = vi.fn(); disconnect = vi.fn() })
   try {
     const view = render(<TransitPanel />)
     expect(screen.getAllByRole("tab")).toHaveLength(4)
@@ -88,7 +88,7 @@ it("shows decoded image dimensions and byte size with an edit action", async () 
 })
 
 it('aligns the preview with the window top and supports its toolbar actions', async () => {
-  vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} })
+  vi.stubGlobal('ResizeObserver', class { observe = vi.fn(); unobserve = vi.fn(); disconnect = vi.fn() })
   const openTransitWindow = vi.fn(async () => {})
   vi.stubGlobal('electronAPI', { openTransitWindow })
   render(<TransitPanel />)
@@ -97,6 +97,15 @@ it('aligns the preview with the window top and supports its toolbar actions', as
   expect(sheet.style.height).toBe('100dvh')
   fireEvent.click(screen.getByRole('button', { name: '展开' }))
   expect(screen.getByRole('button', { name: '还原' })).toBeTruthy()
+  fireEvent.click(screen.getByLabelText('隐藏活动栏'))
+  expect(sheet.style.left).toBe('0px')
+  expect(sheet.style.width).toBe('100vw')
+  fireEvent.click(screen.getByLabelText('隐藏底部状态栏'))
+  expect(screen.queryByLabelText('底部状态栏')).toBeNull()
+  fireEvent.click(screen.getByLabelText('显示活动栏'))
+  fireEvent.click(screen.getByLabelText('显示底部状态栏'))
+  expect(sheet.style.left).toBe('52px')
+  expect(screen.getByLabelText('底部状态栏')).toBeTruthy()
   fireEvent.click(screen.getByRole('button', { name: '还原' }))
   fireEvent.click(screen.getByRole('button', { name: '独立窗口' }))
   await waitFor(() => expect(openTransitWindow).toHaveBeenCalledOnce())

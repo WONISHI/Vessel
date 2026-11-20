@@ -6,9 +6,9 @@ import LayoutActivityBar from "@/components/layout/activity-bar/index"
 vi.mock("@vessel/react-router", () => ({ useRouter: () => ({ push: vi.fn() }) }))
 vi.mock("react-router-dom", () => ({ useLocation: () => ({ pathname: "/editor", search: "" }) }))
 vi.mock("@/components/ui/sidebar", () => ({ useSidebar: () => ({ open: true }), SidebarTrigger: () => <button>侧栏</button> }))
-vi.mock("@/components/transit/button", () => ({ TransitButton: () => null }))
+vi.mock("@/components/layout/activity-bar/update-bell", () => ({ UpdateBell: () => null }))
 vi.mock("@/pages/resources/library-state", () => ({ selectLastPinned: vi.fn() }))
-afterEach(cleanup)
+afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals() })
 it("runs whole-workspace sync from the home context menu without navigating", async () => {
   const runBackup = vi.fn(async () => ({ running: false }))
   Object.defineProperty(window, "electronAPI", {
@@ -71,7 +71,7 @@ it("moves crowded activities into More and restores them when the rail grows", a
     })
     expect(screen.queryByRole("button", { name: "图片" })).toBeNull()
     expect(screen.getByRole("button", { name: "工作区" })).toBeTruthy()
-    fireEvent.click(screen.getByRole("button", { name: "更多开发工具" }))
+    fireEvent.click(screen.getByRole("button", { name: "更多活动" }))
     fireEvent.click(await screen.findByRole("button", { name: "图片" }))
     expect(change).toHaveBeenCalledWith("image")
     act(() => {
@@ -84,7 +84,7 @@ it("moves crowded activities into More and restores them when the rail grows", a
   }
 })
 
-it("restores the workspace active state after choosing Git from More", async () => {
+it("restores the workspace active state after choosing Git directly", async () => {
   Object.defineProperty(window, "electronAPI", { configurable: true, value: { getSettings: vi.fn(async () => ({ backup: {} })), getBackupStatus: vi.fn(async () => ({})) } })
   const Harness = () => {
     const [activity, setActivity] = useState<"files" | "git">("files")
@@ -96,12 +96,13 @@ it("restores the workspace active state after choosing Git from More", async () 
     )
   }
   render(<Harness />)
-  fireEvent.click(screen.getByRole("button", { name: "更多开发工具" }))
-  fireEvent.click(await screen.findByRole("button", { name: /Git 代码版本管理/ }))
-  expect(screen.getByRole("button", { name: "更多开发工具" }).getAttribute("aria-pressed")).toBe("true")
+  expect(screen.queryByRole("button", { name: "更多活动" })).toBeNull()
+  expect(screen.getByRole("button", { name: "API" })).toBeTruthy()
+  fireEvent.click(screen.getByRole("button", { name: "Git" }))
+  expect(screen.getByRole("button", { name: "Git" }).getAttribute("aria-pressed")).toBe("true")
   fireEvent.click(screen.getByRole("button", { name: "工作区" }))
   expect(screen.getByRole("button", { name: "工作区" }).getAttribute("aria-pressed")).toBe("true")
-  expect(screen.getByRole("button", { name: "更多开发工具" }).getAttribute("aria-pressed")).toBe("false")
+  expect(screen.getByRole("button", { name: "Git" }).getAttribute("aria-pressed")).toBe("false")
 })
 
 it("switches dark and light appearance from the activity bar without changing other settings", async () => {
@@ -134,12 +135,13 @@ it("switches dark and light appearance from the activity bar without changing ot
 it("does not restore the More tooltip when its hover popover closes", async () => {
   vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} })
   Object.defineProperty(window, "electronAPI", { configurable: true, value: { getSettings: vi.fn(async () => ({ backup: {} })), getBackupStatus: vi.fn(async () => ({})) } })
+  vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({ height: 300, width: 52, x: 0, y: 0, top: 0, left: 0, bottom: 300, right: 52, toJSON() {} } as DOMRect)
   render(<LayoutActivityBar activity="files" onActivityChange={() => {}} />)
-  const trigger = screen.getByRole("button", { name: "更多开发工具" })
+  const trigger = screen.getByRole("button", { name: "更多活动" })
   fireEvent.mouseEnter(trigger.parentElement!)
-  expect(await screen.findByRole("button", { name: /Git 代码版本管理/ })).toBeTruthy()
+  expect(await screen.findByRole("button", { name: "Git" })).toBeTruthy()
   fireEvent.pointerLeave(trigger, { pointerType: "mouse" })
   fireEvent.mouseLeave(trigger.parentElement!)
-  await waitFor(() => expect(screen.queryByRole("button", { name: /Git 代码版本管理/ })).toBeNull())
-  expect(screen.queryByRole("tooltip", { name: /更多工具/ })).toBeNull()
+  await waitFor(() => expect(screen.queryByRole("button", { name: "Git" })).toBeNull())
+  expect(screen.queryByRole("tooltip", { name: "更多活动" })).toBeNull()
 })

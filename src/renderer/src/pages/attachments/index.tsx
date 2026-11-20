@@ -2,6 +2,7 @@ import "@/components/ui/resize-handle.css"
 import "@/components/styles/tool-page-header.css"
 import ActivityBar from "@/components/layout/activity-bar/index"
 import { ImageFilePreview } from "@/components/image-preview/index"
+import { StatusBar } from "@/components/ui/status-bar"
 import Layout from "@/components/layout"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { Button } from "@/components/ui/button"
@@ -311,10 +312,11 @@ export default function AttachmentRoute() {
 
   return (
     <Layout aside={<ActivityBar activity="attachments" onActivityChange={(id) => navigate(id === "files" ? "/editor" : `/${id}`)} />}>
+      <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col">
       {loading ? (
         <RouteLoading icon={<Paperclip />} title="正在加载附件库" label="正在读取附件目录，请稍候…" />
       ) : (
-        <section className="flex h-full min-h-0 min-w-0 flex-1 flex-col">
+        <section className="flex min-h-0 min-w-0 flex-1 flex-col">
           <header className="tool-page-header dark:!border-b-border">
             <span className="tool-page-brand"><Paperclip size={16} /></span>
             <div className="tool-page-heading">
@@ -448,6 +450,8 @@ export default function AttachmentRoute() {
           )}
         </section>
       )}
+      <StatusBar left="附件库" />
+      </div>
       <ConfirmDialog open={confirmFiles.length > 0} onOpenChange={(open) => { if (!open) setConfirmFiles([]) }}
         title="删除附件" description={confirmFiles.length === 1 ? `将「${confirmFiles[0].name}」移到系统废纸篓？` : `将选中的 ${confirmFiles.length} 个附件移到系统废纸篓？`}
         confirmText="移到废纸篓" busy={deleting} error={deleteError} onConfirm={() => void removeAttachment()} />

@@ -1,6 +1,6 @@
 import { searchGitCommits } from "./search"
 import { getGitDecorations } from "./git-decorations"
-import type { GitSearchOptions, GitTagOptions } from "@vessel/type/git"
+import type { GitPushSelection, GitSearchOptions, GitTagOptions } from "@vessel/type/git"
 import { getRepositorySettings, saveRepositorySettings } from "@main/modules/git/repository-settings"
 import type { GitRepositorySettings } from "@vessel/type/git"
 import { BaseModule } from "@main/modules/base/index"
@@ -76,6 +76,8 @@ export class GitModule extends BaseModule {
 
       /** Performs the "git:push" operation. */
       "git:push": (_e, cwd: string, remote?: string, branch?: string, force?: boolean) => gitService.push(cwd, remote, branch, force),
+      "git:push-info": (_e, cwd: string) => gitService.getPushInfo(cwd),
+      "git:push-selection": (_e, cwd: string, selection: GitPushSelection) => gitService.pushSelection(cwd, selection),
 
       /** Performs the "git:merge" operation. */
       "git:merge": (_e, cwd: string, branch: string) => gitService.merge(cwd, branch),

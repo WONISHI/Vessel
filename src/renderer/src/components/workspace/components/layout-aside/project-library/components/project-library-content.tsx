@@ -224,7 +224,8 @@ export function ProjectLibraryContent({ pinned, onPin, onSelect }: { pinned: boo
       >
         <GitDecorationScope.Provider value>
           <WorkspaceTree
-            key={`${workspace.path}:${revision}`}
+            key={workspace.path}
+            refreshVersion={revision}
             viewport={viewport}
           />
         </GitDecorationScope.Provider>

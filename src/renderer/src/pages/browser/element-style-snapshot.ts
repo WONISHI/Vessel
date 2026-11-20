@@ -1,5 +1,6 @@
 export type StyleRow = [string, string]
 export interface ElementStyleSnapshot {
+  element?: { tagName: string; attributes: Record<string, string>; text: string; outerHTML: string; bounds: { x: number; y: number; width: number; height: number } }
   user: StyleRow[]
   system: StyleRow[]
   unreadableSheets: boolean
@@ -61,6 +62,14 @@ export function readElementStyles(element: Element): ElementStyleSnapshot {
   for (const name of new Set([...names, ...authored])) {
     const value = computed.getPropertyValue(name).trim()
     ;(authored.has(name) ? result.user : result.system).push([name, value])
+  }
+  const rect = element.getBoundingClientRect()
+  result.element = {
+    tagName: element.tagName.toLowerCase(),
+    attributes: Object.fromEntries(Array.from(element.attributes, attribute => [attribute.name, attribute.value])),
+    text: element.textContent || "",
+    outerHTML: element.outerHTML,
+    bounds: { x: rect.x, y: rect.y, width: rect.width, height: rect.height }
   }
   return result
 }

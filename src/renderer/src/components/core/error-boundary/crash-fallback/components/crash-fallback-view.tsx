@@ -11,6 +11,19 @@ import { useEffect, useState } from "react"
 export function CrashFallbackView({ error, onReset, simulated = false }: CrashFallbackViewProps) {
   const [showDetails, setShowDetails] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [fullscreen, setFullscreen] = useState(false)
+  useEffect(() => {
+    let alive = true
+    let changed = false
+    const off = window.electronAPI?.onWindowFullscreenChanged?.((value) => {
+      changed = true
+      if (alive) setFullscreen(value)
+    })
+    void window.electronAPI?.getWindowFullscreenState?.().then((value) => {
+      if (alive && !changed) setFullscreen(value)
+    }).catch(console.error)
+    return () => { alive = false; off?.() }
+  }, [])
 
   const errorMessage = error instanceof Error ? error.message : typeof error === "string" ? error : (error as any)?.statusText || "发生了未预期的页面错误"
 
@@ -88,7 +101,7 @@ export function CrashFallbackView({ error, onReset, simulated = false }: CrashFa
     <div className="flex h-screen w-screen flex-col overflow-hidden bg-background text-foreground select-none">
       {/* 顶部标题栏区域（保留原生红黄绿按键位置与窗口拖拽） */}
       <div className={`flex h-10 w-full shrink-0 items-center justify-between border-b border-border/40 bg-muted/30 px-4 drag-region ${isMac ? "pl-20" : ""}`}>
-        <div className="flex items-center gap-2">
+        <div data-crash-titlebar-identity className="flex items-center gap-2 transition-transform duration-[260ms] ease-[cubic-bezier(.22,1,.36,1)] motion-reduce:transition-none" style={{ transform: isMac && fullscreen ? "translateX(-64px)" : "translateX(0px)" }}>
           <img src={Logo} alt="Vessel" className="size-5 object-contain dark:hidden" />
           <img src={DarkLogo} alt="" aria-hidden="true" className="hidden size-5 object-contain dark:block" />
           <span className="text-xs font-medium text-muted-foreground">Vessel - 应用异常</span>

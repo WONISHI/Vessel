@@ -26,6 +26,6 @@ export function selectBrowserTab(id: string) {
 }
 
 /** Performs the browser tab action operation. */
-export function browserTabAction(action: "new" | "close", id?: string) {
-  window.dispatchEvent(new CustomEvent("vessel-browser-tab-action", { detail: { action, id } }))
+export function browserTabAction(action: "new" | "close", id?: string, url?: string) {
+  window.dispatchEvent(new CustomEvent("vessel-browser-tab-action", { detail: { action, id, url } }))
 }

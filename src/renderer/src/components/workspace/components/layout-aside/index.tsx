@@ -30,6 +30,7 @@ export default function LayoutAside({ resources = false, children }: { resources
   }
   const [activity, setActivity] = useState<AsideActivity>("files")
   const location = useLocation()
+  const graphPage = !resources && location.pathname === "/editor/graph"
   // Cached workspaces keep local state while Git/API routes render another activity bar.
   // A new editor navigation must restore the cached sidebar as well as the clicked bar.
   useEffect(() => {
@@ -100,9 +101,9 @@ export default function LayoutAside({ resources = false, children }: { resources
       )}
       {isMobile ? (
         <>
-          <Sidebar collapsible="offcanvas">
+          {!graphPage && <Sidebar collapsible="offcanvas">
             <LayoutWorkspaceSidebar activity={activity} />
-          </Sidebar>
+          </Sidebar>}
           {children}
         </>
       ) : (
@@ -114,7 +115,7 @@ export default function LayoutAside({ resources = false, children }: { resources
           label="调整文件侧栏宽度"
           onResize={setWidth}
           pane={
-            open ? (
+            open && !graphPage ? (
               <div
                 data-sidebar="sidebar"
                 className="flex h-full min-w-0 flex-col bg-white"

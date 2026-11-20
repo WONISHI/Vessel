@@ -1,3 +1,4 @@
+import type { WorkspaceGraph } from "@vessel/workspace"
 import type { AppUpdateAPI } from "../../shared/app-update"
 import type { NativeMenuAPI } from "@vessel/type"
 import type { ElectronAPI } from "@electron-toolkit/preload"
@@ -109,6 +110,7 @@ interface VesselAPI extends AppUpdateAPI, BrowserProxyAPI, BrowserToolsAPI, Sett
   cancelContentSearch(): void
   pickSearchFolder(): Promise<string | null>
   readTransitClipboard(): Promise<string | { root: string; path: string; title: string }>
+  importTransitImage(data: string, title?: string): Promise<{ root: string; path: string; title: string }>
   onFilePreviewUpdated(callback: (state: { items: { id: string; kind: "file"; title: string; root: string; content: string }[]; selected: string }) => void): () => void
   selectFilePreview(id: string): Promise<void>
   getFilePreviewTabs(): Promise<{ id: string; kind: "file"; title: string; root: string; content: string }[]>
@@ -204,6 +206,9 @@ interface VesselAPI extends AppUpdateAPI, BrowserProxyAPI, BrowserToolsAPI, Sett
   mutateWorkspaceFile: (root: string, path: string, name?: string) => Promise<string>
   getCodeDiagnostics: (path: string, content: string) => Promise<import("@vessel/type").CodeDiagnostic[]>
   createWorkspaceEntry: (root: string, parent: string, name: string, kind: "file" | "directory") => Promise<{ name: string; path: string; type: "file" | "directory" }>
+  readWorkspaceGraph: (root: string, requestId?: string) => Promise<WorkspaceGraph>
+  onWorkspaceGraphProgress: (callback: (value: { root: string; requestId?: string; graph: WorkspaceGraph }) => void) => () => void
+  cancelWorkspaceGraph: () => Promise<void>
   openExternal: (href: string) => Promise<void>
   queryBase: typeof import("@preload/apis/files.api").filesAPI.queryBase
   readContent: (path: string) => Promise<string>

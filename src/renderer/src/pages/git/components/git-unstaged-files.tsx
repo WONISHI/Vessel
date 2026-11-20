@@ -1,3 +1,4 @@
+import { useGitSelectionReveal } from "../hooks/use-git-selection-reveal"
 import { gitChangeMarker, gitChangeMarkerClass } from "./file-change-marker"
 import { gitChangeStatusTitle } from "@/pages/git/components/file-change-status"
 import { getFilePresentation } from "@/components/workspace/components/layout-aside/layout-workspace-sidebar/utils"
@@ -9,6 +10,8 @@ import type { GitPageModel } from "@/pages/git/hooks/use-git-page"
 /** 未暂存更改列表 */
 export function GitUnstagedFiles({ g }: { g: GitPageModel }) {
   const { status, selectedFile, setSelectedFile, selectedUnstagedPaths, setSelectedUnstagedPaths, handleUnstagedItemClick, handleUnstagedContextMenu, handleStageFile, handleStageAll, handleDiscard, handleStageMultiple, handleDiscardMultiple, handleStashFiles, getFullPath, copyToClipboard, handleRevealInFinder, handleOpenInEditor } = g
+
+  const selectionRoot = useGitSelectionReveal(g.repoPath, selectedFile?.path, g.activeFileSection === "unstaged", !!status)
 
   return (
     <>
@@ -50,7 +53,7 @@ export function GitUnstagedFiles({ g }: { g: GitPageModel }) {
                           </button>
                         </div>
                       </div>
-                      <ScrollArea className="git-changes-scroll flex-1 min-h-0 min-w-0 p-1">
+                      <ScrollArea ref={selectionRoot} className="git-changes-scroll flex-1 min-h-0 min-w-0 p-1">
                         <div className="space-y-0.5">
                           {[...(status?.unstaged || []), ...(status?.untracked || [])].map((file, idx) => {
                             const allUnstaged = [...(status?.unstaged || []), ...(status?.untracked || [])]
@@ -63,6 +66,7 @@ export function GitUnstagedFiles({ g }: { g: GitPageModel }) {
                                 <ContextMenuTrigger asChild>
                                   <div
                                     data-git-file-selected={isSelected}
+                                    data-git-primary-file={isPrimary && isSelected}
                                     onClick={(e) => handleUnstagedItemClick(e, file, idx)}
                                     onContextMenu={() => handleUnstagedContextMenu(file, idx)}
                                     className={`group flex w-full min-w-0 items-center justify-between gap-1 rounded px-2 py-1 text-xs cursor-pointer select-none transition-colors ${

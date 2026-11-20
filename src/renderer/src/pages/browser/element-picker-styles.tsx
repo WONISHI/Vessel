@@ -47,20 +47,41 @@ function StyleGroups({ rows, inspect }: { rows: StyleRow[]; inspect: (name: stri
   </Collapsible>)}</>
 }
 
+/** Render JSON as text tokens so page attributes and markup cannot execute. */
+function HighlightedJSON({ text }: { text: string }) {
+  const tokens = text.split(/("(?:\\.|[^"\\])*"\s*:|"(?:\\.|[^"\\])*"|\b(?:true|false|null)\b|-?\b\d+(?:\.\d+)?(?:[eE][+-]?\d+)?\b)/g)
+  return <>{tokens.map((token, index) => {
+    const kind = /^"/.test(token) ? (/:$/.test(token) ? "property" : "string") : /^(true|false|null)$/.test(token) ? "keyword" : /^-?\d/.test(token) ? "number" : "punctuation"
+    return <span key={index} className={`json-token-${kind}`}>{token}</span>
+  })}</>
+}
+
+function ElementJSON({ snapshot }: { snapshot: ElementStyleSnapshot }) {
+  const data = { element: snapshot.element || null, unreadableSheets: snapshot.unreadableSheets, userStyles: Object.fromEntries(snapshot.user) }
+  const user = JSON.stringify(data, null, 2).slice(0, -2)
+  const system = JSON.stringify(Object.fromEntries(snapshot.system), null, 2).replace(/\n/g, "\n  ")
+  return <pre className="element-json" aria-label="当前元素 JSON"><code><HighlightedJSON text={user + ",\n"} /><span className="system-json">{'  "systemStyles": ' + system}</span>{"\n}"}</code></pre>
+}
+
 function ElementStyles({ read, inspect }: { read: () => ElementStyleSnapshot; inspect: (name: string) => void }) {
   const [open, setOpen] = React.useState(true)
+  const [json, setJSON] = React.useState(false)
   const [snapshot, setSnapshot] = React.useState(read)
   const changeOpen = (next: boolean) => {
     if (next) setSnapshot(read())
     setOpen(next)
   }
   return <Collapsible className="styles-collapsible" open={open} onOpenChange={changeOpen}>
+    <div className="styles-heading">
     <CollapsibleTrigger className="styles-trigger">
       <Chevron /><span>元素信息</span><span className="styles-subtitle">样式来源</span>
       <span className="styles-count">{snapshot.user.length + snapshot.system.length}</span>
     </CollapsibleTrigger>
+    <button type="button" className="styles-json-toggle" data-title={json ? "查看分组样式" : "查看 JSON"} aria-label="JSON 视图" aria-pressed={json} onClick={() => { setSnapshot(read()); setJSON(!json); setOpen(true) }}>JSON</button>
+    </div>
     <CollapsibleContent className="styles-content">
       <ScrollArea className="all-styles" type="auto" aria-label="元素计算样式">
+        {json ? <ElementJSON snapshot={snapshot} /> : <>
         <Collapsible className="style-source" data-source="user" defaultOpen>
           <CollapsibleTrigger className="style-source-trigger"><Chevron /><span>用户样式</span><span className="styles-count">{snapshot.user.length}</span></CollapsibleTrigger>
           <CollapsibleContent>
@@ -71,6 +92,7 @@ function ElementStyles({ read, inspect }: { read: () => ElementStyleSnapshot; in
           <CollapsibleTrigger className="style-source-trigger"><Chevron /><span>系统样式</span><span className="styles-count">{snapshot.system.length}</span></CollapsibleTrigger>
           <CollapsibleContent><StyleGroups rows={snapshot.system} inspect={inspect} /></CollapsibleContent>
         </Collapsible>
+        </>}
         {snapshot.unreadableSheets && <p className="styles-note">跨域样式表受浏览器限制，无法确认来源的计算值归入系统样式。</p>}
       </ScrollArea>
     </CollapsibleContent>
