@@ -1,4 +1,5 @@
-import { ArrowDownToLine, ArrowUpFromLine, GitBranch, LoaderCircle, RefreshCw } from "lucide-react"
+import { ArrowDownToLine, ArrowUpFromLine, FolderGit2, GitBranch, LoaderCircle, RefreshCw } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import { useEffect, useState } from "react"
 
 export type GitRemoteOperation = "push" | "pull" | "fetch"
@@ -8,12 +9,13 @@ const operations = {
   fetch: { title: "正在抓取", description: "正在获取远端分支与提交信息", icon: RefreshCw }
 }
 
-type LoadingProps = { operation: GitRemoteOperation; branch: string; inline?: boolean }
+type LoadingProps = { operation: GitRemoteOperation; branch: string; inline?: boolean; repoPath?: string; onCancel?: () => void; cancelling?: boolean }
 export function GitOperationLoading(props: LoadingProps) {
   return <OperationLoadingContent key={props.operation} {...props} />
 }
 
-function OperationLoadingContent({ operation, branch, inline = false }: LoadingProps) {
+function OperationLoadingContent({ operation, branch, inline = false, repoPath, onCancel, cancelling = false }: LoadingProps) {
+  const projectName = repoPath?.replace(/\\/g, "/").split("/").filter(Boolean).at(-1) || repoPath
   const [seconds, setSeconds] = useState(0)
   useEffect(() => {
     const started = Date.now()
@@ -30,9 +32,11 @@ function OperationLoadingContent({ operation, branch, inline = false }: LoadingP
         </div>
         <h2 className="text-sm font-semibold text-stone-800 dark:text-slate-100">{title}…</h2>
         <p className="mt-1.5 text-xs leading-5 text-stone-500 dark:text-slate-400">{description}</p>
+        {projectName && <div className="mt-3 flex min-w-0 items-center gap-1.5 text-xs text-stone-600 dark:text-slate-300" data-title={repoPath}><FolderGit2 aria-hidden className="size-3.5 shrink-0" /><span className="truncate" aria-label="当前项目">项目：{projectName}</span></div>}
         {branch && <div className="mt-3 flex min-w-0 items-center gap-1.5 text-xs text-stone-600 dark:text-slate-300"><GitBranch aria-hidden className="size-3.5 shrink-0" /><span className="truncate">{branch}</span></div>}
         <div aria-hidden className="mt-5 h-1 overflow-hidden rounded-full bg-stone-100 dark:bg-slate-600/50"><div className="git-operation-progress h-full w-1/3 rounded-full bg-emerald-500 dark:bg-emerald-400" /></div>
         <div className="mt-3 flex items-center justify-between gap-2 text-[10px] text-stone-400 dark:text-slate-400"><span>{seconds >= 10 ? "远端响应较慢，请耐心等待" : "正在处理，请稍候"}</span><span className="shrink-0 tabular-nums">已等待 {seconds} 秒</span></div>
+        {onCancel && <div className="mt-4 flex justify-end"><Button type="button" variant="outline" size="sm" className="git-tag-cancel h-7 text-xs" onClick={onCancel} disabled={cancelling}>{cancelling ? "正在取消…" : "取消推送"}</Button></div>}
       </section>
     </div>
   )

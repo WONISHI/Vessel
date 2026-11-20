@@ -3,6 +3,8 @@ import { spawn } from "node:child_process"
 import { existsSync } from "node:fs"
 import { lstat } from "node:fs/promises"
 import { join } from "node:path"
+import { randomUUID } from "node:crypto"
+import { runCancellableGit } from "./cancellable-git"
 export type { GitCommitDetail, GitCommitItem, GitDiffResult, GitFileStatus, GitStatusResult } from "@vessel/type/git"
 
 // Only user-facing history roots; --all also includes refs/stash and other internal refs.
@@ -47,6 +49,14 @@ export async function runGit(args: string[], cwd: string): Promise<{ stdout: str
 }
 
 export class GitService {
+  private readonly pushOperations = new Map<string, { cwd: string; controller: AbortController; completed: boolean }>()
+
+  async cancelPush(cwd: string, operationId: string): Promise<boolean> {
+    const operation = this.pushOperations.get(operationId)
+    if (!operation || operation.cwd !== cwd || operation.completed) return false
+    operation.controller.abort()
+    return true
+  }
   private readonly restoringStashes = new Set<string>()
   /** Checks whether repo. */
   async isRepo(cwd: string): Promise<boolean> {
@@ -503,7 +513,19 @@ export class GitService {
     return result
   }
 
-  async pushSelection(cwd: string, selection: GitPushSelection): Promise<{ output: string }> {
+  async pushSelection(cwd: string, selection: GitPushSelection, operationId: string = randomUUID()): Promise<{ output: string }> {
+    if (this.pushOperations.has(operationId)) throw new Error("推送任务已存在")
+    const operation = { cwd, controller: new AbortController(), completed: false }
+    this.pushOperations.set(operationId, operation)
+    try {
+      return await this.performPushSelection(cwd, selection, operation.controller.signal, () => { operation.completed = true })
+    } catch (error) {
+      if (operation.controller.signal.aborted) throw new Error("推送已取消")
+      throw error
+    } finally { this.pushOperations.delete(operationId) }
+  }
+
+  private async performPushSelection(cwd: string, selection: GitPushSelection, signal: AbortSignal, complete: () => void): Promise<{ output: string }> {
     if (!selection || typeof selection.remote !== "string" || !Array.isArray(selection.branches) || typeof selection.tags !== "boolean" || (!selection.branches.length && !selection.tags)) throw new Error("请选择要推送的分支或标签")
     const info = await this.getPushInfo(cwd)
     if (!info.remotes.some((remote) => remote.name === selection.remote)) throw new Error("远程仓库不存在")
@@ -511,13 +533,14 @@ export class GitService {
     for (const branch of selection.branches) {
       if (!branch || typeof branch.local !== "string" || typeof branch.remote !== "string" || typeof branch.track !== "boolean" || !info.branches.some((item) => item.name === branch.local)) throw new Error("本地分支不存在")
       if (locals.has(branch.local) || targets.has(branch.remote)) throw new Error("推送分支不能重复")
-      const valid = await runGit(["check-ref-format", `refs/heads/${branch.remote}`], cwd)
+      const valid = await runCancellableGit(["check-ref-format", `refs/heads/${branch.remote}`], cwd, signal)
       if (valid.exitCode !== 0) throw new Error(`远程分支名称无效：${branch.remote}`)
       locals.add(branch.local)
       targets.add(branch.remote)
     }
-    const result = await runGit(["push", "--porcelain", ...(selection.tags ? ["--tags"] : []), "--", selection.remote, ...selection.branches.map((branch) => `refs/heads/${branch.local}:refs/heads/${branch.remote}`)], cwd)
+    const result = await runCancellableGit(["push", "--porcelain", ...(selection.tags ? ["--tags"] : []), "--", selection.remote, ...selection.branches.map((branch) => `refs/heads/${branch.local}:refs/heads/${branch.remote}`)], cwd, signal)
     if (result.exitCode !== 0) throw new Error([result.stdout, result.stderr].filter(Boolean).join("\n") || "推送失败")
+    complete()
     for (const branch of selection.branches.filter((branch) => branch.track)) {
       for (const [key, value] of [["remote", selection.remote], ["merge", `refs/heads/${branch.remote}`]]) {
         const config = await runGit(["config", "--local", `branch.${branch.local}.${key}`, value], cwd)

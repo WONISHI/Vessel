@@ -21,7 +21,7 @@ export function GitDialogs({ g }: { g: GitPageModel }) {
     <>
         {g.fetchRequest?.repoPath === repoPath && <FetchDialog key={"fetch:" + repoPath} repoPath={repoPath} initialRemote={g.fetchRequest.remote} onClose={() => g.setFetchRequest(null)} onFetch={g.submitFetch} />}
         {g.pullRequest?.repoPath === repoPath && <PullDialog key={"pull:" + repoPath} repoPath={repoPath} initialRemote={g.pullRequest.remote} initialBranch={g.pullRequest.branch} onClose={() => g.setPullRequest(null)} onPull={g.submitPull} />}
-        {g.pushRequest?.repoPath === repoPath && <PushDialog key={repoPath} repoPath={repoPath} initialRemote={g.pushRequest.remote} initialBranch={g.pushRequest.branch} onClose={() => g.setPushRequest(null)} onPush={g.submitPush} />}
+        {g.pushRequest?.repoPath === repoPath && <PushDialog key={repoPath} repoPath={repoPath} initialRemote={g.pushRequest.remote} initialBranch={g.pushRequest.branch} onClose={() => g.setPushRequest(null)} onPush={g.submitPush} onCancel={g.cancelPush} />}
         <ConfirmDialog
           activityBarAccessible
           statusBarAccessible

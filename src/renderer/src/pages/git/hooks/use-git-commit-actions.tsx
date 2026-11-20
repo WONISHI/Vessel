@@ -1,6 +1,6 @@
 import { openInAppBrowser } from "@/lib/app-browser"
 import { useRouter } from "@vessel/react-router"
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { GitOutputDetails } from "@/pages/git/components/git-output-details"
 import { toast } from "@/components/ui/sonner"
 import { cleanGitErrorMessage } from "@/pages/git/utils"
@@ -176,19 +176,30 @@ export function useGitCommitActions(repo: GitRepositoryState, requestConfirmatio
 
   /** Handles push events. */
   const [pushRequest, setPushRequest] = useState<{ repoPath: string; remote?: string; branch?: string } | null>(null)
+  const activePush = useRef<{ repoPath: string; id: string } | null>(null)
+  const cancelPush = async () => {
+    const request = activePush.current
+    return request ? window.electronAPI.git.cancelPush(request.repoPath, request.id) : false
+  }
   const handlePush = (remote?: string, branch?: string) => {
     if (!remotePendingRef.current) setPushRequest({ repoPath, remote, branch })
   }
   const submitPush = async (selection: GitPushSelection) => {
     if (remotePendingRef.current) throw new Error("已有远程操作正在进行，请稍后重试")
+    const operation = { repoPath, id: crypto.randomUUID() }
+    activePush.current = operation
     remotePendingRef.current = true
     setRemoteOperation("push")
     setLoading(true)
     try {
-      const res = await window.electronAPI.git.pushSelection(repoPath, selection)
+      const res = await window.electronAPI.git.pushSelection(repoPath, selection, operation.id)
       toast.success("推送成功", { description: res.output ? <GitOutputDetails output={res.output} /> : undefined })
       await refresh()
+    } catch (error) {
+      if (cleanGitErrorMessage(error) === "推送已取消") toast.info("推送已取消")
+      throw error
     } finally {
+      if (activePush.current === operation) activePush.current = null
       remotePendingRef.current = false
       setRemoteOperation(null)
       setLoading(false)
@@ -227,5 +238,5 @@ export function useGitCommitActions(repo: GitRepositoryState, requestConfirmatio
     }
   }
 
-  return { fetchRequest, setFetchRequest, submitFetch, pullRequest, setPullRequest, submitPull, pushRequest, setPushRequest, submitPush, tagTarget, setTagTarget, handleCheckoutCommit, handleCreateTag, handleResetBranch, handleUndoLastCommit, handleRevertCommit, handleOpenRemoteCommit, handleCommit, handleCheckoutBranch, handleDeleteBranch, handleMergeBranch, handlePull, handlePush, handleFetch, handleInitRepo }
+  return { fetchRequest, setFetchRequest, submitFetch, pullRequest, setPullRequest, submitPull, pushRequest, setPushRequest, submitPush, cancelPush, tagTarget, setTagTarget, handleCheckoutCommit, handleCreateTag, handleResetBranch, handleUndoLastCommit, handleRevertCommit, handleOpenRemoteCommit, handleCommit, handleCheckoutBranch, handleDeleteBranch, handleMergeBranch, handlePull, handlePush, handleFetch, handleInitRepo }
 }

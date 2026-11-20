@@ -78,7 +78,8 @@ export class GitModule extends BaseModule {
       /** Performs the "git:push" operation. */
       "git:push": (_e, cwd: string, remote?: string, branch?: string, force?: boolean) => gitService.push(cwd, remote, branch, force),
       "git:push-info": (_e, cwd: string) => gitService.getPushInfo(cwd),
-      "git:push-selection": (_e, cwd: string, selection: GitPushSelection) => gitService.pushSelection(cwd, selection),
+      "git:push-selection": (event, cwd: string, selection: GitPushSelection, operationId?: string) => gitService.pushSelection(cwd, selection, operationId ? `${event.sender.id}:${operationId}` : undefined),
+      "git:cancel-push": (event, cwd: string, operationId: string) => gitService.cancelPush(cwd, `${event.sender.id}:${operationId}`),
 
       /** Performs the "git:merge" operation. */
       "git:merge": (_e, cwd: string, branch: string) => gitService.merge(cwd, branch),

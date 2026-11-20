@@ -12,15 +12,17 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cleanGitErrorMessage } from "@/pages/git/utils"
+import { toast } from "@/components/ui/sonner"
 
 type Row = { local: string; remote: string; track: boolean; selected: boolean }
 
-export function PushDialog({ repoPath, initialRemote, initialBranch, onClose, onPush }: { repoPath: string; initialRemote?: string; initialBranch?: string; onClose: () => void; onPush: (selection: GitPushSelection) => Promise<void> }) {
+export function PushDialog({ repoPath, initialRemote, initialBranch, onClose, onPush, onCancel }: { repoPath: string; initialRemote?: string; initialBranch?: string; onClose: () => void; onPush: (selection: GitPushSelection) => Promise<void>; onCancel?: () => Promise<boolean> }) {
   const [info, setInfo] = useState<GitPushInfo>()
   const [remote, setRemote] = useState("")
   const [rows, setRows] = useState<Row[]>([])
   const [tags, setTags] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [cancelling, setCancelling] = useState(false)
   const [error, setError] = useState("")
   const remoteBranches = [...new Set(info?.remoteBranches.filter((branch) => branch.startsWith(`${remote}/`)).map((branch) => branch.slice(remote.length + 1)) ?? [])]
   useEffect(() => {
@@ -52,13 +54,23 @@ export function PushDialog({ repoPath, initialRemote, initialBranch, onClose, on
     try {
       await onPush({ remote, branches: rows.filter((row) => row.selected).map(({ local, remote, track }) => ({ local, remote: remote.trim(), track })), tags })
       onClose()
-    } catch (reason) { setError(cleanGitErrorMessage(reason)) }
-    finally { setBusy(false) }
+    } catch (reason) {
+      const message = cleanGitErrorMessage(reason)
+      if (message === "推送已取消") onClose()
+      else setError(message)
+    }
+    finally { setBusy(false); setCancelling(false) }
+  }
+  const cancel = async () => {
+    if (!onCancel || cancelling) return
+    setCancelling(true)
+    try { if (!await onCancel()) setCancelling(false) }
+    catch (reason) { setCancelling(false); toast.error(cleanGitErrorMessage(reason)) }
   }
   return <GitPageDialog open onOpenChange={(open) => { if (!open && !busy) onClose() }}>
     <GitPageDialogContent showCloseButton={!busy} className={`git-dialog git-tag-dialog gap-0 overflow-hidden bg-white p-0 text-foreground dark:bg-stone-900 ${busy ? "max-w-[320px] border-0" : "max-w-[620px]"}`} onInteractOutside={(event) => { if (busy) event.preventDefault() }}>
       <DialogHeader className={busy ? "sr-only" : "border-b bg-stone-50/60 px-4 py-3 dark:bg-white/[.02]"}><DialogTitle className="flex items-center gap-2 text-sm font-semibold"><Upload className="size-4 text-green-600" />推送分支</DialogTitle><DialogDescription className="text-xs">选择远程仓库与本地分支，可修改目标分支名称并设置跟踪。</DialogDescription></DialogHeader>
-      {busy ? <GitOperationLoading inline operation="push" branch={rows.filter((row) => row.selected).map((row) => row.local).join(", ")} /> : <form className="min-w-0" onSubmit={(event) => { event.preventDefault(); void submit() }}>
+      {busy ? <GitOperationLoading inline operation="push" repoPath={repoPath} onCancel={onCancel ? () => { void cancel() } : undefined} cancelling={cancelling} branch={rows.filter((row) => row.selected).map((row) => row.local).join(", ")} /> : <form className="min-w-0" onSubmit={(event) => { event.preventDefault(); void submit() }}>
         <fieldset disabled={busy} className="min-w-0 space-y-3 px-4 py-3">
           <div className="flex min-w-0 items-center gap-2 text-xs"><span className="shrink-0">推送到仓库</span>
             <Select value={remote} onValueChange={changeRemote} disabled={!info?.remotes.length}><SelectTrigger aria-label="推送到仓库" className="h-8 w-28 shrink-0 text-xs"><SelectValue placeholder="无远程仓库" /></SelectTrigger><SelectContent>{info?.remotes.map((item) => <SelectItem key={item.name} value={item.name}>{item.name}</SelectItem>)}</SelectContent></Select>
