@@ -2,11 +2,11 @@ import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator,
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { BookmarkIcon } from "@/pages/browser/components/bookmark-bar/components/bookmark-icon"
-import { ChevronsRight, Copy, ExternalLink, RotateCcw, SquarePlus, Trash2 } from "lucide-react"
+import { ChevronsRight, Copy, ExternalLink, RotateCcw, Trash2 } from "lucide-react"
 import { useLayoutEffect, useRef, useState } from "react"
 
 /** Renders the bookmark bar component. */
-export function BookmarkBar({ items, onNavigate, onOpenNewTab, onRemove, onReset }: { items: { url: string; title: string; favicon?: string }[]; onNavigate: (url: string) => void; onOpenNewTab?: (url: string) => void; onRemove?: (url: string) => void; onReset?: () => void }) {
+export function BookmarkBar({ items, onNavigate, onRemove, onReset }: { items: { url: string; title: string; favicon?: string }[]; onNavigate: (url: string) => void; onRemove?: (url: string) => void; onReset?: () => void }) {
   const container = useRef<HTMLDivElement>(null),
     measure = useRef<HTMLDivElement>(null)
   const [count, setCount] = useState(items.length),
@@ -63,7 +63,6 @@ export function BookmarkBar({ items, onNavigate, onOpenNewTab, onRemove, onReset
             <ExternalLink className="mr-2 size-3.5" />
             打开链接
           </ContextMenuItem>
-          {onOpenNewTab && <ContextMenuItem onSelect={() => { onOpenNewTab(item.url); setOpen(false) }}><SquarePlus className="mr-2 size-3.5" />在新标签页打开</ContextMenuItem>}
           <ContextMenuItem onSelect={() => void navigator.clipboard.writeText(item.url)}>
             <Copy className="mr-2 size-3.5" />
             复制链接

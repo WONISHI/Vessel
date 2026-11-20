@@ -206,21 +206,22 @@ it.each(['/editor', '/editor/file', '/resources', '/browser', '/todos', '/settin
  }
 })
 
-it.each([['待办', '/todos'], ['查看关系图谱', '/editor/graph'], ['开发工具', '/devtools']])('shares global layout preferences when opening, reopening and closing %s', (label) => {
+it.each([['待办', '/todos'], ['查看关系图谱', '/editor/graph'], ['开发工具', '/devtools']])('temporarily resets layout for %s and restores saved preferences on exit', (label) => {
  setActivityBarCollapsed(true)
  setStatusBarVisible(false)
  function Location() { const location = useLocation(); return <output>{location.pathname + location.search}</output> }
  try {
   render(<MemoryRouter initialEntries={['/editor/file?path=kept.md']}><TopSearch /><Location /></MemoryRouter>)
-  fireEvent.click(screen.getByRole('button', { name: label }))
   expect(screen.getByLabelText('显示活动栏')).toBeTruthy()
   expect(screen.getByLabelText('显示底部状态栏')).toBeTruthy()
+  fireEvent.click(screen.getByRole('button', { name: label }))
+  expect(screen.getByLabelText('隐藏活动栏')).toBeTruthy()
+  expect(screen.getByLabelText('隐藏底部状态栏')).toBeTruthy()
   expect(localStorage.getItem('vessel-activity-bar-collapsed')).toBe('true')
   expect(localStorage.getItem('vessel-status-bar-visible')).toBe('false')
-  fireEvent.click(screen.getByLabelText('显示活动栏'))
-  fireEvent.click(screen.getByLabelText('显示底部状态栏'))
-  expect(localStorage.getItem('vessel-activity-bar-collapsed')).toBe('false')
-  expect(localStorage.getItem('vessel-status-bar-visible')).toBe('true')
+  fireEvent.click(screen.getByLabelText('隐藏活动栏'))
+  fireEvent.click(screen.getByLabelText('隐藏底部状态栏'))
+  // Clicking the feature again restores temporary defaults too.
   fireEvent.click(screen.getByRole('button', { name: label }))
   expect(screen.getByLabelText('隐藏活动栏')).toBeTruthy()
   expect(screen.getByLabelText('隐藏底部状态栏')).toBeTruthy()
@@ -229,8 +230,8 @@ it.each([['待办', '/todos'], ['查看关系图谱', '/editor/graph'], ['开发
   fireEvent.click(close)
   expect(screen.getByText('/editor/file?path=kept.md')).toBeTruthy()
   expect(screen.queryByRole('button', { name: '关闭' + label.replace('查看', '') })).toBeNull()
-  expect(screen.getByLabelText('隐藏活动栏')).toBeTruthy()
-  expect(screen.getByLabelText('隐藏底部状态栏')).toBeTruthy()
+  expect(screen.getByLabelText('显示活动栏')).toBeTruthy()
+  expect(screen.getByLabelText('显示底部状态栏')).toBeTruthy()
  } finally { cleanup(); setActivityBarCollapsed(false); setStatusBarVisible(true) }
 })
 
@@ -241,27 +242,4 @@ it('returns to the original page after switching between feature views', () => {
  fireEvent.click(screen.getByRole('button', { name: '开发工具' }))
  fireEvent.click(screen.getByRole('button', { name: '关闭开发工具' }))
  expect(screen.getByText('/browser')).toBeTruthy()
-})
-
-it('offers activity navigation only while the activity bar is hidden and preserves its visibility', async () => {
- window.electronAPI = { ...window.electronAPI, getSettings:vi.fn(async () => ({globalSearchEnabled:true,attachmentLibraryEnabled:true})) } as any
- function Location() { return <output>{useLocation().pathname}</output> }
- try {
-  setActivityBarCollapsed(false)
-  render(<MemoryRouter initialEntries={['/browser']}><TopSearch /><Location /></MemoryRouter>)
-  expect(screen.queryByRole('button',{name:'活动栏菜单'})).toBeNull()
-  fireEvent.click(screen.getByLabelText('隐藏活动栏'))
-  fireEvent.keyDown(screen.getByRole('button',{name:'活动栏菜单'}), {key:'Enter'})
-  expect(await screen.findByRole('menuitem',{name:'全局搜索'})).toBeTruthy()
-  expect(screen.getByRole('menuitem',{name:'附件库'})).toBeTruthy()
-  expect(screen.getByRole('menuitem',{name:'浏览器'}).getAttribute('aria-current')).toBe('page')
-  fireEvent.click(screen.getByRole('menuitem',{name:'API'}))
-  expect(screen.getByText('/api-client')).toBeTruthy()
-  expect(screen.getByLabelText('显示活动栏')).toBeTruthy()
-  expect(localStorage.getItem('vessel-activity-bar-collapsed')).toBe('true')
-  fireEvent.keyDown(screen.getByRole('button',{name:'活动栏菜单'}), {key:'Enter'})
-  fireEvent.click(screen.getByRole('menuitem',{name:'设置'}))
-  expect(screen.getByText('/settings')).toBeTruthy()
-  expect(screen.getByRole('button',{name:'活动栏菜单'})).toBeTruthy()
- } finally { cleanup(); setActivityBarCollapsed(false) }
 })

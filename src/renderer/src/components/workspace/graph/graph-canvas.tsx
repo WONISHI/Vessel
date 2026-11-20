@@ -34,17 +34,14 @@ export function GraphCanvas({ graph, settings, activePath, onOpen, onLocal, onRe
   useEffect(() => { state.current = { graph, settings, activePath, hover, scene } }, [graph, settings, activePath, hover, scene])
   useEffect(() => {
     const instance = new Worker(new URL('./layout.worker.ts', import.meta.url), { type: 'module' })
-    let stopped = false
     worker.current = instance
     instance.onmessage = (event) => {
-      if (!stopped && event.data.generation === generation.current) {
+      if (event.data.generation === generation.current) {
         positions.current = event.data.positions
         if (autoFit.current && positions.current.length) fit()
       }
     }
-    const stop = () => { if (stopped) return; stopped = true; instance.onmessage = null; worker.current = null; positions.current = new Float32Array(); instance.terminate() }
-    window.addEventListener('vessel:graph-close', stop)
-    return () => { stop(); window.removeEventListener('vessel:graph-close', stop) }
+    return () => { worker.current = null; instance.terminate() }
   }, [])
   useEffect(() => {
     if (pointer.current?.node !== undefined) pointer.current = null
@@ -63,9 +60,7 @@ export function GraphCanvas({ graph, settings, activePath, onOpen, onLocal, onRe
     observer.observe(element)
     let frame = 0
     let lastFrame = 0
-    let stopped = false
     const draw = (time: number) => {
-      if (stopped) return
       if (time - lastFrame < 32) { frame = requestAnimationFrame(draw); return }
       lastFrame = time
       const ctx = element.getContext('2d')
@@ -134,9 +129,7 @@ export function GraphCanvas({ graph, settings, activePath, onOpen, onLocal, onRe
       view.current = { scale, x: px - (px - old.x) * scale / old.scale, y: py - (py - old.y) * scale / old.scale }
     }
     element.addEventListener('wheel', wheel, { passive: false })
-    const stop = () => { if (stopped) return; stopped = true; observer.disconnect(); cancelAnimationFrame(frame); element.removeEventListener('wheel', wheel) }
-    window.addEventListener('vessel:graph-close', stop)
-    return () => { stop(); window.removeEventListener('vessel:graph-close', stop) }
+    return () => { observer.disconnect(); cancelAnimationFrame(frame); element.removeEventListener('wheel', wheel) }
   }, [])
   const pointAt = (clientX: number, clientY: number) => {
     const rect = canvas.current!.getBoundingClientRect(), { x, y, scale } = view.current

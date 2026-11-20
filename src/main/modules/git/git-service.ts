@@ -1,4 +1,4 @@
-import type { GitFetchOptions, GitPullOptions, GitPushInfo, GitPushSelection, GitTagOptions, GitCommitDetail, GitCommitItem, GitDiffResult, GitFileStatus, GitStatusResult, GitStashPopResult, GitStashEntry, GitStashFile, GitStashDetail } from "@vessel/type/git"
+import type { GitPushInfo, GitPushSelection, GitTagOptions, GitCommitDetail, GitCommitItem, GitDiffResult, GitFileStatus, GitStatusResult, GitStashPopResult, GitStashEntry, GitStashFile, GitStashDetail } from "@vessel/type/git"
 import { spawn } from "node:child_process"
 import { existsSync } from "node:fs"
 import { lstat } from "node:fs/promises"
@@ -445,25 +445,14 @@ export class GitService {
   }
 
   /** Fetches fetch. */
-  async fetch(cwd: string, remote = "origin", options?: GitFetchOptions): Promise<void> {
-    if (!options?.all && (!remote || remote.startsWith("-"))) throw new Error("抓取目标无效")
-    const args = ["fetch", options ? (options.prune ? "--prune" : "--no-prune") : "--prune"]
-    if (options?.tags) args.push("--tags")
-    if (options?.all) args.push("--all")
-    else args.push("--", remote)
-    const res = await runGit(args, cwd)
+  async fetch(cwd: string, remote = "origin"): Promise<void> {
+    const res = await runGit(["fetch", remote, "--prune"], cwd)
     if (res.exitCode !== 0) throw new Error(res.stderr || "Fetch failed")
   }
 
   /** Performs the pull operation. */
-  async pull(cwd: string, remote = "origin", branch?: string, options?: GitPullOptions): Promise<{ output: string }> {
-    if (!remote || remote.startsWith("-") || branch?.startsWith("-")) throw new Error("拉取目标无效")
-    const args = ["pull"]
-    if (options) {
-      if (options.rebase) args.push("--rebase")
-      else args.push("--no-rebase", options.commit ? "--commit" : "--no-commit", options.log ? "--log" : "--no-log", options.noFastForward ? "--no-ff" : "--ff")
-    }
-    args.push("--", remote)
+  async pull(cwd: string, remote = "origin", branch?: string): Promise<{ output: string }> {
+    const args = ["pull", remote]
     if (branch) args.push(branch)
     const res = await runGit(args, cwd)
     if (res.exitCode !== 0) throw new Error(res.stderr || "Pull failed")

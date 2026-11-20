@@ -7,7 +7,7 @@ import { openInAppBrowser, toURL } from "@/lib/app-browser"
 import { applyAppearance } from "@/pages/settings/appearance"
 import { useRouter } from "@vessel/react-router"
 import { commandShortcutIds, matchesShortcut, shortcutLabel } from "@vessel/utils"
-import { ExternalLink, Eye, EyeOff, Globe, RotateCw, RotateCcw, FileSearch, FolderOpen, Moon, Sun, PanelLeftOpen, PanelLeftClose, Settings } from "lucide-react"
+import { ExternalLink, Eye, EyeOff, Globe, RotateCw, RotateCcw, FileSearch, FolderOpen, Moon, Sun, PanelLeftOpen, PanelLeftClose } from "lucide-react"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
@@ -207,10 +207,6 @@ export function CommandPalette() {
             </CommandGroup>
           )}
           <CommandGroup heading="常用">
-            <CommandItem value="打开设置页面 设置 偏好 settings preferences" onSelect={() => { setOpen(false); void router.push("/settings") }}>
-              <Settings />
-              打开设置页面
-            </CommandItem>
             <CommandItem
               value="选择工作区 切换工作区 欢迎页 workspace welcome"
               onSelect={selectWorkspace}

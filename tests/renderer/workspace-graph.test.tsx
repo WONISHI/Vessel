@@ -1,4 +1,3 @@
-import { WorkspaceVisible } from "@/components/workspace/components/layout-main/document-cache"
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import WorkspaceGraphView from '@/components/workspace/graph/graph-view'
@@ -89,37 +88,4 @@ it('renders partial batches before indexing completes without a loading overlay'
  expect(screen.getByText('文档 B')).toBeTruthy()
  view.unmount()
  expect(off).toHaveBeenCalledOnce()
-})
-
-it('stops indexing, progress delivery and queued refreshes immediately on close', async () => {
- let changed!: (root: string) => void
- let publish!: (value: { root: string; requestId?: string; graph: WorkspaceGraph }) => void
- let finish!: (value: WorkspaceGraph) => void
- const offProgress = vi.fn(), offChanges = vi.fn()
- window.electronAPI.onFilesChanged = (callback) => { changed = callback as typeof changed; return offChanges }
- window.electronAPI.onWorkspaceGraphProgress = (callback) => { publish = callback; return offProgress }
- window.electronAPI.readWorkspaceGraph = vi.fn(() => new Promise((resolve) => { finish = resolve }))
- const view = render(<WorkspaceGraphView />)
- const requestId = vi.mocked(window.electronAPI.readWorkspaceGraph).mock.calls[0][1]
- vi.useFakeTimers()
- try {
-  act(() => changed('/vault'))
-  act(() => window.dispatchEvent(new Event('vessel:graph-close')))
-  expect(window.electronAPI.cancelWorkspaceGraph).toHaveBeenCalledOnce()
-  expect(offProgress).toHaveBeenCalledOnce(); expect(offChanges).toHaveBeenCalledOnce()
-  act(() => { publish({ root:'/vault', requestId, graph }); changed('/vault'); vi.advanceTimersByTime(2000) })
-  await act(async () => finish(graph))
-  expect(screen.queryByText('文档 A')).toBeNull()
-  expect(window.electronAPI.readWorkspaceGraph).toHaveBeenCalledTimes(1)
-  view.unmount()
-  expect(window.electronAPI.cancelWorkspaceGraph).toHaveBeenCalledOnce()
- } finally { vi.useRealTimers() }
-})
-
-it('releases the graph when a cached workspace becomes hidden', async () => {
- const view = render(<WorkspaceVisible.Provider value={true}><WorkspaceGraphView /></WorkspaceVisible.Provider>)
- await screen.findByText('文档 A')
- view.rerender(<WorkspaceVisible.Provider value={false}><WorkspaceGraphView /></WorkspaceVisible.Provider>)
- expect(window.electronAPI.cancelWorkspaceGraph).toHaveBeenCalledOnce()
- expect(screen.queryByRole('region', { name: '关系图谱' })).toBeNull()
 })

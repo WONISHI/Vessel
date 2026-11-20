@@ -93,7 +93,7 @@ const vesselAPI = {
   saveSettings: (settings: AppSettings, secret?: string): Promise<AppSettings> => ipcRenderer.invoke("settings:save", settings, secret),
 
   /** Returns settings info. */
-  getSettingsInfo: (): Promise<{ version: string; electron: string; node: string; deviceName: string }> => ipcRenderer.invoke("settings:info"),
+  getSettingsInfo: (): Promise<{ version: string; electron: string; node: string }> => ipcRenderer.invoke("settings:info"),
 
   /** Tests backup. */
   testBackup: (settings: AppSettings["backup"], secret?: string): Promise<void> => ipcRenderer.invoke("settings:test", settings, secret),

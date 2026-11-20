@@ -5,7 +5,7 @@ import { GitOutputDetails } from "@/pages/git/components/git-output-details"
 import { toast } from "@/components/ui/sonner"
 import { cleanGitErrorMessage } from "@/pages/git/utils"
 import type { GitRepositoryState } from "@/pages/git/hooks/use-git-repository"
-import type { GitFetchSelection, GitPullSelection, GitPushSelection } from "@vessel/type/git"
+import type { GitPushSelection } from "@vessel/type/git"
 
 /** 提交、分支与远程操作 */
 export function useGitCommitActions(repo: GitRepositoryState, requestConfirmation: (description: string, tone?: "danger" | "primary") => Promise<boolean>) {
@@ -154,19 +154,18 @@ export function useGitCommitActions(repo: GitRepositoryState, requestConfirmatio
     }
   }
 
-  const [pullRequest, setPullRequest] = useState<{ repoPath: string; remote?: string; branch?: string } | null>(null)
-  const handlePull = (remote?: string, branch?: string) => {
-    if (!remotePendingRef.current) setPullRequest({ repoPath, remote, branch })
-  }
-  const submitPull = async (selection: GitPullSelection) => {
-    if (remotePendingRef.current) throw new Error("已有远程操作正在进行，请稍后重试")
+  /** Handles pull events. */
+  const handlePull = async (remote?: string, branch?: string) => {
+    if (remotePendingRef.current) return
     remotePendingRef.current = true
     setRemoteOperation("pull")
     setLoading(true)
     try {
-      const res = await window.electronAPI.git.pull(repoPath, selection.remote, selection.branch, selection.options)
+      const res = await window.electronAPI.git.pull(repoPath, remote, branch)
       toast.success("拉取成功", { description: res.output ? <GitOutputDetails output={res.output} /> : undefined })
       await refresh()
+    } catch (e: any) {
+      toast.error("拉取失败", { description: cleanGitErrorMessage(e) })
     } finally {
       remotePendingRef.current = false
       setRemoteOperation(null)
@@ -196,19 +195,17 @@ export function useGitCommitActions(repo: GitRepositoryState, requestConfirmatio
   }
 
   /** Handles fetch events. */
-  const [fetchRequest, setFetchRequest] = useState<{ repoPath: string; remote?: string } | null>(null)
-  const handleFetch = (remote?: string) => {
-    if (!remotePendingRef.current) setFetchRequest({ repoPath, remote })
-  }
-  const submitFetch = async (selection: GitFetchSelection) => {
-    if (remotePendingRef.current) throw new Error("已有远程操作正在进行，请稍后重试")
+  const handleFetch = async (remote?: string) => {
+    if (remotePendingRef.current) return
     remotePendingRef.current = true
     setRemoteOperation("fetch")
     setLoading(true)
     try {
-      await window.electronAPI.git.fetch(repoPath, selection.remote, { all: selection.all, prune: selection.prune, tags: selection.tags })
-      toast.success(selection.all ? "已成功抓取所有远端更新" : `已抓取远程 ${selection.remote}`)
+      await window.electronAPI.git.fetch(repoPath, remote)
+      toast.success(remote ? `已抓取远程 ${remote}` : "已成功抓取远端更新")
       await refresh()
+    } catch (e: any) {
+      toast.error("抓取失败", { description: cleanGitErrorMessage(e) })
     } finally {
       remotePendingRef.current = false
       setRemoteOperation(null)
@@ -227,5 +224,5 @@ export function useGitCommitActions(repo: GitRepositoryState, requestConfirmatio
     }
   }
 
-  return { fetchRequest, setFetchRequest, submitFetch, pullRequest, setPullRequest, submitPull, pushRequest, setPushRequest, submitPush, tagTarget, setTagTarget, handleCheckoutCommit, handleCreateTag, handleResetBranch, handleUndoLastCommit, handleRevertCommit, handleOpenRemoteCommit, handleCommit, handleCheckoutBranch, handleDeleteBranch, handleMergeBranch, handlePull, handlePush, handleFetch, handleInitRepo }
+  return { pushRequest, setPushRequest, submitPush, tagTarget, setTagTarget, handleCheckoutCommit, handleCreateTag, handleResetBranch, handleUndoLastCommit, handleRevertCommit, handleOpenRemoteCommit, handleCommit, handleCheckoutBranch, handleDeleteBranch, handleMergeBranch, handlePull, handlePush, handleFetch, handleInitRepo }
 }

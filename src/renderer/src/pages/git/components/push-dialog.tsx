@@ -1,5 +1,3 @@
-import "./create-tag-dialog.css"
-import { GitOperationLoading } from "./operation-loading"
 import { Upload } from "lucide-react"
 import { PushBranchInput } from "./push-branch-input"
 import { useEffect, useState } from "react"
@@ -56,36 +54,36 @@ export function PushDialog({ repoPath, initialRemote, initialBranch, onClose, on
     finally { setBusy(false) }
   }
   return <GitPageDialog open onOpenChange={(open) => { if (!open && !busy) onClose() }}>
-    <GitPageDialogContent showCloseButton={!busy} className={`git-dialog git-tag-dialog gap-0 overflow-hidden bg-white p-0 text-foreground dark:bg-stone-900 ${busy ? "max-w-[320px] border-0" : "max-w-[620px]"}`} onInteractOutside={(event) => { if (busy) event.preventDefault() }}>
-      <DialogHeader className={busy ? "sr-only" : "border-b bg-stone-50/60 px-4 py-3 dark:bg-white/[.02]"}><DialogTitle className="flex items-center gap-2 text-sm font-semibold"><Upload className="size-4 text-green-600" />推送分支</DialogTitle><DialogDescription className="text-xs">选择远程仓库与本地分支，可修改目标分支名称并设置跟踪。</DialogDescription></DialogHeader>
-      {busy ? <GitOperationLoading inline operation="push" branch={rows.filter((row) => row.selected).map((row) => row.local).join(", ")} /> : <form className="min-w-0" onSubmit={(event) => { event.preventDefault(); void submit() }}>
-        <fieldset disabled={busy} className="min-w-0 space-y-3 px-4 py-3">
+    <GitPageDialogContent className="git-dialog max-w-[620px] gap-0 overflow-hidden bg-white p-0 text-foreground dark:bg-stone-900" onInteractOutside={(event) => { if (busy) event.preventDefault() }}>
+      <DialogHeader className="border-b bg-stone-50/60 px-5 py-4 dark:bg-white/[.02]"><DialogTitle className="flex items-center gap-2 text-sm font-semibold"><Upload className="size-4 text-green-600" />推送分支</DialogTitle><DialogDescription className="text-xs">选择远程仓库与本地分支，可修改目标分支名称并设置跟踪。</DialogDescription></DialogHeader>
+      <form className="min-w-0" onSubmit={(event) => { event.preventDefault(); void submit() }}>
+        <fieldset disabled={busy} className="min-w-0 space-y-4 px-5 py-4">
           <div className="flex min-w-0 items-center gap-2 text-xs"><span className="shrink-0">推送到仓库</span>
             <Select value={remote} onValueChange={changeRemote} disabled={!info?.remotes.length}><SelectTrigger aria-label="推送到仓库" className="h-8 w-28 shrink-0 text-xs"><SelectValue placeholder="无远程仓库" /></SelectTrigger><SelectContent>{info?.remotes.map((item) => <SelectItem key={item.name} value={item.name}>{item.name}</SelectItem>)}</SelectContent></Select>
             <Input aria-label="远程仓库地址" disabled value={info?.remotes.find((item) => item.name === remote)?.url || ""} className="h-8 min-w-0 flex-1 bg-stone-100 text-xs text-muted-foreground disabled:opacity-100 dark:bg-stone-800" />
           </div>
           <div className="rounded-md border">
-            <ScrollArea horizontal className="max-h-[min(36vh,260px)] [&_[data-radix-scroll-area-viewport]]:max-h-[min(36vh,260px)] [&_[data-radix-scroll-area-viewport]>div]:!block">
-              <table className="w-full min-w-[520px] text-left text-xs"><thead className="sticky top-0 bg-stone-50 dark:bg-stone-900"><tr>{["推送", "本地分支", "远程分支", "跟踪"].map((title) => <th key={title} className="border-b px-3 py-1.5 font-medium">{title}</th>)}</tr></thead>
+            <ScrollArea horizontal className="h-[min(28vh,180px)]">
+              <table className="w-full min-w-[520px] text-left text-xs"><thead className="sticky top-0 bg-stone-50 dark:bg-stone-900"><tr>{["推送", "本地分支", "远程分支", "跟踪"].map((title) => <th key={title} className="border-b px-3 py-2 font-medium">{title}</th>)}</tr></thead>
                 <tbody>{rows.map((row) => <tr key={row.local} className="border-b">
-                  <td className="px-3 py-1.5"><Checkbox className="rounded-[3px] data-[state=checked]:border-green-600 data-[state=checked]:bg-green-600 data-[state=checked]:text-white data-[state=indeterminate]:border-green-600 data-[state=indeterminate]:bg-green-600 data-[state=indeterminate]:text-white" aria-label={`推送分支 ${row.local}`} checked={row.selected} disabled={busy} onCheckedChange={(checked) => patch(row.local, { selected: checked === true })} /></td>
-                  <td className="px-3 py-1.5">{row.local}</td>
-                  <td className="px-3 py-1.5"><PushBranchInput label={`${row.local} 的远程分支`} value={row.remote} options={remoteBranches} disabled={busy} onChange={(remote) => patch(row.local, { remote })} /></td>
-                  <td className="px-3 py-1.5"><Checkbox className="rounded-[3px] data-[state=checked]:border-green-600 data-[state=checked]:bg-green-600 data-[state=checked]:text-white data-[state=indeterminate]:border-green-600 data-[state=indeterminate]:bg-green-600 data-[state=indeterminate]:text-white" aria-label={`跟踪分支 ${row.local}`} checked={row.track} disabled={busy} onCheckedChange={(checked) => patch(row.local, { track: checked === true })} /></td>
+                  <td className="px-3 py-2"><Checkbox className="rounded-[3px] data-[state=checked]:border-green-600 data-[state=checked]:bg-green-600 data-[state=checked]:text-white data-[state=indeterminate]:border-green-600 data-[state=indeterminate]:bg-green-600 data-[state=indeterminate]:text-white" aria-label={`推送分支 ${row.local}`} checked={row.selected} disabled={busy} onCheckedChange={(checked) => patch(row.local, { selected: checked === true })} /></td>
+                  <td className="px-3 py-2">{row.local}</td>
+                  <td className="px-3 py-2"><PushBranchInput label={`${row.local} 的远程分支`} value={row.remote} options={remoteBranches} disabled={busy} onChange={(remote) => patch(row.local, { remote })} /></td>
+                  <td className="px-3 py-2"><Checkbox className="rounded-[3px] data-[state=checked]:border-green-600 data-[state=checked]:bg-green-600 data-[state=checked]:text-white data-[state=indeterminate]:border-green-600 data-[state=indeterminate]:bg-green-600 data-[state=indeterminate]:text-white" aria-label={`跟踪分支 ${row.local}`} checked={row.track} disabled={busy} onCheckedChange={(checked) => patch(row.local, { track: checked === true })} /></td>
                 </tr>)}</tbody>
               </table>
               {!info && !error && <p role="status" className="p-4 text-xs text-muted-foreground">正在读取分支…</p>}
               {info && !rows.length && <p className="p-4 text-xs text-muted-foreground">暂无可推送的本地分支</p>}
             </ScrollArea>
-            <label className="flex items-center gap-2 border-t px-3 py-1.5 text-xs"><Checkbox className="rounded-[3px] data-[state=checked]:border-green-600 data-[state=checked]:bg-green-600 data-[state=checked]:text-white data-[state=indeterminate]:border-green-600 data-[state=indeterminate]:bg-green-600 data-[state=indeterminate]:text-white" checked={rows.length > 0 && rows.every((row) => row.selected) ? true : rows.some((row) => row.selected) ? "indeterminate" : false} disabled={busy || !rows.length} onCheckedChange={(checked) => setRows((rows) => rows.map((row) => ({ ...row, selected: checked === true })))} />全选分支</label>
+            <label className="flex items-center gap-2 border-t px-3 py-2 text-xs"><Checkbox className="rounded-[3px] data-[state=checked]:border-green-600 data-[state=checked]:bg-green-600 data-[state=checked]:text-white data-[state=indeterminate]:border-green-600 data-[state=indeterminate]:bg-green-600 data-[state=indeterminate]:text-white" checked={rows.length > 0 && rows.every((row) => row.selected) ? true : rows.some((row) => row.selected) ? "indeterminate" : false} disabled={busy || !rows.length} onCheckedChange={(checked) => setRows((rows) => rows.map((row) => ({ ...row, selected: checked === true })))} />全选分支</label>
           </div>
 
           <label className="flex items-center gap-2 text-xs"><Checkbox className="rounded-[3px] data-[state=checked]:border-green-600 data-[state=checked]:bg-green-600 data-[state=checked]:text-white data-[state=indeterminate]:border-green-600 data-[state=indeterminate]:bg-green-600 data-[state=indeterminate]:text-white" checked={tags} disabled={busy} onCheckedChange={(checked) => setTags(checked === true)} />推送所有标签</label>
         </fieldset>
         {info && !info.remotes.length && <p role="alert" className="px-5 pb-3 text-xs text-amber-600">请先在仓库设置中添加远程仓库。</p>}
         {error && <p role="alert" className="whitespace-pre-wrap break-words px-5 pb-3 text-xs text-red-600">{error}</p>}
-        <div className="flex justify-end gap-2 border-t bg-stone-50/60 px-4 py-2 dark:bg-white/[.02]"><Button type="button" variant="outline" size="sm" className="git-tag-cancel h-8 text-xs" disabled={busy} onClick={onClose}>取消</Button><Button type="submit" size="sm" className="h-8 bg-green-600 text-xs text-white hover:bg-green-700" disabled={busy || !remote || (!tags && !rows.some((row) => row.selected)) || rows.some((row) => row.selected && !row.remote.trim())}>{busy ? "正在推送…" : "确定"}</Button></div>
-      </form>}
+        <div className="flex justify-end gap-2 border-t bg-stone-50/60 px-5 py-3 dark:bg-white/[.02]"><Button type="button" variant="outline" size="sm" className="h-8 text-xs hover:!bg-stone-100 hover:!text-stone-700 dark:hover:!bg-stone-700 dark:hover:!text-stone-100" disabled={busy} onClick={onClose}>取消</Button><Button type="submit" size="sm" className="h-8 bg-green-600 text-xs text-white hover:bg-green-700" disabled={busy || !remote || (!tags && !rows.some((row) => row.selected)) || rows.some((row) => row.selected && !row.remote.trim())}>{busy ? "正在推送…" : "确定"}</Button></div>
+      </form>
     </GitPageDialogContent>
   </GitPageDialog>
 }

@@ -8,7 +8,7 @@ export function GitCommitBar({ g }: { g: GitPageModel }) {
   const { status, branches, commits, commitMessage, commitMessageReset, isAmend, setIsAmend, handleUndoLastCommit, handleCommit } = g
 
   return (
-                  <div className="flex h-full min-h-0 flex-col bg-white p-2.5">
+                  <div className="flex h-full min-h-0 flex-col bg-white p-2.5 [&>textarea]:min-h-0 [&>textarea]:flex-1">
                     <CommitMessageInput
                       draft={commitMessage}
                       resetVersion={commitMessageReset}

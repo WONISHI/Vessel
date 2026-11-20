@@ -1,5 +1,3 @@
-import { toast } from "sonner"
-
 const darkPalette: Record<string, string> = { keyword: "#f47067", string: "#96d0ff", number: "#6cb6ff", title: "#dcbdfb", comment: "#768390", variable: "#6cb6ff", built_in: "#6cb6ff" }
 let nextHighlightId = 0
 const layers = new WeakMap<HTMLElement, { prefix: string; style: HTMLStyleElement }>()
@@ -68,7 +66,6 @@ export function decorateCodeBlocks(root: HTMLElement, readOnly = false) {
     if (language === "vessel-obsidian-image" || language === "markdown-table") {
       block.classList.remove("vessel-direct-code")
       for (const frame of block.querySelectorAll<HTMLElement>(".vessel-code-frame")) {
-        frame.querySelector(".vessel-code-copy")?.remove()
         frame.classList.remove("vessel-code-frame")
         delete frame.dataset.language
         frame.onmousedown = null
@@ -83,7 +80,6 @@ export function decorateCodeBlocks(root: HTMLElement, readOnly = false) {
       // Diagram previews must remain under Vditor's native render/edit lifecycle.
       block.classList.remove("vessel-direct-code")
       for (const frame of block.querySelectorAll<HTMLElement>(".vessel-code-frame")) {
-        frame.querySelector(".vessel-code-copy")?.remove()
         frame.classList.remove("vessel-code-frame")
         delete frame.dataset.language
         frame.onmousedown = null
@@ -96,25 +92,6 @@ export function decorateCodeBlocks(root: HTMLElement, readOnly = false) {
     }
     block.classList.toggle("vessel-direct-code", !readOnly)
     pre.classList.add("vessel-code-frame")
-    let copy = pre.querySelector<HTMLButtonElement>(":scope > .vessel-code-copy")
-    if (!copy) {
-      copy = document.createElement("button")
-      copy.type = "button"
-      copy.className = "vessel-code-copy"
-      copy.contentEditable = "false"
-      copy.setAttribute("aria-label", "复制代码")
-      copy.dataset.title = "复制代码"
-      // The decoration has no text nodes, keeping it out of Markdown serialization.
-      copy.innerHTML = '<svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>'
-      pre.append(copy)
-    }
-    copy.onmousedown = (event) => { event.preventDefault(); event.stopPropagation() }
-    copy.onmouseup = (event) => event.stopPropagation()
-    copy.onclick = async (event) => {
-      event.preventDefault(); event.stopPropagation()
-      try { await navigator.clipboard.writeText(code.textContent || ""); toast.success("已复制代码内容") }
-      catch { toast.error("复制代码失败") }
-    }
     if (pre.dataset.language !== language) pre.dataset.language = language
     // Vditor/Lute requires a plain text node here; nested highlight spans corrupt serialization.
     if (!readOnly && code.children.length) {

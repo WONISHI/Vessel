@@ -87,20 +87,9 @@ it("protects the vault lifecycle, validates IPC and isolates credentials by orig
       expect(await mock.guestHandlers.get("vault:suggest")!({ senderFrame: guestFrame })).toEqual([])
       await expect(request("fill", { id: localEntry.id, guestId: "1" })).rejects.toThrow("来源")
     }
-    url = "http://39.106.89.88:8090/users/sign_in"
+    url = "http://example.test/login"
     const remotePrompts = mock.send.mock.calls.length
     await mock.guestHandlers.get("vault:submit")!({ senderFrame: guestFrame }, { username: "remote-user", password: "remote-dummy-secret" })
-    expect(mock.send.mock.calls.length).toBe(remotePrompts + 1)
-    const httpCandidate = mock.send.mock.calls.at(-1)![1]
-    expect(httpCandidate.origin).toBe("http://39.106.89.88:8090")
-    expect(httpCandidate).not.toHaveProperty("password")
-    await request("candidate", { id: httpCandidate.id, choice: "save" })
-    const httpEntry = (await request("list")).find((item: { origin: string }) => item.origin === httpCandidate.origin)
-    expect(await mock.guestHandlers.get("vault:suggest")!({ senderFrame: guestFrame })).toEqual([{ id: httpEntry.id, username: "remote-user" }])
-    for (const other of ["http://39.106.89.88:8091/users/sign_in", "https://39.106.89.88:8090/users/sign_in", "http://39.106.89.89:8090/users/sign_in"]) {
-      url = other
-      expect(await mock.guestHandlers.get("vault:suggest")!({ senderFrame: guestFrame })).toEqual([])
-      await expect(request("fill", { id: httpEntry.id, guestId: "1" })).rejects.toThrow("来源")
-    }
+    expect(mock.send.mock.calls.length).toBe(remotePrompts)
   } finally { lockVault(); clock.mockRestore(); await rm(mock.directory, { recursive: true, force: true }) }
 }, 60000)

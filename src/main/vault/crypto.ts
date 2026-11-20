@@ -20,6 +20,6 @@ export function unseal(key: Buffer, data: Sealed, aad: string) {
 }
 export function credentialOrigin(url: string) {
   const origin = vaultCredentialOrigin(url)
-  if (!origin) throw new Error("仅支持 HTTP 或 HTTPS 网站")
+  if (!origin) throw new Error("仅支持 HTTPS 网站或本机 HTTP 开发页面")
   return origin
 }

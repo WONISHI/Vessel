@@ -1,7 +1,7 @@
 import { isManagedSourcePage } from "@/pages/browser/managed-source-project"
 import { lazy, Suspense, useEffect, useRef, useState } from "react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { ArrowLeft, ArrowRight, Code, CodeXml, Download, ExternalLink, FolderOpen, QrCode, RotateCw, Search, SquareDashedMousePointer } from "lucide-react"
+import { ArrowLeft, ArrowRight, Code, CodeXml, Download, ExternalLink, FolderOpen, QrCode, RotateCw, SquareDashedMousePointer } from "lucide-react"
 import { toast } from "sonner"
 import { mobilePageURL } from "@/pages/browser/mobile-page-url"
 import { withGuest } from "@/pages/browser/guest-lifecycle"
@@ -22,7 +22,6 @@ export function BrowserContextMenu({ b, visible }: { b: BrowserPageModel; visibl
   const [mobile, setMobile] = useState<{ tabId: string; url: string } | null>(null)
   const [external, setExternal] = useState<{ tabId: string; url: string } | null>(null)
   const pendingDialog = useRef<{ kind: "mobile" | "external"; tabId: string; url: string } | null>(null)
-  const pendingFind = useRef(false)
   const shareURL = mobilePageURL(b.tab.url)
   const debugRequest = useRef(0)
   const [debugPage, setDebugPage] = useState<{ tabId: string; url: string } | null>(null)
@@ -43,7 +42,6 @@ export function BrowserContextMenu({ b, visible }: { b: BrowserPageModel; visibl
     window.addEventListener("vessel-browser-context-menu", show)
     return () => {
       pendingDialog.current = null
-      pendingFind.current = false
       sourceRequest.current++
       debugRequest.current++
       window.removeEventListener("vessel-browser-context-menu", show)
@@ -82,15 +80,6 @@ export function BrowserContextMenu({ b, visible }: { b: BrowserPageModel; visibl
         const next = pendingDialog.current
         pendingDialog.current = null
         const request = sourceRequest.current
-        if (pendingFind.current) {
-          pendingFind.current = false
-          queueMicrotask(() => {
-            if (request !== sourceRequest.current) return
-            b.setFindPosition(null)
-            b.setFindOpen(true)
-            requestAnimationFrame(() => b.findInput.current?.focus())
-          })
-        }
         if (next) queueMicrotask(() => {
           if (request !== sourceRequest.current) return
           if (next.kind === "mobile") setMobile(next)
@@ -101,7 +90,6 @@ export function BrowserContextMenu({ b, visible }: { b: BrowserPageModel; visibl
         <DropdownMenuItem className={itemClassName} disabled={!b.tab.forward} onSelect={() => move(true)}><ArrowRight />前进</DropdownMenuItem>
         <DropdownMenuItem className={itemClassName} onSelect={() => b.reloadTab(b.tab.id)}><RotateCw />重新加载</DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem className={itemClassName} onSelect={() => { pendingFind.current = true; setMenuOpen(false) }}><Search />搜索</DropdownMenuItem>
         <DropdownMenuItem className={itemClassName} onSelect={() => void action("save")}><Download />存储为…</DropdownMenuItem>
         <DropdownMenuItem className={itemClassName} disabled={!isOpenableUrl(b.tab.url)} onSelect={() => { pendingDialog.current = { kind: "external", tabId: b.tab.id, url: b.tab.url }; setMenuOpen(false) }}><ExternalLink />在默认浏览器中打开</DropdownMenuItem>
         {isLocalFileUrl(b.tab.url) && <DropdownMenuItem className={itemClassName} onSelect={() => void action("reveal")}><FolderOpen />在资源管理器中显示</DropdownMenuItem>}

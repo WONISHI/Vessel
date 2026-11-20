@@ -1,6 +1,6 @@
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 import { toast } from "@/components/ui/sonner"
-import { AlignJustify, Check, Columns, Copy, PanelBottomOpen, PanelRightOpen } from "lucide-react"
+import { AlignJustify, Check, Columns, Copy } from "lucide-react"
 import { Fragment, useMemo, useState } from "react"
 import { Decoration, Diff, Hunk, parseDiff } from "react-diff-view"
 import "react-diff-view/style/index.css"
@@ -13,16 +13,13 @@ export interface DiffViewerProps {
   isConflict?: boolean
   stageDisabled?: boolean
   onToggleStage?: () => void
-  onToggleDock?: () => void
-  bottomDocked?: boolean
 }
 
 /** Renders the diff viewer component. */
-export function DiffViewer({ diffText, filePath, isStaged, isConflict, stageDisabled, onToggleStage, onToggleDock, bottomDocked }: DiffViewerProps) {
+export function DiffViewer({ diffText, filePath, isStaged, isConflict, stageDisabled, onToggleStage }: DiffViewerProps) {
   const [viewMode, setViewMode] = useState<"unified" | "split">("unified")
   const [copied, setCopied] = useState(false)
   const files = useMemo(() => {
-    if (!diffText.trim()) return []
     // Untracked files arrive as a unified patch without git's file header.
     // Combined merge diffs are shown verbatim so conflict markers remain visible.
     if (/^diff --(?:cc|combined) /m.test(diffText)) return []
@@ -43,7 +40,7 @@ export function DiffViewer({ diffText, filePath, isStaged, isConflict, stageDisa
     toast.success("已复制差异内容")
   }
 
-  if (!diffText.trim() && !onToggleDock) {
+  if (!diffText.trim()) {
     return <div className="flex h-full w-full items-center justify-center text-xs text-stone-400">该文件暂无差异变更</div>
   }
 
@@ -53,7 +50,7 @@ export function DiffViewer({ diffText, filePath, isStaged, isConflict, stageDisa
       <div className="flex h-9 shrink-0 items-center justify-between gap-3 border-b border-stone-200 bg-stone-50/80 px-3">
         {/* 3号: 宽度是 flex: 1，超出显示省略号 */}
         <span
-          className="flex-1 min-w-0 truncate font-mono text-[11px] font-normal text-stone-700"
+          className="flex-1 min-w-0 truncate font-mono font-medium text-stone-700"
           data-title={filePath}
         >
           {filePath || "Diff 视图"}
@@ -91,7 +88,6 @@ export function DiffViewer({ diffText, filePath, isStaged, isConflict, stageDisa
             </button>
           </div>
 
-          {onToggleDock && <button type="button" aria-label={bottomDocked ? "停靠到右侧" : "在底部面板显示差异"} data-title={bottomDocked ? "停靠到右侧" : "在底部面板显示差异"} className="flex size-7 items-center justify-center rounded text-stone-400 hover:bg-stone-200 hover:text-stone-700" onClick={onToggleDock}>{bottomDocked ? <PanelRightOpen className="size-3.5" /> : <PanelBottomOpen className="size-3.5" />}</button>}
           <button
             type="button"
             data-title="复制 Diff"
@@ -121,7 +117,7 @@ export function DiffViewer({ diffText, filePath, isStaged, isConflict, stageDisa
               ) : <div className="p-3 text-stone-500">该文件无可显示的文本差异（二进制或文件信息变更）</div>}
             </Fragment>
           ))}
-          {!files.length && <pre className="m-0 whitespace-pre-wrap p-3">{diffText || "该文件暂无差异变更"}</pre>}
+          {!files.length && <pre className="m-0 whitespace-pre-wrap p-3">{diffText}</pre>}
         </div>
         <ScrollBar orientation="horizontal" />
       </ScrollArea>

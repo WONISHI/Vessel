@@ -1,4 +1,3 @@
-import { getDeviceDisplayName } from "./device-identity"
 import { chooseAvatar } from "./avatar"
 import { excludedBackupName, syncBackup } from "@main/sync/settings-backup"
 import { createS3Storage } from "@main/sync/settings-s3"
@@ -452,7 +451,7 @@ export function registerSettings(host: WebContents) {
     if (workspacePath !== (currentWorkspace ?? undefined)) throw new Error("工作区已切换，请重新打开设置")
     return decrypt()
   })
-  host.ipc.handle("settings:info", async () => ({ version: app.getVersion(), electron: process.versions.electron, node: process.versions.node, deviceName: await getDeviceDisplayName() }))
+  host.ipc.handle("settings:info", () => ({ version: app.getVersion(), electron: process.versions.electron, node: process.versions.node }))
   host.ipc.handle("settings:save", async (_event, input: AppSettings, secret?: string) => {
     const settings = validate(input)
     if (input.backup.workspacePath !== (currentWorkspace ?? undefined)) throw new Error("工作区已切换，请重新打开设置")

@@ -71,7 +71,3 @@ html.dark .vessel-titlebar-clock .vessel-status-time:hover { background: #ffffff
 
 .vessel-main-titlebar[data-feature-view] .vessel-titlebar-search { margin-right: 32px; }
 .vessel-main-titlebar[data-feature-view][data-workspace] .vessel-titlebar-search { margin-right: 64px; }
-
-.vessel-main-titlebar[data-activity-menu] .vessel-titlebar-search { margin-right: 32px; }
-.vessel-main-titlebar[data-activity-menu][data-feature-view] .vessel-titlebar-search { margin-right: 64px; }
-.vessel-main-titlebar[data-activity-menu][data-feature-view][data-workspace] .vessel-titlebar-search { margin-right: 96px; }

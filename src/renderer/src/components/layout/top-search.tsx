@@ -1,6 +1,4 @@
-import { ActivityMenu } from "./activity-menu"
-import { useActivityBarCollapsed } from "@/features/activity-bar/collapse"
-import { layoutScopeForPath } from "@/features/layout/visibility-scope"
+import { layoutScopeForPath, setLayoutScope } from "@/features/layout/visibility-scope"
 import { browserURL } from "@/pages/browser/url"
 import { toast } from "@/components/ui/sonner"
 import { bindDoubleSpace } from "../../../../shared/double-space"
@@ -31,16 +29,17 @@ export function TopSearch() {
   useLayoutEffect(() => {
     if (!layoutScope) featureReturnTo.current = location.pathname + location.search + location.hash
   }, [layoutScope, location.pathname, location.search, location.hash])
-  const closeFeature = () => {
-    if (layoutScope === "graph") window.dispatchEvent(new Event("vessel:graph-close"))
-    void navigate(featureReturnTo.current)
-  }
+  const closeFeature = () => { void navigate(featureReturnTo.current) }
   const featureName = layoutScope === "graph" ? "关系图谱" : layoutScope === "todos" ? "待办" : "开发工具"
+  useLayoutEffect(() => {
+    setLayoutScope(layoutScope)
+    return () => setLayoutScope(null)
+  }, [layoutScope])
   const openFeature = (path: string) => {
+    setLayoutScope(layoutScopeForPath(path), true)
     void navigate(path)
   }
   const statusVisible = useStatusBarVisible()
-  const activityCollapsed = useActivityBarCollapsed()
   const workspacePage = /^\/editor(\/|$)/.test(pathname)
   const showLayoutControls = !/^\/(settings|debug)(\/|$)/.test(pathname)
   const page = titlebarPage(pathname)
@@ -100,7 +99,7 @@ export function TopSearch() {
   }, [searchable, browser, tabs, show])
   const matching = tabs.filter((tab) => `${tab.title} ${tab.url}`.toLocaleLowerCase().includes(query.toLocaleLowerCase()))
   return <>
-    <header data-activity-menu={activityCollapsed ? "true" : undefined} data-feature-view={layoutScope ? "true" : undefined} data-workspace={workspacePage ? "true" : undefined} data-titlebar-clock={!statusVisible ? "true" : undefined} style={{ WebkitAppRegion: "drag" } as CSSProperties} className="vessel-main-titlebar fixed inset-x-0 top-0 z-40 flex h-9 shrink-0 items-center justify-center gap-2 border-b bg-white px-3 text-xs text-stone-500 dark:bg-[#22272e]">
+    <header data-feature-view={layoutScope ? "true" : undefined} data-workspace={workspacePage ? "true" : undefined} data-titlebar-clock={!statusVisible ? "true" : undefined} style={{ WebkitAppRegion: "drag" } as CSSProperties} className="vessel-main-titlebar fixed inset-x-0 top-0 z-40 flex h-9 shrink-0 items-center justify-center gap-2 border-b bg-white px-3 text-xs text-stone-500 dark:bg-[#22272e]">
       <span style={{ left: 100, transform: `translateX(${fullscreen ? -86 : 0}px)` }} className="vessel-titlebar-identity pointer-events-none absolute flex max-w-[180px] items-center gap-2 truncate font-semibold"><PageIcon className="size-4 shrink-0 text-emerald-600" />{page.label}</span>
       {searchable && <div style={{ WebkitAppRegion: "no-drag" } as CSSProperties} className="vessel-titlebar-search flex min-w-0 items-center gap-2">
       <button type="button" aria-label="后退" className="rounded p-1 hover:bg-stone-200 dark:hover:bg-white/10" onClick={() => window.history.back()}><ArrowLeft className="size-3.5" /></button>
@@ -121,7 +120,6 @@ export function TopSearch() {
         <button type="button" aria-label="开发工具" data-title="开发工具" aria-pressed={pathname.startsWith("/devtools")} className="flex size-6 items-center justify-center rounded text-stone-500 hover:bg-stone-200 dark:text-stone-400 dark:hover:bg-white/10" onClick={() => openFeature("/devtools")}>
           <Wrench className="size-4" />
         </button>
-        {activityCollapsed && <ActivityMenu />}
         {showLayoutControls && <LayoutVisibilityControls />}
         {layoutScope && <button type="button" aria-label={`关闭${featureName}`} data-title="关闭" className="flex size-6 items-center justify-center rounded text-stone-500 transition-colors hover:bg-red-50 hover:text-red-600 focus-visible:bg-red-50 focus-visible:text-red-600 dark:hover:bg-red-500/10 dark:hover:text-red-400" onClick={closeFeature}><X className="size-4" /></button>}
       </div>

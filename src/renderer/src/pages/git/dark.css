@@ -177,11 +177,11 @@ html.dark .vessel-git-page .git-operation-card :is(.text-stone-500, .text-stone-
 html.dark .vessel-git-page .git-operation-card .bg-stone-100 { background: rgba(71, 85, 105, .5) !important; }
 
 /* Dialog portals live outside the Git page, so target their explicit scope. */
-html .git-dialog button:not(:disabled):not([role="checkbox"]):not(.git-tag-cancel):is(:hover, :active, :focus-visible),
-html .git-dialog button:not(:disabled):not([role="checkbox"]):not(.git-tag-cancel):is(:hover, :active, :focus-visible) :is(span, svg) {
+html .git-dialog button:not(:disabled):is(:hover, :active, :focus-visible),
+html .git-dialog button:not(:disabled):is(:hover, :active, :focus-visible) :is(span, svg) {
   color: #fff !important;
 }
-html .git-dialog button:not(:disabled):not([role="checkbox"]):not(.git-tag-cancel):is(:hover, :active, :focus-visible) {
+html .git-dialog button:not(:disabled):is(:hover, :active, :focus-visible) {
   background-color: #16a34a;
 }
 
