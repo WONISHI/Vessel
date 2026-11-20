@@ -4,17 +4,22 @@ import { stat } from "node:fs/promises"
 import { basename } from "node:path"
 import { pathToFileURL } from "node:url"
 
+const recorders = new Map<WebContents, (path: string, name: string, size: number, source: "download" | "save") => void>()
+
 /** Called only after the writer/download has completed; cancelled or failed saves stay silent. */
 export async function notifyBrowserFileSaved(host: WebContents, path: string, source: "download" | "save") {
   const name = basename(path)
-  if (!path || !browserFilePreview(name) || host.isDestroyed()) return
+  if (!path || host.isDestroyed()) return
   const file = await stat(path).catch(() => undefined)
   if (!file?.isFile() || host.isDestroyed()) return
+  recorders.get(host)?.(path, name, file.size, source)
+  if (!browserFilePreview(name)) return
   host.send("browser:file-saved", { name, url: pathToFileURL(path).href, source })
 }
 
 /** Each host sees only downloads started by its own browser guests, including background tabs. */
-export function registerBrowserDownloads(host: WebContents) {
+export function registerBrowserDownloads(host: WebContents, record?: (path: string, name: string, size: number, source: "download" | "save") => void) {
+  if (record) recorders.set(host, record)
   const browser = session.fromPartition("persist:vessel-browser")
   const pending = new Map<DownloadItem, (event: Electron.Event, state: string) => void>()
   const download = (_event: Electron.Event, item: DownloadItem, source: WebContents) => {
@@ -28,6 +33,7 @@ export function registerBrowserDownloads(host: WebContents) {
   }
   browser.on("will-download", download)
   host.once("destroyed", () => {
+    recorders.delete(host)
     browser.removeListener("will-download", download)
     for (const [item, done] of pending) item.removeListener("done", done)
     pending.clear()

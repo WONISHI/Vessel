@@ -22,6 +22,9 @@ export function registerBrowserDevtools(host: WebContents) {
   let cssKey: string | undefined
   let controlState = ""
 
+  let previewRevision = 0
+  let previewOccluded = false
+  let previewCapturePending = false
   let appliedKey = ""
   let appliedBounds = ""
   let appliedVisible: boolean | undefined
@@ -42,6 +45,10 @@ export function registerBrowserDevtools(host: WebContents) {
 
   /** Closes close. */
   const close = () => {
+    previewRevision++
+    previewOccluded = false
+    previewCapturePending = false
+    if (inspected && !host.isDestroyed()) host.send("browser:devtools-preview", { id: inspected.id })
     stopScreenshotSetup?.()
     stopScreenshotSetup = undefined
     stopFollowing?.()
@@ -69,7 +76,7 @@ export function registerBrowserDevtools(host: WebContents) {
     inspected = undefined
     originalThrottling = undefined
   }
-  host.ipc.handle("browser:devtools", (_event, id: number | null, bounds?: Electron.Rectangle, options?: { font: string; size: number; detached?: boolean; hidden?: boolean; pageTitle?: string; pageURL?: string; inspect?: { x: number; y: number; property?: string; targetKey?: string }; control?: { x: number; y: number; width: number; height: number; icon: string; color: string; background: string; border: string; shadow: string } }) => {
+  host.ipc.handle("browser:devtools", (_event, id: number | null, bounds?: Electron.Rectangle, options?: { font: string; size: number; detached?: boolean; hidden?: boolean; occluded?: boolean; pageTitle?: string; pageURL?: string; inspect?: { x: number; y: number; property?: string; targetKey?: string }; control?: { x: number; y: number; width: number; height: number; icon: string; color: string; background: string; border: string; shadow: string } }) => {
     if (id === null) {
       close()
       return
@@ -162,9 +169,29 @@ export function registerBrowserDevtools(host: WebContents) {
     if (appearanceChanged) void applyAppearance().catch(console.error)
     // Keep DevTools alive (preserving its network log) while the browser page is hidden.
     const hidden = options?.hidden === true
-    if (appliedVisible !== !hidden) {
+    // Preserve the last console frame underneath DOM portals while its native view is hidden.
+    const occluded = hidden && options?.occluded === true && !detachedWindow
+    if (occluded !== previewOccluded) {
+      previewOccluded = occluded
+      const revision = ++previewRevision
+      if (occluded) {
+        const capturedPanel = panel
+        previewCapturePending = true
+        void capturedPanel.webContents.capturePage().then(image => {
+          if (revision === previewRevision && !host.isDestroyed()) host.send("browser:devtools-preview", { id: guest.id, image: image.toDataURL() })
+        }).catch(console.error).finally(() => {
+          if (revision !== previewRevision) return
+          previewCapturePending = false
+          if (panel === capturedPanel && !capturedPanel.webContents.isDestroyed()) capturedPanel.setVisible(false)
+        })
+      } else {
+        previewCapturePending = false
+        if (!host.isDestroyed()) host.send("browser:devtools-preview", { id: guest.id })
+      }
+    }
+    if (appliedVisible !== !hidden || (hidden && !previewCapturePending && panel.getVisible())) {
       appliedVisible = !hidden
-      panel.setVisible(!hidden)
+      if (!hidden || !previewCapturePending) panel.setVisible(!hidden)
     }
     const inspect = options?.inspect
     if (!hidden && inspect?.property && inspect.targetKey && /^[-a-zA-Z0-9_]{1,160}$/.test(inspect.property) && /^__vesselStyleTarget_[a-z0-9]{1,30}$/.test(inspect.targetKey)) {

@@ -1,15 +1,19 @@
+import { FileThemeIcon } from "@/features/file-icons"
+import { FileIconScope } from "@/features/file-icons/state"
+import { getFilePresentation } from "@/components/workspace/components/layout-aside/layout-workspace-sidebar/utils"
 import { addTransit, addTransitFile, deleteTransit, selectTransit, useTransit } from "@/components/transit/state"
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { ClipboardPaste, FileText, Globe, Pin, Trash2, Upload } from "lucide-react"
-import { useState } from "react"
+import { ClipboardPaste, File, FileText, Globe, Pin, Trash2, Upload } from "lucide-react"
+import { useRef, useState } from "react"
 import { toast } from "sonner"
 
 /** Renders the transit button component. */
 export function TransitButton() {
   const { items, selected } = useTransit()
   const [open, setOpen] = useState(false)
+  const contentRef = useRef<HTMLDivElement>(null)
   return (
     <Popover
       open={open}
@@ -30,6 +34,7 @@ export function TransitButton() {
         </Button>
       </PopoverTrigger>
       <PopoverContent
+        ref={contentRef}
         side="bottom"
         align="end"
         sideOffset={10}
@@ -48,7 +53,7 @@ export function TransitButton() {
               key={item.id}
               data-dark-list-item
               data-active={selected === item.id}
-              className={`group flex items-center gap-2 rounded-lg p-2 ${selected === item.id ? "bg-emerald-50" : "hover:bg-stone-50"}`}
+              className={`group flex min-h-[30px] min-w-0 items-center gap-2 rounded-[2px] px-2 py-0 ${selected === item.id ? "bg-emerald-50 text-green-700" : "hover:bg-[#f0efed]"}`}
             >
               <button
                 className="flex min-w-0 flex-1 items-center gap-2 text-left"
@@ -57,17 +62,20 @@ export function TransitButton() {
                   setOpen(false)
                 }}
               >
-                <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-stone-100 text-stone-500">{item.kind === "url" ? <Globe className="size-4" /> : <FileText className="size-4 text-blue-600" />}</span>
-                <span className="min-w-0">
-                  <span className="dark-list-title block truncate text-xs font-semibold">{item.title}</span>
-                  <span className="dark-list-description block truncate text-[11px] text-stone-400">{item.kind === "url" ? `${new URL(item.content).hostname} · 网页` : item.kind === "file" ? "工作区 · 文件" : "剪贴板 · 文本"}</span>
+                <span aria-hidden="true" className="flex size-4 shrink-0 items-center justify-center">
+                  {item.kind === "file" ? <FileIconScope.Provider value="workspace"><FileThemeIcon name={item.content} className="size-4 shrink-0 object-contain" fallback={<File className={`size-4 ${getFilePresentation(item.content).color}`} />} /></FileIconScope.Provider> : item.kind === "url" ? <Globe className="size-4 text-green-600" /> : <FileText className="size-4 text-stone-400" />}
                 </span>
+                <span className="dark-list-title min-w-0 flex-1 truncate text-xs font-normal" data-title={item.title} data-title-side="left">{item.title}</span>
               </button>
               <button
                 aria-label={`删除 ${item.title}`}
                 data-title="删除"
-                className="rounded p-1 text-stone-400 opacity-0 hover:bg-stone-200 hover:text-red-600 focus:opacity-100 group-hover:opacity-100 group-focus-within:opacity-100"
-                onClick={() => {
+                className="shrink-0 rounded p-1 text-stone-400 opacity-0 hover:bg-stone-200 hover:text-red-600 focus:opacity-100 group-hover:opacity-100 group-focus-within:opacity-100"
+                onClick={(event) => {
+                  event.stopPropagation()
+                  // Keep focus inside the popover before removing the focused row.
+                  // Otherwise Radix treats the resulting focus on the page as dismissal.
+                  contentRef.current?.focus({ preventScroll: true })
                   try {
                     deleteTransit(item.id)
                   } catch {

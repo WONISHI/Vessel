@@ -12,6 +12,7 @@ export const defaultSettings: AppSettings = {
   catppuccinFlavor: "auto",
   searchEngine: "bing",
   proxyEnabled: false,
+  browserGroupSameDomain: false,
   browserDevtoolsFollowWindow: false,
   externalScreenshot: true,
   externalPreview: true,

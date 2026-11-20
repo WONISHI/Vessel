@@ -1,3 +1,4 @@
+import { useDialogLayout } from "@/features/layout/use-dialog-layout"
 import { SitePasswordPopover } from "./site-password-popover"
 import { Sheet, SheetContent } from "@/components/ui/sheet"
 import { PasswordAccounts } from "./password-accounts"
@@ -12,6 +13,7 @@ import { Eye, EyeOff } from "lucide-react"
 type Entry = { id: string; origin: string; username: string; updated: number }
 type Candidate = { id: string; origin: string; username: string }
 export function PasswordVault({ guestId, url }: { guestId?: () => number | undefined; url?: string }) {
+  const layout = useDialogLayout(true)
   const [open, setOpen] = useState(false), [state, setState] = useState<{ initialized: boolean; unlocked: boolean; auto?: boolean }>({ initialized: false, unlocked: true, auto: true })
   const [password, setPassword] = useState(""), [confirmation, setConfirmation] = useState(""), [exportPassword, setExportPassword] = useState("")
   const [items, setItems] = useState<Entry[]>([]), [candidate, setCandidate] = useState<Candidate | null>(null)
@@ -140,9 +142,9 @@ export function PasswordVault({ guestId, url }: { guestId?: () => number | undef
     <ConfirmDialog activityBarAccessible statusBarAccessible open={!!deleteId} onOpenChange={(next) => { if (!next) setDeleteId(null) }} title="删除已保存账号" description="删除后无法恢复，是否继续？" confirmText="删除" busy={busy} onConfirm={() => { if (deleteId) void run("delete", { id: deleteId }).then(() => setDeleteId(null)) }} />
     <Panel modal={false} open={open} onOpenChange={changeOpen}>
       <DialogPortal>
-        <div data-vault-overlay aria-hidden="true" className="fixed top-0 right-0 bottom-8 left-[52px] z-[220] bg-black/[.04] backdrop-blur-[3px]" />
+        <div data-vault-overlay aria-hidden="true" style={layout.overlayStyle} className="fixed top-0 right-0 z-[220] bg-black/[.04] backdrop-blur-[3px]" />
       </DialogPortal>
-      <PanelContent {...(manage ? { showOverlay: false, side: "right" as const } : {})} onSubmit={(event) => event.stopPropagation()} className={manage ? "z-[221] top-0 bottom-8 flex h-auto w-[calc(100%-52px)] flex-col gap-3 p-4 sm:max-w-sm" : "z-[221] left-[calc(50%+26px)] flex max-h-[85vh] w-[calc(100%-84px)] flex-col gap-3 p-4 sm:max-w-sm"}>
+      <PanelContent style={manage ? layout.sheetStyle : layout.contentStyle} {...(manage ? { showOverlay: false, side: "right" as const } : {})} onSubmit={(event) => event.stopPropagation()} className={manage ? "z-[221] top-0 flex h-auto flex-col gap-3 p-4 sm:max-w-sm" : "z-[221] flex max-h-[85vh] flex-col gap-3 p-4 sm:max-w-sm"}>
         <DialogHeader><DialogTitle className="text-base">{manage ? "账号和密码" : candidate ? "保存密码？" : "账号和密码设置"}</DialogTitle><DialogDescription>{manage ? "查看 Vessel 保存的所有网站账号，密码默认隐藏。查看密码需要验证身份。" : candidate ? "Vessel 会用系统钥匙串加密保存在本机，之后可在浏览器菜单的“账号和密码”中查看。" : "账号和密码使用系统钥匙串加密保存在本机；查看密码需要通过系统身份验证。"}</DialogDescription></DialogHeader>
         <ScrollArea className={manage ? "min-h-0 flex-1" : "min-h-0 flex-1 [&_[data-radix-scroll-area-viewport]]:max-h-[55vh]"}>
           <div className="space-y-3 pr-3 text-sm">

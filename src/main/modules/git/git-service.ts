@@ -1,4 +1,4 @@
-import type { GitPushInfo, GitPushSelection, GitTagOptions, GitCommitDetail, GitCommitItem, GitDiffResult, GitFileStatus, GitStatusResult, GitStashPopResult, GitStashEntry, GitStashFile, GitStashDetail } from "@vessel/type/git"
+import type { GitFetchOptions, GitPullOptions, GitPushInfo, GitPushSelection, GitTagOptions, GitCommitDetail, GitCommitItem, GitDiffResult, GitFileStatus, GitStatusResult, GitStashPopResult, GitStashEntry, GitStashFile, GitStashDetail } from "@vessel/type/git"
 import { spawn } from "node:child_process"
 import { existsSync } from "node:fs"
 import { lstat } from "node:fs/promises"
@@ -7,6 +7,8 @@ export type { GitCommitDetail, GitCommitItem, GitDiffResult, GitFileStatus, GitS
 
 // Only user-facing history roots; --all also includes refs/stash and other internal refs.
 const HISTORY_REVISIONS = ["--branches", "--remotes", "--tags", "HEAD"]
+// Show what a commit introduced to its branch, including changes brought in by merges.
+const COMMIT_DIFF_OPTIONS = ["--diff-merges=first-parent", "--no-ext-diff", "--no-textconv", "--no-color", "--find-renames", "--format="]
 
 /** 执行 Git 命令：优先使用 dugite，无法启动时回退；命令非零退出码不重试 */
 export async function runGit(args: string[], cwd: string): Promise<{ stdout: string; stderr: string; exitCode: number }> {
@@ -302,9 +304,10 @@ export class GitService {
     const date = new Date(parseInt(timestamp, 10) * 1000).toLocaleString("zh-CN")
 
     const [filesRes, statusRes] = await Promise.all([
-      runGit(["show", "--numstat", "-z", "--find-renames", "--format=", hash], cwd),
-      runGit(["show", "--name-status", "-z", "--find-renames", "--format=", hash], cwd)
+      runGit(["show", ...COMMIT_DIFF_OPTIONS, "--numstat", "-z", hash], cwd),
+      runGit(["show", ...COMMIT_DIFF_OPTIONS, "--name-status", "-z", hash], cwd)
     ])
+    if (filesRes.exitCode !== 0 || statusRes.exitCode !== 0) throw new Error(filesRes.stderr || statusRes.stderr || "读取提交变更失败")
     const statuses = new Map<string, string>()
     const statusEntries = statusRes.stdout.split("\0")
     for (let index = 0; index < statusEntries.length;) {
@@ -351,7 +354,7 @@ export class GitService {
   async getDiff(cwd: string, filePath: string, staged = false, commitHash?: string): Promise<GitDiffResult> {
     let args: string[]
     if (commitHash) {
-      args = ["show", `${commitHash}`, "--", filePath]
+      args = ["show", ...COMMIT_DIFF_OPTIONS, commitHash, "--", filePath]
     } else if (staged) {
       args = ["diff", "--cached", "--", filePath]
     } else {
@@ -359,6 +362,7 @@ export class GitService {
     }
 
     const res = await runGit(args, cwd)
+    if (res.exitCode !== 0) throw new Error(res.stderr || "读取差异失败")
     let diff = res.stdout
 
     // 如果未暂存且是新增文件，git diff 可能为空，读取工作区文件内容展示
@@ -445,14 +449,25 @@ export class GitService {
   }
 
   /** Fetches fetch. */
-  async fetch(cwd: string, remote = "origin"): Promise<void> {
-    const res = await runGit(["fetch", remote, "--prune"], cwd)
+  async fetch(cwd: string, remote = "origin", options?: GitFetchOptions): Promise<void> {
+    if (!options?.all && (!remote || remote.startsWith("-"))) throw new Error("抓取目标无效")
+    const args = ["fetch", options ? (options.prune ? "--prune" : "--no-prune") : "--prune"]
+    if (options?.tags) args.push("--tags")
+    if (options?.all) args.push("--all")
+    else args.push("--", remote)
+    const res = await runGit(args, cwd)
     if (res.exitCode !== 0) throw new Error(res.stderr || "Fetch failed")
   }
 
   /** Performs the pull operation. */
-  async pull(cwd: string, remote = "origin", branch?: string): Promise<{ output: string }> {
-    const args = ["pull", remote]
+  async pull(cwd: string, remote = "origin", branch?: string, options?: GitPullOptions): Promise<{ output: string }> {
+    if (!remote || remote.startsWith("-") || branch?.startsWith("-")) throw new Error("拉取目标无效")
+    const args = ["pull"]
+    if (options) {
+      if (options.rebase) args.push("--rebase")
+      else args.push("--no-rebase", options.commit ? "--commit" : "--no-commit", options.log ? "--log" : "--no-log", options.noFastForward ? "--no-ff" : "--ff")
+    }
+    args.push("--", remote)
     if (branch) args.push(branch)
     const res = await runGit(args, cwd)
     if (res.exitCode !== 0) throw new Error(res.stderr || "Pull failed")

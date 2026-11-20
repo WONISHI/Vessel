@@ -1,3 +1,5 @@
+import { toast } from "@/components/ui/sonner"
+import { cleanGitErrorMessage } from "@/pages/git/utils"
 import { FileChangeStatus } from "@/pages/git/components/file-change-status"
 import { GitCommitMessage } from "./git-commit-message"
 import { getFilePresentation } from "@/components/workspace/components/layout-aside/layout-workspace-sidebar/utils"
@@ -17,7 +19,7 @@ export function GitCommitFiles({ g }: { g: GitPageModel }) {
   const viewDiff = (path: string) => {
     if (!commitDetail) return
     setSelection({ commit: selectionKey, path })
-    void window.electronAPI.git.getDiff(repoPath, path, false, commitDetail.hash).then((res) => setDiffText(res.diff))
+    void window.electronAPI.git.getDiff(repoPath, path, false, commitDetail.hash).then((res) => setDiffText(res.diff)).catch(error => toast.error("读取差异失败", { description: cleanGitErrorMessage(error) }))
   }
 
   return (

@@ -7,7 +7,7 @@ export function installBrowserContextMenu() {
     // Capture here so stopPropagation() without preventDefault() still gets the fallback.
     setTimeout(() => {
       if (event.defaultPrevented) return
-      ;(window as unknown as { vesselContextMenu?: (details: object) => void }).vesselContextMenu?.({ x: event.clientX, y: event.clientY })
+      ;(window as unknown as { vesselContextMenu?: (details: object) => void }).vesselContextMenu?.({ x: event.clientX, y: event.clientY, imageDocument: document.contentType.startsWith("image/") })
     }, 0)
   }, true)
 }

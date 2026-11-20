@@ -9,6 +9,7 @@ it("shows the fallback even when a webpage registers context-menu listeners with
       addEventListener(type, listener) { this.handlers.push({type, listener}); }
       removeEventListener(type, listener) { this.handlers = this.handlers.filter(h => h.type !== type || h.listener !== listener); }
     }
+    const document = { contentType: "text/html" };
     const window = new EventTarget(); window.top = window;
     const timers = [], calls = [];
     const setTimeout = fn => timers.push(fn);
@@ -39,7 +40,7 @@ it("shows the fallback even when a webpage registers context-menu listeners with
     fire(false); const untrusted = calls.length;
     ({empty, own, ancestor, property, stopped, untrusted, last: calls.at(-1), unchanged: originalAdd === EventTarget.prototype.addEventListener});
   `)
-  expect(result).toEqual({ empty: 1, own: 2, ancestor: 3, property: 4, stopped: 5, untrusted: 5, last: { x: 10, y: 20 }, unchanged: true })
+  expect(result).toEqual({ empty: 1, own: 2, ancestor: 3, property: 4, stopped: 5, untrusted: 5, last: { x: 10, y: 20, imageDocument: false }, unchanged: true })
 })
 
 it("lets the webpage suppress the fallback during event dispatch", () => {
@@ -57,4 +58,17 @@ it("lets the webpage suppress the fallback during event dispatch", () => {
     calls.length;
   `)
   expect(result).toBe(0)
+})
+
+it("marks image documents even when their URLs have no image extension", () => {
+  const result = runInNewContext(`
+    const document = { contentType: 'image/png' };
+    let handler, details;
+    const window = { addEventListener: (_type, callback) => handler = callback, vesselContextMenu: value => details = value }; window.top = window;
+    const setTimeout = fn => fn();
+    (${installBrowserContextMenu.toString()})();
+    handler({ isTrusted: true, clientX: 5, clientY: 6 });
+    details;
+  `)
+  expect(result).toEqual({ x: 5, y: 6, imageDocument: true })
 })

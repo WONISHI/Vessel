@@ -1,3 +1,4 @@
+import type { ReactNode } from "react"
 import { Button } from "@/components/ui/button"
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable-panels"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -9,12 +10,13 @@ import { RouterView } from "@vessel/react-router/components"
 import { useLocation, useNavigate } from "react-router-dom"
 
 /** Renders the dev tools body component. */
-export function DevToolsBody() {
+export function DevToolsBody({ selectedTool, onSelectTool, children }: { selectedTool?: string; onSelectTool?: (id: string) => void; children?: ReactNode } = {}) {
   const { pathname } = useLocation(),
     navigate = useNavigate()
   const { open, openMobile, isMobile } = useSidebar()
   const expanded = isMobile ? openMobile : open
-  const current = groups.flatMap((group) => group.items.map((item) => ({ ...item, group: group.title }))).find((item) => pathname.endsWith("/" + item.id))
+  const current = groups.flatMap((group) => group.items.map((item) => ({ ...item, group: group.title }))).find((item) => (selectedTool ? selectedTool === item.id : pathname.endsWith("/" + item.id)))
+  const selectTool = (id: string) => onSelectTool ? onSelectTool(id) : navigate(`/devtools/${id}`)
   return (
     <div className="flex h-full w-full min-w-0 flex-1 flex-col">
     <ResizablePanelGroup
@@ -41,8 +43,8 @@ export function DevToolsBody() {
                       <Button
                         key={id}
                         variant="ghost"
-                        onClick={() => navigate(`/devtools/${id}`)}
-                        aria-current={pathname.endsWith("/" + id) ? "page" : undefined}
+                        onClick={() => selectTool(id)}
+                        aria-current={current?.id === id ? "page" : undefined}
                         className="dev-nav-item w-full justify-start shadow-none"
                       >
                         <Icon className="size-4" />
@@ -59,13 +61,13 @@ export function DevToolsBody() {
       )}
       <ResizablePanel minSize="350px">
         <main className="h-full min-w-0 overflow-hidden">
-          <RouterView />
+          {children ?? <RouterView />}
         </main>
       </ResizablePanel>
     </ResizablePanelGroup>
     <StatusBar
       left={current && (
-        <button type="button" data-title={`${current.group} · ${current.title}`} onClick={() => navigate(`/devtools/${current.id}`)}>
+        <button type="button" data-title={`${current.group} · ${current.title}`} onClick={() => selectTool(current.id)}>
           <current.icon />
           {current.title}
         </button>

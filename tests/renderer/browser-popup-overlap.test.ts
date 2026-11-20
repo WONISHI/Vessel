@@ -24,3 +24,17 @@ it('hides the native view for a portal that actually overlaps it',()=>{
  expect(popupOverlapsPane({left:900,right:1100,top:200,bottom:400,width:200,height:200},pane)).toBe(true)
  expect(popupOverlapsPane({left:960,right:960,top:200,bottom:200,width:0,height:0},pane)).toBe(false)
 })
+
+it('ignores transparent transit sheet space but detects the actual docked pane', () => {
+ const sheet = document.createElement('div')
+ sheet.setAttribute('role', 'dialog'); sheet.dataset.state = 'open'; sheet.dataset.transitContainer = ''
+ sheet.getBoundingClientRect = () => ({ left:0,right:1400,top:0,bottom:900,width:1400,height:900 } as DOMRect)
+ const surface = document.createElement('div'); surface.className = 'transit-sheet'
+ surface.getBoundingClientRect = () => ({left:52,right:400,top:0,bottom:900,width:348,height:900} as DOMRect)
+ sheet.append(surface); document.body.append(sheet)
+ try {
+  expect(browserPopupOverlapsPane(pane)).toBe(false)
+  surface.getBoundingClientRect = () => ({left:1000,right:1400,top:0,bottom:900,width:400,height:900} as DOMRect)
+  expect(browserPopupOverlapsPane(pane)).toBe(true)
+ } finally { sheet.remove() }
+})

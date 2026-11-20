@@ -41,6 +41,41 @@ function openActions() {
   return { element, root }
 }
 
+it("drags the actions panel by its toolbar, clamps to the viewport, and leaves buttons interactive", () => {
+  const { root } = openActions()
+  const panel = root.querySelector<HTMLElement>(".actions")!
+  const toolbar = root.querySelector<HTMLElement>(".tools")!
+  vi.spyOn(panel, "getBoundingClientRect").mockReturnValue({ left: 12, top: 12, width: 340, height: 340 } as DOMRect)
+  toolbar.setPointerCapture = vi.fn()
+  toolbar.hasPointerCapture = vi.fn().mockReturnValue(true)
+  toolbar.releasePointerCapture = vi.fn()
+  const pointer = (type: string, x: number, y: number) => {
+    const event = new MouseEvent(type, { bubbles: true, composed: true, cancelable: true, clientX: x, clientY: y })
+    Object.defineProperty(event, "pointerId", { value: 1 })
+    return event
+  }
+  toolbar.dispatchEvent(pointer("pointerdown", 200, 25))
+  expect(toolbar.setPointerCapture).toHaveBeenCalledWith(1)
+  toolbar.dispatchEvent(pointer("pointermove", 300, 85))
+  expect(panel.style.left).toBe("112px")
+  expect(panel.style.top).toBe("72px")
+  toolbar.dispatchEvent(pointer("pointermove", 10000, 10000))
+  expect(panel.style.left).toBe(`${innerWidth - 340}px`)
+  expect(panel.style.top).toBe(`${innerHeight - 340}px`)
+  toolbar.dispatchEvent(pointer("pointermove", -10000, -10000))
+  expect(panel.style.left).toBe("0px")
+  expect(panel.style.top).toBe("0px")
+  toolbar.dispatchEvent(pointer("pointercancel", 0, 0))
+  expect(toolbar.releasePointerCapture).toHaveBeenCalledWith(1)
+  toolbar.dispatchEvent(pointer("pointermove", 300, 85))
+  expect(panel.style.left).toBe("0px")
+  const copy = toolbar.querySelector<HTMLButtonElement>("button")!
+  copy.dispatchEvent(pointer("pointerdown", 20, 20))
+  expect(toolbar.setPointerCapture).toHaveBeenCalledTimes(1)
+  copy.click()
+  expect(root.querySelector<HTMLElement>(".copy-menu")!.hidden).toBe(false)
+})
+
 it("opens shadcn styles controls, highlights values, and reversibly hides the target", async () => {
   const { element, root } = openActions()
   expect(root.querySelector<HTMLElement>(".actions")!.hidden).toBe(false)

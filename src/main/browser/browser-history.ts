@@ -1,4 +1,4 @@
-import type { HistoryEntry } from "@vessel/type"
+import type { BrowserDownloadEntry, HistoryEntry } from "@vessel/type"
 import { historyURLKey, isHistoryRedirect } from "@vessel/utils"
 import Database from "better-sqlite3"
 export class BrowserHistory {
@@ -12,6 +12,7 @@ export class BrowserHistory {
     const columns = this.db.pragma("table_info(visits)") as { name: string }[]
     if (!columns.some((column) => column.name === "favicon")) this.db.exec("ALTER TABLE visits ADD COLUMN favicon TEXT")
     this.db.exec("CREATE TABLE IF NOT EXISTS bookmarks (url TEXT PRIMARY KEY, title TEXT NOT NULL)")
+    this.db.exec("CREATE TABLE IF NOT EXISTS downloads (id INTEGER PRIMARY KEY, name TEXT NOT NULL, path TEXT NOT NULL, size INTEGER NOT NULL, savedAt INTEGER NOT NULL, source TEXT NOT NULL)")
     this.prune()
     this.compact()
   }
@@ -85,6 +86,19 @@ export class BrowserHistory {
   delete(id: number | null) {
     if (id === null) this.db.exec("DELETE FROM visits")
     else if (Number.isSafeInteger(id)) this.db.prepare("DELETE FROM visits WHERE id=?").run(id)
+  }
+
+  addDownload(path: string, name: string, size: number, source: "download" | "save", now = Date.now()) {
+    this.db.prepare("INSERT INTO downloads (path,name,size,savedAt,source) VALUES (?,?,?,?,?)").run(path, name, size, now, source)
+  }
+
+  listDownloads(): BrowserDownloadEntry[] {
+    return this.db.prepare("SELECT * FROM downloads ORDER BY savedAt DESC, id DESC").all() as BrowserDownloadEntry[]
+  }
+
+  getDownload(id: number): BrowserDownloadEntry | undefined {
+    if (!Number.isSafeInteger(id)) return
+    return this.db.prepare("SELECT * FROM downloads WHERE id=?").get(id) as BrowserDownloadEntry | undefined
   }
 
   /** Closes close. */

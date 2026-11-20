@@ -1,3 +1,4 @@
+import { useDialogLayout } from "@/features/layout/use-dialog-layout"
 import "@/components/core/canvas/variants/code/monaco"
 import { registerMonacoTheme } from "@/components/core/canvas/variants/code/theme"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogPortal } from "@/components/ui/dialog"
@@ -7,6 +8,7 @@ import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 
 export default function BrowserSourceDialog({ source, onClose }: { source: { url: string; text: string }; onClose: () => void }) {
+  const layout = useDialogLayout(true)
   const dark = useDarkAppearance()
   const [formatting, setFormatting] = useState(true)
   const alive = useRef(true)
@@ -43,9 +45,9 @@ export default function BrowserSourceDialog({ source, onClose }: { source: { url
   }
   return <Dialog open modal={false} onOpenChange={(open) => { if (!open) onClose() }}>
     <DialogPortal>
-      <div aria-hidden="true" data-browser-source-overlay className="fixed top-0 right-0 bottom-8 left-[52px] z-50 bg-black/[.04] backdrop-blur-[3px]" />
+      <div aria-hidden="true" data-browser-source-overlay style={layout.overlayStyle} className="fixed top-0 right-0 z-50 bg-black/[.04] backdrop-blur-[3px]" />
     </DialogPortal>
-    <DialogContent className="left-[calc(50%+26px)] flex h-[75vh] w-[calc(100%-84px)] max-w-4xl flex-col gap-3">
+    <DialogContent style={layout.contentStyle} className="flex h-[75vh] max-w-4xl flex-col gap-3">
       <DialogHeader className="min-w-0 shrink-0 pr-5">
         <DialogTitle>网页源代码</DialogTitle>
         <DialogDescription title={source.url} className="truncate font-mono text-[10px] leading-4 font-normal">{source.url}</DialogDescription>

@@ -1,3 +1,4 @@
+import { useDialogLayout } from "@/features/layout/use-dialog-layout"
 import { AlertDialog as ModalAlertDialog, AlertDialogAction as ModalAlertDialogAction, AlertDialogCancel as ModalAlertDialogCancel, AlertDialogContent as ModalAlertDialogContent, AlertDialogDescription as ModalAlertDialogDescription, AlertDialogFooter as ModalAlertDialogFooter, AlertDialogHeader as ModalAlertDialogHeader, AlertDialogTitle as ModalAlertDialogTitle } from "@/components/ui/alert-dialog"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogPortal, DialogTitle } from "@/components/ui/dialog"
 import "@/components/ui/confirm-dialog.css"
@@ -30,6 +31,7 @@ export function ConfirmDialog({
   tone?: "danger" | "primary"
   onConfirm: () => void
 }) {
+  const layout = useDialogLayout(statusBarAccessible)
   const AlertDialog = activityBarAccessible ? ActivityDialog : ModalAlertDialog
   const AlertDialogContent = activityBarAccessible ? DialogContent : ModalAlertDialogContent
   const AlertDialogHeader = activityBarAccessible ? DialogHeader : ModalAlertDialogHeader
@@ -47,10 +49,10 @@ export function ConfirmDialog({
       }}
     >
       {activityBarAccessible && <DialogPortal>
-        <div aria-hidden="true" data-confirm-overlay style={statusBarAccessible ? { bottom: 32 } : undefined} className="fixed inset-y-0 right-0 left-[52px] z-[230] bg-black/[.04] backdrop-blur-[3px]" />
+        <div aria-hidden="true" data-confirm-overlay style={layout.overlayStyle} className="fixed inset-y-0 right-0 z-[230] bg-black/[.04] backdrop-blur-[3px]" />
       </DialogPortal>}
       <AlertDialogContent
-        {...(activityBarAccessible ? { showCloseButton: false, style: { left: "calc(50% + 26px)", width: "calc(100vw - 84px)" } } : {})}
+        {...(activityBarAccessible ? { showCloseButton: false, style: layout.contentStyle } : {})}
         className="todo-confirm-dialog"
         overlayClassName="!z-[230] !bg-black/[.04] backdrop-blur-[3px]"
       >

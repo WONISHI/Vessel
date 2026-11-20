@@ -109,3 +109,33 @@ it('starts source inspection only for a live matching project and rechecks when 
   expect(execute).toHaveBeenCalledOnce()
  } finally { view.remove() }
 })
+
+it.each([["复制图片", "copy-image"], ["下载图片", "download-image"]])("offers %s only for image documents", async (label, action) => {
+  const browserPageAction = vi.fn().mockResolvedValue(undefined)
+  window.electronAPI = { browserPageAction, sourceProjectStatus: vi.fn().mockResolvedValue(null) } as any
+  const b = { tab: { id: "image", url: "file:///tmp/photo.png" }, views: { current: new Map() } } as any
+  const view = render(<BrowserContextMenu b={b} visible />)
+  const show = (imageDocument: boolean) => act(() => { window.dispatchEvent(new CustomEvent("vessel-browser-context-menu", { detail: { tabId: "image", guestId: 7, x: 1, y: 2, left: 10, top: 20, imageDocument } })) })
+  show(false)
+  expect(view.queryByRole("menuitem", { name: label })).toBeNull()
+  show(true)
+  fireEvent.click(view.getByRole("menuitem", { name: label }))
+  await waitFor(() => expect(browserPageAction).toHaveBeenCalledWith(7, action, { x: 1, y: 2 }))
+})
+
+it('opens page search after dismissing the context menu and focuses the search input', async () => {
+ window.electronAPI = { browserPageAction: vi.fn() } as any
+ const input = document.createElement('input')
+ document.body.append(input)
+ const b = { tab: { id:'tab', url:'https://example.com' }, views:{current:new Map()}, setFindPosition:vi.fn(), setFindOpen:vi.fn(), findInput:{current:input} } as any
+ try {
+  const result = render(<BrowserContextMenu b={b} visible />)
+  act(() => window.dispatchEvent(new CustomEvent('vessel-browser-context-menu', {detail:{tabId:'tab',guestId:7,x:10,y:20,left:100,top:100}})))
+  fireEvent.click(result.getByRole('menuitem',{name:'搜索'}))
+  await waitFor(() => expect(b.setFindOpen).toHaveBeenCalledWith(true))
+  expect(b.setFindPosition).toHaveBeenCalledWith(null)
+  expect(result.queryByRole('menu')).toBeNull()
+  await waitFor(() => expect(document.activeElement).toBe(input))
+  expect(window.electronAPI.browserPageAction).not.toHaveBeenCalled()
+ } finally { input.remove() }
+})

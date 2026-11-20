@@ -7,13 +7,36 @@ import { markGuestReady, withGuest } from "@/pages/browser/guest-lifecycle"
 import { pageObserverScript } from "@/pages/browser/page-observer"
 import { webviewAttributes } from "@/pages/browser/webview-attributes"
 import type { WebviewTag } from "electron"
-import { memo, useCallback, useEffect, useRef, useState } from "react"
+import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react"
 
 /** Renders the guest component. */
 export const Guest = memo(function Guest({ tab, visible, register, update }: { tab: Tab; visible: boolean; register: (id: string, view: WebviewTag | null) => void; update: (id: string, patch: Partial<Tab>) => void }) {
   const dark = useDarkAppearance()
   const ref = useRef<WebviewTag | null>(null)
   const [documentReady, setDocumentReady] = useState(0)
+  const zoomRef = useRef(tab.zoom ?? 1)
+  const visibleRef = useRef(visible)
+  const syncZoom = useCallback(() => {
+    if (!visibleRef.current) return
+    withGuest(ref.current, guest => {
+      const expected = zoomRef.current
+      if (Math.abs(guest.getZoomFactor() - expected) > 0.001) guest.setZoomFactor(expected)
+    })
+  }, [])
+  useLayoutEffect(() => {
+    zoomRef.current = tab.zoom ?? 1
+    visibleRef.current = visible
+    syncZoom()
+  }, [tab.zoom, visible, syncZoom])
+  useEffect(() => {
+    const resume = () => { if (!document.hidden) syncZoom() }
+    window.addEventListener("focus", resume)
+    document.addEventListener("visibilitychange", resume)
+    return () => {
+      window.removeEventListener("focus", resume)
+      document.removeEventListener("visibilitychange", resume)
+    }
+  }, [syncZoom])
   // Keep expensive theme processing out of first paint and inactive tabs.
   useEffect(() => {
     if (!visible || !documentReady) return
@@ -23,6 +46,7 @@ export const Guest = memo(function Guest({ tab, visible, register, update }: { t
     return () => window.clearTimeout(timer)
   }, [dark, visible, documentReady])
   const [initialURL] = useState(tab.url)
+  const [initialAttributes] = useState(() => ({ ...webviewAttributes, webpreferences: `zoomFactor=${tab.zoom}` }))
   const updateRef = useRef(update)
   useEffect(() => {
     updateRef.current = update
@@ -46,17 +70,17 @@ export const Guest = memo(function Guest({ tab, visible, register, update }: { t
       }).catch(() => {}))
     }
 
+    // Navigation can restore Chromium's host zoom; always use the latest tab value,
+    // including 100%, both at DOM readiness and after the navigation finishes.
+    const applyZoom = syncZoom
+
     /** Handles ready events. */
     const onReady = () => {
       void view.executeJavaScript(pageObserverScript).catch((error) => console.warn("页面监听注入失败", error))
       markGuestReady(view, true)
       syncVideoPlaying()
       setDocumentReady((revision) => revision + 1)
-      if (tab.zoom && tab.zoom !== 1) {
-        try {
-          view.setZoomFactor(tab.zoom)
-        } catch {}
-      }
+      syncZoom()
       sync()
       updateRef.current(tab.id, { ready: true })
     }
@@ -74,6 +98,7 @@ export const Guest = memo(function Guest({ tab, visible, register, update }: { t
 
     /** Stops stop. */
     const stop = () => {
+      syncZoom()
       sync()
       updateRef.current(tab.id, { loading: false })
     }
@@ -104,7 +129,7 @@ export const Guest = memo(function Guest({ tab, visible, register, update }: { t
         if (point && Number.isFinite(point.x) && Number.isFinite(point.y)) {
           const rect = view.getBoundingClientRect()
           const scale = rect.width / (view.offsetWidth || rect.width || 1)
-          window.dispatchEvent(new CustomEvent("vessel-browser-context-menu", { detail: { tabId: tab.id, guestId: view.getWebContentsId(), x: point.x, y: point.y, left: rect.left + point.x * view.getZoomFactor() * scale, top: rect.top + point.y * view.getZoomFactor() * scale } }))
+          window.dispatchEvent(new CustomEvent("vessel-browser-context-menu", { detail: { tabId: tab.id, guestId: view.getWebContentsId(), imageDocument: point.imageDocument === true, x: point.x, y: point.y, left: rect.left + point.x * view.getZoomFactor() * scale, top: rect.top + point.y * view.getZoomFactor() * scale } }))
         }
       }
       if (event.channel === "vessel-inspect-style") {
@@ -115,7 +140,10 @@ export const Guest = memo(function Guest({ tab, visible, register, update }: { t
       }
       if (event.channel === "vessel-zoom-changed") {
         const zoom = event.args[0]
-        if (typeof zoom === "number" && Number.isFinite(zoom) && zoom >= 0.5 && zoom <= 2) updateRef.current(tab.id, { zoom })
+        if (typeof zoom === "number" && Number.isFinite(zoom) && zoom >= 0.5 && zoom <= 2) {
+          zoomRef.current = zoom
+          updateRef.current(tab.id, { zoom })
+        }
       }
       if (event.channel === "vessel-navigation") sync()
       if (event.channel === "vessel-open-top-search") window.dispatchEvent(new CustomEvent("vessel-browser-open-top-search", { detail: tab.id }))
@@ -125,12 +153,14 @@ export const Guest = memo(function Guest({ tab, visible, register, update }: { t
       const error = devServerError(view.src, event.message, event.level)
       if (error) updateRef.current(tab.id, { devError: error })
     }
+    view.addEventListener("focus", syncZoom)
     view.addEventListener("console-message", consoleMessage)
     view.addEventListener("media-started-playing", syncVideoPlaying)
     view.addEventListener("media-paused", syncVideoPlaying)
     view.addEventListener("ipc-message", message)
     view.addEventListener("page-favicon-updated", favicon)
     view.addEventListener("dom-ready", onReady)
+    view.addEventListener("did-finish-load", applyZoom)
     view.addEventListener("did-navigate", sync)
     view.addEventListener("did-navigate-in-page", sync)
     view.addEventListener("page-title-updated", sync)
@@ -140,6 +170,7 @@ export const Guest = memo(function Guest({ tab, visible, register, update }: { t
     view.addEventListener("did-fail-load", fail)
     return () => {
       mediaRevision++
+      view.removeEventListener("focus", syncZoom)
       view.removeEventListener("console-message", consoleMessage)
       view.removeEventListener("media-started-playing", syncVideoPlaying)
       view.removeEventListener("media-paused", syncVideoPlaying)
@@ -147,6 +178,7 @@ export const Guest = memo(function Guest({ tab, visible, register, update }: { t
       markGuestReady(view, false)
       view.removeEventListener("page-favicon-updated", favicon)
       view.removeEventListener("dom-ready", onReady)
+      view.removeEventListener("did-finish-load", applyZoom)
       view.removeEventListener("did-navigate", sync)
       view.removeEventListener("did-navigate-in-page", sync)
       view.removeEventListener("page-title-updated", sync)
@@ -155,7 +187,7 @@ export const Guest = memo(function Guest({ tab, visible, register, update }: { t
       view.removeEventListener("did-stop-loading", stop)
       view.removeEventListener("did-fail-load", fail)
     }
-  }, [tab.id])
+  }, [tab.id, syncZoom])
   return (
     <webview
       ref={useCallback(
@@ -166,7 +198,7 @@ export const Guest = memo(function Guest({ tab, visible, register, update }: { t
         [register, tab.id]
       )}
       src={initialURL}
-      {...webviewAttributes}
+      {...initialAttributes}
       style={{ width: "100%", height: "100%", display: visible ? "flex" : "none" }}
     />
   )

@@ -19,7 +19,7 @@ it("derives keys from a strong master password and independent salt", async () =
 }, 15000)
 it("matches exact HTTPS origin including ports", () => {
   expect(credentialOrigin("https://example.test:8443/login?a=1")).toBe("https://example.test:8443")
-  expect(() => credentialOrigin("http://example.test")).toThrow()
+  expect(credentialOrigin("http://example.test")).toBe("http://example.test")
   expect(() => credentialOrigin("file:///tmp/login.html")).toThrow()
 })
 
@@ -32,6 +32,15 @@ it.each([
 ])('accepts local development origin %s', (url, origin) => {
  expect(credentialOrigin(url)).toBe(origin)
 })
-it.each(['http://localhost.attacker.test:9525', 'http://127.0.0.1.attacker.test', 'http://192.168.1.1', 'http://0.0.0.0', 'file:///tmp/login.html', 'data:text/html,login'])('rejects unsupported origin %s', (url) => {
+it.each(['file:///tmp/login.html', 'data:text/html,login', 'javascript:alert(1)', 'chrome-extension://extension/login', 'not a url'])('rejects unsupported origin %s', (url) => {
  expect(() => credentialOrigin(url)).toThrow()
+})
+
+it.each([
+ ['http://39.106.89.88:8090/users/sign_in', 'http://39.106.89.88:8090'],
+ ['http://192.168.1.1/login', 'http://192.168.1.1'],
+ ['http://localhost.attacker.test:9525/login', 'http://localhost.attacker.test:9525']
+])('supports HTTP sites without merging origins: %s', (url, expected) => {
+ expect(credentialOrigin(url)).toBe(expected)
+ expect(credentialOrigin(url)).not.toBe('http://localhost:9525')
 })

@@ -11,7 +11,8 @@ import { BrowserMore } from "@/pages/browser/components/tools"
 import { elementPickerScript } from "@/pages/browser/element-picker"
 import { withGuest } from "@/pages/browser/guest-lifecycle"
 import { browserURL } from "@/pages/browser/url"
-import { ArrowLeft, ArrowRight, Bookmark, Bug, Home, Info, LoaderCircle, LockKeyhole, Pin, RotateCw, Search, Sparkles, SquareDashedMousePointer, X } from "lucide-react"
+import { ArrowLeft, ArrowRight, Bug, Home, Info, LoaderCircle, LockKeyhole, Pin, RotateCw, Search, Sparkles, SquareDashedMousePointer, X } from "lucide-react"
+import "@vscode/codicons/dist/codicon.css"
 import type { BrowserPageModel } from "@/pages/browser/components/browser-page/hooks/use-browser-page"
 
 /** 地址栏与导航工具条 */
@@ -130,9 +131,9 @@ export function BrowserToolbar({ b, visible = true }: { b: BrowserPageModel; vis
                     catch { setDecodedAddress(fullAddress.replace(/(?:%[0-9a-f]{2})+/gi, (value) => { try { return decodeURIComponent(value) } catch { return value } })) }
                   }}
                 >
-                  {focused ? <Sparkles size={16} /> : <Bookmark
-                    size={16}
-                    fill={bookmarks.some((item) => item.url === tab.url) ? "currentColor" : "none"}
+                  {focused ? <Sparkles size={16} /> : <i
+                    aria-hidden="true"
+                    className={`codicon ${bookmarks.some((item) => item.url === tab.url) ? "codicon-star-full" : "codicon-star-empty"} !text-base`}
                   />}
                 </button>
               </form>
@@ -187,6 +188,8 @@ export function BrowserToolbar({ b, visible = true }: { b: BrowserPageModel; vis
                 }}
               />
               <BrowserMore
+                bookmarksVisible={b.bookmarksVisible}
+                onToggleBookmarks={() => b.setBookmarksVisible(value => !value)}
                 visible={visible}
                 zoomFactor={tab.zoom}
                 zoom={zoom}

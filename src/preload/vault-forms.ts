@@ -1,7 +1,7 @@
 import { vaultCredentialOrigin } from "../shared/vault-origin"
 import { ipcRenderer } from "electron"
 
-/** Only top-level HTTPS or loopback HTTP login forms participate; no page-world credential API is exposed. */
+/** Only top-level HTTP(S) login forms participate; no page-world credential API is exposed. */
 export function bindVaultForms() {
   if (window.top !== window || !vaultCredentialOrigin(location.href)) return
   const visible = (input: HTMLInputElement) => !input.disabled && input.getClientRects().length > 0 && getComputedStyle(input).visibility !== "hidden"

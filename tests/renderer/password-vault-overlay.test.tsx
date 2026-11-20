@@ -9,8 +9,8 @@ it("leaves activity and status navigation interactive when the vault is open", (
   render(<><button onClick={navigate}>活动栏</button><PasswordVault /></>)
   act(() => window.dispatchEvent(new Event("vessel-open-password-vault")))
   const overlay = document.querySelector("[data-vault-overlay]")!
-  expect(overlay.classList.contains("left-[52px]")).toBe(true)
-  expect(overlay.classList.contains("bottom-8")).toBe(true)
+  expect((overlay as HTMLElement).style.left).toBe("52px")
+  expect((overlay as HTMLElement).style.bottom).toBe("32px")
   expect(document.body.style.pointerEvents).not.toBe("none")
   const button = screen.getByRole("button", { name: "活动栏" })
   expect(button.closest('[aria-hidden="true"]')).toBeNull()

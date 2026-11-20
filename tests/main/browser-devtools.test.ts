@@ -13,6 +13,11 @@ vi.mock("electron", () => ({
     parent = null as any
     setTitle = vi.fn()
     getNormalBounds() { return this.bounds }
+    getBounds() { return this.bounds }
+    setBounds(bounds: any) { this.bounds = bounds }
+    isFocused() { return false }
+    setAlwaysOnTop = vi.fn()
+    setVisibleOnAllWorkspaces = vi.fn()
     getContentSize() { return [this.bounds.width, this.bounds.height] }
     isDestroyed() { return this.destroyed }
     isVisible() { return this.visible }
@@ -28,7 +33,7 @@ vi.mock("electron", () => ({
     visible = true
     webContents = Object.assign(new EventEmitter(), {
       ipc: Object.assign(new EventEmitter(), { handle: vi.fn() }), isDestroyed: () => false, close: vi.fn(), send: vi.fn(), isLoading: () => false,
-      setZoomFactor: vi.fn(), insertCSS: vi.fn().mockResolvedValue("css"), removeInsertedCSS: vi.fn(), executeJavaScript: vi.fn().mockResolvedValue(undefined)
+      capturePage: vi.fn().mockResolvedValue({ toDataURL: () => "data:image/png;base64,console" }), setZoomFactor: vi.fn(), insertCSS: vi.fn().mockResolvedValue("css"), removeInsertedCSS: vi.fn(), executeJavaScript: vi.fn().mockResolvedValue(undefined)
     })
     setBounds = vi.fn()
     setVisible(value: boolean) { this.visible = value }
@@ -43,7 +48,7 @@ import { settingsEvents } from "@main/settings/settings"
 const ownerWindow = () => Object.assign(new EventEmitter(), {
   contentView: { addChildView: vi.fn(), removeChildView: vi.fn() },
   getContentBounds: () => ({ width: 1000, height: 800 }),
-  isDestroyed: () => false, isVisible: () => true, isMinimized: () => false,
+  isDestroyed: () => false, isVisible: () => true, isMinimized: () => false, isFocused: () => true,
   isFullScreen: () => false, isSimpleFullScreen: () => false
 })
 beforeEach(() => { mock.follow = false })
@@ -180,4 +185,33 @@ it("applies the follow setting to the existing detached console and cleans up on
   expect(settingsEvents.listenerCount("changed")).toBe(listenerCount)
   expect(mock.window.listenerCount("show")).toBe(0)
   sync({}, null)
+})
+
+it("retains a console preview under overlapping portals and drops stale captures", async () => {
+  const host = Object.assign(new EventEmitter(), { ipc: { handle: (name: string, handler: (...args: any[]) => any) => mock.handlers.set(name, handler) }, isDestroyed: () => false, send: vi.fn() })
+  mock.guest = Object.assign(new EventEmitter(), { id: 7, hostWebContents: host, session: {}, isDestroyed: () => false, closeDevTools: vi.fn(), setDevToolsWebContents: vi.fn(), openDevTools: vi.fn() })
+  mock.window = ownerWindow()
+  registerBrowserDevtools(host as any)
+  const sync = mock.handlers.get("browser:devtools")!
+  const bounds = { x: 52, y: 400, width: 948, height: 368 }
+  const options = { font: "Menlo", size: 13 }
+  sync({}, 7, bounds, options)
+  sync({}, 7, bounds, { ...options, hidden: true, occluded: true })
+  await Promise.resolve()
+  expect(host.send).toHaveBeenCalledWith("browser:devtools-preview", { id: 7, image: "data:image/png;base64,console" })
+  await vi.waitFor(() => expect(mock.panel.getVisible()).toBe(false))
+  expect(mock.panel.webContents.capturePage).toHaveBeenCalledOnce()
+  sync({}, 7, bounds, { ...options, hidden: true, occluded: true })
+  expect(mock.panel.webContents.capturePage).toHaveBeenCalledOnce()
+  sync({}, 7, bounds, options)
+  expect(host.send).toHaveBeenLastCalledWith("browser:devtools-preview", { id: 7 })
+  expect(mock.panel.getVisible()).toBe(true)
+  let finish!: (image: any) => void
+  mock.panel.webContents.capturePage.mockImplementationOnce(() => new Promise(resolve => { finish = resolve }))
+  sync({}, 7, bounds, { ...options, hidden: true, occluded: true })
+  sync({}, 7, bounds, options)
+  host.send.mockClear()
+  finish({ toDataURL: () => "stale" })
+  await Promise.resolve()
+  expect(host.send).not.toHaveBeenCalled()
 })

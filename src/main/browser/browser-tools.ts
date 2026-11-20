@@ -1,10 +1,12 @@
+import { browserFilePreview } from "../../shared/browser-preview"
+import { browserImageAction } from "./browser-image-actions"
 import { BrowserHistory } from "@main/browser/browser-history"
 import { notifyBrowserFileSaved, registerBrowserDownloads } from "./browser-downloads"
 import type { BrowserDevice } from "@vessel/type"
 import { app, BrowserWindow, dialog, session, shell, webContents, type WebContents } from "electron"
 import { join } from "node:path"
-import { access } from "node:fs/promises"
-import { fileURLToPath } from "node:url"
+import { access, stat } from "node:fs/promises"
+import { fileURLToPath, pathToFileURL } from "node:url"
 let history: BrowserHistory | undefined
 
 /** Performs the store operation. */
@@ -35,7 +37,24 @@ export function setBrowserBookmarks(items: { url: string; title: string }[]) {
 /** Registers browser tools. */
 export function registerBrowserTools(host: WebContents) {
   store().prune()
-  registerBrowserDownloads(host)
+  registerBrowserDownloads(host, (path, name, size, source) => {
+    store().addDownload(path, name, size, source)
+    host.send("browser:downloads-updated")
+  })
+  host.ipc.handle("browser:downloads:list", () => store().listDownloads())
+  const downloadedFile = async (id: number) => {
+    const entry = store().getDownload(id)
+    if (!entry || !(await stat(entry.path).catch(() => undefined))?.isFile()) throw new Error("文件已移动或删除")
+    return entry
+  }
+  host.ipc.handle("browser:downloads:preview", async (_event, id: number) => {
+    const entry = await downloadedFile(id)
+    if (!browserFilePreview(entry.name)) throw new Error("浏览器不支持预览此文件")
+    return pathToFileURL(entry.path).href
+  })
+  host.ipc.handle("browser:downloads:reveal", async (_event, id: number) => {
+    shell.showItemInFolder((await downloadedFile(id)).path)
+  })
 
   /** Performs the guest operation. */
   const guest = (id: number, allowTransit = false) => {
@@ -45,6 +64,10 @@ export function registerBrowserTools(host: WebContents) {
   }
   host.ipc.handle("browser:page-action", async (_event, id: number, action: string) => {
     const target = guest(id)
+    if (action === "copy-image" || action === "download-image") {
+      await browserImageAction(host, target, action)
+      return
+    }
     if (action === "reveal") {
       const url = new URL(target.getURL())
       if (url.protocol !== "file:") throw new Error("当前网页不是本地资源")

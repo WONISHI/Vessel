@@ -10,7 +10,7 @@ import BrowserSourceDialog from "@/pages/browser/components/browser-page/browser
 afterEach(cleanup)
 it("leaves the activity bar uncovered and waits for HTML formatting before locking the editor", async () => {
   const result = render(<BrowserSourceDialog source={{ url: "https://example.com", text: "<html><body>hello</body></html>" }} onClose={() => {}} />)
-  expect(document.querySelector('[data-browser-source-overlay]')?.className).toContain("left-[52px]")
+  expect((document.querySelector('[data-browser-source-overlay]') as HTMLElement).style.left).toBe("52px")
   expect(result.getByText("https://example.com").className).toContain("text-[10px]")
   const action = { isSupported: vi.fn().mockReturnValueOnce(false).mockReturnValue(true), run: vi.fn().mockResolvedValue(undefined) }
   const model = { isDisposed: () => false }

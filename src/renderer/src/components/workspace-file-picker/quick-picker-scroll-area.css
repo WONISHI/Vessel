@@ -1,0 +1,5 @@
+/* Shared by browser tab search, workspace search and resource search. */
+.quick-picker-scroll { position: relative; overflow: hidden !important; }
+.quick-picker-scroll [data-radix-scroll-area-viewport] { scrollbar-width: none !important; }
+.quick-picker-scroll [data-radix-scroll-area-viewport]::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; }
+.quick-picker-scroll > [data-orientation="vertical"] { right: 1px !important; width: 8px; }

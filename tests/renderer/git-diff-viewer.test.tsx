@@ -1,6 +1,8 @@
 import { afterEach, expect, it, vi } from "vitest"
 import { cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { DiffViewer } from "@/pages/git/components/diff-viewer"
+import { GitDiffSheet } from "@/pages/git/components/git-diff-sheet"
+import { useState } from "react"
 
 vi.mock("@/components/ui/sonner", () => ({ toast: { success: vi.fn() } }))
 afterEach(cleanup)
@@ -20,6 +22,26 @@ index 1234567..abcdef0 100644
 +extra line
  unchanged
 `
+
+it("switches the diff into a resizable bottom sheet and back even when the selected diff becomes empty", () => {
+  function DockableDiff({ text }: { text: string }) {
+    const [bottom, setBottom] = useState(false)
+    const diff = <DiffViewer diffText={text} bottomDocked={bottom} onToggleDock={() => setBottom(value => !value)} />
+    return bottom ? <GitDiffSheet onDockRight={() => setBottom(false)}>{diff}</GitDiffSheet> : diff
+  }
+  const { rerender } = render(<DockableDiff text={patch} />)
+  fireEvent.click(screen.getByRole("button", { name: "在底部面板显示差异" }))
+  expect(screen.getByRole("dialog", { name: "文件差异" })).toBeTruthy()
+  const handle = screen.getByRole("separator", { name: "调整差异面板高度" })
+  const height = Number(handle.getAttribute("aria-valuenow"))
+  fireEvent.keyDown(handle, { key: "ArrowUp" })
+  expect(Number(handle.getAttribute("aria-valuenow"))).toBe(height + 20)
+  rerender(<DockableDiff text="" />)
+  expect(screen.getByText("该文件暂无差异变更")).toBeTruthy()
+  fireEvent.click(screen.getByRole("button", { name: "停靠到右侧" }))
+  expect(screen.queryByRole("dialog")).toBeNull()
+  expect(screen.getByRole("button", { name: "在底部面板显示差异" })).toBeTruthy()
+})
 
 it("renders real hunks and keeps unequal replacement rows aligned in split mode", () => {
   const { container } = render(<DiffViewer diffText={patch} filePath="test.ts" />)

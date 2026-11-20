@@ -1,3 +1,4 @@
+import { getDeviceDisplayName } from "./device-identity"
 import { chooseAvatar } from "./avatar"
 import { excludedBackupName, syncBackup } from "@main/sync/settings-backup"
 import { createS3Storage } from "@main/sync/settings-s3"
@@ -95,6 +96,7 @@ function validate(value: AppSettings): AppSettings {
   if (!value || !value.backup) throw new Error("设置格式无效")
   if (value.fileIconTheme !== undefined && !["default", "catppuccin", "symbols", "material"].includes(value.fileIconTheme)) throw new Error("文件图标库无效")
   if (value.catppuccinFlavor !== undefined && !["auto", "latte", "frappe", "macchiato", "mocha"].includes(value.catppuccinFlavor)) throw new Error("图标配色无效")
+  if (value.browserGroupSameDomain !== undefined && typeof value.browserGroupSameDomain !== "boolean") throw new Error("同域名标签折叠设置无效")
   if (value.browserDevtoolsFollowWindow !== undefined && typeof value.browserDevtoolsFollowWindow !== "boolean") throw new Error("控制台窗口跟随设置无效")
   for (const flag of [value.fileIconWorkspace, value.fileIconResources, value.fileTypeBadgesEnabled, value.fileTypeBadgesWorkspace, value.fileTypeBadgesResources, value.gitDecorationsEnabled]) if (flag !== undefined && typeof flag !== "boolean") throw new Error("图标应用范围无效")
   const delay = value.navigationDelayMs ?? 3000
@@ -142,6 +144,7 @@ function validate(value: AppSettings): AppSettings {
     catppuccinFlavor: value.catppuccinFlavor ?? "auto",
     searchEngine: ["bing", "google", "baidu", "duckduckgo"].includes(value.searchEngine || "") ? value.searchEngine : "bing",
     proxyEnabled: value.proxyEnabled === true,
+    browserGroupSameDomain: value.browserGroupSameDomain === true,
     browserDevtoolsFollowWindow: value.browserDevtoolsFollowWindow === true,
     externalScreenshot: value.externalScreenshot !== false,
     externalPreview: value.externalPreview !== false,
@@ -451,7 +454,7 @@ export function registerSettings(host: WebContents) {
     if (workspacePath !== (currentWorkspace ?? undefined)) throw new Error("工作区已切换，请重新打开设置")
     return decrypt()
   })
-  host.ipc.handle("settings:info", () => ({ version: app.getVersion(), electron: process.versions.electron, node: process.versions.node }))
+  host.ipc.handle("settings:info", async () => ({ version: app.getVersion(), electron: process.versions.electron, node: process.versions.node, deviceName: await getDeviceDisplayName() }))
   host.ipc.handle("settings:save", async (_event, input: AppSettings, secret?: string) => {
     const settings = validate(input)
     if (input.backup.workspacePath !== (currentWorkspace ?? undefined)) throw new Error("工作区已切换，请重新打开设置")

@@ -11,6 +11,8 @@ export function useBrowserState(visible: boolean) {
   const router = useRouter()
   const [deviceViewport, setDeviceViewport] = useState({ width: 390, height: 844, scale: 1 })
   const [toolbarCollapsed, setToolbarCollapsed] = useState(false)
+  const [bookmarksVisible, setBookmarksVisible] = useState(() => localStorage.getItem("browser-bookmarks-visible") !== "false")
+  useEffect(() => { localStorage.setItem("browser-bookmarks-visible", String(bookmarksVisible)) }, [bookmarksVisible])
   const [deviceMode, setDeviceMode] = useState(false)
   const initialTabsState = useRef<ReturnType<typeof loadSavedBrowserTabs> | null>(null)
   if (!initialTabsState.current) {
@@ -197,7 +199,7 @@ export function useBrowserState(visible: boolean) {
     return () => window.removeEventListener("vessel-browser-tab", select)
   }, [])
 
-  return { router, deviceViewport, setDeviceViewport, toolbarCollapsed, setToolbarCollapsed, deviceMode, setDeviceMode, initialTabsState, tabs, setTabs, findOpen, setFindOpen, matchCase, setMatchCase, findText, setFindText, findResult, setFindResult, findInput, findPosition, setFindPosition, findDrag, consoleWidth, setConsoleWidth, consoleHeight, setConsoleHeight, devtoolsOpen, setDevtoolsOpen, dock, setDock, consoleFont, setConsoleFont, consoleSize, setConsoleSize, devtoolsHost, active, setActive, activatedTabs, input, setInput, searchInput, setSearchInput, bookmarks, setBookmarks, removeBookmark, resetBookmarks, views, registerView, tab, getActivePageData, lastSavedTabs }
+  return { bookmarksVisible, setBookmarksVisible, router, deviceViewport, setDeviceViewport, toolbarCollapsed, setToolbarCollapsed, deviceMode, setDeviceMode, initialTabsState, tabs, setTabs, findOpen, setFindOpen, matchCase, setMatchCase, findText, setFindText, findResult, setFindResult, findInput, findPosition, setFindPosition, findDrag, consoleWidth, setConsoleWidth, consoleHeight, setConsoleHeight, devtoolsOpen, setDevtoolsOpen, dock, setDock, consoleFont, setConsoleFont, consoleSize, setConsoleSize, devtoolsHost, active, setActive, activatedTabs, input, setInput, searchInput, setSearchInput, bookmarks, setBookmarks, removeBookmark, resetBookmarks, views, registerView, tab, getActivePageData, lastSavedTabs }
 }
 
 export type BrowserState = ReturnType<typeof useBrowserState>

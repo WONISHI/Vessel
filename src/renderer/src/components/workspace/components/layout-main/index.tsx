@@ -1,3 +1,4 @@
+import { WorkspaceVisible } from "./document-cache"
 import { canOpenInDefaultBrowser } from "../../../../../../shared/browser-preview"
 import { addTransitFile } from "@/components/transit/state"
 import { FileThemeIcon } from "@/features/file-icons"
@@ -23,7 +24,7 @@ import { cn } from "@/lib/utils"
 import { RouterView } from "@vessel/react-router/components"
 import { localFileURL, matchesShortcut } from "@vessel/utils"
 import { ChevronLeft, ChevronRight, Columns2, Copy, FileDown, File, FolderOpen, Globe, Home, LayoutTemplate, List, MoreHorizontal, Pin, Terminal, X } from "lucide-react"
-import { Suspense, useEffect, useMemo, useRef, useState } from "react"
+import { Suspense, useContext, useEffect, useMemo, useRef, useState } from "react"
 import { useLocation } from "react-router-dom"
 import { toast } from "sonner"
 
@@ -81,6 +82,16 @@ export default function LayoutMain({ resources = false }: { resources?: boolean 
   const [terminal, setTerminal] = useState(false)
   const location = useLocation()
   const graphPage = !resources && location.pathname === "/editor/graph"
+  const workspaceVisible = useContext(WorkspaceVisible)
+  useEffect(() => {
+    const current = resources ? /^\/resources(\/|$)/.test(location.pathname) : /^\/editor(\/|$)/.test(location.pathname)
+    if (!workspaceVisible || !current || graphPage) return
+    const openConsole = () => {
+      if (contentHost.current?.getClientRects().length) setTerminal(true)
+    }
+    window.addEventListener("vessel:open-workspace-console", openConsole)
+    return () => window.removeEventListener("vessel:open-workspace-console", openConsole)
+  }, [workspaceVisible, resources, location.pathname, graphPage])
   const home = resources ? !activeFilePath : ["/editor", "/resources"].includes(location.pathname)
   const [edges, setEdges] = useState({ left: false, right: false })
   const tabList = useRef<HTMLDivElement>(null)

@@ -28,7 +28,8 @@ function pickElement(mountStyles: (container: HTMLElement, read: () => ElementSt
     .actions{display:flex;flex-direction:column;resize:both;overflow:hidden;min-width:min(280px,calc(100vw - 24px));min-height:200px;height:340px;max-height:calc(100vh - 24px)}
     .actions>.styles-container{flex:1;min-height:0}
     .styles-collapsible{display:flex;flex-direction:column;height:100%;min-height:0;margin-top:0;padding-top:6px}
-    .actions>.tools{flex-shrink:0;margin-bottom:10px}
+    .actions>.tools{flex-shrink:0;margin-bottom:10px;cursor:grab;touch-action:none;user-select:none}
+    .actions>.tools[data-dragging]{cursor:grabbing}
     .styles-heading{display:flex;align-items:center;gap:6px;flex-shrink:0}
     .styles-trigger{flex:1;min-width:0}
     .styles-json-toggle{border:1px solid #e2e8f0;border-radius:4px;background:#f8fafc;color:#64748b;font:600 10px/1.5 ui-monospace,monospace;padding:2px 5px;cursor:pointer}
@@ -87,6 +88,43 @@ function pickElement(mountStyles: (container: HTMLElement, read: () => ElementSt
   actions.setAttribute("aria-label", "元素操作工具栏")
   const tools = document.createElement("div")
   tools.className = "tools"
+  tools.setAttribute("aria-label", "拖拽移动弹窗")
+  let drag: { pointerId: number; x: number; y: number; left: number; top: number } | undefined
+  const movePanel = (left: number, top: number) => {
+    const rect = actions.getBoundingClientRect()
+    actions.style.left = `${Math.max(0, Math.min(left, innerWidth - rect.width))}px`
+    actions.style.top = `${Math.max(0, Math.min(top, innerHeight - rect.height))}px`
+  }
+  const stopDrag = () => {
+    const pointerId = drag?.pointerId
+    drag = undefined
+    delete tools.dataset.dragging
+    if (pointerId !== undefined && tools.hasPointerCapture(pointerId)) tools.releasePointerCapture(pointerId)
+  }
+  tools.addEventListener("pointerdown", (event) => {
+    if (event.button !== 0 || (event.target as Element).closest("button")) return
+    event.preventDefault()
+    const rect = actions.getBoundingClientRect()
+    drag = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, left: rect.left, top: rect.top }
+    tools.dataset.dragging = ""
+    tools.setPointerCapture(event.pointerId)
+  })
+  tools.addEventListener("pointermove", (event) => {
+    if (!drag || event.pointerId !== drag.pointerId) return
+    movePanel(drag.left + event.clientX - drag.x, drag.top + event.clientY - drag.y)
+  })
+  const endDrag = (event: PointerEvent) => {
+    if (event.pointerId === drag?.pointerId) stopDrag()
+  }
+  tools.addEventListener("pointerup", endDrag)
+  tools.addEventListener("pointercancel", endDrag)
+  tools.addEventListener("lostpointercapture", endDrag)
+  const keepPanelInView = () => {
+    if (actions.hidden) return
+    const rect = actions.getBoundingClientRect()
+    movePanel(rect.left, rect.top)
+  }
+  window.addEventListener("resize", keepPanelInView)
   const stylesContainer = document.createElement("div")
   stylesContainer.className = "styles-container"
   const copyMenu = document.createElement("div")
@@ -273,6 +311,8 @@ function pickElement(mountStyles: (container: HTMLElement, read: () => ElementSt
 
   /** Closes close. */
   const close = () => {
+    stopDrag()
+    window.removeEventListener("resize", keepPanelInView)
     observers.forEach((observer) => observer.disconnect())
     frames.forEach((frame) => frame.removeEventListener("load", frameLoaded))
     documents.forEach((doc) => {

@@ -37,8 +37,6 @@ export function GitSidebarNav({ g }: { g: GitPageModel }) {
   const [deleteBusy, setDeleteBusy] = useState(false)
   const [pendingMerge, setPendingMerge] = useState<string | null>(null)
   const [mergeBusy, setMergeBusy] = useState(false)
-  const [pendingPull, setPendingPull] = useState<{ remote: string; branch?: string } | null>(null)
-  const [pullBusy, setPullBusy] = useState(false)
 
   const remoteAutoExpand = useMemo(() => {
     if (!branches.current) return undefined
@@ -102,25 +100,6 @@ export function GitSidebarNav({ g }: { g: GitPageModel }) {
       })
   }
 
-  /** Opens pull confirm for a remote (optional branch). */
-  const requestPull = (remote: string, branch?: string) => {
-    if (!remote) return
-    setPendingPull({ remote, branch: branch || undefined })
-  }
-
-  /** Confirms pull. */
-  const confirmPull = () => {
-    const target = pendingPull
-    if (!target || pullBusy) return
-    setPullBusy(true)
-    void handlePull(target.remote, target.branch)
-      .catch(() => {})
-      .finally(() => {
-        setPullBusy(false)
-        setPendingPull(null)
-      })
-  }
-
   const treeActions = {
     onSelectBranch: navigateToBranchTip,
     onRequestCheckout: requestCheckout,
@@ -133,7 +112,7 @@ export function GitSidebarNav({ g }: { g: GitPageModel }) {
     onDeleteBranch: requestDelete,
     onCopyName: (name: string) => copyToClipboard(name, "分支名"),
     onFetchRemote: (remote: string) => void handleFetch(remote),
-    onPullRemoteBranch: (remote: string, branch: string) => requestPull(remote, branch || undefined),
+    onPullRemoteBranch: (remote: string, branch: string) => handlePull(remote, branch || undefined),
     onPushToRemote: (remote: string) => void handlePush(remote)
   }
 
@@ -346,24 +325,7 @@ export function GitSidebarNav({ g }: { g: GitPageModel }) {
                 onConfirm={confirmMerge}
               />
 
-              <ConfirmDialog
-                open={pendingPull !== null}
-                onOpenChange={(open) => {
-                  if (!open && !pullBusy) setPendingPull(null)
-                }}
-                title="拉取远程"
-                description={
-                  pendingPull
-                    ? pendingPull.branch
-                      ? <>确定从 <strong>{pendingPull.remote}</strong> 拉取分支 <strong>{pendingPull.branch}</strong> 到当前工作区吗？</>
-                      : <>确定从远程 <strong>{pendingPull.remote}</strong> 拉取到当前工作区吗？</>
-                    : null
-                }
-                confirmText={pullBusy ? "拉取中…" : "拉取"}
-                busy={pullBusy}
-                tone="primary"
-                onConfirm={confirmPull}
-              />
+
             </ScrollArea>
   )
 }

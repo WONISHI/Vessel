@@ -1,4 +1,5 @@
 import { BrowserContextMenu } from "./browser-page/browser-context-menu"
+import { browserTabAction } from "@/pages/browser/tab-state"
 import { NavigationNotice } from "@/pages/browser/components/browser-page/navigation-notice"
 import { BrowserLoading } from "./browser-page/browser-loading"
 import ActivityBar from "@/components/layout/activity-bar/index"
@@ -39,12 +40,13 @@ export function BrowserPage({ visible = true }: { visible?: boolean }) {
         <div className="relative shrink-0">
           <div hidden={toolbarCollapsed}>
             <BrowserToolbar b={b} visible={visible} />
-            <BookmarkBar
+            {b.bookmarksVisible && <BookmarkBar
               items={bookmarks}
               onNavigate={navigate}
+              onOpenNewTab={(url) => browserTabAction("new", undefined, url)}
               onRemove={removeBookmark}
               onReset={resetBookmarks}
-            />
+            />}
           </div>
         </div>
         {deviceMode && (

@@ -10,7 +10,7 @@ import type { BrowserState } from "@/pages/browser/components/browser-page/hooks
 
 /** 页内查找、控制台挂载、导航与标签操作 */
 export function useBrowserActions(state: BrowserState, visible: boolean) {
-  const { tabs, setTabs, setFindOpen, findInput, devtoolsOpen, setDevtoolsOpen, dock, consoleFont, consoleSize, devtoolsHost, setActive, setInput, bookmarks, setBookmarks, views, tab, input } = state
+  const { tabs, setTabs, setFindOpen, setFindPosition, setToolbarCollapsed, toolbarCollapsed, findInput, devtoolsOpen, setDevtoolsOpen, dock, consoleFont, consoleSize, devtoolsHost, setActive, setInput, bookmarks, setBookmarks, views, tab, input } = state
 
 
   /** Reloads tab. */
@@ -22,6 +22,13 @@ export function useBrowserActions(state: BrowserState, visible: boolean) {
     } catch (error) { console.error("刷新浏览器标签失败", error) }
   }
 
+  useEffect(() => {
+    if (!visible) return
+    const publish = () => window.dispatchEvent(new CustomEvent("vessel-browser-toolbar-state", { detail: toolbarCollapsed }))
+    publish()
+    window.addEventListener("vessel-browser-request-toolbar-state", publish)
+    return () => window.removeEventListener("vessel-browser-request-toolbar-state", publish)
+  }, [visible, toolbarCollapsed])
   const searchPage = useBrowserFind(state, visible)
   useEffect(() => {
     if (!visible) return
@@ -59,6 +66,10 @@ export function useBrowserActions(state: BrowserState, visible: boolean) {
     const pageFind = (event: Event) => {
       if (withGuest(views.current.get(tab.id), (guest) => guest.getWebContentsId()) === (event as CustomEvent<number>).detail) show()
     }
+    const toggleToolbar = () => setToolbarCollapsed(value => !value)
+    const openFind = () => { setFindPosition(null); show() }
+    window.addEventListener("vessel-browser-toggle-toolbar", toggleToolbar)
+    window.addEventListener("vessel-browser-open-find", openFind)
     window.addEventListener("vessel-browser-find", pageFind)
     const stopDevtools = window.electronAPI.onBrowserToggleDevtools?.((id) => {
       if (withGuest(views.current.get(tab.id), (guest) => guest.getWebContentsId()) === id) setDevtoolsOpen((open) => !open)
@@ -69,6 +80,8 @@ export function useBrowserActions(state: BrowserState, visible: boolean) {
     return () => {
       window.removeEventListener("keydown", keydown, true)
       window.removeEventListener("vessel-browser-refresh", refreshCurrentTab)
+      window.removeEventListener("vessel-browser-toggle-toolbar", toggleToolbar)
+      window.removeEventListener("vessel-browser-open-find", openFind)
       window.removeEventListener("vessel-browser-find", pageFind)
       stopDevtools?.()
       unsubscribe()
@@ -132,7 +145,7 @@ export function useBrowserActions(state: BrowserState, visible: boolean) {
       try {
         const inspect = pendingInspect.current
         pendingInspect.current = undefined
-        void window.electronAPI.setBrowserDevtools(view.getWebContentsId(), { x, y, width, height }, { font: consoleFont, size: consoleSize, detached: dock === "detached", hidden: !visible || (dock !== "detached" && popupOpen), pageTitle: tab.title, pageURL: input ?? tab.url, inspect, control: controlOverlay }).catch((error) => {
+        void window.electronAPI.setBrowserDevtools(view.getWebContentsId(), { x, y, width, height }, { font: consoleFont, size: consoleSize, detached: dock === "detached", hidden: !visible || (dock !== "detached" && popupOpen), occluded: visible && dock !== "detached" && popupOpen, pageTitle: tab.title, pageURL: input ?? tab.url, inspect, control: controlOverlay }).catch((error) => {
           if (!disposed) {
             update(tab.id, { error: String(error) })
             setDevtoolsOpen(false)

@@ -7,6 +7,7 @@ import { MemoryRouter, useLocation } from 'react-router-dom'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { TopSearch } from '@/components/layout/top-search'
 import { publishBrowserTabs } from '@/pages/browser/tab-state'
+vi.mock('@/components/layout/feature-page-overlay', () => ({ FeaturePageOverlay: ({ feature, tool, onToolChange }: any) => feature ? <div role="dialog" aria-label={feature === 'todos' ? '待办' : '开发工具'}><span>{tool}</span><button onClick={() => onToolChange('color')}>切换颜色工具</button></div> : null }))
 vi.mock('@/components/workspace-file-picker', () => ({ WorkspaceFilePicker: ({ workspace }: any) => <div>{workspace?.root || 'empty'}</div> }))
 beforeEach(() => {
  vi.stubGlobal('ResizeObserver', class { observe = vi.fn(); unobserve = vi.fn(); disconnect = vi.fn() })
@@ -148,7 +149,8 @@ it('keeps transit and developer tools in the titlebar with a live count and conc
  expect(tools.closest('.vessel-titlebar-actions')).toBeTruthy()
  expect(tools.getAttribute('data-title')).toBe('开发工具')
  fireEvent.click(tools)
- expect(screen.getByText('/devtools')).toBeTruthy()
+ expect(screen.getByRole('dialog', { name: '开发工具' })).toBeTruthy()
+ expect(screen.getByText('/editor')).toBeTruthy()
 })
 
 it('moves the same live clock beside top search when the status bar is hidden', () => {
@@ -182,7 +184,8 @@ it('opens todos from its relocated titlebar button', () => {
  expect(button.closest('.vessel-titlebar-actions')).toBeTruthy()
  expect(button.getAttribute('data-title')).toBe('待办')
  fireEvent.click(button)
- expect(screen.getByText('/todos')).toBeTruthy()
+ expect(screen.getByRole('dialog', { name: '待办' })).toBeTruthy()
+ expect(screen.getByText('/editor')).toBeTruthy()
  expect(button.getAttribute('aria-pressed')).toBe('true')
 })
 
@@ -206,32 +209,33 @@ it.each(['/editor', '/editor/file', '/resources', '/browser', '/todos', '/settin
  }
 })
 
-it.each([['待办', '/todos'], ['查看关系图谱', '/editor/graph'], ['开发工具', '/devtools']])('temporarily resets layout for %s and restores saved preferences on exit', (label) => {
+it.each([['待办', '/todos'], ['查看关系图谱', '/editor/graph'], ['开发工具', '/devtools']])('preserves shared layout settings when opening and closing %s', (label) => {
  setActivityBarCollapsed(true)
  setStatusBarVisible(false)
  function Location() { const location = useLocation(); return <output>{location.pathname + location.search}</output> }
  try {
   render(<MemoryRouter initialEntries={['/editor/file?path=kept.md']}><TopSearch /><Location /></MemoryRouter>)
+  fireEvent.click(screen.getByRole('button', { name: label }))
   expect(screen.getByLabelText('显示活动栏')).toBeTruthy()
   expect(screen.getByLabelText('显示底部状态栏')).toBeTruthy()
+  expect(screen.getByRole('button', { name: '活动栏菜单' })).toBeTruthy()
+  // Reopening the same feature must not reset layout preferences.
   fireEvent.click(screen.getByRole('button', { name: label }))
-  expect(screen.getByLabelText('隐藏活动栏')).toBeTruthy()
-  expect(screen.getByLabelText('隐藏底部状态栏')).toBeTruthy()
-  expect(localStorage.getItem('vessel-activity-bar-collapsed')).toBe('true')
-  expect(localStorage.getItem('vessel-status-bar-visible')).toBe('false')
-  fireEvent.click(screen.getByLabelText('隐藏活动栏'))
-  fireEvent.click(screen.getByLabelText('隐藏底部状态栏'))
-  // Clicking the feature again restores temporary defaults too.
-  fireEvent.click(screen.getByRole('button', { name: label }))
-  expect(screen.getByLabelText('隐藏活动栏')).toBeTruthy()
-  expect(screen.getByLabelText('隐藏底部状态栏')).toBeTruthy()
-  const close = screen.getByRole('button', { name: '关闭' + label.replace('查看', '') })
-  expect(close.getAttribute('data-title')).toBe('关闭')
-  fireEvent.click(close)
+  expect(screen.getByLabelText('显示活动栏')).toBeTruthy()
+  expect(screen.getByLabelText('显示底部状态栏')).toBeTruthy()
+  const closeLabel = '关闭' + label.replace('查看', '')
+  fireEvent.click(screen.getByRole('button', { name: closeLabel }))
   expect(screen.getByText('/editor/file?path=kept.md')).toBeTruthy()
-  expect(screen.queryByRole('button', { name: '关闭' + label.replace('查看', '') })).toBeNull()
   expect(screen.getByLabelText('显示活动栏')).toBeTruthy()
-  expect(screen.getByLabelText('显示底部状态栏')).toBeTruthy()
+  // A user change within the feature applies to the rest of the application too.
+  fireEvent.click(screen.getByRole('button', { name: label }))
+  fireEvent.click(screen.getByLabelText('显示活动栏'))
+  fireEvent.click(screen.getByLabelText('显示底部状态栏'))
+  fireEvent.click(screen.getByRole('button', { name: closeLabel }))
+  expect(screen.getByLabelText('隐藏活动栏')).toBeTruthy()
+  expect(screen.getByLabelText('隐藏底部状态栏')).toBeTruthy()
+  expect(localStorage.getItem('vessel-activity-bar-collapsed')).toBe('false')
+  expect(localStorage.getItem('vessel-status-bar-visible')).toBe('true')
  } finally { cleanup(); setActivityBarCollapsed(false); setStatusBarVisible(true) }
 })
 
@@ -242,4 +246,107 @@ it('returns to the original page after switching between feature views', () => {
  fireEvent.click(screen.getByRole('button', { name: '开发工具' }))
  fireEvent.click(screen.getByRole('button', { name: '关闭开发工具' }))
  expect(screen.getByText('/browser')).toBeTruthy()
+})
+
+it('refocuses an open picker without clearing the query when Space is pressed twice on a result', () => {
+ publishBrowserTabs([{ id:'active', title:'文档', url:'https://docs.test', active:true }])
+ render(<MemoryRouter initialEntries={['/browser']}><TopSearch /></MemoryRouter>)
+ doubleSpace()
+ const input = screen.getByLabelText('标签名称或网址') as HTMLInputElement
+ fireEvent.change(input, { target: { value: '文档' } })
+ const row = screen.getByRole('option')
+ act(() => row.focus())
+ expect(document.activeElement).toBe(row)
+ doubleSpace(row)
+ expect(document.activeElement).toBe(input)
+ expect(input.value).toBe('文档')
+})
+
+it.each(['/browser', '/git', '/editor'])('exposes navigation when the activity rail is hidden on %s', async (path) => {
+ vi.stubGlobal('electronAPI', { getSettings: vi.fn(async () => ({ globalSearchEnabled: false, attachmentLibraryEnabled: true })) })
+ function Location() { return <output>{useLocation().pathname}</output> }
+ const view = render(<MemoryRouter initialEntries={[path]}><TopSearch /><Location /></MemoryRouter>)
+ try {
+  expect(screen.queryByRole('button', { name: '活动栏菜单' })).toBeNull()
+  fireEvent.click(screen.getByLabelText('隐藏活动栏'))
+  fireEvent.keyDown(screen.getByRole('button', { name: '活动栏菜单' }), { key: 'Enter' })
+  expect(await screen.findByRole('menuitem', { name: '附件库' })).toBeTruthy()
+  expect(screen.queryByRole('menuitem', { name: '全局搜索' })).toBeNull()
+  expect(screen.getByRole('menuitem', { name: path === '/editor' ? '工作区' : path === '/git' ? 'Git' : '浏览器' }).getAttribute('aria-current')).toBe('page')
+  fireEvent.click(screen.getByRole('menuitem', { name: 'API' }))
+  await waitFor(() => expect(screen.getByRole('status').textContent).toBe('/api-client'))
+  fireEvent.click(screen.getByLabelText('显示活动栏'))
+  expect(screen.queryByRole('button', { name: '活动栏菜单' })).toBeNull()
+ } finally { view.unmount(); setActivityBarCollapsed(false) }
+})
+
+it('opens and switches full-page utility overlays without navigating or clearing the underlying page', () => {
+ function Location() { const location = useLocation(); return <output>{location.key + ':' + location.pathname + location.search}</output> }
+ render(<MemoryRouter initialEntries={['/browser?kept=1']}><TopSearch /><Location /><input aria-label="底层页面内容" defaultValue="原内容" /></MemoryRouter>)
+ const base = screen.getByRole('status').textContent
+ const input = screen.getByLabelText('底层页面内容') as HTMLInputElement
+ fireEvent.change(input, { target: { value: '未保存内容' } })
+ fireEvent.click(screen.getByRole('button', { name: '待办' }))
+ expect(screen.getByRole('dialog', { name: '待办' })).toBeTruthy()
+ expect(screen.getByRole('status').textContent).toBe(base)
+ fireEvent.click(screen.getByRole('button', { name: '开发工具' }))
+ expect(screen.queryByRole('dialog', { name: '待办' })).toBeNull()
+ expect(screen.getByRole('dialog', { name: '开发工具' })).toBeTruthy()
+ fireEvent.click(screen.getByRole('button', { name: '切换颜色工具' }))
+ expect(screen.getByText('颜色转换')).toBeTruthy()
+ expect(screen.getByRole('status').textContent).toBe(base)
+ fireEvent.click(screen.getByRole('button', { name: '关闭开发工具' }))
+ expect(screen.queryByRole('dialog')).toBeNull()
+ expect(screen.getByRole('status').textContent).toBe(base)
+ expect(input.value).toBe('未保存内容')
+})
+
+it.each([['/editor', true], ['/editor/file', true], ['/resources', true], ['/browser', true], ['/todos', false], ['/devtools/json', false], ['/git', false], ['/settings', false], ['/editor/graph', false]])('shows status-bar fallback tools only where supported: %s', (path, expected) => {
+ setStatusBarVisible(false)
+ try {
+  render(<MemoryRouter initialEntries={[path]}><TopSearch /></MemoryRouter>)
+  expect(Boolean(screen.queryByRole('button', { name: '页面工具' }))).toBe(expected)
+  expect(screen.getByRole('button', { name: '开发工具' }).querySelector('.codicon-developer-tools')).toBeTruthy()
+  if (expected) {
+   fireEvent.click(screen.getByLabelText('显示底部状态栏'))
+   expect(screen.queryByRole('button', { name: '页面工具' })).toBeNull()
+  }
+ } finally { cleanup(); setStatusBarVisible(true) }
+})
+
+it.each(['/editor', '/resources'])('opens the existing console from the page-tools menu on %s', (path) => {
+ setStatusBarVisible(false)
+ const open = vi.fn()
+ window.addEventListener('vessel:open-workspace-console', open)
+ try {
+  render(<MemoryRouter initialEntries={[path]}><TopSearch /></MemoryRouter>)
+  fireEvent.keyDown(screen.getByRole('button', { name: '页面工具' }), { key: 'Enter' })
+  expect(screen.queryByRole('menuitem', { name: '搜索' })).toBeNull()
+  fireEvent.click(screen.getByRole('menuitem', { name: '打开控制台' }))
+  expect(open).toHaveBeenCalledOnce()
+ } finally { cleanup(); setStatusBarVisible(true); window.removeEventListener('vessel:open-workspace-console', open) }
+})
+
+it('provides browser toolbar and find actions without a workspace-console action', () => {
+ setStatusBarVisible(false)
+ const toggle = vi.fn(), search = vi.fn()
+ window.addEventListener('vessel-browser-toggle-toolbar', toggle)
+ window.addEventListener('vessel-browser-open-find', search)
+ try {
+  render(<MemoryRouter initialEntries={['/browser']}><TopSearch /></MemoryRouter>)
+  const open = () => fireEvent.keyDown(screen.getByRole('button', { name: '页面工具' }), { key: 'Enter' })
+  open()
+  expect(screen.queryByRole('menuitem', { name: '打开控制台' })).toBeNull()
+  fireEvent.click(screen.getByRole('menuitem', { name: '折叠搜索栏' }))
+  expect(toggle).toHaveBeenCalledOnce()
+  act(() => window.dispatchEvent(new CustomEvent('vessel-browser-toolbar-state', { detail: true })))
+  open()
+  expect(screen.getByRole('menuitem', { name: '展开搜索栏' })).toBeTruthy()
+  fireEvent.click(screen.getByRole('menuitem', { name: '搜索' }))
+  expect(search).toHaveBeenCalledOnce()
+ } finally {
+  cleanup(); setStatusBarVisible(true)
+  window.removeEventListener('vessel-browser-toggle-toolbar', toggle)
+  window.removeEventListener('vessel-browser-open-find', search)
+ }
 })

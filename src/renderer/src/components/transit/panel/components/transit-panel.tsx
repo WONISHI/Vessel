@@ -8,7 +8,7 @@ import { WebPreview } from "@/components/transit/panel/components/web-preview"
 import { selectTransit, useTransit } from "@/components/transit/state"
 import { ResizableSplit } from "@/components/ui/resizable-split"
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet"
-import { ChevronLeft, ChevronRight, ExternalLink, Clipboard, FileText, Globe, Maximize, Minimize, X } from "lucide-react"
+import { ChevronLeft, ChevronRight, ExternalLink, Clipboard, FileText, Globe, Maximize, Minimize, PanelTop, X } from "lucide-react"
 import { Suspense, useCallback, useRef, useState } from "react"
 import { toast } from "sonner"
 import { LayoutVisibilityControls } from "@/components/layout/layout-visibility-controls"
@@ -27,6 +27,8 @@ export function TransitPanel() {
   const [width, setWidth] = useState(() => Math.max(320, Math.min(900, Number(localStorage.getItem("vessel-transit-width")) || 420)))
   const [dock, setDock] = useState<TransitDockMode>("right")
   const [height, setHeight] = useState(300)
+  const [tabsVisible, setTabsVisible] = useState(() => localStorage.getItem("vessel-transit-tabs-visible") !== "false")
+  const [imageDetailsHidden, setImageDetailsHidden] = useState<Record<string, boolean>>({})
   const [refresh, setRefresh] = useState(0)
   const [searchRequest, setSearchRequest] = useState(0)
   const [loaded, setLoaded] = useState<{ id: string; file: TransitFile } | null>(null)
@@ -77,11 +79,25 @@ export function TransitPanel() {
         <SheetDescription className="sr-only">中转站预览：{item.kind === "text" ? "剪贴板文本" : item.content}</SheetDescription>
         <button data-title={full ? "还原" : "展开"} aria-label={full ? "还原" : "展开"} onClick={() => setFull(!full)} className="transit-bar-item">{full ? <Minimize /> : <Maximize />}</button>
         <button data-title="独立窗口" aria-label="独立窗口" onClick={() => void window.electronAPI.openTransitWindow(item, items.filter((entry) => entry.kind === "file" && entry.root).map((entry) => ({ root: entry.root!, content: entry.content }))).catch((error) => toast.error(String(error)))} className="transit-bar-item"><ExternalLink /></button>
-        <TransitDock value={dock} onChange={changeDock} />
-        <LayoutVisibilityControls className="ml-auto" />
+        <div className="ml-auto flex items-center">
+          <TransitDock value={dock} onChange={changeDock} />
+          <button
+            type="button"
+            className={`transit-bar-item ${tabsVisible ? "transit-active" : ""}`}
+            aria-label={tabsVisible ? "隐藏中转站标签栏" : "显示中转站标签栏"}
+            data-title={tabsVisible ? "隐藏标签栏" : "显示标签栏"}
+            aria-pressed={tabsVisible}
+            onClick={() => {
+              const next = !tabsVisible
+              setTabsVisible(next)
+              localStorage.setItem("vessel-transit-tabs-visible", String(next))
+            }}
+          ><PanelTop /></button>
+          <LayoutVisibilityControls />
+        </div>
         <button data-title="关闭" aria-label="关闭中转站" onClick={() => selectTransit(null)} className="transit-bar-item transit-close"><X /></button>
       </header>
-      <nav aria-label="中转项轮播" className="transit-bar transit-strip-bar">
+      {tabsVisible && <nav aria-label="中转项轮播" className="transit-bar transit-strip-bar">
         <button aria-label="上一个中转项" disabled={index <= 0} onClick={() => selectTransit(items[index - 1].id)} className="transit-bar-item"><ChevronLeft /></button>
         <div className="transit-strip-tabs" role="tablist" aria-label="中转项">
           {visibleItems.map((entry) => (
@@ -92,11 +108,11 @@ export function TransitPanel() {
         </div>
         <button aria-label="下一个中转项" disabled={index >= items.length - 1} onClick={() => selectTransit(items[index + 1].id)} className="transit-bar-item"><ChevronRight /></button>
         <span aria-live="polite" className="transit-strip-count">{index + 1}/{items.length}</span>
-      </nav>
+      </nav>}
       <div className="transit-sheet-body">
       {item.kind === "file" ? (
         <Suspense fallback={<div role="status">正在加载文件预览…</div>}>
-          <FilePreview key={`${item.id}-${refresh}`} item={item} onLoaded={onLoaded} />
+          <FilePreview key={`${item.id}-${refresh}`} item={item} onLoaded={onLoaded} imageDetailsHidden={imageDetailsHidden[item.id]} onImageDetailsHiddenChange={(hidden) => setImageDetailsHidden((current) => ({ ...current, [item.id]: hidden }))} />
         </Suspense>
       ) : item.kind === "url" ? (
         <WebPreview
@@ -120,6 +136,7 @@ export function TransitPanel() {
       }}
     >
       <SheetContent
+        data-transit-container
         showOverlay={false}
         showCloseButton={false}
         side="right"

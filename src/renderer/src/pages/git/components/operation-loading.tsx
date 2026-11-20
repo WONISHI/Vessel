@@ -8,17 +8,21 @@ const operations = {
   fetch: { title: "正在抓取", description: "正在获取远端分支与提交信息", icon: RefreshCw }
 }
 
-export function GitOperationLoading({ operation, branch }: { operation: GitRemoteOperation; branch: string }) {
+type LoadingProps = { operation: GitRemoteOperation; branch: string; inline?: boolean }
+export function GitOperationLoading(props: LoadingProps) {
+  return <OperationLoadingContent key={props.operation} {...props} />
+}
+
+function OperationLoadingContent({ operation, branch, inline = false }: LoadingProps) {
   const [seconds, setSeconds] = useState(0)
   useEffect(() => {
     const started = Date.now()
-    setSeconds(0)
     const timer = setInterval(() => setSeconds(Math.floor((Date.now() - started) / 1000)), 1000)
     return () => clearInterval(timer)
   }, [operation])
   const { title, description, icon: Icon } = operations[operation]
   return (
-    <div className="git-operation-overlay absolute inset-0 z-50 flex items-center justify-center bg-black/[.04] px-6 backdrop-blur-[3px]">
+    <div className={inline ? "git-operation-inline" : "git-operation-overlay absolute inset-0 z-50 flex items-center justify-center bg-black/[.04] px-6 backdrop-blur-[3px]"}>
       <section role="status" aria-live="polite" aria-atomic="true" className="git-operation-card w-full max-w-[320px] rounded-2xl border border-white/90 bg-white/95 p-6 shadow-[0_16px_60px_-16px_rgba(28,25,23,0.25)] dark:border-[#414b58] dark:bg-[#272e38]/95 dark:shadow-black/30">
         <div className="mb-4 flex items-center justify-between">
           <span className="flex size-11 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-400/10 dark:text-emerald-400"><Icon className="size-5" /></span>

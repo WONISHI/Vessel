@@ -7,7 +7,7 @@ const state = vi.hoisted(() => ({ push: vi.fn(), select: vi.fn(), selected: "one
 vi.mock("@vessel/react-router", () => ({ useRouter: () => ({ push: state.push }) }))
 vi.mock("@/components/transit/state", () => ({ useTransit: () => ({ items: state.items, selected: state.selected }), selectTransit: state.select }))
 vi.mock("@/components/transit/text-preview", () => ({ TransitTextPreview: ({ content }: { content: string }) => <pre>{content}</pre> }))
-vi.mock("@/components/transit/file-preview", () => ({ FilePreview: () => null }))
+vi.mock("@/components/transit/file-preview", () => ({ FilePreview: ({ imageDetailsHidden, onImageDetailsHiddenChange }: { imageDetailsHidden: boolean; onImageDetailsHiddenChange: (hidden: boolean) => void }) => <button onClick={() => onImageDetailsHiddenChange(!imageDetailsHidden)}>{imageDetailsHidden ? "显示图片详情" : "隐藏图片详情"}</button> }))
 vi.mock("@/components/transit/panel/components/web-preview", () => ({ WebPreview: () => null }))
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.restoreAllMocks(); state.select.mockClear(); state.push.mockClear() })
 it("copies clipboard text and opens the shared calendar without a bottom dock button", async () => {
@@ -114,4 +114,26 @@ it('aligns the preview with the window top and supports its toolbar actions', as
   expect(document.querySelector('.transit-sheet.rounded-xl')).toBeTruthy()
   fireEvent.click(screen.getByRole('button', { name: '关闭中转站' }))
   expect(state.select).toHaveBeenCalledWith(null)
+})
+
+
+it("keeps image details hidden across every dock and fullscreen transition", async () => {
+  const original = state.items
+  state.items = [{ id: "one", kind: "file", title: "photo.png", content: "/photo.png", root: "/vault" }] as unknown as typeof state.items
+  vi.stubGlobal("ResizeObserver", class { observe = vi.fn(); unobserve = vi.fn(); disconnect = vi.fn() })
+  try {
+    render(<TransitPanel />)
+    const dock = screen.getByRole("button", { name: "中转站停靠方式" })
+    expect(dock.parentElement?.className).toContain("ml-auto")
+    fireEvent.click(await screen.findByRole("button", { name: "隐藏图片详情" }))
+    for (const label of ["左侧", "底部", "悬浮", "右侧"]) {
+      fireEvent.click(screen.getByRole("button", { name: "中转站停靠方式" }))
+      fireEvent.click(await screen.findByRole("button", { name: label }))
+      expect(await screen.findByRole("button", { name: "显示图片详情" })).toBeTruthy()
+    }
+    fireEvent.click(screen.getByRole("button", { name: "展开" }))
+    expect(await screen.findByRole("button", { name: "显示图片详情" })).toBeTruthy()
+    fireEvent.click(screen.getByRole("button", { name: "还原" }))
+    expect(await screen.findByRole("button", { name: "显示图片详情" })).toBeTruthy()
+  } finally { state.items = original }
 })

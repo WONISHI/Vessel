@@ -45,3 +45,33 @@ it("stores bookmarks without fabricating visits and preserves bookmarks when cle
   expect(history.list()[0].bookmarked).toBe(0)
   history.close()
 })
+
+it("persists download records independently from browsing history", () => {
+  const history = new BrowserHistory(":memory:")
+  try {
+    history.addDownload("/tmp/photo.png", "photo.png", 1234, "download", 100)
+    history.addDownload("/tmp/archive.zip", "archive.zip", 5678, "save", 200)
+    const entries = history.listDownloads()
+    expect(entries.map(entry => entry.name)).toEqual(["archive.zip", "photo.png"])
+    expect(history.getDownload(entries[1].id)).toMatchObject({ path: "/tmp/photo.png", size: 1234, source: "download" })
+    history.delete(null)
+    expect(history.listDownloads()).toHaveLength(2)
+    expect(history.getDownload(-1)).toBeUndefined()
+  } finally { history.close() }
+})
+
+it("retains download history after reopening the database", async () => {
+  const { mkdtemp, rm } = await import("node:fs/promises")
+  const { tmpdir } = await import("node:os")
+  const { join } = await import("node:path")
+  const directory = await mkdtemp(join(tmpdir(), "vessel-download-history-"))
+  try {
+    const path = join(directory, "browser.sqlite")
+    const first = new BrowserHistory(path)
+    first.addDownload("/tmp/saved.pdf", "saved.pdf", 321, "download")
+    first.close()
+    const restored = new BrowserHistory(path)
+    try { expect(restored.listDownloads()).toEqual([expect.objectContaining({ name: "saved.pdf", path: "/tmp/saved.pdf", size: 321 })]) }
+    finally { restored.close() }
+  } finally { await rm(directory, { recursive: true, force: true }) }
+})

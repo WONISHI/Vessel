@@ -18,6 +18,14 @@ import { gitAPI } from "@preload/apis/git.api"
 const api = {}
 
 const vesselAPI = {
+  listBrowserDownloads: () => ipcRenderer.invoke("browser:downloads:list"),
+  previewBrowserDownload: (id: number): Promise<string> => ipcRenderer.invoke("browser:downloads:preview", id),
+  revealBrowserDownload: (id: number): Promise<void> => ipcRenderer.invoke("browser:downloads:reveal", id),
+  onBrowserDownloadsUpdated: (callback: () => void) => {
+    const listener = () => callback()
+    ipcRenderer.on("browser:downloads-updated", listener)
+    return () => ipcRenderer.removeListener("browser:downloads-updated", listener)
+  },
   onBrowserFileSaved: (callback: (file: BrowserSavedFile) => void) => {
     const handler = (_event: Electron.IpcRendererEvent, file: BrowserSavedFile) => callback(file)
     ipcRenderer.on("browser:file-saved", handler)
@@ -93,7 +101,7 @@ const vesselAPI = {
   saveSettings: (settings: AppSettings, secret?: string): Promise<AppSettings> => ipcRenderer.invoke("settings:save", settings, secret),
 
   /** Returns settings info. */
-  getSettingsInfo: (): Promise<{ version: string; electron: string; node: string }> => ipcRenderer.invoke("settings:info"),
+  getSettingsInfo: (): Promise<{ version: string; electron: string; node: string; deviceName: string }> => ipcRenderer.invoke("settings:info"),
 
   /** Tests backup. */
   testBackup: (settings: AppSettings["backup"], secret?: string): Promise<void> => ipcRenderer.invoke("settings:test", settings, secret),
@@ -171,6 +179,12 @@ const vesselAPI = {
     return () => ipcRenderer.removeListener("browser:control", listener)
   },
 
+  onBrowserDevtoolsPreview: (callback: (preview: { id: number; image?: string }) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, preview: { id: number; image?: string }) => callback(preview)
+    ipcRenderer.on("browser:devtools-preview", listener)
+    return () => ipcRenderer.removeListener("browser:devtools-preview", listener)
+  },
+
   /** Handles browser devtools closed events. */
   onBrowserDevtoolsClosed: (callback: () => void) => {
     ipcRenderer.on("browser:devtools-closed", callback)
@@ -230,7 +244,7 @@ const vesselAPI = {
   },
 
   /** Sets browser devtools. */
-  setBrowserDevtools: (id: number | null, bounds?: Electron.Rectangle, appearance?: { font: string; size: number; detached?: boolean; hidden?: boolean; pageTitle?: string; pageURL?: string; inspect?: { x: number; y: number; property?: string; targetKey?: string }; control?: { x: number; y: number; width: number; height: number; icon: string; color: string; background: string; border: string; shadow: string } }): Promise<void> => ipcRenderer.invoke("browser:devtools", id, bounds, appearance),
+  setBrowserDevtools: (id: number | null, bounds?: Electron.Rectangle, appearance?: { font: string; size: number; detached?: boolean; hidden?: boolean; occluded?: boolean; pageTitle?: string; pageURL?: string; inspect?: { x: number; y: number; property?: string; targetKey?: string }; control?: { x: number; y: number; width: number; height: number; icon: string; color: string; background: string; border: string; shadow: string } }): Promise<void> => ipcRenderer.invoke("browser:devtools", id, bounds, appearance),
 
   /** Handles browser new tab events. */
   onNavigationRequest: (callback: (request: { id: number; url: string; defaultCurrent: boolean; delayMs: number }) => void) => {

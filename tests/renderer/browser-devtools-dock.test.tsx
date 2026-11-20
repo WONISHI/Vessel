@@ -38,3 +38,22 @@ it.each(["detached", "left", "right", "bottom"])("remembers %s after close, reop
   expect(restored.result.current.devtoolsOpen).toBe(true)
   expect(restored.result.current.dock).toBe(dock)
 })
+
+it("handles toolbar and find menu actions only while the browser is visible", () => {
+  Object.assign(window.electronAPI, { onBrowserFind: () => () => {} })
+  const page = renderHook(({ visible }) => useBrowserPage(visible), { initialProps: { visible: true } })
+  act(() => window.dispatchEvent(new Event("vessel-browser-toggle-toolbar")))
+  expect(page.result.current.toolbarCollapsed).toBe(true)
+  act(() => window.dispatchEvent(new Event("vessel-browser-open-find")))
+  expect(page.result.current.findOpen).toBe(true)
+  page.rerender({ visible: false })
+  act(() => window.dispatchEvent(new Event("vessel-browser-toggle-toolbar")))
+  expect(page.result.current.toolbarCollapsed).toBe(true)
+  page.rerender({ visible: true })
+  const publish = vi.fn()
+  window.addEventListener("vessel-browser-toolbar-state", publish)
+  try {
+    act(() => window.dispatchEvent(new Event("vessel-browser-request-toolbar-state")))
+    expect(publish.mock.calls[0][0].detail).toBe(true)
+  } finally { window.removeEventListener("vessel-browser-toolbar-state", publish) }
+})

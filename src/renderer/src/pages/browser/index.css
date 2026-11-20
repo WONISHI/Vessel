@@ -624,3 +624,9 @@ html:not(.dark) .browser-more-item:hover svg {
 /* Pinned tabs always show the pin; they are closed from the context menu, not by the pin slot. */
 .browser-tab-pin-close { pointer-events: none; cursor: default; }
 .browser-tab > .browser-tab-pin-close { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); }
+
+.browser-tab-group { flex: 1 1 0; min-width: 0; max-width: 132px; }
+.browser-tab-group-selected { flex-grow: 1.5; max-width: 156px; }
+.browser-tab-group .browser-tab { width: 100%; max-width: none; }
+.browser-tab-group-count { position: absolute; top: 2px; right: 4px; pointer-events: none; font-size: 8px; line-height: 10px; color: #78716c; font-variant-numeric: tabular-nums; }
+html.dark .browser-tab-group-count { color: #a8a29e; }

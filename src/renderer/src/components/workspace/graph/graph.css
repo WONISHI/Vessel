@@ -24,7 +24,9 @@ html.dark .workspace-graph-heading { color:#e5e7eb; }
 .workspace-graph-hint { position:absolute; bottom:12px; left:15px; font-size:10px; color:#9ba3af; pointer-events:none; }
 .workspace-graph-settings { width:256px; flex-shrink:0; border-left:1px solid #e6e8ec; min-height:0; overflow:hidden; background:#fff; font-size:12px; }
 .workspace-graph-settings-heading { display:flex; justify-content:space-between; margin-bottom:14px; }
-.workspace-graph-settings-scroll { height:100%; width:100%; }
+.workspace-graph-settings-scroll { height:100%; width:100%; min-height:0; overflow:hidden; }
+.workspace-graph-settings-scroll [data-radix-scroll-area-viewport] { scrollbar-width:none !important; }
+.workspace-graph-settings-scroll [data-radix-scroll-area-viewport]::-webkit-scrollbar { display:none !important; width:0 !important; height:0 !important; }
 .workspace-graph-settings-content { padding:16px; }
 .workspace-graph-section { border-top:1px solid #eef0f3; }
 .workspace-graph-section-trigger { display:flex; align-items:center; gap:6px; width:100%; padding:12px 0; font-size:11px; font-weight:600; text-align:left; }

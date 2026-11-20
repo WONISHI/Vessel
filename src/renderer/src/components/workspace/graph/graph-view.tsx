@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { WorkspaceVisible } from '@/components/workspace/components/layout-main/document-cache'
 import { Network, RefreshCw } from 'lucide-react'
 import { useWorkspace } from '@/components/workspace/hooks/useWorkspace'
 import { toast } from 'sonner'
@@ -24,6 +25,10 @@ function loadSettings(root: string): Settings {
   } catch { return { ...defaultGraphSettings, groups: [] } }
 }
 export default function WorkspaceGraphView() {
+  const visible = useContext(WorkspaceVisible)
+  return visible ? <WorkspaceGraphContent /> : null
+}
+function WorkspaceGraphContent() {
   const { workspace, activeFilePath, openWorkspaceFile } = useWorkspace()
   const [graph, setGraph] = useState<WorkspaceGraph>()
   const [error, setError] = useState('')
@@ -51,16 +56,28 @@ export default function WorkspaceGraphView() {
     }, (reason) => {
       if (alive) { indexing.current = false; dirty.current = false; setError(String(reason)); setLoading(false) }
     })
-    return () => { alive = false; off?.(); void window.electronAPI.cancelWorkspaceGraph().catch(() => {}) }
+    const stop = () => {
+      if (!alive) return
+      alive = false
+      indexing.current = false
+      dirty.current = false
+      off?.()
+      void window.electronAPI.cancelWorkspaceGraph().catch(() => {})
+    }
+    window.addEventListener('vessel:graph-close', stop)
+    return () => { stop(); window.removeEventListener('vessel:graph-close', stop) }
   }, [root, revision])
   useEffect(() => {
+    let alive = true
     let timer: ReturnType<typeof setTimeout> | undefined
     const off = window.electronAPI.onFilesChanged?.((changedRoot) => {
-      if (changedRoot !== root) return
+      if (!alive || changedRoot !== root) return
       clearTimeout(timer)
-      timer = setTimeout(() => { if (indexing.current) dirty.current = true; else setRevision((value) => value + 1) }, 1200)
+      timer = setTimeout(() => { if (!alive) return; if (indexing.current) dirty.current = true; else setRevision((value) => value + 1) }, 1200)
     })
-    return () => { clearTimeout(timer); off?.() }
+    const stop = () => { if (!alive) return; alive = false; clearTimeout(timer); off?.() }
+    window.addEventListener('vessel:graph-close', stop)
+    return () => { stop(); window.removeEventListener('vessel:graph-close', stop) }
   }, [root])
   useEffect(() => { try { localStorage.setItem(`vessel-graph:${root}`, JSON.stringify(settings)) } catch { /* A full settings store does not prevent graph navigation. */ } }, [root, settings])
   const visible = useMemo(() => graph && filterWorkspaceGraph(graph, settings, localPath), [graph, settings, localPath])

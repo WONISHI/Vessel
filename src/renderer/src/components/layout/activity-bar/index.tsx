@@ -118,6 +118,7 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
   const shownIds = new Set(priorityItems.slice(0, capacity).map((item) => item.id))
   const shownItems = visibleItems.filter((item) => shownIds.has(item.id))
   const overflowItems = visibleItems.filter((item) => !shownIds.has(item.id))
+  const railItems = overflowItems.length === 1 ? [...shownItems, overflowItems[0]] : shownItems
   const moreActive = overflowItems.some((item) => item.id === activity)
 
   /** Opens an activity through the same navigation path in the rail and overflow menu. */
@@ -195,7 +196,7 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
             {activity !== "browser" && activity !== "office" ? (expanded ? "收起侧边栏" : "展开侧边栏") : "Vessel"}
           </TooltipContent>
         </Tooltip>
-        {shownItems.map(({ id, label, icon: Icon }) => (
+        {railItems.map(({ id, label, icon: Icon }) => (
           <ContextMenu key={id}>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -254,8 +255,8 @@ export default function LayoutActivityBar({ activity, onActivityChange, onResour
         ))}
 
 
-        {/* 仅在活动入口放不下时显示折叠菜单。 */}
-        {overflowItems.length > 0 && <Popover
+        {/* One remaining activity uses the reserved slot directly; multiple entries use More. */}
+        {overflowItems.length > 1 && <Popover
           open={moreToolsOpen}
           onOpenChange={setMoreToolsOpen}
         >

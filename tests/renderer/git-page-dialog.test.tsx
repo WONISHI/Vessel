@@ -15,7 +15,7 @@ it("leaves activity navigation interactive and offsets the overlay", () => {
   const button = screen.getByRole("button", { name: "活动栏" })
   expect(button.closest('[aria-hidden="true"]')).toBeNull()
   expect(document.body.style.pointerEvents).not.toBe("none")
-  expect(document.querySelector('[data-git-dialog-overlay]')?.classList.contains('left-[52px]')).toBe(true)
+  expect((document.querySelector('[data-git-dialog-overlay]') as HTMLElement).style.left).toBe("52px")
   fireEvent.click(button)
   expect(navigate).toHaveBeenCalledOnce()
   unmount()

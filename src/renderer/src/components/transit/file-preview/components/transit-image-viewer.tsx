@@ -3,16 +3,33 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useEffect, useState } from "react"
 
+type TransitImageProps = { src: string; name: string; detailsHidden?: boolean; onDetailsHiddenChange?: (hidden: boolean) => void }
+
 /** Both docked and standalone previews start with the complete image fitted inside the canvas. */
-export function TransitImageViewer({ src, name }: { src: string; name: string }) {
-  return <TransitImageContent key={src} src={src} name={name} />
+export function TransitImageViewer(props: TransitImageProps) {
+  return <TransitImageContent key={props.src} {...props} />
 }
 
-function TransitImageContent({ src, name }: { src: string; name: string }) {
+function TransitImageContent({ src, name, detailsHidden: controlledDetailsHidden, onDetailsHiddenChange }: TransitImageProps) {
   const [zoom, setZoom] = useState(1)
   const [viewport, setViewport] = useState<HTMLDivElement | null>(null)
   const [bounds, setBounds] = useState({ width: 0, height: 0 })
-  const [detailsHidden, setDetailsHidden] = useState(false)
+  const [container, setContainer] = useState<HTMLDivElement | null>(null)
+  const [containerWidth, setContainerWidth] = useState(0)
+  const [localDetailsHidden, setLocalDetailsHidden] = useState<boolean>()
+  // Reserve enough room for the image beside the metadata card; explicit choices win.
+  const detailsHidden = controlledDetailsHidden ?? localDetailsHidden ?? (containerWidth < 640)
+  useEffect(() => {
+    if (!container) return
+    const observer = new ResizeObserver(() => setContainerWidth(container.clientWidth))
+    observer.observe(container)
+    return () => observer.disconnect()
+  }, [container])
+  const toggleDetails = () => {
+    const hidden = !detailsHidden
+    setLocalDetailsHidden(hidden)
+    onDetailsHiddenChange?.(hidden)
+  }
   const [size, setSize] = useState({ width: 0, height: 0 })
   useEffect(() => {
     if (!viewport) return
@@ -35,7 +52,7 @@ function TransitImageContent({ src, name }: { src: string; name: string }) {
     ...(bytes ? [["文件大小", `${bytes.toLocaleString()} 字节（${(bytes / 1024).toFixed(1)} KB）`] as [string, string]] : [])
   ]
   return (
-    <div className={`grid min-h-0 min-w-0 flex-1 ${detailsHidden ? "grid-cols-1" : "grid-cols-[minmax(0,1fr)_minmax(180px,260px)]"} gap-4 overflow-hidden bg-white p-4`}>
+    <div ref={setContainer} className={`grid min-h-0 min-w-0 flex-1 ${detailsHidden ? "grid-cols-1" : "grid-cols-[minmax(0,1fr)_minmax(180px,260px)]"} gap-4 overflow-hidden bg-white p-4`}>
       <ScrollArea viewportRef={setViewport} horizontal className="min-h-0 min-w-0 rounded-xl bg-stone-50 [&_[data-radix-scroll-area-viewport]>div]:!flex [&_[data-radix-scroll-area-viewport]>div]:min-h-full">
         <div className="flex min-w-full w-max shrink-0 items-center justify-center p-4">
           <div className="shrink-0" style={{ width: size.width ? size.width * scale : 480 }}>
@@ -44,7 +61,7 @@ function TransitImageContent({ src, name }: { src: string; name: string }) {
               onZoomIn={() => setZoom((value) => Math.min(8 / fit, value * 1.25))}
               onZoomOut={() => setZoom((value) => Math.max(0.1, value / 1.25))}
               detailsHidden={detailsHidden}
-              onToggleDetails={() => setDetailsHidden((value) => !value)}
+              onToggleDetails={toggleDetails}
               src={src}
               alt={name}
               draggable={false}

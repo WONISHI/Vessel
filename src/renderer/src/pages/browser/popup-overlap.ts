@@ -9,5 +9,8 @@ export function popupOverlapsPane(rect: Bounds, pane: Bounds): boolean {
 export function browserPopupOverlapsPane(pane: Bounds): boolean {
   return Array.from(document.querySelectorAll<HTMLElement>(
     '.vessel-browser-tabs-popup[data-state="open"], .vessel-activity-tools-popup[data-state="open"], .dev-actions-menu[data-state="open"], [role="dialog"][data-state="open"], [data-sonner-toast].vessel-browser-save-toast[data-visible="true"]:not([data-removed="true"])'
-  )).some((popup) => popupOverlapsPane(popup.getBoundingClientRect(), pane))
+  )).some((popup) => {
+    const surfaces = popup.hasAttribute("data-transit-container") ? popup.querySelectorAll<HTMLElement>(".transit-sheet") : [popup]
+    return Array.from(surfaces).some(surface => popupOverlapsPane(surface.getBoundingClientRect(), pane))
+  })
 }

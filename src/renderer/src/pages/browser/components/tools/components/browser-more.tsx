@@ -1,22 +1,24 @@
+import { DownloadsSheet } from "@/pages/browser/components/downloads-sheet"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuShortcut, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { HistorySheet } from "@/pages/browser/components/history-sheet"
 import type { HistoryEntry } from "@vessel/type"
 import type { WebviewTag } from "electron"
-import { KeyRound, History, MoreHorizontal, Printer, Search, Smartphone, ZoomIn, ZoomOut } from "lucide-react"
+import { Download, Bookmark, KeyRound, History, MoreHorizontal, Printer, Search, Smartphone, ZoomIn, ZoomOut } from "lucide-react"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
 /** Renders the browser more component. */
-export function BrowserMore({ visible = true, zoom, zoomFactor, onFind, onNavigate, guest, deviceMode, onDevice }: { visible?: boolean; zoomFactor: number; zoom: (delta: number) => void; onFind: () => void; onNavigate: (url: string) => void; guest: () => WebviewTag | undefined; deviceMode: boolean; onDevice: () => void }) {
+export function BrowserMore({ visible = true, zoom, zoomFactor, onFind, onNavigate, guest, deviceMode, onDevice, bookmarksVisible, onToggleBookmarks }: { bookmarksVisible: boolean; onToggleBookmarks: () => void; visible?: boolean; zoomFactor: number; zoom: (delta: number) => void; onFind: () => void; onNavigate: (url: string) => void; guest: () => WebviewTag | undefined; deviceMode: boolean; onDevice: () => void }) {
   const [open, setOpen] = useState(false)
+  const [downloadsOpen, setDownloadsOpen] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
   const [history, setHistory] = useState<HistoryEntry[]>([])
   const [error, setError] = useState("")
 
   useEffect(() => {
     if (!visible) {
-      const timer = setTimeout(() => { setOpen(false); setHistoryOpen(false) }, 0)
+      const timer = setTimeout(() => { setOpen(false); setHistoryOpen(false); setDownloadsOpen(false) }, 0)
       return () => clearTimeout(timer)
     }
     return undefined
@@ -102,6 +104,9 @@ export function BrowserMore({ visible = true, zoom, zoomFactor, onFind, onNaviga
             <History />
             历史记录
           </DropdownMenuItem>
+          <DropdownMenuItem className={itemClass} onSelect={() => run(() => setDownloadsOpen(true))}>
+            <Download />下载历史
+          </DropdownMenuItem>
           <DropdownMenuItem className={itemClass} onSelect={() => run(() => window.dispatchEvent(new Event("vessel-open-password-vault")))}>
             <KeyRound />账号和密码
           </DropdownMenuItem>
@@ -122,6 +127,10 @@ export function BrowserMore({ visible = true, zoom, zoomFactor, onFind, onNaviga
             打印
           </DropdownMenuItem>
           <DropdownMenuSeparator className="mx-1 my-1 bg-stone-100" />
+          <DropdownMenuItem className={itemClass} onSelect={() => run(onToggleBookmarks)}>
+            <Bookmark />
+            {bookmarksVisible ? "隐藏" : "显示"}书签栏
+          </DropdownMenuItem>
           <DropdownMenuItem
             className={itemClass}
             onSelect={() => run(onDevice)}
@@ -131,6 +140,7 @@ export function BrowserMore({ visible = true, zoom, zoomFactor, onFind, onNaviga
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+      <DownloadsSheet open={visible && downloadsOpen} onOpenChange={setDownloadsOpen} />
       <HistorySheet
         open={visible && historyOpen}
         onOpenChange={setHistoryOpen}

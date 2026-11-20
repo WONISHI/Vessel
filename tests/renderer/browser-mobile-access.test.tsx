@@ -1,11 +1,12 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
-import { afterEach, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, expect, it, vi } from "vitest"
 import { mobilePageURL } from "@/pages/browser/mobile-page-url"
 import BrowserMobileDialog from "@/pages/browser/components/browser-page/browser-mobile-dialog"
 import { BrowserContextMenu } from "@/pages/browser/components/browser-page/browser-context-menu"
 import type { BrowserPageModel } from "@/pages/browser/components/browser-page/hooks/use-browser-page"
 
-afterEach(cleanup)
+beforeEach(() => { vi.stubGlobal("electronAPI", { sourceProjectStatus: vi.fn(async () => null) }) })
+afterEach(() => { cleanup(); vi.unstubAllGlobals() })
 it.each(["http://localhost:9525/a", "http://LOCALHOST.:9525", "http://foo.localhost/", "http://127.0.0.1/a", "http://127.5.6.7/", "http://127.1/", "http://2130706433/", "http://0.0.0.0/", "http://[::1]:5173/", "http://[::ffff:127.0.0.1]/", "file:///tmp/a.html", "about:blank", "invalid"])("does not offer mobile access for %s", value => {
   expect(mobilePageURL(value)).toBeUndefined()
 })
@@ -21,8 +22,8 @@ it("renders a scannable SVG in the common dialog with an activity-bar-safe overl
   const title = screen.getByText("当前网页访问二维码")
   expect(title.closest("svg")?.querySelectorAll("path").length).toBeGreaterThan(0)
   const overlay = document.querySelector("[data-browser-mobile-overlay]")!
-  expect(overlay.classList.contains("left-[52px]")).toBe(true)
-  expect(overlay.classList.contains("bottom-8")).toBe(true)
+  expect((overlay as HTMLElement).style.left).toBe("52px")
+  expect((overlay as HTMLElement).style.bottom).toBe("32px")
   fireEvent.click(screen.getByRole("button", { name: "Close" }))
   expect(close).toHaveBeenCalledOnce()
 })

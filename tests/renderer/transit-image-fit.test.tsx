@@ -2,20 +2,22 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { TransitImageViewer } from '@/components/transit/file-preview/components/transit-image-viewer'
 
-vi.mock('@/components/ui/image', () => ({ Image: ({ onZoomIn, onZoomOut, onToggleDetails, detailsHidden, resizable, ...props }: any) => <><img {...props} /><button onClick={onZoomIn}>放大</button><button onClick={onZoomOut}>缩小</button></> }))
+vi.mock('@/components/ui/image', () => ({ Image: ({ onZoomIn, onZoomOut, onToggleDetails, detailsHidden, resizable, ...props }: any) => <><img {...props} /><button onClick={onZoomIn}>放大</button><button onClick={onZoomOut}>缩小</button><button onClick={onToggleDetails}>{detailsHidden ? "显示详情" : "隐藏详情"}</button></> }))
 vi.mock('@/components/ui/scroll-area', () => ({ ScrollArea: ({ viewportRef, children }: any) => <div ref={viewportRef}>{children}</div> }))
 let resize: () => void
 let width: number, height: number
 beforeEach(() => {
   width = 632; height = 432
+  const callbacks = new Set<() => void>()
+  resize = () => callbacks.forEach(callback => callback())
   vi.stubGlobal('ResizeObserver', class {
     constructor(private callback: () => void) {}
     observe(element: HTMLElement) {
       Object.defineProperties(element, { clientWidth: { get: () => width }, clientHeight: { get: () => height } })
-      resize = this.callback
+      callbacks.add(this.callback)
       this.callback()
     }
-    disconnect() {}
+    disconnect() { callbacks.delete(this.callback) }
   })
 })
 afterEach(() => { cleanup(); vi.unstubAllGlobals() })
@@ -39,4 +41,32 @@ it('recalculates the fit on resize, permits zoom, and resets zoom for a new imag
   expect(canvas.style.width).toBe('375px')
   view.rerender(<TransitImageViewer src="second" name="photo" />)
   expect(load(1200, 600).style.width).toBe('300px')
+})
+
+it('uses the panel-owned details state after the viewer is remounted', () => {
+  const onChange = vi.fn()
+  const view = render(<TransitImageViewer src="photo" name="photo" detailsHidden={false} onDetailsHiddenChange={onChange} />)
+  fireEvent.click(screen.getByRole('button', { name: '隐藏详情' }))
+  expect(onChange).toHaveBeenCalledWith(true)
+  view.unmount()
+  render(<TransitImageViewer src="photo" name="photo" detailsHidden onDetailsHiddenChange={onChange} />)
+  expect(screen.queryByText('图片详细信息')).toBeNull()
+  fireEvent.click(screen.getByRole('button', { name: '显示详情' }))
+  expect(onChange).toHaveBeenLastCalledWith(false)
+})
+
+it('automatically hides details in narrow previews while retaining explicit choices', () => {
+  width = 420
+  render(<TransitImageViewer src="responsive" name="photo" />)
+  expect(screen.queryByText('图片详细信息')).toBeNull()
+  act(() => { width = 800; resize() })
+  expect(screen.getByText('图片详细信息')).toBeTruthy()
+  act(() => { width = 420; resize() })
+  expect(screen.queryByText('图片详细信息')).toBeNull()
+  fireEvent.click(screen.getByRole('button', { name: '显示详情' }))
+  expect(screen.getByText('图片详细信息')).toBeTruthy()
+  act(() => { width = 800; resize() })
+  fireEvent.click(screen.getByRole('button', { name: '隐藏详情' }))
+  act(() => { width = 420; resize(); width = 800; resize() })
+  expect(screen.queryByText('图片详细信息')).toBeNull()
 })

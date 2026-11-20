@@ -16,7 +16,8 @@ export function TabSwitcher({
   onNew,
   onClose,
   triggerClassName,
-  contentClassName
+  contentClassName,
+  titleSide
 }: {
   children: ReactNode
   tabs: PreviewTab[]
@@ -27,6 +28,7 @@ export function TabSwitcher({
   onClose?: (id: string) => void
   triggerClassName?: string
   contentClassName?: string
+  titleSide?: "left" | "right"
 }) {
   const [open, setOpen] = useState(false)
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
@@ -104,6 +106,7 @@ export function TabSwitcher({
                 }}
                 className={`relative flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-xs focus:!bg-[#f0efed] focus:!text-stone-700 data-[highlighted]:!bg-[#f0efed] data-[highlighted]:!text-stone-700 ${tab.active ? `bg-[#f0efed] text-stone-700` : "text-stone-700"} ${preview ? "gap-3 pr-8" : ""}`}
                 data-title={tab.title}
+                data-title-side={titleSide}
               >
                 {preview && tab.active && <span className="absolute left-0 top-3 bottom-3 w-[3px] rounded-r bg-green-600" />}
                 <span className="flex size-4 shrink-0 items-center justify-center">

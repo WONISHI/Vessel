@@ -1,3 +1,4 @@
+import type { GitFetchOptions, GitPullOptions } from "@vessel/type/git"
 import { searchGitCommits } from "./search"
 import { getGitDecorations } from "./git-decorations"
 import type { GitPushSelection, GitSearchOptions, GitTagOptions } from "@vessel/type/git"
@@ -69,10 +70,10 @@ export class GitModule extends BaseModule {
       "git:delete-branch": (_e, cwd: string, name: string, force?: boolean) => gitService.deleteBranch(cwd, name, force),
 
       /** Performs the "git:fetch" operation. */
-      "git:fetch": (_e, cwd: string, remote?: string) => gitService.fetch(cwd, remote),
+      "git:fetch": (_e, cwd: string, remote?: string, options?: GitFetchOptions) => gitService.fetch(cwd, remote, options),
 
       /** Performs the "git:pull" operation. */
-      "git:pull": (_e, cwd: string, remote?: string, branch?: string) => gitService.pull(cwd, remote, branch),
+      "git:pull": (_e, cwd: string, remote?: string, branch?: string, options?: GitPullOptions) => gitService.pull(cwd, remote, branch, options),
 
       /** Performs the "git:push" operation. */
       "git:push": (_e, cwd: string, remote?: string, branch?: string, force?: boolean) => gitService.push(cwd, remote, branch, force),

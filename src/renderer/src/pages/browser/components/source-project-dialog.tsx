@@ -1,3 +1,4 @@
+import { useDialogLayout } from "@/features/layout/use-dialog-layout"
 import { useEffect, useState } from "react"
 import { FolderOpen, Play, Square, ExternalLink } from "lucide-react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogPortal, DialogTitle } from "@/components/ui/dialog"
@@ -8,6 +9,7 @@ type Project = Awaited<ReturnType<typeof window.electronAPI.sourceProjectStatus>
 
 /** Starts an isolated Vite service using the selected project's installed dependencies. */
 export function SourceProjectDialog({ open, onOpenChange, onNavigate, initialRoot = "" }: { initialRoot?: string; open: boolean; onOpenChange: (value: boolean) => void; onNavigate: (url: string) => void }) {
+  const layout = useDialogLayout(true)
   const [root, setRoot] = useState(initialRoot)
   const [config, setConfig] = useState("")
   const [mode, setMode] = useState("development")
@@ -28,8 +30,8 @@ export function SourceProjectDialog({ open, onOpenChange, onNavigate, initialRoo
     try { await action() } catch (error) { setError(String(error)) } finally { setBusy(false) }
   }
   return <Dialog open={open} onOpenChange={onOpenChange} modal={false}>
-    {open && <DialogPortal><div aria-hidden="true" className="fixed top-0 right-0 bottom-8 left-[52px] z-[230] bg-black/[.04] backdrop-blur-[3px]" /></DialogPortal>}
-    <DialogContent className="z-[231] max-h-[calc(100vh-64px)] overflow-y-auto max-w-md gap-3 p-4 left-[calc(50%+26px)] w-[calc(100vw-84px)]">
+    {open && <DialogPortal><div aria-hidden="true" style={layout.overlayStyle} className="fixed top-0 right-0 z-[230] bg-black/[.04] backdrop-blur-[3px]" /></DialogPortal>}
+    <DialogContent style={layout.contentStyle} className="z-[231] max-h-[calc(100vh-64px)] overflow-y-auto max-w-md gap-3 p-4">
       <DialogHeader><DialogTitle className="text-base">本地项目调试</DialogTitle><DialogDescription className="text-xs">Vue 3 + Vite · 临时接入元素定位，不修改项目源文件、配置或依赖清单。使用项目已有的 Node 环境与依赖，每次可运行一个项目。</DialogDescription></DialogHeader>
       <div className="space-y-2.5 text-xs [&_input]:h-8 [&_input]:text-xs">
         <label className="block space-y-1.5"><span>项目目录</span><div className="flex gap-2"><Input aria-label="项目目录" value={root} readOnly placeholder="选择包含 Vite 配置的目录" /><Button variant="outline" size="sm" className="h-8 shrink-0 hover:!bg-green-600 hover:!text-white [&:hover_svg]:!text-white" disabled={busy || project?.running} aria-label="选择项目目录" onClick={() => { void run(async () => { const value = await window.electronAPI.sourceProjectPick(); if (value) setRoot(value) }) }}><FolderOpen /></Button></div></label>

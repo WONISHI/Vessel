@@ -177,12 +177,21 @@ html.dark .vessel-git-page .git-operation-card :is(.text-stone-500, .text-stone-
 html.dark .vessel-git-page .git-operation-card .bg-stone-100 { background: rgba(71, 85, 105, .5) !important; }
 
 /* Dialog portals live outside the Git page, so target their explicit scope. */
-html .git-dialog button:not(:disabled):is(:hover, :active, :focus-visible),
-html .git-dialog button:not(:disabled):is(:hover, :active, :focus-visible) :is(span, svg) {
+html .git-dialog button:not(:disabled):where(:not([role="combobox"]):not([role="checkbox"]):not(.git-tag-cancel)):is(:hover, :active, :focus-visible),
+html .git-dialog button:not(:disabled):where(:not([role="combobox"]):not([role="checkbox"]):not(.git-tag-cancel)):is(:hover, :active, :focus-visible) :is(span, svg) {
   color: #fff !important;
 }
-html .git-dialog button:not(:disabled):is(:hover, :active, :focus-visible) {
+html .git-dialog button:not(:disabled):where(:not([role="combobox"]):not([role="checkbox"]):not(.git-tag-cancel)):is(:hover, :active, :focus-visible) {
   background-color: #16a34a;
+}
+
+/* Select triggers keep their field surface instead of inheriting action-button hover. */
+html .git-dialog button[role="combobox"]:is(:hover, :active, :focus-visible, [data-state="open"]) {
+  background-color: hsl(var(--background)) !important;
+  color: hsl(var(--foreground)) !important;
+}
+html .git-dialog button[role="combobox"]:is(:hover, :active, :focus-visible, [data-state="open"]) :is(span, svg) {
+  color: inherit !important;
 }
 
 .git-toolbar-tools {

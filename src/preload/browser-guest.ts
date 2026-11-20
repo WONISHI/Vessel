@@ -97,8 +97,8 @@ bindDoubleSpace(window, () => ipcRenderer.sendToHost("vessel-open-top-search"))
 bindVaultForms()
 
 if (/^https?:$/.test(location.protocol) || location.protocol === "file:") {
-  contextBridge.exposeInMainWorld("vesselContextMenu", (details: { x: number; y: number }) => {
-    if (Number.isFinite(details?.x) && Number.isFinite(details?.y)) ipcRenderer.sendToHost("vessel-context-menu", { x: details.x, y: details.y })
+  contextBridge.exposeInMainWorld("vesselContextMenu", (details: { x: number; y: number; imageDocument?: boolean }) => {
+    if (Number.isFinite(details?.x) && Number.isFinite(details?.y)) ipcRenderer.sendToHost("vessel-context-menu", { x: details.x, y: details.y, imageDocument: details.imageDocument === true })
   })
   contextBridge.executeInMainWorld({ func: installBrowserContextMenu })
 }

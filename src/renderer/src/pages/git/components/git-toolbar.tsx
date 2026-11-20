@@ -3,7 +3,8 @@ import { useRouter } from "@vessel/react-router"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 import { toast } from "@/components/ui/sonner"
-import { ChevronDown, Archive, ArrowDownUp, Download, FolderGit2, FolderOpen, GitBranch, GitCommit, GitPullRequest, GitFork, PanelRightClose, PanelRightOpen, Settings, SquareTerminal, RefreshCw, Upload } from "lucide-react"
+import { ChevronDown, Archive, ArrowDownUp, Download, FolderGit2, FolderOpen, GitBranch, GitCommit, GitPullRequest, PanelRightClose, PanelRightOpen, Settings, SquareTerminal, RefreshCw, Upload } from "lucide-react"
+import "@vscode/codicons/dist/codicon.css"
 import { useLayoutEffect, useRef, useState } from "react"
 import { cleanGitErrorMessage } from "@/pages/git/utils"
 import type { GitPageModel } from "@/pages/git/hooks/use-git-page"
@@ -148,7 +149,7 @@ export function GitToolbar({ g }: { g: GitPageModel }) {
                 if (!url) { toast.error("未找到有效的远程仓库地址"); return }
                 openInAppBrowser(url, (path) => router.push(path))
               } catch (error) { toast.error("打开远程仓库失败", { description: cleanGitErrorMessage(error) }) }
-            }}><GitFork className="size-4" /><span>显示远程仓库</span></button>
+            }}><i aria-hidden="true" className="codicon codicon-cloud !text-base" /><span>显示远程仓库</span></button>
             <button type="button" disabled={!repoPath} className="flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs text-stone-700 hover:bg-stone-200/70 disabled:opacity-40" data-title="在文件管理器中显示当前仓库" onClick={async () => {
               try { await window.electronAPI.revealWorkspaceFile(repoPath, repoPath) }
               catch (error) { toast.error("显示仓库失败", { description: cleanGitErrorMessage(error) }) }

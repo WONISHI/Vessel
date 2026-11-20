@@ -1,9 +1,19 @@
+import { withGuest } from "@/pages/browser/guest-lifecycle"
+import { useEffect, useState } from "react"
 import { X } from "lucide-react"
 import type { BrowserPageModel } from "@/pages/browser/components/browser-page/hooks/use-browser-page"
 
 /** 网页控制台面板 */
 export function BrowserDevtoolsPane({ b }: { b: BrowserPageModel }) {
   const { setDevtoolsOpen, dock, setDock, consoleFont, setConsoleFont, consoleSize, setConsoleSize, devtoolsHost } = b
+
+  const [preview, setPreview] = useState<{ tabId: string; image?: string }>()
+  const tabId = b.tab.id
+  const views = b.views
+  useEffect(() => window.electronAPI.onBrowserDevtoolsPreview?.((value) => {
+    if (withGuest(views.current.get(tabId), guest => guest.getWebContentsId()) === value.id) setPreview({ tabId, image: value.image })
+  }), [tabId, views])
+  const image = preview?.tabId === tabId ? preview.image : undefined
 
   return (
                 <section
@@ -56,8 +66,10 @@ export function BrowserDevtoolsPane({ b }: { b: BrowserPageModel }) {
                   </header>
                   <div
                     ref={devtoolsHost}
-                    className="min-h-0 flex-1"
-                  />
+                    className="relative min-h-0 flex-1 overflow-hidden"
+                  >
+                    {image && <img src={image} alt="被浮层遮挡的控制台画面" aria-hidden="true" className="pointer-events-none absolute inset-0 h-full w-full object-fill" />}
+                  </div>
                 </section>
   )
 }

@@ -1,3 +1,5 @@
+import { groupBrowserTabs } from "@/pages/browser/tab-groups"
+import { useTabGrouping } from "@/pages/browser/use-tab-grouping"
 import { BrowserFavicon } from "@/components/browser-favicon"
 import { TabSwitcher } from "@/components/tab-switcher"
 import { Button } from "@/components/ui/button"
@@ -9,10 +11,13 @@ import type { BrowserPageModel } from "@/pages/browser/components/browser-page/h
 export function BrowserTabs({ b }: { b: BrowserPageModel }) {
   const { tabs, setActive, setInput, tab, add, close, addTabRightOf, reloadTab, togglePinTab, closeOtherTabs, closeRightTabs, dragTabId, setDragTabId, reorderTabs } = b
 
+  const grouping = useTabGrouping()
+  const groups = groupBrowserTabs(tabs, tab.id, grouping)
   return (
         <div className="browser-tabs">
-          {tabs.map((item) => (
-            <ContextMenu key={item.id}>
+          {groups.map(({ key, tab: item, members }, groupIndex) => {
+            const titleSide = groupIndex === 0 ? "right" : groupIndex === groups.length - 1 ? "left" : undefined
+            const row = <ContextMenu key={item.id}>
               <ContextMenuTrigger asChild>
                 <div
                   draggable
@@ -38,7 +43,8 @@ export function BrowserTabs({ b }: { b: BrowserPageModel }) {
                       setInput(null)
                     }}
                     className="browser-tab-select flex min-w-0 flex-1 items-center gap-2"
-                    data-title={item.videoPlaying ? `${item.title} · 正在播放视频` : item.title}
+                    data-title-side={titleSide}
+                    data-title={members.length > 1 ? undefined : item.videoPlaying ? `${item.title} · 正在播放视频` : item.title}
                   >
                     <span className="relative flex size-4 shrink-0 items-center justify-center">
                       <span className={`flex ${item.id === tab.id && item.loading ? "invisible" : ""}`}>
@@ -50,6 +56,7 @@ export function BrowserTabs({ b }: { b: BrowserPageModel }) {
                     </span>
                     <span className="truncate leading-4">{item.title}</span>
                   </button>
+                  {members.length > 1 && <span className="browser-tab-group-count" aria-label={`另有 ${members.length - 1} 个同域名标签页`}>{members.length - 1}</span>}
                   {item.videoPlaying && <AudioLines size={16} className="browser-tab-audio" aria-label="正在播放视频" />}
                   <button
                     className={item.pinned ? "browser-tab-pin-close" : undefined}
@@ -88,7 +95,8 @@ export function BrowserTabs({ b }: { b: BrowserPageModel }) {
                 <ContextMenuItem onSelect={() => closeRightTabs(item.id)}>关闭右侧标签页</ContextMenuItem>
               </ContextMenuContent>
             </ContextMenu>
-          ))}
+            return members.length > 1 ? <TabSwitcher key={key} titleSide={titleSide} triggerClassName={`browser-tab-group ${members.some(member => member.id === tab.id) ? "browser-tab-group-selected" : ""}`} contentClassName="z-[510] vessel-browser-tabs-popup" tabs={members.map(member => ({ ...member, active: member.id === tab.id }))} onSelect={id => { setActive(id); setInput(null) }}>{row}</TabSwitcher> : row
+          })}
           <div className="flex h-[var(--browser-tab-height)] w-[var(--browser-tab-height)] shrink-0 items-center justify-center">
             <TabSwitcher
               contentClassName="z-[510] vessel-browser-tabs-popup"

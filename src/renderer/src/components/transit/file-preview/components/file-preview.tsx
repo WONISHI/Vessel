@@ -12,7 +12,7 @@ import type { TransitFile } from "@vessel/type"
 import { useEffect, useState } from "react"
 
 /** Renders the file preview component. */
-export function FilePreview({ item, onLoaded }: { item: TransitItem; onLoaded?: (file: TransitFile) => void }) {
+export function FilePreview({ item, onLoaded, imageDetailsHidden, onImageDetailsHiddenChange }: { item: TransitItem; onLoaded?: (file: TransitFile) => void; imageDetailsHidden?: boolean; onImageDetailsHiddenChange?: (hidden: boolean) => void }) {
   const dark = useDarkAppearance()
   const [file, setFile] = useState<TransitFile>()
   const [error, setError] = useState("")
@@ -61,7 +61,7 @@ export function FilePreview({ item, onLoaded }: { item: TransitItem; onLoaded?: 
         <MarkdownCanvas activeFilePath={item.content} workspacePath={item.root!} showOutline={false} showBreadcrumb={false} showStats={false} />
       </div>
     )
-  if (file.kind === "image") return <TransitImageViewer src={file.content} name={item.title} />
+  if (file.kind === "image") return <TransitImageViewer src={file.content} name={item.title} detailsHidden={imageDetailsHidden} onDetailsHiddenChange={onImageDetailsHiddenChange} />
   return (
     <div className="min-h-0 flex-1">
       <Editor
