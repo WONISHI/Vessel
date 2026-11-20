@@ -314,17 +314,34 @@ it.each([['/editor', true], ['/editor/file', true], ['/resources', true], ['/bro
  } finally { cleanup(); setStatusBarVisible(true) }
 })
 
-it.each(['/editor', '/resources'])('opens the existing console from the page-tools menu on %s', (path) => {
+it.each(['/editor', '/resources'])('toggles the existing console and follows external visibility changes on %s', (path) => {
  setStatusBarVisible(false)
- const open = vi.fn()
- window.addEventListener('vessel:open-workspace-console', open)
+ let visible = true
+ const publish = () => window.dispatchEvent(new CustomEvent('vessel:workspace-console-state', { detail: visible }))
+ const toggle = vi.fn(() => { visible = !visible; publish() })
+ window.addEventListener('vessel:toggle-workspace-console', toggle)
+ window.addEventListener('vessel:request-workspace-console-state', publish)
  try {
   render(<MemoryRouter initialEntries={[path]}><TopSearch /></MemoryRouter>)
-  fireEvent.keyDown(screen.getByRole('button', { name: '页面工具' }), { key: 'Enter' })
+  const openMenu = () => fireEvent.keyDown(screen.getByRole('button', { name: '页面工具' }), { key: 'Enter' })
+  openMenu()
   expect(screen.queryByRole('menuitem', { name: '搜索' })).toBeNull()
+  const close = screen.getByRole('menuitem', { name: '关闭控制台' })
+  expect(close.querySelector('.lucide-square-terminal')).toBeTruthy()
+  fireEvent.click(close)
+  expect(toggle).toHaveBeenCalledOnce()
+  openMenu()
   fireEvent.click(screen.getByRole('menuitem', { name: '打开控制台' }))
-  expect(open).toHaveBeenCalledOnce()
- } finally { cleanup(); setStatusBarVisible(true); window.removeEventListener('vessel:open-workspace-console', open) }
+  expect(toggle).toHaveBeenCalledTimes(2)
+  visible = false
+  act(publish)
+  openMenu()
+  expect(screen.getByRole('menuitem', { name: '打开控制台' })).toBeTruthy()
+ } finally {
+  cleanup(); setStatusBarVisible(true)
+  window.removeEventListener('vessel:toggle-workspace-console', toggle)
+  window.removeEventListener('vessel:request-workspace-console-state', publish)
+ }
 })
 
 it('provides browser toolbar and find actions without a workspace-console action', () => {

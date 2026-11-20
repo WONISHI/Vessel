@@ -1,10 +1,20 @@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { PanelTopClose, PanelTopOpen, Search, Terminal } from "lucide-react"
+import { PanelTopClose, PanelTopOpen, Search, SquareTerminal } from "lucide-react"
 import { useEffect, useState } from "react"
+import { useLocation } from "react-router-dom"
 import "@vscode/codicons/dist/codicon.css"
 
 export function PageToolsMenu({ browser }: { browser: boolean }) {
   const [toolbarCollapsed, setToolbarCollapsed] = useState(false)
+  const [consoleOpen, setConsoleOpen] = useState(false)
+  const { pathname } = useLocation()
+  useEffect(() => {
+    if (browser) return
+    const update = (event: Event) => setConsoleOpen((event as CustomEvent<boolean>).detail === true)
+    window.addEventListener("vessel:workspace-console-state", update)
+    window.dispatchEvent(new Event("vessel:request-workspace-console-state"))
+    return () => window.removeEventListener("vessel:workspace-console-state", update)
+  }, [browser, pathname])
   useEffect(() => {
     if (!browser) return
     const update = (event: Event) => setToolbarCollapsed((event as CustomEvent<boolean>).detail === true)
@@ -14,13 +24,13 @@ export function PageToolsMenu({ browser }: { browser: boolean }) {
   }, [browser])
   const itemClass = "gap-2 rounded-md text-xs data-[highlighted]:!bg-green-600 data-[highlighted]:!text-white [&>svg]:size-4"
   const ToggleIcon = toolbarCollapsed ? PanelTopOpen : PanelTopClose
-  return <DropdownMenu modal={false}>
+  return <DropdownMenu modal={false} onOpenChange={(open) => { if (open && !browser) window.dispatchEvent(new Event("vessel:request-workspace-console-state")) }}>
     <DropdownMenuTrigger asChild><button type="button" aria-label="页面工具" data-title="页面工具" className="flex size-6 items-center justify-center rounded text-stone-500 hover:bg-stone-200 dark:text-stone-400 dark:hover:bg-white/10"><i aria-hidden="true" className="codicon codicon-tools !text-base" /></button></DropdownMenuTrigger>
     <DropdownMenuContent align="end" sideOffset={8} className="vessel-activity-tools-popup z-[510] w-32 rounded-xl p-1">
       {browser ? <>
         <DropdownMenuItem className={itemClass} onSelect={() => window.dispatchEvent(new Event("vessel-browser-toggle-toolbar"))}><ToggleIcon />{toolbarCollapsed ? "展开搜索栏" : "折叠搜索栏"}</DropdownMenuItem>
         <DropdownMenuItem className={itemClass} onSelect={() => window.dispatchEvent(new Event("vessel-browser-open-find"))}><Search />搜索</DropdownMenuItem>
-      </> : <DropdownMenuItem className={itemClass} onSelect={() => window.dispatchEvent(new Event("vessel:open-workspace-console"))}><Terminal />打开控制台</DropdownMenuItem>}
+      </> : <DropdownMenuItem className={itemClass} onSelect={() => window.dispatchEvent(new Event("vessel:toggle-workspace-console"))}><SquareTerminal />{consoleOpen ? "关闭控制台" : "打开控制台"}</DropdownMenuItem>}
     </DropdownMenuContent>
   </DropdownMenu>
 }

@@ -23,7 +23,7 @@ import { useWorkspace } from "@/components/workspace/hooks/useWorkspace"
 import { cn } from "@/lib/utils"
 import { RouterView } from "@vessel/react-router/components"
 import { localFileURL, matchesShortcut } from "@vessel/utils"
-import { ChevronLeft, ChevronRight, Columns2, Copy, FileDown, File, FolderOpen, Globe, Home, LayoutTemplate, List, MoreHorizontal, Pin, Terminal, X } from "lucide-react"
+import { ChevronLeft, ChevronRight, Columns2, Copy, FileDown, File, FolderOpen, Globe, Home, LayoutTemplate, List, MoreHorizontal, Pin, SquareTerminal, X } from "lucide-react"
 import { Suspense, useContext, useEffect, useMemo, useRef, useState } from "react"
 import { useLocation } from "react-router-dom"
 import { toast } from "sonner"
@@ -89,9 +89,22 @@ export default function LayoutMain({ resources = false }: { resources?: boolean 
     const openConsole = () => {
       if (contentHost.current?.getClientRects().length) setTerminal(true)
     }
+    const toggleConsole = () => {
+      if (contentHost.current?.getClientRects().length) setTerminal(value => !value)
+    }
+    const publishConsole = () => {
+      if (contentHost.current?.getClientRects().length) window.dispatchEvent(new CustomEvent("vessel:workspace-console-state", { detail: terminal }))
+    }
     window.addEventListener("vessel:open-workspace-console", openConsole)
-    return () => window.removeEventListener("vessel:open-workspace-console", openConsole)
-  }, [workspaceVisible, resources, location.pathname, graphPage])
+    window.addEventListener("vessel:toggle-workspace-console", toggleConsole)
+    window.addEventListener("vessel:request-workspace-console-state", publishConsole)
+    publishConsole()
+    return () => {
+      window.removeEventListener("vessel:open-workspace-console", openConsole)
+      window.removeEventListener("vessel:toggle-workspace-console", toggleConsole)
+      window.removeEventListener("vessel:request-workspace-console-state", publishConsole)
+    }
+  }, [workspaceVisible, resources, location.pathname, graphPage, terminal])
   const home = resources ? !activeFilePath : ["/editor", "/resources"].includes(location.pathname)
   const [edges, setEdges] = useState({ left: false, right: false })
   const tabList = useRef<HTMLDivElement>(null)
@@ -494,7 +507,7 @@ export default function LayoutMain({ resources = false }: { resources?: boolean 
                     aria-label={terminal ? "关闭控制台" : "打开控制台"}
                     onClick={() => setTerminal((current) => !current)}
                   >
-                    <Terminal className="!size-3.5" />
+                    <SquareTerminal className="!size-3.5" />
                     控制台
                   </Button>
                   {!resources && (
