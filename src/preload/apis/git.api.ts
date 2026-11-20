@@ -1,4 +1,4 @@
-import type { GitPushInfo, GitPushSelection, GitRepositorySettings, GitTagOptions, GitSearchOptions, GitSearchResult } from "@vessel/type/git"
+import type { GitFetchOptions, GitPullOptions, GitPushInfo, GitPushSelection, GitRepositorySettings, GitTagOptions, GitSearchOptions, GitSearchResult } from "@vessel/type/git"
 import type { GitCommitDetail, GitCommitItem, GitDiffResult, GitStatusResult, GitStashPopResult, GitStashEntry, GitStashDetail } from "@vessel/type"
 import { ipcRenderer } from "electron"
 
@@ -65,10 +65,10 @@ export const gitAPI = {
   deleteBranch: (cwd: string, name: string, force?: boolean): Promise<void> => ipcRenderer.invoke("git:delete-branch", cwd, name, force),
 
   /** Fetches fetch. */
-  fetch: (cwd: string, remote?: string): Promise<void> => ipcRenderer.invoke("git:fetch", cwd, remote),
+  fetch: (cwd: string, remote?: string, options?: GitFetchOptions): Promise<void> => ipcRenderer.invoke("git:fetch", cwd, remote, options),
 
   /** Performs the pull operation. */
-  pull: (cwd: string, remote?: string, branch?: string): Promise<{ output: string }> => ipcRenderer.invoke("git:pull", cwd, remote, branch),
+  pull: (cwd: string, remote?: string, branch?: string, options?: GitPullOptions): Promise<{ output: string }> => ipcRenderer.invoke("git:pull", cwd, remote, branch, options),
 
   /** Pushes push. */
   push: (cwd: string, remote?: string, branch?: string, force?: boolean): Promise<{ output: string }> => ipcRenderer.invoke("git:push", cwd, remote, branch, force),

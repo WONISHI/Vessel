@@ -13,7 +13,14 @@ import { memo, useCallback, useEffect, useRef, useState } from "react"
 export const Guest = memo(function Guest({ tab, visible, register, update }: { tab: Tab; visible: boolean; register: (id: string, view: WebviewTag | null) => void; update: (id: string, patch: Partial<Tab>) => void }) {
   const dark = useDarkAppearance()
   const ref = useRef<WebviewTag | null>(null)
+  const zoomRef = useRef(tab.zoom)
+  zoomRef.current = tab.zoom
   const [documentReady, setDocumentReady] = useState(0)
+  // Apply again when a restored/background guest becomes visible or its zoom changes.
+  useEffect(() => {
+    if (!visible || !documentReady) return
+    withGuest(ref.current, (view) => view.setZoomFactor(tab.zoom))
+  }, [visible, documentReady, tab.zoom])
   // Keep expensive theme processing out of first paint and inactive tabs.
   useEffect(() => {
     if (!visible || !documentReady) return
@@ -23,6 +30,7 @@ export const Guest = memo(function Guest({ tab, visible, register, update }: { t
     return () => window.clearTimeout(timer)
   }, [dark, visible, documentReady])
   const [initialURL] = useState(tab.url)
+  const [initialAttributes] = useState(() => ({ ...webviewAttributes, webpreferences: `zoomFactor=${tab.zoom}` }))
   const updateRef = useRef(update)
   useEffect(() => {
     updateRef.current = update
@@ -46,17 +54,17 @@ export const Guest = memo(function Guest({ tab, visible, register, update }: { t
       }).catch(() => {}))
     }
 
+    // Navigation can restore Chromium's host zoom; always use the latest tab value,
+    // including 100%, both at DOM readiness and after the navigation finishes.
+    const applyZoom = () => withGuest(view, (guest) => guest.setZoomFactor(zoomRef.current))
+
     /** Handles ready events. */
     const onReady = () => {
       void view.executeJavaScript(pageObserverScript).catch((error) => console.warn("页面监听注入失败", error))
       markGuestReady(view, true)
       syncVideoPlaying()
       setDocumentReady((revision) => revision + 1)
-      if (tab.zoom && tab.zoom !== 1) {
-        try {
-          view.setZoomFactor(tab.zoom)
-        } catch {}
-      }
+      applyZoom()
       sync()
       updateRef.current(tab.id, { ready: true })
     }
@@ -131,6 +139,7 @@ export const Guest = memo(function Guest({ tab, visible, register, update }: { t
     view.addEventListener("ipc-message", message)
     view.addEventListener("page-favicon-updated", favicon)
     view.addEventListener("dom-ready", onReady)
+    view.addEventListener("did-finish-load", applyZoom)
     view.addEventListener("did-navigate", sync)
     view.addEventListener("did-navigate-in-page", sync)
     view.addEventListener("page-title-updated", sync)
@@ -147,6 +156,7 @@ export const Guest = memo(function Guest({ tab, visible, register, update }: { t
       markGuestReady(view, false)
       view.removeEventListener("page-favicon-updated", favicon)
       view.removeEventListener("dom-ready", onReady)
+      view.removeEventListener("did-finish-load", applyZoom)
       view.removeEventListener("did-navigate", sync)
       view.removeEventListener("did-navigate-in-page", sync)
       view.removeEventListener("page-title-updated", sync)
@@ -166,7 +176,7 @@ export const Guest = memo(function Guest({ tab, visible, register, update }: { t
         [register, tab.id]
       )}
       src={initialURL}
-      {...webviewAttributes}
+      {...initialAttributes}
       style={{ width: "100%", height: "100%", display: visible ? "flex" : "none" }}
     />
   )

@@ -1,3 +1,5 @@
+import { useState } from "react"
+import { GitDiffSheet } from "./components/git-diff-sheet"
 import { GitStashDetails } from "@/pages/git/components/git-stash-details"
 import { GitSearchPanel } from "@/pages/git/components/git-search-panel"
 import { GitOperationLoading } from "@/pages/git/components/operation-loading"
@@ -25,6 +27,7 @@ import { GitStatusBar } from "@/pages/git/components/git-status-bar"
 /** Renders the source tree page component. */
 export default function SourceTreePage() {
   const navigate = useNavigate()
+  const [diffInSheet, setDiffInSheet] = useState(false)
 
   /** Handles activity change events. */
   const handleActivityChange = (act: AsideActivity) => {
@@ -39,6 +42,23 @@ export default function SourceTreePage() {
   const g = useGitPage()
   const { isRepo, activeTab, remoteOperation, status, branches, selectedFile, diffText, handleStageFile, handleUnstageFile, handleInitRepo } = g
 
+  const fileDiff = (<DiffViewer
+                    diffText={diffText}
+                    bottomDocked={diffInSheet}
+                    onToggleDock={() => setDiffInSheet((value) => !value)}
+                    filePath={selectedFile?.path}
+                    isStaged={g.activeFileSection === "staged" && status?.staged.some((f) => f.path === selectedFile?.path)}
+                    isConflict={status?.conflicts.some((file) => file.path === selectedFile?.path)}
+                    stageDisabled={g.resolvingConflicts}
+                    onToggleStage={() => {
+                      if (!selectedFile) return
+                      if (status?.conflicts.some((file) => file.path === selectedFile.path)) { void g.handleResolveConflicts([selectedFile.path]); return }
+                      const isStaged = g.activeFileSection === "staged" && status?.staged.some((f) => f.path === selectedFile.path)
+                      if (isStaged) handleUnstageFile(selectedFile.path)
+                      else handleStageFile(selectedFile.path)
+                    }}
+                  />)
+
   return (
     <Layout
       aside={
@@ -52,7 +72,8 @@ export default function SourceTreePage() {
         {/* 1. 顶部操作工具栏 (SourceTree 经典 Toolbar) */}
         <GitToolbar g={g} />
 
-        {remoteOperation && <GitOperationLoading operation={remoteOperation} branch={branches.current} />}
+        {remoteOperation && !(remoteOperation === "push" && g.pushRequest) && !(remoteOperation === "pull" && g.pullRequest) && !(remoteOperation === "fetch" && g.fetchRequest) && <GitOperationLoading operation={remoteOperation} branch={branches.current} />}
+        {activeTab === "status" && diffInSheet && !remoteOperation && <GitDiffSheet onDockRight={() => setDiffInSheet(false)}>{fileDiff}</GitDiffSheet>}
         {/* 2. 主体区 (左右分栏，1号支持 Resizable 水平拖拽) */}
         <div inert={remoteOperation !== null} aria-busy={remoteOperation !== null} className="flex min-h-0 flex-1">
         <ResizablePanelGroup
@@ -107,7 +128,7 @@ export default function SourceTreePage() {
                   id="git-file-list"
                   defaultSize="60%"
                   minSize="20%"
-                  maxSize="85%"
+                  maxSize={diffInSheet ? "100%" : "85%"}
                   className="git-file-panel flex flex-col min-h-0 min-w-0 bg-stone-50/30"
                 >
                   <ResizablePanelGroup orientation="vertical" className="min-h-0 flex-1">
@@ -157,31 +178,18 @@ export default function SourceTreePage() {
                 </ResizablePanel>
 
                 {/* 3号: 拖拽调节宽度的分割线 */}
-                <ResizableHandle aria-label="调整文件列表与差异查看器宽度" />
+                {!diffInSheet && <ResizableHandle aria-label="调整文件列表与差异查看器宽度" />}
 
                 {/* 4号: 选定文件 Diff 区域 - 占 40% */}
-                <ResizablePanel
+                {!diffInSheet && <ResizablePanel
                   id="git-file-diff"
                   defaultSize="40%"
                   minSize="15%"
                   maxSize="80%"
                   className="flex min-h-0 min-w-0 flex-col overflow-hidden"
                 >
-                  <DiffViewer
-                    diffText={diffText}
-                    filePath={selectedFile?.path}
-                    isStaged={g.activeFileSection === "staged" && status?.staged.some((f) => f.path === selectedFile?.path)}
-                    isConflict={status?.conflicts.some((file) => file.path === selectedFile?.path)}
-                    stageDisabled={g.resolvingConflicts}
-                    onToggleStage={() => {
-                      if (!selectedFile) return
-                      if (status?.conflicts.some((file) => file.path === selectedFile.path)) { void g.handleResolveConflicts([selectedFile.path]); return }
-                      const isStaged = g.activeFileSection === "staged" && status?.staged.some((f) => f.path === selectedFile.path)
-                      if (isStaged) handleUnstageFile(selectedFile.path)
-                      else handleStageFile(selectedFile.path)
-                    }}
-                  />
-                </ResizablePanel>
+                  {fileDiff}
+                </ResizablePanel>}
               </ResizablePanelGroup>
             ) : (
               /* 视图 2: 提交历史 (Git Graph) 视图 */

@@ -127,7 +127,7 @@ export interface SettingsAPI {
   chooseAvatar(): Promise<string | null>
   getBackupExportSecret(workspacePath?: string): Promise<string>
   saveSettings(settings: AppSettings, secret?: string): Promise<AppSettings>
-  getSettingsInfo(): Promise<{ version: string; electron: string; node: string }>
+  getSettingsInfo(): Promise<{ version: string; electron: string; node: string; deviceName: string }>
   testBackup(settings: AppSettings["backup"], secret?: string): Promise<void>
   setBackupWorkspace(path: string | null): Promise<void>
   runBackup(file?: string, workspace?: string): Promise<BackupStatus>

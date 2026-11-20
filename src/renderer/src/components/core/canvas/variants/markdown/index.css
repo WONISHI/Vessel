@@ -1101,3 +1101,15 @@ html.dark .vessel-heading-grip:hover { background: #ffffff0f; color: #d6d3d1; }
 .vditor-toolbar .vessel-heading-exit-focus[hidden] { display: none; }
 .vditor-toolbar .vessel-heading-exit-focus:hover { background: transparent; }
 html.dark .vditor-toolbar .vessel-heading-exit-focus:hover { background: transparent; }
+
+.vessel-vditor .vditor-reset pre.vessel-code-frame { position: relative; }
+.vessel-vditor .vditor-reset pre.vessel-code-frame::before { padding-right: 52px; }
+.vessel-vditor .vditor-reset .vessel-code-copy {
+  position: absolute; top: 5px; right: 8px; display: grid; place-items: center;
+  width: 28px; height: 28px; padding: 0; border: 0; border-radius: 5px;
+  background: transparent; color: #78716c; cursor: pointer; user-select: none;
+}
+.vessel-vditor .vditor-reset .vessel-code-copy:hover { background: #e7e5e4; color: #44403c; }
+.vessel-vditor .vditor-reset .vessel-code-copy:focus-visible { outline: 2px solid #16a34a; outline-offset: 1px; }
+html.dark .vessel-vditor .vditor-reset .vessel-code-copy { color: #a8a29e; }
+html.dark .vessel-vditor .vditor-reset .vessel-code-copy:hover { background: #ffffff1a; color: #e6e8eb; }

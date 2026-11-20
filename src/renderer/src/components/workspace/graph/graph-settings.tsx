@@ -22,7 +22,7 @@ function RangeSetting({ label, value, min, max, step, onChange }: { label: strin
 export function GraphSettings({ settings, onChange, activeLabel }: { settings: Settings; onChange: (value: Settings) => void; activeLabel: string }) {
   const set = <K extends keyof Settings>(key: K, value: Settings[K]) => onChange({ ...settings, [key]: value })
   return <aside className="workspace-graph-settings" aria-label="图谱设置">
-    <ScrollArea className="workspace-graph-settings-scroll" type="auto">
+    <ScrollArea className="workspace-graph-settings-scroll" type="hover" scrollHideDelay={300}>
     <div className="workspace-graph-settings-content">
       <div className="workspace-graph-settings-heading"><strong>图谱设置</strong><button type="button" aria-label="恢复默认图谱设置" data-title="恢复默认" onClick={() => onChange({ ...defaultGraphSettings, groups: [] })}><RotateCcw size={14} /></button></div>
       <Section title="筛选" open>

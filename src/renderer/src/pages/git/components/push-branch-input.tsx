@@ -1,25 +1,16 @@
 import { useState } from "react"
-import { Check, ChevronDown } from "lucide-react"
 import { Input } from "@/components/ui/input"
-import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Command, CommandItem, CommandList } from "@/components/ui/command"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
-/** Editable branch name with the same shadcn picker used by other Git dialogs. */
+/** Use the repository picker for branches, with an explicit option for a new name. */
 export function PushBranchInput({ label, value, options, disabled, onChange }: { label: string; value: string; options: string[]; disabled: boolean; onChange: (value: string) => void }) {
-  const [open, setOpen] = useState(false)
-  return <Popover open={open && !disabled} onOpenChange={setOpen}>
-    <PopoverAnchor asChild>
-      <div className="relative min-w-40">
-        <Input aria-label={label} value={value} disabled={disabled} autoComplete="off" spellCheck={false} onChange={(event) => onChange(event.target.value)} onKeyDown={(event) => { if (event.key === "ArrowDown" && options.length) { event.preventDefault(); setOpen(true) } }} className={`h-8 pr-8 text-xs md:text-xs ${open ? "border-green-600 ring-2 ring-green-600/10" : ""}`} />
-        <PopoverTrigger asChild><button type="button" aria-label={`选择${label}`} disabled={disabled || !options.length} className="absolute right-1 top-1 grid size-6 place-items-center rounded text-stone-400 hover:bg-stone-100 disabled:opacity-40 dark:hover:bg-stone-700"><ChevronDown className="size-3.5" /></button></PopoverTrigger>
-      </div>
-    </PopoverAnchor>
-    <PopoverContent align="start" sideOffset={4} className="z-[60] w-[var(--radix-popover-trigger-width)] min-w-40 rounded-md p-1 shadow-md">
-      <Command defaultValue={value}>
-        <CommandList className="max-h-48">
-          {options.map((branch) => <CommandItem key={branch} value={branch} data-current={value === branch} onSelect={() => { onChange(branch); setOpen(false) }} className="relative min-h-7 rounded-sm py-1.5 pl-8 pr-2 text-xs data-[selected=true]:bg-green-600 data-[selected=true]:text-white data-[current=true]:bg-green-600 data-[current=true]:text-white"><Check className={`absolute left-2 size-4 ${value === branch ? "" : "opacity-0"}`} /><span className="truncate">{branch}</span></CommandItem>)}
-        </CommandList>
-      </Command>
-    </PopoverContent>
-  </Popover>
+  const [editing, setEditing] = useState(false)
+  const branches = [...new Set([value, ...options].filter(Boolean))]
+  let custom = "__vessel_custom_branch__"
+  while (branches.includes(custom)) custom += "_"
+  if (editing) return <Input autoFocus aria-label={label} value={value} disabled={disabled} autoComplete="off" spellCheck={false} onChange={(event) => onChange(event.target.value)} onBlur={() => setEditing(false)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === "Escape") { event.preventDefault(); setEditing(false) } }} className="h-8 min-w-40 text-xs md:text-xs" />
+  return <Select value={value} disabled={disabled} onValueChange={(next) => { if (!next) return; if (next === custom) setEditing(true); else onChange(next) }}>
+    <SelectTrigger aria-label={label} className="h-8 min-w-40 w-full text-xs"><SelectValue placeholder="选择远程分支" /></SelectTrigger>
+    <SelectContent>{branches.map((branch) => <SelectItem key={branch} value={branch} className="text-xs">{branch}</SelectItem>)}<SelectItem value={custom} className="text-xs text-muted-foreground">输入其他分支名称…</SelectItem></SelectContent>
+  </Select>
 }

@@ -6,15 +6,17 @@ afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals() })
 it('pans with the middle mouse button even over a node and keeps left click for opening it', () => {
  let frame!: FrameRequestCallback
  const messages = vi.fn()
+ const terminate = vi.fn()
  let receive!: (event: { data: unknown }) => void
  vi.stubGlobal('Worker', class {
   set onmessage(callback: typeof receive) { receive = callback }
   postMessage = messages
-  terminate = vi.fn()
+  terminate = terminate
  })
  vi.stubGlobal('PointerEvent', class extends MouseEvent { pointerId = 1; pointerType = 'mouse' })
  vi.stubGlobal('ResizeObserver', class { constructor(private callback: () => void) {} observe() { this.callback() } disconnect() {} })
- vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => { frame = callback; return 1 })
+ const requestFrame = vi.fn((callback: FrameRequestCallback) => { frame = callback; return 1 })
+ vi.stubGlobal('requestAnimationFrame', requestFrame)
  vi.stubGlobal('cancelAnimationFrame', vi.fn())
  const context = Object.fromEntries(['setTransform', 'clearRect', 'translate', 'scale', 'beginPath', 'moveTo', 'lineTo', 'stroke', 'arc', 'fill', 'fillText'].map(key => [key, vi.fn()]))
  vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(context as never)
@@ -60,5 +62,15 @@ it('pans with the middle mouse button even over a node and keeps left click for 
  act(() => frame(500))
  expect(context.scale.mock.calls.at(-1)![0]).toBeCloseTo(fittedScale / 1.2)
  expect(context.scale.mock.calls.at(-1)![0]).toBeLessThan(fittedScale)
+
+ act(() => window.dispatchEvent(new Event('vessel:graph-close')))
+ expect(terminate).toHaveBeenCalledOnce()
+ expect(cancelAnimationFrame).toHaveBeenCalledWith(1)
+ const draws = context.clearRect.mock.calls.length, requests = requestFrame.mock.calls.length
+ act(() => frame(600))
+ expect(context.clearRect).toHaveBeenCalledTimes(draws)
+ expect(requestFrame).toHaveBeenCalledTimes(requests)
+ rendered.unmount()
+ expect(terminate).toHaveBeenCalledOnce()
 
 })

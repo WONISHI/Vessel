@@ -20,7 +20,7 @@ import { SyncDiagnosticsPanel } from "@/pages/settings/components/sync-diagnosti
 import { useRouter } from "@vessel/react-router"
 import type { AppSettings, BackupStatus } from "@vessel/type"
 import { defaultSettings, isLegacyDefaultIgnoredFiles } from "@vessel/utils"
-import { ArrowLeft, ChevronDown, Camera, CheckCircle2, Clock, Cloud, Download, RotateCcw, Save, Settings, Upload } from "lucide-react"
+import { ArrowLeft, ChevronDown, CheckCircle2, Clock, Cloud, Download, RotateCcw, Save, Settings, Upload } from "lucide-react"
 import { version as reactVersion, useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 
@@ -84,7 +84,7 @@ export function SettingsPage() {
   const [status, setStatus] = useState<BackupStatus>({ running: false })
   const [preview, setPreview] = useState<BackupStatus>()
   const [previewLimit, setPreviewLimit] = useState(100)
-  const [info, setInfo] = useState({ version: "…", electron: "…", node: "…" })
+  const [info, setInfo] = useState({ version: "…", electron: "…", node: "…", deviceName: "正在读取设备信息…" })
   useEffect(() => {
     /** Refreshes refresh. */
     const refresh = () => {
@@ -96,7 +96,7 @@ export function SettingsPage() {
           setDraft(normalized)
           setSaved(normalized)
           setSecret(undefined)
-          setInfo(version)
+          setInfo({ ...version, deviceName: version.deviceName || "设备信息暂不可用" })
           setStatus(backup)
         })
         .catch((error) => setError(String(error)))
@@ -305,15 +305,6 @@ export function SettingsPage() {
                   <p className="settings-description">应用信息、个人资料和版本详情</p>
                   <AppUpdateSettings />
                   <div className="settings-card flex items-center gap-4 p-6">
-                    <button type="button" aria-label="更换头像" data-title="更换头像" className="relative cursor-pointer rounded-2xl focus-visible:outline-2 focus-visible:outline-green-600" onClick={async () => {
-                      try {
-                        const avatar = await window.electronAPI.chooseAvatar()
-                        if (!avatar) return
-                        update("avatar", avatar)
-                        setError("")
-                        toast.success("头像已更新，点击保存后生效")
-                      } catch (error) { setError(error instanceof Error ? error.message : String(error)) }
-                    }}>
                       <span className="flex size-16 items-center justify-center overflow-hidden rounded-2xl bg-green-100 text-2xl font-bold text-green-700">
                         {draft.avatar ? (
                           <img
@@ -322,40 +313,18 @@ export function SettingsPage() {
                             className="size-full object-cover"
                           />
                         ) : (
-                          draft.name.slice(0, 1)
+                          info.deviceName.slice(0, 1)
                         )}
                       </span>
-                      <Camera className="absolute -bottom-1 -right-1 size-6 rounded-full bg-green-600 p-1 text-white" />
-                    </button>
                     <div>
-                      <h3 className="text-lg font-semibold">{draft.name || "本地用户"}</h3>
-                      <p className="text-xs text-muted-foreground">{draft.email}</p>
+                      <h3 className="text-lg font-semibold">{info.deviceName}</h3>
                       <span className="mt-2 inline-block rounded bg-green-50 px-2 py-1 text-xs text-green-700">本地用户</span>
                     </div>
                     <span className="ml-auto text-sm text-muted-foreground">v{info.version}</span>
                   </div>
                   <div className="settings-card">
-                    <Row
-                      title="用户名"
-                      description="本地个人资料"
-                    >
-                      <Input
-                        aria-label="用户名"
-                        value={draft.name}
-                        maxLength={80}
-                        onChange={(e) => update("name", e.target.value)}
-                      />
-                    </Row>
-                    <Row
-                      title="邮箱"
-                      description="保存在本机的联系信息"
-                    >
-                      <Input
-                        aria-label="邮箱"
-                        type="email"
-                        value={draft.email}
-                        onChange={(e) => update("email", e.target.value)}
-                      />
+                    <Row title="用户名" description="电脑型号与 MAC 物理地址">
+                      <span className="break-all text-right text-sm text-stone-700 dark:text-stone-300" aria-label="用户名">{info.deviceName}</span>
                     </Row>
                   </div>
                   <div className="settings-card">
