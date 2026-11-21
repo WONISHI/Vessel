@@ -58,6 +58,7 @@ export function DateCalendar({ date, onSelect, min, max }: { date: Date; onSelec
             onClick={() => selectDate(day)}
             className={cn(
               "vessel-date-day flex size-7 items-center justify-center rounded-lg text-xs disabled:opacity-30 disabled:pointer-events-none hover:bg-green-50 hover:text-green-700",
+              day.getMonth() === month.getMonth() && day.getDay() >= 1 && day.getDay() <= 5 && "font-bold text-black dark:text-stone-100",
               day.getMonth() === month.getMonth() && (day.getDay() === 0 || day.getDay() === 6) && "text-stone-500",
               day.getMonth() !== month.getMonth() && "text-stone-300",
               calendarDateKey(day) === calendarDateKey(selected) && "bg-green-600 text-white hover:bg-green-700 hover:text-white"

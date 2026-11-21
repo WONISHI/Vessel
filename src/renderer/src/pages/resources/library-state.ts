@@ -52,8 +52,16 @@ export function useLibraryMeta() {
   }, [value])
 }
 
-/** Selects last pinned. */
+/** Re-enter the current project; use the last pin only when no selection exists. */
 export function selectLastPinned() {
+  try {
+    const current = JSON.parse(localStorage.getItem("resource_current_project") || "null")
+    if (typeof current?.path === "string" && current.path && typeof current.name === "string" && current.name) {
+      // Also refresh a kept-alive route after a project was selected in its preview.
+      window.dispatchEvent(new Event("vessel:resource-changed"))
+      return true
+    }
+  } catch { /* An invalid selection can fall back to the last pinned project. */ }
   const project = readLibraryMeta().lastPinned
   if (!project) return false
   localStorage.setItem("resource_current_project", JSON.stringify({ ...project, files: [] }))

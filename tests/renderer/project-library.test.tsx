@@ -85,6 +85,7 @@ it("selects only the most recently popped project when switching back to an earl
   fireEvent.click(screen.getByRole("button", { name: "固定资源库" }))
   expect(screen.getByRole("button", { name: "取消固定资源库" })).toBeTruthy()
   fireEvent.click(await screen.findByRole("button", { name: "Vessel", exact: true }))
+  fireEvent.click(await screen.findByRole("button", { name: "切换项目", exact: true }))
   expect(screen.getByRole("button", { name: "固定资源库" })).toBeTruthy()
   expect(screen.queryByRole("button", { name: "取消固定资源库" })).toBeNull()
   fireEvent.click(screen.getByRole("button", { name: "固定资源库" }))

@@ -2,6 +2,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-libra
 import { afterEach, beforeEach, expect, it, vi } from "vitest"
 import { MemoryRouter, useLocation } from "react-router-dom"
 import { PageToolsMenu } from "@/components/layout/page-tools-menu"
+import { SidebarProvider, useSidebar } from "@/components/ui/sidebar"
 import { readLibraryMeta, rememberLibraryProject } from "@/pages/resources/library-state"
 import { refreshRecentResourceProjects } from "@/pages/resources/open-project"
 import { projectCache } from "@/components/workspace/components/layout-aside/project-library/components/project-library-shared"
@@ -108,4 +109,49 @@ it("seeds existing history from available resource projects without including ed
   ]) as any
   await refreshRecentResourceProjects()
   expect(readLibraryMeta().recent?.map(item => item.path)).toEqual(["/b", "/a"])
+})
+
+it("closes and reopens the visible page sidebar without changing hidden cached pages", async () => {
+  vi.stubGlobal("matchMedia", () => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() }))
+  function State({ label }: { label: string }) {
+    return <output data-testid={label}>{useSidebar().open ? "open" : "closed"}</output>
+  }
+  render(<MemoryRouter initialEntries={["/resources/file"]}>
+    <PageToolsMenu browser={false} />
+    <SidebarProvider><State label="visible-sidebar" /></SidebarProvider>
+    <div hidden><SidebarProvider><State label="cached-sidebar" /></SidebarProvider></div>
+  </MemoryRouter>)
+  openMenu()
+  fireEvent.click(await screen.findByRole("menuitem", { name: "关闭侧边栏" }))
+  expect(screen.getByTestId("visible-sidebar").textContent).toBe("closed")
+  expect(screen.getByTestId("cached-sidebar").textContent).toBe("open")
+  await waitFor(() => expect(screen.queryByRole("menu")).toBeNull())
+  openMenu()
+  fireEvent.click(await screen.findByRole("menuitem", { name: "打开侧边栏" }))
+  expect(screen.getByTestId("visible-sidebar").textContent).toBe("open")
+})
+
+it("confirms a project switch and leaves the current project and route untouched on cancellation", async () => {
+  const current = { name: "Vessel", path: "/projects/Vessel", files: [] }
+  localStorage.setItem("resource_current_project", JSON.stringify(current))
+  rememberLibraryProject({ name: "Devly", path: "/projects/Devly" })
+  mount("/resources/file")
+  const choose = async () => {
+    openMenu()
+    fireEvent.keyDown(screen.getByRole("menuitem", { name: "打开项目" }), { key: "ArrowRight" })
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Devly" }))
+    await screen.findByRole("alertdialog", { name: "切换项目？" })
+  }
+  await choose()
+  expect(screen.getByText(/可能中断当前终端中正在运行的命令或请求/)).toBeTruthy()
+  expect(JSON.parse(localStorage.getItem("resource_current_project")!)).toEqual(current)
+  fireEvent.click(screen.getByRole("button", { name: "取消", exact: true }))
+  expect(screen.getByLabelText("当前路由").textContent).toBe("/resources/file")
+  expect(JSON.parse(localStorage.getItem("resource_current_project")!)).toEqual(current)
+  expect(window.electronAPI.setAppState).not.toHaveBeenCalled()
+  await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull())
+  await choose()
+  fireEvent.click(screen.getByRole("button", { name: "切换项目", exact: true }))
+  await waitFor(() => expect(JSON.parse(localStorage.getItem("resource_current_project")!).path).toBe("/projects/Devly"))
+  expect(screen.getByLabelText("当前路由").textContent).toBe("/resources")
 })

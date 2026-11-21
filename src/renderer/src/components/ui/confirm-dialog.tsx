@@ -53,7 +53,7 @@ export function ConfirmDialog({
       </DialogPortal>}
       <AlertDialogContent
         {...(activityBarAccessible ? { showCloseButton: false, style: layout.contentStyle } : {})}
-        className="todo-confirm-dialog"
+        className="todo-confirm-dialog !z-[240]"
         overlayClassName="!z-[230] !bg-black/[.04] backdrop-blur-[3px]"
       >
         <div className="todo-confirm-heading">

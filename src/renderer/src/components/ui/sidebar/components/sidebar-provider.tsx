@@ -15,6 +15,8 @@ export const SidebarProvider = React.forwardRef<
     onOpenChange?: (open: boolean) => void
   }
 >(({ defaultOpen = true, open: openProp, onOpenChange: setOpenProp, className, style, children, ...props }, ref) => {
+  const containerRef = React.useRef<HTMLDivElement>(null)
+  React.useImperativeHandle(ref, () => containerRef.current!, [])
   const [width, setWidth] = useDirectoryTreeSidebarWidth()
   const isMobile = useIsMobile()
   const [openMobile, setOpenMobile] = React.useState(false)
@@ -56,11 +58,22 @@ export const SidebarProvider = React.forwardRef<
       const expanded = (event as CustomEvent).detail
       if (typeof expanded === "boolean") (isMobile ? setOpenMobile : setOpen)(expanded)
     }
+    const reportPage = (event: Event) => {
+      // Cached workspaces remain mounted. Only the displayed page owns this action.
+      if (!containerRef.current) return
+      for (let node: HTMLElement | null = containerRef.current; node; node = node.parentElement) {
+        if (node.hidden || getComputedStyle(node).display === "none") return
+      }
+      const callback = (event as CustomEvent).detail
+      if (typeof callback === "function") callback(isMobile ? openMobile : open, isMobile ? setOpenMobile : setOpen)
+    }
     window.addEventListener("vessel:request-sidebar-state", report)
     window.addEventListener("vessel:set-sidebar-open", change)
+    window.addEventListener("vessel:request-page-sidebar-state", reportPage)
     return () => {
       window.removeEventListener("vessel:request-sidebar-state", report)
       window.removeEventListener("vessel:set-sidebar-open", change)
+      window.removeEventListener("vessel:request-page-sidebar-state", reportPage)
     }
   }, [isMobile, openMobile, open, setOpen])
 
@@ -109,7 +122,7 @@ export const SidebarProvider = React.forwardRef<
             } as React.CSSProperties
           }
           className={cn("group/sidebar-wrapper flex min-h-svh w-full has-[[data-variant=inset]]:bg-sidebar", className)}
-          ref={ref}
+          ref={containerRef}
           {...props}
         >
           {children}

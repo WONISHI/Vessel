@@ -9,9 +9,11 @@ import { GitDecorationScope } from "@/features/file-icons/state"
 import { readLibraryMeta, rememberLibraryProject, updateLibraryMeta } from "@/pages/resources/library-state"
 import { Ellipsis, ExternalLink, FolderOpen, HardDrive, HardDriveUpload, Plus, RefreshCw, X } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
+import { useProjectSwitchConfirmation } from "@/pages/resources/use-project-switch-confirmation"
 
 /** Renders the project library content component. */
 export function ProjectLibraryContent({ pinned, onPin, onSelect }: { pinned: boolean; onPin: () => void; onSelect: (project: Project) => void }) {
+  const { requestSwitch, confirmation } = useProjectSwitchConfirmation()
   const { workspace } = useWorkspace()
   const [openingEditor, setOpeningEditor] = useState(false)
   const [projects, setProjects] = useState<Project[]>(() => projectCache.projects ?? [])
@@ -55,8 +57,10 @@ export function ProjectLibraryContent({ pinned, onPin, onSelect }: { pinned: boo
   const activate = (project: Project) => {
     rememberLibraryProject(project)
     localStorage.setItem("resource_current_project", JSON.stringify({ ...project, files: [] }))
+    window.dispatchEvent(new Event("vessel:resource-changed"))
     onSelect(project)
   }
+  const requestActivate = (project: Project) => requestSwitch(project, () => activate(project))
 
   /** Adds add. */
   const add = async () => {
@@ -67,7 +71,7 @@ export function ProjectLibraryContent({ pinned, onPin, onSelect }: { pinned: boo
       await writes.current
       await window.electronAPI.setAppState("project-library", next)
       setProjects(next)
-      activate(project)
+      requestActivate(project)
     } catch (reason) {
       setError(String(reason))
     }
@@ -88,7 +92,7 @@ export function ProjectLibraryContent({ pinned, onPin, onSelect }: { pinned: boo
     updateLibraryMeta({ pins, lastPinned: meta.lastPinned?.path === project.path ? pins.at(-1) : meta.lastPinned })
   }
   return (
-    <section
+    <><section
       aria-label="项目资源库"
       className="flex h-full min-h-0 flex-col bg-white dark:bg-[#22272e]"
     >
@@ -105,7 +109,7 @@ export function ProjectLibraryContent({ pinned, onPin, onSelect }: { pinned: boo
                   <button
                     data-title={project.path}
                     className="min-w-0 flex-1 truncate px-2 py-1 text-left text-xs leading-4"
-                    onClick={() => activate(project)}
+                    onClick={() => requestActivate(project)}
                   >
                     {project.name}
                   </button>
@@ -145,7 +149,7 @@ export function ProjectLibraryContent({ pinned, onPin, onSelect }: { pinned: boo
               data-active={project.path === workspace.path}
                     data-title={project.path}
                     className="block w-full truncate rounded px-2 py-2 text-left text-xs hover:bg-green-50"
-                    onClick={() => activate(project)}
+                    onClick={() => requestActivate(project)}
                   >
                     {project.name}
                   </button>
@@ -232,6 +236,6 @@ export function ProjectLibraryContent({ pinned, onPin, onSelect }: { pinned: boo
         </GitDecorationScope.Provider>
       </ScrollArea>
       <div className="border-t bg-stone-50/70 px-3 py-1.5 dark:bg-white/[.03] text-[10px] leading-4 text-stone-400">{projects.length} 个项目 / 附件目录</div>
-    </section>
+    </section>{confirmation}</>
   )
 }

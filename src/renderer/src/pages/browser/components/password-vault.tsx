@@ -156,7 +156,7 @@ export function PasswordVault({ guestId, url }: { guestId?: () => number | undef
               <p>检测到登录账号，是否保存到 Vessel？</p>
               <p className="mt-1 break-all text-muted-foreground">{candidate.origin} · {candidate.username}</p>
               <p className="mt-2 text-xs text-muted-foreground">请先{state.initialized ? "解锁" : "创建"}保险库，再确认保存。候选内容仅临时保留 60 秒。</p>
-              <Button variant="outline" className="mt-2" disabled={busy} onClick={() => void run("candidate", { id: candidate.id, choice: "dismiss" })}>此次不保存</Button>
+              <Button variant="outline" className="mt-2 hover:!bg-stone-100 dark:hover:!bg-white/10" disabled={busy} onClick={() => void run("candidate", { id: candidate.id, choice: "dismiss" })}>此次不保存</Button>
             </div>}
             {!state.unlocked ? <form className="space-y-3" onSubmit={(event) => {
               event.preventDefault()
@@ -172,8 +172,8 @@ export function PasswordVault({ guestId, url }: { guestId?: () => number | undef
                 <p>保存此网站的账号和密码？</p><p className="break-all">{candidate.origin} · {candidate.username || "未提供账号"}</p>
                 <div className="flex flex-wrap gap-2">
                   <Button disabled={busy} onClick={() => void run("candidate", { id: candidate.id, choice: "save" })}>保存 / 更新</Button>
-                  <Button variant="outline" disabled={busy} onClick={() => void run("candidate", { id: candidate.id, choice: "dismiss" })}>此次不保存</Button>
-                  <Button variant="outline" disabled={busy} onClick={() => void run("candidate", { id: candidate.id, choice: "never" })}>此网站永不保存</Button>
+                  <Button variant="outline" className="hover:!bg-stone-100 dark:hover:!bg-white/10" disabled={busy} onClick={() => void run("candidate", { id: candidate.id, choice: "dismiss" })}>此次不保存</Button>
+                  <Button variant="outline" className="hover:!bg-stone-100 dark:hover:!bg-white/10" disabled={busy} onClick={() => void run("candidate", { id: candidate.id, choice: "never" })}>此网站永不保存</Button>
                 </div>
               </div>}
               {!candidate && <p className="text-muted-foreground">已保存 {items.length} 个账号；只能填充到相同网站来源，协议、主机和端口均须一致。</p>}
@@ -191,7 +191,7 @@ export function PasswordVault({ guestId, url }: { guestId?: () => number | undef
                     const id = guestId()
                     if (id !== undefined) void run("fill", { id: item.id, guestId: String(id) })
                   }}>填充当前网页</Button>}
-                  <Button variant="outline" disabled={busy} onClick={() => setDeleteId(item.id)}>删除</Button>
+                  <Button variant="outline" className="hover:!bg-stone-100 dark:hover:!bg-white/10" disabled={busy} onClick={() => setDeleteId(item.id)}>删除</Button>
                 </div>
               </div>)}
               {!candidate && <details className="rounded border p-3"><summary className="cursor-pointer">加密导出备份</summary>

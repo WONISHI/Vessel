@@ -119,7 +119,7 @@ export default function TodoMain({
                         key === selected && "border-green-600 bg-emerald-50"
                       )}
                     >
-                      <span className="relative inline-flex h-5 items-center justify-center text-sm font-medium">
+                      <span className={cn("relative inline-flex h-5 items-center justify-center text-sm font-medium", date.getMonth() === month.getMonth() && date.getDay() >= 1 && date.getDay() <= 5 && "font-bold text-black dark:text-stone-100")}>
                         {date.getDate()}
                         {key === today && (
                           <span
