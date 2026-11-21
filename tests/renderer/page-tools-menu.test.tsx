@@ -155,3 +155,27 @@ it("confirms a project switch and leaves the current project and route untouched
   await waitFor(() => expect(JSON.parse(localStorage.getItem("resource_current_project")!).path).toBe("/projects/Devly"))
   expect(screen.getByLabelText("当前路由").textContent).toBe("/resources")
 })
+
+it("opens the active resource project in an external editor instead of the previous saved project", async () => {
+  localStorage.setItem("resource_current_project", JSON.stringify({ name: "Vessel", path: "/projects/Vessel" }))
+  window.electronAPI.openProjectInEditor = vi.fn().mockResolvedValue("VS Code")
+  const provide = (event: Event) => {
+    const callback = (event as CustomEvent).detail
+    expect(callback.scope).toBe("resources")
+    callback({ root: "/projects/Devly", files: [], openFile: vi.fn() })
+  }
+  window.addEventListener("vessel:request-workspace-files", provide)
+  try {
+    mount("/resources/file")
+    openMenu()
+    fireEvent.click(await screen.findByRole("menuitem", { name: "在编辑器中打开" }))
+    expect(window.electronAPI.openProjectInEditor).toHaveBeenCalledExactlyOnceWith("/projects/Devly")
+    expect(screen.getByLabelText("当前路由").textContent).toBe("/resources/file")
+  } finally { window.removeEventListener("vessel:request-workspace-files", provide) }
+})
+
+it("offers external editor opening for the workspace and disables it without a project", () => {
+  mount("/editor")
+  openMenu()
+  expect(screen.getByRole("menuitem", { name: "在编辑器中打开" }).getAttribute("aria-disabled")).toBe("true")
+})

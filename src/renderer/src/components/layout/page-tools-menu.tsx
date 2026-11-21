@@ -1,5 +1,5 @@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { FolderOpen, PanelLeftClose, PanelLeftOpen, PanelTopClose, PanelTopOpen, RefreshCcw, Search, SquareTerminal } from "lucide-react"
+import { ExternalLink, FolderOpen, PanelLeftClose, PanelLeftOpen, PanelTopClose, PanelTopOpen, RefreshCcw, Search, SquareTerminal } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { useLocation, useNavigate } from "react-router-dom"
 import { useWorkspaceSync } from "./use-workspace-sync"
@@ -7,6 +7,7 @@ import { useLibraryMeta, type LibraryProject } from "@/pages/resources/library-s
 import { openResourceProject, refreshRecentResourceProjects } from "@/pages/resources/open-project"
 import { toast } from "@/components/ui/sonner"
 import { useProjectSwitchConfirmation } from "@/pages/resources/use-project-switch-confirmation"
+import type { FilePickerRequest, FilePickerWorkspace } from "@/components/workspace-file-picker/types"
 import "@vscode/codicons/dist/codicon.css"
 
 export function PageToolsMenu({ browser }: { browser: boolean }) {
@@ -25,6 +26,25 @@ export function PageToolsMenu({ browser }: { browser: boolean }) {
   const sync = useWorkspaceSync(workspace)
   const { recent = [] } = useLibraryMeta()
   const [opening, setOpening] = useState(false)
+  const [editorRoot, setEditorRoot] = useState<string>()
+  const [openingEditor, setOpeningEditor] = useState(false)
+  const requestEditorRoot = () => {
+    let root: string | undefined
+    try {
+      const selected = JSON.parse(localStorage.getItem(resources ? "resource_current_project" : "app_current_workspace") || "null")
+      if (typeof selected?.path === "string") root = selected.path
+    } catch { /* The active controller can still supply its project path. */ }
+    const provide: FilePickerRequest = Object.assign((value: FilePickerWorkspace) => { root = value.root }, { scope: resources ? "resources" as const : "workspace" as const })
+    window.dispatchEvent(new CustomEvent("vessel:request-workspace-files", { detail: provide }))
+    setEditorRoot(root)
+  }
+  const openInEditor = async () => {
+    if (!editorRoot || openingEditor) return
+    setOpeningEditor(true)
+    try { await window.electronAPI.openProjectInEditor(editorRoot) }
+    catch (error) { toast.error(String(error).replace(/^Error invoking remote method '[^']+': (?:Error: )?/, "")) }
+    finally { setOpeningEditor(false) }
+  }
   const loadRecent = () => { void refreshRecentResourceProjects().catch(error => toast.error(String(error))) }
   useEffect(() => {
     if (resources) void refreshRecentResourceProjects().catch(error => toast.error(String(error)))
@@ -66,7 +86,7 @@ export function PageToolsMenu({ browser }: { browser: boolean }) {
   return <><DropdownMenu modal={false} onOpenChange={(open) => {
     if (!open) return
     if (!browser) window.dispatchEvent(new Event("vessel:request-workspace-console-state"))
-    if (workspace || resources) requestSidebar()
+    if (workspace || resources) { requestSidebar(); requestEditorRoot() }
     if (workspace) window.dispatchEvent(new Event("vessel:request-page-sync-state"))
     if (resources) loadRecent()
   }}>
@@ -78,6 +98,7 @@ export function PageToolsMenu({ browser }: { browser: boolean }) {
       </> : <>
         <DropdownMenuItem className={itemClass} onSelect={() => window.dispatchEvent(new Event("vessel:toggle-workspace-console"))}><SquareTerminal />{consoleOpen ? "关闭控制台" : "打开控制台"}</DropdownMenuItem>
         {(workspace || resources) && <DropdownMenuItem className={itemClass} onSelect={() => sidebarAction.current?.(!sidebarOpen)}>{sidebarOpen ? <PanelLeftClose /> : <PanelLeftOpen />}{sidebarOpen ? "关闭侧边栏" : "打开侧边栏"}</DropdownMenuItem>}
+        {(workspace || resources) && <DropdownMenuItem className={itemClass} disabled={!editorRoot || openingEditor} onSelect={() => { void openInEditor() }}><ExternalLink />{openingEditor ? "正在打开…" : "在编辑器中打开"}</DropdownMenuItem>}
         {workspace && <DropdownMenuItem className={itemClass} disabled={!sync.enabled || sync.running} onSelect={() => { void sync.sync() }}><RefreshCcw className={sync.running ? "animate-spin" : ""} />{sync.running ? "正在同步…" : "同步"}</DropdownMenuItem>}
         {resources && <DropdownMenuSub>
           <DropdownMenuSubTrigger className={itemClass} disabled={opening}><FolderOpen />打开项目</DropdownMenuSubTrigger>
