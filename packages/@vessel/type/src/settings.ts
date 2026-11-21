@@ -51,6 +51,8 @@ export interface AppSettings {
   font: string
   fontSize: number
   accent: string
+  editorFont?: string
+  editorFontSize?: number
   backup: {
     syncExcludeRules?: string
     logEnabled?: boolean

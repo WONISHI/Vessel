@@ -6,6 +6,7 @@ import CssWorker from "monaco-editor/esm/vs/language/css/css.worker?worker"
 import HtmlWorker from "monaco-editor/esm/vs/language/html/html.worker?worker"
 import JsonWorker from "monaco-editor/esm/vs/language/json/json.worker?worker"
 import TsWorker from "monaco-editor/esm/vs/language/typescript/ts.worker?worker"
+import { registerJsonHighlighting } from "./json-highlighting"
 self.MonacoEnvironment = {
   /** Returns worker. */
   getWorker(_id, label) {
@@ -20,5 +21,6 @@ self.MonacoEnvironment = {
 for (const defaults of [monaco.typescript.typescriptDefaults, monaco.typescript.javascriptDefaults]) {
   defaults.setDiagnosticsOptions({ noSemanticValidation: true, noSyntaxValidation: true })
 }
+registerJsonHighlighting(monaco)
 loader.config({ monaco })
 export { monaco }

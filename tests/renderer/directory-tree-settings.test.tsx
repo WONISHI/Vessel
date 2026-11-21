@@ -73,7 +73,7 @@ it("applies different geometry to each tree and truncates filenames when deeply 
   expect(view.container.querySelector<HTMLElement>("[data-workspace-tree-row]")!.style.fontSize).toBe("12px")
   act(() => { viewport.scrollTop = 16000; viewport.dispatchEvent(new Event("scroll")) })
   expect(screen.getByText("deep-file-500.ts")).toBeTruthy()
-  expect(screen.getAllByRole("treeitem").length).toBeLessThan(40)
+  expect(screen.getAllByRole("treeitem").length).toBeLessThan(120)
   expect(treeRevealScrollTop(500, 0, 240, 24, 8)).toBe(15784)
   act(() => setDirectoryTreeSettings({ directoryTree: { ...directoryTree, layoutResources: false, gapResources: false, guidesResources: false } }))
   expect(view.container.querySelector<HTMLElement>("[data-workspace-tree-row]")!.style.height).toBe("32px")

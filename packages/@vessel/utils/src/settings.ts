@@ -29,6 +29,8 @@ export const defaultSettings: AppSettings = {
   theme: "light",
   font: "Plus Jakarta Sans",
   fontSize: 14,
+  editorFont: "Menlo",
+  editorFontSize: 14,
   accent: "#16a34a",
   backup: {
     syncExcludeRules: "{folder:.vessel,.vscode,node-modules,.git,.obsidian,file:.DS_Store}",

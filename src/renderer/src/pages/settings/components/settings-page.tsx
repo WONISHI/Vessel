@@ -1,3 +1,4 @@
+import { TypographySettings } from "./typography-settings"
 import { FileTypeBadgeSettings } from "./file-type-badge-settings"
 import { DirectoryTreeSettingsPanel } from "./directory-tree-settings"
 import { FileIconSettings } from "./file-icon-settings"
@@ -10,10 +11,9 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Slider } from "@/components/ui/slider"
 import { Switch } from "@/components/ui/switch"
 import { applyAppearance } from "@/pages/settings/appearance"
-import { fonts, sections } from "@/pages/settings/components/index-shared"
+import { sections } from "@/pages/settings/components/index-shared"
 import { Row } from "@/pages/settings/components/row"
 import { ShortcutSettings } from "@/pages/settings/components/shortcuts"
 import { SyncDiagnosticsPanel } from "@/pages/settings/components/sync-diagnostics"
@@ -374,56 +374,15 @@ export function SettingsPage() {
                         </SelectContent>
                       </Select>
                     </Row>
-                    <Row
-                      title="界面字体"
-                      description="使用本机可用字体，缺失时使用系统字体"
-                    >
-                      <Select
-                        value={draft.font}
-                        onValueChange={(value) => update("font", value)}
-                      >
-                        <SelectTrigger
-                          aria-label="界面字体"
-                          className="w-[200px]"
-                        >
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {fonts.map((font) => (
-                            <SelectItem
-                              key={font}
-                              value={font}
-                            >
-                              {font}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </Row>
-                    <Row
-                      title="默认字体大小"
-                      description="调整界面大小（12px – 18px）"
-                    >
-                      <div className="flex w-[200px] items-center gap-3">
-                        <Slider
-                          aria-label="默认字体大小"
-                          min={12}
-                          max={18}
-                          step={1}
-                          value={[draft.fontSize]}
-                          onValueChange={(values) => update("fontSize", values[0])}
-                        />
-                        <span className="shrink-0 text-xs tabular-nums">{draft.fontSize}px</span>
-                      </div>
-                    </Row>
                   </div>
+                  <TypographySettings value={draft} onChange={(patch) => setDraft(current => ({ ...current, ...patch }))} />
                   <FileIconSettings value={draft} onChange={(patch) => setDraft((current) => ({ ...current, ...patch }))} />
                   <FileTypeBadgeSettings value={draft} onChange={(patch) => setDraft((current) => ({ ...current, ...patch }))} />
                   <GitDecorationSettings value={draft} onChange={(patch) => setDraft((current) => ({ ...current, ...patch }))} />
                   <DirectoryTreeSettingsPanel value={draft} onChange={(patch) => setDraft((current) => ({ ...current, ...patch }))} />
                   </div>
                   <div className="settings-card p-5">
-                    <h3>字体预览</h3>
+                    <h3>界面字体预览</h3>
                     <div
                       className="mt-3 rounded-lg bg-muted p-4"
                       style={{ fontFamily: `${draft.font}, sans-serif`, fontSize: draft.fontSize }}
@@ -431,6 +390,10 @@ export function SettingsPage() {
                       <strong>Vessel 笔记应用</strong>
                       <p className="mt-2">The quick brown fox jumps over the lazy dog. 本地优先的 Markdown 编辑器。</p>
                     </div>
+                    <h3 className="mt-5">编辑器字体预览</h3>
+                    <pre className="mt-3 overflow-x-auto rounded-lg bg-muted p-4" style={{ fontFamily: `"${draft.editorFont ?? "Menlo"}", monospace`, fontSize: draft.editorFontSize ?? 14 }}>
+                      {"const message = \"Hello, Vessel\";\n// 独立设置代码编辑器的字体与字号"}
+                    </pre>
                   </div>
                 </>
               )}

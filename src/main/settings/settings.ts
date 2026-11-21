@@ -103,6 +103,10 @@ function validate(value: AppSettings): AppSettings {
   if (!Number.isInteger(delay) || delay < 0 || delay > 2147483647) throw new Error("跳转等待时间必须为有效的非负整数毫秒")
   if (!["light", "dark", "system"].includes(value.theme) || ![5, 10, 30].includes(value.backup.minutes) || !Number.isInteger(value.fontSize) || value.fontSize < 12 || value.fontSize > 18) throw new Error("设置选项无效")
   if (!["Plus Jakarta Sans", "Inter", "system-ui", "PingFang SC", "Georgia"].includes(value.font) || !/^#[0-9a-f]{6}$/i.test(value.accent)) throw new Error("外观设置无效")
+  const editorFont = value.editorFont ?? defaultSettings.editorFont!
+  const editorFontSize = value.editorFontSize ?? defaultSettings.editorFontSize!
+  if (!["Menlo", "Monaco", "Consolas", "SF Mono", "JetBrains Mono", "Fira Code", "Cascadia Code", "monospace"].includes(editorFont)) throw new Error("编辑器字体无效")
+  if (!Number.isInteger(editorFontSize) || editorFontSize < 10 || editorFontSize > 32) throw new Error("编辑器字体大小应为 10–32 px 的整数")
   const direction = value.backup.direction ?? "bidirectional",
     conflictStrategy = value.backup.conflictStrategy ?? DEFAULT_CONFLICT_STRATEGY
   const concurrency = value.backup.concurrency ?? 8,
@@ -168,6 +172,8 @@ function validate(value: AppSettings): AppSettings {
     theme: value.theme,
     font: value.font,
     fontSize: value.fontSize,
+    editorFont,
+    editorFontSize,
     accent: value.accent,
     backup: {
       syncExcludeRules,

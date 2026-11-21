@@ -12,6 +12,22 @@ for (const full of Object.values(themes)) for (const theme of [full, full.light]
   }
 }
 const languages: Record<string, string> = { ts: "typescript", tsx: "typescriptreact", js: "javascript", jsx: "javascriptreact", mjs: "javascript", cjs: "javascript", md: "markdown", mdx: "mdx", py: "python", sh: "shellscript", bash: "shellscript", rs: "rust", rb: "ruby", cs: "csharp", yml: "yaml", h: "c", hpp: "cpp", kt: "kotlin", ps1: "powershell", svg: "xml", m: "objective-c", mm: "objective-cpp", pl: "perl", tf: "terraform" }
+const lightThemes = new Map<FileIconTheme, Associations>()
+
+/** Theme data is immutable; merge light overrides once rather than once per row. */
+function associations(themeId: Exclude<FileIconTheme, "default">, light: boolean): Associations {
+  const full = themes[themeId]
+  if (!light || !full.light) return full
+  let theme = lightThemes.get(themeId)
+  if (!theme) {
+    theme = {
+      ...full, ...full.light,
+      ...Object.fromEntries((["fileNames", "fileExtensions", "languageIds", "folderNames", "folderNamesExpanded", "rootFolderNames", "rootFolderNamesExpanded"] as const).map(key => [key, { ...full[key], ...full.light?.[key] }]))
+    }
+    lightThemes.set(themeId, theme)
+  }
+  return theme
+}
 function named(mapping: Record<string, string> | undefined, parts: string[]): string | undefined {
   if (!mapping) return undefined
   for (let i = 0; i < parts.length; i++) {
@@ -22,11 +38,7 @@ function named(mapping: Record<string, string> | undefined, parts: string[]): st
 }
 export function resolveFileIcon(themeId: FileIconTheme, path: string, options: { directory?: boolean; expanded?: boolean; root?: boolean; dark?: boolean; languageId?: string } = {}): string | undefined {
   if (themeId === "default") return undefined
-  const full = themes[themeId]
-  const theme: Associations = options.dark === false && full.light ? {
-    ...full, ...full.light,
-    ...Object.fromEntries((["fileNames", "fileExtensions", "languageIds", "folderNames", "folderNamesExpanded", "rootFolderNames", "rootFolderNamesExpanded"] as const).map(key => [key, { ...full[key], ...full.light?.[key] }]))
-  } : full
+  const theme = associations(themeId, options.dark === false)
   const parts = path.replace(/\\/g, "/").toLowerCase().split("/").filter(Boolean)
   if (options.directory) {
     if (options.root) return (options.expanded && named(theme.rootFolderNamesExpanded, parts)) || named(theme.rootFolderNames, parts) || (options.expanded && theme.rootFolderExpanded) || theme.rootFolder || theme.folder

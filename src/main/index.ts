@@ -4,6 +4,7 @@ import { startClipboardHistory } from "./clipboard/service"
 import { reportStartupError } from "./startup-errors"
 import { registerAppUpdate } from "./app-update"
 import { drainTextFileWrites } from "@main/modules/files/index.module"
+import { drainWorkspaceSessionWrites } from "@main/modules/welcome/workspace-sessions"
 import { registerImageResources } from "@main/modules/files/image-resource"
 import { installApplicationMenu } from "@main/menu"
 import { registerBases } from "@main/modules/bases"
@@ -345,7 +346,8 @@ app.on("before-quit", (event) => {
     event.preventDefault()
     return
   }
-  const pending = drainTextFileWrites()
+  const writes = [drainTextFileWrites(), drainWorkspaceSessionWrites()].filter((value): value is Promise<void> => value != null)
+  const pending = writes.length ? Promise.all(writes) : null
   if (!pending) { mainApps.dispose(); return }
   event.preventDefault()
   drainingTextWrites = true

@@ -14,12 +14,14 @@ import { refreshGitDecorations } from "@/features/git-decorations"
 import { useFileChanges } from "@/components/workspace/hooks/file-changes"
 import { useWorkspace } from "@/components/workspace/hooks/useWorkspace"
 import type { WorkspaceNode } from "@/components/workspace/types/workspace"
-import { useEffect, useLayoutEffect, useRef, useState } from "react"
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
 import { toast } from "sonner"
+import { useDelayedLoading } from "@/hooks/use-delayed-loading"
 
 interface DirectoryState {
   nodes?: WorkspaceNode[]
   error?: string
+  metadata?: boolean
 }
 
 const directoryCache = new Map<string, { reader: unknown; entries: Record<string, DirectoryState> }>()
@@ -113,7 +115,18 @@ export default function WorkspaceTree({
     const cached = directoryCache.get(workspace.path)
     return cached && cached.reader === reader ? cached.entries : {}
   })
-  const pending = useRef(new Map<string, Promise<void>>())
+  const pending = useRef(new Map<string, { promise: Promise<void>; metadata: boolean }>())
+  const prefetchTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const lastScrollTime = useRef(-Infinity)
+  useEffect(() => {
+    if (!viewport) return
+    const scrolling = () => {
+      lastScrollTime.current = performance.now()
+      clearTimeout(prefetchTimer.current)
+    }
+    viewport.addEventListener("scroll", scrolling, { passive: true })
+    return () => viewport.removeEventListener("scroll", scrolling)
+  }, [viewport])
   const mounted = useRef(true)
 
   /** Updates a directory entry in both component state and the workspace-scoped cache. */
@@ -130,18 +143,25 @@ export default function WorkspaceTree({
    * @param path 要展开的目录路径。
    * @returns 完成缓存更新的 Promise；失败信息保留用于重试。
    */
-  const loadDirectoryChildren = (path: string) => {
-    if (pending.current.has(path)) return pending.current.get(path)!
+  const needsMetadata = sortBy === "ctime" || sortBy === "mtime"
+  const loadDirectoryChildren = (path: string, metadata = needsMetadata): Promise<void> => {
+    const running = pending.current.get(path)
+    if (running) return metadata && !running.metadata ? running.promise.then(() => loadDirectoryChildren(path, true)) : running.promise
     const request = window.electronAPI
-      .readWorkspaceDirectory(workspace.path, path, { hideAttachmentFolders: true })
+      .readWorkspaceDirectory(workspace.path, path, { hideAttachmentFolders: true, metadata })
       .then((nodes) => {
-        if (mounted.current) updateDirectory(path, { nodes })
+        if (mounted.current) {
+          // Hover prefetch should prepare display order too, so opening a cached
+          // large directory does not move its first sort back onto the click.
+          sortWorkspaceNodes(nodes, sortBy, sortOrder)
+          updateDirectory(path, { nodes, metadata })
+        }
       })
       .catch((error) => {
         if (mounted.current) updateDirectory(path, { error: String(error) })
       })
       .finally(() => pending.current.delete(path))
-    pending.current.set(path, request)
+    pending.current.set(path, { promise: request, metadata })
     return request
   }
   useFileChanges((changes) => {
@@ -164,7 +184,7 @@ export default function WorkspaceTree({
               renameWorkspaceTab(file.path, target, file.name)
             }
           }
-      await Promise.all([...new Set([destination, ...paths.map(parentPath)])].filter((path) => path === workspace.path || directories[path]).map(loadDirectoryChildren))
+      await Promise.all([...new Set([destination, ...paths.map(parentPath)])].filter((path) => path === workspace.path || directories[path]).map(path => loadDirectoryChildren(path)))
       setSelection([])
       setMove(undefined)
     } catch (error) {
@@ -175,6 +195,13 @@ export default function WorkspaceTree({
     }
   }
   useEffect(() => {
+    if (!recent && needsMetadata) {
+      for (const path of new Set([workspace.path, ...expandedFolders])) {
+        if (directories[path]?.nodes && !directories[path].metadata) void loadDirectoryChildren(path, true)
+      }
+    }
+  }, [needsMetadata, directories, expandedFolders, recent])
+  useEffect(() => {
     mounted.current = true
     if (!recent) {
       if (!directories[workspace.path]?.nodes) void loadDirectoryChildren(workspace.path)
@@ -184,6 +211,7 @@ export default function WorkspaceTree({
     }
     return () => {
       mounted.current = false
+      clearTimeout(prefetchTimer.current)
     }
     // Cache lifetime is scoped by the workspace/activity key in the parent.
   }, [])
@@ -199,7 +227,7 @@ export default function WorkspaceTree({
     // Keep rows and scroll position while explicit refresh reads new directory data.
     for (const path of new Set([workspace.path, ...expandedFolders])) {
       void (async () => {
-        await pending.current.get(path)
+        await pending.current.get(path)?.promise
         if (mounted.current) await loadDirectoryChildren(path)
       })()
     }
@@ -212,7 +240,7 @@ export default function WorkspaceTree({
       if (!recent) {
         for (const path of new Set([workspace.path, ...expandedFolders])) {
           void (async () => {
-            await pending.current.get(path)
+            await pending.current.get(path)?.promise
             if (mounted.current) await loadDirectoryChildren(path)
           })()
         }
@@ -224,21 +252,25 @@ export default function WorkspaceTree({
     }
   }, [workspace.path, expandedFolders, recent])
 
-  const rows: VirtualTreeRow<WorkspaceNode>[] = []
-  /** 仅展开已打开目录，将已加载节点转换成虚拟列表所需的可见行。 */
-  const appendVisibleTreeRows = (nodes: WorkspaceNode[], depth = 0, parent = workspace.path) => {
-    if (draft?.parent === parent && draft.kind === "directory") rows.push({ id: "__draft__", item: { name: "", path: "__draft__" }, depth })
-    const sorted = sortWorkspaceNodes(nodes, sortBy, sortOrder)
-    sorted.forEach((node) => {
-      const folder = node.type === "directory"
-      const expanded = folder && expandedFolders.includes(node.path)
-      rows.push({ id: node.path, item: node, depth, expanded: folder ? expanded : undefined })
-      if (expanded) appendVisibleTreeRows(directories[node.path]?.nodes ?? [], depth + 1, node.path)
-    })
-    if (draft?.parent === parent && draft.kind === "file") rows.push({ id: "__draft__", item: { name: "", path: "__draft__" }, depth })
-  }
   const root = directories[workspace.path]
-  appendVisibleTreeRows(recent ? openFiles : (root?.nodes ?? []))
+  const showRootLoading = useDelayedLoading(!recent && !root)
+  const rows = useMemo(() => {
+    const visible: VirtualTreeRow<WorkspaceNode>[] = []
+    const expandedPaths = new Set(expandedFolders)
+    // Selection, hover and drag feedback must not flatten the entire tree again.
+    const append = (nodes: WorkspaceNode[], depth = 0, parent = workspace.path) => {
+      if (draft?.parent === parent && draft.kind === "directory") visible.push({ id: "__draft__", item: { name: "", path: "__draft__" }, depth })
+      for (const node of sortWorkspaceNodes(nodes, sortBy, sortOrder)) {
+        const folder = node.type === "directory"
+        const expanded = folder && expandedPaths.has(node.path)
+        visible.push({ id: node.path, item: node, depth, expanded: folder ? expanded : undefined })
+        if (expanded) append(directories[node.path]?.nodes ?? [], depth + 1, node.path)
+      }
+      if (draft?.parent === parent && draft.kind === "file") visible.push({ id: "__draft__", item: { name: "", path: "__draft__" }, depth })
+    }
+    append(recent ? openFiles : (root?.nodes ?? []))
+    return visible
+  }, [directories, expandedFolders, recent, openFiles, root?.nodes, workspace.path, draft, sortBy, sortOrder])
   const selectedPaths = new Set(selection)
   const selectedNodes = rows.filter((row) => selectedPaths.has(row.id)).map((row) => row.item)
   const draftIndex = rows.findIndex((row) => row.id === "__draft__")
@@ -263,12 +295,12 @@ export default function WorkspaceTree({
   if (!recent && !root)
     return (
       <div
-        role="status"
-        aria-label="正在加载目录"
+        role={showRootLoading ? "status" : undefined}
+        aria-label={showRootLoading ? "正在加载目录" : undefined}
         className="space-y-3 p-3 text-xs text-stone-400"
       >
-        <span className="sr-only">正在加载目录…</span>
-        {Array.from({ length: 8 }, (_, index) => <div key={index} aria-hidden="true" className="flex items-center gap-2"><Skeleton className="size-4 shrink-0" /><Skeleton className={index % 2 ? "h-4 w-3/5" : "h-4 w-4/5"} /></div>)}
+        {showRootLoading && <><span className="sr-only">正在加载目录…</span>
+        {Array.from({ length: 8 }, (_, index) => <div key={index} aria-hidden="true" className="flex items-center gap-2"><Skeleton className="size-4 shrink-0" /><Skeleton className={index % 2 ? "h-4 w-3/5" : "h-4 w-4/5"} /></div>)}</>}
       </div>
     )
   if (!recent && root?.error)
@@ -309,6 +341,18 @@ export default function WorkspaceTree({
           ) : (
             <div
               data-node-path={node.path}
+              onPointerEnter={() => {
+                clearTimeout(prefetchTimer.current)
+                if (!recent && node.type === "directory" && !directories[node.path]?.nodes && performance.now() - lastScrollTime.current >= 120) {
+                  prefetchTimer.current = setTimeout(() => {
+                    if (performance.now() - lastScrollTime.current >= 120) void loadDirectoryChildren(node.path)
+                  }, 80)
+                }
+              }}
+              onPointerLeave={() => clearTimeout(prefetchTimer.current)}
+              onFocusCapture={() => {
+                if (!recent && node.type === "directory" && !directories[node.path]?.nodes) void loadDirectoryChildren(node.path)
+              }}
               onContextMenuCapture={() => { if (!selection.includes(node.path)) setSelection([node.path]) }}
               draggable={renamingPath !== node.path}
               onDragStart={(event) => {
@@ -386,6 +430,7 @@ export default function WorkspaceTree({
                   loading={Boolean(expanded && !directories[node.path])}
                   error={directories[node.path]?.error}
                   onActivate={(event) => {
+                    clearTimeout(prefetchTimer.current)
                     if (event.shiftKey && anchor.current) {
                       const a = rows.findIndex((row) => row.id === anchor.current),
                         b = rows.findIndex((row) => row.id === node.path)

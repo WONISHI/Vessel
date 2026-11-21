@@ -12,7 +12,10 @@ import { createPerformanceSampler } from "./performance"
 import { optimizeMemory } from "./memory-optimizer"
 import { getDatabaseStorageBytes } from "./system-info"
 import type { SystemInfo } from "@vessel/type"
-import { readdir, realpath, stat } from "fs/promises"
+import { readdir, realpath } from "fs/promises"
+import { directoryNodes } from "./directory-nodes"
+import { workspaceSessions } from "./workspace-sessions"
+import { workspaceSession } from "./workspace-session-store"
 import { basename, extname, isAbsolute, join, relative, resolve } from "path"
 
 /**
@@ -94,10 +97,10 @@ export class WelcomeModule extends BaseModule {
         return database.recordWorkspaceOpened(workspace)
       })
 
-      this.registerHandler("workspace:readDirectory", async (_event, root: string, directory: string, options?: { includeIgnored?: boolean; hideAttachmentFolders?: boolean }) => {
+      this.registerHandler("workspace:readDirectory", async (_event, root: string, directory: string, options?: { includeIgnored?: boolean; hideAttachmentFolders?: boolean; metadata?: boolean }) => {
         if (typeof root !== "string" || typeof directory !== "string") throw new TypeError("目录路径必须为字符串")
-        const rootPath = await realpath(root)
-        const directoryPath = await realpath(directory)
+        const rootRealPath = realpath(root)
+        const [rootPath, directoryPath] = await Promise.all([rootRealPath, directory === root ? rootRealPath : realpath(directory)])
         const childPath = relative(rootPath, directoryPath)
         if (childPath === ".." || childPath.startsWith("../") || childPath.startsWith("..\\") || isAbsolute(childPath)) throw new Error("目录不属于当前工作区")
         const entries = await readdir(directoryPath, { withFileTypes: true })
@@ -112,31 +115,24 @@ export class WelcomeModule extends BaseModule {
           if (entry.isDirectory() && hiddenFolders.has(join(childPath, entry.name))) return false
           return (entry.isDirectory() || entry.isFile()) && (options?.includeIgnored === true || !isIgnoredEntry(entry.name, ignoredPatterns))
         })
-        const nodes = await Promise.all(
-          filtered.map(async (entry) => {
-            const entryPath = join(directoryPath, entry.name)
-            try {
-              const s = await stat(entryPath)
-              const ctime = s.birthtimeMs > 0 ? s.birthtimeMs : s.ctimeMs
-              return {
-                name: entry.name,
-                path: entryPath,
-                type: entry.isDirectory() ? ("directory" as const) : ("file" as const),
-                ctime,
-                mtime: s.mtimeMs
-              }
-            } catch {
-              return {
-                name: entry.name,
-                path: entryPath,
-                type: entry.isDirectory() ? ("directory" as const) : ("file" as const),
-                ctime: 0,
-                mtime: 0
-              }
-            }
-          })
-        )
-        return nodes.sort((a, b) => Number(b.type === "directory") - Number(a.type === "directory") || (b.ctime ?? 0) - (a.ctime ?? 0) || a.name.localeCompare(b.name, "zh-CN", { numeric: true }))
+        return directoryNodes(directoryPath, filtered, options?.metadata !== false)
+      })
+
+      this.registerHandler("workspace-session:get", async (_event, key: string) => {
+        assertStateKey(key)
+        if (!/^(workspace|resources)-tabs:/.test(key)) throw new TypeError("工作区会话 key 无效")
+        const store = workspaceSessions()
+        const cached = await store.get(key)
+        if (cached) return cached
+        // Read old tab records once for compatibility; future writes use the store.
+        const legacy = workspaceSession(database.getState(key))
+        if (legacy) await store.set(key, legacy)
+        return legacy
+      })
+      this.registerHandler("workspace-session:set", async (_event, key: string, value: unknown) => {
+        assertStateKey(key)
+        if (!/^(workspace|resources)-tabs:/.test(key)) throw new TypeError("工作区会话 key 无效")
+        await workspaceSessions().set(key, value)
       })
 
       /** 查询最近打开的工作区，默认返回 10 条。 */

@@ -1,3 +1,6 @@
+import type { Monaco } from "@monaco-editor/react"
+import type { editor } from "monaco-editor"
+
 const languages: Record<string, string> = {
   js: "javascript",
   jsx: "javascript",
@@ -58,4 +61,10 @@ export function codeLanguage(path: string): string | undefined {
   if (name === "dockerfile" || name.startsWith("dockerfile.")) return "dockerfile"
   if (name.startsWith(".env") || [".gitignore", ".npmrc", ".editorconfig", "makefile"].includes(name)) return "plaintext"
   return languages[name.split(".").pop() || ""]
+}
+
+/** Reused Monaco models retain their old language unless explicitly corrected. */
+export function ensureCodeModelLanguage(monaco: Monaco, model: editor.ITextModel, path: string) {
+  const language = codeLanguage(path) || "plaintext"
+  if (model.getLanguageId() !== language) monaco.editor.setModelLanguage(model, language)
 }

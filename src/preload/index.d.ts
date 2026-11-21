@@ -137,7 +137,7 @@ export interface VesselAPI extends AppUpdateAPI, BrowserProxyAPI, BrowserToolsAP
   onBrowserNewTab: (callback: (url: string, opener?: number) => void) => () => void
   takePendingMarkdownFiles: () => Promise<string[]>
   onOpenMarkdown: (callback: (path: string) => void) => () => void
-  readWorkspaceDirectory: (root: string, directory: string, options?: { includeIgnored?: boolean; hideAttachmentFolders?: boolean }) => Promise<Array<{ name: string; path: string; type: "file" | "directory"; ctime?: number; mtime?: number }>>
+  readWorkspaceDirectory: (root: string, directory: string, options?: { includeIgnored?: boolean; hideAttachmentFolders?: boolean; metadata?: boolean }) => Promise<Array<{ name: string; path: string; type: "file" | "directory"; ctime?: number; mtime?: number }>>
   openDirectory: () => Promise<WorkspaceData | null>
 
   getRecentWorkspaces: (limit?: number) => Promise<RecentWorkspace[]>
@@ -146,6 +146,8 @@ export interface VesselAPI extends AppUpdateAPI, BrowserProxyAPI, BrowserToolsAP
 
   getCurrentDevice: () => Promise<DeviceInfo>
 
+  getWorkspaceSession: <T>(key: string) => Promise<T | null>
+  setWorkspaceSession: (key: string, value: unknown) => Promise<void>
   getAppState: <T>(key: string) => Promise<T | null>
 
   setAppState: (key: string, value: unknown) => Promise<void>

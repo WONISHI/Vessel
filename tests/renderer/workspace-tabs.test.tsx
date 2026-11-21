@@ -8,7 +8,7 @@ vi.mock("react-router-dom", () => ({ useNavigate: () => navigate }))
 afterEach(cleanup)
 beforeEach(() => {
   Object.defineProperty(globalThis, "crypto", { value: webcrypto, configurable: true })
-  window.electronAPI = { getAppState: vi.fn().mockResolvedValue(null), setAppState: vi.fn().mockResolvedValue(undefined) } as unknown as Window["electronAPI"]
+  window.electronAPI = { getAppState: vi.fn().mockResolvedValue(null), setAppState: vi.fn().mockResolvedValue(undefined), getWorkspaceSession: vi.fn().mockResolvedValue(null), setWorkspaceSession: vi.fn().mockResolvedValue(undefined) } as unknown as Window["electronAPI"]
 })
 it("closes several tabs atomically and returns home when all are closed", () => {
   const { result } = renderHook(() => useWorkspaceController({ name: "test", path: "/test", files: [] }))
@@ -31,13 +31,13 @@ it("restores file order and selection before saving, and restores after remount"
   ]
   let saved = { files, active: files[1].path }
   let release!: (value: typeof saved) => void
-  vi.mocked(window.electronAPI.getAppState).mockImplementationOnce(
+  vi.mocked(window.electronAPI.getWorkspaceSession).mockImplementationOnce(
     () =>
       new Promise((resolve) => {
         release = resolve
       })
   )
-  vi.mocked(window.electronAPI.setAppState).mockImplementation(async (key, value) => {
+  vi.mocked(window.electronAPI.setWorkspaceSession).mockImplementation(async (key, value) => {
     if (key.startsWith("workspace-tabs:")) saved = value as typeof saved
   })
   const first = renderHook(() => useWorkspaceController({ name: "test", path: "/test", files: [] }))
@@ -49,7 +49,7 @@ it("restores file order and selection before saving, and restores after remount"
   act(() => first.result.current.closeWorkspaceFile(files[0].path))
   await waitFor(() => expect(saved.files).toHaveLength(1))
   first.unmount()
-  vi.mocked(window.electronAPI.getAppState).mockResolvedValue(saved)
+  vi.mocked(window.electronAPI.getWorkspaceSession).mockResolvedValue(saved)
   const next = renderHook(() => useWorkspaceController({ name: "test", path: "/test", files: [] }))
   await waitFor(() => expect(next.result.current.openFiles.map((file) => file.name)).toEqual(["photo.webp"]))
   expect(next.result.current.activeFilePath).toBe(files[1].path)
@@ -72,12 +72,36 @@ it("provides current workspace tabs and navigation to the file finder but exclud
 
 it("restores the resource tree without scanning for moved editor tabs", async () => {
   const file = { name: "moved.md", path: "/project/moved.md" }
-  vi.mocked(window.electronAPI.getAppState).mockResolvedValue({ files: [file], active: file.path, expanded: ["/project/src"] })
+  vi.mocked(window.electronAPI.getWorkspaceSession).mockResolvedValue({ files: [file], active: file.path, expanded: ["/project/src"] })
   const recover = vi.fn(() => new Promise(() => {}))
   window.electronAPI.restoreWorkspaceTabs = recover as any
   const { result } = renderHook(() => useWorkspaceController({ name: "project", path: "/project", files: [] }, undefined, "resources", true))
-  await waitFor(() => expect(result.current.expandedFolders).toEqual(["/project/src"]))
-  expect(result.current.activeFilePath).toBe(file.path)
+  await waitFor(() => expect(result.current.activeFilePath).toBe(file.path))
+  expect(result.current.expandedFolders).toEqual(["/project/src"])
   expect(recover).not.toHaveBeenCalled()
   expect(window.electronAPI.setAppState).not.toHaveBeenCalled()
+})
+
+it("restores directories and saves toggles through the local store without database writes", async () => {
+  vi.mocked(window.electronAPI.getWorkspaceSession).mockResolvedValue({ files: [], active: "", expanded: ["/test/old"] })
+  const { result, unmount } = renderHook(() => useWorkspaceController({ name: "test", path: "/test", files: [] }))
+  await waitFor(() => expect(result.current.expandedFolders).toEqual(["/test/old"]))
+  await waitFor(() => expect(window.electronAPI.setWorkspaceSession).toHaveBeenCalled())
+  vi.mocked(window.electronAPI.setAppState).mockClear()
+  act(() => result.current.setDirectoryExpanded("/test/src", true))
+  expect(result.current.expandedFolders).toEqual(["/test/old", "/test/src"])
+  unmount()
+  expect(window.electronAPI.setWorkspaceSession).toHaveBeenLastCalledWith(expect.stringMatching(/^workspace-tabs:/), { files: [], active: "", expanded: ["/test/old", "/test/src"] })
+  expect(window.electronAPI.setAppState).not.toHaveBeenCalled()
+})
+
+it("restores expanded directories before slow missing-tab recovery finishes", async () => {
+  vi.mocked(window.electronAPI.getWorkspaceSession).mockResolvedValue({ files: [{ name: "missing.ts", path: "/test/missing.ts" }], active: "/test/missing.ts", expanded: ["/test/src"] })
+  let finish!: (value: Record<string, string | null>) => void
+  window.electronAPI.restoreWorkspaceTabs = vi.fn(() => new Promise(resolve => { finish = resolve }))
+  const { result } = renderHook(() => useWorkspaceController({ name: "test", path: "/test", files: [] }))
+  await waitFor(() => expect(result.current.expandedFolders).toEqual(["/test/src"]))
+  expect(window.electronAPI.setWorkspaceSession).not.toHaveBeenCalled()
+  await act(async () => finish({ "/test/missing.ts": null }))
+  expect(result.current.openFiles).toEqual([])
 })

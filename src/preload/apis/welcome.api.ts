@@ -2,11 +2,13 @@ import { ipcRenderer } from "electron"
 import type { PerformanceSnapshot, SystemInfo } from "@vessel/type"
 
 export const welcomeAPI = {
+  getWorkspaceSession: <T>(key: string): Promise<T | null> => ipcRenderer.invoke("workspace-session:get", key),
+  setWorkspaceSession: (key: string, value: unknown): Promise<void> => ipcRenderer.invoke("workspace-session:set", key, value),
   getSystemInfo: (): Promise<SystemInfo> => ipcRenderer.invoke("system:info"),
   getPerformanceSnapshot: (): Promise<PerformanceSnapshot> => ipcRenderer.invoke("performance:snapshot"),
   optimizeMemory: (): Promise<{ beforeBytes: number; afterBytes: number; targets: number; failed: number }> => ipcRenderer.invoke("performance:optimizeMemory"),
   /** Reads workspace directory. */
-  readWorkspaceDirectory: (root: string, directory: string, options?: { includeIgnored?: boolean; hideAttachmentFolders?: boolean }) => ipcRenderer.invoke("workspace:readDirectory", root, directory, options),
+  readWorkspaceDirectory: (root: string, directory: string, options?: { includeIgnored?: boolean; hideAttachmentFolders?: boolean; metadata?: boolean }) => ipcRenderer.invoke("workspace:readDirectory", root, directory, options),
   /**
    * 选择文件夹，并将工作区打开信息保存到数据库。
    */

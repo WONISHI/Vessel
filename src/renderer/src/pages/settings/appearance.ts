@@ -1,6 +1,7 @@
 import "@/pages/settings/appearance.css"
 import { setFileIconSettings } from "@/features/file-icons/state"
 import { setDirectoryTreeSettings } from "@/features/directory-tree/state"
+import { setEditorAppearance } from "@/features/editor-appearance/state"
 import type { AppSettings } from "@vessel/type"
 
 let themeTransitionActive = false
@@ -30,6 +31,7 @@ function commitAppearance(settings: AppSettings, dark: boolean) {
 
 /** Merge repeated settings notifications and finish each whole-page reveal before the next switch. */
 export function applyAppearance(settings: AppSettings) {
+  setEditorAppearance(settings)
   setFileIconSettings(settings)
   setDirectoryTreeSettings(settings)
   latestAppearance = settings

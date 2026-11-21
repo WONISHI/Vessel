@@ -1,5 +1,6 @@
 import type { FilePickerRequest } from "@/components/workspace-file-picker/types"
 import { useDirectoryWatch, useFileChanges } from "@/components/workspace/hooks/file-changes"
+import { useWorkspaceSessionPersistence } from "@/components/workspace/hooks/use-workspace-session-persistence"
 import type { WorkspaceContextType, WorkspaceData, WorkspaceNode } from "@/components/workspace/types/workspace"
 import { getFileExtension } from "@vessel/utils"
 import { useEffect, useLayoutEffect, useRef, useState } from "react"
@@ -45,8 +46,10 @@ export function useWorkspaceController(workspace: WorkspaceData, initialFile?: s
       const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(workspace.path))
       if (cancelled) return
       const key = `${scope}-tabs:` + Array.from(new Uint8Array(digest), (n) => n.toString(16).padStart(2, "0")).join("")
-      const saved = await window.electronAPI.getAppState<{ files: WorkspaceNode[]; active: string; expanded?: string[] }>(key)
+      const saved = await window.electronAPI.getWorkspaceSession<{ files: WorkspaceNode[]; active: string; expanded?: string[] }>(key)
       if (cancelled) return
+      // Restore the tree before checking missing/moved editor files.
+      setExpandedFolders(Array.isArray(saved?.expanded) ? saved.expanded.filter(path => typeof path === "string") : [])
 
       const pendingInitialFile = !initialFileConsumed.current ? initialFileRef.current : undefined
       if (pendingInitialFile) {
@@ -63,10 +66,7 @@ export function useWorkspaceController(workspace: WorkspaceData, initialFile?: s
       if (saved && Array.isArray(saved.files)) {
         let files = saved.files.filter((file) => typeof file.path === "string" && typeof file.name === "string")
         files = files.filter((file) => !file.path.replace(/\\/g, "/").includes("/src/shared/"))
-        // The resource preview only needs selection and expansion state. Recovering moved
-        // editor tabs can scan the entire project and must not delay its directory tree.
-        const expanded = (saved.expanded || []).filter((folder) => !folder.replace(/\\/g, "/").includes("/src/shared/"))
-        setExpandedFolders(expanded)
+        // Recovering moved editor tabs can scan the project; skip it for previews.
         const recovered = preview ? undefined : await window.electronAPI.restoreWorkspaceTabs?.(workspace.path, files.map((file) => file.path))
         if (cancelled) return
         if (recovered) {
@@ -114,10 +114,7 @@ export function useWorkspaceController(workspace: WorkspaceData, initialFile?: s
       cancelled = true
     }
   }, [workspace.path, workspace.name, scope, base, preview])
-  useEffect(() => {
-    if (!sessionKey) return
-    void window.electronAPI.setAppState(sessionKey, { files: openFiles.map(({ name, path }) => ({ name, path })), active: activeFilePath, expanded: expandedFolders }).catch((error) => console.error("保存工作区标签失败", error))
-  }, [sessionKey, openFiles, activeFilePath, expandedFolders])
+  useWorkspaceSessionPersistence(sessionKey, openFiles, activeFilePath, expandedFolders)
   const lastRequestedFile = useRef<string | undefined>(undefined)
   useEffect(() => {
     if (!initialFile || !active || lastRequestedFile.current === initialFile) return

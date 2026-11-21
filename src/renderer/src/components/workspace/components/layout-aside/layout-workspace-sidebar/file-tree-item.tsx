@@ -9,6 +9,7 @@ import type { WorkspaceNode } from "@/components/workspace/types/workspace"
 import { cn } from "@/lib/utils"
 import { ChevronRight, File, Folder, LoaderCircle } from "lucide-react"
 import type { MouseEvent } from "react"
+import { useDelayedLoading } from "@/hooks/use-delayed-loading"
 
 interface FileTreeItemProps {
   rootPath?: string
@@ -21,6 +22,7 @@ interface FileTreeItemProps {
 }
 /** 虚拟树中的单行；不递归挂载子节点。 */
 export default function FileTreeItem({ node, rootPath, selected, expanded, loading, error, onActivate }: FileTreeItemProps) {
+  const showLoading = useDelayedLoading(Boolean(loading))
   const layout = useDirectoryTreeLayout()
   const root = rootPath?.replace(/\\/g, "/").replace(/\/$/, "")
   const path = node.path.replace(/\\/g, "/")
@@ -48,7 +50,7 @@ export default function FileTreeItem({ node, rootPath, selected, expanded, loadi
       >
         {folder && <ChevronRight className={cn("!size-3 text-stone-400 transition-transform", expanded && "rotate-90")} />}
       </span>
-      {loading ? (
+      {showLoading ? (
         <LoaderCircle className="!size-[var(--tree-icon-size)] shrink-0 animate-spin text-stone-400" />
       ) : <FileThemeIcon name={node.path} directory={folder} expanded={expanded} root={node.path === rootPath} className="!size-[var(--tree-icon-size)] shrink-0 object-contain"
         fallback={folder ? <Folder data-tree-icon="folder" className="!size-[var(--tree-icon-size)] text-amber-500" /> : <File data-tree-icon="file" className={cn("!size-[var(--tree-icon-size)]", appearance.color)} />} />}

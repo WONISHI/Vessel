@@ -144,7 +144,7 @@ interface VesselAPI extends AppUpdateAPI, BrowserProxyAPI, BrowserToolsAPI, Sett
   onBrowserNewTab: (callback: (url: string, opener?: number) => void) => () => void
   takePendingMarkdownFiles: () => Promise<string[]>
   onOpenMarkdown: (callback: (path: string) => void) => () => void
-  readWorkspaceDirectory: (root: string, directory: string, options?: { includeIgnored?: boolean; hideAttachmentFolders?: boolean }) => Promise<Array<{ name: string; path: string; type: "file" | "directory"; ctime?: number; mtime?: number }>>
+  readWorkspaceDirectory: (root: string, directory: string, options?: { includeIgnored?: boolean; hideAttachmentFolders?: boolean; metadata?: boolean }) => Promise<Array<{ name: string; path: string; type: "file" | "directory"; ctime?: number; mtime?: number }>>
   /** 选择文件夹并记录工作区打开信息。 */
   openDirectory: () => Promise<WorkspaceData | null>
 
@@ -158,6 +158,8 @@ interface VesselAPI extends AppUpdateAPI, BrowserProxyAPI, BrowserToolsAPI, Sett
   getCurrentDevice: () => Promise<DeviceInfo>
 
   /** 根据 key 读取应用状态。 */
+  getWorkspaceSession: <T>(key: string) => Promise<T | null>
+  setWorkspaceSession: (key: string, value: unknown) => Promise<void>
   getAppState: <T>(key: string) => Promise<T | null>
 
   /** 保存或覆盖应用状态。 */

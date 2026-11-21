@@ -1,10 +1,11 @@
 import { retainCodeModel } from "@/components/core/canvas/session/code-model"
 import { documentSession, readDocument, writeDocument } from "@/components/core/canvas/session/document-session"
 import { useDarkAppearance } from "@/hooks/use-dark-appearance"
+import { useEditorAppearance } from "@/features/editor-appearance/state"
 import { registerMonacoTheme } from "@/components/core/canvas/variants/code/theme"
 import { parseLinePosition } from "@/components/core/canvas/variants/code/go-to-line"
 import "@/components/core/canvas/variants/code/index.css"
-import { codeLanguage } from "@/components/core/canvas/variants/code/language"
+import { codeLanguage, ensureCodeModelLanguage } from "@/components/core/canvas/variants/code/language"
 import { monaco } from "@/components/core/canvas/variants/code/monaco"
 import { codeEditors } from "@/components/core/canvas/variants/code/search-bridge"
 import { countDocument } from "@/components/core/canvas/variants/markdown/count-document"
@@ -59,6 +60,7 @@ function getBreadcrumbSegments(workspacePath: string, filePath: string, workspac
 /** Renders the code canvas component. */
 export default function CodeCanvas({ activeFilePath, workspacePath, revealPosition, highlightKeyword }: { activeFilePath: string; workspacePath?: string; revealPosition?: { lineNumber: number; column: number }; highlightKeyword?: string }) {
   const dark = useDarkAppearance()
+  const editorAppearance = useEditorAppearance()
   const workspaceContext = useContext(WorkspaceContext)
   const effectiveWorkspacePath = workspacePath || workspaceContext?.workspace?.path || ""
   const workspaceName = workspaceContext?.workspace?.name
@@ -320,6 +322,8 @@ export default function CodeCanvas({ activeFilePath, workspacePath, revealPositi
             }
           }}
           onMount={(editor) => {
+            const model = editor.getModel()
+            if (model) ensureCodeModelLanguage(monaco, model, activeFilePath)
             editorRef.current = editor
             releaseModel.current = retainCodeModel(editor)
             editor.restoreViewState(documentSession(activeFilePath).code ?? null)
@@ -335,7 +339,7 @@ export default function CodeCanvas({ activeFilePath, workspacePath, revealPositi
             overviewRulerLanes: 0,
             hideCursorInOverviewRuler: true,
             minimap: { enabled: false },
-            fontSize: 14,
+            ...editorAppearance,
             scrollBeyondLastLine: false,
             tabSize: 2,
             renderWhitespace: "selection"

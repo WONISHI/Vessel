@@ -154,8 +154,10 @@ const textCollator = new Intl.Collator("zh-CN")
 
 /** 智能自然排序比较器：优先匹配相同前缀开头字，随后的数字按数值大小比较。 */
 export function compareSmartFileNames(a: string, b: string): number {
-  const tokensA = tokenizeFilename(a)
-  const tokensB = tokenizeFilename(b)
+  return compareFilenameTokens(tokenizeFilename(a), tokenizeFilename(b))
+}
+
+function compareFilenameTokens(tokensA: SmartSortToken[], tokensB: SmartSortToken[]): number {
   const minLen = Math.min(tokensA.length, tokensB.length)
 
   for (let i = 0; i < minLen; i++) {
@@ -194,13 +196,22 @@ export function sortWorkspaceNodes(nodes: WorkspaceNode[], sortBy: FileSortBy = 
   let cached = sortedDirectories.get(nodes)
   if (cached?.has(key)) return cached.get(key)!
   if (!cached) { cached = new Map(); sortedDirectories.set(nodes, cached) }
+  // A directory sort compares each name many times. Parse a name only once per
+  // sort, and release the tokens afterwards instead of retaining a global cache.
+  const tokens = new Map<string, SmartSortToken[]>()
+  const nameTokens = (name: string) => {
+    let value = tokens.get(name)
+    if (!value) { value = tokenizeFilename(name); tokens.set(name, value) }
+    return value
+  }
+  const compareNames = (a: string, b: string) => compareFilenameTokens(nameTokens(a), nameTokens(b))
   const sorted = [...nodes].sort((a, b) => {
     // 文件夹始终置顶
     const folderDiff = Number(b.type === "directory") - Number(a.type === "directory")
     if (folderDiff !== 0) return folderDiff
 
     if (sortBy === "auto") {
-      const diff = compareSmartFileNames(a.name, b.name)
+      const diff = compareNames(a.name, b.name)
       return sortOrder === "desc" ? -diff : diff
     }
 
@@ -210,7 +221,7 @@ export function sortWorkspaceNodes(nodes: WorkspaceNode[], sortBy: FileSortBy = 
       if (timeA !== timeB) {
         return sortOrder === "desc" ? timeB - timeA : timeA - timeB
       }
-      return compareSmartFileNames(a.name, b.name)
+      return compareNames(a.name, b.name)
     }
 
     if (sortBy === "mtime") {
@@ -219,7 +230,7 @@ export function sortWorkspaceNodes(nodes: WorkspaceNode[], sortBy: FileSortBy = 
       if (timeA !== timeB) {
         return sortOrder === "desc" ? timeB - timeA : timeA - timeB
       }
-      return compareSmartFileNames(a.name, b.name)
+      return compareNames(a.name, b.name)
     }
 
     const nameDiff = naturalCollator.compare(a.name, b.name)

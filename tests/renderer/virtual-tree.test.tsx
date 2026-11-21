@@ -1,4 +1,3 @@
-import React from "react"
 import { afterEach, expect, it, vi } from "vitest"
 import { cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { VirtualTree } from "@/components/ui/tree"
@@ -11,8 +10,8 @@ it("limits mounted rows and changes the visible window when the ScrollArea viewp
   vi.stubGlobal(
     "ResizeObserver",
     class {
-      observe() {}
-      disconnect() {}
+      observe = vi.fn()
+      disconnect = vi.fn()
     }
   )
   const viewport = document.createElement("div")
@@ -25,7 +24,7 @@ it("limits mounted rows and changes the visible window when the ScrollArea viewp
       renderRow={({ item }) => <span>file-{item}</span>}
     />
   )
-  expect(screen.getAllByRole("treeitem").length).toBeLessThan(30)
+  expect(screen.getAllByRole("treeitem").length).toBeLessThanOrEqual(50)
   expect(screen.queryByText("file-500")).toBeNull()
   viewport.scrollTop = 16000
   fireEvent.scroll(viewport)

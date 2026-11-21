@@ -1,4 +1,3 @@
-import React from "react"
 import { webcrypto } from "node:crypto"
 import { act, renderHook, waitFor, cleanup } from "@testing-library/react"
 import { afterEach, expect, it, vi } from "vitest"
@@ -14,8 +13,9 @@ it("keeps same-directory tabs and expanded folders separate between workspace an
   const state = new Map<string, unknown>()
   Object.assign(window, {
     electronAPI: {
-      getAppState: vi.fn(async (key: string) => state.get(key) || null),
-      setAppState: vi.fn(async (key: string, value: unknown) => {
+      setAppState: vi.fn().mockResolvedValue(undefined),
+      getWorkspaceSession: vi.fn(async (key: string) => state.get(key) || null),
+      setWorkspaceSession: vi.fn(async (key: string, value: unknown) => {
         state.set(key, value)
       })
     }
