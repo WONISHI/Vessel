@@ -89,6 +89,26 @@ export function TopSearch() {
   const searchable = !overlayKind && /^\/(editor|resources|browser)(\/|$)/.test(pathname)
   const browser = pathname.startsWith("/browser")
   const scope: "resources" | "workspace" = pathname.startsWith("/resources") ? "resources" : "workspace"
+  const activeBrowserIndex = tabs.findIndex(tab => tab.active)
+  const switchTab = (direction: -1 | 1) => {
+    if (browser) {
+      const target = activeBrowserIndex >= 0 ? tabs[activeBrowserIndex + direction] : undefined
+      if (target) selectBrowserTab(target.id)
+      return
+    }
+    let root: string | undefined
+    try { root = JSON.parse(localStorage.getItem(scope === "resources" ? "resource_current_project" : "app_current_workspace") || "null")?.path } catch { /* Use the active controller when no saved root is available. */ }
+    const provide: FilePickerRequest = Object.assign((value: FilePickerWorkspace) => {
+      if (root && value.root !== root) return
+      let pinned: string[] = []
+      try { const saved = JSON.parse(localStorage.getItem("vessel-pinned-tabs") || "[]"); if (Array.isArray(saved)) pinned = saved } catch { /* Default to tab order. */ }
+      const files = [...value.files].sort((a, b) => Number(pinned.includes(b.path)) - Number(pinned.includes(a.path)))
+      const index = files.findIndex(file => file.path === value.activePath)
+      const target = files[index + direction]
+      if (target) value.openFile(target)
+    }, { scope })
+    window.dispatchEvent(new CustomEvent("vessel:request-workspace-files", { detail: provide }))
+  }
   const show = useCallback(() => {
     if (open) {
       document.querySelector<HTMLInputElement>(".vessel-quick-picker input, .workspace-file-picker input")?.focus({ preventScroll: true })
@@ -119,8 +139,8 @@ export function TopSearch() {
     <header data-page-tools={showPageTools ? "true" : undefined} data-activity-menu={activityCollapsed ? "true" : undefined} data-feature-view={layoutScope ? "true" : undefined} data-workspace={workspacePage ? "true" : undefined} data-titlebar-clock={!statusVisible ? "true" : undefined} style={{ WebkitAppRegion: "drag" } as CSSProperties} className="vessel-main-titlebar fixed inset-x-0 top-0 z-40 flex h-9 shrink-0 items-center justify-center gap-2 border-b bg-white px-3 text-xs text-stone-500 dark:bg-[#22272e]">
       <span style={{ left: 100, transform: `translateX(${fullscreen ? -86 : 0}px)` }} className="vessel-titlebar-identity pointer-events-none absolute flex max-w-[180px] items-center gap-2 truncate font-semibold"><PageIcon className="size-4 shrink-0 text-emerald-600" />{page.label}</span>
       {searchable && <div style={{ WebkitAppRegion: "no-drag" } as CSSProperties} className="vessel-titlebar-search flex min-w-0 items-center gap-2">
-      <button type="button" aria-label="后退" className="rounded p-1 hover:bg-stone-200 dark:hover:bg-white/10" onClick={() => window.history.back()}><ArrowLeft className="size-3.5" /></button>
-      <button type="button" aria-label="前进" className="rounded p-1 hover:bg-stone-200 dark:hover:bg-white/10" onClick={() => window.history.forward()}><ArrowRight className="size-3.5" /></button>
+      <button type="button" aria-label="上一个标签页" data-title="上一个标签页" disabled={browser && activeBrowserIndex <= 0} className="rounded p-1 hover:bg-stone-200 disabled:pointer-events-none disabled:opacity-30 dark:hover:bg-white/10" onClick={() => switchTab(-1)}><ArrowLeft className="size-3.5" /></button>
+      <button type="button" aria-label="下一个标签页" data-title="下一个标签页" disabled={browser && (activeBrowserIndex < 0 || activeBrowserIndex >= tabs.length - 1)} className="rounded p-1 hover:bg-stone-200 disabled:pointer-events-none disabled:opacity-30 dark:hover:bg-white/10" onClick={() => switchTab(1)}><ArrowRight className="size-3.5" /></button>
       <button ref={anchor} type="button" aria-label={browser ? "搜索浏览器标签" : "搜索文件和已打开标签"} onClick={show} className="flex h-6 min-w-0 flex-1 items-center justify-center gap-2 rounded-md border bg-white px-3 dark:bg-white/5">
         <Search className="size-3.5" /><span className="truncate">{browser ? "搜索标签名称或网址…" : "搜索文件、路径和已打开标签…"}</span>
       </button>

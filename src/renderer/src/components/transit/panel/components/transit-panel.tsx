@@ -8,7 +8,8 @@ import { WebPreview } from "@/components/transit/panel/components/web-preview"
 import { selectTransit, useTransit } from "@/components/transit/state"
 import { ResizableSplit } from "@/components/ui/resizable-split"
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet"
-import { ChevronLeft, ChevronRight, ExternalLink, Clipboard, FileText, Globe, Maximize, Minimize, PanelTop, X } from "lucide-react"
+import { ChevronLeft, ChevronRight, Clipboard, FileText, Globe } from "lucide-react"
+import "@vscode/codicons/dist/codicon.css"
 import { Suspense, useCallback, useRef, useState } from "react"
 import { toast } from "sonner"
 import { LayoutVisibilityControls } from "@/components/layout/layout-visibility-controls"
@@ -77,9 +78,9 @@ export function TransitPanel() {
       >
         <SheetTitle className="sr-only">{item.title}</SheetTitle>
         <SheetDescription className="sr-only">中转站预览：{item.kind === "text" ? "剪贴板文本" : item.content}</SheetDescription>
-        <button data-title={full ? "还原" : "展开"} aria-label={full ? "还原" : "展开"} onClick={() => setFull(!full)} className="transit-bar-item">{full ? <Minimize /> : <Maximize />}</button>
-        <button data-title="独立窗口" aria-label="独立窗口" onClick={() => void window.electronAPI.openTransitWindow(item, items.filter((entry) => entry.kind === "file" && entry.root).map((entry) => ({ root: entry.root!, content: entry.content }))).catch((error) => toast.error(String(error)))} className="transit-bar-item"><ExternalLink /></button>
         <div className="ml-auto flex items-center">
+          <button data-title={full ? "还原" : "展开"} aria-label={full ? "还原" : "展开"} onClick={() => setFull(!full)} className="transit-bar-item"><i aria-hidden="true" className={`codicon codicon-screen-${full ? "normal" : "full"}`} /></button>
+          <button data-title="独立窗口" aria-label="独立窗口" onClick={() => void window.electronAPI.openTransitWindow(item, items.filter((entry) => entry.kind === "file" && entry.root).map((entry) => ({ root: entry.root!, content: entry.content }))).catch((error) => toast.error(String(error)))} className="transit-bar-item"><i aria-hidden="true" className="codicon codicon-link-external" /></button>
           <TransitDock value={dock} onChange={changeDock} />
           <button
             type="button"
@@ -92,10 +93,10 @@ export function TransitPanel() {
               setTabsVisible(next)
               localStorage.setItem("vessel-transit-tabs-visible", String(next))
             }}
-          ><PanelTop /></button>
+          ><i aria-hidden="true" className="codicon codicon-browser" /></button>
           <LayoutVisibilityControls />
         </div>
-        <button data-title="关闭" aria-label="关闭中转站" onClick={() => selectTransit(null)} className="transit-bar-item transit-close"><X /></button>
+        <button data-title="关闭" aria-label="关闭中转站" onClick={() => selectTransit(null)} className="transit-bar-item transit-close"><i aria-hidden="true" className="codicon codicon-chrome-close" /></button>
       </header>
       {tabsVisible && <nav aria-label="中转项轮播" className="transit-bar transit-strip-bar">
         <button aria-label="上一个中转项" disabled={index <= 0} onClick={() => selectTransit(items[index - 1].id)} className="transit-bar-item"><ChevronLeft /></button>

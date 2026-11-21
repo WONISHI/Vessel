@@ -104,7 +104,7 @@ export function TabSwitcher({
                   onSelect(tab.id)
                   setOpen(false)
                 }}
-                className={`relative flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-xs focus:!bg-[#f0efed] focus:!text-stone-700 data-[highlighted]:!bg-[#f0efed] data-[highlighted]:!text-stone-700 ${tab.active ? `bg-[#f0efed] text-stone-700` : "text-stone-700"} ${preview ? "gap-3 pr-8" : ""}`}
+                className={`relative flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-xs focus:!bg-[#f0efed] focus:!text-stone-700 data-[highlighted]:!bg-[#f0efed] data-[highlighted]:!text-stone-700 ${tab.active ? `bg-[#f0efed] text-stone-700` : "text-stone-700"} ${preview ? "gap-3 pr-8" : ""} ${onClose ? "pr-9" : ""}`}
                 data-title={tab.title}
                 data-title-side={titleSide}
               >
@@ -117,9 +117,11 @@ export function TabSwitcher({
                   {preview && <span className="dark-list-description mt-0.5 block truncate text-[11px] font-normal tracking-wide text-stone-400">{tab.url?.replace(/^https?:\/\//, "").replace(/\/$/, "")}</span>}
                 </span>
               </DropdownMenuItem>
-              {preview && onClose && (
+              {onClose && (
                 <button
+                  type="button"
                   aria-label={`关闭 ${tab.title}`}
+                  data-title="关闭标签页"
                   onClick={(e) => {
                     e.stopPropagation()
                     onClose(tab.id)

@@ -95,12 +95,13 @@ export function BrowserTabs({ b }: { b: BrowserPageModel }) {
                 <ContextMenuItem onSelect={() => closeRightTabs(item.id)}>关闭右侧标签页</ContextMenuItem>
               </ContextMenuContent>
             </ContextMenu>
-            return members.length > 1 ? <TabSwitcher key={key} titleSide={titleSide} triggerClassName={`browser-tab-group ${members.some(member => member.id === tab.id) ? "browser-tab-group-selected" : ""}`} contentClassName="z-[510] vessel-browser-tabs-popup" tabs={members.map(member => ({ ...member, active: member.id === tab.id }))} onSelect={id => { setActive(id); setInput(null) }}>{row}</TabSwitcher> : row
+            return members.length > 1 ? <TabSwitcher key={key} titleSide={titleSide} triggerClassName={`browser-tab-group ${members.some(member => member.id === tab.id) ? "browser-tab-group-selected" : ""}`} contentClassName="z-[510] vessel-browser-tabs-popup" tabs={members.map(member => ({ ...member, active: member.id === tab.id }))} onClose={close} onSelect={id => { setActive(id); setInput(null) }}>{row}</TabSwitcher> : row
           })}
           <div className="flex h-[var(--browser-tab-height)] w-[var(--browser-tab-height)] shrink-0 items-center justify-center">
             <TabSwitcher
               contentClassName="z-[510] vessel-browser-tabs-popup"
               tabs={tabs.map((item) => ({ ...item, active: item.id === tab.id }))}
+              onClose={close}
               onSelect={(id) => {
                 setActive(id)
                 setInput(null)

@@ -306,7 +306,7 @@ export function TodoTableSection() {
         }}
       >
         <AlertDialogContent
-          className="todo-confirm-dialog !z-[240]"
+          className="todo-confirm-dialog !z-[240] !max-w-[400px]"
           overlayClassName="!z-[230] !bg-black/[.04] backdrop-blur-[3px]"
         >
           <div className="todo-confirm-heading">

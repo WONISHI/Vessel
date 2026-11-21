@@ -152,7 +152,7 @@ export function useWorkspaceController(workspace: WorkspaceData, initialFile?: s
     /** Supplies only the visible workspace's tabs and navigation callback to the global command palette. */
     const provideFiles = (event: Event) => {
       const request = event as CustomEvent<FilePickerRequest>
-      if (preview || (request.detail.scope ? request.detail.scope !== scope : !activeRef.current)) return
+      if (preview || !activeRef.current || (request.detail.scope && request.detail.scope !== scope)) return
       request.detail({ scope, root: workspace.path, files: openFiles, openFile: (file) => {
         openWorkspaceFile(file)
         if (!activeRef.current) navigate(getFileRoute(file.path))

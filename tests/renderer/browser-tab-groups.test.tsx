@@ -42,3 +42,18 @@ it("defaults to individual tabs, then groups after settings are enabled and allo
   act(() => window.dispatchEvent(new Event("vessel:settings-saved")))
   await waitFor(() => expect(view.container.querySelectorAll('.browser-tab')).toHaveLength(4))
 })
+
+it("closes a folded tab from the hover list without selecting it", async () => {
+  vi.stubGlobal("electronAPI", { getSettings: vi.fn(async () => ({ browserGroupSameDomain: true })) })
+  vi.stubGlobal("ResizeObserver", class { observe = vi.fn(); unobserve = vi.fn(); disconnect = vi.fn() })
+  const close = vi.fn(), setActive = vi.fn(), setInput = vi.fn()
+  const b = { tabs, tab: tabs[0], close, setActive, setInput, add: vi.fn(), setDragTabId: vi.fn() } as unknown as BrowserPageModel
+  const view = render(<BrowserTabs b={b} />)
+  await waitFor(() => expect(view.container.querySelector('.browser-tab-group')).toBeTruthy())
+  fireEvent.mouseEnter(view.container.querySelector('.browser-tab-group')!)
+  fireEvent.click(await screen.findByRole("button", { name: "关闭 文档二" }))
+  expect(close).toHaveBeenCalledExactlyOnceWith("two")
+  expect(setActive).not.toHaveBeenCalled()
+  expect(setInput).not.toHaveBeenCalled()
+  expect(screen.getByRole("menuitem", { name: "文档一" })).toBeTruthy()
+})

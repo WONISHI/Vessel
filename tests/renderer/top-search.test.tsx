@@ -367,3 +367,45 @@ it('provides browser toolbar and find actions without a workspace-console action
   window.removeEventListener('vessel-browser-open-find', search)
  }
 })
+
+it('switches adjacent browser tabs without navigating browser history', () => {
+ const back = vi.spyOn(window.history, 'back').mockImplementation(() => {})
+ const forward = vi.spyOn(window.history, 'forward').mockImplementation(() => {})
+ const select = vi.fn()
+ window.addEventListener('vessel-browser-tab', select)
+ try {
+  publishBrowserTabs([{id:'first',title:'一',url:'https://one.test',active:false},{id:'middle',title:'二',url:'https://two.test',active:true},{id:'last',title:'三',url:'https://three.test',active:false}])
+  render(<MemoryRouter initialEntries={['/browser']}><TopSearch /></MemoryRouter>)
+  fireEvent.click(screen.getByRole('button',{name:'上一个标签页'}))
+  expect(select.mock.lastCall?.[0].detail).toBe('first')
+  fireEvent.click(screen.getByRole('button',{name:'下一个标签页'}))
+  expect(select.mock.lastCall?.[0].detail).toBe('last')
+  expect(back).not.toHaveBeenCalled()
+  expect(forward).not.toHaveBeenCalled()
+  act(() => publishBrowserTabs([{id:'first',title:'一',url:'https://one.test',active:true}]))
+  expect((screen.getByRole('button',{name:'上一个标签页'}) as HTMLButtonElement).disabled).toBe(true)
+  expect((screen.getByRole('button',{name:'下一个标签页'}) as HTMLButtonElement).disabled).toBe(true)
+ } finally { window.removeEventListener('vessel-browser-tab', select); back.mockRestore(); forward.mockRestore() }
+})
+
+it('switches resource document tabs in displayed pinned order and ignores a cached different project', () => {
+ const openFile = vi.fn(), cached = vi.fn()
+ const files = [{name:'a.ts',path:'/tab-project/a.ts'},{name:'b.ts',path:'/tab-project/b.ts'},{name:'pinned.ts',path:'/tab-project/pinned.ts'}]
+ localStorage.setItem('resource_current_project', JSON.stringify({name:'项目',path:'/tab-project'}))
+ localStorage.setItem('vessel-pinned-tabs', JSON.stringify([files[2].path]))
+ const listener = (event: Event) => {
+  const provide = (event as CustomEvent).detail
+  expect(provide.scope).toBe('resources')
+  provide({root:'/cached-project',files:[{name:'old',path:'/cached-project/old'}],activePath:'',openFile:cached})
+  provide({root:'/tab-project',files,activePath:files[0].path,openFile})
+ }
+ window.addEventListener('vessel:request-workspace-files', listener)
+ try {
+  render(<MemoryRouter initialEntries={['/resources/file']}><TopSearch /></MemoryRouter>)
+  fireEvent.click(screen.getByRole('button',{name:'上一个标签页'}))
+  expect(openFile).toHaveBeenLastCalledWith(files[2])
+  fireEvent.click(screen.getByRole('button',{name:'下一个标签页'}))
+  expect(openFile).toHaveBeenLastCalledWith(files[1])
+  expect(cached).not.toHaveBeenCalled()
+ } finally { window.removeEventListener('vessel:request-workspace-files', listener); localStorage.removeItem('resource_current_project'); localStorage.removeItem('vessel-pinned-tabs') }
+})
