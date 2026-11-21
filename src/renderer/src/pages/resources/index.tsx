@@ -2,13 +2,21 @@ import Welcome from "@/components/workspace-welcome/index"
 import WorkspacePage from "@/components/workspace/index"
 import type { WorkspaceData } from "@vessel/type"
 import { useEffect, useState } from "react"
+import { rememberLibraryProject } from "./library-state"
 
 /** Renders the resource route component. */
 export function ResourceRoute() {
   const [project, setProject] = useState(() => JSON.parse(localStorage.getItem("resource_current_project") || "null") as (WorkspaceData & { initialFile?: string }) | null)
   useEffect(() => {
+    if (project?.path && project.name) rememberLibraryProject({ path: project.path, name: project.name })
+  }, [project?.path, project?.name])
+  useEffect(() => {
     /** Refreshes the current state. */
-    const update = () => setProject(JSON.parse(localStorage.getItem("resource_current_project") || "null"))
+    const update = () => {
+      const next = JSON.parse(localStorage.getItem("resource_current_project") || "null")
+      if (next) rememberLibraryProject(next)
+      setProject(next)
+    }
     window.addEventListener("vessel:resource-changed", update)
     return () => window.removeEventListener("vessel:resource-changed", update)
   }, [])

@@ -6,7 +6,7 @@ import WorkspaceTree from "@/components/workspace/components/layout-aside/layout
 import { Project, projectCache } from "@/components/workspace/components/layout-aside/project-library/components/project-library-shared"
 import { useWorkspace } from "@/components/workspace/hooks/useWorkspace"
 import { GitDecorationScope } from "@/features/file-icons/state"
-import { readLibraryMeta, updateLibraryMeta } from "@/pages/resources/library-state"
+import { readLibraryMeta, rememberLibraryProject, updateLibraryMeta } from "@/pages/resources/library-state"
 import { Ellipsis, ExternalLink, FolderOpen, HardDrive, HardDriveUpload, Plus, RefreshCw, X } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 
@@ -53,6 +53,7 @@ export function ProjectLibraryContent({ pinned, onPin, onSelect }: { pinned: boo
 
   /** Performs the activate operation. */
   const activate = (project: Project) => {
+    rememberLibraryProject(project)
     localStorage.setItem("resource_current_project", JSON.stringify({ ...project, files: [] }))
     onSelect(project)
   }

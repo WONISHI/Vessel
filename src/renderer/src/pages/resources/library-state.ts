@@ -1,6 +1,6 @@
 import { useMemo, useSyncExternalStore } from "react"
 export type LibraryProject = { name: string; path: string }
-type LibraryMeta = { count?: number; pins?: LibraryProject[]; lastPinned?: LibraryProject }
+type LibraryMeta = { count?: number; pins?: LibraryProject[]; lastPinned?: LibraryProject; recent?: LibraryProject[] }
 const key = "resource-library-meta"
 const event = "vessel:library-meta"
 
@@ -30,6 +30,14 @@ export function readLibraryMeta(): LibraryMeta {
 export function updateLibraryMeta(patch: Partial<LibraryMeta>) {
   localStorage.setItem(key, JSON.stringify({ ...readLibraryMeta(), ...patch }))
   window.dispatchEvent(new Event(event))
+}
+
+/** Most recently opened projects, deduplicated by path. */
+export function rememberLibraryProject(project: LibraryProject) {
+  if (!project?.path || !project.name) return
+  const recent = readLibraryMeta().recent || []
+  if (recent[0]?.path === project.path && recent[0].name === project.name) return
+  updateLibraryMeta({ recent: [{ name: project.name, path: project.path }, ...recent.filter(item => item.path !== project.path)].slice(0, 5) })
 }
 
 /** Provides the library meta hook. */

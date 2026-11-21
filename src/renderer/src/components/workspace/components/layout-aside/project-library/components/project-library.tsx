@@ -2,7 +2,7 @@ import { Project, projectCache } from "@/components/workspace/components/layout-
 import { ProjectPreview } from "@/components/workspace/components/layout-aside/project-library/components/project-preview"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
-import { updateLibraryMeta } from "@/pages/resources/library-state"
+import { rememberLibraryProject, updateLibraryMeta } from "@/pages/resources/library-state"
 import { FolderPlus } from "lucide-react"
 import { useEffect, useState } from "react"
 
@@ -39,6 +39,7 @@ export function ProjectLibrary({ pinned, onPin }: { pinned: boolean; onPin: () =
       const next = projects.some((item) => item.path === project.path) ? projects : [...projects, { name: project.name, path: project.path }]
       await window.electronAPI.setAppState("project-library", next)
       localStorage.setItem("resource_current_project", JSON.stringify({ name: project.name, path: project.path, files: [] }))
+      rememberLibraryProject(project)
       projectCache.projects = next
       updateLibraryMeta({ count: next.length })
       setSelected(project)
