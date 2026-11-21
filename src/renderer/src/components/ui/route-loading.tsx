@@ -16,7 +16,7 @@ export type RouteLoadingOptions = {
 /** Full-size ONLYOFFICE-style mask; fills its parent, also inside flex rows. */
 function LoadingMask({ icon, title = "正在加载页面", label = "正在准备页面内容，请稍候…" }: RouteLoadingOptions) {
   return (
-    <div className="relative flex h-full min-h-0 w-full min-w-0 flex-1 self-stretch">
+    <div data-page-transition-loading className="relative flex h-full min-h-0 w-full min-w-0 flex-1 self-stretch">
       <div className="absolute inset-0 flex">
         <EditorLoading kind="office" icon={icon} title={title} label={label} />
       </div>

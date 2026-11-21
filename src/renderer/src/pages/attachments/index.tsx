@@ -1,5 +1,6 @@
 import "@/components/ui/resize-handle.css"
 import "@/components/styles/tool-page-header.css"
+import "./attachments.css"
 import ActivityBar from "@/components/layout/activity-bar/index"
 import { ImageFilePreview } from "@/components/image-preview/index"
 import { StatusBar } from "@/components/ui/status-bar"
@@ -158,7 +159,7 @@ function AttachmentReader({ root, files, onNextPage, open, onOpenChange, initial
   )
 }
 
-function AttachmentCard({ file, root, selected, onSelect, onPreview }: { file: Attachment; root: string; selected?: boolean; onSelect?: (event: MouseEvent<HTMLElement>) => void; onPreview: () => void }) {
+function AttachmentCard({ file, root, entranceIndex, selected, onSelect, onPreview }: { file: Attachment; root: string; entranceIndex: number; selected?: boolean; onSelect?: (event: MouseEvent<HTMLElement>) => void; onPreview: () => void }) {
   const extension = file.name.split(".").pop()?.toUpperCase() || "文件"
   const [failedTemp, setFailedTemp] = useState(false)
   const temporary = /\.tmp$/i.test(file.name)
@@ -167,7 +168,7 @@ function AttachmentCard({ file, root, selected, onSelect, onPreview }: { file: A
   const size = file.size >= 1024 ** 2 ? `${(file.size / 1024 ** 2).toFixed(1)} MB` : `${Math.ceil(file.size / 1024)} KB`
 
   return (
-    <article className={`relative min-w-0 rounded-xl border bg-card p-2 text-card-foreground ${selected ? "ring-2 ring-green-600" : ""}`} onDoubleClick={(event) => {
+    <article style={{ animationDelay: `${entranceIndex * 50}ms` }} className={`attachment-enter relative min-w-0 rounded-xl border bg-card p-2 text-card-foreground ${selected ? "ring-2 ring-green-600" : ""}`} onDoubleClick={(event) => {
       if (!(event.target as Element).closest("[data-attachment-thumbnail]")) preview?.()
     }}>
       <div data-attachment-thumbnail
@@ -276,6 +277,8 @@ export default function AttachmentRoute() {
     if (group) group.push(file)
     else pageGroups.set(label, [file])
   }
+  // Continue the sequence across date/folder groups instead of restarting each row.
+  const entranceIndices = new Map(Array.from(pageGroups.values()).flat().map((file, index) => [file.path, index]))
   const removeAttachment = async () => {
     if (!root || !confirmFiles.length || deleting) return
     setDeleting(true)
@@ -416,7 +419,7 @@ export default function AttachmentRoute() {
                     </div>
                   </div>
                   <div className="grid grid-cols-[repeat(auto-fill,minmax(130px,1fr))] gap-3">
-                    {group.map((file) => <AttachmentCard key={`${file.path}:${file.mtime}`} file={file} root={root} selected={selected.includes(file) || (readerOpen && initialPath === file.path)}
+                    {group.map((file) => <AttachmentCard key={`${file.path}:${file.mtime}`} file={file} root={root} entranceIndex={entranceIndices.get(file.path) ?? 0} selected={selected.includes(file) || (readerOpen && initialPath === file.path)}
                       onPreview={() => openGroupReader(label, file.path)}
                       onSelect={selecting ? (event) => selectFile(file, event) : undefined} />)}
                   </div>

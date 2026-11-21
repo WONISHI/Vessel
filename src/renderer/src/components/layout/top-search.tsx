@@ -1,4 +1,5 @@
 import { PageToolsMenu } from "./page-tools-menu"
+import { pageTransitionKey, transitionPage } from "@/lib/page-transition"
 import "@vscode/codicons/dist/codicon.css"
 import { FeaturePageOverlay } from "./feature-page-overlay"
 import { ActivityMenu } from "./activity-menu"
@@ -39,12 +40,14 @@ export function TopSearch() {
   useLayoutEffect(() => {
     if (!layoutScope) featureReturnTo.current = location.pathname + location.search + location.hash
   }, [layoutScope, location.pathname, location.search, location.hash])
-  const closeFeature = () => { if (layoutScope === "graph") window.dispatchEvent(new Event("vessel:graph-close")); if (overlayKind) setOverlay(null); else void navigate(featureReturnTo.current) }
+  const closeOverlay = () => { void transitionPage(() => setOverlay(null), pageTransitionKey(pathname)) }
+  const closeFeature = () => { if (layoutScope === "graph") window.dispatchEvent(new Event("vessel:graph-close")); if (overlayKind) closeOverlay(); else void navigate(featureReturnTo.current) }
   const featureName = layoutScope === "graph" ? "关系图谱" : layoutScope === "todos" ? "待办" : "开发工具"
   const openFeature = (path: string) => {
     if (path === "/todos" || path === "/devtools") {
       setOpen(false)
-      setOverlay({ kind: path === "/todos" ? "todos" : "devtools", locationKey: location.key })
+      const kind = path === "/todos" ? "todos" : "devtools"
+      void transitionPage(() => setOverlay({ kind, locationKey: location.key }), kind === "todos" ? "feature:todos" : `feature:devtools:${overlayTool}`)
     } else void navigate(path)
   }
   const statusVisible = useStatusBarVisible()
@@ -140,7 +143,7 @@ export function TopSearch() {
         {layoutScope && <button type="button" aria-label={`关闭${featureName}`} data-title="关闭" className="flex size-6 items-center justify-center rounded text-stone-500 transition-colors hover:bg-red-50 hover:text-red-600 focus-visible:bg-red-50 focus-visible:text-red-600 dark:hover:bg-red-500/10 dark:hover:text-red-400" onClick={closeFeature}><X className="size-4" /></button>}
       </div>
     </header>
-    <FeaturePageOverlay feature={overlayKind} tool={overlayTool} onToolChange={setOverlayTool} onClose={() => setOverlay(null)} />
+    <FeaturePageOverlay feature={overlayKind} tool={overlayTool} onToolChange={setOverlayTool} onClose={closeOverlay} />
     {open && !browser && <WorkspaceFilePicker workspace={workspace} popupStyle={popupStyle} onClose={() => setOpen(false)} />}
     <Dialog modal={false} open={open && browser} onOpenChange={setOpen}>
       <DialogContent style={popupStyle} className="vessel-quick-picker z-[282] translate-y-0" showCloseButton={false}>

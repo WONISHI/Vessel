@@ -16,12 +16,14 @@ import { useLocation } from "react-router-dom"
 
 import DevTool from "@/components/core/devtool/index"
 import { WorkspaceRouteCache } from "@/components/workspace-route-cache/index"
+import { pageTransitionKey, rememberPageContent } from "@/lib/page-transition"
 
 /** Renders the app component. */
 function App() {
   const router = useRouter()
   useEffect(() => window.electronAPI.onOpenSettings?.(() => void router.push("/settings")), [router])
   const location = useLocation()
+  useEffect(() => rememberPageContent(pageTransitionKey(location.pathname)), [location.pathname])
   useEffect(() => {
     const route = router.resolve(location.pathname + location.search + location.hash)
     document.title = typeof route.meta.title === "string" ? route.meta.title : "Vessel"

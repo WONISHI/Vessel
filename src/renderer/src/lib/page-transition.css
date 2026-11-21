@@ -1,0 +1,51 @@
+/* Outgoing and incoming snapshots overlap slightly; total duration is 400ms. */
+html[data-page-transition="active"] .vessel-main-titlebar { view-transition-name: vessel-titlebar; }
+html[data-page-transition="active"]::view-transition { pointer-events: none; }
+/* Do not interpolate the outgoing/incoming page's different document bounds. */
+html[data-page-transition="active"]::view-transition-group(root) {
+  animation: none;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform: none;
+}
+html[data-page-transition="active"]::view-transition-image-pair(root) {
+  isolation: isolate;
+  overflow: clip;
+}
+html[data-page-transition="active"]::view-transition-old(root),
+html[data-page-transition="active"]::view-transition-new(root) {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  transform-origin: top left;
+}
+html[data-page-transition="active"]::view-transition-old(root) {
+  /* Keep the outgoing page above the arrival so its fade remains visible. */
+  z-index: 2;
+  animation: vessel-page-out 160ms ease-out both;
+  mix-blend-mode: normal;
+}
+html[data-page-transition="active"]::view-transition-new(root) {
+  z-index: 1;
+  animation: vessel-page-in 360ms cubic-bezier(.25,.1,.25,1) 40ms both;
+  mix-blend-mode: normal;
+}
+html[data-page-transition="active"]::view-transition-group(vessel-titlebar) { animation: none; }
+html[data-page-transition="active"]::view-transition-old(vessel-titlebar) { animation: none; opacity: 0; }
+html[data-page-transition="active"]::view-transition-new(vessel-titlebar) { animation: none; }
+@keyframes vessel-page-out {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(-8px); }
+}
+/* One continuous arrival; fixed snapshot bounds prevent a second layout movement. */
+@keyframes vessel-page-in {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  html[data-page-transition="active"]::view-transition-group(*),
+  html[data-page-transition="active"]::view-transition-old(*),
+  html[data-page-transition="active"]::view-transition-new(*) { animation: none !important; }
+}

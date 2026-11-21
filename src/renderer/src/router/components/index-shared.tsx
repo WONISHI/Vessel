@@ -1,4 +1,5 @@
 import App from "@/components/app/index"
+import { installPageTransitions } from "@/lib/page-transition"
 import { RouterCrashFallback } from "@/components/core/error-boundary/crash-fallback"
 import Canvas from "@/components/workspace/components/layout-main/canvas"
 import { OfficeRoute } from "@/pages/office/index"
@@ -191,6 +192,8 @@ export const router = createRouter({
     }
   ]
 })
+
+installPageTransitions(router)
 
 router.beforeEach((to) => {
   const requiresWorkspace = to.meta.requiresWorkspace === true

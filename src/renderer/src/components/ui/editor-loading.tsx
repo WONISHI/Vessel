@@ -6,6 +6,7 @@ import type { ReactNode } from "react"
 export function EditorLoading({ kind = "code", label, title, icon }: { kind?: "code" | "office"; label?: string; title?: string; icon?: ReactNode }) {
   return (
     <div
+      data-page-transition-loading
       role="status"
       aria-live="polite"
       className={`editor-loading editor-loading-${kind}`}
