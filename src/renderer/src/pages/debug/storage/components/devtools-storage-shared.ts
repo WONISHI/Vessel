@@ -1,5 +1,6 @@
 import { type StorageColumn } from "@/pages/debug/storage/components/storage-cell"
 export interface TableMeta {
+  database: string
   name: string
   comment: string
   rowCount: number

@@ -64,9 +64,10 @@ export const Guest = memo(function Guest({ tab, visible, register, update }: { t
       void withGuest(view, (guest) => guest.executeJavaScript(`(() => {
         const floating = document.getElementById("vessel-floating-video")?.shadowRoot?.querySelector("video")
         const playing = (video) => !video.paused && !video.ended
-        return Boolean(floating && playing(floating)) || Array.from(document.querySelectorAll("video")).some(playing)
+        const videoPlaying = Boolean(floating && playing(floating)) || Array.from(document.querySelectorAll("video")).some(playing)
+        return { videoPlaying, mediaPlaying: videoPlaying || Array.from(document.querySelectorAll("audio")).some(playing) }
       })()`).then((playing) => {
-        if (revision === mediaRevision) updateRef.current(tab.id, { videoPlaying: playing === true })
+        if (revision === mediaRevision) updateRef.current(tab.id, { videoPlaying: playing?.videoPlaying === true, mediaPlaying: playing?.mediaPlaying === true })
       }).catch(() => {}))
     }
 
@@ -90,7 +91,7 @@ export const Guest = memo(function Guest({ tab, visible, register, update }: { t
       if (event.isMainFrame && !event.isInPlace) {
         mediaRevision++
         setDocumentReady(0)
-        updateRef.current(tab.id, { loading: true, error: "", devError: undefined, videoPlaying: false })
+        updateRef.current(tab.id, { loading: true, error: "", devError: undefined, videoPlaying: false, mediaPlaying: false })
       }
     }
 

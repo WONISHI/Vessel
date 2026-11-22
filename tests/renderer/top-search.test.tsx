@@ -13,6 +13,13 @@ beforeEach(() => {
  vi.stubGlobal('ResizeObserver', class { observe = vi.fn(); unobserve = vi.fn(); disconnect = vi.fn() })
 })
 afterEach(() => { cleanup(); vi.unstubAllGlobals() })
+it.each(['/debug/performance', '/debug/system', '/debug/storage'])('returns directly to home from %s', (path) => {
+ function Location() { return <output data-testid="current-route">{useLocation().pathname}</output> }
+ render(<MemoryRouter initialEntries={[path]}><TopSearch /><Location /></MemoryRouter>)
+ fireEvent.click(screen.getByRole('button', { name: '回到首页' }))
+ expect(screen.getByTestId('current-route').textContent).toBe('/')
+ expect(screen.queryByRole('button', { name: '回到首页' })).toBeNull()
+})
 it('searches browser tab titles and URLs and selects the matching tab', () => {
  publishBrowserTabs([{ id:'a',title:'文档',url:'https://docs.test',active:true },{id:'b',title:'项目',url:'https://git.test',active:false}])
  const listener=vi.fn();window.addEventListener('vessel-browser-tab',listener)

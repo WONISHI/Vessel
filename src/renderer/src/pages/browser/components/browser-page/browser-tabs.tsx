@@ -4,20 +4,29 @@ import { BrowserFavicon } from "@/components/browser-favicon"
 import { TabSwitcher } from "@/components/tab-switcher"
 import { Button } from "@/components/ui/button"
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger } from "@/components/ui/context-menu"
-import { Copy, AudioLines, LoaderCircle, Pin, Plus, RotateCw, X } from "lucide-react"
+import { Copy, CopyX, AudioLines, LoaderCircle, Snowflake, Play, PanelRightClose, Pin, Plus, RotateCw, X } from "lucide-react"
 import type { BrowserPageModel } from "@/pages/browser/components/browser-page/hooks/use-browser-page"
+import { useState } from "react"
 
 /** 顶部标签栏 */
 export function BrowserTabs({ b }: { b: BrowserPageModel }) {
-  const { tabs, setActive, setInput, tab, add, close, addTabRightOf, reloadTab, togglePinTab, closeOtherTabs, closeRightTabs, dragTabId, setDragTabId, reorderTabs } = b
+  const { tabs, setActive, setInput, tab, add, close, addTabRightOf, reloadTab, togglePinTab, closeOtherTabs, closeRightTabs, freezeTab, dragTabId, setDragTabId, reorderTabs } = b
 
   const grouping = useTabGrouping()
+  const [contextMenuOpen, setContextMenuOpen] = useState(false)
   const groups = groupBrowserTabs(tabs, tab.id, grouping)
+  const contextActions = (item: { id: string; frozen?: boolean; url?: string }) => [
+    { label: "复制标签页", icon: <Copy />, onSelect: () => addTabRightOf(item.id, true) },
+    { label: "重新加载", icon: <RotateCw />, onSelect: () => reloadTab(item.id), disabled: !item.url },
+    { label: item.frozen ? "解冻标签页" : "冻结标签页", icon: item.frozen ? <Play /> : <Snowflake />, onSelect: () => item.frozen ? setActive(item.id) : freezeTab(item.id), disabled: !item.url },
+    { label: "关闭", icon: <X />, onSelect: () => close(item.id), separatorBefore: true },
+    { label: "关闭其他标签页", icon: <CopyX />, onSelect: () => closeOtherTabs(item.id) }
+  ]
   return (
         <div className="browser-tabs">
           {groups.map(({ key, tab: item, members }, groupIndex) => {
             const titleSide = groupIndex === 0 ? "right" : groupIndex === groups.length - 1 ? "left" : undefined
-            const row = <ContextMenu key={item.id}>
+            const row = <ContextMenu key={item.id} onOpenChange={setContextMenuOpen}>
               <ContextMenuTrigger asChild>
                 <div
                   draggable
@@ -42,13 +51,13 @@ export function BrowserTabs({ b }: { b: BrowserPageModel }) {
                       setActive(item.id)
                       setInput(null)
                     }}
-                    className="browser-tab-select flex min-w-0 flex-1 items-center gap-2"
+                    className={`browser-tab-select flex min-w-0 flex-1 items-center ${item.frozen ? "gap-3.5" : "gap-2"}`}
                     data-title-side={titleSide}
-                    data-title={members.length > 1 ? undefined : item.videoPlaying ? `${item.title} · 正在播放视频` : item.title}
+                    data-title={members.length > 1 ? undefined : item.frozen ? `${item.title} · 已冷冻，点击重新加载` : item.videoPlaying ? `${item.title} · 正在播放视频` : item.title}
                   >
                     <span className="relative flex size-4 shrink-0 items-center justify-center">
                       <span className={`flex ${item.id === tab.id && item.loading ? "invisible" : ""}`}>
-                        <BrowserFavicon url={item.url} favicon={item.favicon} />
+                        <BrowserFavicon url={item.url} favicon={item.favicon} frozen={item.frozen} />
                       </span>
                       {item.id === tab.id && item.loading
                         ? <LoaderCircle size={16} className="absolute inset-0 animate-spin" aria-label="正在加载" />
@@ -82,6 +91,10 @@ export function BrowserTabs({ b }: { b: BrowserPageModel }) {
                   <RotateCw />
                   重新加载
                 </ContextMenuItem>
+                <ContextMenuItem disabled={!item.url} onSelect={() => item.frozen ? setActive(item.id) : freezeTab(item.id)}>
+                  {item.frozen ? <Play /> : <Snowflake />}
+                  {item.frozen ? "解冻标签页" : "冻结标签页"}
+                </ContextMenuItem>
                 <ContextMenuItem onSelect={() => togglePinTab(item.id)}>
                   <Pin />
                   {item.pinned ? "取消固定" : "固定"}
@@ -91,14 +104,16 @@ export function BrowserTabs({ b }: { b: BrowserPageModel }) {
                   <X />
                   关闭
                 </ContextMenuItem>
-                <ContextMenuItem onSelect={() => closeOtherTabs(item.id)}>关闭其他标签页</ContextMenuItem>
-                <ContextMenuItem onSelect={() => closeRightTabs(item.id)}>关闭右侧标签页</ContextMenuItem>
+                <ContextMenuItem onSelect={() => closeOtherTabs(item.id)}><CopyX />关闭其他标签页</ContextMenuItem>
+                <ContextMenuItem onSelect={() => closeRightTabs(item.id)}><PanelRightClose />关闭右侧标签页</ContextMenuItem>
               </ContextMenuContent>
             </ContextMenu>
-            return members.length > 1 ? <TabSwitcher key={key} titleSide={titleSide} triggerClassName={`browser-tab-group ${members.some(member => member.id === tab.id) ? "browser-tab-group-selected" : ""}`} contentClassName="z-[510] vessel-browser-tabs-popup" tabs={members.map(member => ({ ...member, active: member.id === tab.id }))} onClose={close} onSelect={id => { setActive(id); setInput(null) }}>{row}</TabSwitcher> : row
+            return members.length > 1 ? <TabSwitcher key={key} contextActions={contextActions} disabled={contextMenuOpen} titleSide={titleSide} triggerClassName={`browser-tab-group ${members.some(member => member.id === tab.id) ? "browser-tab-group-selected" : ""}`} contentClassName="z-[510] vessel-browser-tabs-popup" tabs={members.map(member => ({ ...member, active: member.id === tab.id }))} onClose={close} onSelect={id => { setActive(id); setInput(null) }}>{row}</TabSwitcher> : row
           })}
           <div className="flex h-[var(--browser-tab-height)] w-[var(--browser-tab-height)] shrink-0 items-center justify-center">
             <TabSwitcher
+              disabled={contextMenuOpen}
+              contextActions={contextActions}
               contentClassName="z-[510] vessel-browser-tabs-popup"
               tabs={tabs.map((item) => ({ ...item, active: item.id === tab.id }))}
               onClose={close}

@@ -10,7 +10,7 @@ import { toast } from "@/components/ui/sonner"
 import { bindDoubleSpace } from "../../../../shared/double-space"
 import { useLocation, useNavigate } from "react-router-dom"
 import { useState, useRef, useEffect, useLayoutEffect, useCallback, type CSSProperties } from "react"
-import { ArrowLeft, ArrowRight, CalendarDays, Plus, Search, Network, X } from "lucide-react"
+import { ArrowLeft, ArrowRight, CalendarDays, House, Plus, Search, Network, X } from "lucide-react"
 import { titlebarPage } from "./titlebar-page"
 import { BrowserFavicon } from "@/components/browser-favicon"
 import "./top-search.css"
@@ -157,6 +157,9 @@ export function TopSearch() {
         <button type="button" aria-label="开发工具" data-title="开发工具" aria-pressed={displayPath.startsWith("/devtools")} className="flex size-6 items-center justify-center rounded text-stone-500 hover:bg-stone-200 dark:text-stone-400 dark:hover:bg-white/10" onClick={() => openFeature("/devtools")}>
           <i aria-hidden="true" className="codicon codicon-developer-tools !text-base" />
         </button>
+        {/^\/debug(\/|$)/.test(displayPath) && <button type="button" aria-label="回到首页" data-title="回到首页" className="flex size-6 items-center justify-center rounded text-stone-500 hover:bg-stone-200 dark:text-stone-400 dark:hover:bg-white/10" onClick={() => { void navigate("/") }}>
+          <House className="size-4" />
+        </button>}
         {showPageTools && <PageToolsMenu browser={browser} />}
         {activityCollapsed && <ActivityMenu />}
         {showLayoutControls && <LayoutVisibilityControls />}
@@ -179,7 +182,7 @@ export function TopSearch() {
         }}><Plus className="size-4" /></button>}</div>
         <div className="quick-picker-section"><span>打开的标签页</span><span>{matching.length} 个结果</span></div>
         <QuickPickerScrollArea viewportRef={resultsViewport} className="quick-picker-results"><div role="listbox" aria-label="搜索结果">{matching.map((tab, index) => <button role="option" aria-selected={index === selected} type="button" key={tab.id} className="quick-picker-row" onClick={() => { selectBrowserTab(tab.id); setOpen(false) }}>
-          <span className="quick-picker-icon"><BrowserFavicon url={tab.url} favicon={tab.favicon} /></span>
+          <span className="quick-picker-icon"><BrowserFavicon url={tab.url} favicon={tab.favicon} frozen={tab.frozen} /></span>
           <span className="quick-picker-copy"><span className="quick-picker-title">{tab.title || "未命名标签"}</span><span className="quick-picker-url">{tab.url}</span></span>
           {tab.active && <span className="quick-picker-current">当前标签</span>}
         </button>)}{!matching.length && <p className="quick-picker-empty">没有匹配的标签，试试其他关键词</p>}</div></QuickPickerScrollArea>

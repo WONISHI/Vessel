@@ -185,10 +185,10 @@ export const PAGE_EXTRACTOR_SCRIPT = `(() => {
     };
   }
 })()`
-export type Tab = { devError?: string; videoPlaying?: boolean; ready?: boolean; openerId?: string; favicon?: string; id: string; url: string; title: string; loading: boolean; back: boolean; forward: boolean; error: string; zoom: number; pinned?: boolean }
+export type Tab = { frozen?: boolean; lastActiveAt?: number; mediaPlaying?: boolean; devError?: string; videoPlaying?: boolean; ready?: boolean; openerId?: string; favicon?: string; id: string; url: string; title: string; loading: boolean; back: boolean; forward: boolean; error: string; zoom: number; pinned?: boolean }
 
 /** Performs the new tab operation. */
-export const newTab = (): Tab => ({ id: crypto.randomUUID(), url: "", title: "新标签页", loading: false, back: false, forward: false, error: "", zoom: 1 })
+export const newTab = (): Tab => ({ lastActiveAt: Date.now(), id: crypto.randomUUID(), url: "", title: "新标签页", loading: false, back: false, forward: false, error: "", zoom: 1 })
 export type BookmarkItem = { title: string; url: string; favicon?: string }
 export const BROWSER_TABS_KEY = "browser-tabs"
 export const BROWSER_ACTIVE_TAB_KEY = "browser-active-tab"
@@ -214,6 +214,7 @@ export function loadSavedBrowserTabs(): { tabs: Tab[]; activeId: string } {
           .filter((item): item is SavedBrowserTab => Boolean(item && typeof item.id === "string" && typeof item.url === "string"))
           .map((item) => ({
             id: item.id,
+            lastActiveAt: Date.now(),
             url: item.url,
             title: item.title || (item.url ? "正在加载…" : "新标签页"),
             favicon: item.favicon,

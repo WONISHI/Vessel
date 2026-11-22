@@ -962,16 +962,14 @@ body[data-shot-shape="diamond"]:not([data-shot-secondary]) :is(#optionPanel, #op
 .shot-step-caption[hidden] { display: none; }
 .shot-step-caption::placeholder { color: #a8a29e; }
 
-/* Screenshot translation: production layout from the supplied HTML design. */
+/* Compact glass surface shared by screenshot OCR and translation. */
 .shot-dialog-overlay {
-  --dialog-bg: #fff;
-  --dialog-field: #fff;
-  --dialog-border: #e6e4e1;
+  --dialog-field: #ffffff26;
   --dialog-text: #1f2328;
   --dialog-dim: #9ca3af;
-  --dialog-button-border: #d8d5d1;
+  --dialog-button-border: #b9c2ca66;
   --dialog-green: #16a34a;
-  --dialog-green-border: #22c55e;
+  --dialog-green-border: #22c55e70;
   --dialog-green-soft: #16a34a14;
   --dialog-amber: #d97706;
   --dialog-amber-border: #f0a93b;
@@ -984,7 +982,7 @@ body[data-shot-shape="diamond"]:not([data-shot-secondary]) :is(#optionPanel, #op
   justify-content: center;
   padding: 26px;
   box-sizing: border-box;
-  background: #1817166b;
+  background: #18212b40;
   color: var(--dialog-text);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
 }
@@ -993,15 +991,12 @@ body[data-shot-shape="diamond"]:not([data-shot-secondary]) :is(#optionPanel, #op
   position: relative;
   inset: auto;
   transform: none;
-  width: 640px;
+  width: 480px;
   max-width: 100%;
   max-height: min(92vh, calc(100vh - 52px));
   overflow: auto;
-  padding: 22px 24px 18px;
-  border: 1px solid var(--dialog-border);
-  border-radius: 16px;
-  background: var(--dialog-bg);
-  box-shadow: 0 30px 70px #1c191747, 0 6px 20px #1c19171f;
+  padding: 16px;
+  border-radius: 18px;
 }
 .shot-dialog h2 {
   display: flex;
@@ -1009,8 +1004,8 @@ body[data-shot-shape="diamond"]:not([data-shot-secondary]) :is(#optionPanel, #op
   gap: 8px;
   margin: 0 0 2px;
   color: var(--dialog-text);
-  font-size: 18px;
-  font-weight: 800;
+  font-size: 16px;
+  font-weight: 700;
   letter-spacing: .2px;
 }
 .shot-dialog h2 svg { width: 20px; height: 20px; color: var(--dialog-green); }
@@ -1018,7 +1013,7 @@ body[data-shot-shape="diamond"]:not([data-shot-secondary]) :is(#optionPanel, #op
   display: flex;
   align-items: center;
   gap: 6px;
-  margin: 7px 0 13px;
+  margin: 5px 0 10px;
   color: var(--dialog-dim);
   font-size: 12.5px;
   line-height: 1.6;
@@ -1035,30 +1030,31 @@ body[data-shot-shape="diamond"]:not([data-shot-secondary]) :is(#optionPanel, #op
 }
 .shot-dialog-status[data-state="busy"]::before { background: var(--dialog-amber); box-shadow: 0 0 0 3px var(--dialog-amber-soft); }
 .shot-dialog-status[data-state="error"]::before { background: #ef4444; box-shadow: 0 0 0 3px #ef444414; }
-.shot-dialog-field { position: relative; margin-bottom: 13px; }
+.shot-dialog-field { position: relative; margin-bottom: 10px; }
 .shot-dialog .shot-dialog-field textarea {
   display: block;
   width: 100%;
-  height: 150px;
-  min-height: 130px;
+  height: 124px;
+  min-height: 100px;
   margin: 0;
-  padding: 30px 14px 12px;
+  padding: 10px 12px;
   resize: vertical;
-  border: 1.5px solid var(--dialog-green-border);
+  border: 1px solid var(--dialog-green-border);
   border-radius: 11px;
   outline: none;
   background: var(--dialog-field);
   color: var(--dialog-text);
   font: 13.5px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", sans-serif;
 }
+.shot-dialog .shot-dialog-field.has-tag textarea { padding-bottom: 34px; }
 .shot-dialog .shot-dialog-field.target textarea { border-color: var(--dialog-amber-border); }
 .shot-dialog .shot-dialog-field textarea:focus { box-shadow: 0 0 0 3px var(--dialog-green-soft); }
 .shot-dialog .shot-dialog-field.target textarea:focus { box-shadow: 0 0 0 3px var(--dialog-amber-soft); }
 .shot-dialog-field textarea::placeholder { color: var(--dialog-dim); }
 .shot-dialog-tag {
   position: absolute;
-  top: 8px;
-  right: 11px;
+  bottom: 9px;
+  right: 17px;
   padding: 2px 7px;
   border-radius: 6px;
   color: var(--dialog-green);
@@ -1069,15 +1065,15 @@ body[data-shot-shape="diamond"]:not([data-shot-secondary]) :is(#optionPanel, #op
   pointer-events: none;
 }
 .shot-dialog-field.target .shot-dialog-tag { color: var(--dialog-amber); background: var(--dialog-amber-soft); }
-.shot-dialog-controls { display: flex; align-items: center; gap: 10px; margin-bottom: 13px; }
+.shot-dialog-controls { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
 .shot-dialog-select { position: relative; }
 .shot-dialog .shot-dialog-select select {
   appearance: none;
   width: 132px;
-  height: 36px;
+  height: 32px;
   margin: 0;
   padding: 0 34px 0 13px;
-  border: 1.5px solid var(--dialog-button-border);
+  border: 1px solid var(--dialog-button-border);
   border-radius: 10px;
   outline: none;
   color: var(--dialog-text);
@@ -1093,10 +1089,10 @@ body[data-shot-shape="diamond"]:not([data-shot-secondary]) :is(#optionPanel, #op
   align-items: center;
   justify-content: center;
   gap: 7px;
-  height: 36px;
+  height: 32px;
   margin: 0;
-  padding: 0 17px;
-  border: 1.5px solid var(--dialog-button-border);
+  padding: 0 12px;
+  border: 1px solid var(--dialog-button-border);
   border-radius: 10px;
   color: var(--dialog-text);
   background: var(--dialog-field);
@@ -1120,37 +1116,35 @@ body[data-shot-shape="diamond"]:not([data-shot-secondary]) :is(#optionPanel, #op
   animation: shot-dialog-spin .7s linear infinite;
 }
 @keyframes shot-dialog-spin { to { transform: rotate(360deg); } }
-.shot-dialog-foot { display: flex; gap: 10px; margin-top: 2px; }
+.shot-dialog-foot { display: flex; gap: 8px; margin-top: 2px; }
 @media (prefers-color-scheme: dark) {
   .shot-dialog-overlay {
-    --dialog-bg: #23272d;
-    --dialog-field: #1c2025;
-    --dialog-border: #30353c;
+    --dialog-field: #10182066;
     --dialog-text: #e6e8eb;
     --dialog-dim: #9aa1a9;
-    --dialog-button-border: #3a4049;
+    --dialog-button-border: #ffffff26;
     --dialog-green: #22c55e;
     --dialog-green-border: #22c55e99;
     --dialog-green-soft: #22c55e1a;
     --dialog-amber: #fbbf24;
     --dialog-amber-border: #f59e0b8c;
     --dialog-amber-soft: #f59e0b1a;
-    background: #0009;
+    background: #0006;
   }
   .shot-dialog button.shot-dialog-primary { color: #0c1410; }
 }
 @media (max-width: 560px) {
   .shot-dialog-overlay { padding: 14px 10px; }
-  .shot-ocr.shot-dialog { padding: 20px 16px 16px; border-radius: 14px; max-height: calc(100vh - 28px); }
+  .shot-ocr.shot-dialog { padding: 14px; border-radius: 16px; max-height: calc(100vh - 28px); }
   .shot-dialog-controls { flex-wrap: wrap; }
   .shot-dialog-controls > * { flex: 1; }
   .shot-dialog .shot-dialog-select select { width: 100%; }
-  .shot-dialog .shot-dialog-field textarea { min-height: 120px; font-size: 16px; }
+  .shot-dialog .shot-dialog-field textarea { min-height: 100px; font-size: 16px; }
   .shot-dialog-foot button { flex: 1; }
 }
 
 /* Refraction stays behind the library's controls and cannot intercept input. */
-:is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip).shot-liquid-glass {
+:is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip, .shot-dialog).shot-liquid-glass {
   isolation: isolate;
   border: 0 !important;
   outline: none;
@@ -1159,8 +1153,8 @@ body[data-shot-shape="diamond"]:not([data-shot-secondary]) :is(#optionPanel, #op
   -webkit-backdrop-filter: blur(18px) saturate(135%) !important;
   box-shadow: 0 8px 24px #17212d26;
 }
-:is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip).shot-liquid-glass::before,
-:is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip).shot-liquid-glass::after {
+:is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip, .shot-dialog).shot-liquid-glass::before,
+:is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip, .shot-dialog).shot-liquid-glass::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -1169,40 +1163,40 @@ body[data-shot-shape="diamond"]:not([data-shot-secondary]) :is(#optionPanel, #op
   border-radius: inherit;
   pointer-events: none;
 }
-:is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip).shot-liquid-glass::before {
+:is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip, .shot-dialog).shot-liquid-glass::before {
   z-index: -2;
   /* Keep the full frosted surface above; displacement must not erode its edges. */
   background: linear-gradient(180deg, #ffffff24, #ffffff00 45%, #ffffff0d);
 }
-:is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip).shot-liquid-glass::after {
+:is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip, .shot-dialog).shot-liquid-glass::after {
   z-index: -1;
   background: radial-gradient(ellipse 150px 70px at var(--glass-x, 25%) var(--glass-y, 0px), #ffffff70, #ffffff00 75%);
   box-shadow: none;
 }
-:is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip).shot-liquid-glass .item-panel:hover,
-:is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip).shot-liquid-glass .shot-shapes[aria-expanded="true"],
-:is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip).shot-liquid-glass .shot-mode-trigger:hover,
-:is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip).shot-liquid-glass .shot-mode-trigger[aria-expanded="true"] { background-color: #ffffff59; }
-:is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip).shot-liquid-glass .item-panel[class*="-active"],
-:is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip).shot-liquid-glass button[aria-pressed="true"] {
+:is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip, .shot-dialog).shot-liquid-glass .item-panel:hover,
+:is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip, .shot-dialog).shot-liquid-glass .shot-shapes[aria-expanded="true"],
+:is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip, .shot-dialog).shot-liquid-glass .shot-mode-trigger:hover,
+:is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip, .shot-dialog).shot-liquid-glass .shot-mode-trigger[aria-expanded="true"] { background-color: #ffffff59; }
+:is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip, .shot-dialog).shot-liquid-glass .item-panel[class*="-active"],
+:is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip, .shot-dialog).shot-liquid-glass button[aria-pressed="true"] {
   background-color: #ffffff45;
   box-shadow: inset 0 1px 1px #ffffffa6, 0 1px 4px #19202b14;
 }
 @media (prefers-color-scheme: dark) {
-  :is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip).shot-liquid-glass {
+  :is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip, .shot-dialog).shot-liquid-glass {
     color-scheme: dark;
     color: #f1f5f9;
     background: linear-gradient(135deg, #303841d9, #20262ecc 55%, #343c46d9) !important;
     box-shadow: 0 8px 24px #0005;
   }
-  :is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip).shot-liquid-glass::before {
+  :is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip, .shot-dialog).shot-liquid-glass::before {
     background: linear-gradient(180deg, #ffffff0f, #ffffff00 45%, #ffffff04);
   }
-  :is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip).shot-liquid-glass::after {
+  :is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip, .shot-dialog).shot-liquid-glass::after {
     background: radial-gradient(ellipse 150px 70px at var(--glass-x, 25%) var(--glass-y, 0px), #ffffff1f, #ffffff00 75%);
     box-shadow: none;
   }
-  :is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip).shot-liquid-glass .shot-toolbar-heading {
+  :is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip, .shot-dialog).shot-liquid-glass .shot-toolbar-heading {
     color: #f1f5f9;
     border-right-color: #ffffff26;
   }
@@ -1280,15 +1274,15 @@ body[data-shot-shape="diamond"]:not([data-shot-secondary]) :is(#optionPanel, #op
   #toolPanel .shot-shapes[aria-pressed="true"],
   #toolPanel .shot-shapes-active { background-color: #ffffff29; }
 
-  :is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip).shot-liquid-glass .shot-toolbar-grip {
+  :is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip, .shot-dialog).shot-liquid-glass .shot-toolbar-grip {
     background-image: radial-gradient(circle, #cbd5e180 1px, transparent 1.5px);
   }
-  :is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip).shot-liquid-glass .item-panel:hover,
-  :is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip).shot-liquid-glass .shot-shapes[aria-expanded="true"],
-  :is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip).shot-liquid-glass .shot-mode-trigger:hover,
-  :is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip).shot-liquid-glass .shot-mode-trigger[aria-expanded="true"] { background-color: #ffffff1f; }
-  :is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip).shot-liquid-glass .item-panel[class*="-active"],
-  :is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip).shot-liquid-glass button[aria-pressed="true"] {
+  :is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip, .shot-dialog).shot-liquid-glass .item-panel:hover,
+  :is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip, .shot-dialog).shot-liquid-glass .shot-shapes[aria-expanded="true"],
+  :is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip, .shot-dialog).shot-liquid-glass .shot-mode-trigger:hover,
+  :is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip, .shot-dialog).shot-liquid-glass .shot-mode-trigger[aria-expanded="true"] { background-color: #ffffff1f; }
+  :is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip, .shot-dialog).shot-liquid-glass .item-panel[class*="-active"],
+  :is(#toolPanel, #optionPanel, #optionPanel .text-select-panel, .shot-text-format-menu, .shot-toolbar-tooltip, .shot-dialog).shot-liquid-glass button[aria-pressed="true"] {
     background-color: #ffffff29;
     box-shadow: inset 0 1px 1px #ffffff26, 0 1px 4px #0002;
   }

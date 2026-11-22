@@ -6,7 +6,7 @@ export function createOcrDialog(translate: boolean) {
   const overlay = document.createElement("div")
   overlay.className = "shot-dialog-overlay"
   const panel = document.createElement("section")
-  panel.className = "shot-ocr shot-translation shot-dialog"
+  panel.className = "shot-ocr shot-translation shot-dialog shot-liquid-glass"
   panel.setAttribute("role", "dialog")
   panel.setAttribute("aria-modal", "true")
   panel.setAttribute("aria-label", translate ? "截图翻译" : "截图 OCR")
@@ -33,7 +33,11 @@ export function createOcrDialog(translate: boolean) {
     input.setAttribute("aria-label", target ? "截图翻译结果" : "截图识别结果")
     input.placeholder = target ? "点击「翻译」生成译文" : "正在识别截图中的文字…"
     input.readOnly = true
-    wrapper.append(tag, input)
+    wrapper.append(input)
+    if (translate) {
+      wrapper.classList.add("has-tag")
+      wrapper.append(tag)
+    }
     return { wrapper, tag, input }
   }
   const source = field("原文")

@@ -57,3 +57,52 @@ it("closes a folded tab from the hover list without selecting it", async () => {
   expect(setInput).not.toHaveBeenCalled()
   expect(screen.getByRole("menuitem", { name: "文档一" })).toBeTruthy()
 })
+
+it.each([false, true])("keeps the group popup closed while its context menu is open (previously hovered=%s)", async (hovered) => {
+  vi.stubGlobal("electronAPI", { getSettings: vi.fn(async () => ({ browserGroupSameDomain: true })) })
+  vi.stubGlobal("ResizeObserver", class { observe = vi.fn(); unobserve = vi.fn(); disconnect = vi.fn() })
+  const b = { tabs, tab: tabs[0], close: vi.fn(), setActive: vi.fn(), setInput: vi.fn(), add: vi.fn(), setDragTabId: vi.fn() } as unknown as BrowserPageModel
+  const view = render(<BrowserTabs b={b} />)
+  await waitFor(() => expect(view.container.querySelector('.browser-tab-group')).toBeTruthy())
+  const wrapper = view.container.querySelector('.browser-tab-group')!
+  if (hovered) {
+    fireEvent.mouseEnter(wrapper)
+    expect(await screen.findByText("已打开 2 个标签页")).toBeTruthy()
+  }
+  fireEvent.contextMenu(wrapper.querySelector('.browser-tab')!)
+  const action = await screen.findByRole("menuitem", { name: "冻结标签页" })
+  fireEvent.mouseEnter(action)
+  fireEvent.focus(action)
+  expect(screen.queryByText("已打开 2 个标签页")).toBeNull()
+  expect(screen.queryByText("已打开 4 个标签页")).toBeNull()
+  fireEvent.keyDown(action, { key: "Escape" })
+  await waitFor(() => expect(screen.queryByRole("menuitem", { name: "冻结标签页" })).toBeNull())
+  expect(screen.queryByText("已打开 2 个标签页")).toBeNull()
+  fireEvent.mouseLeave(wrapper)
+  fireEvent.mouseEnter(wrapper)
+  expect(await screen.findByText("已打开 2 个标签页")).toBeTruthy()
+})
+
+it.each([
+  ["复制标签页", "addTabRightOf"], ["重新加载", "reloadTab"], ["冻结标签页", "freezeTab"],
+  ["关闭", "close"], ["关闭其他标签页", "closeOtherTabs"]
+])("runs %s against the right-clicked folded tab without selecting it", async (label, method) => {
+  vi.stubGlobal("electronAPI", { getSettings: vi.fn(async () => ({ browserGroupSameDomain: true })) })
+  vi.stubGlobal("ResizeObserver", class { observe = vi.fn(); unobserve = vi.fn(); disconnect = vi.fn() })
+  const actions = { addTabRightOf: vi.fn(), reloadTab: vi.fn(), freezeTab: vi.fn(), close: vi.fn(), closeOtherTabs: vi.fn() }
+  const setActive = vi.fn()
+  const b = { tabs, tab: tabs[0], ...actions, setActive, setInput: vi.fn(), add: vi.fn(), setDragTabId: vi.fn() } as unknown as BrowserPageModel
+  const view = render(<BrowserTabs b={b} />)
+  await waitFor(() => expect(view.container.querySelector('.browser-tab-group')).toBeTruthy())
+  const wrapper = view.container.querySelector('.browser-tab-group')!
+  fireEvent.mouseEnter(wrapper)
+  fireEvent.contextMenu(await screen.findByRole("menuitem", { name: "文档二" }))
+  const action = await screen.findByRole("menuitem", { name: label })
+  fireEvent.mouseLeave(wrapper)
+  fireEvent.mouseEnter(action)
+  if (label === "冻结标签页") await act(async () => { await new Promise((resolve) => setTimeout(resolve, 220)) })
+  expect(screen.getByRole("menuitem", { name: label })).toBeTruthy()
+  fireEvent.click(action)
+  expect(actions[method as keyof typeof actions]).toHaveBeenCalledWith(...(label === "复制标签页" ? ["two", true] : ["two"]))
+  expect(setActive).not.toHaveBeenCalled()
+})

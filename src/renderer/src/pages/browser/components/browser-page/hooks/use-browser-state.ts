@@ -1,3 +1,4 @@
+import { freezeBrowserTab, useTabFreezing, wakeBrowserTab } from "@/pages/browser/use-tab-freezing"
 import { pinnedTabsFirst } from "@/pages/browser/tab-order"
 import { useActivatedTabs } from "@/pages/browser/use-activated-tabs"
 import { BROWSER_ACTIVE_TAB_KEY, BROWSER_TABS_KEY, loadSavedBrowserTabs, newTab, PAGE_EXTRACTOR_SCRIPT, SavedBrowserTab, shortcuts, Tab } from "@/pages/browser/components/index-shared"
@@ -14,11 +15,8 @@ export function useBrowserState(visible: boolean) {
   const [bookmarksVisible, setBookmarksVisible] = useState(() => localStorage.getItem("browser-bookmarks-visible") !== "false")
   useEffect(() => { localStorage.setItem("browser-bookmarks-visible", String(bookmarksVisible)) }, [bookmarksVisible])
   const [deviceMode, setDeviceMode] = useState(false)
-  const initialTabsState = useRef<ReturnType<typeof loadSavedBrowserTabs> | null>(null)
-  if (!initialTabsState.current) {
-    initialTabsState.current = loadSavedBrowserTabs()
-  }
-  const [tabs, setTabState] = useState<Tab[]>(() => pinnedTabsFirst(initialTabsState.current!.tabs))
+  const [initialTabsState] = useState(loadSavedBrowserTabs)
+  const [tabs, setTabState] = useState<Tab[]>(() => pinnedTabsFirst(initialTabsState.tabs))
   const setTabs = useCallback((value: SetStateAction<Tab[]>) => {
     setTabState((current) => pinnedTabsFirst(typeof value === "function" ? value(current) : value))
   }, [])
@@ -58,8 +56,20 @@ export function useBrowserState(visible: boolean) {
   }, [dock, consoleFont, consoleSize])
   useEffect(() => window.electronAPI.onBrowserDevtoolsClosed(() => setDevtoolsOpen(false)), [])
   const devtoolsHost = useRef<HTMLDivElement>(null)
-  const [active, setActive] = useState<string>(() => initialTabsState.current!.activeId)
+  const [active, setActiveId] = useState<string>(() => initialTabsState.activeId)
+  const activeRef = useRef(active)
+  const setActive = useCallback((id: string) => {
+    const previous = activeRef.current
+    activeRef.current = id
+    const now = Date.now()
+    setTabs((current) => current.map((item) => item.id === id ? wakeBrowserTab(item, now) : item.id === previous ? { ...item, lastActiveAt: now } : item))
+    setActiveId(id)
+  }, [setTabs])
   const activatedTabs = useActivatedTabs(active, tabs)
+  const freezeTab = useCallback((id: string) => {
+    setTabs((current) => current.map((item) => item.id === id && item.url && !item.frozen ? freezeBrowserTab(item) : item))
+    if (id === activeRef.current) setDevtoolsOpen(false)
+  }, [setTabs])
   useEffect(() => {
     /** Opens open. */
     const open = () => {
@@ -84,7 +94,7 @@ export function useBrowserState(visible: boolean) {
       if (Array.isArray(saved) && saved.length > 0 && shortcuts.some((sc) => saved.some((s) => s.url === sc.url))) {
         return saved
       }
-    } catch {}
+    } catch { /* Keep the default bookmarks when storage is unavailable. */ }
     localStorage.setItem("browser-bookmarks", JSON.stringify(shortcuts))
     return shortcuts
   })
@@ -117,6 +127,7 @@ export function useBrowserState(visible: boolean) {
     else views.current.delete(id)
   }, [])
   const tab = tabs.find((item) => item.id === active) || tabs[0]
+  useTabFreezing(tab.id, setTabs, views)
 
   /** Returns active page data. */
   const getActivePageData = useCallback(async () => {
@@ -154,7 +165,7 @@ export function useBrowserState(visible: boolean) {
       let fallbackText = ""
       try {
         fallbackText = await view.executeJavaScript(`(() => (document.body ? document.body.innerText : ''))()`)
-      } catch (_) {}
+      } catch { /* The page may have closed while extracting its content. */ }
       return {
         title: currentTab.title,
         url: currentTab.url,
@@ -165,7 +176,7 @@ export function useBrowserState(visible: boolean) {
     }
   }, [active, tabs])
   useEffect(() => {
-    publishBrowserTabs(tabs.filter((item) => Boolean(item.url)).map((item) => ({ id: item.id, title: item.title, url: item.url, favicon: item.favicon, active: item.id === tab.id })))
+    publishBrowserTabs(tabs.filter((item) => Boolean(item.url)).map((item) => ({ id: item.id, title: item.title, url: item.url, favicon: item.favicon, frozen: item.frozen, active: item.id === tab.id })))
   }, [tabs, tab.id])
   const lastSavedTabs = useRef("")
   useEffect(() => {
@@ -199,7 +210,7 @@ export function useBrowserState(visible: boolean) {
     return () => window.removeEventListener("vessel-browser-tab", select)
   }, [])
 
-  return { bookmarksVisible, setBookmarksVisible, router, deviceViewport, setDeviceViewport, toolbarCollapsed, setToolbarCollapsed, deviceMode, setDeviceMode, initialTabsState, tabs, setTabs, findOpen, setFindOpen, matchCase, setMatchCase, findText, setFindText, findResult, setFindResult, findInput, findPosition, setFindPosition, findDrag, consoleWidth, setConsoleWidth, consoleHeight, setConsoleHeight, devtoolsOpen, setDevtoolsOpen, dock, setDock, consoleFont, setConsoleFont, consoleSize, setConsoleSize, devtoolsHost, active, setActive, activatedTabs, input, setInput, searchInput, setSearchInput, bookmarks, setBookmarks, removeBookmark, resetBookmarks, views, registerView, tab, getActivePageData, lastSavedTabs }
+  return { bookmarksVisible, setBookmarksVisible, router, deviceViewport, setDeviceViewport, toolbarCollapsed, setToolbarCollapsed, deviceMode, setDeviceMode, initialTabsState, tabs, setTabs, findOpen, setFindOpen, matchCase, setMatchCase, findText, setFindText, findResult, setFindResult, findInput, findPosition, setFindPosition, findDrag, consoleWidth, setConsoleWidth, consoleHeight, setConsoleHeight, devtoolsOpen, setDevtoolsOpen, dock, setDock, consoleFont, setConsoleFont, consoleSize, setConsoleSize, devtoolsHost, active, setActive, freezeTab, activatedTabs, input, setInput, searchInput, setSearchInput, bookmarks, setBookmarks, removeBookmark, resetBookmarks, views, registerView, tab, getActivePageData, lastSavedTabs }
 }
 
 export type BrowserState = ReturnType<typeof useBrowserState>

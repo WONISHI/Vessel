@@ -15,6 +15,7 @@ export function useBrowserActions(state: BrowserState, visible: boolean) {
 
   /** Reloads tab. */
   const reloadTab = (id: string) => {
+    if (tabs.find((item) => item.id === id)?.frozen) { setActive(id); return }
     const view = views.current.get(id)
     if (!view?.isConnected) return
     try {

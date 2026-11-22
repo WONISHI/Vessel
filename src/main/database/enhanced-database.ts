@@ -45,8 +45,8 @@ export class EnhancedDatabase {
    * @description 创建 SQLite 数据库连接。
    * @param databasePath SQLite 数据库文件绝对路径。
    */
-  constructor(databasePath: string) {
-    this.database = new Database(databasePath)
+  constructor(databasePath: string, options?: Database.Options) {
+    this.database = new Database(databasePath, options)
   }
 
   /**

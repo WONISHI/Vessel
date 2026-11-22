@@ -9,7 +9,7 @@ import { getFieldDescription, getFieldLabel, getTableDescription, getTableLabel 
 import { TableMeta, displayType } from "@/pages/debug/storage/components/devtools-storage-shared"
 import { MetaBadge } from "@/pages/debug/storage/components/meta-badge"
 import { Columns3, Database, Download, RefreshCw, Rows3, Table2 } from "lucide-react"
-import { useEffect, useState } from "react"
+import { Fragment, useEffect, useState } from "react"
 import { toast } from "sonner"
 
 /** Renders the storage page component. */
@@ -26,12 +26,12 @@ export function StoragePage() {
 
   useEffect(() => {
     let cancelled = false
-    setError("")
     window.electronAPI
       .listStorageTables()
       .then((items) => {
         if (cancelled) return
-        setTables(items.map((item) => ({ ...item, comment: getTableDescription(item.name), columnCount: item.columns.length, columns: item.columns.map((col) => ({ key: col.name, type: displayType(col.name, col.type), primaryKey: col.primaryKey })) })))
+        setError("")
+        setTables(items.map((item) => ({ ...item, database: item.name.includes("/") ? item.name.split("/")[0] : "vessel.db", comment: getTableDescription(item.name), columnCount: item.columns.length, columns: item.columns.map((col) => ({ key: col.name, type: displayType(col.name, col.type), primaryKey: col.primaryKey })) })))
         setActiveName((name) => (items.some((item) => item.name === name) ? name : (items[0]?.name ?? "")))
         if (!items.length) setSpinning(false)
       })
@@ -49,13 +49,11 @@ export function StoragePage() {
   useEffect(() => {
     if (!activeName) return
     let cancelled = false
-    setSpinning(true)
-    setError("")
-    setResult(null)
     window.electronAPI
       .readStorageTable(activeName, page, keyword, pageSize)
       .then((data) => {
         if (cancelled) return
+        setError("")
         setResult({ name: activeName, ...data })
         setPage(data.page)
         if (!keyword) setTables((items) => items.map((item) => (item.name === activeName ? { ...item, rowCount: data.total } : item)))
@@ -71,7 +69,7 @@ export function StoragePage() {
     }
   }, [activeName, page, revision, keyword, pageSize])
 
-  const table = tables.find((item) => item.name === activeName) ?? { name: "暂无数据表", comment: "", rowCount: 0, columnCount: 0, columns: [] }
+  const table = tables.find((item) => item.name === activeName) ?? { name: "暂无数据表", database: "", comment: "", rowCount: 0, columnCount: 0, columns: [] }
   const columns: DataTableColumn<Record<string, unknown>>[] = [...table.columns]
     .sort((a, b) => (a.primaryKey || Infinity) - (b.primaryKey || Infinity))
     .map((col) => ({
@@ -96,6 +94,10 @@ export function StoragePage() {
 
   /** Performs the switch table operation. */
   const switchTable = (name: string) => {
+    if (name === activeName) return
+    setSpinning(true)
+    setError("")
+    setResult(null)
     setActiveName(name)
     setKeyword("")
     setPage(1)
@@ -104,6 +106,7 @@ export function StoragePage() {
   /** Handles refresh events. */
   const handleRefresh = () => {
     setSpinning(true)
+    setError("")
     setRevision((value) => value + 1)
   }
 
@@ -115,7 +118,7 @@ export function StoragePage() {
     const url = URL.createObjectURL(new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" }))
     const link = document.createElement("a")
     link.href = url
-    link.download = `${table.name}-page-${page}.csv`
+    link.download = `${table.name.replaceAll("/", "-")}-page-${page}.csv`
     link.click()
     setTimeout(() => URL.revokeObjectURL(url), 1000)
     toast.success("当前页已导出")
@@ -132,7 +135,7 @@ export function StoragePage() {
         </div>
         <span className="inline-flex items-center gap-1.5 rounded-full border border-[#e7e5e4] bg-white px-3 py-1 text-[12px] font-semibold text-stone-500">
           <Database className="h-3.5 w-3.5" />
-          {tables.length} 张表
+          {new Set(tables.map((item) => item.database)).size} 个数据库 · {tables.length} 张表
         </span>
       </div>
 
@@ -145,31 +148,38 @@ export function StoragePage() {
             <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-stone-200/70 px-1.5 text-[11px] font-semibold text-stone-500">{tables.length}</span>
           </div>
           <div className="space-y-0.5">
-            {tables.map((t) => {
+            {tables.map((t, index) => {
               const active = t.name === table.name
               return (
-                <Button
-                  variant="ghost"
-                  aria-pressed={active}
-                  key={t.name}
-                  onClick={() => switchTable(t.name)}
-                  data-title={`${t.name}：${getTableDescription(t.name)}`}
-                  data-title-side="right"
-                  className={cn("flex h-auto w-full justify-start items-center gap-2.5 rounded-lg px-2 py-2 text-left transition-colors", active ? "bg-green-50 hover:bg-green-50" : "hover:bg-black/[0.03]")}
-                >
-                  <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-lg", active ? "bg-green-100 text-green-600" : "bg-stone-100 text-stone-400")}>
-                    <Table2 className="h-4 w-4" />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="flex items-baseline gap-1.5">
-                      <span className={cn("shrink-0 text-[11px] font-semibold", active ? "text-green-700" : "text-stone-800")}>{getTableLabel(t.name)}</span>
-                      <span className="truncate font-sans text-[10px] text-stone-400">{t.name}</span>
+                <Fragment key={t.name}>
+                  {(index === 0 || tables[index - 1].database !== t.database) && (
+                    <div className="flex items-center gap-1.5 px-2 pb-1 pt-3 text-[11px] font-semibold text-stone-500">
+                      <Database className="size-3.5 shrink-0" />
+                      {t.database}
+                    </div>
+                  )}
+                  <Button
+                    variant="ghost"
+                    aria-pressed={active}
+                    onClick={() => switchTable(t.name)}
+                    data-title={`${t.name}：${getTableDescription(t.name)}`}
+                    data-title-side="right"
+                    className={cn("flex h-auto w-full justify-start items-center gap-2.5 rounded-lg px-2 py-2 text-left transition-colors", active ? "bg-green-50 hover:bg-green-50" : "hover:bg-black/[0.03]")}
+                  >
+                    <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-lg", active ? "bg-green-100 text-green-600" : "bg-stone-100 text-stone-400")}>
+                      <Table2 className="h-4 w-4" />
                     </span>
-                    <span className="block truncate text-[11.5px] text-stone-400">
-                      {t.rowCount.toLocaleString()}行 · {t.columnCount}列
+                    <span className="min-w-0 flex-1">
+                      <span className="flex items-baseline gap-1.5">
+                        <span className={cn("shrink-0 text-[11px] font-semibold", active ? "text-green-700" : "text-stone-800")}>{getTableLabel(t.name)}</span>
+                        <span className="truncate font-sans text-[10px] text-stone-400">{t.name.split("/").at(-1)}</span>
+                      </span>
+                      <span className="block truncate text-[11.5px] text-stone-400">
+                        {t.rowCount.toLocaleString()}行 · {t.columnCount}列
+                      </span>
                     </span>
-                  </span>
-                </Button>
+                  </Button>
+                </Fragment>
               )
             })}
           </div>
@@ -227,6 +237,8 @@ export function StoragePage() {
                 placeholder="搜索关键词…"
                 value={keyword}
                 onChange={(event) => {
+                  setSpinning(true)
+                  setError("")
                   setKeyword(event.target.value)
                   setPage(1)
                 }}
@@ -258,6 +270,8 @@ export function StoragePage() {
             loading={spinning}
             filtered={Boolean(keyword)}
             onPaginationChange={({ page, pageSize }) => {
+              setSpinning(true)
+              setError("")
               setPage(page)
               setPageSize(pageSize)
             }}

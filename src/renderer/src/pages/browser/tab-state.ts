@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from "react"
-type BrowserTab = { id: string; title: string; url: string; favicon?: string; active: boolean }
+type BrowserTab = { frozen?: boolean; id: string; title: string; url: string; favicon?: string; active: boolean }
 let tabs: BrowserTab[] = []
 const listeners = new Set<() => void>()
 

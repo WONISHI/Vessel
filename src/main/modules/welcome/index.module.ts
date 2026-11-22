@@ -1,6 +1,7 @@
 import { attachmentFolderOffset } from "@main/modules/files/attachment-library"
 import { collectPerformanceSources, createMainMemoryReader } from "./performance-resources"
 import { BaseModule } from "@main/modules/base/index"
+import { StorageBrowser } from "@main/database/storage-browser"
 import { SUPPORTED_EXTENSIONS } from "@main/modules/welcome/constants/index.constant"
 import { AppDatabase } from "@main/modules/welcome/database/index.database"
 import type { WorkspaceDataInput, WorkspaceFile } from "@main/modules/welcome/index.type"
@@ -191,15 +192,10 @@ export class WelcomeModule extends BaseModule {
         }
       })
 
-      this.registerHandler("storage:listTables", () =>
-        database.getTables().map((table) => ({
-          name: table.name,
-          columns: database.getTableSchema(table.name),
-          rowCount: database.getTableRowCount(table.name)
-        }))
-      )
+      const storageBrowser = new StorageBrowser(app.getPath("userData"))
+      this.registerHandler("storage:listTables", () => storageBrowser.listTables())
       this.registerHandler("storage:readTable", (_event, name: string, page: number = 1, keyword: string = "", pageSize: number = 50) => {
-        return database.searchTable(name, page, keyword, pageSize)
+        return storageBrowser.readTable(name, page, keyword, pageSize)
       })
 
       // 所有初始化步骤成功后再保存实例，表示模块已经准备完毕。

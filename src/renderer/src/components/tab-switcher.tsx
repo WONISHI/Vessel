@@ -1,10 +1,12 @@
+import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger } from "@/components/ui/context-menu"
+import { Fragment } from "react"
 import { BrowserFavicon } from "@/components/browser-favicon"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
 import { Globe, Plus, X } from "lucide-react"
 import { useEffect, useRef, useState, type ReactNode } from "react"
-type PreviewTab = { id: string; title: string; active?: boolean; url?: string; favicon?: string; icon?: ReactNode }
+type PreviewTab = { frozen?: boolean; id: string; title: string; active?: boolean; url?: string; favicon?: string; icon?: ReactNode }
 
 /** Renders the tab switcher component. */
 export function TabSwitcher({
@@ -17,7 +19,9 @@ export function TabSwitcher({
   onClose,
   triggerClassName,
   contentClassName,
-  titleSide
+  titleSide,
+  disabled = false,
+  contextActions
 }: {
   children: ReactNode
   tabs: PreviewTab[]
@@ -29,18 +33,24 @@ export function TabSwitcher({
   triggerClassName?: string
   contentClassName?: string
   titleSide?: "left" | "right"
+  disabled?: boolean
+  contextActions?: (tab: PreviewTab) => { label: string; icon: ReactNode; onSelect: () => void; disabled?: boolean; separatorBefore?: boolean }[]
 }) {
   const [open, setOpen] = useState(false)
+  if (disabled && open) setOpen(false)
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const contextMenuFocus = useRef(false)
+  const rowContextOpen = useRef(false)
 
   /** Performs the enter operation. */
   const enter = () => {
     clearTimeout(timer.current)
-    setOpen(tabs.length > 0)
+    if (!disabled) setOpen(tabs.length > 0)
   }
 
   /** Performs the leave operation. */
   const leave = () => {
+    if (rowContextOpen.current) return
     timer.current = setTimeout(() => setOpen(false), 180)
   }
   useEffect(() => () => clearTimeout(timer.current), [])
@@ -48,16 +58,27 @@ export function TabSwitcher({
   return (
     <DropdownMenu
       modal={false}
-      open={open}
-      onOpenChange={setOpen}
+      open={open && !disabled}
+      onOpenChange={(value) => { if (!disabled && !rowContextOpen.current) setOpen(value) }}
     >
       <DropdownMenuTrigger asChild>
         <span
           data-state={open ? "open" : "closed"}
           className={cn("inline-flex shrink-0", triggerClassName)}
-          onMouseEnter={enter}
+          onMouseEnter={(event) => {
+            if (!event.currentTarget.contains(event.target as Node)) return
+            contextMenuFocus.current = false
+            enter()
+          }}
           onMouseLeave={leave}
-          onFocus={enter}
+          onFocus={(event) => {
+            if (!contextMenuFocus.current && event.currentTarget.contains(event.target as Node)) enter()
+          }}
+          onContextMenuCapture={() => {
+            contextMenuFocus.current = true
+            clearTimeout(timer.current)
+            setOpen(false)
+          }}
         >
           {children}
         </span>
@@ -66,6 +87,7 @@ export function TabSwitcher({
         side={side}
         align="start"
         onCloseAutoFocus={(e) => e.preventDefault()}
+        onInteractOutside={(event) => { if (rowContextOpen.current) event.preventDefault() }}
         onMouseEnter={enter}
         onMouseLeave={leave}
         className={cn(preview ? "z-[70] w-[280px] overflow-hidden rounded-xl border-stone-200 bg-white p-0 shadow-xl" : "z-[70] w-64 p-1", contentClassName)}
@@ -92,8 +114,8 @@ export function TabSwitcher({
           <div className="px-2 py-2 text-xs text-stone-400">已打开 {tabs.length} 个标签页</div>
         )}
         <ScrollArea className={`[&_[data-radix-scroll-area-viewport]>div]:!block max-h-[min(18rem,60vh)] [&_[data-radix-scroll-area-viewport]]:max-h-[min(18rem,60vh)] ${preview ? "p-1" : ""}`}>
-          {tabs.map((tab) => (
-            <div
+          {tabs.map((tab) => {
+            const row = <div
               key={tab.id}
               className="group relative"
             >
@@ -104,13 +126,13 @@ export function TabSwitcher({
                   onSelect(tab.id)
                   setOpen(false)
                 }}
-                className={`relative flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-xs focus:!bg-[#f0efed] focus:!text-stone-700 data-[highlighted]:!bg-[#f0efed] data-[highlighted]:!text-stone-700 ${tab.active ? `bg-[#f0efed] text-stone-700` : "text-stone-700"} ${preview ? "gap-3 pr-8" : ""} ${onClose ? "pr-9" : ""}`}
+                className={`relative flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-xs focus:!bg-[#f0efed] focus:!text-stone-700 data-[highlighted]:!bg-[#f0efed] data-[highlighted]:!text-stone-700 ${tab.active ? `bg-[#f0efed] text-stone-700` : "text-stone-700"} ${preview ? "gap-3 pr-8" : ""} ${tab.frozen ? "!gap-3.5" : ""} ${onClose ? "pr-9" : ""}`}
                 data-title={tab.title}
                 data-title-side={titleSide}
               >
                 {preview && tab.active && <span className="absolute left-0 top-3 bottom-3 w-[3px] rounded-r bg-green-600" />}
                 <span className="flex size-4 shrink-0 items-center justify-center">
-                  {tab.icon ?? <BrowserFavicon key={`${tab.url}:${tab.favicon || ""}`} url={tab.url} favicon={tab.favicon} />}
+                  {tab.icon ?? <BrowserFavicon key={`${tab.url}:${tab.favicon || ""}`} url={tab.url} favicon={tab.favicon} frozen={tab.frozen} />}
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className={`dark-list-title block truncate ${preview ? "font-semibold" : ""}`}>{tab.title}</span>
@@ -132,7 +154,25 @@ export function TabSwitcher({
                 </button>
               )}
             </div>
-          ))}
+            if (!contextActions) return row
+            return <ContextMenu key={tab.id} onOpenChange={(value) => {
+              rowContextOpen.current = value
+              clearTimeout(timer.current)
+              if (!value) setOpen(false)
+            }}>
+              <ContextMenuTrigger asChild>{row}</ContextMenuTrigger>
+              <ContextMenuContent className="z-[520] w-44" onCloseAutoFocus={(event) => event.preventDefault()}>
+                {contextActions(tab).map((action) => <Fragment key={action.label}>
+                  {action.separatorBefore && <ContextMenuSeparator />}
+                  <ContextMenuItem disabled={action.disabled} onSelect={() => {
+                    rowContextOpen.current = false
+                    action.onSelect()
+                    setOpen(false)
+                  }}>{action.icon}{action.label}</ContextMenuItem>
+                </Fragment>)}
+              </ContextMenuContent>
+            </ContextMenu>
+          })}
         </ScrollArea>
       </DropdownMenuContent>
     </DropdownMenu>

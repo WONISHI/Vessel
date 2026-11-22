@@ -97,7 +97,7 @@ export default function TodoMain({
                 {"一二三四五六日".split("").map((label, i) => (
                   <div
                     key={label}
-                    className={cn("py-2 text-center text-xs text-stone-400", i > 4 && "text-red-500")}
+                    className={cn("py-2 text-center text-xs", i < 5 ? "font-bold text-black dark:text-stone-100" : "font-normal text-stone-500")}
                   >
                     {label}
                   </div>
@@ -119,7 +119,7 @@ export default function TodoMain({
                         key === selected && "border-green-600 bg-emerald-50"
                       )}
                     >
-                      <span className={cn("relative inline-flex h-5 items-center justify-center text-sm font-medium", date.getMonth() === month.getMonth() && date.getDay() >= 1 && date.getDay() <= 5 && "font-bold text-black dark:text-stone-100")}>
+                      <span className={cn("relative inline-flex h-5 items-center justify-center text-sm font-normal text-stone-500", date.getMonth() === month.getMonth() && date.getDay() >= 1 && date.getDay() <= 5 && "font-bold text-black dark:text-stone-100")}>
                         {date.getDate()}
                         {key === today && (
                           <span

@@ -6,6 +6,7 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 import { GitLog } from "@tomplum/react-git-log"
 import { syncGitRefLayout } from "./git-ref-layout"
 import { toGitLogEntries } from "./git-log-entries"
+import { localizeCommitTime } from "./localize-commit-time"
 import { useDarkAppearance } from "@/hooks/use-dark-appearance"
 import "./git-log.css"
 import { ArrowDown, ArrowUp, CloudCheck } from "lucide-react"
@@ -30,7 +31,7 @@ export function GitHistoryList({ g }: { g: GitPageModel }) {
     }
   }, [status])
 
-  // The library has no header-label API. Localise only its native headings.
+  // The library has no locale API. Limit localisation to headings and time cells.
   useLayoutEffect(() => {
     const labels: Record<string, string> = {
       "Branch / Tag": "分支 / 标签",
@@ -39,10 +40,23 @@ export function GitHistoryList({ g }: { g: GitPageModel }) {
       Author: "作者",
       Timestamp: "提交时间"
     }
-    logRoot.current?.querySelectorAll("h4, [id^='react-git-log-table-header-']").forEach((heading) => {
-      const label = labels[heading.textContent ?? ""]
-      if (label) heading.textContent = label
-    })
+    const root = logRoot.current
+    if (!root) return undefined
+    const localize = () => {
+      root.querySelectorAll("h4, [id^='react-git-log-table-header-']").forEach((heading) => {
+        const label = labels[heading.textContent ?? ""]
+        if (label) heading.textContent = label
+      })
+      root.querySelectorAll('[id^="react-git-log-table-data-timestamp-"]').forEach(cell => {
+        const current = cell.textContent ?? ""
+        const translated = localizeCommitTime(current)
+        if (translated !== current) cell.textContent = translated
+      })
+    }
+    localize()
+    const observer = new MutationObserver(localize)
+    observer.observe(root, { childList: true, subtree: true, characterData: true })
+    return () => observer.disconnect()
   })
 
   // Upstream accepts only one `branch` per commit. Keep the real HEAD branch

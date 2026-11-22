@@ -630,3 +630,61 @@ html:not(.dark) .browser-more-item:hover svg {
 .browser-tab-group .browser-tab { width: 100%; max-width: none; }
 .browser-tab-group-count { position: absolute; top: 2px; right: 4px; pointer-events: none; font-size: 8px; line-height: 10px; color: #78716c; font-variant-numeric: tabular-nums; }
 html.dark .browser-tab-group-count { color: #a8a29e; }
+
+/* Keep hover much lighter than the current tab's selected background. */
+.vessel-browser-tabs-popup [data-dark-list-item]:not([data-active="true"]):is(:hover, :focus, :focus-within, [data-highlighted]) {
+  background: #f5f4f2 !important;
+}
+html.dark .vessel-browser-tabs-popup [data-dark-list-item]:not([data-active="true"]):is(:hover, :focus, :focus-within, [data-highlighted]) {
+  background: #ffffff0f !important;
+}
+
+.browser-frozen-page {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  overflow: auto;
+  padding: 32px 20px;
+  background: radial-gradient(ellipse at 50% 38%, #ecf7ef 0, transparent 58%), #faf9f7;
+  color: #292524;
+}
+.browser-frozen-card {
+  width: min(100%, 360px);
+  padding: 30px 28px 22px;
+  border: 1px solid #e7e5e4;
+  border-radius: 22px;
+  background: #ffffffd9;
+  box-shadow: 0 12px 40px #29252406, 0 2px 6px #29252403;
+  text-align: center;
+}
+.browser-frozen-emblem { position: relative; display: grid; place-items: center; width: 88px; height: 88px; margin: 0 auto 18px; color: #16a34a; }
+.browser-frozen-emblem::before { content: ""; position: absolute; inset: 12px; border-radius: 20px; background: #f0fdf4; }
+.browser-frozen-emblem > svg:not(.browser-frozen-orbit) { position: relative; }
+.browser-frozen-orbit { position: absolute; inset: 0; width: 88px; height: 88px; color: #b6d6bf; }
+.browser-frozen-status { display: inline-flex; align-items: center; gap: 5px; padding: 4px 8px; border-radius: 20px; background: #f0fdf4; color: #15803d; font-size: 10px; font-weight: 500; }
+.browser-frozen-card h2 { margin: 12px 0 10px; font-size: 22px; line-height: 1.35; font-weight: 650; letter-spacing: -.4px; }
+.browser-frozen-description { margin: 0; color: #78716c; font-size: 12px; line-height: 1.9; }
+.browser-frozen-site { display: flex; align-items: center; gap: 12px; margin: 24px 0 16px; padding: 12px; border: 1px solid #edecea; border-radius: 12px; background: #faf9f7; text-align: left; }
+.browser-frozen-site-icon { display: grid; place-items: center; flex: 0 0 36px; height: 36px; border: 1px solid #eeece9; border-radius: 10px; background: white; }
+.browser-frozen-site-copy { display: flex; min-width: 0; flex-direction: column; gap: 4px; }
+.browser-frozen-site-copy strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; font-weight: 600; }
+.browser-frozen-site-copy > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #a8a29e; font-size: 10px; }
+.browser-frozen-resume { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 38px; padding: 9px 16px; border: 1px solid #16a34a; border-radius: 10px; background: #16a34a; color: white; font-size: 12px; font-weight: 600; cursor: pointer; transition: background .15s; }
+.browser-frozen-resume:hover { background: #15803d; border-color: #15803d; }
+.browser-frozen-resume:focus-visible { outline: 2px solid #16a34a; outline-offset: 3px; }
+.browser-frozen-hint { margin: 12px 0 0; color: #a8a29e; font-size: 10px; }
+html.dark .browser-frozen-page { background: radial-gradient(ellipse at 50% 38%, #1e3329 0, transparent 58%), #22272e; color: #e6edf3; }
+html.dark .browser-frozen-card { background: #282e36eb; border-color: #3a424c; box-shadow: 0 12px 40px #0002; }
+html.dark .browser-frozen-emblem::before, html.dark .browser-frozen-status { background: #22c55e12; }
+html.dark .browser-frozen-emblem, html.dark .browser-frozen-status { color: #4ade80; }
+html.dark .browser-frozen-orbit { color: #3e6250; }
+html.dark .browser-frozen-description { color: #9aa1a9; }
+html.dark .browser-frozen-site { background: #22272e; border-color: #3a424c; }
+html.dark .browser-frozen-site-icon { background: #303740; border-color: #3a424c; }
+html.dark .browser-frozen-site-copy > span, html.dark .browser-frozen-hint { color: #89929e; }
+@media (max-height: 520px) {
+  .browser-frozen-page { display: block; }
+  .browser-frozen-card { margin: 0 auto; }
+}

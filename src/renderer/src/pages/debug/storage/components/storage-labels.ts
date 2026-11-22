@@ -1,5 +1,15 @@
 /** 数据库浏览器的展示名称；数据库表名和字段名保持不变。 */
 const tables: Record<string, [string, string]> = {
+  visits: ["浏览历史", "保存访问地址、页面标题、图标和访问时间。"],
+  bookmarks: ["浏览器书签", "保存收藏的网站地址和标题。"],
+  downloads: ["下载记录", "保存下载文件路径、大小、来源和时间。"],
+  clips: ["剪贴板历史", "保存文本、富文本、图片、文件和置顶状态；二进制内容显示大小。"],
+  todos: ["日历待办", "保存待办日期、标题及完成状态。"],
+  api_collections: ["API 请求集合", "保存 API 请求分组及层级顺序。"],
+  api_requests: ["API 请求", "保存地址、参数、请求体、认证和脚本配置。"],
+  api_history: ["API 请求历史", "记录响应状态、耗时、大小及响应预览。"],
+  api_environments: ["API 环境变量", "保存环境配置和当前启用状态。"],
+  api_cookies: ["API Cookie", "保存接口调试使用的 Cookie。"],
   app_metadata: ["应用元数据", "保存设备标识等应用内部基础信息。"],
   devices: ["设备信息", "记录设备硬件、操作系统及应用运行环境。"],
   app_sessions: ["应用运行会话", "每次启动应用生成一条记录，保存启动和结束时间。"],
@@ -9,6 +19,18 @@ const tables: Record<string, [string, string]> = {
 }
 
 const fields: Record<string, [string, string]> = {
+  url: ["网址", "访问或请求的地址。"],
+  title: ["标题", "页面或待办的标题。"],
+  visitedAt: ["访问时间", "访问页面的时间戳。"],
+  savedAt: ["保存时间", "保存下载记录的时间戳。"],
+  createdAt: ["创建时间", "剪贴板条目的时间戳。"],
+  favicon: ["页面图标", "页面图标地址。"],
+  date: ["日期", "待办所属日期。"],
+  completed: ["是否完成", "待办是否已完成。"],
+  pinned: ["是否置顶", "剪贴板条目是否置顶。"],
+  size: ["大小", "内容大小，单位为字节。"],
+  method: ["请求方法", "HTTP 请求方法。"],
+  variables: ["环境变量", "当前环境的变量配置。"],
   id: ["记录编号", "当前记录的唯一标识。"],
   key: ["配置键", "用于查找配置的唯一名称。"],
   value: ["配置值", "配置键对应的内容。"],
@@ -57,22 +79,30 @@ const primaryLabels: Record<string, string> = {
 
 /** Returns table label. */
 export function getTableLabel(name: string): string {
+  name = name.split("/").at(-1) ?? name
   return tables[name]?.[0] ?? name
 }
 
 /** Returns table description. */
 export function getTableDescription(name: string): string {
+  name = name.split("/").at(-1) ?? name
   return tables[name]?.[1] ?? "本地 SQLite 数据表。"
 }
 
 /** Returns field label. */
 export function getFieldLabel(table: string, name: string): string {
+  table = table.split("/").at(-1) ?? table
+  if (name === "name" && table !== "workspaces") return "名称"
+  if (name === "path" && table !== "workspaces" && table !== "workspace_open_records") return "路径"
   if (name === "id") return primaryLabels[table] ?? fields.id[0]
   return fields[name]?.[0] ?? name
 }
 
 /** Returns field description. */
 export function getFieldDescription(table: string, name: string): string {
+  table = table.split("/").at(-1) ?? table
+  if (name === "name" && table !== "workspaces") return "当前条目的名称。"
+  if (name === "path" && table !== "workspaces" && table !== "workspace_open_records") return "文件或 Cookie 的路径。"
   if (name === "id") return `${getFieldLabel(table, name)}，用于唯一识别该记录。`
   const description = fields[name]?.[1] ?? "暂无字段说明。"
   return table === "workspace_open_records" && /^(hostname|platform|arch|os_|cpu_|total_memory|locale|timezone|.*_version)/.test(name) ? `打开工作区时的设备环境快照：${description}` : description

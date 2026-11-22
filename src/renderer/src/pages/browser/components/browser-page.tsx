@@ -17,6 +17,7 @@ import { BrowserToolbar } from "@/pages/browser/components/browser-page/browser-
 import { BrowserDevtoolsPane } from "@/pages/browser/components/browser-page/browser-devtools-pane"
 import { BrowserFindBar } from "@/pages/browser/components/browser-page/browser-find-bar"
 import { BrowserHome } from "@/pages/browser/components/browser-page/browser-home"
+import { BrowserFrozenPage } from "@/pages/browser/components/browser-page/browser-frozen-page"
 import { BrowserStatusLeft } from "@/pages/browser/components/browser-page/browser-status-left"
 
 /** Renders the browser page component. */
@@ -74,7 +75,7 @@ export function BrowserPage({ visible = true }: { visible?: boolean }) {
               }
             }}
             pane={
-              devtoolsOpen && tab.url ? (
+              devtoolsOpen && tab.url && !tab.frozen ? (
                 <BrowserDevtoolsPane b={b} />
               ) : undefined
             }
@@ -82,6 +83,7 @@ export function BrowserPage({ visible = true }: { visible?: boolean }) {
             <div className="relative h-full min-h-0 min-w-0 flex-1 bg-white">
               <BrowserContextMenu key={tab.id} b={b} visible={visible} />
               <NavigationNotice />
+              {tab.frozen && <BrowserFrozenPage tab={tab} onResume={() => b.setActive(tab.id)} />}
               {tab.devError && <div role="alert" className="absolute inset-x-4 top-4 z-40 max-h-[50%] overflow-auto rounded-lg border border-red-300 bg-background p-4 text-foreground shadow-lg">
                 <div className="flex items-center justify-between gap-3">
                   <strong className="text-sm text-red-600">本地开发页面出现错误</strong>
@@ -136,7 +138,7 @@ export function BrowserPage({ visible = true }: { visible?: boolean }) {
                       style={deviceMode && tab.url ? { width: deviceViewport.width, height: deviceViewport.height, transform: `scale(${deviceViewport.scale})`, transformOrigin: "top left" } : { width: "100%", height: "100%" }}
                     >
                       {tabs
-                        .filter((item) => item.url && activatedTabs.has(item.id))
+                        .filter((item) => item.url && !item.frozen && activatedTabs.has(item.id))
                         .map((item) => (
                           <Guest
                             key={item.id}

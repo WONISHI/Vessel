@@ -101,3 +101,10 @@ it("shows newly created HEAD tags immediately without a new commit and removes d
   expect(screen.queryByText("v1.0.9")).toBeNull()
   expect(screen.queryByText("release")).toBeNull()
 })
+
+it("shows recent commit timestamps in Chinese in the native history table", () => {
+  const recent = { ...commit("recent", [], ["HEAD -> master"]), timestamp: Date.now() - 17 * 60 * 60 * 1000 }
+  render(<GitHistoryList g={model([recent])} />)
+  expect(screen.getByText("17 小时前")).toBeTruthy()
+  expect(screen.queryByText("17 hours ago")).toBeNull()
+})
