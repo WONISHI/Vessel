@@ -61,7 +61,7 @@ it.each(['页面 #1.html', 'photo.PNG', 'document.pdf', 'data.json', 'clip.mp4']
  expect(screen.queryByRole('menu')).toBeNull()
 })
 
-it.each([{ name: 'folder.html', type: 'directory' as const }, { name: 'app.exe', type: 'file' as const }, { name: 'report.docx', type: 'file' as const }])('hides browser opening for $name', (node) => {
+it.each([{ name: 'folder.html', type: 'directory' as const }, { name: 'app.exe', type: 'file' as const }, { name: 'report.docx', type: 'file' as const }, ...['notes.md', 'notes.markdown', 'drawing.excalidraw.md', 'table.csv'].map((name) => ({ name, type: 'file' as const }))])('hides browser opening for $name', (node) => {
  render(<FileActions node={{ ...node, path: `/workspace/${node.name}` }} onChanged={vi.fn()}><button>{node.name}</button></FileActions>)
  fireEvent.contextMenu(screen.getByRole('button', { name: node.name }))
  expect(screen.queryByRole('menuitem', { name: '在默认浏览器中打开' })).toBeNull()

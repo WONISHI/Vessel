@@ -13,6 +13,7 @@ export const defaultSettings: AppSettings = {
   searchEngine: "bing",
   proxyEnabled: false,
   browserGroupSameDomain: false,
+  resourceTreeStickyScroll: true,
   browserDevtoolsFollowWindow: false,
   externalScreenshot: true,
   externalPreview: true,

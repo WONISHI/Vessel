@@ -34,6 +34,7 @@ export interface AppSettings {
   searchEngine?: "bing" | "google" | "baidu" | "duckduckgo"
   proxyEnabled?: boolean
   browserGroupSameDomain?: boolean
+  resourceTreeStickyScroll?: boolean
   browserDevtoolsFollowWindow?: boolean
   externalScreenshot?: boolean
   externalPreview?: boolean

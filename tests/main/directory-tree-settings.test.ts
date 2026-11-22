@@ -28,11 +28,14 @@ it("loads old settings and persists both tree scopes through the real settings I
     registerSettings({ ipc: { handle: (name: string, handler: (...args: any[]) => any) => handlers.set(name, handler) }, once: vi.fn(), send: vi.fn() } as any)
     const current = handlers.get("settings:get")!()
     expect(current.directoryTree).toEqual(defaultDirectoryTreeSettings)
+    expect(current.resourceTreeStickyScroll).toBe(true)
     const directoryTree = normalizeDirectoryTreeSettings({ layoutWorkspace: false, guidesResources: false,
       workspace: { sidebarWidth: 300, rowHeight: 26, fontSize: 14, indent: 6, gap: 4 },
       resources: { sidebarWidth: 360, rowHeight: 24, fontSize: 12, indent: 10, gap: 8 } })
-    await handlers.get("settings:save")!(null, { ...current, directoryTree })
+    await handlers.get("settings:save")!(null, { ...current, directoryTree, resourceTreeStickyScroll: false })
     expect(handlers.get("settings:get")!().directoryTree).toEqual(directoryTree)
+    expect(handlers.get("settings:get")!().resourceTreeStickyScroll).toBe(false)
     expect(JSON.parse(await readFile(join(mock.directory, "settings.json"), "utf8")).settings.directoryTree).toEqual(directoryTree)
+    expect(JSON.parse(await readFile(join(mock.directory, "settings.json"), "utf8")).settings.resourceTreeStickyScroll).toBe(false)
   } finally { await rm(mock.directory, { recursive: true, force: true }) }
 })

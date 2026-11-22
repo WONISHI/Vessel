@@ -18,7 +18,7 @@ export function browserFilePreview(name: string): BrowserFilePreview | undefined
   return Object.hasOwn(media, extension) ? media[extension] : undefined
 }
 
-/** Types accepted by the external browser opener, including browser-readable plain text. */
+/** Show external browser actions only for files supported by the browser preview allowlist. */
 export function canOpenInDefaultBrowser(name: string): boolean {
-  return !!browserFilePreview(name) || /\.(md|markdown|csv)$/i.test(name)
+  return !!browserFilePreview(name)
 }

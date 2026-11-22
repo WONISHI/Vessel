@@ -38,10 +38,10 @@
   width: 20px;
   height: 3px;
 }
-.vessel-resize-handle:is(:hover, :focus-visible, [data-dragging="true"])::before {
+.vessel-resize-handle:is(:hover, :focus-visible, [data-dragging="true"], [data-separator="active"])::before {
   background: #d6d3d1;
 }
-.vessel-resize-handle:is(:hover, :focus-visible, [data-dragging="true"])::after {
+.vessel-resize-handle:is(:hover, :focus-visible, [data-dragging="true"], [data-separator="active"])::after {
   background: #a8a29e;
 }
 .vessel-panel-separator {
@@ -61,4 +61,12 @@
 
 .vessel-panel-separator {
   pointer-events: auto;
+}
+
+/* Stretch between both editors even when their flex container has no fixed height. */
+.workspace-document-divider[aria-orientation="vertical"] {
+  align-self: stretch;
+  height: auto;
+  width: 6px;
+  z-index: 10;
 }

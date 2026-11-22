@@ -23,8 +23,8 @@ import { useWorkspace } from "@/components/workspace/hooks/useWorkspace"
 import { cn } from "@/lib/utils"
 import { RouterView } from "@vessel/react-router/components"
 import { localFileURL, matchesShortcut } from "@vessel/utils"
-import { ChevronLeft, ChevronRight, Columns2, Copy, FileDown, File, FolderOpen, Globe, Home, LayoutTemplate, List, MoreHorizontal, Pin, SquareTerminal, X } from "lucide-react"
-import { Suspense, useContext, useEffect, useMemo, useRef, useState } from "react"
+import { ArrowLeftRight, ChevronLeft, ChevronRight, Columns2, Copy, FileDown, File, FolderOpen, Globe, Home, LayoutTemplate, List, MoreHorizontal, Pin, SquareTerminal, X } from "lucide-react"
+import { Suspense, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react"
 import { useLocation } from "react-router-dom"
 import { toast } from "sonner"
 
@@ -47,19 +47,51 @@ export default function LayoutMain({ resources = false }: { resources?: boolean 
   })
   const openFiles = useMemo(() => [...files].sort((a, b) => Number(pinned.includes(b.path)) - Number(pinned.includes(a.path))), [files, pinned])
   const [pdfExportPath, setPdfExportPath] = useState<string | null>(null)
-  const [splitSide, setSplitSide] = useState<"left" | "right">("right")
-  const [splitPath, setSplitPath] = useState<string | null>(null)
-
+  const [splitTabs, setSplitTabs] = useState<{ id: string; root: string; primary: string; secondary: string; side: "left" | "right" }[]>([])
+  const [activeSplitId, setActiveSplitId] = useState<string | null>(null)
+  const validSplits = splitTabs.filter((split) => split.root === workspace.path && files.some((file) => file.path === split.primary) && files.some((file) => file.path === split.secondary))
+  const activeSplit = validSplits.find((split) => split.id === activeSplitId && split.primary === activeFilePath)
+  const splitPath = activeSplit?.secondary ?? null
+  const splitSide = activeSplit?.side ?? "right"
+  const displayTabs = [
+    ...openFiles.map((file) => ({ id: file.path, file, split: undefined as typeof activeSplit })),
+    ...validSplits.map((split) => ({ id: split.id, file: files.find((file) => file.path === split.primary)!, split }))
+  ]
+  const selectTab = (id: string) => {
+    const entry = displayTabs.find((entry) => entry.id === id)
+    if (!entry) return
+    setActiveSplitId(entry.split?.id ?? null)
+    openWorkspaceFile(entry.file)
+  }
+  const closeTab = (id: string) => {
+    const entry = displayTabs.find((entry) => entry.id === id)
+    if (entry?.split) {
+      setSplitTabs((current) => current.filter((split) => split.id !== id))
+      if (activeSplitId === id) setActiveSplitId(null)
+    } else closeWorkspaceFile(id)
+  }
+  const closeTabs = (ids: string[]) => {
+    setSplitTabs((current) => current.filter((split) => !ids.includes(split.id)))
+    if (activeSplitId && ids.includes(activeSplitId)) setActiveSplitId(null)
+    const retained = validSplits.filter((split) => !ids.includes(split.id))
+    closeWorkspaceFiles(ids.filter((id) => !id.startsWith("split:") && !retained.some((split) => split.primary === id || split.secondary === id)))
+  }
+  const createSplit = useCallback((path: string, side: "left" | "right") => {
+    const primary = files.find((file) => file.path === activeFilePath) ?? files.find((file) => file.path === path)
+    if (!primary || !files.some((file) => file.path === path)) return
+    const id = `split:${crypto.randomUUID()}`
+    setSplitTabs((current) => [...current, { id, root: workspace.path, primary: primary.path, secondary: path, side }])
+    setActiveSplitId(id)
+    openWorkspaceFile(primary)
+  }, [activeFilePath, files, workspace.path, openWorkspaceFile])
   useEffect(() => {
     const split = (event: Event) => {
       const detail = (event as CustomEvent<{ root: string; path: string; side: "left" | "right" }>).detail
-      if (detail.root !== workspace.path || !["left", "right"].includes(detail.side)) return
-      setSplitSide(detail.side)
-      setSplitPath(detail.path)
+      if (detail.root === workspace.path && ["left", "right"].includes(detail.side)) createSplit(detail.path, detail.side)
     }
     window.addEventListener("vessel:split-document", split)
     return () => window.removeEventListener("vessel:split-document", split)
-  }, [workspace.path])
+  }, [workspace.path, createSplit])
 
   /** Toggles pin. */
   const togglePin = (path: string) =>
@@ -75,9 +107,6 @@ export default function LayoutMain({ resources = false }: { resources?: boolean 
     const value = absolute ? path : path.startsWith(prefix) ? path.slice(prefix.length) : path
     void navigator.clipboard.writeText(value).catch((error) => toast.error(`复制失败：${String(error)}`))
   }
-  useEffect(() => {
-    if (splitPath && !files.some((file) => file.path === splitPath)) setSplitPath(null)
-  }, [files, splitPath])
   const [statusTarget, setStatusTarget] = useState<HTMLDivElement | null>(null)
   const [terminal, setTerminal] = useState(false)
   const location = useLocation()
@@ -109,7 +138,8 @@ export default function LayoutMain({ resources = false }: { resources?: boolean 
   const [edges, setEdges] = useState({ left: false, right: false })
   const tabList = useRef<HTMLDivElement>(null)
   const contentHost = useRef<HTMLDivElement>(null)
-  const activeIndex = home || graphPage ? -1 : openFiles.findIndex((file) => file.path === activeFilePath)
+  const activeTabId = activeSplit?.id ?? activeFilePath
+  const activeIndex = home || graphPage ? -1 : displayTabs.findIndex((entry) => entry.id === activeTabId)
   useEffect(() => {
     /** Handles shortcut events. */
     const handleShortcut = (event: KeyboardEvent) => {
@@ -119,11 +149,11 @@ export default function LayoutMain({ resources = false }: { resources?: boolean 
       event.preventDefault()
       event.stopPropagation()
       const target = activeIndex + (previous ? -1 : 1)
-      if (activeIndex >= 0 && target >= 0 && target < openFiles.length) openWorkspaceFile(openFiles[target])
+      if (activeIndex >= 0 && target >= 0 && target < displayTabs.length) selectTab(displayTabs[target].id)
     }
     window.addEventListener("keydown", handleShortcut, true)
     return () => window.removeEventListener("keydown", handleShortcut, true)
-  }, [activeIndex, openFiles, openWorkspaceFile])
+  }, [activeIndex, displayTabs, openWorkspaceFile])
   useEffect(() => {
     const list = tabList.current
     if (!list) return
@@ -139,8 +169,8 @@ export default function LayoutMain({ resources = false }: { resources?: boolean 
       if (!tab) return
       const bounds = list.getBoundingClientRect()
       const rect = tab.getBoundingClientRect()
-      if (rect.left < bounds.left) list.scrollBy({ left: rect.left - bounds.left - 4, behavior: "smooth" })
-      else if (rect.right > bounds.right) list.scrollBy({ left: rect.right - bounds.right + 4, behavior: "smooth" })
+      if (rect.left < bounds.left) list.scrollBy({ left: rect.left - bounds.left - 4, behavior: activeSplitId ? "instant" : "smooth" })
+      else if (rect.right > bounds.right) list.scrollBy({ left: rect.right - bounds.right + 4, behavior: activeSplitId ? "instant" : "smooth" })
     }
     const frame = requestAnimationFrame(reveal)
     const observer = new ResizeObserver(reveal)
@@ -150,7 +180,44 @@ export default function LayoutMain({ resources = false }: { resources?: boolean 
       observer.disconnect()
       list.removeEventListener("scroll", updateEdges)
     }
-  }, [activeFilePath, home, openFiles.length])
+  }, [activeFilePath, activeSplitId, home, displayTabs.length])
+  // Panel styles target its inner wrapper; order the actual keyed panels around the separator.
+  const documentPanels = [
+    <ResizablePanel
+      key="primary-document"
+      id="primary-document"
+      minSize="20%"
+      className="flex min-h-0 min-w-0 flex-col"
+    >
+      <div
+        ref={contentHost}
+        className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
+      >
+        <DocumentTabs files={files} activePath={activeFilePath} workspacePath={workspace.path} home={home || graphPage}>
+          {resources ? <Suspense fallback={<RouteLoading icon={<FolderOpen />} title="正在加载项目资源库" label="正在准备工作区，请稍候…" />}><WorkspaceHome /></Suspense> : <RouterView />}
+        </DocumentTabs>
+      </div>
+    </ResizablePanel>,
+    ...(splitPath && !graphPage ? [
+      <ResizableHandle key="document-divider" className="workspace-document-divider" aria-label="调整拆分编辑区宽度" title="拖动调整左右宽度" />,
+      <ResizablePanel
+        key="split-document"
+        id="split-document"
+        defaultSize="50%"
+        minSize="20%"
+        className="flex min-h-0 min-w-0 flex-col"
+      >
+        <StatusTarget.Provider value={null}>
+          <CanvasContent
+            key={splitPath}
+            activeFilePath={splitPath}
+            workspacePath={workspace.path}
+            fileType={splitPath.split(/[\\/]/).pop()?.split(".").slice(1).pop()}
+          />
+        </StatusTarget.Provider>
+      </ResizablePanel>
+    ] : [])
+  ]
   return (
     <StatusTarget.Provider value={statusTarget}>
       <main className="relative flex min-h-0 min-w-0 flex-1 flex-col bg-white">
@@ -167,7 +234,7 @@ export default function LayoutMain({ resources = false }: { resources?: boolean 
                   aria-label="上一个标签页"
                   className="size-7 text-stone-500 hover:bg-green-600 hover:!text-white hover:[&_svg]:!text-white hover:[&_svg]:!stroke-white active:bg-green-600 active:!text-white"
                   disabled={activeIndex <= 0}
-                  onClick={() => openWorkspaceFile(openFiles[activeIndex - 1])}
+                  onClick={() => selectTab(displayTabs[activeIndex - 1].id)}
                 >
                   <ChevronLeft className="!size-4" />
                 </Button>
@@ -180,7 +247,7 @@ export default function LayoutMain({ resources = false }: { resources?: boolean 
           <Button
             variant="ghost"
             aria-current={home ? "page" : undefined}
-            onClick={navigateToWorkspaceHome}
+            onClick={() => { setActiveSplitId(null); navigateToWorkspaceHome() }}
             className={cn(
               "workspace-home-tab h-[34px] shrink-0 gap-1.5 rounded-lg border px-2.5 text-[13px] transition-colors hover:bg-[#f2f3f5] hover:text-[#1f2329]",
               home ? "border-[#1f23290d] bg-white font-medium text-[#1f2329] shadow-[0_1px_3px_#1f23291a,0_0_0_1px_#1f23290f] hover:bg-white" : "border-transparent bg-transparent font-normal text-[#646a73]"
@@ -193,23 +260,26 @@ export default function LayoutMain({ resources = false }: { resources?: boolean 
             aria-hidden="true"
             className="mx-1.5 h-5 w-px shrink-0 bg-[#e6e8eb] dark:bg-[#444c56]"
           />
-          <div className="relative min-w-0 flex-1">
+          <div className="relative min-w-0 flex-1" style={{ containerType: "inline-size" }}>
             <div
               ref={tabList}
               className="relative flex min-w-0 flex-1 items-center gap-1 overflow-x-auto px-2 py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
             >
-              {openFiles.map((file) => {
-                const active = !home && !graphPage && activeFilePath === file.path
+              {displayTabs.map(({ id, file, split }) => {
+                const active = !home && !graphPage && activeTabId === id
+                const splitName = files.find((item) => item.path === split?.secondary)?.name ?? ""
                 const normRoot = workspace.path.replace(/\\/g, "/").replace(/\/+$/, "")
                 const normPath = file.path.replace(/\\/g, "/")
                 const rootName = normRoot.split("/").filter(Boolean).pop() || workspace.name || ""
                 const tabTitle = normRoot && normPath.startsWith(normRoot + "/") ? `${rootName ? `${rootName}/` : ""}${normPath.slice(normRoot.length + 1)}` : file.path
                 return (
-                  <ContextMenu key={file.path}>
+                  <ContextMenu key={id}>
                     <ContextMenuTrigger asChild>
                       <div
                         data-active={active}
                         data-workspace-tab="true"
+                        data-split-tab={split ? "true" : undefined}
+                        style={split ? { maxWidth: "calc(100cqw - 16px)" } : undefined}
                         className={cn(
                           "group flex h-[34px] shrink-0 items-center rounded-lg border pr-1 transition-colors",
                           active ? "border-[#1f23290d] bg-white font-medium text-[#1f2329] shadow-[0_1px_3px_#1f23291a,0_0_0_1px_#1f23290f]" : "border-transparent bg-transparent text-[#646a73] hover:bg-[#f2f3f5]"
@@ -217,25 +287,29 @@ export default function LayoutMain({ resources = false }: { resources?: boolean 
                       >
                         <Button
                           variant="ghost"
-                          data-title={tabTitle}
+                          data-title={split ? `${tabTitle} ↔ ${split.secondary}` : tabTitle}
                           data-title-side="bottom"
                           aria-current={active ? "page" : undefined}
-                          onClick={() => openWorkspaceFile(file)}
-                          className={cn("h-[32px] min-w-0 max-w-[200px] gap-1.5 whitespace-nowrap px-2.5 text-[13px] text-inherit hover:bg-transparent hover:text-inherit", active ? "font-medium" : "font-normal")}
+                          onClick={() => selectTab(id)}
+                          className={cn("h-[32px] min-w-0 gap-1.5 whitespace-nowrap px-2.5 text-[13px] text-inherit hover:bg-transparent hover:text-inherit", split ? "max-w-[360px] shrink" : "max-w-[200px]", active ? "font-medium" : "font-normal")}
                         >
                           {pinned.includes(file.path) ? (
                             <Pin className="!size-[15px] text-[#646a73]" />
                           ) : <FileThemeIcon name={file.path} className="!size-[15px] shrink-0 object-contain" fallback={/\.(excalidraw(\.md)?|canvas)$/i.test(file.name) ? <LayoutTemplate className={cn("!size-[15px]", active ? "text-amber-600" : "text-amber-500")} /> : <File className={cn("!size-[15px]", active ? "text-[#646a73]" : "text-[#8f959e]")} />} />}
 
                           <span className="truncate">{file.name}</span>
+                          {split && <>
+                            <ArrowLeftRight aria-label="左右拆分" className="!size-3.5 shrink-0 text-stone-400" />
+                            <span className="truncate">{splitName}</span>
+                          </>}
                         </Button>
-                        {!pinned.includes(file.path) && (
+                        {(split || !pinned.includes(file.path)) && (
                           <Button
                             variant="ghost"
                             size="icon"
-                            aria-label={`关闭 ${file.name}`}
-                            onClick={() => closeWorkspaceFile(file.path)}
-                            className={cn("workspace-tab-close size-[18px] rounded-[5px] text-[#8f959e] hover:bg-transparent hover:text-inherit group-hover:opacity-100 focus-visible:opacity-100", active ? "opacity-75" : "opacity-0")}
+                            aria-label={split ? `关闭拆分 ${file.name} ↔ ${splitName}` : `关闭 ${file.name}`}
+                            onClick={() => closeTab(id)}
+                            className={cn("workspace-tab-close size-[18px] shrink-0 rounded-[5px] text-[#8f959e] hover:bg-transparent hover:text-inherit group-hover:opacity-100 focus-visible:opacity-100", active ? "opacity-75" : "opacity-0")}
                           >
                             <X className="!size-3" />
                           </Button>
@@ -243,13 +317,13 @@ export default function LayoutMain({ resources = false }: { resources?: boolean 
                       </div>
                     </ContextMenuTrigger>
                     <ContextMenuContent className="w-44">
-                      <ContextMenuItem onSelect={() => closeWorkspaceFile(file.path)}>
+                      <ContextMenuItem onSelect={() => closeTab(id)}>
                         <X />
                         关闭
                       </ContextMenuItem>
                       <ContextMenuItem
-                        disabled={!openFiles.some((item) => item.path !== file.path && !pinned.includes(item.path))}
-                        onSelect={() => closeWorkspaceFiles(openFiles.filter((item) => item.path !== file.path && !pinned.includes(item.path)).map((item) => item.path))}
+                        disabled={displayTabs.length < 2}
+                        onSelect={() => closeTabs(displayTabs.filter((item) => item.id !== id && (item.split || !pinned.includes(item.file.path))).map((item) => item.id))}
                       >
                         <X />
                         关闭其他
@@ -297,10 +371,10 @@ export default function LayoutMain({ resources = false }: { resources?: boolean 
                         <Pin />
                         {pinned.includes(file.path) ? "取消固定" : "固定"}
                       </ContextMenuItem>
-                      <ContextMenuItem onSelect={() => { setSplitSide("right"); setSplitPath(file.path) }}>
+                      {!split && <ContextMenuItem onSelect={() => createSplit(file.path, "right")}>
                         <Columns2 />
                         向右拆分
-                      </ContextMenuItem>
+                      </ContextMenuItem>}
                     </ContextMenuContent>
                   </ContextMenu>
                 )
@@ -327,8 +401,8 @@ export default function LayoutMain({ resources = false }: { resources?: boolean 
                   size="icon"
                   aria-label="下一个标签页"
                   className="size-7 text-stone-500 hover:bg-green-600 hover:!text-white hover:[&_svg]:!text-white hover:[&_svg]:!stroke-white active:bg-green-600 active:!text-white"
-                  disabled={activeIndex < 0 || activeIndex >= openFiles.length - 1}
-                  onClick={() => openWorkspaceFile(openFiles[activeIndex + 1])}
+                  disabled={activeIndex < 0 || activeIndex >= displayTabs.length - 1}
+                  onClick={() => selectTab(displayTabs[activeIndex + 1].id)}
                 >
                   <ChevronRight className="!size-4" />
                 </Button>
@@ -347,11 +421,8 @@ export default function LayoutMain({ resources = false }: { resources?: boolean 
           )}
           <TabSwitcher
             triggerClassName="[&:hover>button]:bg-green-600 [&:hover>button]:!text-white [&:hover>button_svg]:!text-white [&:hover>button_svg]:!stroke-white [&[data-state=open]>button]:bg-green-600 [&[data-state=open]>button]:!text-white [&[data-state=open]>button_svg]:!text-white [&[data-state=open]>button_svg]:!stroke-white"
-            tabs={openFiles.map((file) => ({ id: file.path, title: file.name, active: file.path === activeFilePath, icon: <FileThemeIcon name={file.path} className="size-3.5 shrink-0 object-contain" fallback={<File className={cn("size-3.5", getFilePresentation(file.name).color)} />} /> }))}
-            onSelect={(id) => {
-              const file = openFiles.find((file) => file.path === id)
-              if (file) openWorkspaceFile(file)
-            }}
+            tabs={displayTabs.map(({ id, file, split }) => ({ id, title: split ? `${file.name} ↔ ${files.find((item) => item.path === split.secondary)?.name ?? ""}` : file.name, active: id === activeTabId, icon: <FileThemeIcon name={file.path} className="size-3.5 shrink-0 object-contain" fallback={<File className={cn("size-3.5", getFilePresentation(file.name).color)} />} /> }))}
+            onSelect={selectTab}
           >
             <Button
               variant="ghost"
@@ -383,16 +454,16 @@ export default function LayoutMain({ resources = false }: { resources?: boolean 
               className="w-44 rounded-lg !bg-white p-1 [&_[role=menuitem]]:px-2 [&_[role=menuitem]]:py-1.5 [&_[role=menuitem]]:text-xs [&_[role=menuitem]]:font-normal [&_[role=menuitem]:focus]:!bg-[#f0efed] [&_[role=menuitem]:focus]:!text-stone-700 [&_[role=menuitem][data-state=open]]:!bg-[#f0efed]"
             >
               <DropdownMenuSub>
-                <DropdownMenuSubTrigger>标签页（{openFiles.length}）</DropdownMenuSubTrigger>
+                <DropdownMenuSubTrigger>标签页（{displayTabs.length}）</DropdownMenuSubTrigger>
                 <DropdownMenuSubContent className="w-48 overflow-hidden !bg-white [&_[role=menuitem]]:py-1.5 [&_[role=menuitem]]:text-xs [&_[role=menuitem]:focus]:!bg-[#f0efed] [&_[role=menuitem]:focus]:!text-stone-700">
                   <ScrollArea className="[&_[data-radix-scroll-area-viewport]]:max-h-72 [&_[data-radix-scroll-area-viewport]>div]:!block">
-                    {openFiles.map((file) => (
+                    {displayTabs.map(({ id, file, split }) => (
                       <DropdownMenuItem
-                        key={file.path}
-                        className={file.path === activeFilePath ? "bg-[#f0efed] text-stone-700" : ""}
-                        onSelect={() => openWorkspaceFile(file)}
+                        key={id}
+                        className={id === activeTabId ? "bg-[#f0efed] text-stone-700" : ""}
+                        onSelect={() => selectTab(id)}
                       >
-                        <span className="truncate">{file.name}</span>
+                        <span className="truncate">{file.name}{split ? ` ↔ ${files.find((item) => item.path === split.secondary)?.name ?? ""}` : ""}</span>
                       </DropdownMenuItem>
                     ))}
                   </ScrollArea>
@@ -401,33 +472,26 @@ export default function LayoutMain({ resources = false }: { resources?: boolean 
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 disabled={!activeFilePath}
-                onSelect={() => closeWorkspaceFile(activeFilePath)}
+                onSelect={() => closeTab(activeTabId)}
               >
                 关闭当前标签页
               </DropdownMenuItem>
               <DropdownMenuItem
-                disabled={!activeFilePath || openFiles.length < 2}
-                onSelect={() => closeWorkspaceFiles(openFiles.filter((file) => file.path !== activeFilePath && !pinned.includes(file.path)).map((file) => file.path))}
+                disabled={!activeFilePath || displayTabs.length < 2}
+                onSelect={() => closeTabs(displayTabs.filter((entry) => entry.id !== activeTabId && (entry.split || !pinned.includes(entry.file.path))).map((entry) => entry.id))}
               >
                 关闭其他标签页
               </DropdownMenuItem>
               <DropdownMenuItem
-                disabled={!activeFilePath || openFiles.findIndex((file) => file.path === activeFilePath) === openFiles.length - 1}
-                onSelect={() =>
-                  closeWorkspaceFiles(
-                    openFiles
-                      .slice(openFiles.findIndex((file) => file.path === activeFilePath) + 1)
-                      .filter((file) => !pinned.includes(file.path))
-                      .map((file) => file.path)
-                  )
-                }
+                disabled={activeIndex < 0 || activeIndex >= displayTabs.length - 1}
+                onSelect={() => closeTabs(displayTabs.slice(activeIndex + 1).filter((entry) => entry.split || !pinned.includes(entry.file.path)).map((entry) => entry.id))}
               >
                 关闭右侧标签页
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 disabled={!openFiles.length}
-                onSelect={() => closeWorkspaceFiles(openFiles.filter((file) => !pinned.includes(file.path)).map((file) => file.path))}
+                onSelect={() => closeTabs(displayTabs.filter((entry) => entry.split || !pinned.includes(entry.file.path)).map((entry) => entry.id))}
               >
                 关闭所有标签页
               </DropdownMenuItem>
@@ -441,61 +505,8 @@ export default function LayoutMain({ resources = false }: { resources?: boolean 
             minSize="20%"
             className="flex min-h-0 flex-col"
           >
-            <ResizablePanelGroup orientation="horizontal">
-              <ResizablePanel
-                id="primary-document"
-                style={{ order: splitSide === "left" ? 2 : 0 }}
-                minSize="20%"
-                className="flex min-h-0 flex-col"
-              >
-                <div
-                  ref={contentHost}
-                  className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
-                >
-                  <DocumentTabs files={files} activePath={activeFilePath} workspacePath={workspace.path} home={home || graphPage}>
-                    {resources ? <Suspense fallback={<RouteLoading icon={<FolderOpen />} title="正在加载项目资源库" label="正在准备工作区，请稍候…" />}><WorkspaceHome /></Suspense> : <RouterView />}
-                  </DocumentTabs>
-                </div>
-              </ResizablePanel>
-              {splitPath && !graphPage && (
-                <>
-                  <ResizableHandle style={{ order: 1 }} aria-label="调整拆分编辑区宽度" />
-                  <ResizablePanel
-                    id="split-document"
-                    style={{ order: splitSide === "left" ? 0 : 2 }}
-                    defaultSize="50%"
-                    minSize="20%"
-                    className="flex min-h-0 flex-col"
-                  >
-                    <div className="flex h-9 shrink-0 items-center gap-2 border-b px-3 text-xs text-stone-600">
-                      <FileThemeIcon name={splitPath} className="size-3.5 shrink-0 object-contain" fallback={<File className="size-3.5" />} />
-                      <span
-                        className="min-w-0 flex-1 truncate"
-                        data-title={splitPath}
-                      >
-                        {splitPath.split(/[\\/]/).pop()}
-                      </span>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="size-6"
-                        aria-label="关闭右侧拆分"
-                        onClick={() => setSplitPath(null)}
-                      >
-                        <X className="!size-3.5" />
-                      </Button>
-                    </div>
-                    <StatusTarget.Provider value={null}>
-                      <CanvasContent
-                        key={splitPath}
-                        activeFilePath={splitPath}
-                        workspacePath={workspace.path}
-                        fileType={splitPath.split(/[\\/]/).pop()?.split(".").slice(1).pop()}
-                      />
-                    </StatusTarget.Provider>
-                  </ResizablePanel>
-                </>
-              )}
+            <ResizablePanelGroup orientation="horizontal" className="h-full min-w-0">
+              {splitSide === "left" ? [...documentPanels].reverse() : documentPanels}
             </ResizablePanelGroup>
             <StatusBar
               left={!graphPage && (

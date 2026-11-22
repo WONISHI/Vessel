@@ -1,4 +1,6 @@
 import { useDirectoryTreeLayout } from "@/features/directory-tree/state"
+import { useResourceStickyScroll } from "@/features/directory-tree/use-resource-sticky-scroll"
+import { FileIconScope } from "@/features/file-icons/state"
 import { treeRevealScrollTop } from "@/components/workspace/components/layout-aside/layout-workspace-sidebar/reveal-scroll"
 import { useTreeDragAutoScroll } from "@/components/workspace/components/layout-aside/layout-workspace-sidebar/use-tree-drag-scroll"
 import { Button } from "@/components/ui/button"
@@ -14,7 +16,7 @@ import { refreshGitDecorations } from "@/features/git-decorations"
 import { useFileChanges } from "@/components/workspace/hooks/file-changes"
 import { useWorkspace } from "@/components/workspace/hooks/useWorkspace"
 import type { WorkspaceNode } from "@/components/workspace/types/workspace"
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
+import { useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
 import { toast } from "sonner"
 import { useDelayedLoading } from "@/hooks/use-delayed-loading"
 
@@ -60,6 +62,7 @@ export default function WorkspaceTree({
 }) {
   const { workspace, openFiles, activeFilePath, openWorkspaceFile, renameWorkspaceTab, expandedFolders, setDirectoryExpanded } = useWorkspace()
   const layout = useDirectoryTreeLayout()
+  const stickyScroll = useResourceStickyScroll(useContext(FileIconScope) === "resources")
   const { rowHeight, indent, gap } = layout
   const showGit = useShowGitDecorations()
   // Git status only changes with Git activity: refresh on mount, focus and Git page events, never per edit.
@@ -285,13 +288,14 @@ export default function WorkspaceTree({
       setSelection([])
       onRevealed?.()
     } else if (viewport && revealIndex >= 0 && !draft && revealPath) {
-      const top = revealCentered ? Math.max(0, revealIndex * (rowHeight + gap) + rowHeight / 2 - viewport.clientHeight / 2) : treeRevealScrollTop(revealIndex, viewport.scrollTop, viewport.clientHeight, rowHeight, gap)
+      const stickyInset = stickyScroll && !recent && !renamingPath ? Math.min(rows[revealIndex].depth, 7, Math.floor(viewport.clientHeight * .4 / (rowHeight + gap))) * (rowHeight + gap) : 0
+      const top = revealCentered ? Math.max(0, revealIndex * (rowHeight + gap) + rowHeight / 2 - viewport.clientHeight / 2) : treeRevealScrollTop(revealIndex, viewport.scrollTop, viewport.clientHeight, rowHeight, gap, stickyInset)
       if (top !== viewport.scrollTop) viewport.scrollTo({ top, behavior: "instant" })
       viewport.dispatchEvent(new Event("vessel:tree-reveal"))
       setSelection([revealPath])
       onRevealed?.()
     }
-  }, [viewport, isRootReveal, revealIndex, revealPath, revealCentered, draft, onRevealed, rowHeight, gap])
+  }, [viewport, isRootReveal, revealIndex, revealPath, revealCentered, draft, onRevealed, rowHeight, gap, stickyScroll, recent, renamingPath, rows])
   if (!recent && !root)
     return (
       <div
@@ -318,6 +322,7 @@ export default function WorkspaceTree({
   return (
     <>
       <VirtualTree
+        stickyScroll={stickyScroll && !recent && !draft && !renamingPath}
         rows={rows}
         indent={indent}
         rowHeight={rowHeight}

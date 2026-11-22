@@ -97,6 +97,7 @@ function validate(value: AppSettings): AppSettings {
   if (value.fileIconTheme !== undefined && !["default", "catppuccin", "symbols", "material"].includes(value.fileIconTheme)) throw new Error("文件图标库无效")
   if (value.catppuccinFlavor !== undefined && !["auto", "latte", "frappe", "macchiato", "mocha"].includes(value.catppuccinFlavor)) throw new Error("图标配色无效")
   if (value.browserGroupSameDomain !== undefined && typeof value.browserGroupSameDomain !== "boolean") throw new Error("同域名标签折叠设置无效")
+  if (value.resourceTreeStickyScroll !== undefined && typeof value.resourceTreeStickyScroll !== "boolean") throw new Error("项目资源库粘性滚动设置无效")
   if (value.browserDevtoolsFollowWindow !== undefined && typeof value.browserDevtoolsFollowWindow !== "boolean") throw new Error("控制台窗口跟随设置无效")
   for (const flag of [value.fileIconWorkspace, value.fileIconResources, value.fileTypeBadgesEnabled, value.fileTypeBadgesWorkspace, value.fileTypeBadgesResources, value.gitDecorationsEnabled]) if (flag !== undefined && typeof flag !== "boolean") throw new Error("图标应用范围无效")
   const delay = value.navigationDelayMs ?? 3000
@@ -149,6 +150,7 @@ function validate(value: AppSettings): AppSettings {
     searchEngine: ["bing", "google", "baidu", "duckduckgo"].includes(value.searchEngine || "") ? value.searchEngine : "bing",
     proxyEnabled: value.proxyEnabled === true,
     browserGroupSameDomain: value.browserGroupSameDomain === true,
+    resourceTreeStickyScroll: value.resourceTreeStickyScroll !== false,
     browserDevtoolsFollowWindow: value.browserDevtoolsFollowWindow === true,
     externalScreenshot: value.externalScreenshot !== false,
     externalPreview: value.externalPreview !== false,

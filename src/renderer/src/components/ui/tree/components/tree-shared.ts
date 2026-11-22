@@ -51,4 +51,5 @@ export interface VirtualTreeProps<T> {
   overscan?: number
   selectedId?: string
   renderRow: (row: VirtualTreeRow<T>) => React.ReactNode
+  stickyScroll?: boolean
 }
