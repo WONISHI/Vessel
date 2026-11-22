@@ -10,7 +10,7 @@ import { useState } from "react"
 
 /** 顶部标签栏 */
 export function BrowserTabs({ b }: { b: BrowserPageModel }) {
-  const { tabs, setActive, setInput, tab, add, close, addTabRightOf, reloadTab, togglePinTab, closeOtherTabs, closeRightTabs, freezeTab, dragTabId, setDragTabId, reorderTabs } = b
+  const { tabs, setActive, setInput, tab, add, close, closeTabs, addTabRightOf, reloadTab, togglePinTab, closeOtherTabs, closeRightTabs, freezeTab, dragTabId, setDragTabId, reorderTabs } = b
 
   const grouping = useTabGrouping()
   const [contextMenuOpen, setContextMenuOpen] = useState(false)
@@ -24,11 +24,17 @@ export function BrowserTabs({ b }: { b: BrowserPageModel }) {
   ]
   return (
         <div className="browser-tabs">
-          {groups.map(({ key, tab: item, members }, groupIndex) => {
+          {groups.map(({ key, kind, tab: item, members }, groupIndex) => {
+            const grouped = members.length > 1
+            const pinned = members.every((member) => member.pinned)
+            const memberIds = [item.id, ...members.filter((member) => member.id !== item.id).map((member) => member.id)]
+            const title = grouped && kind === "local" ? "本地资源" : item.title
+            const closeLabel = grouped ? `关闭整个分组：${title}（${members.length} 个标签页）` : "关闭标签页"
             const titleSide = groupIndex === 0 ? "right" : groupIndex === groups.length - 1 ? "left" : undefined
             const row = <ContextMenu key={item.id} onOpenChange={setContextMenuOpen}>
               <ContextMenuTrigger asChild>
                 <div
+                  data-browser-group={grouped ? key : undefined}
                   draggable
                   onDragStart={(e) => {
                     e.dataTransfer.setData("text/plain", item.id)
@@ -44,7 +50,7 @@ export function BrowserTabs({ b }: { b: BrowserPageModel }) {
                     if (sourceId && sourceId !== item.id) reorderTabs(sourceId, item.id)
                   }}
                   onDragEnd={() => setDragTabId(null)}
-                  className={`browser-tab ${item.id === tab.id ? "selected" : ""} ${item.pinned ? "pinned" : ""} ${item.videoPlaying ? "playing" : ""}`}
+                  className={`browser-tab ${item.id === tab.id ? "selected" : ""} ${pinned ? "pinned" : ""} ${item.videoPlaying ? "playing" : ""}`}
                 >
                   <button
                     onClick={() => {
@@ -63,18 +69,18 @@ export function BrowserTabs({ b }: { b: BrowserPageModel }) {
                         ? <LoaderCircle size={16} className="absolute inset-0 animate-spin" aria-label="正在加载" />
                         : null}
                     </span>
-                    <span className="truncate leading-4">{item.title}</span>
+                    <span className="truncate leading-4">{title}</span>
                   </button>
-                  {members.length > 1 && <span className="browser-tab-group-count" aria-label={`另有 ${members.length - 1} 个同域名标签页`}>{members.length - 1}</span>}
+                  {members.length > 1 && <span className="browser-tab-group-count" aria-label={`另有 ${members.length - 1} 个${kind === "local" ? "本地资源" : "同域名"}标签页`}>{members.length - 1}</span>}
                   {item.videoPlaying && <AudioLines size={16} className="browser-tab-audio" aria-label="正在播放视频" />}
                   <button
-                    className={item.pinned ? "browser-tab-pin-close" : undefined}
-                    data-title="关闭标签页"
-                    onClick={() => close(item.id)} aria-label={item.pinned ? "已固定" : "关闭标签页"}
-                    disabled={item.pinned}
-                    tabIndex={item.pinned ? -1 : undefined}
+                    className={pinned ? "browser-tab-pin-close" : undefined}
+                    data-title={closeLabel}
+                    onClick={(event) => { event.stopPropagation(); event.preventDefault(); if (grouped) closeTabs(memberIds); else close(item.id) }} aria-label={pinned ? "已固定" : closeLabel}
+                    disabled={pinned}
+                    tabIndex={pinned ? -1 : undefined}
                   >
-                    {item.pinned ? <Pin size={16} className="browser-tab-pin-icon" aria-hidden="true" /> : <X size={14} />}
+                    {pinned ? <Pin size={16} className="browser-tab-pin-icon" aria-hidden="true" /> : <X size={14} />}
                   </button>
                 </div>
               </ContextMenuTrigger>
@@ -83,29 +89,31 @@ export function BrowserTabs({ b }: { b: BrowserPageModel }) {
                   <Plus />
                   在右侧新增标签页
                 </ContextMenuItem>
-                <ContextMenuItem onSelect={() => addTabRightOf(item.id, true)}>
-                  <Copy />
-                  复制标签页
-                </ContextMenuItem>
-                <ContextMenuItem onSelect={() => reloadTab(item.id)}>
-                  <RotateCw />
-                  重新加载
-                </ContextMenuItem>
-                <ContextMenuItem disabled={!item.url} onSelect={() => item.frozen ? setActive(item.id) : freezeTab(item.id)}>
-                  {item.frozen ? <Play /> : <Snowflake />}
-                  {item.frozen ? "解冻标签页" : "冻结标签页"}
-                </ContextMenuItem>
-                <ContextMenuItem onSelect={() => togglePinTab(item.id)}>
+                {!grouped && <>
+                  <ContextMenuItem onSelect={() => addTabRightOf(item.id, true)}>
+                    <Copy />
+                    复制标签页
+                  </ContextMenuItem>
+                  <ContextMenuItem onSelect={() => reloadTab(item.id)}>
+                    <RotateCw />
+                    重新加载
+                  </ContextMenuItem>
+                  <ContextMenuItem disabled={!item.url} onSelect={() => item.frozen ? setActive(item.id) : freezeTab(item.id)}>
+                    {item.frozen ? <Play /> : <Snowflake />}
+                    {item.frozen ? "解冻标签页" : "冻结标签页"}
+                  </ContextMenuItem>
+                </>}
+                <ContextMenuItem onSelect={() => togglePinTab(grouped ? memberIds : item.id)}>
                   <Pin />
-                  {item.pinned ? "取消固定" : "固定"}
+                  {pinned ? "取消固定" : "固定"}
                 </ContextMenuItem>
                 <ContextMenuSeparator />
-                <ContextMenuItem onSelect={() => close(item.id)}>
+                <ContextMenuItem onSelect={() => grouped ? closeTabs(memberIds) : close(item.id)}>
                   <X />
-                  关闭
+                  {grouped ? "关闭整个分组" : "关闭"}
                 </ContextMenuItem>
-                <ContextMenuItem onSelect={() => closeOtherTabs(item.id)}><CopyX />关闭其他标签页</ContextMenuItem>
-                <ContextMenuItem onSelect={() => closeRightTabs(item.id)}><PanelRightClose />关闭右侧标签页</ContextMenuItem>
+                <ContextMenuItem onSelect={() => closeOtherTabs(grouped ? memberIds : item.id)}><CopyX />关闭其他标签页</ContextMenuItem>
+                <ContextMenuItem onSelect={() => grouped ? closeTabs(groups.slice(groupIndex + 1).flatMap((group) => group.members).filter((member) => !member.pinned).map((member) => member.id)) : closeRightTabs(item.id)}><PanelRightClose />关闭右侧标签页</ContextMenuItem>
               </ContextMenuContent>
             </ContextMenu>
             return members.length > 1 ? <TabSwitcher key={key} contextActions={contextActions} disabled={contextMenuOpen} titleSide={titleSide} triggerClassName={`browser-tab-group ${members.some(member => member.id === tab.id) ? "browser-tab-group-selected" : ""}`} contentClassName="z-[510] vessel-browser-tabs-popup" tabs={members.map(member => ({ ...member, active: member.id === tab.id }))} onClose={close} onSelect={id => { setActive(id); setInput(null) }}>{row}</TabSwitcher> : row

@@ -225,16 +225,20 @@ export function useBrowserActions(state: BrowserState, visible: boolean) {
     []
   )
 
-  /** Closes close. */
-  const close = (id: string) => {
-    const remaining = tabs.filter((item) => item.id !== id)
+  /** Remove a group in one state update so successive single-tab closes cannot restore members. */
+  const closeTabs = (ids: string[]) => {
+    const removed = new Set(ids)
+    if (!tabs.some((item) => removed.has(item.id))) return
+    const remaining = tabs.filter((item) => !removed.has(item.id))
     if (!remaining.length) remaining.push(newTab())
     setTabs(remaining)
-    if (tab.id === id) {
-      setActive(remaining.find((item) => item.id === tab.openerId)?.id || remaining[Math.max(0, tabs.findIndex((item) => item.id === id) - 1)].id)
+    if (removed.has(tab.id)) {
+      const previous = tabs.slice(0, tabs.findIndex((item) => item.id === tab.id)).filter((item) => !removed.has(item.id)).at(-1)
+      setActive(remaining.find((item) => item.id === tab.openerId)?.id || previous?.id || remaining[0].id)
       setInput(null)
     }
   }
+  const close = (id: string) => closeTabs([id])
 
   /** Adds tab right of. */
   const addTabRightOf = (targetId: string, duplicate = false) => {
@@ -255,14 +259,20 @@ export function useBrowserActions(state: BrowserState, visible: boolean) {
   }
 
   /** Toggles pin tab. */
-  const togglePinTab = (id: string) => {
-    setTabs((current) => current.map((t) => (t.id === id ? { ...t, pinned: !t.pinned } : t)))
+  const togglePinTab = (id: string | string[]) => {
+    const ids = new Set(Array.isArray(id) ? id : [id])
+    setTabs((current) => {
+      const pinned = !current.filter((item) => ids.has(item.id)).every((item) => item.pinned)
+      return current.map((item) => ids.has(item.id) ? { ...item, pinned } : item)
+    })
   }
 
   /** Closes other tabs. */
-  const closeOtherTabs = (id: string) => {
-    setTabs((current) => current.filter((t) => t.id === id || t.pinned))
-    setActive(id)
+  const closeOtherTabs = (id: string | string[]) => {
+    const ids = Array.isArray(id) ? id : [id]
+    if (!ids.length) return
+    setTabs((current) => current.filter((item) => ids.includes(item.id) || item.pinned))
+    setActive(ids[0])
     setInput(null)
   }
 
@@ -329,5 +339,5 @@ export function useBrowserActions(state: BrowserState, visible: boolean) {
     void window.electronAPI.syncBrowserBookmarks(next).catch(() => {})
   }
 
-  return { inspectPage, searchPage, update, navigate, add, close, addTabRightOf, reloadTab, togglePinTab, closeOtherTabs, closeRightTabs, dragTabId, setDragTabId, reorderTabs, zoom, bookmark }
+  return { inspectPage, searchPage, update, navigate, add, close, closeTabs, addTabRightOf, reloadTab, togglePinTab, closeOtherTabs, closeRightTabs, dragTabId, setDragTabId, reorderTabs, zoom, bookmark }
 }

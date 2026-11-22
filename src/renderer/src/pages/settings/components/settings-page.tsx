@@ -431,7 +431,7 @@ export function SettingsPage() {
                     <Row title="项目资源库粘性滚动" description="滚动文件列表时，在顶部固定当前目录的父级路径，方便定位和展开收起。仅作用于项目资源库。">
                       <Switch aria-label="项目资源库粘性滚动" checked={draft.resourceTreeStickyScroll !== false} onCheckedChange={value => update("resourceTreeStickyScroll", value)} />
                     </Row>
-                    <Row title="同域名标签折叠" description="将同域名的浏览器标签收在一起，右上角显示折叠数量，悬停可查看和切换。固定标签与普通标签分别分组。">
+                    <Row title="同域名标签折叠" description="将同域名网页折叠为一组；所有本地文件统一归入“本地资源”。悬停可查看和切换，固定网页与普通网页分别分组。">
                       <Switch aria-label="同域名标签折叠" checked={draft.browserGroupSameDomain === true} onCheckedChange={value => update("browserGroupSameDomain", value)} />
                     </Row>
                     <Row

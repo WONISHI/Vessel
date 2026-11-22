@@ -70,13 +70,13 @@ it.each([false, true])("keeps the group popup closed while its context menu is o
     expect(await screen.findByText("已打开 2 个标签页")).toBeTruthy()
   }
   fireEvent.contextMenu(wrapper.querySelector('.browser-tab')!)
-  const action = await screen.findByRole("menuitem", { name: "冻结标签页" })
+  const action = await screen.findByRole("menuitem", { name: "关闭整个分组" })
   fireEvent.mouseEnter(action)
   fireEvent.focus(action)
   expect(screen.queryByText("已打开 2 个标签页")).toBeNull()
   expect(screen.queryByText("已打开 4 个标签页")).toBeNull()
   fireEvent.keyDown(action, { key: "Escape" })
-  await waitFor(() => expect(screen.queryByRole("menuitem", { name: "冻结标签页" })).toBeNull())
+  await waitFor(() => expect(screen.queryByRole("menuitem", { name: "关闭整个分组" })).toBeNull())
   expect(screen.queryByText("已打开 2 个标签页")).toBeNull()
   fireEvent.mouseLeave(wrapper)
   fireEvent.mouseEnter(wrapper)
@@ -105,4 +105,53 @@ it.each([
   fireEvent.click(action)
   expect(actions[method as keyof typeof actions]).toHaveBeenCalledWith(...(label === "复制标签页" ? ["two", true] : ["two"]))
   expect(setActive).not.toHaveBeenCalled()
+})
+
+it("groups all local paths, file hosts and pin states together without grouping blank or data pages", () => {
+  const files = [{ id: "a", url: "file:///tmp/a.html", pinned: true }, { id: "b", url: "file:///Users/test/b.pdf" }, { id: "c", url: "file://server/share/c.png" }, { id: "empty", url: "" }, { id: "data", url: "data:text/html,test" }] as Tab[]
+  const groups = groupBrowserTabs(files, "b", true)
+  expect(groups.map((group) => group.members.map((tab) => tab.id))).toEqual([["a", "b", "c"], ["empty"], ["data"]])
+  expect(groups[0]).toMatchObject({ kind: "local", tab: files[1] })
+  expect(groupBrowserTabs(files, "b", false)).toHaveLength(5)
+})
+
+it.each(["button", "menu"])("closes every member of the local group through its %s", async (method) => {
+  vi.stubGlobal("electronAPI", { getSettings: vi.fn(async () => ({ browserGroupSameDomain: true })) })
+  const local = [...tabs, { ...tabs[3], id: "second-local", title: "本地二", url: "file:///other/b.pdf" }]
+  const closeTabs = vi.fn(), close = vi.fn()
+  const b = { tabs: local, tab: tabs[3], closeTabs, close, setActive: vi.fn(), setInput: vi.fn(), add: vi.fn(), setDragTabId: vi.fn() } as unknown as BrowserPageModel
+  const view = render(<BrowserTabs b={b} />)
+  const group = await waitFor(() => { const element = view.container.querySelector('[data-browser-group="local-resources"]'); expect(element).toBeTruthy(); return element! })
+  expect(group.textContent).toContain("本地资源")
+  if (method === "button") fireEvent.click(screen.getByRole("button", { name: "关闭整个分组：本地资源（2 个标签页）" }))
+  else {
+    fireEvent.contextMenu(group)
+    for (const label of ["复制标签页", "重新加载", "冻结标签页", "解冻标签页"]) expect(screen.queryByRole("menuitem", { name: label })).toBeNull()
+    fireEvent.click(screen.getByRole("menuitem", { name: "关闭整个分组" }))
+  }
+  expect(closeTabs).toHaveBeenCalledExactlyOnceWith(["local", "second-local"])
+  expect(close).not.toHaveBeenCalled()
+})
+
+it("keeps single-tab commands while group other/right-close operations preserve its own members", async () => {
+  vi.stubGlobal("electronAPI", { getSettings: vi.fn(async () => ({ browserGroupSameDomain: true })) })
+  const closeTabs = vi.fn(), closeOtherTabs = vi.fn(), togglePinTab = vi.fn()
+  const ordered = [tabs[0], tabs[1], tabs[2], { ...tabs[3], pinned: true }]
+  const b = { tabs: ordered, tab: tabs[0], closeTabs, closeOtherTabs, togglePinTab, setActive: vi.fn(), setInput: vi.fn(), add: vi.fn(), setDragTabId: vi.fn() } as unknown as BrowserPageModel
+  const view = render(<BrowserTabs b={b} />)
+  const group = await waitFor(() => { const element = view.container.querySelector('[data-browser-group="normal:docs.test"]'); expect(element).toBeTruthy(); return element! })
+  fireEvent.contextMenu(group)
+  expect(screen.queryByRole("menuitem", { name: "复制标签页" })).toBeNull()
+  fireEvent.click(screen.getByRole("menuitem", { name: "关闭其他标签页" }))
+  expect(closeOtherTabs).toHaveBeenCalledWith(["one", "two"])
+  fireEvent.contextMenu(group)
+  fireEvent.click(screen.getByRole("menuitem", { name: "关闭右侧标签页" }))
+  expect(closeTabs).toHaveBeenCalledWith(["other"])
+  fireEvent.contextMenu(group)
+  fireEvent.click(screen.getByRole("menuitem", { name: "固定", exact: true }))
+  expect(togglePinTab).toHaveBeenCalledWith(["one", "two"])
+  fireEvent.contextMenu(view.container.querySelectorAll('.browser-tab')[1])
+  expect(screen.getByRole("menuitem", { name: "复制标签页" })).toBeTruthy()
+  expect(screen.getByRole("menuitem", { name: "重新加载" })).toBeTruthy()
+  expect(screen.getByRole("menuitem", { name: "冻结标签页" })).toBeTruthy()
 })
