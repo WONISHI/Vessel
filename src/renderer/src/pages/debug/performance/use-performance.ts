@@ -3,11 +3,13 @@ import { useEffect, useState } from 'react'
 export type PerformancePoint = { time: number; total: number; main: number; renderer: number }
 export type RendererDiagnostic = { heapUsed?: number; heapLimit?: number; domNodes: number; editors: number; codeEditors: number; documentTabs: number; hiddenTabs: number; iframes: number; webviews: number; longTasks: number; longestTaskMs: number }
 
+let lastSample: { snapshot: PerformanceSnapshot; history: PerformancePoint[]; renderer: RendererDiagnostic } | undefined
+
 /** Bound history to two minutes, poll serially and observe only this renderer's long tasks. */
 export function usePerformance() {
-  const [snapshot, setSnapshot] = useState<PerformanceSnapshot | null>(null)
-  const [history, setHistory] = useState<PerformancePoint[]>([])
-  const [renderer, setRenderer] = useState<RendererDiagnostic | null>(null)
+  const [snapshot, setSnapshot] = useState<PerformanceSnapshot | null>(() => lastSample?.snapshot ?? null)
+  const [history, setHistory] = useState<PerformancePoint[]>(() => lastSample?.history ?? [])
+  const [renderer, setRenderer] = useState<RendererDiagnostic | null>(() => lastSample?.renderer ?? null)
   const [fps, setFps] = useState<number | null>(null)
   const [error, setError] = useState('')
   const [visible, setVisible] = useState(!document.hidden)
@@ -28,10 +30,11 @@ export function usePerformance() {
       try {
         const next = await window.electronAPI.getPerformanceSnapshot()
         if (!disposed && !document.hidden) {
-          setSnapshot(next); setError('')
-          setHistory((previous) => [...previous, { time: next.sampledAt, total: next.memoryBytes, main: next.processes.find((item) => item.type === 'Browser')?.memoryBytes ?? 0, renderer: next.processes.filter((item) => item.type === 'Tab').reduce((sum, item) => sum + item.memoryBytes, 0) }].slice(-120))
+          const points = [...(lastSample?.history ?? []), { time: next.sampledAt, total: next.memoryBytes, main: next.processes.find((item) => item.type === 'Browser')?.memoryBytes ?? 0, renderer: next.processes.filter((item) => item.type === 'Tab').reduce((sum, item) => sum + item.memoryBytes, 0) }].slice(-120)
           const heap = (performance as Performance & { memory?: { usedJSHeapSize: number; jsHeapSizeLimit: number } }).memory
-          setRenderer({ heapUsed: heap?.usedJSHeapSize, heapLimit: heap?.jsHeapSizeLimit, domNodes: document.getElementsByTagName('*').length, editors: document.querySelectorAll('.vditor-ir .vditor-reset').length, codeEditors: document.querySelectorAll('.monaco-editor').length, documentTabs: document.querySelectorAll('[data-document-tab]').length, hiddenTabs: document.querySelectorAll('[data-document-tab][aria-hidden="true"]').length, iframes: document.querySelectorAll('iframe').length, webviews: document.querySelectorAll('webview').length, longTasks, longestTaskMs })
+          const diagnostic = { heapUsed: heap?.usedJSHeapSize, heapLimit: heap?.jsHeapSizeLimit, domNodes: document.getElementsByTagName('*').length, editors: document.querySelectorAll('.vditor-ir .vditor-reset').length, codeEditors: document.querySelectorAll('.monaco-editor').length, documentTabs: document.querySelectorAll('[data-document-tab]').length, hiddenTabs: document.querySelectorAll('[data-document-tab][aria-hidden="true"]').length, iframes: document.querySelectorAll('iframe').length, webviews: document.querySelectorAll('webview').length, longTasks, longestTaskMs }
+          lastSample = { snapshot: next, history: points, renderer: diagnostic }
+          setSnapshot(next); setError(''); setHistory(points); setRenderer(diagnostic)
         }
       } catch (reason) { if (!disposed) setError(reason instanceof Error ? reason.message : String(reason)) }
       finally { pending = false; if (!disposed && !document.hidden) timer = setTimeout(() => void poll(), 1000) }

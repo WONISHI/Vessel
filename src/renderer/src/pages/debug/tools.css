@@ -24,8 +24,7 @@
   margin-bottom: 3px;
   color: #57534e;
   transition:
-    background-color 0.15s ease,
-    color 0.15s ease;
+    background-color 240ms var(--motion-ease-out, cubic-bezier(0, 0, .2, 1)), color 240ms var(--motion-ease-out, cubic-bezier(0, 0, .2, 1));
 }
 .dev-tools .dev-nav-item svg {
   width: 16px;

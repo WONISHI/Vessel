@@ -52,6 +52,7 @@ export interface AppSettings {
   font: string
   fontSize: number
   accent: string
+  markdownBackground?: "default" | "dots"
   editorFont?: string
   editorFontSize?: number
   backup: {

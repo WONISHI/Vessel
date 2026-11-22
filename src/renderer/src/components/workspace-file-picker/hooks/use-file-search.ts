@@ -3,7 +3,7 @@ import { useEffect, useState, useMemo } from "react"
 import { isQuickOpenPath } from "../searchable-path"
 
 /** Searches filenames and literal document contents, discarding stale responses as the query changes. */
-export function useFileSearch(root: string, query: string) {
+export function useFileSearch(root: string, query: string, enabled = true) {
   const [files, setFiles] = useState<WorkspaceNode[]>([])
   const [contentFiles, setContentFiles] = useState<WorkspaceNode[]>([])
   const [busy, setBusy] = useState(false)
@@ -11,6 +11,7 @@ export function useFileSearch(root: string, query: string) {
   const [limited, setLimited] = useState(false)
   const [indexing, setIndexing] = useState(false)
   useEffect(() => {
+    if (!enabled) return
     setFiles([])
     if (!root) { setIndexing(false); return }
     setIndexing(true)
@@ -52,8 +53,9 @@ export function useFileSearch(root: string, query: string) {
     return () => {
       cancelled = true
     }
-  }, [root])
+  }, [root, enabled])
   useEffect(() => {
+    if (!enabled) return
     setContentFiles([])
     setError("")
     setLimited(false)
@@ -82,7 +84,7 @@ export function useFileSearch(root: string, query: string) {
       cancelled = true
       clearTimeout(timer)
     }
-  }, [root, query])
+  }, [root, query, enabled])
   const keyword = query.trim().toLocaleLowerCase()
   const matches = useMemo(() => [...new Map([...files.filter((file) => file.path.toLocaleLowerCase().includes(keyword)), ...contentFiles].map((file) => [file.path, file])).values()], [files, contentFiles, keyword])
   return { files: matches, busy: busy || indexing, error, limited }

@@ -92,7 +92,7 @@
   border-radius: 10px;
   outline: none !important;
   box-shadow: none;
-  transition: border-color 150ms ease, box-shadow 150ms ease;
+  transition: border-color 240ms var(--motion-ease-out, cubic-bezier(0, 0, .2, 1)), box-shadow 240ms var(--motion-ease-out, cubic-bezier(0, 0, .2, 1));
 }
 .vessel-settings button[role="combobox"]:not(:disabled) {
   background: hsl(var(--background)) !important;

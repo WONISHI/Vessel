@@ -153,6 +153,7 @@ export function TerminalSession({
 
     /** Resizes terminal viewport and notifies main process pty only when grid dimensions change. */
     const resize = () => {
+      if (hostElement.closest('[data-console-motion="exit"]')) return
       if (!hostElement.isConnected || hostElement.clientWidth === 0 || hostElement.clientHeight === 0) return
       activeEntry.fit.fit()
       activeEntry.terminal.refresh(0, Math.max(0, activeEntry.terminal.rows - 1))

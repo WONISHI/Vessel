@@ -101,3 +101,11 @@ it("queues the opposite theme until the current reveal has finished", async () =
     Object.defineProperty(document, "startViewTransition", { configurable: true, value: undefined })
   }
 })
+
+
+it("applies the Markdown background preference and restores the legacy default", () => {
+  applyAppearance({ ...defaultSettings, theme: "light", markdownBackground: "dots" })
+  expect(document.documentElement.dataset.markdownBackground).toBe("dots")
+  applyAppearance({ ...defaultSettings, theme: "light", markdownBackground: undefined })
+  expect(document.documentElement.dataset.markdownBackground).toBe("default")
+})

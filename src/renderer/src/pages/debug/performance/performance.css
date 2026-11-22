@@ -14,7 +14,7 @@ html.dark .performance-status[data-live="true"] { background: #173b2b; color: #4
 .performance-value { font-size: 30px; font-weight: 700; line-height: 1.4; margin: 4px 0 8px; font-variant-numeric: tabular-nums; }
 .performance-value span { font-size: 14px; font-weight: 400; color: var(--perf-muted); }
 .performance-track { height: 6px; background: var(--perf-track); border-radius: 999px; overflow: hidden; }
-.performance-fill { height: 100%; border-radius: inherit; background: #16a34a; transition: width .3s; }
+.performance-fill { height: 100%; border-radius: inherit; background: #16a34a; transition: width 240ms var(--motion-ease-out, cubic-bezier(0, 0, .2, 1)); }
 .performance-fill.cyan { background: #0891b2; }
 .performance-processes { display: flex; flex-direction: column; min-height: 120px; max-height: 100%; border: 1px solid var(--perf-edge); border-radius: 12px; overflow: hidden; background: var(--perf-surface); }
 .performance-process-heading { display: flex; flex-shrink: 0; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid var(--perf-rule); background: var(--perf-bg); }

@@ -124,8 +124,21 @@ export function BrowserToolbar({ b, visible = true }: { b: BrowserPageModel; vis
                   aria-label={focused ? (decodedAddress === null ? "解码地址" : "恢复原编码地址") : bookmarks.some((item) => item.url === tab.url) ? "取消书签" : "添加书签"}
                   disabled={focused ? !fullAddress : !tab.url}
                   onMouseDown={(event) => { if (focused) event.preventDefault() }}
-                  onClick={() => {
-                    if (!focused) { bookmark(); return }
+                  onClick={(event) => {
+                    if (!focused) {
+                      const star = event.currentTarget.querySelector("i")
+                      if (!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
+                        star?.getAnimations?.().forEach((animation) => animation.cancel())
+                        star?.animate?.([
+                          { transform: "scale(1)", offset: 0 },
+                          { transform: "scale(1.25)", offset: .44 },
+                          { transform: "scale(.94)", offset: .74 },
+                          { transform: "scale(1)", offset: 1 }
+                        ], { duration: 380, easing: "ease-out" })
+                      }
+                      bookmark()
+                      return
+                    }
                     if (decodedAddress !== null) { setDecodedAddress(null); return }
                     try { setDecodedAddress(decodeURIComponent(fullAddress)) }
                     catch { setDecodedAddress(fullAddress.replace(/(?:%[0-9a-f]{2})+/gi, (value) => { try { return decodeURIComponent(value) } catch { return value } })) }

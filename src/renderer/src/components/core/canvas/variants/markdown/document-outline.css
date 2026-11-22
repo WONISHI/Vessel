@@ -18,7 +18,7 @@ html.dark .document-outline-panel .text-stone-700 { color: #e6e8eb !important; }
 
 html.dark .document-outline-panel .text-stone-400 { color: #9aa5b1 !important; }
 
-html.dark .document-outline-panel .document-outline-heading { color: #b6c0cc !important; transition: background-color 150ms ease, color 150ms ease; }
+html.dark .document-outline-panel .document-outline-heading { color: #b6c0cc !important; transition: background-color 240ms var(--motion-ease-out, cubic-bezier(0, 0, .2, 1)), color 240ms var(--motion-ease-out, cubic-bezier(0, 0, .2, 1)); }
 
 html.dark .document-outline-panel .document-outline-heading[aria-current="location"] { background: #203b2e !important; color: #6ee7a0 !important; }
 

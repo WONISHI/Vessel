@@ -21,18 +21,22 @@ it("fills legacy/partial settings, bounds geometry, and keeps scope values indep
 it("loads old settings and persists both tree scopes through the real settings IPC", async () => {
   mock.directory = await mkdtemp(join(tmpdir(), "vessel-tree-settings-"))
   try {
-    const { directoryTree: _tree, ...legacy } = defaultSettings
+    const { directoryTree: _tree, markdownBackground: _background, ...legacy } = defaultSettings
     await writeFile(join(mock.directory, "settings.json"), JSON.stringify({ settings: legacy, profiles: {} }))
     const { registerSettings } = await import("@main/settings/settings")
     const handlers = new Map<string, (...args: any[]) => any>()
     registerSettings({ ipc: { handle: (name: string, handler: (...args: any[]) => any) => handlers.set(name, handler) }, once: vi.fn(), send: vi.fn() } as any)
     const current = handlers.get("settings:get")!()
+    expect(current.markdownBackground).toBe("default")
+    await expect(handlers.get("settings:save")!(null, { ...current, markdownBackground: "invalid" })).rejects.toThrow("Markdown 背景无效")
     expect(current.directoryTree).toEqual(defaultDirectoryTreeSettings)
     expect(current.resourceTreeStickyScroll).toBe(true)
     const directoryTree = normalizeDirectoryTreeSettings({ layoutWorkspace: false, guidesResources: false,
       workspace: { sidebarWidth: 300, rowHeight: 26, fontSize: 14, indent: 6, gap: 4 },
       resources: { sidebarWidth: 360, rowHeight: 24, fontSize: 12, indent: 10, gap: 8 } })
-    await handlers.get("settings:save")!(null, { ...current, directoryTree, resourceTreeStickyScroll: false })
+    await handlers.get("settings:save")!(null, { ...current, directoryTree, resourceTreeStickyScroll: false, markdownBackground: "dots" })
+    expect(handlers.get("settings:get")!().markdownBackground).toBe("dots")
+    expect(JSON.parse(await readFile(join(mock.directory, "settings.json"), "utf8")).settings.markdownBackground).toBe("dots")
     expect(handlers.get("settings:get")!().directoryTree).toEqual(directoryTree)
     expect(handlers.get("settings:get")!().resourceTreeStickyScroll).toBe(false)
     expect(JSON.parse(await readFile(join(mock.directory, "settings.json"), "utf8")).settings.directoryTree).toEqual(directoryTree)

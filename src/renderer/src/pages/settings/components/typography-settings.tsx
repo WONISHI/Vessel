@@ -7,7 +7,7 @@ import { fonts } from "./index-shared"
 import { Row } from "./row"
 
 const editorFonts = ["Menlo", "Monaco", "Consolas", "SF Mono", "JetBrains Mono", "Fira Code", "Cascadia Code", "monospace"]
-type Typography = Pick<AppSettings, "font" | "fontSize" | "editorFont" | "editorFontSize">
+type Typography = Pick<AppSettings, "font" | "fontSize" | "editorFont" | "editorFontSize" | "markdownBackground">
 export function TypographySettings({ value, onChange }: { value: Typography; onChange: (patch: Partial<Typography>) => void }) {
   const fontRows = [
     { key: "font" as const, title: "界面字体", description: "用于界面和 Markdown 正文，缺失时使用系统字体", fonts, selected: value.font },
@@ -30,6 +30,17 @@ export function TypographySettings({ value, onChange }: { value: Typography; onC
         </Select>
       </Row>)}</CollapsibleContent>
     </Collapsible>
+    <div className="settings-card">
+      <Row title="Markdown 背景" description="默认保留当前背景；淡点阵从左上向右下渐隐，不影响正文阅读">
+        <Select value={value.markdownBackground ?? "default"} onValueChange={next => { if (next === "default" || next === "dots") onChange({ markdownBackground: next }) }}>
+          <SelectTrigger aria-label="Markdown 背景" className="w-[200px]"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="default">默认背景</SelectItem>
+            <SelectItem value="dots">淡点阵</SelectItem>
+          </SelectContent>
+        </Select>
+      </Row>
+    </div>
     <Collapsible defaultOpen className="settings-card">
       <CollapsibleTrigger className="settings-section-trigger group flex w-full items-center gap-3 p-5 text-left hover:bg-muted/40">
         <div className="flex-1"><h3>字体大小</h3><p className="mt-1 text-xs text-muted-foreground">分别调整界面大小与代码编辑器字号</p></div>

@@ -59,6 +59,7 @@ export function TopSearch() {
   const PageIcon = page.icon
   const tabs = useBrowserTabs()
   const [open, setOpen] = useState(false)
+  const [pickerSession, setPickerSession] = useState(0)
   const [workspace, setWorkspace] = useState<FilePickerWorkspace | null>(null)
   const [query, setQuery] = useState("")
   const anchor = useRef<HTMLButtonElement>(null)
@@ -116,6 +117,7 @@ export function TopSearch() {
     }
     const bounds = anchor.current?.getBoundingClientRect()
     if (bounds) setPopupStyle({ left: bounds.left, top: bounds.top, width: bounds.width, maxWidth: "calc(100vw - 16px)", transform: "none" })
+    setPickerSession(value => value + 1)
     setSelected(0)
     setQuery("")
     setWorkspace(null)
@@ -167,7 +169,7 @@ export function TopSearch() {
       </div>
     </header>
     <FeaturePageOverlay feature={overlayKind} tool={overlayTool} onToolChange={setOverlayTool} onClose={closeOverlay} />
-    {open && !browser && <WorkspaceFilePicker workspace={workspace} popupStyle={popupStyle} onClose={() => setOpen(false)} />}
+    {!browser && <WorkspaceFilePicker key={pickerSession} open={open} workspace={workspace} popupStyle={popupStyle} onClose={() => setOpen(false)} />}
     <Dialog modal={false} open={open && browser} onOpenChange={setOpen}>
       <DialogContent style={popupStyle} className="vessel-quick-picker z-[282] translate-y-0" showCloseButton={false}>
         <DialogTitle className="sr-only">搜索浏览器标签</DialogTitle><DialogDescription className="sr-only">按标题或网址查找已打开的标签页</DialogDescription>

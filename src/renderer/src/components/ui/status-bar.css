@@ -34,7 +34,7 @@
   color: inherit;
   font-size: 12px;
   font-weight: 500;
-  transition: background .12s;
+  transition: background 240ms var(--motion-ease-out, cubic-bezier(0, 0, .2, 1));
 }
 .vessel-status-bar svg { width: 14px; height: 14px; }
 .vessel-status-bar .vessel-status-left > button:hover,

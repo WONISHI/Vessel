@@ -30,7 +30,7 @@ export function AttachmentLibrarySettings({ enabled, folders, onEnabledChange, o
       if (!offset) return
       row.animate(
         [{ transform: `translateY(${offset}px)` }, { transform: "translateY(0)" }],
-        { duration: 180, easing: "ease-out" }
+        { duration: 240, easing: "cubic-bezier(0, 0, .2, 1)" }
       )
     })
   }, [folders])

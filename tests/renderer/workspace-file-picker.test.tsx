@@ -77,7 +77,7 @@ it("searches folders and reveals the selected folder without opening it as a fil
     )
     fireEvent.change(screen.getByRole("textbox", { name: "搜索工作区文件" }), { target: { value: "项目资料" } })
     fireEvent.click(await screen.findByRole("button", { name: /项目资料/ }))
-    expect(reveal.mock.calls[0][0].detail).toBe("/vault/项目资料")
+    expect(reveal.mock.calls[0][0].detail).toEqual({ path: "/vault/项目资料", centered: true })
     expect(openFile).not.toHaveBeenCalled()
   } finally {
     window.removeEventListener("vessel:reveal-file", reveal)
@@ -211,4 +211,20 @@ it.each(['workspace', 'resources'] as const)('creates a custom file beside the a
  expect(close).toHaveBeenCalledOnce()
  expect(createWorkspaceEntry).toHaveBeenCalledWith('/vault', '/vault/sub', 'notes.txt', 'file')
  await waitFor(() => expect(openFile).toHaveBeenCalledWith({ name: 'notes.txt', path: '/vault/sub/notes.txt', type: 'file' }))
+})
+
+
+it("centers an already opened file in the directory even when the active file does not change", async () => {
+  Object.defineProperty(window, "electronAPI", { configurable: true, value: {
+    readWorkspaceDirectory: vi.fn(async () => []), searchContent: vi.fn(async () => ({ matches: [], truncated: false }))
+  } })
+  const openFile = vi.fn()
+  const reveal = vi.fn()
+  window.addEventListener("vessel:reveal-file", reveal)
+  try {
+    render(<WorkspaceFilePicker workspace={{ root: "/vault", activePath: "/vault/open.md", files: [{ name: "open.md", path: "/vault/open.md", type: "file" }], openFile }} onClose={vi.fn()} />)
+    fireEvent.click(screen.getByRole("button", { name: /open.md/ }))
+    expect(openFile).toHaveBeenCalledOnce()
+    expect(reveal.mock.calls[0][0].detail).toEqual({ path: "/vault/open.md", centered: true })
+  } finally { window.removeEventListener("vessel:reveal-file", reveal) }
 })

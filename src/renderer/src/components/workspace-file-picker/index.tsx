@@ -15,7 +15,7 @@ import { File, Folder, Plus } from "lucide-react"
 import { useRef, useState, useMemo, useCallback, useId, type CSSProperties } from "react"
 
 /** Opens current tabs or workspace files matched by name, path, content or a contained link. */
-export function WorkspaceFilePicker({ workspace, onClose, popupStyle }: { workspace: FilePickerWorkspace | null; onClose: () => void; popupStyle?: CSSProperties }) {
+export function WorkspaceFilePicker({ workspace, onClose, popupStyle, open = true }: { workspace: FilePickerWorkspace | null; onClose: () => void; popupStyle?: CSSProperties; open?: boolean }) {
   const listId = useId()
   const [selectedPath, setSelectedPath] = useState<string | null>(null)
   const viewportRef = useRef<HTMLDivElement>(null)
@@ -25,7 +25,7 @@ export function WorkspaceFilePicker({ workspace, onClose, popupStyle }: { worksp
     setViewport(node)
   }, [])
   const [query, setQuery] = useState("")
-  const result = useFileSearch(workspace?.root || "", query)
+  const result = useFileSearch(workspace?.root || "", query, open)
   const openedMarkdownPaths = useMemo(() => new Set((workspace?.files || []).filter((file) => file.type !== "directory" && /\.(md|markdown)$/i.test(file.path)).map((file) => file.path)), [workspace?.files])
   const files = useMemo(() => {
     const keyword = query.trim().toLocaleLowerCase()
@@ -33,8 +33,8 @@ export function WorkspaceFilePicker({ workspace, onClose, popupStyle }: { worksp
     return [...new Map([...opened, ...result.files].map((file) => [file.path, file])).values()]
   }, [workspace?.files, query, result.files])
   const openResult = (file: WorkspaceNode) => {
-    if (file.type === "directory") window.dispatchEvent(new CustomEvent("vessel:reveal-file", { detail: file.path }))
-    else workspace?.openFile(file)
+    if (file.type !== "directory") workspace?.openFile(file)
+    window.dispatchEvent(new CustomEvent("vessel:reveal-file", { detail: { path: file.path, centered: true } }))
     onClose()
   }
   const createFile = () => {
@@ -47,7 +47,7 @@ export function WorkspaceFilePicker({ workspace, onClose, popupStyle }: { worksp
   }
   return (
     <FileIconScope.Provider value={workspace?.scope ?? "workspace"}><Dialog
-      open
+      open={open}
       modal={!popupStyle}
       onOpenChange={(open) => {
         if (!open) onClose()

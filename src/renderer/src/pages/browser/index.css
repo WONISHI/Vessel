@@ -264,7 +264,7 @@
   border-radius: 10px;
   box-shadow: 0 6px 20px #0000001a;
   max-width: calc(100% - 28px);
-  animation: browser-find-in 0.15s ease;
+  animation: browser-find-in 240ms cubic-bezier(0, 0, .2, 1);
 }
 .browser-find input {
   width: 170px;
@@ -671,7 +671,7 @@ html.dark .vessel-browser-tabs-popup [data-dark-list-item]:not([data-active="tru
 .browser-frozen-site-copy { display: flex; min-width: 0; flex-direction: column; gap: 4px; }
 .browser-frozen-site-copy strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; font-weight: 600; }
 .browser-frozen-site-copy > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #a8a29e; font-size: 10px; }
-.browser-frozen-resume { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 38px; padding: 9px 16px; border: 1px solid #16a34a; border-radius: 10px; background: #16a34a; color: white; font-size: 12px; font-weight: 600; cursor: pointer; transition: background .15s; }
+.browser-frozen-resume { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 38px; padding: 9px 16px; border: 1px solid #16a34a; border-radius: 10px; background: #16a34a; color: white; font-size: 12px; font-weight: 600; cursor: pointer; transition: background 240ms var(--motion-ease-out, cubic-bezier(0, 0, .2, 1)); }
 .browser-frozen-resume:hover { background: #15803d; border-color: #15803d; }
 .browser-frozen-resume:focus-visible { outline: 2px solid #16a34a; outline-offset: 3px; }
 .browser-frozen-hint { margin: 12px 0 0; color: #a8a29e; font-size: 10px; }

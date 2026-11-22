@@ -2,6 +2,8 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { afterEach, beforeEach, expect, it, vi } from "vitest"
 import { TerminalPanel } from "@/components/workspace/components/layout-main/terminal-panel"
 
+const fitViewport = vi.hoisted(() => vi.fn())
+
 vi.mock("@xterm/xterm", () => ({
   Terminal: class {
     options = {}
@@ -16,7 +18,7 @@ vi.mock("@xterm/xterm", () => ({
     onData() { return { dispose: vi.fn() } }
   }
 }))
-vi.mock("@xterm/addon-fit", () => ({ FitAddon: class { fit = vi.fn() } }))
+vi.mock("@xterm/addon-fit", () => ({ FitAddon: class { fit = fitViewport } }))
 
 const terminalStart = vi.fn(async (_root: string, directory: string) => ({ id: directory, cwd: directory }))
 const terminalClose = vi.fn(async () => {})
@@ -102,4 +104,29 @@ it("starts each new terminal in the current file folder and shows the selected t
   expect(terminalStart).toHaveBeenLastCalledWith(root, root, 80, 24)
   expect(terminalClose).not.toHaveBeenCalled()
   reopened.unmount()
+})
+
+
+it("does not fit or repaint the terminal while its panel is closing", async () => {
+  let notifyResize: () => void = () => undefined
+  vi.stubGlobal("ResizeObserver", class {
+    constructor(callback: () => void) { notifyResize = callback }
+    observe = vi.fn()
+    disconnect = vi.fn()
+  })
+  vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => { callback(0); return 1 })
+  const width = vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockReturnValue(800)
+  const height = vi.spyOn(HTMLElement.prototype, "clientHeight", "get").mockReturnValue(200)
+  try {
+    const view = render(<div data-console-motion="idle"><TerminalPanel root="/terminal-closing" /></div>)
+    await waitFor(() => expect(screen.getByText("/terminal-closing")).toBeTruthy())
+    const baseline = fitViewport.mock.calls.length
+    view.container.firstElementChild!.setAttribute("data-console-motion", "exit")
+    notifyResize()
+    notifyResize()
+    expect(fitViewport).toHaveBeenCalledTimes(baseline)
+    view.container.firstElementChild!.setAttribute("data-console-motion", "idle")
+    notifyResize()
+    expect(fitViewport).toHaveBeenCalledTimes(baseline + 1)
+  } finally { width.mockRestore(); height.mockRestore() }
 })

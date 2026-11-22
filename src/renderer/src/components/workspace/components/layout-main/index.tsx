@@ -1,3 +1,5 @@
+import "./console-motion.css"
+import { useConsolePresence } from "./use-console-presence"
 import { WorkspaceVisible } from "./document-cache"
 import { canOpenInDefaultBrowser } from "../../../../../../shared/browser-preview"
 import { addTransitFile } from "@/components/transit/state"
@@ -108,7 +110,7 @@ export default function LayoutMain({ resources = false }: { resources?: boolean 
     void navigator.clipboard.writeText(value).catch((error) => toast.error(`复制失败：${String(error)}`))
   }
   const [statusTarget, setStatusTarget] = useState<HTMLDivElement | null>(null)
-  const [terminal, setTerminal] = useState(false)
+  const { open: terminal, mounted: terminalMounted, phase: consolePhase, setOpen: setTerminal, layoutRef: consoleLayoutRef, onTransitionEnd: onConsoleTransitionEnd } = useConsolePresence()
   const location = useLocation()
   const graphPage = !resources && location.pathname === "/editor/graph"
   const workspaceVisible = useContext(WorkspaceVisible)
@@ -498,7 +500,7 @@ export default function LayoutMain({ resources = false }: { resources?: boolean 
             </DropdownMenuContent>
           </DropdownMenu>
         </nav>}
-        <ResizablePanelGroup orientation="vertical">
+        <ResizablePanelGroup orientation="vertical" className="workspace-console-layout" data-console-motion={consolePhase} elementRef={consoleLayoutRef} onTransitionEnd={onConsoleTransitionEnd}>
           <ResizablePanel
             id="editor"
             defaultSize="70%"
@@ -536,7 +538,7 @@ export default function LayoutMain({ resources = false }: { resources?: boolean 
               />
             </StatusBar>
           </ResizablePanel>
-          {terminal && !graphPage && (
+          {terminalMounted && !graphPage && (
             <>
               <ResizableHandle aria-label="调整终端高度" />
               <ResizablePanel

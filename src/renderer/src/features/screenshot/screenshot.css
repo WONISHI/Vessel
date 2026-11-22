@@ -123,8 +123,7 @@ body {
   background-position: center !important;
   background-repeat: no-repeat !important;
   transition:
-    background-color 0.15s ease,
-    box-shadow 0.15s ease;
+    background-color 240ms var(--motion-ease-out, cubic-bezier(0, 0, .2, 1)), box-shadow 240ms var(--motion-ease-out, cubic-bezier(0, 0, .2, 1));
 }
 #toolPanel .item-panel:last-child {
   margin-right: 0 !important;
@@ -314,7 +313,7 @@ body,
 
 #toolPanel .shot-toolbar-heading { pointer-events: auto; }
 .shot-mode-trigger { display: flex; align-items: center; gap: 10px; height: 28px; padding: 0; border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; }
-.shot-mode-chevron { display: inline-flex; align-items: center; justify-content: center; width: 14px; height: 14px; color: #53615a; transition: transform .15s ease; }
+.shot-mode-chevron { display: inline-flex; align-items: center; justify-content: center; width: 14px; height: 14px; color: #53615a; transition: transform 240ms var(--motion-ease-out, cubic-bezier(0, 0, .2, 1)); }
 .shot-mode-trigger[aria-expanded="true"] .shot-mode-chevron { transform: rotate(180deg); }
 .shot-mode-menu {
   position: fixed;
@@ -479,7 +478,7 @@ body,
   border-radius: 5px;
   outline: none;
   box-shadow: inset 0 0 0 1px #00000026;
-  transition: transform .12s ease, box-shadow .12s ease;
+  transition: transform 240ms var(--motion-ease-out, cubic-bezier(0, 0, .2, 1)), box-shadow 240ms var(--motion-ease-out, cubic-bezier(0, 0, .2, 1));
 }
 .shot-shape-colors button:hover {
   transform: scale(1.08);
@@ -681,7 +680,7 @@ body[data-shot-shape="diamond"]:not([data-shot-secondary]) :is(#optionPanel, #op
   outline: none;
   box-shadow: inset 0 0 0 1px #00000026;
   cursor: pointer;
-  transition: transform .12s ease, box-shadow .12s ease;
+  transition: transform 240ms var(--motion-ease-out, cubic-bezier(0, 0, .2, 1)), box-shadow 240ms var(--motion-ease-out, cubic-bezier(0, 0, .2, 1));
 }
 #optionPanel .right-panel .color-panel .color-item:hover {
   transform: scale(1.08);
@@ -709,11 +708,11 @@ body[data-shot-shape="diamond"]:not([data-shot-secondary]) :is(#optionPanel, #op
 #optionPanel .text-size-panel::after {
   content: ""; width: 5px; height: 5px; border-right: 1.5px solid currentColor;
   border-bottom: 1.5px solid currentColor; transform: translateY(-2px) rotate(45deg); opacity: .7;
-  transition: transform .2s ease;
+  transition: transform 240ms var(--motion-ease-out, cubic-bezier(0, 0, .2, 1));
 }
 #optionPanel .text-size-panel[aria-expanded="true"]::after { transform: translateY(1px) rotate(225deg); }
 .shot-text-more { display: flex; align-items: center; justify-content: center; }
-.shot-text-more svg { transition: transform .2s ease; }
+.shot-text-more svg { transition: transform 240ms var(--motion-ease-out, cubic-bezier(0, 0, .2, 1)); }
 .shot-text-more[aria-expanded="true"] svg { transform: rotate(180deg); }
 #optionPanel .text-size-panel:hover { background: #ffffff30 !important; }
 #optionPanel .text-select-panel {
@@ -768,13 +767,13 @@ body[data-shot-shape="diamond"]:not([data-shot-secondary]) :is(#optionPanel, #op
 .shot-menu-chevron {
   display: block; width: 5px; height: 5px; border-right: 1.5px solid currentColor;
   border-bottom: 1.5px solid currentColor; transform: translateY(-2px) rotate(45deg);
-  transition: transform .18s ease;
+  transition: transform 240ms var(--motion-ease-out, cubic-bezier(0, 0, .2, 1));
 }
 .shot-text-format[open] .shot-menu-chevron { transform: translateY(1px) rotate(225deg); }
-.shot-text-format summary { transition: background-color .18s ease, box-shadow .18s ease; }
+.shot-text-format summary { transition: background-color 240ms var(--motion-ease-out, cubic-bezier(0, 0, .2, 1)), box-shadow 240ms var(--motion-ease-out, cubic-bezier(0, 0, .2, 1)); }
 .shot-text-format[open] > .shot-text-format-menu {
   transform-origin: top center;
-  animation: shot-text-menu-in .18s cubic-bezier(.2,.8,.2,1) both;
+  animation: shot-text-menu-in 240ms cubic-bezier(0, 0, .2, 1) both;
 }
 @keyframes shot-text-menu-in {
   from { opacity: 0; transform: translate(-50%, -6px) scale(.96); }
@@ -800,7 +799,7 @@ body[data-shot-shape="diamond"]:not([data-shot-secondary]) :is(#optionPanel, #op
   background-image: radial-gradient(circle at center, currentColor 0 var(--shot-width-dot), transparent calc(var(--shot-width-dot) + .5px)) !important;
   background-size: 100% 100% !important;
   background-color: transparent;
-  transition: background-color .15s ease, color .15s ease;
+  transition: background-color 240ms var(--motion-ease-out, cubic-bezier(0, 0, .2, 1)), color 240ms var(--motion-ease-out, cubic-bezier(0, 0, .2, 1));
 }
 #optionPanel .brush-select-panel .brush-medium { --shot-width-dot: 5px; }
 #optionPanel .brush-select-panel .brush-big { --shot-width-dot: 9px; }
@@ -915,7 +914,7 @@ body[data-shot-shape="diamond"]:not([data-shot-secondary]) :is(#optionPanel, #op
   color: #737373;
   font: 600 11px/18px system-ui;
 }
-.shot-toolbar-tooltip:not([hidden]) { animation: shot-tooltip-in .15s ease-out; }
+.shot-toolbar-tooltip:not([hidden]) { animation: shot-tooltip-in 240ms cubic-bezier(0, 0, .2, 1); }
 @keyframes shot-tooltip-in {
   from { opacity: 0; transform: translateY(3px); }
   to { opacity: 1; transform: translateY(0); }

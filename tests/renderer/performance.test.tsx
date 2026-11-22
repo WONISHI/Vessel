@@ -44,3 +44,23 @@ it("does not sample a hidden page and resumes when visible", async () => {
   expect(getPerformanceSnapshot).toHaveBeenCalledTimes(1)
   unmount()
 })
+
+it("retains sampled content and history when revisiting while the next sample is pending", async () => {
+  const snapshot = { sampledAt: 2000, cpuPercent: 12, memoryBytes: 2048, systemMemoryBytes: 8192, processes: [] }
+  const getPerformanceSnapshot = vi.fn().mockResolvedValueOnce(snapshot)
+  vi.stubGlobal("electronAPI", { getPerformanceSnapshot })
+  vi.spyOn(document, "hidden", "get").mockReturnValue(false)
+  const first = renderHook(() => usePerformance())
+  await waitFor(() => expect(first.result.current.snapshot).toEqual(snapshot))
+  const previousHistory = first.result.current.history
+  first.unmount()
+  let resolve!: (value: typeof snapshot) => void
+  getPerformanceSnapshot.mockImplementationOnce(() => new Promise(done => { resolve = done }))
+  const second = renderHook(() => usePerformance())
+  expect(second.result.current.snapshot).toEqual(snapshot)
+  expect(second.result.current.history).toEqual(previousHistory)
+  await act(async () => { resolve({ ...snapshot, sampledAt: 3000, memoryBytes: 4096 }) })
+  expect(second.result.current.snapshot?.memoryBytes).toBe(4096)
+  expect(second.result.current.history).toHaveLength(previousHistory.length + 1)
+  second.unmount()
+})

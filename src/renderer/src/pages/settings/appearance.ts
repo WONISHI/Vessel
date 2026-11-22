@@ -10,6 +10,7 @@ let latestAppearance: AppSettings | undefined
 function commitAppearance(settings: AppSettings, dark: boolean) {
   const root = document.documentElement
   root.dataset.vesselAppearance = "true"
+  root.dataset.markdownBackground = settings.markdownBackground === "dots" ? "dots" : "default"
   root.classList.toggle("dark", dark)
   void window.electronAPI?.setWindowAppearance?.(dark)?.catch(() => {})
   root.style.fontSize = `${(16 * settings.fontSize) / 14}px`

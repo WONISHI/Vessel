@@ -10,7 +10,8 @@ import WorkspaceTree from "@/components/workspace/components/layout-aside/layout
 import { useWorkspace } from "@/components/workspace/hooks/useWorkspace"
 import type { WorkspaceNode } from "@/components/workspace/types/workspace"
 import { cn } from "@/lib/utils"
-import { SearchPanel } from "@/pages/search/index"
+import { AnimatedSearchSheet } from "@/pages/search/components/animated-search-sheet"
+import "@/pages/search/search.css"
 import { revealSearchHit, type ContentMatch } from "@/pages/search/reveal-hit"
 import { countFileNodes } from "@vessel/utils"
 import { ArrowDown, ArrowDownAZ, ArrowUp, ArrowUpDown, Calendar, Check, Clock, LocateFixed, Search, Sparkles, Wrench } from "lucide-react"
@@ -93,8 +94,9 @@ export default function LayoutWorkspaceSidebar({ activity }: LayoutWorkspaceSide
   useEffect(() => {
     /** Handles reveal events. */
     const handleReveal = (event: Event) => {
-      const customEvent = event as CustomEvent<string>
-      revealCurrentFile(customEvent.detail)
+      const { detail } = event as CustomEvent<string | { path: string; centered?: boolean }>
+      if (typeof detail === "string") revealCurrentFile(detail)
+      else if (detail?.path) revealCurrentFile(detail.path, detail.centered === true)
     }
     window.addEventListener("vessel:reveal-file", handleReveal)
     return () => window.removeEventListener("vessel:reveal-file", handleReveal)
@@ -143,18 +145,14 @@ export default function LayoutWorkspaceSidebar({ activity }: LayoutWorkspaceSide
   const navigate = useNavigate()
   const workspaceName = workspace.path.split(/[\\/]/).filter(Boolean).pop() || workspace.name
 
-  if (activity === "files" && searchOpen) {
-    return (
-      <section
-        aria-label="工作区全文搜索"
-        className="vessel-search-sheet flex h-full w-full min-h-0 flex-col bg-white"
-      >
-        <SearchPanel
+  const showSearch = activity === "files" && searchOpen
+  const searchSheet = showSearch ? (
+    <div className="absolute inset-0 z-10">
+      <AnimatedSearchSheet onClose={() => setSearchOpen(false)}
           title="全文搜索"
           root={searchTarget || workspace.path}
           allowChangeFolder={false}
           selected={searchHit}
-          onClose={() => setSearchOpen(false)}
           onSelect={(match) => {
             setSearchHit(match)
             openWorkspaceFile({
@@ -164,14 +162,16 @@ export default function LayoutWorkspaceSidebar({ activity }: LayoutWorkspaceSide
             } as WorkspaceNode)
             revealSearchHit(match)
           }}
-        />
-      </section>
-    )
-  }
+      />
+    </div>
+  ) : null
 
   return (
+    <div className="relative flex h-full w-full min-h-0 flex-col overflow-hidden">
     <section
       aria-label="工作区侧边栏"
+      aria-hidden={showSearch || undefined}
+      inert={showSearch}
       className="flex h-full w-full min-h-0 flex-col"
     >
       <header className="flex h-9 shrink-0 items-center justify-between gap-2 px-3 text-xs font-semibold text-stone-500">
@@ -373,5 +373,7 @@ export default function LayoutWorkspaceSidebar({ activity }: LayoutWorkspaceSide
         )}
       </ScrollArea>
     </section>
+    {searchSheet}
+    </div>
   )
 }

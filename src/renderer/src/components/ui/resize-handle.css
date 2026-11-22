@@ -10,9 +10,7 @@
   pointer-events: none;
   background: #e7e5e4;
   transition:
-    background 0.15s,
-    width 0.15s,
-    height 0.15s;
+    background 240ms var(--motion-ease-out, cubic-bezier(0, 0, .2, 1)), width 240ms var(--motion-ease-out, cubic-bezier(0, 0, .2, 1)), height 240ms var(--motion-ease-out, cubic-bezier(0, 0, .2, 1));
 }
 .vessel-resize-handle[aria-orientation="vertical"]::before {
   inset: 0 auto 0 50%;

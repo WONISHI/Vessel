@@ -1,3 +1,4 @@
+import { clearCodeCopyFeedback, showCodeCopyFeedback } from "./code-copy-feedback"
 import { toast } from "sonner"
 
 const darkPalette: Record<string, string> = { keyword: "#f47067", string: "#96d0ff", number: "#6cb6ff", title: "#dcbdfb", comment: "#768390", variable: "#6cb6ff", built_in: "#6cb6ff" }
@@ -7,6 +8,7 @@ const palette: Record<string, string> = { keyword: "#a626a4", string: "#50a14f",
 
 /** Clears code highlights. */
 export function clearCodeHighlights(root: HTMLElement) {
+  clearCodeCopyFeedback(root)
   const layer = layers.get(root)
   if (!layer) return
   for (const kind of Object.keys(palette)) CSS.highlights?.delete(`${layer.prefix}-${kind}`)
@@ -105,14 +107,14 @@ export function decorateCodeBlocks(root: HTMLElement, readOnly = false) {
       copy.setAttribute("aria-label", "复制代码")
       copy.dataset.title = "复制代码"
       // The decoration has no text nodes, keeping it out of Markdown serialization.
-      copy.innerHTML = '<svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>'
+      copy.innerHTML = '<svg class="vessel-code-copy-icon" aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><svg class="vessel-code-copy-check" aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 4 4L19 6"/></svg>'
       pre.append(copy)
     }
     copy.onmousedown = (event) => { event.preventDefault(); event.stopPropagation() }
     copy.onmouseup = (event) => event.stopPropagation()
     copy.onclick = async (event) => {
       event.preventDefault(); event.stopPropagation()
-      try { await navigator.clipboard.writeText(code.textContent || ""); toast.success("已复制代码内容") }
+      try { await navigator.clipboard.writeText(code.textContent || ""); showCodeCopyFeedback(copy) }
       catch { toast.error("复制代码失败") }
     }
     if (pre.dataset.language !== language) pre.dataset.language = language

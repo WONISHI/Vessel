@@ -195,12 +195,16 @@ html .git-dialog button[role="combobox"]:is(:hover, :active, :focus-visible, [da
 }
 
 .git-toolbar-tools {
-  transition: width 280ms cubic-bezier(.22, 1, .36, 1);
+  transition: width 240ms var(--motion-ease-out, cubic-bezier(0, 0, .2, 1));
 }
 .git-toolbar-tools-content {
   opacity: 1;
   transform: translateX(0);
-  transition: opacity 200ms ease, transform 280ms cubic-bezier(.22, 1, .36, 1);
+  transition: opacity 240ms var(--motion-ease-out, cubic-bezier(0, 0, .2, 1)), transform 240ms var(--motion-ease-out, cubic-bezier(0, 0, .2, 1));
+}
+.git-toolbar-tools[data-open="false"],
+.git-toolbar-tools[data-open="false"] .git-toolbar-tools-content {
+  transition-timing-function: var(--motion-ease-in, cubic-bezier(.4, 0, 1, 1));
 }
 .git-toolbar-tools[data-open="false"] .git-toolbar-tools-content {
   opacity: 0;
@@ -381,7 +385,7 @@ html.dark .vessel-git-page .git-navigation [data-git-branch-row="leaf"][data-git
 }
 
 .vessel-git-page .git-commit-file-row {
-  transition: background-color 120ms ease;
+  transition: background-color 240ms var(--motion-ease-out, cubic-bezier(0, 0, .2, 1));
 }
 .vessel-git-page .git-commit-file-row:is(:hover, :focus-visible) {
   background: #f5f5f4;

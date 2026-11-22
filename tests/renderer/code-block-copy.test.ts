@@ -1,10 +1,11 @@
+import { act } from '@testing-library/react'
 import { createRequire } from 'node:module'
 import { afterEach, expect, it, vi } from 'vitest'
-import { decorateCodeBlocks } from '@/components/core/canvas/variants/markdown/code-blocks'
+import { clearCodeHighlights, decorateCodeBlocks } from '@/components/core/canvas/variants/markdown/code-blocks'
 createRequire(import.meta.url)('vditor/dist/js/lute/lute.min.js')
 const lute = (globalThis as any).Lute.New()
 vi.mock('sonner',()=>({toast:{success:vi.fn(),error:vi.fn()}}))
-afterEach(()=>{document.body.innerHTML='';vi.restoreAllMocks()})
+afterEach(async()=>{await act(async()=>clearCodeHighlights(document.body));document.body.innerHTML='';vi.restoreAllMocks()})
 it.each([false,true])('copies the entire code without changing Markdown or opening the language picker (readOnly=%s)', async (readOnly)=>{
  const source='```json\n[\n  {"entered": true}\n]\n```\n'
  const root=document.createElement('div')

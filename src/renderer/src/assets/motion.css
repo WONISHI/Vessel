@@ -1,0 +1,27 @@
+:root {
+  --motion-ease-out: cubic-bezier(0, 0, .2, 1);
+  --motion-ease-in: cubic-bezier(.4, 0, 1, 1);
+}
+/* Only existing transition utilities receive a duration; do not animate static layout. */
+[class*="transition"] {
+  transition-duration: 240ms !important;
+  transition-timing-function: var(--motion-ease-in) !important;
+}
+[class*="transition"]:is(:hover, :focus-visible, [data-state="open"], [data-state="expanded"]) {
+  transition-timing-function: var(--motion-ease-out) !important;
+}
+.animate-in, [data-state="open"][class*="animate-in"] {
+  animation-duration: 300ms !important;
+  animation-timing-function: var(--motion-ease-out) !important;
+}
+.animate-out, [data-state="closed"][class*="animate-out"] {
+  animation-duration: 240ms !important;
+  animation-timing-function: var(--motion-ease-in) !important;
+}
+[data-state="closed"][class*="transition"], [data-state="collapsed"][class*="transition"] {
+  transition-timing-function: var(--motion-ease-in) !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  [class*="transition"] { transition-duration: 0s !important; }
+  .animate-in, .animate-out, [data-state][class*="animate-"] { animation-duration: 0s !important; }
+}

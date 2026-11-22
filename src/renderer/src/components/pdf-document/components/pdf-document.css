@@ -31,7 +31,7 @@ html.dark .pdf-annotation-popover {
   background: transparent;
   color: var(--pdf-muted);
   font-size: 13px;
-  transition: background-color .12s, color .12s;
+  transition: background-color 240ms var(--motion-ease-out, cubic-bezier(0, 0, .2, 1)), color 240ms var(--motion-ease-out, cubic-bezier(0, 0, .2, 1));
 }
 .pdf-tool { gap: 5px; padding: 0 9px; font-weight: 500; }
 .pdf-tool svg { width: 15px; height: 15px; }

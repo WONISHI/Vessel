@@ -36,7 +36,7 @@ html.dark .todo-status-badge[data-todo-status="doing"] {
 }
 html.dark .todo-status-badge[data-todo-status="doing"] > span { background: #60a5fa !important; }
 
-.todo-calendar-day, .todo-calendar-nav { transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease; }
+.todo-calendar-day, .todo-calendar-nav { transition: background-color 240ms var(--motion-ease-out, cubic-bezier(0, 0, .2, 1)), border-color 240ms var(--motion-ease-out, cubic-bezier(0, 0, .2, 1)), color 240ms var(--motion-ease-out, cubic-bezier(0, 0, .2, 1)); }
 html.dark .todo-calendar-day:not([aria-pressed="true"]):hover {
   background: #303942 !important;
   border-color: #46535e !important;

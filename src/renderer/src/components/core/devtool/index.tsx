@@ -269,7 +269,8 @@ export default function DevTool() {
    *
    */
   const navigateDebug = useCallback(() => {
-    navigate("/debug")
+    setMenuOpen(false)
+    navigate("/debug/performance")
   }, [navigate])
 
   /**

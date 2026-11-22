@@ -24,12 +24,12 @@ html[data-page-transition="active"]::view-transition-new(root) {
 html[data-page-transition="active"]::view-transition-old(root) {
   /* Keep the outgoing page above the arrival so its fade remains visible. */
   z-index: 2;
-  animation: vessel-page-out 160ms ease-out both;
+  animation: vessel-page-out 240ms cubic-bezier(.4, 0, 1, 1) both;
   mix-blend-mode: normal;
 }
 html[data-page-transition="active"]::view-transition-new(root) {
   z-index: 1;
-  animation: vessel-page-in 360ms cubic-bezier(.25,.1,.25,1) 40ms both;
+  animation: vessel-page-in 360ms cubic-bezier(0, 0, .2, 1) 40ms both;
   mix-blend-mode: normal;
 }
 html[data-page-transition="active"]::view-transition-group(vessel-titlebar) { animation: none; }
@@ -48,4 +48,10 @@ html[data-page-transition="active"]::view-transition-new(vessel-titlebar) { anim
   html[data-page-transition="active"]::view-transition-group(*),
   html[data-page-transition="active"]::view-transition-old(*),
   html[data-page-transition="active"]::view-transition-new(*) { animation: none !important; }
+}
+
+/* Navigation menus must not appear in either page snapshot while they close. */
+html[data-page-transition="active"] :is(.vessel-activity-tools-popup, .dev-actions-menu) {
+  visibility: hidden !important;
+  animation: none !important;
 }

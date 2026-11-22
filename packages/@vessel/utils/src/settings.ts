@@ -30,6 +30,7 @@ export const defaultSettings: AppSettings = {
   theme: "light",
   font: "Plus Jakarta Sans",
   fontSize: 14,
+  markdownBackground: "default",
   editorFont: "Menlo",
   editorFontSize: 14,
   accent: "#16a34a",

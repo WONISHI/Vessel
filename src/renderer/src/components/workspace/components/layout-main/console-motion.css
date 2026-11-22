@@ -1,0 +1,32 @@
+.workspace-console-layout[data-console-motion="enter"] > [data-panel] {
+  transition: flex-grow 300ms cubic-bezier(0, 0, .2, 1);
+  flex-basis: 0 !important;
+}
+.workspace-console-layout[data-console-motion="exit"] > [data-panel] {
+  transition: flex-grow 240ms cubic-bezier(.4, 0, 1, 1);
+  flex-basis: 0 !important;
+}
+.workspace-console-layout[data-console-motion="enter"] > #terminal { overflow: hidden !important; }
+.workspace-console-layout[data-console-motion="exit"] > #terminal {
+  flex-grow: 0 !important;
+  overflow: hidden !important;
+  pointer-events: none;
+}
+/* Clip the existing terminal surface instead of fitting/repainting xterm at every frame. */
+.workspace-console-layout[data-console-motion="exit"] > #terminal > div {
+  height: var(--console-content-height);
+  min-height: var(--console-content-height);
+  max-height: none !important;
+  overflow: hidden !important;
+}
+.workspace-console-layout[data-console-motion="exit"] > #editor { flex-grow: 100 !important; }
+.workspace-console-layout[data-console-motion="exit"] > [data-separator] { visibility: hidden; }
+@starting-style {
+  .workspace-console-layout[data-console-motion="enter"] > #terminal { flex-grow: 0 !important; }
+  .workspace-console-layout[data-console-motion="enter"] > #editor { flex-grow: 100 !important; }
+}
+/* Resizing must follow the pointer immediately, including during an opening animation. */
+.workspace-console-layout:has(> [data-separator="active"]) > [data-panel] { transition: none !important; }
+@media (prefers-reduced-motion: reduce) {
+  .workspace-console-layout > [data-panel] { transition: none !important; }
+}

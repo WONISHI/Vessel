@@ -30,7 +30,7 @@ html.dark .workspace-graph-heading { color:#e5e7eb; }
 .workspace-graph-settings-content { padding:16px; }
 .workspace-graph-section { border-top:1px solid #eef0f3; }
 .workspace-graph-section-trigger { display:flex; align-items:center; gap:6px; width:100%; padding:12px 0; font-size:11px; font-weight:600; text-align:left; }
-.workspace-graph-section-trigger svg { transition:transform 150ms ease; }
+.workspace-graph-section-trigger svg { transition:transform 240ms var(--motion-ease-out, cubic-bezier(0, 0, .2, 1)); }
 .workspace-graph-section-trigger[data-state=open] svg { transform:rotate(90deg); }
 .workspace-graph-section-trigger:hover { color:#10b981; }
 .workspace-graph-section-trigger:focus-visible { outline:2px solid #10b981; outline-offset:-2px; border-radius:4px; }

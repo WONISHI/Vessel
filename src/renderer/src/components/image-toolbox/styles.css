@@ -16,8 +16,7 @@
 .image-toolbox button {
   cursor: pointer;
   transition:
-    background 0.12s,
-    color 0.12s;
+    background 240ms var(--motion-ease-out, cubic-bezier(0, 0, .2, 1)), color 240ms var(--motion-ease-out, cubic-bezier(0, 0, .2, 1));
 }
 .image-toolbox button:disabled {
   opacity: 0.45;

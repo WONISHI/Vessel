@@ -24,6 +24,14 @@ import { ArrowLeft, ChevronDown, CheckCircle2, Clock, Cloud, Download, RotateCcw
 import { version as reactVersion, useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 
+type SettingsPageSnapshot = {
+  settings: AppSettings
+  info: Awaited<ReturnType<Window["electronAPI"]["getSettingsInfo"]>>
+  status: BackupStatus
+}
+// Cache committed data only; unsaved edits and secrets never survive a visit.
+let settingsPageSnapshot: SettingsPageSnapshot | undefined
+
 const configFormat = "vessel-settings"
 const configVersion = 1
 
@@ -75,21 +83,28 @@ export function SettingsPage() {
   const router = useRouter()
   const configInput = useRef<HTMLInputElement>(null)
   const [section, setSection] = useState<(typeof sections)[number]["id"]>("about")
-  const [draft, setDraft] = useState<AppSettings>(structuredClone(defaultSettings))
-  const [saved, setSaved] = useState<AppSettings>()
+  const [draft, setDraft] = useState<AppSettings>(() => structuredClone(settingsPageSnapshot?.settings ?? defaultSettings))
+  const [saved, setSaved] = useState<AppSettings | undefined>(() => settingsPageSnapshot?.settings)
   const [secret, setSecret] = useState<string | undefined>()
   const [confirmExport, setConfirmExport] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState("")
-  const [status, setStatus] = useState<BackupStatus>({ running: false })
+  const [status, setStatus] = useState<BackupStatus>(() => settingsPageSnapshot?.status ?? { running: false })
   const [preview, setPreview] = useState<BackupStatus>()
   const [previewLimit, setPreviewLimit] = useState(100)
-  const [info, setInfo] = useState({ version: "…", electron: "…", node: "…", deviceName: "正在读取设备信息…" })
+  const [info, setInfo] = useState(() => settingsPageSnapshot?.info ?? { version: "…", electron: "…", node: "…", deviceName: "正在读取设备信息…" })
   useEffect(() => {
+    if (saved) settingsPageSnapshot = { settings: saved, info, status }
+  }, [saved, info, status])
+  useEffect(() => {
+    let alive = true
+    let revision = 0
     /** Refreshes refresh. */
     const refresh = () => {
+      const request = ++revision
       void Promise.all([window.electronAPI.getSettings(), window.electronAPI.getSettingsInfo(), window.electronAPI.getBackupStatus()])
         .then(([value, version, backup]) => {
+          if (!alive || request !== revision) return
           const normalized: AppSettings = isLegacyDefaultIgnoredFiles(value.ignoredFiles)
             ? { ...value, ignoredFiles: defaultSettings.ignoredFiles }
             : value
@@ -99,11 +114,11 @@ export function SettingsPage() {
           setInfo({ ...version, deviceName: version.deviceName || "设备信息暂不可用" })
           setStatus(backup)
         })
-        .catch((error) => setError(String(error)))
+        .catch((error) => { if (alive && request === revision) setError(String(error)) })
     }
     refresh()
     window.addEventListener("vessel:sync-context", refresh)
-    return () => window.removeEventListener("vessel:sync-context", refresh)
+    return () => { alive = false; window.removeEventListener("vessel:sync-context", refresh) }
   }, [])
   useEffect(() => {
     if (section !== "sync") return
@@ -193,7 +208,7 @@ export function SettingsPage() {
     void router.back()
   }
   return (
-    <div className="vessel-settings flex h-dvh w-full flex-col bg-background text-foreground">
+    <div data-page-transition-loading={!saved && !error ? "" : undefined} className="vessel-settings flex h-dvh w-full flex-col bg-background text-foreground">
       <ConfirmDialog
         open={confirmExport}
         onOpenChange={setConfirmExport}
@@ -213,6 +228,7 @@ export function SettingsPage() {
           className="hover:!bg-[#17A34A] hover:!text-white hover:[&_svg]:!text-white hover:[&_svg]:!stroke-white active:!bg-green-700 active:!text-white"
           aria-label="返回"
           data-title="返回"
+          data-title-side="bottom"
           onClick={back}
         >
           <ArrowLeft className="size-5" />

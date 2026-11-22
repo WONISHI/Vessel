@@ -76,16 +76,32 @@ export function transitionPage(change: () => unknown, destination: string): Prom
 }
 
 export const pageTransitionKey = (path: string) => path.split(/[?#]/, 1)[0].split("/")[1] || "welcome"
-const pages = new Set(["welcome", "editor", "browser", "resources", "office", "image", "attachments", "git", "api-client", "settings"])
+const pages = new Set(["welcome", "editor", "browser", "resources", "office", "image", "attachments", "git", "api-client", "settings", "debug"])
 
 /** Cover activity menus, rails, useNavigate and router.push with the same transition. */
 export function installPageTransitions(router: RouterController) {
   const native = router.nativeRouter
   const original = native.navigate
+  const originalSubscribe = native.subscribe
+  const history = [native.state.location]
+  let cursor = 0
+  let committingTransition = false
+  // POP and redirects can drop navigate options. Keep router commits synchronous
+  // throughout an animated navigation so the snapshot contains the final page.
+  if (originalSubscribe) native.subscribe = (listener) => originalSubscribe.call(native, (state, update) => listener(state, { ...update, flushSync: committingTransition || update.flushSync }))
+  const unsubscribe = native.subscribe?.((state) => {
+    if (state.location.key === history[cursor]?.key) return
+    if (state.historyAction === "POP") {
+      const index = history.findIndex((entry) => entry.key === state.location.key)
+      if (index >= 0) cursor = index
+      else { history.splice(0, history.length, state.location); cursor = 0 }
+    } else if (state.historyAction === "REPLACE") history[cursor] = state.location
+    else { history.splice(cursor + 1); history.push(state.location); cursor++ }
+  })
   let pending: { target: unknown; options: Record<string, unknown> | undefined; result: Promise<void> } | undefined
   native.navigate = ((...args: unknown[]) => {
     const to = args[0]
-    const target = typeof to === "string" ? to : to && typeof to === "object" && "pathname" in to ? String(to.pathname) : undefined
+    const target = typeof to === "number" ? history[cursor + to]?.pathname : typeof to === "string" ? to : to && typeof to === "object" && "pathname" in to ? String(to.pathname) : undefined
     const from = pageTransitionKey(native.state.location.pathname)
     const next = target?.startsWith("/") ? pageTransitionKey(target) : undefined
     const options = args[1] as Record<string, unknown> | undefined
@@ -93,13 +109,38 @@ export function installPageTransitions(router: RouterController) {
     // identical in-flight request rather than cancelling our own transition.
     if (pending && pending.target === to &&
       Object.keys({ ...pending.options, ...options }).every(key => pending!.options?.[key] === options?.[key])) return pending.result
-    const animate = next && next !== from && pages.has(next) && pages.has(from)
-    const navigate = () => (original as (...values: unknown[]) => Promise<void>).apply(native, animate ? [to, { ...options, flushSync: true }] : args)
+    // Diagnostics has independent child pages. Returning between them must not
+    // be treated like switching document tabs within the workspace.
+    const debugPageChanged = !committingTransition && from === "debug" && next === "debug" && target?.split(/[?#]/, 1)[0] !== native.state.location.pathname
+    const animate = next && (next !== from || debugPageChanged) && pages.has(next) && pages.has(from)
+    const navigate = () => {
+      if (animate && typeof to === "number") {
+        // POP navigation can commit after navigate(delta) returns. Keep the
+        // snapshot update open until the actual destination has committed.
+        return new Promise<void>((resolve, reject) => {
+          const previousKey = native.state.location.key
+          committingTransition = true
+          const stop = native.subscribe((state) => {
+            if (state.location.key === previousKey || state.navigation.state !== "idle") return
+            committingTransition = false
+            stop()
+            resolve()
+          })
+          Promise.resolve((original as (delta: number) => Promise<void>).call(native, to)).catch((error) => { committingTransition = false; stop(); reject(error) })
+        })
+      }
+      if (animate) {
+        committingTransition = true
+        return Promise.resolve().then(() => (original as (...values: unknown[]) => Promise<void>).call(native, to, { ...options, flushSync: true }))
+          .finally(() => { committingTransition = false })
+      }
+      return (original as (...values: unknown[]) => Promise<void>).apply(native, args)
+    }
     const result = animate ? transitionPage(navigate, next) : navigate()
     const entry = { target: to, options, result }
     pending = entry
     void result.then(() => { if (pending === entry) pending = undefined }, () => { if (pending === entry) pending = undefined })
     return result
   }) as typeof native.navigate
-  return () => { native.navigate = original }
+  return () => { unsubscribe?.(); native.navigate = original; if (originalSubscribe) native.subscribe = originalSubscribe }
 }

@@ -2,7 +2,8 @@
   display: flex; flex-direction: column; gap: 0; padding: 6px;
   border: 1px solid #d9dde3; border-radius: 9px; background: #fff; color: #32363f;
   box-shadow: 0 12px 32px #18223024, 0 2px 6px #18223012;
-  animation: none !important;
+  transform-origin: top center;
+  will-change: opacity, translate, scale;
   max-height: calc(min(294px, 42vh) + 70px);
   overflow: hidden;
 }
@@ -41,7 +42,7 @@ html.dark .quick-picker-row[aria-selected="true"] { background: #34465e; color: 
 html.dark .quick-picker-footer { border-color: #ffffff0d; }
 html.dark .vessel-quick-picker kbd, html.dark .quick-picker-current { border-color: #475364; }
 
-.vessel-titlebar-identity { transition: transform 260ms cubic-bezier(.22, 1, .36, 1); }
+.vessel-titlebar-identity { transition: transform 240ms var(--motion-ease-out, cubic-bezier(0, 0, .2, 1)); }
 .vessel-titlebar-search { position: absolute; left: 300px; right: 196px; }
 @media (min-width: 1220px) { .vessel-titlebar-search { left: 50%; right: auto; width: 620px; transform: translateX(-50%); } }
 @media (prefers-reduced-motion: reduce) { .vessel-titlebar-identity { transition: none; } }
@@ -69,3 +70,23 @@ html.dark .vessel-titlebar-clock .vessel-status-time:hover { background: #ffffff
 
 .vessel-main-titlebar[data-page-tools] { --page-tools-space: 32px; }
 .vessel-main-titlebar[data-page-tools]:not([data-activity-menu]):not([data-workspace]):not([data-feature-view]) .vessel-titlebar-search { margin-right: 32px; }
+
+/* Individual transform properties preserve the titlebar's inline anchor transform. */
+.vessel-quick-picker[data-state="open"] {
+  animation: quick-picker-enter 300ms cubic-bezier(0, 0, .2, 1) both !important;
+}
+.vessel-quick-picker[data-state="closed"] {
+  animation: quick-picker-exit 240ms cubic-bezier(.4, 0, 1, 1) both !important;
+  pointer-events: none;
+}
+@keyframes quick-picker-enter {
+  from { opacity: 0; translate: 0 -6px; scale: .985; }
+  to { opacity: 1; translate: 0 0; scale: 1; }
+}
+@keyframes quick-picker-exit {
+  from { opacity: 1; translate: 0 0; scale: 1; }
+  to { opacity: 0; translate: 0 -4px; scale: .99; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .vessel-quick-picker[data-state] { animation: none !important; will-change: auto; }
+}

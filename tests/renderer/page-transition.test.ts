@@ -1,6 +1,6 @@
 import { createElement } from "react"
 import { act, cleanup, render } from "@testing-library/react"
-import { createMemoryRouter, RouterProvider } from "react-router-dom"
+import { createMemoryRouter, Navigate, RouterProvider } from "react-router-dom"
 import { afterEach, beforeEach, expect, it, vi } from "vitest"
 import { installPageTransitions, rememberPageContent, transitionPage } from "@/lib/page-transition"
 
@@ -164,6 +164,95 @@ it("commits the real router destination before the new snapshot is captured", as
   await act(async () => { await native.navigate("/image") })
   expect(snapshotContent).toBe("new page")
   expect(start).toHaveBeenCalledOnce()
+  uninstall()
+  native.dispose()
+  stop()
+})
+
+it("animates history back from settings and forward while preserving the real history entry", async () => {
+  const stopEditor = rememberPageContent("editor"), stopSettings = rememberPageContent("settings")
+  await vi.advanceTimersByTimeAsync(10)
+  const native = createMemoryRouter([
+    { path: "/editor/file", element: createElement("h1", null, "editor content") },
+    { path: "/settings", element: createElement("h1", null, "settings content") }
+  ], { initialEntries: [{ pathname: "/editor/file", search: "?file=note.md", state: { preserved: true } }] })
+  const uninstall = installPageTransitions({ nativeRouter: native } as any)
+  const view = render(createElement(RouterProvider, { router: native }))
+  await act(async () => { await native.navigate("/settings") })
+  const start = mockTransition()
+  const snapshots: (string | null)[] = []
+  document.startViewTransition = ((update: () => Promise<void>) => start(async () => {
+    await update()
+    snapshots.push(view.container.textContent)
+  })) as any
+  await act(async () => { await native.navigate(-1) })
+  expect(start).toHaveBeenCalledOnce()
+  expect(snapshots).toEqual(["editor content"])
+  expect(native.state.location).toMatchObject({ pathname: "/editor/file", search: "?file=note.md", state: { preserved: true } })
+  await act(async () => { await native.navigate(1) })
+  expect(start).toHaveBeenCalledTimes(2)
+  expect(snapshots).toEqual(["editor content", "settings content"])
+  uninstall()
+  native.dispose()
+  stopEditor(); stopSettings()
+})
+
+
+it("animates revisiting the debug menu destination through its default-page redirect", async () => {
+  const native = createMemoryRouter([
+    { path: "/editor", element: createElement("h1", null, "workspace") },
+    { path: "/debug", element: createElement(Navigate, { to: "/debug/performance", replace: true }) },
+    { path: "/debug/performance", element: createElement("h1", null, "debug performance") }
+  ], { initialEntries: ["/editor"] })
+  const uninstall = installPageTransitions({ nativeRouter: native } as any)
+  const view = render(createElement(RouterProvider, { router: native }))
+  const start = mockTransition()
+  await act(async () => { await native.navigate("/debug") })
+  expect(native.state.location.pathname).toBe("/debug/performance")
+  expect(start).not.toHaveBeenCalled()
+  const stopDebug = rememberPageContent("debug"), stopEditor = rememberPageContent("editor")
+  await vi.advanceTimersByTimeAsync(10)
+  await act(async () => { await native.navigate("/editor") })
+  expect(start).toHaveBeenCalledOnce()
+  let snapshot: string | null = null
+  document.startViewTransition = ((update: () => Promise<void>) => start(async () => {
+    await update()
+    snapshot = view.container.textContent
+  })) as any
+  await act(async () => { await native.navigate("/debug") })
+  expect(start).toHaveBeenCalledTimes(2)
+  expect(snapshot).toBe("debug performance")
+  expect(start.mock.results[1].value.skipTransition).not.toHaveBeenCalled()
+  await act(async () => { await native.navigate(-1) })
+  expect(start).toHaveBeenCalledTimes(3)
+  expect(snapshot).toBe("workspace")
+  expect(start.mock.results[2].value.skipTransition).not.toHaveBeenCalled()
+  uninstall()
+  native.dispose()
+  stopDebug(); stopEditor()
+})
+
+
+it("animates history back between loaded diagnostic child pages", async () => {
+  const stop = rememberPageContent("debug")
+  await vi.advanceTimersByTimeAsync(10)
+  const native = createMemoryRouter([
+    { path: "/debug/performance", element: createElement("h1", null, "performance") },
+    { path: "/debug/storage", element: createElement("h1", null, "storage") }
+  ], { initialEntries: ["/debug/performance"] })
+  const uninstall = installPageTransitions({ nativeRouter: native } as any)
+  const view = render(createElement(RouterProvider, { router: native }))
+  const start = mockTransition()
+  await act(async () => { await native.navigate("/debug/storage") })
+  let snapshot: string | null = null
+  document.startViewTransition = ((update: () => Promise<void>) => start(async () => {
+    await update()
+    snapshot = view.container.textContent
+  })) as any
+  await act(async () => { await native.navigate(-1) })
+  expect(start).toHaveBeenCalledTimes(2)
+  expect(snapshot).toBe("performance")
+  expect(start.mock.results[1].value.skipTransition).not.toHaveBeenCalled()
   uninstall()
   native.dispose()
   stop()
