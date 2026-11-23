@@ -24,7 +24,7 @@ export function groupBrowserTabs(tabs: Tab[], activeId: string, enabled: boolean
     const existing = identity ? byIdentity.get(key) : undefined
     if (existing) {
       existing.members.push(tab)
-      if (tab.id === activeId) existing.tab = tab
+      if (tab.id === activeId || (kind === "local" && existing.tab.id !== activeId && (tab.lastActiveAt ?? 0) > (existing.tab.lastActiveAt ?? 0))) existing.tab = tab
     } else {
       const group = { key, kind, members: [tab], tab }
       groups.push(group)

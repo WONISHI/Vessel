@@ -4,7 +4,7 @@ import { BrowserFavicon } from "@/components/browser-favicon"
 import { TabSwitcher } from "@/components/tab-switcher"
 import { Button } from "@/components/ui/button"
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger } from "@/components/ui/context-menu"
-import { Copy, CopyX, AudioLines, LoaderCircle, Snowflake, Play, PanelRightClose, Pin, Plus, RotateCw, X } from "lucide-react"
+import { Copy, CopyX, AudioLines, LoaderCircle, Snowflake, Play, Package, PanelRightClose, Pin, Plus, RotateCw, X } from "lucide-react"
 import type { BrowserPageModel } from "@/pages/browser/components/browser-page/hooks/use-browser-page"
 import { useState } from "react"
 
@@ -15,6 +15,7 @@ export function BrowserTabs({ b }: { b: BrowserPageModel }) {
   const grouping = useTabGrouping()
   const [contextMenuOpen, setContextMenuOpen] = useState(false)
   const groups = groupBrowserTabs(tabs, tab.id, grouping)
+  const lastGroupKey = groups.filter(group => group.members.length > 1).at(-1)?.key
   const contextActions = (item: { id: string; frozen?: boolean; url?: string }) => [
     { label: "复制标签页", icon: <Copy />, onSelect: () => addTabRightOf(item.id, true) },
     { label: "重新加载", icon: <RotateCw />, onSelect: () => reloadTab(item.id), disabled: !item.url },
@@ -28,9 +29,9 @@ export function BrowserTabs({ b }: { b: BrowserPageModel }) {
             const grouped = members.length > 1
             const pinned = members.every((member) => member.pinned)
             const memberIds = [item.id, ...members.filter((member) => member.id !== item.id).map((member) => member.id)]
-            const title = grouped && kind === "local" ? "本地资源" : item.title
+            const title = item.title
             const closeLabel = grouped ? `关闭整个分组：${title}（${members.length} 个标签页）` : "关闭标签页"
-            const titleSide = groupIndex === 0 ? "right" : groupIndex === groups.length - 1 ? "left" : undefined
+            const titleSide = grouped ? key === lastGroupKey ? "left" : "right" : groupIndex === 0 ? "right" : groupIndex === groups.length - 1 ? "left" : undefined
             const row = <ContextMenu key={item.id} onOpenChange={setContextMenuOpen}>
               <ContextMenuTrigger asChild>
                 <div
@@ -63,7 +64,7 @@ export function BrowserTabs({ b }: { b: BrowserPageModel }) {
                   >
                     <span className="relative flex size-4 shrink-0 items-center justify-center">
                       <span className={`flex ${item.id === tab.id && item.loading ? "invisible" : ""}`}>
-                        <BrowserFavicon url={item.url} favicon={item.favicon} frozen={item.frozen} />
+                        <BrowserFavicon url={item.url} favicon={item.favicon} frozen={item.frozen} icon={grouped && kind === "local" ? <Package size={16} color="#016BFF" aria-label="本地资源分组" /> : undefined} />
                       </span>
                       {item.id === tab.id && item.loading
                         ? <LoaderCircle size={16} className="absolute inset-0 animate-spin" aria-label="正在加载" />

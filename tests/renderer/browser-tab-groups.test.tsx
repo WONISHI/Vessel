@@ -122,8 +122,9 @@ it.each(["button", "menu"])("closes every member of the local group through its 
   const b = { tabs: local, tab: tabs[3], closeTabs, close, setActive: vi.fn(), setInput: vi.fn(), add: vi.fn(), setDragTabId: vi.fn() } as unknown as BrowserPageModel
   const view = render(<BrowserTabs b={b} />)
   const group = await waitFor(() => { const element = view.container.querySelector('[data-browser-group="local-resources"]'); expect(element).toBeTruthy(); return element! })
-  expect(group.textContent).toContain("本地资源")
-  if (method === "button") fireEvent.click(screen.getByRole("button", { name: "关闭整个分组：本地资源（2 个标签页）" }))
+  expect(group.textContent).toContain("本地")
+  expect(group.querySelector('[aria-label="本地资源分组"]')?.getAttribute("stroke")).toBe("#016BFF")
+  if (method === "button") fireEvent.click(screen.getByRole("button", { name: "关闭整个分组：本地（2 个标签页）" }))
   else {
     fireEvent.contextMenu(group)
     for (const label of ["复制标签页", "重新加载", "冻结标签页", "解冻标签页"]) expect(screen.queryByRole("menuitem", { name: label })).toBeNull()
@@ -154,4 +155,35 @@ it("keeps single-tab commands while group other/right-close operations preserve 
   expect(screen.getByRole("menuitem", { name: "复制标签页" })).toBeTruthy()
   expect(screen.getByRole("menuitem", { name: "重新加载" })).toBeTruthy()
   expect(screen.getByRole("menuitem", { name: "冻结标签页" })).toBeTruthy()
+})
+
+
+it("keeps the last selected local document as its group representative after leaving the group", () => {
+  const local = [
+    { id: "local-one", title: "原型预览", url: "file:///a.html", lastActiveAt: 100 },
+    { id: "local-two", title: "年休假", url: "file:///b.html", lastActiveAt: 200 },
+    tabs[0]
+  ] as Tab[]
+  expect(groupBrowserTabs(local, "local-one", true)[0].tab.title).toBe("原型预览")
+  expect(groupBrowserTabs(local, "local-two", true)[0].tab.title).toBe("年休假")
+  expect(groupBrowserTabs(local, "one", true)[0].tab.title).toBe("年休假")
+})
+
+it("positions grouped item tooltips right except for the last group, which uses left", async () => {
+  vi.stubGlobal("electronAPI", { getSettings: vi.fn(async () => ({ browserGroupSameDomain: true })) })
+  const local = [
+    tabs[0], tabs[2],
+    { id: "a", title: "原型", url: "file:///a.html" },
+    { id: "b", title: "年休假", url: "file:///b.html" },
+    tabs[1]
+  ] as Tab[]
+  const b = { tabs: local, tab: local[3], setActive: vi.fn(), setInput: vi.fn(), close: vi.fn(), add: vi.fn() } as unknown as BrowserPageModel
+  const view = render(<BrowserTabs b={b} />)
+  await waitFor(() => expect(view.container.querySelectorAll(".browser-tab-group")).toHaveLength(2))
+  const groups = view.container.querySelectorAll<HTMLElement>(".browser-tab-group")
+  fireEvent.mouseEnter(groups[0])
+  expect((await screen.findByRole("menuitem", { name: "文档一" })).getAttribute("data-title-side")).toBe("right")
+  fireEvent.mouseEnter(groups[1])
+  expect((await screen.findByRole("menuitem", { name: "年休假" })).getAttribute("data-title-side")).toBe("left")
+  expect(groups[1].querySelector(".browser-tab-select")?.textContent).toBe("年休假")
 })

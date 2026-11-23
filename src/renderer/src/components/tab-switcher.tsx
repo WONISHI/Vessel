@@ -144,6 +144,7 @@ export function TabSwitcher({
                   type="button"
                   aria-label={`关闭 ${tab.title}`}
                   data-title="关闭标签页"
+                  data-title-side={titleSide}
                   onClick={(e) => {
                     e.stopPropagation()
                     onClose(tab.id)
