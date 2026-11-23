@@ -60,16 +60,17 @@ html.dark .vessel-titlebar-clock .vessel-status-time:hover { background: #ffffff
 
 .vessel-titlebar-actions .vessel-layout-controls { gap: 8px; }
 
-.vessel-main-titlebar[data-workspace] .vessel-titlebar-search { margin-right: calc(32px + var(--activity-menu-space, 0px) + var(--page-tools-space, 0px)); }
+.vessel-main-titlebar[data-workspace] .vessel-titlebar-search,
+.vessel-main-titlebar[data-git-search] .vessel-titlebar-search { margin-right: calc(32px + var(--activity-menu-space, 0px) + var(--page-tools-space, 0px)); }
 
 .vessel-main-titlebar[data-feature-view] .vessel-titlebar-search { margin-right: calc(32px + var(--activity-menu-space, 0px) + var(--page-tools-space, 0px)); }
 .vessel-main-titlebar[data-feature-view][data-workspace] .vessel-titlebar-search { margin-right: calc(64px + var(--activity-menu-space, 0px) + var(--page-tools-space, 0px)); }
 
 .vessel-main-titlebar[data-activity-menu] { --activity-menu-space: 32px; }
-.vessel-main-titlebar[data-activity-menu]:not([data-workspace]):not([data-feature-view]) .vessel-titlebar-search { margin-right: calc(32px + var(--page-tools-space, 0px)); }
+.vessel-main-titlebar[data-activity-menu]:not([data-workspace]):not([data-git-search]):not([data-feature-view]) .vessel-titlebar-search { margin-right: calc(32px + var(--page-tools-space, 0px)); }
 
 .vessel-main-titlebar[data-page-tools] { --page-tools-space: 32px; }
-.vessel-main-titlebar[data-page-tools]:not([data-activity-menu]):not([data-workspace]):not([data-feature-view]) .vessel-titlebar-search { margin-right: 32px; }
+.vessel-main-titlebar[data-page-tools]:not([data-activity-menu]):not([data-workspace]):not([data-git-search]):not([data-feature-view]) .vessel-titlebar-search { margin-right: 32px; }
 
 /* Individual transform properties preserve the titlebar's inline anchor transform. */
 .vessel-quick-picker[data-state="open"] {

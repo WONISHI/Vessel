@@ -411,3 +411,14 @@ html.dark .vessel-git-page .git-commit-file-row[data-commit-file-selected="true"
 
 html.dark .vessel-git-page [data-git-conflict-header] { background: #402b30 !important; color: #fda4af !important; }
 html.dark .vessel-git-page [data-git-conflict-header] .bg-red-100 { background: #713039 !important; }
+
+/* Compact list-header actions share the toolbar's soft gray hover. */
+.git-changes-action { border: 0; background: transparent; box-shadow: none; color: #78716c; }
+html .vessel-git-page .git-changes-action:not(:disabled):is(:hover, :focus-visible, [data-state="open"]) {
+  background: #efeeec !important;
+  color: #44403c !important;
+}
+html.dark .vessel-git-page .git-changes-action:not(:disabled):is(:hover, :focus-visible, [data-state="open"]) {
+  background: #ffffff0f !important;
+  color: #e6e8eb !important;
+}

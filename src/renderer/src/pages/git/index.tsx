@@ -12,6 +12,7 @@ import { DiffViewer } from "@/pages/git/components/diff-viewer"
 import { AlertCircle } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import "@/pages/git/dark.css"
+import { useGitFilePicker } from "@/pages/git/hooks/use-git-file-picker"
 import { useGitPage } from "@/pages/git/hooks/use-git-page"
 import { GitToolbar } from "@/pages/git/components/git-toolbar"
 import { GitSidebarNav } from "@/pages/git/components/git-sidebar-nav"
@@ -40,6 +41,7 @@ export default function SourceTreePage() {
 
 
   const g = useGitPage()
+  useGitFilePicker(g)
   const { isRepo, activeTab, remoteOperation, status, branches, selectedFile, diffText, handleStageFile, handleUnstageFile, handleInitRepo } = g
 
   const fileDiff = (<DiffViewer

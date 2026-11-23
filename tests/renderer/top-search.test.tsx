@@ -1,3 +1,4 @@
+import { publishGitStatusView } from "@/pages/git/file-picker-state"
 import { setActivityBarCollapsed } from "@/features/activity-bar/collapse"
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { StatusBar } from '@/components/ui/status-bar'
@@ -10,6 +11,7 @@ import { publishBrowserTabs } from '@/pages/browser/tab-state'
 vi.mock('@/components/layout/feature-page-overlay', () => ({ FeaturePageOverlay: ({ feature, tool, onToolChange }: any) => feature ? <div role="dialog" aria-label={feature === 'todos' ? '待办' : '开发工具'}><span>{tool}</span><button onClick={() => onToolChange('color')}>切换颜色工具</button></div> : null }))
 vi.mock('@/components/workspace-file-picker', () => ({ WorkspaceFilePicker: ({ workspace }: any) => <div>{workspace?.root || 'empty'}</div> }))
 beforeEach(() => {
+ publishGitStatusView(true)
  vi.stubGlobal('ResizeObserver', class { observe = vi.fn(); unobserve = vi.fn(); disconnect = vi.fn() })
 })
 afterEach(() => { cleanup(); vi.unstubAllGlobals() })
@@ -415,4 +417,57 @@ it('switches resource document tabs in displayed pinned order and ignores a cach
   expect(openFile).toHaveBeenLastCalledWith(files[1])
   expect(cached).not.toHaveBeenCalled()
  } finally { window.removeEventListener('vessel:request-workspace-files', listener); localStorage.removeItem('resource_current_project'); localStorage.removeItem('vessel-pinned-tabs') }
+})
+
+it('searches only Git status entries without requesting workspace files', () => {
+ const select = vi.fn(), workspaceRequest = vi.fn()
+ const provide = (event: Event) => (event as CustomEvent).detail({ repoPath: '/repo', entries: [{ id: 'staged:a', section: 'staged', file: { path: 'src/change.ts', status: 'M' } }], select })
+ window.addEventListener('vessel:request-git-files', provide)
+ window.addEventListener('vessel:request-workspace-files', workspaceRequest)
+ try {
+  render(<MemoryRouter initialEntries={['/git']}><TopSearch /></MemoryRouter>)
+  fireEvent.click(screen.getByRole('button', { name: '搜索 Git 变更文件' }))
+  expect(screen.getByLabelText('Git 变更文件关键词')).toBeTruthy()
+  fireEvent.click(screen.getByText('change.ts'))
+  expect(select.mock.calls[0][0].section).toBe('staged')
+  expect(workspaceRequest).not.toHaveBeenCalled()
+ } finally {
+  window.removeEventListener('vessel:request-git-files', provide)
+  window.removeEventListener('vessel:request-workspace-files', workspaceRequest)
+ }
+})
+
+it('switches Git changes with titlebar arrows instead of workspace tabs', () => {
+ const select = vi.fn(), workspaceRequest = vi.fn()
+ const entries = [
+  { id: 'staged:a', section: 'staged', file: { path: 'a.ts', status: 'M' } },
+  { id: 'worktree:a', section: 'unstaged', file: { path: 'a.ts', status: 'M' } },
+  { id: 'worktree:b', section: 'unstaged', file: { path: 'b.ts', status: 'M' } }
+ ]
+ const provide = (event: Event) => (event as CustomEvent).detail({ entries, activeId: 'worktree:a', select })
+ window.addEventListener('vessel:request-git-files', provide)
+ window.addEventListener('vessel:request-workspace-files', workspaceRequest)
+ try {
+  render(<MemoryRouter initialEntries={['/git']}><TopSearch /></MemoryRouter>)
+  fireEvent.click(screen.getByRole('button', { name: '上一个变更文件' }))
+  expect(select).toHaveBeenLastCalledWith(entries[0])
+  fireEvent.click(screen.getByRole('button', { name: '下一个变更文件' }))
+  expect(select).toHaveBeenLastCalledWith(entries[2])
+  expect(workspaceRequest).not.toHaveBeenCalled()
+ } finally {
+  window.removeEventListener('vessel:request-git-files', provide)
+  window.removeEventListener('vessel:request-workspace-files', workspaceRequest)
+ }
+})
+
+it('hides Git change search and arrows outside file status and restores them on return', () => {
+ render(<MemoryRouter initialEntries={['/git']}><TopSearch /></MemoryRouter>)
+ fireEvent.click(screen.getByRole('button', { name: '搜索 Git 变更文件' }))
+ act(() => publishGitStatusView(false))
+ expect(screen.queryByRole('button', { name: '搜索 Git 变更文件' })).toBeNull()
+ expect(screen.queryByRole('button', { name: '上一个变更文件' })).toBeNull()
+ expect(screen.queryByLabelText('Git 变更文件关键词')).toBeNull()
+ act(() => publishGitStatusView(true))
+ expect(screen.getByRole('button', { name: '搜索 Git 变更文件' })).toBeTruthy()
+ expect(screen.queryByLabelText('Git 变更文件关键词')).toBeNull()
 })

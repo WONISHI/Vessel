@@ -91,3 +91,19 @@ it('ignores an old diff response after a different file has been selected', asyn
  await act(async () => { finish({diff:'stale diff'}); await old })
  expect(page.result.current.diffText).toBe('current diff')
 })
+
+it('limits Shift selection and select-all to visible filtered files', async () => {
+ const files = [{path:'keep-one.ts',status:'M'}, {path:'hidden.ts',status:'M'}, {path:'keep-two.ts',status:'M'}]
+ vi.mocked(window.electronAPI.git.getStatus).mockResolvedValue({...status,unstaged:files})
+ const page = renderHook(() => {
+  const repo = useGitRepository()
+  return {...repo,...useGitFileSelection(repo,'keep')}
+ })
+ await waitFor(() => expect(page.result.current.status?.unstaged).toHaveLength(3))
+ act(() => page.result.current.handleUnstagedItemClick({shiftKey:false} as any,files[0],0))
+ act(() => page.result.current.handleUnstagedItemClick({shiftKey:true} as any,files[2],2))
+ expect(page.result.current.selectedUnstagedPaths).toEqual(['keep-one.ts','keep-two.ts'])
+ act(() => window.dispatchEvent(new KeyboardEvent('keydown',{key:'a',ctrlKey:true,bubbles:true})))
+ expect(page.result.current.selectedUnstagedPaths).toEqual(['keep-one.ts','keep-two.ts'])
+ page.unmount()
+})

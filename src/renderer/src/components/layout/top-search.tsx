@@ -1,3 +1,5 @@
+import { GitFilePicker } from "@/pages/git/components/git-file-picker"
+import { GIT_FILE_PICKER_REQUEST, useGitStatusView, type GitPickerData, type GitPickerRequest } from "@/pages/git/file-picker-state"
 import { PageToolsMenu } from "./page-tools-menu"
 import { pageTransitionKey, transitionPage } from "@/lib/page-transition"
 import "@vscode/codicons/dist/codicon.css"
@@ -60,6 +62,7 @@ export function TopSearch() {
   const tabs = useBrowserTabs()
   const [open, setOpen] = useState(false)
   const [pickerSession, setPickerSession] = useState(0)
+  const [gitFiles, setGitFiles] = useState<GitPickerData | null>(null)
   const [workspace, setWorkspace] = useState<FilePickerWorkspace | null>(null)
   const [query, setQuery] = useState("")
   const anchor = useRef<HTMLButtonElement>(null)
@@ -87,11 +90,23 @@ export function TopSearch() {
     window.addEventListener("resize", close)
     return () => window.removeEventListener("resize", close)
   }, [])
-  const searchable = !overlayKind && /^\/(editor|resources|browser)(\/|$)/.test(pathname)
+  const gitStatusView = useGitStatusView()
+  const searchable = !overlayKind && (/^\/(editor|resources|browser)(\/|$)/.test(pathname) || (/^\/git(\/|$)/.test(pathname) && gitStatusView))
   const browser = pathname.startsWith("/browser")
+  if (open && !searchable) setOpen(false)
+  const git = /^\/git(\/|$)/.test(pathname)
   const scope: "resources" | "workspace" = pathname.startsWith("/resources") ? "resources" : "workspace"
   const activeBrowserIndex = tabs.findIndex(tab => tab.active)
   const switchTab = (direction: -1 | 1) => {
+    if (git) {
+      const provide: GitPickerRequest = value => {
+        const index = value.entries.findIndex(entry => entry.id === value.activeId)
+        const target = value.entries[index < 0 ? (direction === 1 ? 0 : value.entries.length - 1) : index + direction]
+        if (target) value.select(target)
+      }
+      window.dispatchEvent(new CustomEvent(GIT_FILE_PICKER_REQUEST, { detail: provide }))
+      return
+    }
     if (browser) {
       const target = activeBrowserIndex >= 0 ? tabs[activeBrowserIndex + direction] : undefined
       if (target) selectBrowserTab(target.id)
@@ -121,12 +136,16 @@ export function TopSearch() {
     setSelected(0)
     setQuery("")
     setWorkspace(null)
-    if (!browser) {
+    if (git) {
+      setGitFiles(null)
+      const provide: GitPickerRequest = value => setGitFiles(value)
+      window.dispatchEvent(new CustomEvent(GIT_FILE_PICKER_REQUEST, { detail: provide }))
+    } else if (!browser) {
       const provide: FilePickerRequest = Object.assign((value: FilePickerWorkspace) => setWorkspace(value), { scope })
       window.dispatchEvent(new CustomEvent("vessel:request-workspace-files", { detail: provide }))
     }
     setOpen(true)
-  }, [browser, scope, open])
+  }, [browser, git, scope, open])
   useEffect(() => {
     if (!searchable) return
     const stop = bindDoubleSpace(window, show, { allowButtons: open })
@@ -138,13 +157,13 @@ export function TopSearch() {
   }, [searchable, browser, tabs, show, open])
   const matching = tabs.filter((tab) => `${tab.title} ${tab.url}`.toLocaleLowerCase().includes(query.toLocaleLowerCase()))
   return <>
-    <header data-page-tools={showPageTools ? "true" : undefined} data-activity-menu={activityCollapsed ? "true" : undefined} data-feature-view={layoutScope ? "true" : undefined} data-workspace={workspacePage ? "true" : undefined} data-titlebar-clock={!statusVisible ? "true" : undefined} style={{ WebkitAppRegion: "drag" } as CSSProperties} className="vessel-main-titlebar fixed inset-x-0 top-0 z-40 flex h-9 shrink-0 items-center justify-center gap-2 border-b bg-white px-3 text-xs text-stone-500 dark:bg-[#22272e]">
+    <header data-git-search={git ? "true" : undefined} data-page-tools={showPageTools ? "true" : undefined} data-activity-menu={activityCollapsed ? "true" : undefined} data-feature-view={layoutScope ? "true" : undefined} data-workspace={workspacePage ? "true" : undefined} data-titlebar-clock={!statusVisible ? "true" : undefined} style={{ WebkitAppRegion: "drag" } as CSSProperties} className="vessel-main-titlebar fixed inset-x-0 top-0 z-40 flex h-9 shrink-0 items-center justify-center gap-2 border-b bg-white px-3 text-xs text-stone-500 dark:bg-[#22272e]">
       <span style={{ left: 100, transform: `translateX(${fullscreen ? -86 : 0}px)` }} className="vessel-titlebar-identity pointer-events-none absolute flex max-w-[180px] items-center gap-2 truncate font-semibold"><PageIcon className="size-4 shrink-0 text-emerald-600" />{page.label}</span>
       {searchable && <div style={{ WebkitAppRegion: "no-drag" } as CSSProperties} className="vessel-titlebar-search flex min-w-0 items-center gap-2">
-      <button type="button" aria-label="上一个标签页" data-title="上一个标签页" disabled={browser && activeBrowserIndex <= 0} className="rounded p-1 hover:bg-stone-200 disabled:pointer-events-none disabled:opacity-30 dark:hover:bg-white/10" onClick={() => switchTab(-1)}><ArrowLeft className="size-3.5" /></button>
-      <button type="button" aria-label="下一个标签页" data-title="下一个标签页" disabled={browser && (activeBrowserIndex < 0 || activeBrowserIndex >= tabs.length - 1)} className="rounded p-1 hover:bg-stone-200 disabled:pointer-events-none disabled:opacity-30 dark:hover:bg-white/10" onClick={() => switchTab(1)}><ArrowRight className="size-3.5" /></button>
-      <button ref={anchor} type="button" aria-label={browser ? "搜索浏览器标签" : "搜索文件和已打开标签"} onClick={show} className="flex h-6 min-w-0 flex-1 items-center justify-center gap-2 rounded-md border bg-white px-3 dark:bg-white/5">
-        <Search className="size-3.5" /><span className="truncate">{browser ? "搜索标签名称或网址…" : "搜索文件、路径和已打开标签…"}</span>
+      <button type="button" aria-label={git ? "上一个变更文件" : "上一个标签页"} data-title={git ? "上一个变更文件" : "上一个标签页"} disabled={browser && activeBrowserIndex <= 0} className="rounded p-1 hover:bg-stone-200 disabled:pointer-events-none disabled:opacity-30 dark:hover:bg-white/10" onClick={() => switchTab(-1)}><ArrowLeft className="size-3.5" /></button>
+      <button type="button" aria-label={git ? "下一个变更文件" : "下一个标签页"} data-title={git ? "下一个变更文件" : "下一个标签页"} disabled={browser && (activeBrowserIndex < 0 || activeBrowserIndex >= tabs.length - 1)} className="rounded p-1 hover:bg-stone-200 disabled:pointer-events-none disabled:opacity-30 dark:hover:bg-white/10" onClick={() => switchTab(1)}><ArrowRight className="size-3.5" /></button>
+      <button ref={anchor} type="button" aria-label={browser ? "搜索浏览器标签" : git ? "搜索 Git 变更文件" : "搜索文件和已打开标签"} onClick={show} className="flex h-6 min-w-0 flex-1 items-center justify-center gap-2 rounded-md border bg-white px-3 dark:bg-white/5">
+        <Search className="size-3.5" /><span className="truncate">{browser ? "搜索标签名称或网址…" : git ? "搜索暂存和工作区文件…" : "搜索文件、路径和已打开标签…"}</span>
       </button>
       </div>}
       <div style={{ WebkitAppRegion: "no-drag" } as CSSProperties} className="vessel-titlebar-actions absolute right-3 top-1/2 flex -translate-y-1/2 items-center gap-2">
@@ -169,7 +188,8 @@ export function TopSearch() {
       </div>
     </header>
     <FeaturePageOverlay feature={overlayKind} tool={overlayTool} onToolChange={setOverlayTool} onClose={closeOverlay} />
-    {!browser && <WorkspaceFilePicker key={pickerSession} open={open} workspace={workspace} popupStyle={popupStyle} onClose={() => setOpen(false)} />}
+    {git && searchable && <GitFilePicker key={pickerSession} open={open} data={gitFiles} popupStyle={popupStyle} onClose={() => setOpen(false)} />}
+    {!browser && !git && <WorkspaceFilePicker key={pickerSession} open={open} workspace={workspace} popupStyle={popupStyle} onClose={() => setOpen(false)} />}
     <Dialog modal={false} open={open && browser} onOpenChange={setOpen}>
       <DialogContent style={popupStyle} className="vessel-quick-picker z-[282] translate-y-0" showCloseButton={false}>
         <DialogTitle className="sr-only">搜索浏览器标签</DialogTitle><DialogDescription className="sr-only">按标题或网址查找已打开的标签页</DialogDescription>

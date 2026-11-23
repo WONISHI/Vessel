@@ -2,10 +2,10 @@ import { toast } from "@/components/ui/sonner"
 import { cleanGitErrorMessage } from "@/pages/git/utils"
 import { FileChangeStatus } from "@/pages/git/components/file-change-status"
 import { GitCommitMessage } from "./git-commit-message"
-import { getFilePresentation } from "@/components/workspace/components/layout-aside/layout-workspace-sidebar/utils"
+import { GitFileIcon } from "./git-file-icon"
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger } from "@/components/ui/context-menu"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Copy, File, FileText, FolderOpen } from "lucide-react"
+import { Copy, FileText, FolderOpen } from "lucide-react"
 import type { GitPageModel } from "@/pages/git/hooks/use-git-page"
 import { useState } from "react"
 
@@ -54,7 +54,7 @@ export function GitCommitFiles({ g }: { g: GitPageModel }) {
                                     >
                                       <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden">
                                         {/* 2号: 文件图标 */}
-                                        <File className={`size-3.5 shrink-0 ${getFilePresentation(f.path).color}`} />
+                                        <GitFileIcon path={f.path} />
                                         {/* 3号: 溢出显示省略号 */}
                                         <span
                                           className="truncate min-w-0 flex-1 text-stone-700"

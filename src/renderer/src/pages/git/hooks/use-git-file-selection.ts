@@ -1,10 +1,14 @@
+import { matchesGitFilePath } from "../file-filter"
 import type { GitFileStatus } from "@vessel/type"
 import { useEffect } from "react"
 import type { GitRepositoryState } from "@/pages/git/hooks/use-git-repository"
 
 /** 文件列表多选交互与快捷键全选 */
-export function useGitFileSelection(repo: GitRepositoryState) {
+export function useGitFileSelection(repo: GitRepositoryState, query: string | { staged: string; unstaged: string } = "") {
   const { activeTab, status, setSelectedFile, selectedStagedPaths, setSelectedStagedPaths, selectedUnstagedPaths, setSelectedUnstagedPaths, lastStagedClickedIndex, setLastStagedClickedIndex, lastUnstagedClickedIndex, setLastUnstagedClickedIndex, activeFileSection, setActiveFileSection, selectedConflictPaths, setSelectedConflictPaths, lastConflictClickedIndex, setLastConflictClickedIndex } = repo
+
+  const stagedQuery = typeof query === "string" ? query : query.staged
+  const unstagedQuery = typeof query === "string" ? query : query.unstaged
 
   // 快捷键多选交互 (Click, Cmd/Ctrl+Click, Shift+Click)
 
@@ -14,11 +18,14 @@ export function useGitFileSelection(repo: GitRepositoryState) {
     setActiveFileSection("staged")
     const isMeta = e.metaKey || e.ctrlKey
     const isShift = e.shiftKey
-    const allStaged = status?.staged || []
+    const sourceStaged = status?.staged || []
+    const allStaged = sourceStaged.filter(item => matchesGitFilePath(item.path, stagedQuery))
+    const anchorIndex = allStaged.findIndex(item => item.path === sourceStaged[lastStagedClickedIndex]?.path)
+    const clickedIndex = allStaged.findIndex(item => item.path === file.path)
 
-    if (isShift && lastStagedClickedIndex >= 0 && lastStagedClickedIndex < allStaged.length) {
-      const start = Math.min(lastStagedClickedIndex, idx)
-      const end = Math.max(lastStagedClickedIndex, idx)
+    if (isShift && anchorIndex >= 0 && clickedIndex >= 0) {
+      const start = Math.min(anchorIndex, clickedIndex)
+      const end = Math.max(anchorIndex, clickedIndex)
       const rangePaths = allStaged.slice(start, end + 1).map((f) => f.path)
       setSelectedStagedPaths(rangePaths)
       setSelectedUnstagedPaths([])
@@ -57,11 +64,14 @@ export function useGitFileSelection(repo: GitRepositoryState) {
     setActiveFileSection("unstaged")
     const isMeta = e.metaKey || e.ctrlKey
     const isShift = e.shiftKey
-    const allUnstaged = [...(status?.unstaged || []), ...(status?.untracked || [])]
+    const sourceUnstaged = [...(status?.unstaged || []), ...(status?.untracked || [])]
+    const allUnstaged = sourceUnstaged.filter(item => matchesGitFilePath(item.path, unstagedQuery))
+    const anchorIndex = allUnstaged.findIndex(item => item.path === sourceUnstaged[lastUnstagedClickedIndex]?.path)
+    const clickedIndex = allUnstaged.findIndex(item => item.path === file.path)
 
-    if (isShift && lastUnstagedClickedIndex >= 0 && lastUnstagedClickedIndex < allUnstaged.length) {
-      const start = Math.min(lastUnstagedClickedIndex, idx)
-      const end = Math.max(lastUnstagedClickedIndex, idx)
+    if (isShift && anchorIndex >= 0 && clickedIndex >= 0) {
+      const start = Math.min(anchorIndex, clickedIndex)
+      const end = Math.max(anchorIndex, clickedIndex)
       const rangePaths = allUnstaged.slice(start, end + 1).map((f) => f.path)
       setSelectedUnstagedPaths(rangePaths)
       setSelectedStagedPaths([])
@@ -139,23 +149,24 @@ export function useGitFileSelection(repo: GitRepositoryState) {
 
       if (activeTab === "status") {
         e.preventDefault()
-        const allUnstaged = [...(status?.unstaged || []), ...(status?.untracked || [])]
+        const allStaged = (status?.staged || []).filter(item => matchesGitFilePath(item.path, stagedQuery))
+        const allUnstaged = [...(status?.unstaged || []), ...(status?.untracked || [])].filter(item => matchesGitFilePath(item.path, unstagedQuery))
         if (activeFileSection === "conflicts" && status?.conflicts.length) {
           setSelectedConflictPaths(status.conflicts.map((file) => file.path))
           setSelectedStagedPaths([])
           setSelectedUnstagedPaths([])
-        } else if (activeFileSection === "staged" && (status?.staged.length || 0) > 0) {
+        } else if (activeFileSection === "staged" && allStaged.length > 0) {
           setSelectedConflictPaths([])
-          setSelectedStagedPaths(status!.staged.map((f) => f.path))
+          setSelectedStagedPaths(allStaged.map((f) => f.path))
           setSelectedUnstagedPaths([])
         } else if (allUnstaged.length > 0) {
           setSelectedConflictPaths([])
           setSelectedUnstagedPaths(allUnstaged.map((f) => f.path))
           setSelectedStagedPaths([])
           setActiveFileSection("unstaged")
-        } else if ((status?.staged.length || 0) > 0) {
+        } else if (allStaged.length > 0) {
           setSelectedConflictPaths([])
-          setSelectedStagedPaths(status!.staged.map((f) => f.path))
+          setSelectedStagedPaths(allStaged.map((f) => f.path))
           setSelectedUnstagedPaths([])
           setActiveFileSection("staged")
         } else if (status?.conflicts.length) {
@@ -169,7 +180,7 @@ export function useGitFileSelection(repo: GitRepositoryState) {
 
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [activeTab, activeFileSection, status])
+  }, [stagedQuery, unstagedQuery, activeTab, activeFileSection, status])
 
   return { handleConflictItemClick, handleConflictChecked, handleConflictContextMenu, handleStagedItemClick, handleStagedContextMenu, handleUnstagedItemClick, handleUnstagedContextMenu }
 }

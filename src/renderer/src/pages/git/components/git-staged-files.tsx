@@ -1,15 +1,22 @@
+import { GitChangesSearch } from "./git-changes-search"
+import { Button } from "@/components/ui/button"
+import { matchesGitFilePath } from "../file-filter"
 import { useGitSelectionReveal } from "../hooks/use-git-selection-reveal"
 import { gitChangeMarker, gitChangeMarkerClass } from "./file-change-marker"
 import { gitChangeStatusTitle } from "@/pages/git/components/file-change-status"
-import { getFilePresentation } from "@/components/workspace/components/layout-aside/layout-workspace-sidebar/utils"
+import { GitFileIcon } from "./git-file-icon"
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger } from "@/components/ui/context-menu"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Archive, CheckSquare, Copy, CodeXml, File, FileText, FolderOpen, Minus, Trash2 } from "lucide-react"
+import { Archive, CheckSquare, Copy, CodeXml, FileText, FolderOpen, Minus, Trash2 } from "lucide-react"
 import type { GitPageModel } from "@/pages/git/hooks/use-git-page"
 
 /** 已暂存文件列表 */
 export function GitStagedFiles({ g }: { g: GitPageModel }) {
   const { status, selectedFile, setSelectedFile, selectedStagedPaths, setSelectedStagedPaths, handleStagedItemClick, handleStagedContextMenu, handleUnstageFile, handleUnstageAll, handleDiscardStaged, handleUnstageMultiple, handleDiscardStagedMultiple, handleStashFiles, getFullPath, copyToClipboard, handleRevealInFinder, handleOpenInEditor } = g
+
+  const query = g.stagedFileQuery ?? ""
+  const allFiles = status?.staged ?? []
+  const visibleFiles = allFiles.filter(file => matchesGitFilePath(file.path, query))
 
   const selectionRoot = useGitSelectionReveal(g.repoPath, selectedFile?.path, g.activeFileSection === "staged", !!status)
 
@@ -18,10 +25,10 @@ export function GitStagedFiles({ g }: { g: GitPageModel }) {
                       <div className="flex shrink-0 items-center justify-between border-b border-stone-200 bg-stone-100/70 px-3 py-1.5 text-xs font-semibold text-stone-700">
                         <span className="flex items-center gap-1.5">
                           <span>已暂存文件 (Staged)</span>
-                          <span className="rounded-full bg-green-100 px-1.5 text-[10px] text-green-700">{status?.staged.length || 0}</span>
+                          <span className="rounded-full bg-green-100 px-1.5 text-[10px] text-green-700">{query.trim() ? `${visibleFiles.length} / ${allFiles.length}` : allFiles.length}</span>
                           {selectedStagedPaths.length > 1 && <span className="rounded bg-blue-100 px-1.5 py-0.5 text-[10px] text-blue-700 font-normal">已选 {selectedStagedPaths.length} 项</span>}
                         </span>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-0.5">
                           {selectedStagedPaths.length > 1 && (
                             <>
                               <button
@@ -44,18 +51,16 @@ export function GitStagedFiles({ g }: { g: GitPageModel }) {
                               </button>
                             </>
                           )}
-                          <button
-                            type="button"
-                            className="text-[11px] font-normal text-stone-500 hover:text-stone-800"
-                            onClick={handleUnstageAll}
-                          >
-                            全部取消
-                          </button>
+                          <GitChangesSearch key={g.repoPath} label="已暂存文件" query={query} onChange={g.setStagedFileQuery} />
+                          <Button type="button" variant="ghost" size="icon" aria-label="全部取消" data-title="全部取消" data-title-side="bottom" className="git-changes-action size-7 rounded-lg" disabled={g.loading || !allFiles.length} onClick={handleUnstageAll}>
+                            <Minus className="size-4" />
+                          </Button>
                         </div>
                       </div>
                       <ScrollArea ref={selectionRoot} className="git-changes-scroll flex-1 min-h-0 min-w-0 p-1">
                         <div className="space-y-0.5">
-                          {status?.staged.map((file, idx) => {
+                          {allFiles.map((file, idx) => {
+                            if (!matchesGitFilePath(file.path, query)) return null
                             const isSelected = selectedStagedPaths.includes(file.path)
                             const isPrimary = selectedFile?.path === file.path
                             const isMulti = selectedStagedPaths.length > 1 && isSelected
@@ -73,7 +78,7 @@ export function GitStagedFiles({ g }: { g: GitPageModel }) {
                                     }`}
                                   >
                                     <span className="flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden">
-                                      <File className={`size-3.5 shrink-0 ${getFilePresentation(file.path).color}`} />
+                                      <GitFileIcon path={file.path} />
                                       <span className={`w-3.5 shrink-0 text-center font-bold ${gitChangeMarkerClass(file.status)}`} data-title={gitChangeStatusTitle(file.status)} aria-label={gitChangeStatusTitle(file.status)}>{gitChangeMarker(file.status)}</span>
                                       <span
                                         className="truncate"
@@ -107,7 +112,7 @@ export function GitStagedFiles({ g }: { g: GitPageModel }) {
                                         <span>贮藏选中的 {selectedStagedPaths.length} 个文件…</span>
                                       </ContextMenuItem>
                                       <ContextMenuSeparator />
-                                      <ContextMenuItem onSelect={() => setSelectedStagedPaths(status?.staged.map((f) => f.path) || [])}>
+                                      <ContextMenuItem onSelect={() => setSelectedStagedPaths(visibleFiles.map((f) => f.path))}>
                                         <CheckSquare className="size-3.5 text-stone-500" />
                                         <span>全选暂存文件</span>
                                         <span className="ml-auto text-[10px] text-stone-400">⌘A</span>
@@ -157,7 +162,7 @@ export function GitStagedFiles({ g }: { g: GitPageModel }) {
                                         <FolderOpen className="size-3.5 text-stone-500" />
                                         <span>在访达中显示</span>
                                       </ContextMenuItem>
-                                      <ContextMenuItem onSelect={() => setSelectedStagedPaths(status?.staged.map((f) => f.path) || [])}>
+                                      <ContextMenuItem onSelect={() => setSelectedStagedPaths(visibleFiles.map((f) => f.path))}>
                                         <CheckSquare className="size-3.5 text-stone-500" />
                                         <span>全选暂存文件</span>
                                         <span className="ml-auto text-[10px] text-stone-400">⌘A</span>
@@ -185,6 +190,7 @@ export function GitStagedFiles({ g }: { g: GitPageModel }) {
                               </ContextMenu>
                             )
                           })}
+                          {!!allFiles.length && !visibleFiles.length && <p className="p-3 text-center text-xs text-stone-400">没有匹配的已暂存文件</p>}
                           {!status?.staged.length && <p className="p-3 text-center text-xs text-stone-400">暂无已暂存文件</p>}
                         </div>
                       </ScrollArea>
