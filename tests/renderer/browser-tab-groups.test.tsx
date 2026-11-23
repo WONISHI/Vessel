@@ -180,7 +180,10 @@ it("positions grouped item tooltips right except for the last group, which uses 
   const b = { tabs: local, tab: local[3], setActive: vi.fn(), setInput: vi.fn(), close: vi.fn(), add: vi.fn() } as unknown as BrowserPageModel
   const view = render(<BrowserTabs b={b} />)
   await waitFor(() => expect(view.container.querySelectorAll(".browser-tab-group")).toHaveLength(2))
+  const single = view.container.querySelector('.browser-tab:not([data-browser-group]) .browser-tab-select')!
+  expect(single.getAttribute("data-title-side")).toBeNull()
   const groups = view.container.querySelectorAll<HTMLElement>(".browser-tab-group")
+  expect(groups[1].querySelector(".browser-tab-select")?.getAttribute("data-title-side")).toBeNull()
   fireEvent.mouseEnter(groups[0])
   expect((await screen.findByRole("menuitem", { name: "文档一" })).getAttribute("data-title-side")).toBe("right")
   fireEvent.mouseEnter(groups[1])

@@ -1,16 +1,18 @@
 import { act, cleanup, fireEvent, render, renderHook, screen, waitFor } from "@testing-library/react"
 import { afterEach, beforeEach, expect, it, vi } from "vitest"
+import { toast } from "@/components/ui/sonner"
 import { PushDialog } from "@/pages/git/components/push-dialog"
 import { useGitCommitActions } from "@/pages/git/hooks/use-git-commit-actions"
 vi.mock("@vessel/react-router", () => ({ useRouter: () => ({ push: vi.fn() }) }))
 
 beforeEach(() => {
+  vi.spyOn(toast, "error").mockReturnValue("push-error")
   vi.stubGlobal("ResizeObserver", class { observe = vi.fn(); unobserve = vi.fn(); disconnect = vi.fn() })
   HTMLElement.prototype.scrollIntoView = vi.fn()
   window.electronAPI = { ...window.electronAPI, git: { ...window.electronAPI?.git, getPushInfo: vi.fn(async () => ({ remotes: [{ name: "origin", url: "/tmp/test.git" }], remoteBranches: [], branches: [{ name: "main", current: true, upstreamRemote: "", upstreamBranch: "" }] })) } }
 })
 
-afterEach(() => { cleanup(); vi.unstubAllGlobals() })
+afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.restoreAllMocks() })
 it("waits for confirmation and submits the selected local/remote mapping and tag/tracking choices", async () => {
   vi.stubGlobal("ResizeObserver", class { observe = vi.fn(); unobserve = vi.fn(); disconnect = vi.fn() })
   window.electronAPI = { ...window.electronAPI, git: { ...window.electronAPI?.git, getPushInfo: vi.fn(async () => ({ remotes: [{ name: "origin", url: "/tmp/test.git" }], remoteBranches: ["origin/main"], branches: [{ name: "main", current: true, upstreamRemote: "origin", upstreamBranch: "main" }, { name: "dev", current: false, upstreamRemote: "", upstreamBranch: "" }] })) } }
@@ -80,7 +82,9 @@ it("shows push progress until completion and restores the form after a failure",
   expect(screen.getByText("已等待 0 秒")).toBeTruthy()
   expect(screen.getByLabelText("当前项目").textContent).toBe("项目：repo")
   await act(async () => reject(new Error("remote failed")))
-  expect(await screen.findByRole("alert")).toHaveProperty("textContent", "remote failed")
+  expect(toast.error).toHaveBeenCalledExactlyOnceWith("remote failed")
+  expect(screen.queryByRole("alert")).toBeNull()
+  expect(screen.getByRole("button", { name: "确定" })).toBeTruthy()
   expect(screen.getByLabelText("推送分支 main").getAttribute("data-state")).toBe("checked")
   expect(onClose).not.toHaveBeenCalled()
 })
@@ -100,6 +104,7 @@ it("cancels the active push and waits for the process to stop before closing", a
   await act(async () => reject(new Error("推送已取消")))
   expect(onClose).toHaveBeenCalledOnce()
   expect(screen.queryByRole("alert")).toBeNull()
+  expect(toast.error).not.toHaveBeenCalled()
 })
 
 it("passes the active operation token to cancellation and releases the remote-operation lock", async () => {

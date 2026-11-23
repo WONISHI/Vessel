@@ -4,16 +4,17 @@ import { spawn } from "node:child_process"
 export async function runCancellableGit(args: string[], cwd: string, signal: AbortSignal): Promise<{ stdout: string; stderr: string; exitCode: number }> {
   signal.throwIfAborted()
   let binary = "git"
-  let env: NodeJS.ProcessEnv = { ...process.env, LC_ALL: "C", GIT_TERMINAL_PROMPT: "0" }
+  const systemEnv: NodeJS.ProcessEnv = { ...process.env, LC_ALL: "C", GIT_TERMINAL_PROMPT: "0" }
+  let env = systemEnv
   try {
     const { setupEnvironment } = await import("dugite")
-    const embedded = setupEnvironment(env)
+    const embedded = setupEnvironment({ ...systemEnv })
     binary = embedded.gitLocation
     env = embedded.env
   } catch { /* Fall back to system Git if the bundled environment is unavailable. */ }
-  const run = (executable: string) => new Promise<{ stdout: string; stderr: string; exitCode: number }>((resolve, reject) => {
+  const run = (executable: string, environment: NodeJS.ProcessEnv) => new Promise<{ stdout: string; stderr: string; exitCode: number }>((resolve, reject) => {
     signal.throwIfAborted()
-    const child = spawn(executable, args, { cwd, env, detached: process.platform !== "win32", windowsHide: true, stdio: ["ignore", "pipe", "pipe"] })
+    const child = spawn(executable, args, { cwd, env: environment, detached: process.platform !== "win32", windowsHide: true, stdio: ["ignore", "pipe", "pipe"] })
     let stdout = "", stderr = ""
     let timer: ReturnType<typeof setTimeout> | undefined
     const stop = () => {
@@ -44,9 +45,9 @@ export async function runCancellableGit(args: string[], cwd: string, signal: Abo
       else resolve({ stdout, stderr, exitCode: code ?? 1 })
     })
   })
-  try { return await run(binary) }
+  try { return await run(binary, env) }
   catch (error) {
-    if (!signal.aborted && binary !== "git" && (error as NodeJS.ErrnoException).code === "ENOENT") return run("git")
+    if (!signal.aborted && binary !== "git" && (error as NodeJS.ErrnoException).code === "ENOENT") return run("git", systemEnv)
     throw error
   }
 }

@@ -31,7 +31,7 @@ export function BrowserTabs({ b }: { b: BrowserPageModel }) {
             const memberIds = [item.id, ...members.filter((member) => member.id !== item.id).map((member) => member.id)]
             const title = item.title
             const closeLabel = grouped ? `关闭整个分组：${title}（${members.length} 个标签页）` : "关闭标签页"
-            const titleSide = grouped ? key === lastGroupKey ? "left" : "right" : groupIndex === 0 ? "right" : groupIndex === groups.length - 1 ? "left" : undefined
+            const titleSide = key === lastGroupKey ? "left" : "right"
             const row = <ContextMenu key={item.id} onOpenChange={setContextMenuOpen}>
               <ContextMenuTrigger asChild>
                 <div
@@ -59,7 +59,6 @@ export function BrowserTabs({ b }: { b: BrowserPageModel }) {
                       setInput(null)
                     }}
                     className={`browser-tab-select flex min-w-0 flex-1 items-center ${item.frozen ? "gap-3.5" : "gap-2"}`}
-                    data-title-side={titleSide}
                     data-title={members.length > 1 ? undefined : item.frozen ? `${item.title} · 已冷冻，点击重新加载` : item.videoPlaying ? `${item.title} · 正在播放视频` : item.title}
                   >
                     <span className="relative flex size-4 shrink-0 items-center justify-center">
