@@ -12,13 +12,13 @@ import { toast } from "@/components/ui/sonner"
 import { bindDoubleSpace } from "../../../../shared/double-space"
 import { useLocation, useNavigate } from "react-router-dom"
 import { useState, useRef, useEffect, useLayoutEffect, useCallback, type CSSProperties } from "react"
-import { ArrowLeft, ArrowRight, CalendarDays, House, Plus, Search, Network, X } from "lucide-react"
+import { ArrowLeft, ArrowRight, CalendarDays, House, VenetianMask, Plus, Search, Network, X } from "lucide-react"
 import { titlebarPage } from "./titlebar-page"
 import { BrowserFavicon } from "@/components/browser-favicon"
 import "./top-search.css"
 import { WorkspaceFilePicker } from "@/components/workspace-file-picker"
 import type { FilePickerRequest, FilePickerWorkspace } from "@/components/workspace-file-picker/types"
-import { useBrowserTabs, selectBrowserTab, browserTabAction } from "@/pages/browser/tab-state"
+import { useBrowserTabs, useBrowserIncognito, selectBrowserTab, browserTabAction } from "@/pages/browser/tab-state"
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { QuickPickerScrollArea } from "@/components/workspace-file-picker/quick-picker-scroll-area"
 import { QuickPickerFooter } from "@/components/workspace-file-picker/quick-picker-footer"
@@ -56,9 +56,12 @@ export function TopSearch() {
   const activityCollapsed = useActivityBarCollapsed()
   const workspacePage = /^\/editor(\/|$)/.test(displayPath)
   const showLayoutControls = !/^\/(settings|debug)(\/|$)/.test(displayPath)
-  const showPageTools = !statusVisible && !layoutScope && /^\/(editor|resources|browser)(\/|$)/.test(displayPath)
+  const showPageTools = !statusVisible && !layoutScope && /^\/(editor|resources|browser|api-client)(\/|$)/.test(displayPath)
   const page = titlebarPage(displayPath)
-  const PageIcon = page.icon
+  const incognito = useBrowserIncognito()
+  const privateBrowser = /^\/browser(\/|$)/.test(displayPath) && incognito
+  const apiPage = /^\/api-client(\/|$)/.test(displayPath)
+  const PageIcon = privateBrowser ? VenetianMask : page.icon
   const tabs = useBrowserTabs()
   const [open, setOpen] = useState(false)
   const [pickerSession, setPickerSession] = useState(0)
@@ -158,7 +161,7 @@ export function TopSearch() {
   const matching = tabs.filter((tab) => `${tab.title} ${tab.url}`.toLocaleLowerCase().includes(query.toLocaleLowerCase()))
   return <>
     <header data-git-search={git ? "true" : undefined} data-page-tools={showPageTools ? "true" : undefined} data-activity-menu={activityCollapsed ? "true" : undefined} data-feature-view={layoutScope ? "true" : undefined} data-workspace={workspacePage ? "true" : undefined} data-titlebar-clock={!statusVisible ? "true" : undefined} style={{ WebkitAppRegion: "drag" } as CSSProperties} className="vessel-main-titlebar fixed inset-x-0 top-0 z-40 flex h-9 shrink-0 items-center justify-center gap-2 border-b bg-white px-3 text-xs text-stone-500 dark:bg-[#22272e]">
-      <span style={{ left: 100, transform: `translateX(${fullscreen ? -86 : 0}px)` }} className="vessel-titlebar-identity pointer-events-none absolute flex max-w-[180px] items-center gap-2 truncate font-semibold"><PageIcon className="size-4 shrink-0 text-emerald-600" />{page.label}</span>
+      <span style={{ left: 100, transform: `translateX(${fullscreen ? -86 : 0}px)` }} className="vessel-titlebar-identity pointer-events-none absolute flex max-w-[180px] items-center gap-2 truncate font-semibold"><PageIcon aria-label={privateBrowser ? "无痕浏览图标" : undefined} style={privateBrowser ? { color: "#4792F1" } : undefined} className={`size-4 shrink-0 ${privateBrowser ? "" : apiPage ? "text-amber-500" : "text-emerald-600"}`} />{page.label}</span>
       {searchable && <div style={{ WebkitAppRegion: "no-drag" } as CSSProperties} className="vessel-titlebar-search flex min-w-0 items-center gap-2">
       <button type="button" aria-label={git ? "上一个变更文件" : "上一个标签页"} data-title={git ? "上一个变更文件" : "上一个标签页"} disabled={browser && activeBrowserIndex <= 0} className="rounded p-1 hover:bg-stone-200 disabled:pointer-events-none disabled:opacity-30 dark:hover:bg-white/10" onClick={() => switchTab(-1)}><ArrowLeft className="size-3.5" /></button>
       <button type="button" aria-label={git ? "下一个变更文件" : "下一个标签页"} data-title={git ? "下一个变更文件" : "下一个标签页"} disabled={browser && (activeBrowserIndex < 0 || activeBrowserIndex >= tabs.length - 1)} className="rounded p-1 hover:bg-stone-200 disabled:pointer-events-none disabled:opacity-30 dark:hover:bg-white/10" onClick={() => switchTab(1)}><ArrowRight className="size-3.5" /></button>

@@ -59,3 +59,46 @@ it("keeps the user window intact if private session creation fails", async () =>
   expect(result.current.incognito).toBe(false)
   expect(result.current.tabs).toEqual([user])
 })
+
+it("prepares the private session before animating first entry and reuses transitions when switching windows", async () => {
+  let prepared!: (partition: string) => void
+  create.mockImplementationOnce(() => new Promise(resolve => { prepared = resolve }))
+  const start = vi.fn((update: () => Promise<void>) => {
+    const done = Promise.resolve().then(update)
+    return { updateCallbackDone: done, ready: done, finished: done, skipTransition: vi.fn() }
+  })
+  Object.defineProperty(document, "startViewTransition", { configurable: true, value: start })
+  vi.stubGlobal("matchMedia", () => ({ matches: false }))
+  const page = renderHook(() => useBrowserState(true))
+  try {
+    act(() => page.result.current.setFindOpen(true))
+    let entering!: Promise<void>
+    act(() => { entering = page.result.current.enterIncognito() })
+    expect(start).not.toHaveBeenCalled()
+    expect(page.result.current.incognito).toBe(false)
+    await act(async () => { prepared("private-animation-test"); await entering })
+    expect(start).toHaveBeenCalledTimes(1)
+    expect(page.result.current.incognito).toBe(true)
+    expect(page.result.current.findOpen).toBe(false)
+    await act(async () => { page.result.current.switchUserWindow(); await Promise.resolve() })
+    expect(start).toHaveBeenCalledTimes(2)
+    expect(page.result.current.incognito).toBe(false)
+    await act(async () => { await page.result.current.enterIncognito() })
+    expect(start).toHaveBeenCalledTimes(3)
+    expect(create).toHaveBeenCalledOnce()
+    expect(page.result.current.incognito).toBe(true)
+  } finally {
+    await act(async () => { await page.result.current.closeIncognito() })
+    page.unmount()
+    delete (document as Document & { startViewTransition?: unknown }).startViewTransition
+  }
+})
+
+
+it("disposes a prepared session when a superseded transition never commits it", async () => {
+  const page = renderHook(() => useBrowserWindows({ tabs: [user], activeId: user.id }))
+  await act(async () => { await page.result.current.enterIncognito(vi.fn(async () => undefined)) })
+  expect(close).toHaveBeenCalledOnce()
+  expect(page.result.current.incognito).toBe(false)
+  expect(page.result.current.privateWindow).toBeUndefined()
+})

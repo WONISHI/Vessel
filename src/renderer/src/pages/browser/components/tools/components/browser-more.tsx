@@ -1,3 +1,4 @@
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { DownloadsSheet } from "@/pages/browser/components/downloads-sheet"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuShortcut, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
@@ -5,12 +6,16 @@ import { HistorySheet } from "@/pages/browser/components/history-sheet"
 import type { HistoryEntry } from "@vessel/type"
 import type { WebviewTag } from "electron"
 import { VenetianMask, UserRound, X, Download, Bookmark, KeyRound, History, MoreHorizontal, Printer, Search, Smartphone, ZoomIn, ZoomOut } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 
 /** Renders the browser more component. */
 export function BrowserMore({ visible = true, zoom, zoomFactor, onFind, onNavigate, guest, deviceMode, onDevice, bookmarksVisible, onToggleBookmarks, incognito = false, hasIncognito = false, onEnterIncognito, onCloseIncognito, onSwitchUserWindow }: { incognito?: boolean; hasIncognito?: boolean; onEnterIncognito?: () => Promise<void>; onCloseIncognito?: () => Promise<void>; onSwitchUserWindow?: () => void; bookmarksVisible: boolean; onToggleBookmarks: () => void; visible?: boolean; zoomFactor: number; zoom: (delta: number) => void; onFind: () => void; onNavigate: (url: string) => void; guest: () => WebviewTag | undefined; deviceMode: boolean; onDevice: () => void }) {
   const [open, setOpen] = useState(false)
+  const openingPanel = useRef(false)
+  const [confirmCloseIncognito, setConfirmCloseIncognito] = useState(false)
+  const [closingIncognito, setClosingIncognito] = useState(false)
+  const [closeIncognitoError, setCloseIncognitoError] = useState("")
   const [downloadsOpen, setDownloadsOpen] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
   const [history, setHistory] = useState<HistoryEntry[]>([])
@@ -18,7 +23,7 @@ export function BrowserMore({ visible = true, zoom, zoomFactor, onFind, onNaviga
 
   useEffect(() => {
     if (!visible) {
-      const timer = setTimeout(() => { setOpen(false); setHistoryOpen(false); setDownloadsOpen(false) }, 0)
+      const timer = setTimeout(() => { setOpen(false); setHistoryOpen(false); setDownloadsOpen(false); setConfirmCloseIncognito(false) }, 0)
       return () => clearTimeout(timer)
     }
     return undefined
@@ -55,9 +60,14 @@ export function BrowserMore({ visible = true, zoom, zoomFactor, onFind, onNaviga
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent
+          onCloseAutoFocus={(event) => {
+            if (!openingPanel.current) return
+            openingPanel.current = false
+            event.preventDefault()
+          }}
           align="end"
           sideOffset={8}
-          className="z-[250] w-60 rounded-xl border-stone-200 bg-white p-1.5 shadow-lg"
+          className="vessel-browser-more-popup z-[250] w-60 rounded-xl border-stone-200 bg-white p-1.5 shadow-lg"
         >
           <div className="flex items-center justify-between gap-3 px-2.5 py-2">
             <span className="text-xs text-stone-700 dark:text-stone-400">页面缩放</span>
@@ -91,7 +101,11 @@ export function BrowserMore({ visible = true, zoom, zoomFactor, onFind, onNaviga
             {incognito ? <UserRound /> : <VenetianMask />}
             {incognito ? "切换用户窗口" : hasIncognito ? "进入无痕窗口" : "打开无痕窗口"}
           </DropdownMenuItem>
-          {hasIncognito && <DropdownMenuItem className={itemClass} onSelect={() => run(() => { void onCloseIncognito?.().catch(error => toast.error(String(error))) })}>
+          {hasIncognito && <DropdownMenuItem className={itemClass} onSelect={() => {
+            openingPanel.current = true
+            setCloseIncognitoError("")
+            run(() => requestAnimationFrame(() => setConfirmCloseIncognito(true)))
+          }}>
             <X />关闭无痕窗口
           </DropdownMenuItem>}
 
@@ -118,7 +132,10 @@ export function BrowserMore({ visible = true, zoom, zoomFactor, onFind, onNaviga
           <DropdownMenuItem className={itemClass} onSelect={() => run(() => setDownloadsOpen(true))}>
             <Download />下载历史
           </DropdownMenuItem>
-          <DropdownMenuItem className={itemClass} onSelect={() => run(() => window.dispatchEvent(new Event("vessel-open-password-vault")))}>
+          <DropdownMenuItem className={itemClass} onSelect={() => {
+            openingPanel.current = true
+            run(() => requestAnimationFrame(() => window.dispatchEvent(new Event("vessel-open-password-vault"))))
+          }}>
             <KeyRound />账号和密码
           </DropdownMenuItem>
           <DropdownMenuItem
@@ -151,6 +168,16 @@ export function BrowserMore({ visible = true, zoom, zoomFactor, onFind, onNaviga
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+      <ConfirmDialog activityBarAccessible statusBarAccessible open={visible && confirmCloseIncognito} onOpenChange={setConfirmCloseIncognito}
+        title="确认关闭无痕窗口？" description="将关闭所有无痕标签页并清除本次无痕会话数据，未保存的内容将无法恢复。关闭后返回用户窗口。"
+        confirmText="确认关闭" busy={closingIncognito} error={closeIncognitoError}
+        onConfirm={() => {
+          if (closingIncognito) return
+          setClosingIncognito(true)
+          setCloseIncognitoError("")
+          void Promise.resolve().then(() => onCloseIncognito?.()).then(() => setConfirmCloseIncognito(false))
+            .catch(error => setCloseIncognitoError(String(error))).finally(() => setClosingIncognito(false))
+        }} />
       <DownloadsSheet open={visible && downloadsOpen} onOpenChange={setDownloadsOpen} />
       <HistorySheet
         open={visible && historyOpen}

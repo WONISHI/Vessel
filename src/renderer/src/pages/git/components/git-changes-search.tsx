@@ -8,8 +8,8 @@ export function GitChangesSearch({ query, onChange, label }: { query: string; on
   const [open, setOpen] = useState(false)
   return <Popover open={open} onOpenChange={setOpen}>
     <PopoverTrigger asChild>
-      <Button type="button" variant="ghost" size="icon" className="git-changes-action size-7 rounded-lg" aria-label={`搜索${label}`} data-title={`搜索${label}`} data-title-side="bottom" data-filtered={Boolean(query.trim())}>
-        <Search className="size-3.5" />
+      <Button type="button" variant="ghost" size="icon" className="git-changes-action size-7 rounded-md" aria-label={`搜索${label}`} data-title={`搜索${label}`} data-title-side="bottom" data-filtered={Boolean(query.trim())}>
+        <Search className="size-4" strokeWidth={1.75} />
       </Button>
     </PopoverTrigger>
     <PopoverContent align="end" side="bottom" sideOffset={6} className="flex w-64 items-center gap-1 rounded-xl p-2">

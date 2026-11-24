@@ -1,4 +1,3 @@
-import React from "react"
 import { act, cleanup, fireEvent, render, waitFor } from "@testing-library/react"
 import { afterEach, expect, it, vi } from "vitest"
 import { PasswordVault } from "@/pages/browser/components/password-vault"
@@ -15,7 +14,8 @@ it("opens from the browser menu and only displays a password after system authen
   window.electronAPI = { vaultRequest: request, onVaultCandidate: () => () => {} } as any
   const result = render(<PasswordVault />)
   act(() => { window.dispatchEvent(new Event("vessel-open-password-vault")) })
-  await waitFor(() => expect(result.getByText("alice")).toBeTruthy())
+  fireEvent.click(await result.findByRole("button", { name: "展开 example.com 账号分组" }))
+  expect(result.getByText("alice")).toBeTruthy()
   expect(result.queryByText("site-secret")).toBeNull()
   fireEvent.click(result.getByRole("button", { name: "查看密码" }))
   expect(request).toHaveBeenCalledWith("reveal", { id: "entry" })
@@ -55,7 +55,9 @@ it("lists and searches every saved site while locked without returning passwords
   window.electronAPI = { vaultRequest: request, onVaultCandidate: () => () => {} } as any
   const result = render(<PasswordVault url="https://example.com/current-page" />)
   act(() => { window.dispatchEvent(new Event("vessel-open-password-vault")) })
-  await waitFor(() => expect(result.getByText("bob")).toBeTruthy())
+  fireEvent.click(await result.findByRole("button", { name: "展开 example.com 账号分组" }))
+  fireEvent.click(result.getByRole("button", { name: "展开 other.test 账号分组" }))
+  expect(result.getByText("bob")).toBeTruthy()
   expect(result.getByText("alice")).toBeTruthy()
   expect(document.querySelector('img[src="https://other.test/favicon.ico"]')).toBeTruthy()
   expect(result.getAllByLabelText("已保存密码").every((node) => node.textContent === "••••••••")).toBe(true)
@@ -94,6 +96,8 @@ it("only shows the site key for matching saved origins and authenticates the sel
   fireEvent.click(result.getByRole("button", { name: "管理密码" }))
   await waitFor(() => expect(result.getByRole("heading", { name: "账号和密码" })).toBeTruthy())
   expect(result.getByRole("heading", { name: "账号和密码" }).closest('[role="dialog"]')?.className).toContain("slide-in-from-right")
+  expect(result.queryByText("other-user")).toBeNull()
+  fireEvent.click(result.getByRole("button", { name: "展开 other.test 账号分组" }))
   expect(result.getByText("other-user")).toBeTruthy()
   expect(result.queryByText("second-secret")).toBeNull()
   result.rerender(<PasswordVault url="https://not-saved.test/" />)

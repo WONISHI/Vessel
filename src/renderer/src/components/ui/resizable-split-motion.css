@@ -19,6 +19,10 @@
   visibility: hidden;
   pointer-events: none;
 }
+.resizable-split-motion[data-pane-side="bottom"][data-pane-open="false"] > [data-separator] {
+  width: 100% !important;
+  height: 0 !important;
+}
 /* Pointer resizing follows the separator immediately instead of easing behind it. */
 .resizable-split-motion:has(> [data-separator="active"]) > [data-panel] { transition: none !important; }
 .resizable-split-motion:has(> [data-separator="active"]) > #dock > .resizable-split-pane-content { width: 100% !important; }

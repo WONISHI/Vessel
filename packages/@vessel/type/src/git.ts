@@ -2,6 +2,8 @@ export interface GitFileStatus {
   path: string
   status: "M" | "A" | "D" | "R" | "C" | "U" | "?"
   oldPath?: string
+  additions?: number
+  deletions?: number
 }
 
 export interface GitStatusResult {

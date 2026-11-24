@@ -220,12 +220,40 @@
 .browser-content.dock-bottom {
   flex-direction: column;
 }
+/* Let the native console follow the animated panel's actual bounds on both axes. */
+.browser-content .resizable-split-pane-content {
+  width: 100% !important;
+  height: 100% !important;
+}
 .browser-devtools {
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
   background: white;
   border: 0;
+}
+html.dark .browser-devtools {
+  background: #23272d;
+  color: #e6e8eb;
+  color-scheme: dark;
+}
+html.dark .browser-devtools > header {
+  background: #23272d;
+  border-color: #30353c;
+  color: #b5bac1;
+}
+html.dark .browser-devtools > header select {
+  background: #20242a;
+  color: #e6e8eb;
+  border-color: #444c56;
+}
+html.dark .browser-devtools > header button:hover {
+  background: #ffffff1a;
+  color: #e6e8eb;
+}
+html.dark .browser-devtools > header :is(select, button):focus-visible {
+  outline: 2px solid #4ade80;
+  outline-offset: 1px;
 }
 .dock-bottom > .browser-devtools {
   height: 35vh;

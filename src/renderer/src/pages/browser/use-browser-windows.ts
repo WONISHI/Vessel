@@ -43,15 +43,24 @@ export function useBrowserWindows(initial: { tabs: Tab[]; activeId: string }) {
     if (!target?.tabs.some(tab => tab.id === id)) return value
     return { ...value, incognito: key === "private", [key]: { ...target, active: id } }
   }), [change])
-  const enterIncognito = useCallback(async () => {
+  const enterIncognito = useCallback(async (commit: (apply: () => void) => Promise<void> = async apply => { apply() }) => {
     if (pending.current) return
-    if (current.current.private) { change(value => ({ ...value, incognito: true })); return }
+    if (current.current.private) { await commit(() => change(value => ({ ...value, incognito: true }))); return }
     pending.current = true
     try {
       const partition = await window.electronAPI.createBrowserPrivateSession()
       if (!mounted.current) { await window.electronAPI.closeBrowserPrivateSession(); return }
       const tab = newTab()
-      change(value => ({ ...value, private: { tabs: [tab], active: tab.id, partition }, incognito: true }))
+      let committed = false
+      try {
+        await commit(() => {
+          if (!mounted.current) return
+          change(value => ({ ...value, private: { tabs: [tab], active: tab.id, partition }, incognito: true }))
+          committed = true
+        })
+      } finally {
+        if (!committed) await window.electronAPI.closeBrowserPrivateSession()
+      }
     } finally { pending.current = false }
   }, [change])
   const switchUserWindow = useCallback(() => change(value => ({ ...value, incognito: false })), [change])

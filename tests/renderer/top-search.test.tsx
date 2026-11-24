@@ -310,7 +310,7 @@ it('opens and switches full-page utility overlays without navigating or clearing
  expect(input.value).toBe('未保存内容')
 })
 
-it.each([['/editor', true], ['/editor/file', true], ['/resources', true], ['/browser', true], ['/todos', false], ['/devtools/json', false], ['/git', false], ['/settings', false], ['/editor/graph', false]])('shows status-bar fallback tools only where supported: %s', (path, expected) => {
+it.each([['/editor', true], ['/editor/file', true], ['/resources', true], ['/browser', true], ['/api-client', true], ['/todos', false], ['/devtools/json', false], ['/git', false], ['/settings', false], ['/editor/graph', false]])('shows status-bar fallback tools only where supported: %s', (path, expected) => {
  setStatusBarVisible(false)
  try {
   render(<MemoryRouter initialEntries={[path]}><TopSearch /></MemoryRouter>)
@@ -486,4 +486,15 @@ it('opens the active browser tab externally from page tools using the shared con
   fireEvent.click(screen.getByRole('button', { name: '打开', exact: true }))
   await waitFor(() => expect(openExternal).toHaveBeenCalledWith('https://current.test/path'))
  } finally { cleanup(); setStatusBarVisible(true) }
+})
+
+it('shows the blue incognito titlebar logo even for an empty private window and restores the browser icon', () => {
+ publishBrowserTabs([], true)
+ const view = render(<MemoryRouter initialEntries={['/browser']}><TopSearch /></MemoryRouter>)
+ const icon = screen.getByLabelText('无痕浏览图标')
+ expect(icon.style.color).toBe('rgb(71, 146, 241)')
+ expect(icon.classList.contains('lucide-venetian-mask')).toBe(true)
+ act(() => publishBrowserTabs([], false))
+ expect(screen.queryByLabelText('无痕浏览图标')).toBeNull()
+ expect(view.container.querySelector('.vessel-titlebar-identity .lucide-globe')).toBeTruthy()
 })

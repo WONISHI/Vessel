@@ -8,11 +8,10 @@ import { WebPreview } from "@/components/transit/panel/components/web-preview"
 import { selectTransit, useTransit } from "@/components/transit/state"
 import { ResizableSplit } from "@/components/ui/resizable-split"
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet"
-import { ChevronLeft, ChevronRight, Clipboard, FileText, Globe } from "lucide-react"
+import { ChevronLeft, ChevronRight, Clipboard, FileText, Globe, PanelTopClose, PanelTopOpen, PanelBottomOpen, PanelBottomClose } from "lucide-react"
 import "@vscode/codicons/dist/codicon.css"
 import { Suspense, useCallback, useRef, useState } from "react"
 import { toast } from "sonner"
-import { LayoutVisibilityControls } from "@/components/layout/layout-visibility-controls"
 import { useActivityBarCollapsed } from "@/features/activity-bar/collapse"
 
 const FilePreview = lazyWithRetry(() => import("@/components/transit/file-preview").then(({ FilePreview }) => ({ default: FilePreview })))
@@ -20,6 +19,7 @@ const FilePreview = lazyWithRetry(() => import("@/components/transit/file-previe
 /** Renders the transit panel component. */
 export function TransitPanel() {
   const activityCollapsed = useActivityBarCollapsed()
+  const [statusVisible, setStatusVisible] = useState(() => localStorage.getItem("vessel-transit-status-visible") !== "false")
   const { items, selected } = useTransit()
   const index = items.findIndex((i) => i.id === selected)
   const item = items[index]
@@ -84,7 +84,7 @@ export function TransitPanel() {
           <TransitDock value={dock} onChange={changeDock} />
           <button
             type="button"
-            className={`transit-bar-item ${tabsVisible ? "transit-active" : ""}`}
+            className="transit-bar-item"
             aria-label={tabsVisible ? "隐藏中转站标签栏" : "显示中转站标签栏"}
             data-title={tabsVisible ? "隐藏标签栏" : "显示标签栏"}
             aria-pressed={tabsVisible}
@@ -93,8 +93,8 @@ export function TransitPanel() {
               setTabsVisible(next)
               localStorage.setItem("vessel-transit-tabs-visible", String(next))
             }}
-          ><i aria-hidden="true" className="codicon codicon-browser" /></button>
-          <LayoutVisibilityControls activity={false} />
+          >{tabsVisible ? <PanelTopClose /> : <PanelTopOpen />}</button>
+          <button type="button" className="transit-bar-item" aria-label={statusVisible ? "隐藏底部状态栏" : "显示底部状态栏"} data-title={statusVisible ? "隐藏底部状态栏" : "显示底部状态栏"} aria-pressed={statusVisible} onClick={() => { const next = !statusVisible; setStatusVisible(next); localStorage.setItem("vessel-transit-status-visible", String(next)) }}>{statusVisible ? <PanelBottomClose /> : <PanelBottomOpen />}</button>
         </div>
         <button data-title="关闭" aria-label="关闭中转站" onClick={() => selectTransit(null)} className="transit-bar-item transit-close"><i aria-hidden="true" className="codicon codicon-chrome-close" /></button>
       </header>
@@ -125,7 +125,7 @@ export function TransitPanel() {
         <TransitTextPreview key={item.id} content={item.content} />
       )}
       </div>
-      <TransitStatus item={item} file={loaded?.id === item.id ? loaded.file : undefined} onSearch={() => setSearchRequest((value) => value + 1)} onRefresh={() => setRefresh((value) => value + 1)} />
+      <TransitStatus visible={statusVisible} item={item} file={loaded?.id === item.id ? loaded.file : undefined} onSearch={() => setSearchRequest((value) => value + 1)} onRefresh={() => setRefresh((value) => value + 1)} />
     </>
   )
   return (

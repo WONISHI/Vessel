@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vessel 欢迎页 · 登录设计稿</title>
+<style>
+  :root {
+    --bg: #ffffff; --panel: #ffffff; --text: #1c1917; --muted: #78716c; --soft: #a8a29e;
+    --field: #f5f5f4; --border: #e7e5e4; --green: #16a34a; --green-hover: #15803d; --green-soft: #ecfdf5;
+    --shadow: 0 1px 2px rgba(0,0,0,.04);
+    --font: "Plus Jakarta Sans", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #22272e; --panel: #22272e; --text: #e6edf3; --muted: #9aa4af; --soft: #6e7781; --field: #2d333b; --border: #3b434e; --green-soft: rgba(34,197,94,.14); }
+    .logo-light { display: none !important; } .logo-dark { display: block !important; }
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { height: 100%; }
+  body { font-family: var(--font); background: var(--bg); color: var(--text); display: flex; align-items: center; justify-content: center; padding: 32px; }
+  .stage { width: 100%; max-width: 980px; display: grid; grid-template-columns: 1fr 380px; gap: 96px; align-items: center; }
+  .logo-dark { display: none; }
+  .logo { width: 56px; height: 56px; object-fit: contain; margin-bottom: 36px; }
+  h1 { font-size: 40px; line-height: 1.2; font-weight: 800; letter-spacing: -.5px; }
+  .desc { margin-top: 20px; max-width: 360px; font-size: 14px; line-height: 1.8; color: var(--muted); }
+  .pills { display: flex; gap: 10px; margin-top: 32px; flex-wrap: wrap; }
+  .pill { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 12px; border: 1px solid var(--border); border-radius: 999px; font-size: 11px; font-weight: 600; box-shadow: var(--shadow); }
+  .pill svg { width: 13px; height: 13px; color: var(--green); }
+
+  .card h2 { font-size: 16px; font-weight: 700; }
+  .card .sub { margin-top: 6px; font-size: 12px; color: var(--soft); }
+  form { margin-top: 24px; display: grid; gap: 16px; }
+  label.field > span { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; font-size: 11px; color: var(--soft); }
+  label.field svg { width: 13px; height: 13px; }
+  .input { position: relative; }
+  .input input, .select-btn { width: 100%; height: 38px; padding: 0 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--field); color: var(--text); font: inherit; font-size: 13px; outline: none; transition: border-color .15s, box-shadow .15s; }
+  .input input::placeholder { color: var(--soft); }
+  .input input:focus, .select-btn:focus-visible, .select[open] .select-btn { border-color: var(--green); box-shadow: 0 0 0 3px rgba(22,163,74,.12); }
+  .input .eye { position: absolute; right: 6px; top: 5px; width: 28px; height: 28px; border: 0; border-radius: 6px; background: transparent; color: var(--soft); cursor: pointer; display: grid; place-items: center; }
+  .input .eye:is(:hover, :focus-visible) { background: var(--green) !important; color: #fff !important; }
+  .input .eye svg { width: 15px; height: 15px; }
+  .input input.has-eye { padding-right: 40px; }
+
+  .select { position: relative; }
+  .select summary { list-style: none; }
+  .select summary::-webkit-details-marker { display: none; }
+  .select-btn { display: flex; align-items: center; justify-content: space-between; cursor: pointer; }
+  .select-btn .value { display: flex; align-items: center; gap: 8px; }
+  .select-btn .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); }
+  .select-btn svg { width: 14px; height: 14px; color: var(--soft); transition: transform .15s; }
+  .select[open] .select-btn svg { transform: rotate(180deg); }
+  .menu { position: absolute; z-index: 5; left: 0; right: 0; top: calc(100% + 6px); padding: 4px; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,.12); }
+  .option { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 10px; border: 0; border-radius: 6px; background: transparent; color: var(--text); font: inherit; font-size: 13px; text-align: left; cursor: pointer; }
+  .option small { display: block; margin-top: 1px; font-size: 11px; color: var(--soft); }
+  .option .check { margin-left: auto; width: 14px; height: 14px; color: var(--green); visibility: hidden; }
+  .option[aria-checked="true"] .check { visibility: visible; }
+  .option:is(:hover, :focus-visible) { background: var(--green) !important; color: #fff !important; }
+  .option:hover small, .option:hover .check { color: #fff; }
+  .custom-domain { display: none; }
+  .custom-domain.show { display: block; }
+
+  .actions { display: grid; gap: 10px; margin-top: 4px; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 38px; border-radius: 8px; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; transition: background .15s, color .15s, border-color .15s; }
+  .btn svg { width: 15px; height: 15px; }
+  .btn.primary { border: 0; background: var(--green); color: #fff; }
+  .btn.primary:is(:hover, :focus-visible) { background: var(--green-hover) !important; color: #fff !important; }
+  .btn.ghost { border: 1px solid var(--border); background: transparent; color: var(--text); }
+  .btn.ghost:is(:hover, :focus-visible) { background: var(--green) !important; border-color: var(--green) !important; color: #fff !important; }
+  .btn.ghost:is(:hover, :focus-visible) svg { color: #fff !important; stroke: #fff !important; }
+  .divider { display: flex; align-items: center; gap: 12px; font-size: 11px; color: var(--soft); }
+  .divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+  .note { margin-top: 20px; text-align: center; font-size: 11px; color: var(--soft); }
+  @media (max-width: 860px) { .stage { grid-template-columns: 1fr; gap: 40px; } h1 { font-size: 32px; } }
+</style>
+</head>
+<body>
+<main class="stage">
+  <section>
+    <img class="logo logo-light" src="vessel-logo.png" alt="Vessel">
+    <img class="logo logo-dark" src="vessel-logo-dark.svg" alt="Vessel">
+    <h1>让知识在<br>画布上自由生长</h1>
+    <p class="desc">Vessel 是本地优先的可视化笔记工作区，支持 Markdown 与富文本混合编辑，你的数据完全属于自己。</p>
+    <div class="pills">
+      <span class="pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>无限画布</span>
+      <span class="pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 2l20 20M8.5 16.4a5 5 0 0 1 7 0M2 8.8a15 15 0 0 1 4-2.5M22 8.8A15 15 0 0 0 12 5"/></svg>离线可用</span>
+      <span class="pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>实时预览</span>
+    </div>
+  </section>
+
+  <section class="card" aria-labelledby="title">
+    <h2 id="title">登录 Vessel</h2>
+    <p class="sub">登录后同步你的工作区，也可以直接使用本地功能</p>
+    <form onsubmit="return false">
+      <label class="field"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>账号</span>
+        <div class="input"><input type="text" placeholder="请输入账号" autocomplete="username"></div></label>
+      <label class="field"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>密码</span>
+        <div class="input"><input id="pwd" class="has-eye" type="password" placeholder="请输入密码" autocomplete="current-password">
+          <button class="eye" type="button" aria-label="显示密码" onclick="const i=document.getElementById('pwd');i.type=i.type==='password'?'text':'password'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button></div></label>
+
+      <div class="field"><span style="display:flex;align-items:center;gap:6px;margin-bottom:8px;font-size:11px;color:var(--soft)"><svg style="width:13px;height:13px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>用户域</span>
+        <details class="select" id="domain">
+          <summary class="select-btn"><span class="value"><i class="dot"></i><span id="domain-label">系统域</span></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></summary>
+          <div class="menu" role="radiogroup" aria-label="用户域">
+            <button type="button" class="option" role="radio" aria-checked="true" data-value="system"><span>系统域<small>使用 Vessel 内置账号体系</small></span><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m5 12 5 5L20 7"/></svg></button>
+            <button type="button" class="option" role="radio" aria-checked="false" data-value="custom"><span>自定义域<small>连接你自己的账号服务</small></span><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m5 12 5 5L20 7"/></svg></button>
+          </div>
+        </details>
+      </div>
+      <label class="field custom-domain" id="custom"><span>域地址</span><div class="input"><input type="text" placeholder="例如 https://sso.example.com"></div></label>
+
+      <div class="actions">
+        <button class="btn primary" type="submit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg>登录</button>
+        <div class="divider">或</div>
+        <button class="btn ghost" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>直接使用</button>
+      </div>
+    </form>
+    <p class="note">数据保存在本地，无需联网 · 支持 Markdown / 富文本 / 图片</p>
+  </section>
+</main>
+<script>
+  const details = document.getElementById("domain"), label = document.getElementById("domain-label"), custom = document.getElementById("custom")
+  details.querySelectorAll(".option").forEach((option) => option.addEventListener("click", () => {
+    details.querySelectorAll(".option").forEach((item) => item.setAttribute("aria-checked", String(item === option)))
+    label.textContent = option.querySelector("span").firstChild.textContent
+    custom.classList.toggle("show", option.dataset.value === "custom")
+    details.open = false
+  }))
+  document.addEventListener("click", (event) => { if (!details.contains(event.target)) details.open = false })
+
+  // Hover fallback: apply the green state through inline !important styles, so embedded browsers that
+  // restyle pages (theme injection, forced colors) cannot override it.
+  const paint = (el, on) => {
+    const green = "#16a34a"
+    const rules = el.classList.contains("primary") ? { background: on ? "#15803d" : "", color: on ? "#fff" : "" } : { background: on ? green : "", "border-color": on ? green : "", color: on ? "#fff" : "" }
+    for (const [key, value] of Object.entries(rules)) value ? el.style.setProperty(key, value, "important") : el.style.removeProperty(key)
+    el.querySelectorAll("svg").forEach((svg) => { on ? (svg.style.setProperty("color", "#fff", "important"), svg.style.setProperty("stroke", "#fff", "important")) : (svg.style.removeProperty("color"), svg.style.removeProperty("stroke")) })
+  }
+  document.querySelectorAll(".btn, .option, .eye").forEach((el) => {
+    for (const [type, on] of [["pointerenter", true], ["pointerleave", false], ["focus", true], ["blur", false]]) el.addEventListener(type, () => paint(el, on))
+  })
+</script>
+</body>
+</html>

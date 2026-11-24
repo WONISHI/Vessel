@@ -14,9 +14,9 @@ export function GitCommitBar({ g }: { g: GitPageModel }) {
                       resetVersion={commitMessageReset}
                       onSubmit={() => { if (status?.staged.length && !status.conflicts.length) void handleCommit() }}
                     />
-                    <div className="mt-2 flex shrink-0 items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <label className="flex items-center gap-1.5 text-[11px] text-stone-500 cursor-pointer">
+                    <div className="mt-2 flex shrink-0 items-center justify-between gap-2">
+                      <div className="flex shrink-0 items-center gap-3">
+                        <label className="flex shrink-0 items-center gap-1.5 whitespace-nowrap text-[11px] text-stone-500 cursor-pointer">
                           <input
                             type="checkbox"
                             checked={isAmend}
@@ -28,7 +28,7 @@ export function GitCommitBar({ g }: { g: GitPageModel }) {
                         {commits.length > 0 && (
                           <button
                             type="button"
-                            className="flex items-center gap-1 text-[11px] text-amber-600 hover:text-amber-800 hover:underline"
+                            className="flex shrink-0 items-center gap-1 whitespace-nowrap text-[11px] text-amber-600 hover:text-amber-800 hover:underline"
                             onClick={() => void handleUndoLastCommit("mixed")}
                             data-title="撤销最后一次提交并将修改保留在工作区 (git reset HEAD~1)"
                           >
@@ -41,9 +41,10 @@ export function GitCommitBar({ g }: { g: GitPageModel }) {
                         size="sm"
                         disabled={!status?.staged.length || !!status?.conflicts.length}
                         onClick={handleCommit}
-                        className="bg-green-600 text-white hover:bg-green-700 h-7 text-xs px-3"
+                        className="min-w-0 max-w-[40%] bg-green-600 text-white hover:bg-green-700 h-7 text-xs px-3"
+                        data-title={`提交到 ${branches.current || "HEAD"}`}
                       >
-                        提交到 {branches.current || "HEAD"}
+                        <span className="truncate">提交到 {branches.current || "HEAD"}</span>
                       </Button>
                     </div>
                   </div>

@@ -413,12 +413,16 @@ html.dark .vessel-git-page [data-git-conflict-header] { background: #402b30 !imp
 html.dark .vessel-git-page [data-git-conflict-header] .bg-red-100 { background: #713039 !important; }
 
 /* Compact list-header actions share the toolbar's soft gray hover. */
-.git-changes-action { border: 0; background: transparent; box-shadow: none; color: #78716c; }
+.git-changes-action { border: 1px solid transparent; background: transparent; box-shadow: none; color: #78716c; transition: background-color 150ms, border-color 150ms, color 150ms; }
+.git-changes-action svg { stroke-width: 1.75; }
+.git-changes-action:focus-visible { outline: 2px solid #16a34a; outline-offset: 1px; }
 html .vessel-git-page .git-changes-action:not(:disabled):is(:hover, :focus-visible, [data-state="open"]) {
-  background: #efeeec !important;
-  color: #44403c !important;
+  background: #eeedeb !important;
+  border-color: transparent;
+  color: #78716c !important;
 }
 html.dark .vessel-git-page .git-changes-action:not(:disabled):is(:hover, :focus-visible, [data-state="open"]) {
   background: #ffffff0f !important;
+  border-color: transparent;
   color: #e6e8eb !important;
 }

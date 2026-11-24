@@ -13,6 +13,8 @@ it("groups same-domain accounts, retains individual actions, and searches within
   const group = screen.getByRole("region", { name: "github.com 账号分组" })
   expect(screen.getAllByText("github.com")).toHaveLength(1)
   expect(within(group).getByText("2 个账号")).toBeTruthy()
+  expect(within(group).queryByText("first-user")).toBeNull()
+  fireEvent.click(within(group).getByRole("button", { name: "展开 github.com 账号分组" }))
   fireEvent.click(within(group).getAllByRole("button", { name: "查看密码" })[1])
   expect(reveal).toHaveBeenCalledWith("second")
   fireEvent.click(within(group).getAllByRole("button", { name: "删除账号" })[0])
@@ -21,6 +23,10 @@ it("groups same-domain accounts, retains individual actions, and searches within
   expect(screen.queryByText("first-user")).toBeNull()
   expect(screen.queryByText("other.test")).toBeNull()
   expect(screen.getByText("second-user")).toBeTruthy()
+  fireEvent.click(screen.getByRole("button", { name: "收起 github.com 账号分组" }))
+  expect(screen.queryByText("second-user")).toBeNull()
+  fireEvent.change(screen.getByRole("textbox", { name: "搜索保存的账号" }), { target: { value: "other" } })
+  expect(screen.getByText("other-user")).toBeTruthy()
 })
 it("shows origin and Git metadata separately when a domain has different credential contexts", () => {
   render(<PasswordAccounts items={[
@@ -28,6 +34,7 @@ it("shows origin and Git metadata separately when a domain has different credent
     { id: "git", origin: "http://localhost:8090", username: "git-user", kind: "git", gitPath: "team/repo.git", updated: 1 }
   ]} revealed={{ id: "git", password: "fixture-token" }} busy={false} requiresUnlock={false} onReveal={vi.fn()} onDelete={vi.fn()} onSettings={vi.fn()} />)
   expect(screen.getAllByRole("region")).toHaveLength(1)
+  fireEvent.click(screen.getByRole("button", { name: "展开 localhost 账号分组" }))
   expect(screen.getByText("http://localhost:9523")).toBeTruthy()
   expect(screen.getByText("http://localhost:8090")).toBeTruthy()
   expect(screen.getByText("Git")).toBeTruthy()

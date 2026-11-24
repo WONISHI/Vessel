@@ -61,3 +61,33 @@ it("reads Git's pending merge message through conflict resolution and ignores st
     expect((await service.getStatus(root)).mergeMessage).toBeUndefined()
   } finally { await rm(root, { recursive: true, force: true }) }
 })
+
+it("reports separate index/worktree line counts, renamed paths and new text files without binary counts", async () => {
+  const root = await mkdtemp(join(tmpdir(), "vessel-git-line-stats-"))
+  const git = (...args: string[]) => execFileSync("git", args, { cwd: root, stdio: "pipe" })
+  try {
+    git("init", "-b", "main")
+    git("config", "user.name", "Test"); git("config", "user.email", "test@example.com")
+    await writeFile(join(root, "partial.txt"), "one\ntwo\nthree\n")
+    await writeFile(join(root, "old.txt"), Array.from({ length: 20 }, (_, i) => `${i}\n`).join(""))
+    await writeFile(join(root, "binary.bin"), Buffer.from([0, 1, 2]))
+    git("add", "."); git("commit", "-m", "initial")
+    await writeFile(join(root, "partial.txt"), "one\nTWO\nthree\nfour\n")
+    await rename(join(root, "old.txt"), join(root, "重命名\t换行\n.txt"))
+    await writeFile(join(root, "重命名\t换行\n.txt"), Array.from({ length: 20 }, (_, i) => `${i}\n`).join("") + "new\n")
+    await writeFile(join(root, "binary.bin"), Buffer.from([0, 3, 4]))
+    git("add", "-A")
+    await writeFile(join(root, "partial.txt"), "one\nTWO\nfour\n")
+    await writeFile(join(root, "新文件\t换行\n.md"), "first\nsecond")
+    await writeFile(join(root, "new.bin"), Buffer.from([0, 3, 4]))
+    const status = await new GitService().getStatus(root)
+    expect(status.staged.find(f => f.path === "partial.txt")).toMatchObject({ additions: 2, deletions: 1 })
+    expect(status.unstaged.find(f => f.path === "partial.txt")).toMatchObject({ additions: 0, deletions: 1 })
+    expect(status.staged.find(f => f.status === "R")).toMatchObject({ path: "重命名\t换行\n.txt", additions: 1, deletions: 0 })
+    expect(status.untracked.find(f => f.path.endsWith(".md"))).toMatchObject({ additions: 2, deletions: 0 })
+    for (const file of [...status.staged, ...status.untracked].filter(f => f.path.endsWith(".bin"))) {
+      expect(file.additions).toBeUndefined()
+      expect(file.deletions).toBeUndefined()
+    }
+  } finally { await rm(root, { recursive: true, force: true }) }
+})

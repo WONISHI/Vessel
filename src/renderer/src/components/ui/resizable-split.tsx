@@ -48,6 +48,7 @@ export function ResizableSplit({ children, pane, side = "right", size, min, max,
         orientation={side === "bottom" ? "vertical" : "horizontal"}
         className={motion ? "resizable-split-motion min-h-0 w-full flex-1" : "min-h-0 w-full flex-1"}
         data-pane-open={motion ? String(paneOpen) : undefined}
+        data-pane-side={motion ? side : undefined}
         onLayoutChanged={(_layout, meta) => {
           if (motion && paneOpen && meta.isUserInteraction) {
             const pixels = dockRef.current?.getSize().inPixels

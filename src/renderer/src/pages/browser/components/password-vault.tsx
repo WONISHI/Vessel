@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogPortal } from "@/components/ui/dialog"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Eye, EyeOff } from "lucide-react"
+import { Eye, EyeOff, KeyRound } from "lucide-react"
+import "./password-vault.css"
 
 type Entry = { id: string; origin: string; username: string; updated: number; kind?: "git"; gitPath?: string }
 type Candidate = { id: string; origin: string; username: string }
@@ -144,10 +145,13 @@ export function PasswordVault({ guestId, url }: { guestId?: () => number | undef
       {!manage && <DialogPortal>
         <div data-vault-overlay aria-hidden="true" style={layout.overlayStyle} className="fixed top-0 right-0 z-[220] bg-black/[.04] backdrop-blur-[3px]" />
       </DialogPortal>}
-      <PanelContent style={manage ? layout.sheetStyle : layout.contentStyle} {...(manage ? { showOverlay: false, side: "right" as const } : {})} onSubmit={(event) => event.stopPropagation()} className={manage ? "z-[221] top-0 flex h-auto flex-col gap-3 p-4 sm:max-w-sm" : "z-[221] flex max-h-[85vh] flex-col gap-3 p-4 sm:max-w-sm"}>
-        <DialogHeader><DialogTitle className="text-base">{manage ? "账号和密码" : candidate ? "保存密码？" : "账号和密码设置"}</DialogTitle><DialogDescription>{manage ? "查看 Vessel 保存的网站和 Git 账号，密码默认隐藏。查看密码需要验证身份。" : candidate ? "Vessel 会用系统钥匙串加密保存在本机，之后可在浏览器菜单的“账号和密码”中查看。" : "账号和密码使用系统钥匙串加密保存在本机；查看密码需要通过系统身份验证。"}</DialogDescription></DialogHeader>
-        <ScrollArea className={manage ? "min-h-0 flex-1" : "min-h-0 flex-1 [&_[data-radix-scroll-area-viewport]]:max-h-[55vh]"}>
-          <div className="space-y-3 pr-3 text-sm">
+      <PanelContent onFocusOutside={(event) => { if (manage) event.preventDefault() }} data-vault-settings={manage ? undefined : ""} style={manage ? layout.sheetStyle : layout.contentStyle} {...(manage ? { showOverlay: false, side: "right" as const } : { showCloseButton: false })} onSubmit={(event) => event.stopPropagation()} className={manage ? "z-[221] top-0 flex h-auto flex-col gap-2 p-3 sm:max-w-sm" : "z-[221] flex max-h-[85vh] max-w-[460px] flex-col gap-0 overflow-hidden p-0"}>
+        <div className={manage ? undefined : "flex shrink-0 items-center gap-3 border-b border-stone-200/80 px-5 py-3.5 dark:border-stone-700/70"}>
+          {!manage && <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-green-50 text-green-600 dark:bg-green-500/10 dark:text-green-400"><KeyRound className="size-4" /></span>}
+          <DialogHeader className={manage ? undefined : "min-w-0 space-y-0.5 text-left"}><DialogTitle className={"text-[15px] font-semibold"}>{manage ? "账号和密码" : candidate ? "保存密码？" : "账号和密码设置"}</DialogTitle><DialogDescription className="text-xs leading-5">{manage ? "查看 Vessel 保存的网站和 Git 账号，密码默认隐藏。查看密码需要验证身份。" : candidate ? "Vessel 会用系统钥匙串加密保存在本机，之后可在浏览器菜单的“账号和密码”中查看。" : "账号和密码使用系统钥匙串加密保存在本机；查看密码需要通过系统身份验证。"}</DialogDescription></DialogHeader>
+        </div>
+        <ScrollArea className={manage ? "min-h-0 flex-1" : "min-h-0 flex-1 px-5 py-4 [&_[data-radix-scroll-area-viewport]]:max-h-[55vh]"}>
+          <div className={manage ? "space-y-2 pr-1 text-xs" : "space-y-3 text-xs"}>
             {manage ? <>
               <PasswordAccounts items={items} revealed={revealed} busy={busy} requiresUnlock={requiresUnlock} onReveal={(id) => void reveal(id)} onDelete={setDeleteId} onSettings={() => setManage(false)} />
               {unlockForm}
@@ -177,16 +181,14 @@ export function PasswordVault({ guestId, url }: { guestId?: () => number | undef
                 </div>
               </div>}
               {!candidate && <p className="text-muted-foreground">已保存 {items.length} 个账号；只能填充到相同网站来源，协议、主机和端口均须一致。</p>}
-              {!candidate && items.map((item) => <div key={item.id} className="space-y-2 rounded border p-3">
-                <p className="break-all">{item.origin}</p><p className="break-all">{item.username || "未提供账号"}</p>
-                <div className="flex items-center gap-2">
+              {!candidate && items.map((item) => <div key={item.id} className="space-y-2 rounded-lg border p-3">
+                <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1"><p className="min-w-0 break-all font-medium">{item.origin}</p><p className="min-w-0 break-all text-muted-foreground">{item.username || "未提供账号"}</p></div>
+                <div className="flex flex-wrap items-center gap-2">
                   <span className="min-w-0 flex-1 break-all font-mono text-xs select-text" aria-label="已保存密码">{revealed?.id === item.id ? revealed.password : "••••••••"}</span>
-                  <Button variant="outline" disabled={busy} aria-label={revealed?.id === item.id ? "隐藏密码" : "查看密码"} onClick={() => void reveal(item.id)}>
+                  <Button variant="outline" className="hover:text-white" disabled={busy} aria-label={revealed?.id === item.id ? "隐藏密码" : "查看密码"} onClick={() => void reveal(item.id)}>
                     {revealed?.id === item.id ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                     {revealed?.id === item.id ? "隐藏密码" : "查看密码"}
                   </Button>
-                </div>
-                <div className="flex gap-2">
                   {guestId && <Button disabled={busy || origin !== item.origin} onClick={() => {
                     const id = guestId()
                     if (id !== undefined) void run("fill", { id: item.id, guestId: String(id) })
@@ -206,6 +208,7 @@ export function PasswordVault({ guestId, url }: { guestId?: () => number | undef
             {error && <p role="alert" className="break-all text-sm text-red-600">{error}</p>}
           </div>
         </ScrollArea>
+        {!manage && <div className="flex shrink-0 justify-end border-t border-stone-200/80 px-5 py-3 dark:border-stone-700/70"><Button variant="outline" size="sm" onClick={() => changeOpen(false)}>关闭</Button></div>}
       </PanelContent>
     </Panel>
   </>

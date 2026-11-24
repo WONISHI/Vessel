@@ -132,7 +132,7 @@ export default function SourceTreePage() {
                 <ResizablePanel
                   id="git-file-list"
                   defaultSize="60%"
-                  minSize="20%"
+                  minSize="360px"
                   maxSize={diffInSheet ? "100%" : "85%"}
                   className="git-file-panel flex flex-col min-h-0 min-w-0 bg-stone-50/30"
                 >

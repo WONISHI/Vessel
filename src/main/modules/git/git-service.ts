@@ -13,6 +13,22 @@ const HISTORY_REVISIONS = ["--branches", "--remotes", "--tags", "HEAD"]
 // Show what a commit introduced to its branch, including changes brought in by merges.
 const COMMIT_DIFF_OPTIONS = ["--diff-merges=first-parent", "--no-ext-diff", "--no-textconv", "--no-color", "--find-renames", "--format="]
 
+/** NUL-delimited numstat preserves tabs/newlines and both paths of a rename. */
+function fileLineStats(output: string) {
+  const stats = new Map<string, { additions: number; deletions: number }>()
+  const entries = output.split("\0")
+  for (let index = 0; index < entries.length; index++) {
+    const match = entries[index].match(/^(\d+|-)\t(\d+|-)\t([\s\S]*)$/)
+    if (!match) continue
+    let path = match[3]
+    if (!path) { index += 2; path = entries[index] }
+    if (!path || match[1] === "-" || match[2] === "-") continue
+    const additions = Number(match[1]), deletions = Number(match[2])
+    if (additions || deletions) stats.set(path, { additions, deletions })
+  }
+  return stats
+}
+
 /** 执行 Git 命令：优先使用 dugite，无法启动时回退；命令非零退出码不重试 */
 export async function runGit(args: string[], cwd: string): Promise<{ stdout: string; stderr: string; exitCode: number }> {
   try {
@@ -156,6 +172,26 @@ export class GitService {
         unstaged.push({ path: filePath, status: y as any })
       }
     }
+
+    // Compare the index to HEAD and the worktree to the index independently.
+    const diffOptions = ["--numstat", "-z", "--no-ext-diff", "--no-textconv", "--find-renames"]
+    await Promise.all([
+      ...([ [staged, ["diff", "--cached", ...diffOptions]], [unstaged, ["diff", ...diffOptions]] ] as const).map(async ([files, args]) => {
+        if (!files.length) return
+        const result = await runGit([...args], cwd)
+        if (result.exitCode !== 0) return
+        const stats = fileLineStats(result.stdout)
+        for (const file of files) Object.assign(file, stats.get(file.path))
+      }),
+      // Bound concurrency when a repository contains many new files.
+      ...Array.from({ length: Math.min(4, untracked.length) }, (_, worker) => (async () => {
+        for (let index = worker; index < untracked.length; index += 4) {
+          const file = untracked[index]
+          const result = await runGit(["diff", "--no-index", ...diffOptions, "--", "/dev/null", file.path], cwd)
+          if (result.exitCode <= 1) Object.assign(file, fileLineStats(result.stdout).get(file.path))
+        }
+      })())
+    ])
 
     let mergeMessage: string | undefined
     // Resolve the per-worktree Git directory rather than assuming cwd/.git is a folder.

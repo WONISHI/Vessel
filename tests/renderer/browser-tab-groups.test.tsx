@@ -190,3 +190,30 @@ it("positions grouped item tooltips right except for the last group, which uses 
   expect((await screen.findByRole("menuitem", { name: "年休假" })).getAttribute("data-title-side")).toBe("left")
   expect(groups[1].querySelector(".browser-tab-select")?.textContent).toBe("年休假")
 })
+
+it.each(["https://docs.test/", "file:///tmp/"])("returns to the last selected member of %s after switching away", (base) => {
+  const members = [
+    { ...tabs[0], url: `${base}a`, lastActiveAt: 100 },
+    { ...tabs[2], url: `${base}b`, lastActiveAt: 200 }
+  ]
+  expect(groupBrowserTabs([...members, tabs[1]], "other", true)[0].tab.id).toBe("two")
+  const selectedFirst = members.map(item => item.id === "one" ? { ...item, lastActiveAt: 300 } : item)
+  const groups = groupBrowserTabs([...selectedFirst, tabs[1]], "other", true)
+  expect(groups[0].tab.id).toBe("one")
+  expect(groupBrowserTabs(selectedFirst, "two", true)[0].tab.id).toBe("two")
+  expect(groupBrowserTabs([selectedFirst[1], tabs[1]], "other", true)[0].tab.id).toBe("two")
+})
+
+it("clicks the previously selected page when returning to an inactive domain group", () => {
+  vi.stubGlobal("electronAPI", { getSettings: vi.fn(async () => ({ browserGroupSameDomain: true })) })
+  const setActive = vi.fn()
+  const remembered = tabs.map(item => ({ ...item, lastActiveAt: item.id === "two" ? 300 : 100 }))
+  const model = { tabs: remembered, tab: remembered[1], setActive, setInput: vi.fn(), close: vi.fn(), add: vi.fn(), setDragTabId: vi.fn() } as unknown as BrowserPageModel
+  const view = render(<BrowserTabs b={model} />)
+  fireEvent.click(view.container.querySelector('.browser-tab-group .browser-tab-select')!)
+  expect(setActive).toHaveBeenLastCalledWith("two")
+  const changed = remembered.map(item => item.id === "one" ? { ...item, lastActiveAt: 500 } : item)
+  view.rerender(<BrowserTabs b={{ ...model, tabs: changed }} />)
+  fireEvent.click(view.container.querySelector('.browser-tab-group .browser-tab-select')!)
+  expect(setActive).toHaveBeenLastCalledWith("one")
+})

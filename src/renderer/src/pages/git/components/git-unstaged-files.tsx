@@ -1,3 +1,7 @@
+import { GitFileLineStats } from "./git-file-line-stats"
+import { GitChangesTree } from "./git-changes-tree"
+import { GitChangesViewToggle } from "./git-changes-view-toggle"
+import { useGitChangesView } from "../hooks/use-git-changes-view"
 import { GitChangesSearch } from "./git-changes-search"
 import { Button } from "@/components/ui/button"
 import { matchesGitFilePath } from "../file-filter"
@@ -7,13 +11,14 @@ import { gitChangeStatusTitle } from "@/pages/git/components/file-change-status"
 import { GitFileIcon } from "./git-file-icon"
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger } from "@/components/ui/context-menu"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Archive, CheckSquare, Copy, CodeXml, FileText, FolderOpen, Plus, Trash2 } from "lucide-react"
+import { Archive, CheckSquare, Copy, CodeXml, FileText, FolderOpen, ListPlus, Plus, Trash2 } from "lucide-react"
 import type { GitPageModel } from "@/pages/git/hooks/use-git-page"
 
 /** 未暂存更改列表 */
 export function GitUnstagedFiles({ g }: { g: GitPageModel }) {
   const { status, selectedFile, setSelectedFile, selectedUnstagedPaths, setSelectedUnstagedPaths, handleUnstagedItemClick, handleUnstagedContextMenu, handleStageFile, handleStageAll, handleDiscard, handleStageMultiple, handleDiscardMultiple, handleStashFiles, getFullPath, copyToClipboard, handleRevealInFinder, handleOpenInEditor } = g
 
+  const { tree, toggleTree } = useGitChangesView("unstaged")
   const query = g.unstagedFileQuery ?? ""
   const allFiles = [...(status?.unstaged ?? []), ...(status?.untracked ?? [])]
   const visibleFiles = allFiles.filter(file => matchesGitFilePath(file.path, query))
@@ -51,15 +56,16 @@ export function GitUnstagedFiles({ g }: { g: GitPageModel }) {
                               </button>
                             </>
                           )}
+                          <GitChangesViewToggle tree={tree} onToggle={toggleTree} label="未暂存文件" />
                           <GitChangesSearch key={g.repoPath} label="未暂存文件" query={query} onChange={g.setUnstagedFileQuery} />
                           <Button type="button" variant="ghost" size="icon" aria-label="全部暂存" data-title="全部暂存" data-title-side="bottom" className="git-changes-action size-7 rounded-lg" disabled={g.loading || !allFiles.length} onClick={handleStageAll}>
-                            <Plus className="size-4" />
+                            <ListPlus className="size-4" strokeWidth={1.75} />
                           </Button>
                         </div>
                       </div>
                       <ScrollArea ref={selectionRoot} className="git-changes-scroll flex-1 min-h-0 min-w-0 p-1">
                         <div className="space-y-0.5">
-                          {allFiles.map((file, idx) => {
+                          <GitChangesTree key={g.repoPath} files={allFiles} query={query} tree={tree} renderFile={(file, idx, tree) => {
                             if (!matchesGitFilePath(file.path, query)) return null
                             const allUnstaged = visibleFiles
                             const isSelected = selectedUnstagedPaths.includes(file.path)
@@ -70,6 +76,10 @@ export function GitUnstagedFiles({ g }: { g: GitPageModel }) {
                               <ContextMenu key={file.path}>
                                 <ContextMenuTrigger asChild>
                                   <div
+                                    style={tree ? { paddingLeft: "var(--git-tree-padding)" } : undefined}
+                                    role="button"
+                                    tabIndex={0}
+                                    onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); event.currentTarget.click() } }}
                                     data-git-file-selected={isSelected}
                                     data-git-primary-file={isPrimary && isSelected}
                                     onClick={(e) => handleUnstagedItemClick(e, file, idx)}
@@ -78,17 +88,19 @@ export function GitUnstagedFiles({ g }: { g: GitPageModel }) {
                                       isSelected ? (isPrimary ? "bg-stone-200 font-semibold text-stone-900 shadow-xs" : "bg-stone-200/70 text-stone-800") : "hover:bg-stone-100 text-stone-700"
                                     }`}
                                   >
-                                    <span className="flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden">
+                                    <span className="flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden" style={tree ? { gap: "var(--git-tree-column-gap)" } : undefined}>
                                       <GitFileIcon path={file.path} />
-                                      <span data-title={gitChangeStatusTitle(file.status)} aria-label={gitChangeStatusTitle(file.status)} className={`w-3.5 shrink-0 text-center font-bold ${gitChangeMarkerClass(file.status)}`}>{gitChangeMarker(file.status)}</span>
                                       <span
-                                        className="truncate"
+                                        className="min-w-0 flex-1 truncate"
                                         data-title={file.path}
                                       >
-                                        {file.path}
+                                        {tree ? file.path.replace(/\\/g, "/").split("/").at(-1) : file.path}
                                       </span>
                                     </span>
-                                    <div className="flex shrink-0 items-center gap-0.5 opacity-0 group-hover:opacity-100">
+                                    <GitFileLineStats file={file} />
+                                    <div className="relative h-[22px] w-[22px] shrink-0 group-hover:w-12 group-focus-within:w-12">
+                                      <span data-git-status-marker data-title={gitChangeStatusTitle(file.status)} aria-label={gitChangeStatusTitle(file.status)} className={`absolute right-1 top-1/2 -translate-y-1/2 w-3.5 text-center font-bold group-hover:opacity-0 group-focus-within:opacity-0 ${gitChangeMarkerClass(file.status)}`}>{gitChangeMarker(file.status)}</span>
+                                      <div className="absolute inset-0 flex items-center justify-end gap-0.5 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto">
                                       <button
                                         type="button"
                                         data-title="暂存此文件"
@@ -111,6 +123,7 @@ export function GitUnstagedFiles({ g }: { g: GitPageModel }) {
                                       >
                                         <Trash2 className="size-3.5" />
                                       </button>
+                                      </div>
                                     </div>
                                   </div>
                                 </ContextMenuTrigger>
@@ -203,7 +216,7 @@ export function GitUnstagedFiles({ g }: { g: GitPageModel }) {
                                 </ContextMenuContent>
                               </ContextMenu>
                             )
-                          })}
+                          }} />
                           {!!allFiles.length && !visibleFiles.length && <p className="p-3 text-center text-xs text-stone-400">没有匹配的未暂存文件</p>}
                           {!status?.unstaged.length && !status?.untracked.length && <p className="p-3 text-center text-xs text-stone-400">工作区干净，无任何变更</p>}
                         </div>

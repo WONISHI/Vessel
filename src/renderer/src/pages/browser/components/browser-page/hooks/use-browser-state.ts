@@ -2,6 +2,7 @@ import { freezeBrowserTab, useTabFreezing, wakeBrowserTab } from "@/pages/browse
 import { useBrowserWindows } from "@/pages/browser/use-browser-windows"
 import { useActivatedTabs } from "@/pages/browser/use-activated-tabs"
 import { BROWSER_ACTIVE_TAB_KEY, BROWSER_TABS_KEY, loadSavedBrowserTabs, newTab, PAGE_EXTRACTOR_SCRIPT, SavedBrowserTab, shortcuts } from "@/pages/browser/components/index-shared"
+import { transitionPage } from "@/lib/page-transition"
 import { publishBrowserTabs } from "@/pages/browser/tab-state"
 import { useRouter } from "@vessel/react-router"
 import type { WebviewTag } from "electron"
@@ -181,8 +182,8 @@ export function useBrowserState(visible: boolean) {
     }
   }, [active, tabs])
   useEffect(() => {
-    publishBrowserTabs(tabs.filter((item) => Boolean(item.url)).map((item) => ({ id: item.id, title: item.title, url: item.url, favicon: item.favicon, frozen: item.frozen, active: item.id === tab.id })))
-  }, [tabs, tab.id])
+    publishBrowserTabs(tabs.filter((item) => Boolean(item.url)).map((item) => ({ id: item.id, title: item.title, url: item.url, favicon: item.favicon, frozen: item.frozen, active: item.id === tab.id })), browserWindows.incognito)
+  }, [tabs, tab.id, browserWindows.incognito])
   const lastSavedTabs = useRef("")
   useEffect(() => {
     try {
@@ -216,9 +217,9 @@ export function useBrowserState(visible: boolean) {
   }, [])
 
   return { ...browserWindows,
-    enterIncognito: async () => { await browserWindows.enterIncognito(); resetWindowControls() },
+    enterIncognito: async () => { await browserWindows.enterIncognito(apply => transitionPage(() => { apply(); resetWindowControls() }, "browser", { contentReady: true })) },
     closeIncognito: async () => { await browserWindows.closeIncognito(); resetWindowControls() },
-    switchUserWindow: () => { browserWindows.switchUserWindow(); resetWindowControls() },
+    switchUserWindow: () => { void transitionPage(() => { browserWindows.switchUserWindow(); resetWindowControls() }, "browser", { contentReady: true }).catch(console.error) },
     bookmarksVisible, setBookmarksVisible, router, deviceViewport, setDeviceViewport, toolbarCollapsed, setToolbarCollapsed, deviceMode, setDeviceMode, initialTabsState, tabs, setTabs, findOpen, setFindOpen, matchCase, setMatchCase, findText, setFindText, findResult, setFindResult, findInput, findPosition, setFindPosition, findDrag, consoleWidth, setConsoleWidth, consoleHeight, setConsoleHeight, devtoolsOpen, setDevtoolsOpen, dock, setDock, consoleFont, setConsoleFont, consoleSize, setConsoleSize, devtoolsHost, active, setActive, freezeTab, activatedTabs, input, setInput, searchInput, setSearchInput, bookmarks, setBookmarks, removeBookmark, resetBookmarks, views, registerView, tab, getActivePageData, lastSavedTabs }
 }
 

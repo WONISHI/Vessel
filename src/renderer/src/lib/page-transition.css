@@ -51,7 +51,7 @@ html[data-page-transition="active"]::view-transition-new(vessel-titlebar) { anim
 }
 
 /* Navigation menus must not appear in either page snapshot while they close. */
-html[data-page-transition="active"] :is(.vessel-activity-tools-popup, .dev-actions-menu) {
+html[data-page-transition="active"] :is(.vessel-activity-tools-popup, .dev-actions-menu, .vessel-browser-more-popup) {
   visibility: hidden !important;
   animation: none !important;
 }

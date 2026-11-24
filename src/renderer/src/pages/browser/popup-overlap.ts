@@ -8,7 +8,7 @@ export function popupOverlapsPane(rect: Bounds, pane: Bounds): boolean {
 /** Hide native DevTools behind overlapping DOM portals, including address suggestions. */
 export function browserPopupOverlapsPane(pane: Bounds): boolean {
   return Array.from(document.querySelectorAll<HTMLElement>(
-    '.history-completion, .vessel-browser-tabs-popup[data-state="open"], .vessel-activity-tools-popup[data-state="open"], .dev-actions-menu[data-state="open"], [role="dialog"][data-state="open"], [data-sonner-toast].vessel-browser-save-toast[data-visible="true"]:not([data-removed="true"])'
+    '.history-completion, .vessel-browser-more-popup[data-state="open"], .vessel-browser-tabs-popup[data-state="open"], .vessel-activity-tools-popup[data-state="open"], .dev-actions-menu[data-state="open"], [role="dialog"][data-state="open"], [data-sonner-toast].vessel-browser-save-toast[data-visible="true"]:not([data-removed="true"])'
   )).some((popup) => {
     const surfaces = popup.hasAttribute("data-transit-container") ? popup.querySelectorAll<HTMLElement>(".transit-sheet") : [popup]
     return Array.from(surfaces).some(surface => popupOverlapsPane(surface.getBoundingClientRect(), pane))

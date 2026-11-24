@@ -53,3 +53,17 @@ it('keeps address suggestions above DevTools and restores the view when suggesti
  } finally { suggestions.remove() }
  expect(browserPopupOverlapsPane(pane)).toBe(false)
 })
+
+
+it('keeps the browser more menu above DevTools and restores the console when dismissed', () => {
+ const menu = document.createElement('div')
+ menu.className = 'vessel-browser-more-popup'
+ menu.dataset.state = 'open'
+ menu.getBoundingClientRect = () => ({left:1100,right:1380,top:100,bottom:600,width:280,height:500} as DOMRect)
+ document.body.append(menu)
+ try {
+  expect(browserPopupOverlapsPane(pane)).toBe(true)
+  menu.dataset.state = 'closed'
+  expect(browserPopupOverlapsPane(pane)).toBe(false)
+ } finally { menu.remove() }
+})

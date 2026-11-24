@@ -60,6 +60,7 @@ export function BrowserPage({ visible = true }: { visible?: boolean }) {
         )}
         <div className={`browser-content dock-${dock}`}>
           <ResizableSplit
+            paneOpen={devtoolsOpen && Boolean(tab.url) && !tab.frozen}
             side={dock === "detached" ? "detached" : dock === "left" ? "left" : dock === "right" ? "right" : "bottom"}
             size={dock === "bottom" ? consoleHeight : consoleWidth}
             min={dock === "bottom" ? 180 : 280}
@@ -75,7 +76,7 @@ export function BrowserPage({ visible = true }: { visible?: boolean }) {
               }
             }}
             pane={
-              devtoolsOpen && tab.url && !tab.frozen ? (
+              tab.url && !tab.frozen && (dock !== "detached" || devtoolsOpen) ? (
                 <BrowserDevtoolsPane b={b} />
               ) : undefined
             }

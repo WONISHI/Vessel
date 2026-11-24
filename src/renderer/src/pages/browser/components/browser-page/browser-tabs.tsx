@@ -4,7 +4,7 @@ import { BrowserFavicon } from "@/components/browser-favicon"
 import { TabSwitcher } from "@/components/tab-switcher"
 import { Button } from "@/components/ui/button"
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger } from "@/components/ui/context-menu"
-import { Copy, CopyX, VenetianMask, AudioLines, LoaderCircle, Snowflake, Play, Package, PanelRightClose, Pin, Plus, RotateCw, X } from "lucide-react"
+import { Copy, CopyX, AudioLines, LoaderCircle, Snowflake, Play, Package, PanelRightClose, Pin, Plus, RotateCw, X } from "lucide-react"
 import type { BrowserPageModel } from "@/pages/browser/components/browser-page/hooks/use-browser-page"
 import { useState } from "react"
 
@@ -25,7 +25,6 @@ export function BrowserTabs({ b }: { b: BrowserPageModel }) {
   ]
   return (
         <div className="browser-tabs">
-          {b.incognito && <span className="flex shrink-0 items-center gap-1.5 px-3 text-xs text-stone-600 dark:text-stone-300" aria-label="无痕窗口"><VenetianMask size={16} />无痕</span>}
           {groups.map(({ key, kind, tab: item, members }, groupIndex) => {
             const grouped = members.length > 1
             const pinned = members.every((member) => member.pinned)

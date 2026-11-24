@@ -119,11 +119,14 @@ export function useBrowserActions(state: BrowserState, visible: boolean) {
     return () => window.removeEventListener("vessel-browser-inspect-style", inspect)
   }, [visible, tab.id])
   const devtoolsCloseTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
+  const devtoolsAttached = useRef(false)
   useEffect(() => {
     const element = devtoolsHost.current
     const view = views.current.get(tab.id)
     clearTimeout(devtoolsCloseTimer.current)
-    if (!devtoolsOpen || !element || !view) {
+    const closing = !devtoolsOpen && devtoolsAttached.current && dock !== "detached" && visible
+    if ((!devtoolsOpen && !closing) || !element || !view) {
+      devtoolsAttached.current = false
       void window.electronAPI.setBrowserDevtools(null).catch(() => {})
       return
     }
@@ -133,6 +136,7 @@ export function useBrowserActions(state: BrowserState, visible: boolean) {
     let popupOpen = hasPopup()
     /** Synchronizes sync. */
     const sync = () => {
+      if (disposed) return
       const { x, y, width, height } = element.getBoundingClientRect()
       const control = document.querySelector<HTMLElement>('[data-vessel-control="true"]')
       const button = control?.querySelector("button")
@@ -146,7 +150,8 @@ export function useBrowserActions(state: BrowserState, visible: boolean) {
       try {
         const inspect = pendingInspect.current
         pendingInspect.current = undefined
-        void window.electronAPI.setBrowserDevtools(view.getWebContentsId(), { x, y, width, height }, { font: consoleFont, size: consoleSize, detached: dock === "detached", hidden: !visible || (dock !== "detached" && popupOpen), occluded: visible && dock !== "detached" && popupOpen, pageTitle: tab.title, pageURL: input ?? tab.url, inspect, control: controlOverlay }).catch((error) => {
+        devtoolsAttached.current = true
+        void window.electronAPI.setBrowserDevtools(view.getWebContentsId(), { x, y, width, height }, { font: consoleFont, size: consoleSize, detached: dock === "detached", hidden: !visible || (dock !== "detached" && (popupOpen || width < 1 || height < 1)), occluded: visible && dock !== "detached" && popupOpen, pageTitle: tab.title, pageURL: input ?? tab.url, inspect, control: controlOverlay }).catch((error) => {
           if (!disposed) {
             update(tab.id, { error: String(error) })
             setDevtoolsOpen(false)
@@ -172,6 +177,14 @@ export function useBrowserActions(state: BrowserState, visible: boolean) {
     view.addEventListener("dom-ready", sync)
     window.addEventListener("resize", sync)
     sync()
+    if (closing) {
+      // Keep the real console attached while ResizeObserver follows the closing panel.
+      devtoolsCloseTimer.current = setTimeout(() => {
+        disposed = true
+        devtoolsAttached.current = false
+        void window.electronAPI.setBrowserDevtools(null).catch(() => {})
+      }, window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 260)
+    }
     return () => {
       disposed = true
       observer.disconnect()
@@ -179,6 +192,7 @@ export function useBrowserActions(state: BrowserState, visible: boolean) {
       cancelAnimationFrame(syncFrame)
       view.removeEventListener("dom-ready", sync)
       window.removeEventListener("resize", sync)
+      clearTimeout(devtoolsCloseTimer.current)
       // Defer closing so a dock/font change reuses the open DevTools instead of tearing it down and reopening (which left it blank).
       devtoolsCloseTimer.current = setTimeout(() => void window.electronAPI.setBrowserDevtools(null).catch(() => {}), 80)
     }

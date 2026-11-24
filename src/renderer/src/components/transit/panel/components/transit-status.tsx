@@ -12,7 +12,7 @@ import { Clipboard, Copy, Download, FileText, Globe, RotateCw, Search, Pencil, T
 import { toast } from "sonner"
 
 /** Shows metadata and working actions for the current transit item. */
-export function TransitStatus({ item, file, onRefresh, onSearch }: { item: TransitItem; file?: TransitFile; onRefresh: () => void; onSearch?: () => void }) {
+export function TransitStatus({ item, file, onRefresh, onSearch, visible }: { visible?: boolean; item: TransitItem; file?: TransitFile; onRefresh: () => void; onSearch?: () => void }) {
   const router = useRouter()
   const [imageMeta, setImageMeta] = useState<{ source: string; width: number; height: number; bytes: number } | null>(null)
   const stats = useMemo(() => file?.kind === "markdown" ? countDocument(file.content) : null, [file])
@@ -46,7 +46,7 @@ export function TransitStatus({ item, file, onRefresh, onSearch }: { item: Trans
   }
   return (
     <>
-    <StatusBar className="transit-status-bar" left={
+    <StatusBar visible={visible} className="transit-status-bar" left={
       <div className="transit-status-info">
         <span data-title={item.kind === "file" ? item.content : label} className="transit-bar-static transit-status-name">{item.kind === "text" ? <Clipboard /> : item.kind === "url" ? <Globe /> : <FileText />}<span>{label}</span></span>
         <span className="transit-bar-static">{detail}</span>

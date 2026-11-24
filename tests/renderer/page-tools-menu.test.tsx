@@ -179,3 +179,20 @@ it("offers external editor opening for the workspace and disables it without a p
   openMenu()
   expect(screen.getByRole("menuitem", { name: "在编辑器中打开" }).getAttribute("aria-disabled")).toBe("true")
 })
+
+
+it("opens the existing API manual from help without offering workspace controls", async () => {
+  mount("/api-client")
+  openMenu()
+  expect(screen.queryByRole("menuitem", { name: "打开控制台" })).toBeNull()
+  fireEvent.click(screen.getByRole("menuitem", { name: "帮助", exact: true }))
+  expect(await screen.findByRole("dialog", { name: "使用说明" })).toBeTruthy()
+  expect(screen.getByText("Pre-request / Tests 脚本、环境变量与 pm 对象完整参考")).toBeTruthy()
+  await waitFor(() => expect(screen.queryByRole("menu")).toBeNull())
+  expect(screen.getByRole("dialog", { name: "使用说明" })).toBeTruthy()
+  fireEvent.click(screen.getByRole("button", { name: "知道了" }))
+  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull())
+  openMenu()
+  fireEvent.click(screen.getByRole("menuitem", { name: "帮助", exact: true }))
+  expect(await screen.findByRole("dialog", { name: "使用说明" })).toBeTruthy()
+})

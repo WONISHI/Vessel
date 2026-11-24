@@ -1,5 +1,7 @@
+import { StatusBar } from "@/components/ui/status-bar"
+import { setStatusBarVisible } from "@/features/status-bar/visibility"
 import { useToolboxImageImport } from "@/components/image-toolbox/import-state"
-import { cleanup, renderHook, fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { act, within, cleanup, renderHook, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { afterEach, expect, it, vi } from "vitest"
 import { TransitStatus } from "@/components/transit/panel/components/transit-status"
 import { TransitPanel } from "@/components/transit/panel/components/transit-panel"
@@ -9,7 +11,7 @@ vi.mock("@/components/transit/state", () => ({ useTransit: () => ({ items: state
 vi.mock("@/components/transit/text-preview", () => ({ TransitTextPreview: ({ content }: { content: string }) => <pre>{content}</pre> }))
 vi.mock("@/components/transit/file-preview", () => ({ FilePreview: ({ imageDetailsHidden, onImageDetailsHiddenChange }: { imageDetailsHidden: boolean; onImageDetailsHiddenChange: (hidden: boolean) => void }) => <button onClick={() => onImageDetailsHiddenChange(!imageDetailsHidden)}>{imageDetailsHidden ? "显示图片详情" : "隐藏图片详情"}</button> }))
 vi.mock("@/components/transit/panel/components/web-preview", () => ({ WebPreview: () => null }))
-afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.restoreAllMocks(); state.select.mockClear(); state.push.mockClear() })
+afterEach(() => { cleanup(); localStorage.removeItem("vessel-transit-status-visible"); setStatusBarVisible(true); vi.unstubAllGlobals(); vi.restoreAllMocks(); state.select.mockClear(); state.push.mockClear() })
 it("copies clipboard text and opens the shared calendar without a bottom dock button", async () => {
   const writeText = vi.fn(async () => {})
   Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText } })
@@ -134,4 +136,25 @@ it("keeps image details hidden across every dock and fullscreen transition", asy
     fireEvent.click(screen.getByRole("button", { name: "还原" }))
     expect(await screen.findByRole("button", { name: "显示图片详情" })).toBeTruthy()
   } finally { state.items = original }
+})
+
+
+it("toggles only the transit footer independently of the application status bar", () => {
+  vi.stubGlobal("ResizeObserver", class { observe = vi.fn(); unobserve = vi.fn(); disconnect = vi.fn() })
+  setStatusBarVisible(true)
+  const view = render(<><StatusBar left="应用状态栏" /><TransitPanel /></>)
+  const sheet = within(screen.getByRole("dialog"))
+  expect(sheet.getByLabelText("底部状态栏")).toBeTruthy()
+  fireEvent.click(sheet.getByLabelText("隐藏底部状态栏"))
+  expect(sheet.queryByLabelText("底部状态栏")).toBeNull()
+  expect(screen.getByText("应用状态栏")).toBeTruthy()
+  expect(localStorage.getItem("vessel-status-bar-visible")).toBe("true")
+  view.unmount()
+  render(<><StatusBar left="应用状态栏" /><TransitPanel /></>)
+  expect(within(screen.getByRole("dialog")).queryByLabelText("底部状态栏")).toBeNull()
+  act(() => setStatusBarVisible(false))
+  fireEvent.click(screen.getByLabelText("显示底部状态栏"))
+  expect(within(screen.getByRole("dialog")).getByLabelText("底部状态栏")).toBeTruthy()
+  expect(screen.queryByText("应用状态栏")).toBeNull()
+  expect(localStorage.getItem("vessel-status-bar-visible")).toBe("false")
 })

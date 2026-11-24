@@ -1,5 +1,5 @@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { ExternalLink, FolderOpen, PanelLeftClose, PanelLeftOpen, PanelTopClose, PanelTopOpen, RefreshCcw, Search, SquareTerminal } from "lucide-react"
+import { CircleQuestionMark, ExternalLink, FolderOpen, PanelLeftClose, PanelLeftOpen, PanelTopClose, PanelTopOpen, RefreshCcw, Search, SquareTerminal } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { useLocation, useNavigate } from "react-router-dom"
 import { useWorkspaceSync } from "./use-workspace-sync"
@@ -11,12 +11,15 @@ import { BrowserExternalDialog } from "@/pages/browser/components/browser-page/b
 import { toast } from "@/components/ui/sonner"
 import { useProjectSwitchConfirmation } from "@/pages/resources/use-project-switch-confirmation"
 import type { FilePickerRequest, FilePickerWorkspace } from "@/components/workspace-file-picker/types"
+import { ApiHelpDialog } from "@/pages/postman/components/api-help-dialog"
 import "@vscode/codicons/dist/codicon.css"
 
 export function PageToolsMenu({ browser }: { browser: boolean }) {
   const tabs = useBrowserTabs()
   const activeURL = tabs.find(tab => tab.active)?.url ?? ""
   const [externalURL, setExternalURL] = useState<string | null>(null)
+  const [helpOpen, setHelpOpen] = useState(false)
+  const openingHelp = useRef(false)
   const { requestSwitch, confirmation } = useProjectSwitchConfirmation()
   const [toolbarCollapsed, setToolbarCollapsed] = useState(false)
   const [consoleOpen, setConsoleOpen] = useState(false)
@@ -29,6 +32,7 @@ export function PageToolsMenu({ browser }: { browser: boolean }) {
   const navigate = useNavigate()
   const resources = /^\/resources(\/|$)/.test(pathname)
   const workspace = /^\/editor(\/|$)/.test(pathname)
+  const apiClient = /^\/api-client(\/|$)/.test(pathname)
   const sync = useWorkspaceSync(workspace)
   const { recent = [] } = useLibraryMeta()
   const [opening, setOpening] = useState(false)
@@ -74,12 +78,12 @@ export function PageToolsMenu({ browser }: { browser: boolean }) {
     } catch (error) { toast.error(String(error)) }
   }
   useEffect(() => {
-    if (browser) return
+    if (browser || apiClient) return
     const update = (event: Event) => setConsoleOpen((event as CustomEvent<boolean>).detail === true)
     window.addEventListener("vessel:workspace-console-state", update)
     window.dispatchEvent(new Event("vessel:request-workspace-console-state"))
     return () => window.removeEventListener("vessel:workspace-console-state", update)
-  }, [browser, pathname])
+  }, [browser, apiClient, pathname])
   useEffect(() => {
     if (!browser) return
     const update = (event: Event) => setToolbarCollapsed((event as CustomEvent<boolean>).detail === true)
@@ -91,14 +95,18 @@ export function PageToolsMenu({ browser }: { browser: boolean }) {
   const ToggleIcon = toolbarCollapsed ? PanelTopOpen : PanelTopClose
   return <><DropdownMenu modal={false} onOpenChange={(open) => {
     if (!open) return
-    if (!browser) window.dispatchEvent(new Event("vessel:request-workspace-console-state"))
+    if (!browser && !apiClient) window.dispatchEvent(new Event("vessel:request-workspace-console-state"))
     if (workspace || resources) { requestSidebar(); requestEditorRoot() }
     if (workspace) window.dispatchEvent(new Event("vessel:request-page-sync-state"))
     if (resources) loadRecent()
   }}>
     <DropdownMenuTrigger asChild><button type="button" aria-label="页面工具" data-title="页面工具" className="flex size-6 items-center justify-center rounded text-stone-500 hover:bg-stone-200 dark:text-stone-400 dark:hover:bg-white/10"><i aria-hidden="true" className="codicon codicon-tools !text-base" /></button></DropdownMenuTrigger>
-    <DropdownMenuContent align="end" sideOffset={8} className={`vessel-activity-tools-popup z-[510] ${browser ? "w-52" : "w-[10.2rem]"} rounded-xl p-1`}>
-      {browser ? <>
+    <DropdownMenuContent align="end" sideOffset={8} onCloseAutoFocus={event => {
+      if (!openingHelp.current) return
+      openingHelp.current = false
+      event.preventDefault()
+    }} className={`vessel-activity-tools-popup z-[510] ${browser ? "w-52" : "w-[10.2rem]"} rounded-xl p-1`}>
+      {apiClient ? <DropdownMenuItem className={itemClass} onSelect={() => { openingHelp.current = true; setHelpOpen(true) }}><CircleQuestionMark />帮助</DropdownMenuItem> : browser ? <>
         <DropdownMenuItem className={itemClass} onSelect={() => window.dispatchEvent(new Event("vessel-browser-toggle-toolbar"))}><ToggleIcon />{toolbarCollapsed ? "展开搜索栏" : "折叠搜索栏"}</DropdownMenuItem>
         <DropdownMenuItem className={itemClass} onSelect={() => window.dispatchEvent(new Event("vessel-browser-open-find"))}><Search />搜索</DropdownMenuItem>
         <DropdownMenuItem className={itemClass} disabled={!isOpenableUrl(activeURL)} onSelect={() => setExternalURL(activeURL)}><ExternalLink />在默认浏览器中打开</DropdownMenuItem>
@@ -119,5 +127,5 @@ export function PageToolsMenu({ browser }: { browser: boolean }) {
         </DropdownMenuSub>}
       </>}
     </DropdownMenuContent>
-  </DropdownMenu>{confirmation}{externalURL !== null && <BrowserExternalDialog url={externalURL} open onOpenChange={open => { if (!open) setExternalURL(null) }} />}</>
+  </DropdownMenu>{confirmation}{helpOpen && <ApiHelpDialog onClose={() => setHelpOpen(false)} />}{externalURL !== null && <BrowserExternalDialog url={externalURL} open onOpenChange={open => { if (!open) setExternalURL(null) }} />}</>
 }

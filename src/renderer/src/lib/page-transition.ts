@@ -50,13 +50,13 @@ export function rememberPageContent(key: string) {
 }
 
 /** Only a previously loaded destination animates. First visits keep their normal loading UI. */
-export function transitionPage(change: () => unknown, destination: string): Promise<void> {
+export function transitionPage(change: () => unknown, destination: string, options?: { contentReady?: boolean }): Promise<void> {
   active?.abort.abort()
   active?.transition?.skipTransition()
   active?.release()
   active = undefined
   delete document.documentElement.dataset.pageTransition
-  const animate = readyPages.has(destination) && Boolean(document.startViewTransition) && !window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
+  const animate = (readyPages.has(destination) || options?.contentReady === true) && Boolean(document.startViewTransition) && !window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
   const surfaces = pageTransitionSurfaces()
   if (!animate && !surfaces.length) return Promise.resolve(change()).then(() => {})
   const abort = new AbortController()

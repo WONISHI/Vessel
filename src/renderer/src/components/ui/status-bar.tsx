@@ -5,9 +5,9 @@ import { type ReactNode } from "react"
 import { useStatusBarVisible } from "@/features/status-bar/visibility"
 
 /** Renders the status bar component. */
-export function StatusBar({ left, children, right, after, className }: { left?: ReactNode; children?: ReactNode; right?: ReactNode; after?: ReactNode; className?: string }) {
+export function StatusBar({ left, children, right, after, className, visible: visibleOverride }: { visible?: boolean; left?: ReactNode; children?: ReactNode; right?: ReactNode; after?: ReactNode; className?: string }) {
   const visible = useStatusBarVisible()
-  if (!visible) return null
+  if (!(visibleOverride ?? visible)) return null
   return (
     <footer
       aria-label="底部状态栏"
