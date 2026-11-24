@@ -33,7 +33,7 @@ vi.mock("electron", () => ({
     visible = true
     webContents = Object.assign(new EventEmitter(), {
       ipc: Object.assign(new EventEmitter(), { handle: vi.fn() }), isDestroyed: () => false, close: vi.fn(), send: vi.fn(), isLoading: () => false,
-      capturePage: vi.fn().mockResolvedValue({ toDataURL: () => "data:image/png;base64,console" }), setZoomFactor: vi.fn(), insertCSS: vi.fn().mockResolvedValue("css"), removeInsertedCSS: vi.fn(), executeJavaScript: vi.fn().mockResolvedValue(undefined)
+      capturePage: vi.fn().mockResolvedValue({ isEmpty: () => false, toDataURL: () => "data:image/png;base64,console" }), setZoomFactor: vi.fn(), insertCSS: vi.fn().mockResolvedValue("css"), removeInsertedCSS: vi.fn(), executeJavaScript: vi.fn().mockResolvedValue(undefined)
     })
     setBounds = vi.fn()
     setVisible(value: boolean) { this.visible = value }
@@ -65,7 +65,7 @@ it("attaches DevTools before inspecting and mirrors the host control above its n
   expect(order).toEqual(["attach", "open", "inspect"])
   expect(mock.panel.webContents.executeJavaScript).not.toHaveBeenCalled()
   mock.guest.emit("devtools-opened")
-  expect(mock.panel.webContents.executeJavaScript).toHaveBeenCalledOnce()
+  expect(mock.panel.webContents.executeJavaScript).toHaveBeenCalledTimes(2)
   expect(mock.guest.inspectElement).toHaveBeenCalledWith(110, 90)
   expect(mock.panel.webContents.send).toHaveBeenCalledWith("browser:control-overlay", control)
   mock.panel.webContents.ipc.emit("browser:devtools-control", {})
@@ -214,4 +214,80 @@ it("retains a console preview under overlapping portals and drops stale captures
   finish({ toDataURL: () => "stale" })
   await Promise.resolve()
   expect(host.send).not.toHaveBeenCalled()
+  sync({}, null)
+})
+
+it("keeps the native console hidden through outgoing and returning page snapshots without restarting it", async () => {
+  const host = Object.assign(new EventEmitter(), { ipc: { handle: (name: string, handler: (...args: any[]) => any) => mock.handlers.set(name, handler) }, isDestroyed: () => false, send: vi.fn() })
+  mock.guest = Object.assign(new EventEmitter(), { id: 7, hostWebContents: host, session: {}, isDestroyed: () => false, closeDevTools: vi.fn(), setDevToolsWebContents: vi.fn(), openDevTools: vi.fn() })
+  mock.window = ownerWindow()
+  registerBrowserDevtools(host as any)
+  const sync = mock.handlers.get("browser:devtools")!, transition = mock.handlers.get("browser:devtools-transition")!
+  const bounds = { x: 52, y: 100, width: 948, height: 368 }, options = { font: "Menlo", size: 13 }
+  sync({}, 7, bounds, options)
+  const panel = mock.panel
+  expect(await transition({}, 1, true)).toEqual({ id: 7, image: "data:image/png;base64,console" })
+  expect(panel.getVisible()).toBe(false)
+  sync({}, 7, bounds, { ...options, hidden: true })
+  await transition({}, 1, false)
+  expect(panel.getVisible()).toBe(false)
+  // A returning page reuses the retained frame while the native surface is hidden.
+  expect(await transition({}, 2, true)).toEqual({ id: 7, image: "data:image/png;base64,console" })
+  sync({}, 7, { ...bounds, y: 200 }, options)
+  expect(panel.getVisible()).toBe(false)
+  expect(panel.setBounds).toHaveBeenLastCalledWith({ ...bounds, y: 200 })
+  await transition({}, 1, false)
+  expect(panel.getVisible()).toBe(false)
+  await transition({}, 2, false)
+  expect(panel.getVisible()).toBe(true)
+  expect(mock.panel).toBe(panel)
+  expect(mock.guest.openDevTools).toHaveBeenCalledOnce()
+  expect(mock.guest.closeDevTools).not.toHaveBeenCalled()
+  expect(panel.webContents.capturePage).toHaveBeenCalledOnce()
+})
+
+it("does not let a late transition capture hide the restored console", async () => {
+  const host = Object.assign(new EventEmitter(), { ipc: { handle: (name: string, handler: (...args: any[]) => any) => mock.handlers.set(name, handler) }, isDestroyed: () => false, send: vi.fn() })
+  mock.guest = Object.assign(new EventEmitter(), { id: 7, hostWebContents: host, session: {}, isDestroyed: () => false, closeDevTools: vi.fn(), setDevToolsWebContents: vi.fn(), openDevTools: vi.fn() })
+  mock.window = ownerWindow()
+  registerBrowserDevtools(host as any)
+  mock.handlers.get("browser:devtools")!({}, 7, { x: 52, y: 100, width: 948, height: 368 }, { font: "Menlo", size: 13 })
+  let captured!: (image: { isEmpty: () => boolean; toDataURL: () => string }) => void
+  mock.panel.webContents.capturePage.mockImplementationOnce(() => new Promise(resolve => { captured = resolve }))
+  const transition = mock.handlers.get("browser:devtools-transition")!
+  const pending = transition({}, 1, true)
+  await transition({}, 1, false)
+  captured({ isEmpty: () => false, toDataURL: () => "late" }); await pending
+  expect(mock.panel.getVisible()).toBe(true)
+})
+
+
+it("sizes an initially covered console and retries empty frames while keeping the overlay above it", async () => {
+  vi.useFakeTimers()
+  try {
+    const host = Object.assign(new EventEmitter(), { ipc: { handle: (name: string, handler: (...args: any[]) => any) => mock.handlers.set(name, handler) }, isDestroyed: () => false, send: vi.fn() })
+    mock.guest = Object.assign(new EventEmitter(), { id: 7, hostWebContents: host, session: {}, isDestroyed: () => false, closeDevTools: vi.fn(), setDevToolsWebContents: vi.fn(), openDevTools: vi.fn(() => {
+      mock.panel.webContents.capturePage.mockResolvedValueOnce({ isEmpty: () => true, toDataURL: () => "data:," })
+    }) })
+    mock.window = ownerWindow()
+    registerBrowserDevtools(host as any)
+    const sync = mock.handlers.get("browser:devtools")!
+    const bounds = { x: 52, y: 100, width: 600, height: 400 }, options = { font: "Menlo", size: 13 }
+    sync({}, 7, bounds, { ...options, hidden: true, occluded: true })
+    expect(mock.panel.setBounds).toHaveBeenCalledWith(bounds)
+    expect(mock.panel.setBounds.mock.invocationCallOrder[0]).toBeLessThan(mock.panel.webContents.capturePage.mock.invocationCallOrder[0])
+    await vi.advanceTimersByTimeAsync(0)
+    expect(host.send).not.toHaveBeenCalledWith("browser:devtools-preview", { id: 7, image: "data:," })
+    expect(mock.panel.getVisible()).toBe(false)
+    await vi.advanceTimersByTimeAsync(250)
+    expect(host.send).toHaveBeenCalledWith("browser:devtools-preview", { id: 7, image: "data:image/png;base64,console" })
+    expect(mock.panel.webContents.capturePage).toHaveBeenLastCalledWith(undefined, { stayHidden: true, stayAwake: true })
+    await vi.advanceTimersByTimeAsync(250)
+    expect(mock.panel.webContents.capturePage).toHaveBeenCalledTimes(3)
+    sync({}, 7, bounds, options)
+    expect(mock.panel.getVisible()).toBe(true)
+    await vi.advanceTimersByTimeAsync(500)
+    expect(mock.panel.webContents.capturePage).toHaveBeenCalledTimes(3)
+    sync({}, null)
+  } finally { vi.useRealTimers() }
 })

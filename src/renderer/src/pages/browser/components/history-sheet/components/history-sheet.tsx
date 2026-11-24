@@ -1,4 +1,5 @@
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { useDialogLayout } from "@/features/layout/use-dialog-layout"
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet"
 import { PAGE_SIZE, groupHistory } from "@/pages/browser/components/history-sheet/components/history-sheet-shared"
 import { SiteIcon } from "@/pages/browser/components/history-sheet/components/site-icon"
@@ -9,6 +10,7 @@ import { useEffect, useMemo, useRef, useState } from "react"
 
 /** Renders the history sheet component. */
 export function HistorySheet({ open, onOpenChange, entries, error, onDelete, onNavigate }: { open: boolean; onOpenChange: (open: boolean) => void; entries: HistoryEntry[]; error: string; onDelete: (id: number | null) => void; onNavigate: (url: string) => void }) {
+  const layout = useDialogLayout(true)
   const [query, setQuery] = useState("")
   const [limit, setLimit] = useState(PAGE_SIZE)
   const input = useRef<HTMLInputElement>(null)
@@ -63,6 +65,8 @@ export function HistorySheet({ open, onOpenChange, entries, error, onDelete, onN
       modal={false}
     >
       <SheetContent
+        side="right"
+        style={layout.sheetStyle}
         showOverlay={false}
         showCloseButton={false}
         onInteractOutside={(event) => event.preventDefault()}
@@ -72,7 +76,7 @@ export function HistorySheet({ open, onOpenChange, entries, error, onDelete, onN
             input.current?.focus()
           }
         }}
-        className="z-[250] inset-y-3 right-3 flex h-auto w-[360px] max-w-[calc(100vw-24px)] flex-col gap-0 overflow-hidden rounded-xl border border-stone-200 bg-white p-0 shadow-xl sm:max-w-[360px]"
+        className="z-[250] top-0 flex h-auto flex-col gap-0 overflow-hidden p-0 sm:max-w-sm"
       >
         <div className="shrink-0 border-b border-stone-100 px-3.5 pb-2.5 pt-3.5">
           <div className="mb-3 flex items-center gap-2">

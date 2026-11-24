@@ -9,7 +9,7 @@ vi.mock("electron", () => ({
   dialog: { showSaveDialog: async () => ({ canceled: false, filePath: mock.exported }), showOpenDialog: async () => ({ canceled: false, filePaths: [mock.exported] }) }
 }))
 vi.mock("@main/vault/system-auth", () => ({ authenticatePasswordReveal: mock.authenticate }))
-import { attachVaultGuest, lockVault, registerVault } from "@main/vault/service"
+import { attachVaultGuest, lockVault, registerVault, readGitCredential, saveGitCredential, eraseGitCredential } from "@main/vault/service"
 it("protects the vault lifecycle, validates IPC and isolates credentials by origin", async () => {
   mock.directory = await mkdtemp(join(tmpdir(), "vessel-vault-test-")); mock.exported = join(mock.directory, "backup.json")
   const frame = {}, guestFrame = { send: mock.fill }
@@ -102,5 +102,42 @@ it("protects the vault lifecycle, validates IPC and isolates credentials by orig
       expect(await mock.guestHandlers.get("vault:suggest")!({ senderFrame: guestFrame })).toEqual([])
       await expect(request("fill", { id: httpEntry.id, guestId: "1" })).rejects.toThrow("来源")
     }
+    // Git accounts share the encrypted manager, but never participate in webpage autofill.
+    const websiteEntry = (await request("list")).find((item: { origin: string }) => item.origin === "https://example.test")
+    const context = { origin: "https://example.test", username: "private-user" }
+    await saveGitCredential({ ...context, password: "git-only-token" })
+    expect(await readGitCredential(context)).toEqual({ username: "private-user", password: "git-only-token" })
+    lockVault()
+    expect(await readGitCredential(context)).toEqual({ username: "private-user", password: "git-only-token" })
+    const catalog = await request("catalog")
+    const gitEntry = catalog.items.find((item: { kind?: string }) => item.kind === "git")
+    expect(gitEntry.username).toBe("private-user")
+    expect(gitEntry).not.toHaveProperty("password")
+    url = "https://example.test/login"
+    expect(await mock.guestHandlers.get("vault:suggest")!({ senderFrame: guestFrame })).toEqual([{ id: websiteEntry.id, username: "private-user" }])
+    await expect(request("fill", { id: gitEntry.id, guestId: "1" })).rejects.toThrow("来源")
+    mock.fill.mockClear()
+    await mock.guestHandlers.get("vault:use")!({ senderFrame: guestFrame }, gitEntry.id)
+    expect(mock.fill).not.toHaveBeenCalled()
+    expect(await readGitCredential({ ...context, origin: "http://example.test" })).toBeUndefined()
+    await eraseGitCredential({ ...context, password: "outdated-token" })
+    expect(await readGitCredential(context)).toBeTruthy()
+    await saveGitCredential({ ...context, password: "replacement-token" })
+    expect(await readGitCredential(context)).toEqual({ username: "private-user", password: "replacement-token" })
+    await eraseGitCredential({ ...context, password: "replacement-token" })
+    expect(await readGitCredential(context)).toBeUndefined()
+    expect((await request("list")).find((item: { id: string }) => item.id === websiteEntry.id)).toBeTruthy()
+    await Promise.all([saveGitCredential({ ...context, password: "one", path: "a.git" }), saveGitCredential({ ...context, password: "two", path: "b.git" })])
+    expect(await readGitCredential({ ...context, path: "a.git" })).toEqual({ username: "private-user", password: "one" })
+    expect(await readGitCredential({ ...context, path: "b.git" })).toEqual({ username: "private-user", password: "two" })
+    const scopedGit = (await request("list")).find((item: { gitPath?: string }) => item.gitPath === "a.git")
+    await request("export", { exportPassword: "git-backup-password-2026" })
+    await request("delete", { id: scopedGit.id })
+    expect(await readGitCredential({ ...context, path: "a.git" })).toBeUndefined()
+    await request("import", { exportPassword: "git-backup-password-2026" })
+    expect(await readGitCredential({ ...context, path: "a.git" })).toEqual({ username: "private-user", password: "one" })
+    const encrypted = await readFile(join(mock.directory, "password-vault/vault.json"), "utf8")
+    expect(encrypted).not.toContain("git-only-token")
+    expect(encrypted).not.toContain("replacement-token")
   } finally { lockVault(); clock.mockRestore(); await rm(mock.directory, { recursive: true, force: true }) }
 }, 60000)

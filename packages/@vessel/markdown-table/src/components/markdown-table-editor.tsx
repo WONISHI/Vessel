@@ -103,7 +103,7 @@ export const MarkdownTableEditor: React.FC<MarkdownTableEditorProps> = ({
     menu.style.top = `${Math.max(8, Math.min(cellMenu.y, window.innerHeight - menu.offsetHeight - 8))}px`
     menu.querySelector<HTMLButtonElement>("button")?.focus({ preventScroll: true })
     const close = () => setCellMenu(null)
-    const outside = (event: MouseEvent) => { if (!menu.contains(event.target as Node)) close() }
+    const outside = (event: Event) => { if (!menu.contains(event.target as Node)) close() }
     const key = (event: KeyboardEvent) => {
       if (event.key === "Escape") { event.preventDefault(); close() }
       if (event.key === "ArrowDown" || event.key === "ArrowUp") {
@@ -114,11 +114,13 @@ export const MarkdownTableEditor: React.FC<MarkdownTableEditorProps> = ({
       }
     }
     const scroll = (event: Event) => { if (!menu.contains(event.target as Node)) close() }
-    document.addEventListener("mousedown", outside)
+    window.addEventListener("pointerdown", outside, true)
+    window.addEventListener("mousedown", outside, true)
+    window.addEventListener("click", outside, true)
     document.addEventListener("keydown", key)
     window.addEventListener("scroll", scroll, true)
     window.addEventListener("resize", close)
-    return () => { document.removeEventListener("mousedown", outside); document.removeEventListener("keydown", key); window.removeEventListener("scroll", scroll, true); window.removeEventListener("resize", close) }
+    return () => { window.removeEventListener("pointerdown", outside, true); window.removeEventListener("mousedown", outside, true); window.removeEventListener("click", outside, true); document.removeEventListener("keydown", key); window.removeEventListener("scroll", scroll, true); window.removeEventListener("resize", close) }
   }, [cellMenu])
   const moreMenuRef = useRef<HTMLDivElement>(null)
   const menuPopupRef = useRef<HTMLDivElement>(null)
@@ -1078,7 +1080,8 @@ export const MarkdownTableEditor: React.FC<MarkdownTableEditorProps> = ({
 
                     const hasCustomBg = !!cell.style?.bgColor
                     const isFirstCol = cIdx === 0
-                    const isLastCol = cIdx + mergeInfo.colSpan >= tableData.columns.length
+                    const endCol = cIdx + mergeInfo.colSpan - 1
+                    const isLastCol = endCol >= tableData.columns.length - 1
                     const isLastRow = rIdx + mergeInfo.rowSpan >= tableData.rows.length
 
                     const isSelTop = !!(selected && activeRange && rIdx === activeRange.startRow)
@@ -1125,8 +1128,8 @@ export const MarkdownTableEditor: React.FC<MarkdownTableEditorProps> = ({
                           if (!readOnly) setActiveEdit({ row: rIdx, col: cIdx })
                         }}
                       >
-                        {isHeaderCell && !readOnly && !isLastCol && mergeInfo.colSpan === 1 && (
-                          <span className="vessel-column-resizer" role="separator" aria-orientation="vertical" aria-label={`调整第 ${cIdx + 1} 列宽度`}
+                        {!readOnly && !isLastCol && (
+                          <span className="vessel-column-resizer" role="separator" aria-orientation="vertical" aria-label={`调整第 ${endCol + 1} 列宽度`}
                             onMouseDown={(event) => event.stopPropagation()}
                             onClick={(event) => event.stopPropagation()}
                             onDoubleClick={(event) => event.stopPropagation()}
@@ -1134,7 +1137,7 @@ export const MarkdownTableEditor: React.FC<MarkdownTableEditorProps> = ({
                               if (event.button !== 0) return
                               event.preventDefault(); event.stopPropagation()
                               const widths = Array.from(tableRef.current!.querySelectorAll("col"), (col) => col.getBoundingClientRect().width)
-                              columnDrag.current = { index: cIdx, x: event.clientX, widths, current: widths }
+                              columnDrag.current = { index: endCol, x: event.clientX, widths, current: widths }
                               setResizeWidths(widths)
                               event.currentTarget.setPointerCapture(event.pointerId)
                             }}

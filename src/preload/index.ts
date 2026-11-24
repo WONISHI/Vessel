@@ -67,6 +67,8 @@ const vesselAPI = {
   },
 
   /** Lists browser history. */
+  createBrowserPrivateSession: () => ipcRenderer.invoke("browser:private:create"),
+  closeBrowserPrivateSession: () => ipcRenderer.invoke("browser:private:close"),
   listBrowserHistory: () => ipcRenderer.invoke("browser:history:list"),
 
   /** Deletes browser history. */
@@ -244,6 +246,7 @@ const vesselAPI = {
   },
 
   /** Sets browser devtools. */
+  setBrowserDevtoolsTransition: (token: number, active: boolean): Promise<{ id: number; image: string } | undefined> => ipcRenderer.invoke("browser:devtools-transition", token, active),
   setBrowserDevtools: (id: number | null, bounds?: Electron.Rectangle, appearance?: { font: string; size: number; detached?: boolean; hidden?: boolean; occluded?: boolean; pageTitle?: string; pageURL?: string; inspect?: { x: number; y: number; property?: string; targetKey?: string }; control?: { x: number; y: number; width: number; height: number; icon: string; color: string; background: string; border: string; shadow: string } }): Promise<void> => ipcRenderer.invoke("browser:devtools", id, bounds, appearance),
 
   /** Handles browser new tab events. */

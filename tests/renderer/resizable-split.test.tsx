@@ -75,3 +75,23 @@ it("exposes a vertical editor divider that changes both panel widths with keyboa
   await waitFor(() => expect(Number(handle.getAttribute("aria-valuenow"))).toBeGreaterThan(before))
   expect(layout).toHaveBeenCalledWith(expect.objectContaining({ "left-doc": expect.any(Number), "right-doc": expect.any(Number) }), expect.objectContaining({ isUserInteraction: true }))
 })
+
+it("keeps sidebar and editor state mounted while an animated pane closes and reopens", () => {
+  vi.stubGlobal("ResizeObserver", class { observe = vi.fn(); unobserve = vi.fn(); disconnect = vi.fn() })
+  const resize = vi.fn()
+  const layout = (open: boolean) => <ResizableSplit side="left" size={300} min={232} max={600} label="侧栏宽度" paneOpen={open} onResize={resize} pane={<input aria-label="侧栏搜索" defaultValue="query" />}><input aria-label="正文草稿" defaultValue="draft" /></ResizableSplit>
+  const view = render(layout(true))
+  const search = screen.getByRole("textbox", { name: "侧栏搜索" }) as HTMLInputElement
+  const draft = screen.getByRole("textbox", { name: "正文草稿" }) as HTMLInputElement
+  search.value = "retained query"; draft.value = "unsaved text"
+  view.rerender(layout(false))
+  expect(view.container.querySelector('[data-pane-open="false"]')).toBeTruthy()
+  expect(search.closest('[aria-hidden="true"]')?.hasAttribute("inert")).toBe(true)
+  expect(view.container.contains(search)).toBe(true)
+  view.rerender(layout(true))
+  expect(screen.getByRole("textbox", { name: "侧栏搜索" })).toBe(search)
+  expect(screen.getByRole("textbox", { name: "正文草稿" })).toBe(draft)
+  expect(search.value).toBe("retained query")
+  expect(draft.value).toBe("unsaved text")
+  expect(resize).not.toHaveBeenCalled()
+})

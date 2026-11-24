@@ -4,7 +4,7 @@ import { BrowserFavicon } from "@/components/browser-favicon"
 import { TabSwitcher } from "@/components/tab-switcher"
 import { Button } from "@/components/ui/button"
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger } from "@/components/ui/context-menu"
-import { Copy, CopyX, AudioLines, LoaderCircle, Snowflake, Play, Package, PanelRightClose, Pin, Plus, RotateCw, X } from "lucide-react"
+import { Copy, CopyX, VenetianMask, AudioLines, LoaderCircle, Snowflake, Play, Package, PanelRightClose, Pin, Plus, RotateCw, X } from "lucide-react"
 import type { BrowserPageModel } from "@/pages/browser/components/browser-page/hooks/use-browser-page"
 import { useState } from "react"
 
@@ -25,6 +25,7 @@ export function BrowserTabs({ b }: { b: BrowserPageModel }) {
   ]
   return (
         <div className="browser-tabs">
+          {b.incognito && <span className="flex shrink-0 items-center gap-1.5 px-3 text-xs text-stone-600 dark:text-stone-300" aria-label="无痕窗口"><VenetianMask size={16} />无痕</span>}
           {groups.map(({ key, kind, tab: item, members }, groupIndex) => {
             const grouped = members.length > 1
             const pinned = members.every((member) => member.pinned)
@@ -74,7 +75,7 @@ export function BrowserTabs({ b }: { b: BrowserPageModel }) {
                   {members.length > 1 && <span className="browser-tab-group-count" aria-label={`另有 ${members.length - 1} 个${kind === "local" ? "本地资源" : "同域名"}标签页`}>{members.length - 1}</span>}
                   {item.videoPlaying && <AudioLines size={16} className="browser-tab-audio" aria-label="正在播放视频" />}
                   <button
-                    className={pinned ? "browser-tab-pin-close" : undefined}
+                    className={pinned ? "browser-tab-pin-close" : "browser-tab-close"}
                     data-title={closeLabel}
                     onClick={(event) => { event.stopPropagation(); event.preventDefault(); if (grouped) closeTabs(memberIds); else close(item.id) }} aria-label={pinned ? "已固定" : closeLabel}
                     disabled={pinned}

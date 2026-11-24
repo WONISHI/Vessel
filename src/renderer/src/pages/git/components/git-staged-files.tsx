@@ -22,7 +22,7 @@ export function GitStagedFiles({ g }: { g: GitPageModel }) {
 
   return (
     <>
-                      <div className="flex shrink-0 items-center justify-between border-b border-stone-200 bg-stone-100/70 px-3 py-1.5 text-xs font-semibold text-stone-700">
+                      <div className="flex h-[41px] shrink-0 items-center justify-between border-b border-stone-200 bg-stone-100/70 px-3 py-1.5 text-xs font-semibold text-stone-700">
                         <span className="flex items-center gap-1.5">
                           <span>已暂存文件 (Staged)</span>
                           <span className="rounded-full bg-green-100 px-1.5 text-[10px] text-green-700">{query.trim() ? `${visibleFiles.length} / ${allFiles.length}` : allFiles.length}</span>

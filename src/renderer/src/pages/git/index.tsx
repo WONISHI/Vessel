@@ -1,3 +1,4 @@
+import { GitAuthDialog } from "./components/git-auth-dialog"
 import { useState } from "react"
 import { GitDiffSheet } from "./components/git-diff-sheet"
 import { GitStashDetails } from "@/pages/git/components/git-stash-details"
@@ -62,6 +63,8 @@ export default function SourceTreePage() {
                   />)
 
   return (
+    <>
+    <GitAuthDialog />
     <Layout
       aside={
         <LayoutActivityBar
@@ -265,5 +268,6 @@ export default function SourceTreePage() {
         <GitDialogs g={g} />
       </div>
     </Layout>
+    </>
   )
 }

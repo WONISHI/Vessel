@@ -2,7 +2,7 @@ import { useEffect, type Dispatch, type RefObject, type SetStateAction } from "r
 import type { WebviewTag } from "electron"
 import type { Tab } from "./components/index-shared"
 
-export const TAB_FREEZE_AFTER = 4 * 60 * 60 * 1000
+export const TAB_FREEZE_AFTER = 3 * 60 * 60 * 1000
 export const TAB_FREEZE_CHECK_INTERVAL = 60 * 1000
 
 export function freezeBrowserTab(tab: Tab): Tab {

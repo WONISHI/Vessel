@@ -1,11 +1,11 @@
 import { freezeBrowserTab, useTabFreezing, wakeBrowserTab } from "@/pages/browser/use-tab-freezing"
-import { pinnedTabsFirst } from "@/pages/browser/tab-order"
+import { useBrowserWindows } from "@/pages/browser/use-browser-windows"
 import { useActivatedTabs } from "@/pages/browser/use-activated-tabs"
-import { BROWSER_ACTIVE_TAB_KEY, BROWSER_TABS_KEY, loadSavedBrowserTabs, newTab, PAGE_EXTRACTOR_SCRIPT, SavedBrowserTab, shortcuts, Tab } from "@/pages/browser/components/index-shared"
+import { BROWSER_ACTIVE_TAB_KEY, BROWSER_TABS_KEY, loadSavedBrowserTabs, newTab, PAGE_EXTRACTOR_SCRIPT, SavedBrowserTab, shortcuts } from "@/pages/browser/components/index-shared"
 import { publishBrowserTabs } from "@/pages/browser/tab-state"
 import { useRouter } from "@vessel/react-router"
 import type { WebviewTag } from "electron"
-import { useCallback, useEffect, useRef, useState, type SetStateAction } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 
 /** 浏览器页的标签、查找、控制台与书签状态及持久化 */
 export function useBrowserState(visible: boolean) {
@@ -16,10 +16,8 @@ export function useBrowserState(visible: boolean) {
   useEffect(() => { localStorage.setItem("browser-bookmarks-visible", String(bookmarksVisible)) }, [bookmarksVisible])
   const [deviceMode, setDeviceMode] = useState(false)
   const [initialTabsState] = useState(loadSavedBrowserTabs)
-  const [tabs, setTabState] = useState<Tab[]>(() => pinnedTabsFirst(initialTabsState.tabs))
-  const setTabs = useCallback((value: SetStateAction<Tab[]>) => {
-    setTabState((current) => pinnedTabsFirst(typeof value === "function" ? value(current) : value))
-  }, [])
+  const browserWindows = useBrowserWindows(initialTabsState)
+  const { tabs, allTabs, setTabs, setAllTabs, active, setActiveId, userWindow } = browserWindows
   const [findOpen, setFindOpen] = useState(false)
   const [matchCase, setMatchCase] = useState(false)
   const [findText, setFindText] = useState("")
@@ -56,16 +54,16 @@ export function useBrowserState(visible: boolean) {
   }, [dock, consoleFont, consoleSize])
   useEffect(() => window.electronAPI.onBrowserDevtoolsClosed(() => setDevtoolsOpen(false)), [])
   const devtoolsHost = useRef<HTMLDivElement>(null)
-  const [active, setActiveId] = useState<string>(() => initialTabsState.activeId)
   const activeRef = useRef(active)
+  useEffect(() => { activeRef.current = active }, [active])
   const setActive = useCallback((id: string) => {
     const previous = activeRef.current
     activeRef.current = id
     const now = Date.now()
-    setTabs((current) => current.map((item) => item.id === id ? wakeBrowserTab(item, now) : item.id === previous ? { ...item, lastActiveAt: now } : item))
+    setAllTabs((current) => current.map((item) => item.id === id ? wakeBrowserTab(item, now) : item.id === previous ? { ...item, lastActiveAt: now } : item))
     setActiveId(id)
-  }, [setTabs])
-  const activatedTabs = useActivatedTabs(active, tabs)
+  }, [setAllTabs, setActiveId])
+  const activatedTabs = useActivatedTabs(active, allTabs)
   const freezeTab = useCallback((id: string) => {
     setTabs((current) => current.map((item) => item.id === id && item.url && !item.frozen ? freezeBrowserTab(item) : item))
     if (id === activeRef.current) setDevtoolsOpen(false)
@@ -88,6 +86,13 @@ export function useBrowserState(visible: boolean) {
   }, [visible])
   const [input, setInput] = useState<string | null>(null)
   const [searchInput, setSearchInput] = useState("")
+  const resetWindowControls = () => {
+    setInput(null)
+    setSearchInput("")
+    setFindOpen(false)
+    setFindText("")
+    setDevtoolsOpen(false)
+  }
   const [bookmarks, setBookmarks] = useState<{ url: string; title: string; favicon?: string }[]>(() => {
     try {
       const saved = JSON.parse(localStorage.getItem("browser-bookmarks") || "null")
@@ -181,7 +186,7 @@ export function useBrowserState(visible: boolean) {
   const lastSavedTabs = useRef("")
   useEffect(() => {
     try {
-      const savedTabs: SavedBrowserTab[] = tabs.map((t) => ({
+      const savedTabs: SavedBrowserTab[] = userWindow.tabs.map((t) => ({
         id: t.id,
         url: t.url,
         title: t.title,
@@ -195,11 +200,11 @@ export function useBrowserState(visible: boolean) {
         localStorage.setItem(BROWSER_TABS_KEY, serialized)
         lastSavedTabs.current = serialized
       }
-      if (localStorage.getItem(BROWSER_ACTIVE_TAB_KEY) !== tab.id) localStorage.setItem(BROWSER_ACTIVE_TAB_KEY, tab.id)
+      if (localStorage.getItem(BROWSER_ACTIVE_TAB_KEY) !== userWindow.active) localStorage.setItem(BROWSER_ACTIVE_TAB_KEY, userWindow.active)
     } catch (error) {
       console.error("Failed to save browser tabs:", error)
     }
-  }, [tabs, tab.id])
+  }, [userWindow])
   useEffect(() => {
     /** Selects select. */
     const select = (event: Event) => {
@@ -210,7 +215,11 @@ export function useBrowserState(visible: boolean) {
     return () => window.removeEventListener("vessel-browser-tab", select)
   }, [])
 
-  return { bookmarksVisible, setBookmarksVisible, router, deviceViewport, setDeviceViewport, toolbarCollapsed, setToolbarCollapsed, deviceMode, setDeviceMode, initialTabsState, tabs, setTabs, findOpen, setFindOpen, matchCase, setMatchCase, findText, setFindText, findResult, setFindResult, findInput, findPosition, setFindPosition, findDrag, consoleWidth, setConsoleWidth, consoleHeight, setConsoleHeight, devtoolsOpen, setDevtoolsOpen, dock, setDock, consoleFont, setConsoleFont, consoleSize, setConsoleSize, devtoolsHost, active, setActive, freezeTab, activatedTabs, input, setInput, searchInput, setSearchInput, bookmarks, setBookmarks, removeBookmark, resetBookmarks, views, registerView, tab, getActivePageData, lastSavedTabs }
+  return { ...browserWindows,
+    enterIncognito: async () => { await browserWindows.enterIncognito(); resetWindowControls() },
+    closeIncognito: async () => { await browserWindows.closeIncognito(); resetWindowControls() },
+    switchUserWindow: () => { browserWindows.switchUserWindow(); resetWindowControls() },
+    bookmarksVisible, setBookmarksVisible, router, deviceViewport, setDeviceViewport, toolbarCollapsed, setToolbarCollapsed, deviceMode, setDeviceMode, initialTabsState, tabs, setTabs, findOpen, setFindOpen, matchCase, setMatchCase, findText, setFindText, findResult, setFindResult, findInput, findPosition, setFindPosition, findDrag, consoleWidth, setConsoleWidth, consoleHeight, setConsoleHeight, devtoolsOpen, setDevtoolsOpen, dock, setDock, consoleFont, setConsoleFont, consoleSize, setConsoleSize, devtoolsHost, active, setActive, freezeTab, activatedTabs, input, setInput, searchInput, setSearchInput, bookmarks, setBookmarks, removeBookmark, resetBookmarks, views, registerView, tab, getActivePageData, lastSavedTabs }
 }
 
 export type BrowserState = ReturnType<typeof useBrowserState>

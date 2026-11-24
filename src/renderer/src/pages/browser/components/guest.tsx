@@ -10,7 +10,7 @@ import type { WebviewTag } from "electron"
 import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react"
 
 /** Renders the guest component. */
-export const Guest = memo(function Guest({ tab, visible, register, update }: { tab: Tab; visible: boolean; register: (id: string, view: WebviewTag | null) => void; update: (id: string, patch: Partial<Tab>) => void }) {
+export const Guest = memo(function Guest({ tab, partition, visible, register, update }: { partition?: string; tab: Tab; visible: boolean; register: (id: string, view: WebviewTag | null) => void; update: (id: string, patch: Partial<Tab>) => void }) {
   const dark = useDarkAppearance()
   const ref = useRef<WebviewTag | null>(null)
   const [documentReady, setDocumentReady] = useState(0)
@@ -46,7 +46,7 @@ export const Guest = memo(function Guest({ tab, visible, register, update }: { t
     return () => window.clearTimeout(timer)
   }, [dark, visible, documentReady])
   const [initialURL] = useState(tab.url)
-  const [initialAttributes] = useState(() => ({ ...webviewAttributes, webpreferences: `zoomFactor=${tab.zoom}` }))
+  const [initialAttributes] = useState(() => ({ ...webviewAttributes, partition: partition || webviewAttributes.partition, webpreferences: `zoomFactor=${tab.zoom}` }))
   const updateRef = useRef(update)
   useEffect(() => {
     updateRef.current = update

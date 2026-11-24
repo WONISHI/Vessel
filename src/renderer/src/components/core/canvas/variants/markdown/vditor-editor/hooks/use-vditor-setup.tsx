@@ -74,7 +74,7 @@ export function useVditorSetup(state: VditorEditorState, { triggerInsertLinkRef 
     })
     const unbindInsertMenu = readOnly ? () => {} : bindMarkdownInsertMenu(element, setInsertLocation, () => setInsertLocation(null))
     const unbindEmptyLinePaste = readOnly ? () => {} : bindEmptyLinePaste(element)
-    const unbindTablePaste = readOnly ? () => {} : bindTablePaste(element)
+    const unbindTablePaste = readOnly ? () => {} : bindTablePaste(element, toolbarHost.current)
     const unbindImageParagraphs = readOnly ? () => {} : bindImageParagraphs(element)
     const unbindListShortcuts = readOnly ? () => {} : bindListShortcuts(element)
     const unbindTaskCheckboxes = bindTaskCheckboxes(element, readOnly)

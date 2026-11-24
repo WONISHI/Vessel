@@ -1,7 +1,8 @@
 import type { GitFetchOptions, GitPullOptions, GitPushInfo, GitPushSelection, GitTagOptions, GitCommitDetail, GitCommitItem, GitDiffResult, GitFileStatus, GitStatusResult, GitStashPopResult, GitStashEntry, GitStashFile, GitStashDetail } from "@vessel/type/git"
+import { gitAuthenticationEnvironment } from "./askpass"
 import { spawn } from "node:child_process"
 import { existsSync } from "node:fs"
-import { lstat } from "node:fs/promises"
+import { lstat, readFile } from "node:fs/promises"
 import { join } from "node:path"
 import { randomUUID } from "node:crypto"
 import { runCancellableGit } from "./cancellable-git"
@@ -16,7 +17,7 @@ const COMMIT_DIFF_OPTIONS = ["--diff-merges=first-parent", "--no-ext-diff", "--n
 export async function runGit(args: string[], cwd: string): Promise<{ stdout: string; stderr: string; exitCode: number }> {
   try {
     const { exec } = await import("dugite")
-    const res = await exec(args, cwd)
+    const res = await exec(args, cwd, { env: { ...process.env, ...gitAuthenticationEnvironment(), LC_ALL: "C", GIT_TERMINAL_PROMPT: "0" } })
     // A nonzero Git exit may already have changed the index/worktree (e.g. a
     // conflicted stash apply). Only inability to launch Git permits fallback.
     return { stdout: res.stdout, stderr: res.stderr, exitCode: res.exitCode }
@@ -27,7 +28,7 @@ export async function runGit(args: string[], cwd: string): Promise<{ stdout: str
   return new Promise((resolve, reject) => {
     const child = spawn("git", args, {
       cwd,
-      env: { ...process.env, LC_ALL: "C", GIT_TERMINAL_PROMPT: "0" }
+      env: { ...process.env, ...gitAuthenticationEnvironment(), LC_ALL: "C", GIT_TERMINAL_PROMPT: "0" }
     })
     child.stdout.setEncoding("utf8")
     child.stderr.setEncoding("utf8")
@@ -156,8 +157,23 @@ export class GitService {
       }
     }
 
+    let mergeMessage: string | undefined
+    // Resolve the per-worktree Git directory rather than assuming cwd/.git is a folder.
+    const gitDir = await runGit(["rev-parse", "--absolute-git-dir"], cwd)
+    if (gitDir.exitCode === 0) {
+      try {
+        const directory = gitDir.stdout.trim()
+        const [head, message] = await Promise.all([
+          readFile(join(directory, "MERGE_HEAD"), "utf8"),
+          readFile(join(directory, "MERGE_MSG"), "utf8")
+        ])
+        if (head.trim()) mergeMessage = message.split(/\r?\n/).filter(line => !line.startsWith("#")).join("\n").trim() || undefined
+      } catch { /* No pending merge; a stale MERGE_MSG alone must not become a draft. */ }
+    }
+
     return {
       isRepo: true,
+      ...(mergeMessage ? { mergeMessage } : {}),
       branch,
       upstream,
       ahead,

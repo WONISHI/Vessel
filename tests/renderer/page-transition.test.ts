@@ -257,3 +257,67 @@ it("animates history back between loaded diagnostic child pages", async () => {
   native.dispose()
   stop()
 })
+
+it("waits for native surface snapshots before starting and releases them only after the animation", async () => {
+  const { registerPageTransitionSurface } = await import("@/lib/page-transition-surfaces")
+  const stop = rememberPageContent("test-native-surface")
+  await vi.advanceTimersByTimeAsync(10)
+  let prepared!: () => void, finished!: () => void
+  const preparation = new Promise<void>(resolve => { prepared = resolve })
+  const animation = new Promise<void>(resolve => { finished = resolve })
+  const prepare = vi.fn(() => preparation), finish = vi.fn(async () => {})
+  const unregister = registerPageTransitionSurface({ prepare, finish })
+  const start = vi.fn((update: () => Promise<void>) => {
+    const updateCallbackDone = Promise.resolve().then(update)
+    return { updateCallbackDone, ready: updateCallbackDone, finished: animation, skipTransition: vi.fn() }
+  })
+  document.startViewTransition = start as any
+  try {
+    const change = vi.fn()
+    const result = transitionPage(change, "test-native-surface")
+    expect(prepare).toHaveBeenCalledOnce()
+    expect(start).not.toHaveBeenCalled()
+    prepared()
+    await result
+    expect(change).toHaveBeenCalledOnce()
+    expect(finish).not.toHaveBeenCalled()
+    finished()
+    await vi.advanceTimersByTimeAsync(1)
+    expect(finish).toHaveBeenCalledWith(prepare.mock.calls[0][0])
+  } finally { unregister(); stop() }
+})
+
+it("releases a cancelled preparation and never commits its stale navigation", async () => {
+  const { registerPageTransitionSurface } = await import("@/lib/page-transition-surfaces")
+  const stop = rememberPageContent("test-cancel-native")
+  await vi.advanceTimersByTimeAsync(10)
+  const start = mockTransition()
+  let prepared!: () => void
+  const prepare = vi.fn(() => new Promise<void>(resolve => { prepared = resolve })), finish = vi.fn(async () => {})
+  const unregister = registerPageTransitionSurface({ prepare, finish })
+  try {
+    const stale = vi.fn(), next = vi.fn()
+    const pending = transitionPage(stale, "test-cancel-native")
+    unregister()
+    await transitionPage(next, "unloaded-native-page")
+    expect(finish).toHaveBeenCalledOnce()
+    prepared(); await pending
+    expect(stale).not.toHaveBeenCalled()
+    expect(next).toHaveBeenCalledOnce()
+    expect(start).not.toHaveBeenCalled()
+    expect(finish).toHaveBeenCalledOnce()
+  } finally { unregister(); stop() }
+})
+
+it("retains native frames on an unanimated first visit so returning can animate the console", async () => {
+  const { registerPageTransitionSurface } = await import("@/lib/page-transition-surfaces")
+  const order: string[] = []
+  const unregister = registerPageTransitionSurface({ prepare: async () => { order.push("prepare") }, finish: async () => { order.push("finish") } })
+  const start = mockTransition()
+  try {
+    await transitionPage(() => { order.push("navigate") }, "first-visit-native-destination")
+    expect(order).toEqual(["prepare", "navigate", "finish"])
+    expect(start).not.toHaveBeenCalled()
+    expect(document.documentElement.dataset.pageTransition).toBeUndefined()
+  } finally { unregister() }
+})

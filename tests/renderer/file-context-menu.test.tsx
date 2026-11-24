@@ -1,12 +1,13 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { afterEach, beforeEach, expect, it, vi } from "vitest"
+import { toast } from "sonner"
 import { localFileURL } from '@vessel/utils'
 import { FileActions } from "@/components/workspace/components/layout-aside/layout-workspace-sidebar/file-actions"
 vi.mock("@vessel/react-router", () => ({ useRouter: () => ({ push: vi.fn() }) }))
 vi.mock("@/components/workspace/hooks/useWorkspace", () => ({ useWorkspace: () => ({ workspace: { path: "/workspace" }, openFiles: [] }) }))
 beforeEach(() => { window.electronAPI = { ...window.electronAPI, getSettings: vi.fn(async () => ({})) } })
-afterEach(cleanup)
+afterEach(() => { cleanup(); vi.restoreAllMocks() })
 it("keeps the file highlighted until its Radix context menu closes", () => {
   render(
     <FileActions
@@ -28,6 +29,7 @@ it("creates a typed file from the folder submenu", async () => {
   const create = vi.fn()
   render(<FileActions node={{ name: "notes", path: "/workspace/notes", type: "directory" }} onChanged={() => {}} onCreate={create}><button>notes</button></FileActions>)
   fireEvent.contextMenu(screen.getByRole("button", { name: "notes" }))
+  expect(screen.queryByRole("menuitem", { name: "在编辑器中打开" })).toBeNull()
   const trigger = screen.getByRole("menuitem", { name: "新建文件" })
   trigger.focus()
   fireEvent.keyDown(trigger, { key: "ArrowRight" })
@@ -44,6 +46,7 @@ it("offers batch actions for a multi-selection and copies all selected names", a
   render(<FileActions node={nodes[0]} selectedNodes={nodes} onChanged={() => {}}><button>a.png</button></FileActions>)
   fireEvent.contextMenu(screen.getByRole("button", { name: "a.png" }))
   expect(screen.getByText("已选中 2 项")).toBeTruthy()
+  expect(screen.queryByRole("menuitem", { name: "在编辑器中打开" })).toBeNull()
   expect(screen.queryByRole("menuitem", { name: "重命名" })).toBeNull()
   expect(screen.queryByRole("menuitem", { name: "在资源管理器中显示" })).toBeNull()
   fireEvent.click(screen.getByRole("menuitem", { name: "复制文件名" }))
@@ -65,4 +68,24 @@ it.each([{ name: 'folder.html', type: 'directory' as const }, { name: 'app.exe',
  render(<FileActions node={{ ...node, path: `/workspace/${node.name}` }} onChanged={vi.fn()}><button>{node.name}</button></FileActions>)
  fireEvent.contextMenu(screen.getByRole('button', { name: node.name }))
  expect(screen.queryByRole('menuitem', { name: '在默认浏览器中打开' })).toBeNull()
+})
+
+it.each(["docs/工作计划 v2.md", "src/index.ts", "package.json"])("opens the selected file %s in the existing project editor", async (relativePath) => {
+ const openProjectInEditor = vi.fn(async () => "VS Code")
+ window.electronAPI = { ...window.electronAPI, openProjectInEditor }
+ const path = `/workspace/${relativePath}`, name = relativePath.split("/").at(-1)!
+ render(<FileActions node={{ name, path, type: "file" }} onChanged={vi.fn()}><button>{name}</button></FileActions>)
+ fireEvent.contextMenu(screen.getByRole("button", { name }))
+ fireEvent.click(screen.getByRole("menuitem", { name: "在编辑器中打开" }))
+ expect(openProjectInEditor).toHaveBeenCalledExactlyOnceWith("/workspace", path)
+ expect(screen.queryByRole("menu")).toBeNull()
+})
+
+it("reports editor launch failures instead of silently ignoring them", async () => {
+ const error = vi.spyOn(toast, "error").mockImplementation(() => "error")
+ window.electronAPI = { ...window.electronAPI, openProjectInEditor: vi.fn().mockRejectedValue(new Error("找不到编辑器")) }
+ render(<FileActions node={{ name: "file.md", path: "/workspace/file.md", type: "file" }} onChanged={vi.fn()}><button>file.md</button></FileActions>)
+ fireEvent.contextMenu(screen.getByRole("button", { name: "file.md" }))
+ fireEvent.click(screen.getByRole("menuitem", { name: "在编辑器中打开" }))
+ await vi.waitFor(() => expect(error).toHaveBeenCalledWith("Error: 找不到编辑器"))
 })

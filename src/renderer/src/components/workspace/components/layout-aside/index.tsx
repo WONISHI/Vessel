@@ -113,9 +113,10 @@ export default function LayoutAside({ resources = false, children }: { resources
           min={232}
           max={600}
           label="调整文件侧栏宽度"
+          paneOpen={open}
           onResize={setWidth}
           pane={
-            open && !graphPage ? (
+            !graphPage ? (
               <div
                 data-sidebar="sidebar"
                 className="flex h-full min-w-0 flex-col bg-white"

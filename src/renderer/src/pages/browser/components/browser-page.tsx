@@ -23,7 +23,7 @@ import { BrowserStatusLeft } from "@/pages/browser/components/browser-page/brows
 /** Renders the browser page component. */
 export function BrowserPage({ visible = true }: { visible?: boolean }) {
   const b = useBrowserPage(visible)
-  const { router, deviceViewport, setDeviceViewport, toolbarCollapsed, deviceMode, setDeviceMode, tabs, findOpen, consoleWidth, setConsoleWidth, consoleHeight, setConsoleHeight, devtoolsOpen, dock, activatedTabs, bookmarks, removeBookmark, resetBookmarks, views, registerView, tab, update, navigate, zoom } = b
+  const { router, deviceViewport, setDeviceViewport, toolbarCollapsed, deviceMode, setDeviceMode, findOpen, consoleWidth, setConsoleWidth, consoleHeight, setConsoleHeight, devtoolsOpen, dock, activatedTabs, bookmarks, removeBookmark, resetBookmarks, views, registerView, tab, update, navigate, zoom } = b
 
   return (
     <Layout
@@ -38,8 +38,8 @@ export function BrowserPage({ visible = true }: { visible?: boolean }) {
     >
       <main className="vessel-browser flex min-w-0 flex-1 flex-col overflow-hidden font-sans">
         <BrowserTabs b={b} />
-        <div className="relative shrink-0">
-          <div hidden={toolbarCollapsed}>
+        <div className="browser-toolbar-collapse relative shrink-0" data-collapsed={toolbarCollapsed} aria-hidden={toolbarCollapsed} inert={toolbarCollapsed}>
+          <div className="browser-toolbar-collapse-inner">
             <BrowserToolbar b={b} visible={visible} />
             {b.bookmarksVisible && <BookmarkBar
               items={bookmarks}
@@ -137,12 +137,13 @@ export function BrowserPage({ visible = true }: { visible?: boolean }) {
                       aria-label={deviceMode ? "设备预览内容" : undefined}
                       style={deviceMode && tab.url ? { width: deviceViewport.width, height: deviceViewport.height, transform: `scale(${deviceViewport.scale})`, transformOrigin: "top left" } : { width: "100%", height: "100%" }}
                     >
-                      {tabs
+                      {b.allTabs
                         .filter((item) => item.url && !item.frozen && activatedTabs.has(item.id))
                         .map((item) => (
                           <Guest
                             key={item.id}
                             tab={item}
+                            partition={b.privateWindow?.tabs.some(entry => entry.id === item.id) ? b.privateWindow.partition : undefined}
                             visible={visible && item.id === tab.id}
                             register={registerView}
                             update={update}

@@ -5,7 +5,7 @@ import { mkdir, readFile, rename, stat, writeFile } from "node:fs/promises"
 import { join } from "node:path"
 import { credentialOrigin, derive, salt, seal, unseal, type Sealed } from "./crypto"
 
-type Entry = { id: string; origin: string; username: string; password: string; updated: number }
+type Entry = { id: string; origin: string; username: string; password: string; updated: number; kind?: "git"; gitPath?: string }
 type Document = { version: 1; auto?: boolean; salt: string; wrapped: string; records: { id: string; data: Sealed }[]; never: Sealed; catalog?: string }
 const aad = "vessel-vault-v1"
 let key: Buffer | undefined, document: Document | undefined, loading: Promise<void> | undefined
@@ -61,7 +61,7 @@ async function persist(next: Document) {
     requireSystem()
     const metadata = next.records.map((record) => {
       const entry = JSON.parse(unseal(key!, record.data, `${aad}:${record.id}`)) as Entry
-      return { id: entry.id, origin: entry.origin, username: entry.username, updated: entry.updated }
+      return { id: entry.id, origin: entry.origin, username: entry.username, updated: entry.updated, ...(entry.kind === "git" ? { kind: "git", gitPath: entry.gitPath } : {}) }
     })
     next = { ...next, catalog: safeStorage.encryptString(JSON.stringify(metadata)).toString("base64") }
   }
@@ -97,7 +97,7 @@ export function attachVaultGuest(guest: WebContents, host: WebContents) {
       await load()
       if (!document?.auto) return []
       await ensureAuto()
-      return key ? entries(key).filter((entry) => entry.origin === origin).map(({ id, username }) => ({ id, username })) : []
+      return key ? entries(key).filter((entry) => entry.kind !== "git" && entry.origin === origin).map(({ id, username }) => ({ id, username })) : []
     } catch { return [] }
   })
   guest.ipc.on("vault:use", async (event, id: unknown) => {
@@ -107,7 +107,7 @@ export function attachVaultGuest(guest: WebContents, host: WebContents) {
       if (!document?.auto) return
       await ensureAuto()
       const entry = key ? entries(key).find((item) => item.id === id) : undefined
-      if (!entry || credentialOrigin(guest.getURL()) !== entry.origin) return
+      if (!entry || entry.kind === "git" || credentialOrigin(guest.getURL()) !== entry.origin) return
       guest.mainFrame.send("vault:fill", { origin: entry.origin, username: entry.username, password: entry.password })
     } catch { /* The page keeps its own form when the vault is unavailable. */ }
   })
@@ -119,7 +119,7 @@ export function attachVaultGuest(guest: WebContents, host: WebContents) {
       const origin = credentialOrigin(guest.getURL())
       await load()
       if (!document || document.auto) await ensureAuto()
-      if (key && (denied(key).includes(origin) || entries(key).some((entry) => entry.origin === origin && entry.username === data.username && entry.password === data.password))) return
+      if (key && (denied(key).includes(origin) || entries(key).some((entry) => entry.kind !== "git" && entry.origin === origin && entry.username === data.username && entry.password === data.password))) return
       for (const [id, c] of candidates) if (c.expires < Date.now() || c.guest === guest) candidates.delete(id)
       if (candidates.size >= 20) return
       const id = randomUUID()
@@ -130,6 +130,51 @@ export function attachVaultGuest(guest: WebContents, host: WebContents) {
     } catch { /* Unsupported origins and invalid forms are not captured. */ }
   })
 }
+let vaultTasks: Promise<unknown> = Promise.resolve()
+function vaultTask<T>(action: () => Promise<T>): Promise<T> {
+  const next = vaultTasks.then(action, action)
+  vaultTasks = next.catch(() => {})
+  return next
+}
+
+export type GitVaultContext = { origin: string; username?: string; password?: string; path?: string }
+function matchesGitEntry(entry: Entry, context: GitVaultContext) {
+  return entry.kind === "git" && entry.origin === credentialOrigin(context.origin) && (entry.gitPath ?? "") === (context.path ?? "") && (context.username === undefined || entry.username === context.username)
+}
+async function gitVaultKey() {
+  await load()
+  if (!document || document.auto) await ensureAuto()
+  return requireKey()
+}
+/** Main-process use only: Git secrets are never exposed through browser autofill IPC. */
+export function readGitCredential(context: GitVaultContext) {
+  return vaultTask(async () => {
+    const k = await gitVaultKey()
+    const found = entries(k).filter(entry => matchesGitEntry(entry, context))
+    if (found.length !== 1) return undefined
+    return { username: found[0].username, password: found[0].password }
+  })
+}
+export function saveGitCredential(context: GitVaultContext) {
+  return vaultTask(async () => {
+    if (!context.username || !context.password || context.username.length > 1024 || context.password.length > 4096) throw new Error("无效的 Git 凭据")
+    const k = await gitVaultKey()
+    const existing = entries(k).find(entry => matchesGitEntry(entry, context))
+    if (!existing && document!.records.length >= 10000) throw new Error("保险库记录数量超限")
+    const id = existing?.id ?? randomUUID()
+    const entry: Entry = { id, kind: "git", origin: credentialOrigin(context.origin), username: context.username, password: context.password, updated: Date.now(), ...(context.path ? { gitPath: context.path } : {}) }
+    await persist({ ...document!, records: [...document!.records.filter(item => item.id !== id), { id, data: seal(k, JSON.stringify(entry), `${aad}:${id}`) }] })
+  })
+}
+export function eraseGitCredential(context: GitVaultContext) {
+  return vaultTask(async () => {
+    if (context.username === undefined) return
+    const k = await gitVaultKey()
+    const rejected = new Set(entries(k).filter(entry => matchesGitEntry(entry, context) && (context.password === undefined || entry.password === context.password)).map(entry => entry.id))
+    if (rejected.size) await persist({ ...document!, records: document!.records.filter(item => !rejected.has(item.id)) })
+  })
+}
+
 let installed = false
 export function registerVault(host: WebContents) {
   if (!installed) {
@@ -138,7 +183,7 @@ export function registerVault(host: WebContents) {
     app.on("before-quit", lockVault)
   }
   host.once("destroyed", lockVault)
-  host.ipc.handle("vault:request", async (event, action: string, data: Record<string, string> = {}) => {
+  host.ipc.handle("vault:request", async (event, action: string, data: Record<string, string> = {}) => vaultTask(async () => {
     if (event.senderFrame !== host.mainFrame) throw new Error("不允许的保险库调用来源")
     if (!data || typeof data !== "object" || Object.values(data).some((value) => typeof value !== "string" || value.length > 4096)) throw new Error("无效的保险库参数")
     await load()
@@ -155,7 +200,7 @@ export function registerVault(host: WebContents) {
       if (!document.catalog) return { items: [], requiresUnlock: true }
       const items: unknown = JSON.parse(safeStorage.decryptString(Buffer.from(document.catalog, "base64")))
       if (!Array.isArray(items) || items.length > 10000 || items.some((entry) => !entry || typeof entry.id !== "string" || typeof entry.origin !== "string" || credentialOrigin(entry.origin) !== entry.origin || typeof entry.username !== "string" || typeof entry.updated !== "number")) throw new Error("账号列表无效")
-      return { items: items.map(({ id, origin, username, updated }) => ({ id, origin, username, updated })), requiresUnlock: false }
+      return { items: items.map(({ id, origin, username, updated, kind, gitPath }) => ({ id, origin, username, updated, ...(kind === "git" ? { kind, gitPath } : {}) })), requiresUnlock: false }
     }
     if (action === "lock") { lockVault(); return }
     if (busy) throw new Error("保险库正在处理，请稍候")
@@ -197,13 +242,13 @@ export function registerVault(host: WebContents) {
         if (data.choice !== "save") return
         if (denied(k).includes(candidate.entry.origin)) throw new Error("该网站已设置为永不保存")
         const entry = candidate.entry
-        const existing = entries(k).find((item) => item.origin === entry.origin && item.username === entry.username)
+        const existing = entries(k).find((item) => item.kind !== "git" && item.origin === entry.origin && item.username === entry.username)
         entry.id = existing?.id || entry.id
         await persist({ ...document!, records: [...document!.records.filter((item) => item.id !== entry.id), { id: entry.id, data: seal(k, JSON.stringify(entry), `${aad}:${entry.id}`) }] }); return
       }
       if (action === "fill") {
         const target = guests.get(Number(data.guestId)), entry = entries(k).find((item) => item.id === data.id)
-        if (!target || target.host !== host || target.guest.isDestroyed() || !entry || credentialOrigin(target.guest.getURL()) !== entry.origin) throw new Error("账号与当前网页来源不匹配")
+        if (!target || target.host !== host || target.guest.isDestroyed() || !entry || entry.kind === "git" || credentialOrigin(target.guest.getURL()) !== entry.origin) throw new Error("账号与当前网页来源不匹配")
         target.guest.mainFrame.send("vault:fill", { origin: entry.origin, username: entry.username, password: entry.password }); return
       }
       if (action === "import") {
@@ -221,14 +266,14 @@ export function registerVault(host: WebContents) {
           const imported: unknown = JSON.parse(unseal(importKey, backup.data, "vessel-password-export-v1"))
           if (!Array.isArray(imported) || imported.length > 10000) throw new Error("备份记录无效")
           const records = [...document!.records]
-          const known = new Set(entries(k).map((entry) => JSON.stringify([entry.origin, entry.username])))
+          const known = new Set(entries(k).map((entry) => JSON.stringify([entry.kind ?? "website", entry.origin, entry.username, entry.gitPath ?? ""])))
           for (const entry of imported) {
-            if (!entry || typeof entry.origin !== "string" || credentialOrigin(entry.origin) !== entry.origin || typeof entry.username !== "string" || typeof entry.password !== "string" || entry.username.length > 1024 || entry.password.length > 4096) throw new Error("备份记录无效")
-            const identity = JSON.stringify([entry.origin, entry.username])
+            if (!entry || typeof entry.origin !== "string" || credentialOrigin(entry.origin) !== entry.origin || typeof entry.username !== "string" || typeof entry.password !== "string" || entry.username.length > 1024 || entry.password.length > 4096 || (entry.kind !== undefined && entry.kind !== "git") || (entry.gitPath !== undefined && (typeof entry.gitPath !== "string" || entry.gitPath.length > 4096))) throw new Error("备份记录无效")
+            const identity = JSON.stringify([entry.kind ?? "website", entry.origin, entry.username, entry.gitPath ?? ""])
             if (known.has(identity)) continue
             known.add(identity)
             const id = randomUUID()
-            records.push({ id, data: seal(k, JSON.stringify({ id, origin: entry.origin, username: entry.username, password: entry.password, updated: Date.now() }), `${aad}:${id}`) })
+            records.push({ id, data: seal(k, JSON.stringify({ id, origin: entry.origin, username: entry.username, password: entry.password, updated: Date.now(), ...(entry.kind === "git" ? { kind: "git", gitPath: entry.gitPath } : {}) }), `${aad}:${id}`) })
           }
           if (revision !== generation) throw new Error("保险库已锁定")
           if (records.length > 10000) throw new Error("保险库记录数量超限")
@@ -252,5 +297,5 @@ export function registerVault(host: WebContents) {
       }
       throw new Error("不支持的保险库操作")
     } finally { busy = false }
-  })
+  }))
 }

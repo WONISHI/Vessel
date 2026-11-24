@@ -183,7 +183,11 @@
 }
 .vessel-vditor .vditor-reset {
   max-width: none;
-  padding: 24px clamp(32px, 4vw, 64px) 48px !important;
+  padding: 12px clamp(32px, 4vw, 64px) 48px !important;
+}
+/* The first block starts below the toolbar without a second heading/paragraph gap. */
+.vessel-vditor :is(.vditor-ir, .vditor-wysiwyg) > .vditor-reset > :first-child {
+  margin-top: 0 !important;
 }
 .vessel-vditor .vditor-reset pre {
   max-width: 100%;
@@ -1148,3 +1152,7 @@ html[data-markdown-background="dots"] .vessel-editor-scroll .vessel-vditor :is(.
 @media (prefers-reduced-motion: reduce) {
   .vessel-code-copy > :is(.vessel-code-copy-icon, .vessel-code-copy-check) { transition: none; }
 }
+
+/* Global font resets must not flatten bold table text or its inline descendants. */
+.vessel-vditor .vditor-reset :is(td, th) :is(strong, b) { font-weight: 700; }
+.vessel-vditor .vditor-reset :is(td, th) :is(strong, b) * { font-weight: inherit; }

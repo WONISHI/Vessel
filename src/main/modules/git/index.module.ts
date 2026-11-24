@@ -6,6 +6,7 @@ import { getRepositorySettings, saveRepositorySettings } from "@main/modules/git
 import type { GitRepositorySettings } from "@vessel/type/git"
 import { BaseModule } from "@main/modules/base/index"
 import { gitService } from "@main/modules/git/git-service"
+import { withGitAuthentication } from "./authentication"
 import { ipcMain } from "electron"
 
 export class GitModule extends BaseModule {
@@ -126,7 +127,8 @@ export class GitModule extends BaseModule {
     }
 
     for (const [channel, handler] of Object.entries(handlers)) {
-      ipcMain.handle(channel, handler)
+      const remote = new Set(["git:fetch", "git:pull", "git:push", "git:push-selection", "git:push-tag", "git:delete-remote-tag"])
+      ipcMain.handle(channel, remote.has(channel) ? (event, ...args) => withGitAuthentication(event.sender, () => handler(event, ...args)) : handler)
       this.channels.push(channel)
     }
   }

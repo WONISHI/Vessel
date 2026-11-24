@@ -21,6 +21,9 @@ export type BrowserDownloadEntry = { id: number; name: string; path: string; siz
 export type BrowserSavedFile = { name: string; url: string; source: "download" | "save" }
 
 export interface BrowserToolsAPI {
+  setBrowserDevtoolsTransition(token: number, active: boolean): Promise<{ id: number; image: string } | undefined>
+  createBrowserPrivateSession(): Promise<string>
+  closeBrowserPrivateSession(): Promise<void>
   listBrowserDownloads(): Promise<BrowserDownloadEntry[]>
   previewBrowserDownload(id: number): Promise<string>
   revealBrowserDownload(id: number): Promise<void>

@@ -14,6 +14,8 @@ export interface GitStatusResult {
   unstaged: GitFileStatus[]
   untracked: GitFileStatus[]
   conflicts: GitFileStatus[]
+  /** Git-generated message while a merge is in progress. */
+  mergeMessage?: string
 }
 
 export interface GitStashEntry {

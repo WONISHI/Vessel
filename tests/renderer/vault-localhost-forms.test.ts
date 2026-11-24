@@ -34,3 +34,35 @@ it('captures a trusted localhost login submission, deduplicates it and fills onl
  submit({ isTrusted: true, target: form } as unknown as Event)
  expect(mock.send).not.toHaveBeenCalled()
 })
+
+it('ignores the Element Plus realm selector and captures the real account even with the password revealed', () => {
+ vi.useFakeTimers()
+ mock.send.mockClear()
+ const added = vi.spyOn(window, 'addEventListener')
+ bindVaultForms()
+ document.body.innerHTML = '<form><div class="el-select"><input type="text" role="combobox" readonly value="平台"></div><input type="text" placeholder="请输入账号"><input type="text" placeholder="请输入密码"><button type="submit">立即登录</button></form>'
+ const form = document.querySelector('form')!
+ const [realm, username, password] = [...form.querySelectorAll('input')]
+ for (const input of [realm, username, password]) vi.spyOn(input, 'getClientRects').mockReturnValue([{}] as never)
+ username.value = 'local-account'; password.value = 'fixture-password'
+ const submit = added.mock.calls.find(([type]) => type === 'submit')![1] as (event: Event) => void
+ submit({ isTrusted: true, target: form } as unknown as Event)
+ expect(mock.send).toHaveBeenCalledExactlyOnceWith('vault:submit', { username: 'local-account', password: 'fixture-password' })
+ username.value = ''; password.value = ''
+ mock.handlers.get('vault:fill')!({}, { origin: 'http://localhost:9525', username: 'saved-account', password: 'saved-password' })
+ expect(username.value).toBe('saved-account')
+ expect(password.value).toBe('saved-password')
+ expect(realm.value).toBe('平台')
+})
+
+it('does not treat registration or password confirmation forms as a login', () => {
+ mock.send.mockClear()
+ const added = vi.spyOn(window, 'addEventListener')
+ bindVaultForms()
+ document.body.innerHTML = '<form><input autocomplete="username" value="user"><input type="password" autocomplete="new-password" value="new-password"><input type="password" placeholder="确认密码" value="new-password"></form>'
+ const form = document.querySelector('form')!
+ for (const input of form.querySelectorAll('input')) vi.spyOn(input, 'getClientRects').mockReturnValue([{}] as never)
+ const submit = added.mock.calls.find(([type]) => type === 'submit')![1] as (event: Event) => void
+ submit({ isTrusted: true, target: form } as unknown as Event)
+ expect(mock.send).not.toHaveBeenCalled()
+})

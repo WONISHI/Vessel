@@ -94,7 +94,7 @@ export function TransitPanel() {
               localStorage.setItem("vessel-transit-tabs-visible", String(next))
             }}
           ><i aria-hidden="true" className="codicon codicon-browser" /></button>
-          <LayoutVisibilityControls />
+          <LayoutVisibilityControls activity={false} />
         </div>
         <button data-title="关闭" aria-label="关闭中转站" onClick={() => selectTransit(null)} className="transit-bar-item transit-close"><i aria-hidden="true" className="codicon codicon-chrome-close" /></button>
       </header>

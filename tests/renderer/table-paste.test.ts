@@ -119,3 +119,14 @@ it("keeps column selection separate from native text selection in neighboring co
     expect(nativeStart.defaultPrevented).toBe(false)
   } finally { unbind(); root.remove(); selection.removeAllRanges() }
 })
+
+it("explicit formatted paste splits spaces and lines, while ordinary prose paste stays unchanged", async () => {
+  const { formattedClipboardCells } = await import("@/components/core/canvas/variants/markdown/table-paste")
+  expect(formattedClipboardCells("name   id  role\r\nAlice  123  admin\nBob\t456\tuser")).toEqual([["name", "id", "role"], ["Alice", "123", "admin"], ["Bob", "456", "user"]])
+  expect(formattedClipboardCells("name   id  role\r\nAlice  123  admin")).toEqual([["name", "id", "role"], ["Alice", "123", "admin"]])
+  expect(formattedClipboardCells('"Alice Smith"  123\nBob\t456')).toEqual([["Alice Smith", "123"], ["Bob", "456"]])
+  expect(formattedClipboardCells("Alice / 123/admin\nBob/456 / user")).toEqual([["Alice", "123", "admin"], ["Bob", "456", "user"]])
+  expect(formattedClipboardCells('"a/b" / c')).toEqual([["a/b", "c"]])
+  expect(clipboardCells("a/b")).toBeNull()
+  expect(clipboardCells("name id\nAlice 123")).toBeNull()
+})

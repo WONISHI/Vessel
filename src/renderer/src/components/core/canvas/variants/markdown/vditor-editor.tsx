@@ -64,7 +64,7 @@ export function VditorEditor({ value, onChange, workspacePath, documentPath, rea
         ref={toolbarHost}
         className={readOnly ? "hidden" : "vessel-vditor shrink-0 min-w-0 w-full"}
       />
-      <ScrollArea className="vessel-editor-scroll flex-1 min-h-0 min-w-0 mt-2">
+      <ScrollArea className="vessel-editor-scroll flex-1 min-h-0 min-w-0">
         {properties && (
           <DocumentProperties
             properties={properties.properties}

@@ -3,6 +3,22 @@ import type { GitCommitDetail, GitCommitItem, GitDiffResult, GitStatusResult, Gi
 import { ipcRenderer } from "electron"
 
 export const gitAPI = {
+  onAuthWarning: (callback: (message: string) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, message: string) => callback(message)
+    ipcRenderer.on("git:auth-warning", listener)
+    return () => { ipcRenderer.removeListener("git:auth-warning", listener) }
+  },
+  onAuthRequest: (callback: (request: { id: string; host: string; password: boolean }) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, request: { id: string; host: string; password: boolean }) => callback(request)
+    ipcRenderer.on("git:auth-request", listener)
+    return () => { ipcRenderer.removeListener("git:auth-request", listener) }
+  },
+  onAuthDismiss: (callback: (id: string) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, id: string) => callback(id)
+    ipcRenderer.on("git:auth-dismiss", listener)
+    return () => { ipcRenderer.removeListener("git:auth-dismiss", listener) }
+  },
+  respondAuth: (id: string, answer: string | null) => ipcRenderer.send("git:auth-response", id, answer),
   getPushInfo: (cwd: string): Promise<GitPushInfo> => ipcRenderer.invoke("git:push-info", cwd),
   pushSelection: (cwd: string, selection: GitPushSelection, operationId?: string): Promise<{ output: string }> => ipcRenderer.invoke("git:push-selection", cwd, selection, operationId),
   cancelPush: (cwd: string, operationId: string): Promise<boolean> => ipcRenderer.invoke("git:cancel-push", cwd, operationId),

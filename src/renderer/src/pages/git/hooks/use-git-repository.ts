@@ -1,6 +1,6 @@
 import { useGitSelectionState } from "./use-git-selection-state"
 import { reconcileGitFileSelection } from "../file-selection-state"
-import { getCommitDraft } from "@/pages/git/commit-drafts"
+import { getCommitDraft, syncMergeCommitDraft } from "@/pages/git/commit-drafts"
 import { type GitRemoteOperation } from "@/pages/git/components/operation-loading"
 import { toast } from "@/components/ui/sonner"
 import type { GitCommitDetail, GitCommitItem, GitStatusResult, GitStashEntry } from "@vessel/type"
@@ -146,6 +146,7 @@ export function useGitRepository() {
       setBranchCommitTotal(branchTotalRes ?? totalRes)
       statusRepoPath.current = repoPath
       setStatus(statusRes)
+      if (syncMergeCommitDraft(commitMessage, statusRes.mergeMessage)) setCommitMessageReset(value => value + 1)
       // Notify the resource-library tree only when the change set really differs, never on every reload.
       const signature = JSON.stringify([statusRes.staged, statusRes.unstaged, statusRes.untracked, statusRes.conflicts].map((list) => list.map((file) => `${file.path}:${file.status}`)))
       if (signature !== lastGitSignature.current) {
@@ -164,7 +165,7 @@ export function useGitRepository() {
     } finally {
       if (version === historyVersion.current) setLoading(false)
     }
-  }, [repoPath, historyScope])
+  }, [repoPath, historyScope, commitMessage])
 
   /** Loads the next history page while rejecting responses from an older refresh. */
   const loadMoreHistory = async () => {

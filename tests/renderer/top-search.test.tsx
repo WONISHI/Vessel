@@ -471,3 +471,19 @@ it('hides Git change search and arrows outside file status and restores them on 
  expect(screen.getByRole('button', { name: '搜索 Git 变更文件' })).toBeTruthy()
  expect(screen.queryByLabelText('Git 变更文件关键词')).toBeNull()
 })
+
+it('opens the active browser tab externally from page tools using the shared confirmation', async () => {
+ setStatusBarVisible(false)
+ const openExternal = vi.fn().mockResolvedValue(undefined)
+ vi.stubGlobal('electronAPI', { openExternal })
+ publishBrowserTabs([{ id: 'active', title: 'Current', url: 'https://current.test/path', active: true }, { id: 'other', title: 'Other', url: 'https://other.test', active: false }])
+ try {
+  render(<MemoryRouter initialEntries={['/browser']}><TopSearch /></MemoryRouter>)
+  fireEvent.keyDown(screen.getByRole('button', { name: '页面工具' }), { key: 'Enter' })
+  fireEvent.click(screen.getByRole('menuitem', { name: '在默认浏览器中打开' }))
+  expect(screen.getByText('https://current.test/path')).toBeTruthy()
+  expect(openExternal).not.toHaveBeenCalled()
+  fireEvent.click(screen.getByRole('button', { name: '打开', exact: true }))
+  await waitFor(() => expect(openExternal).toHaveBeenCalledWith('https://current.test/path'))
+ } finally { cleanup(); setStatusBarVisible(true) }
+})

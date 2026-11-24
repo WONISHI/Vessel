@@ -18,14 +18,14 @@ it("groups by exact hostname while retaining active tabs, order, local files and
   expect(groups[0].tab.id).toBe("two")
   expect(groupBrowserTabs(tabs.filter(tab => tab.id !== "two"), "one", true)[0].tab.id).toBe("one")
 })
-it("defaults to individual tabs, then groups after settings are enabled and allows hover switching", async () => {
+it("defaults to grouped tabs, respects a saved disabled setting and allows hover switching", async () => {
   let enabled = false
   vi.stubGlobal("electronAPI", { getSettings: vi.fn(async () => ({ browserGroupSameDomain: enabled })) })
   const setActive = vi.fn(), setInput = vi.fn(), close = vi.fn()
   const b = { tabs, tab: tabs[2], setActive, setInput, close, add: vi.fn(), addTabRightOf: vi.fn(), reloadTab: vi.fn(), togglePinTab: vi.fn(), closeOtherTabs: vi.fn(), closeRightTabs: vi.fn(), setDragTabId: vi.fn(), reorderTabs: vi.fn() } as unknown as BrowserPageModel
   const view = render(<BrowserTabs b={b} />)
-  expect(view.container.querySelectorAll('.browser-tab')).toHaveLength(4)
-  await waitFor(() => expect(window.electronAPI.getSettings).toHaveBeenCalledOnce())
+  expect(view.container.querySelectorAll('.browser-tab')).toHaveLength(3)
+  await waitFor(() => expect(view.container.querySelectorAll('.browser-tab')).toHaveLength(4))
   enabled = true
   act(() => window.dispatchEvent(new Event("vessel:settings-saved")))
   await waitFor(() => expect(view.container.querySelectorAll('.browser-tab')).toHaveLength(3))

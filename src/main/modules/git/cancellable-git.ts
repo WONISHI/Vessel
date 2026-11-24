@@ -1,10 +1,11 @@
+import { gitAuthenticationEnvironment } from "./askpass"
 import { spawn } from "node:child_process"
 
 /** Run an interruptible Git process, including its transport and hook children. */
 export async function runCancellableGit(args: string[], cwd: string, signal: AbortSignal): Promise<{ stdout: string; stderr: string; exitCode: number }> {
   signal.throwIfAborted()
   let binary = "git"
-  const systemEnv: NodeJS.ProcessEnv = { ...process.env, LC_ALL: "C", GIT_TERMINAL_PROMPT: "0" }
+  const systemEnv: NodeJS.ProcessEnv = { ...process.env, ...gitAuthenticationEnvironment(), LC_ALL: "C", GIT_TERMINAL_PROMPT: "0" }
   let env = systemEnv
   try {
     const { setupEnvironment } = await import("dugite")

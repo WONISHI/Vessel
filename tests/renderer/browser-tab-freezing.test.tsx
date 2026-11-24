@@ -20,7 +20,7 @@ function tab(id: string, patch: Partial<Tab> = {}): Tab {
   return { ...newTab(), id, title: id, url: `https://${id}.test`, lastActiveAt: 0, favicon: `https://${id}.test/icon.png`, ...patch }
 }
 
-it("freezes only eligible background guests at four hours and keeps tab metadata", () => {
+it("freezes only eligible background guests at three hours and keeps tab metadata", () => {
   const tabs = [tab("active"), tab("idle", { pinned: true, zoom: 1.25, back: true, ready: true }), tab("audio", { mediaPlaying: true }), tab("video", { videoPlaying: true }), tab("loading", { loading: true }), tab("devtools"), tab("unmounted"), tab("recent", { lastActiveAt: 1 })]
   const canFreeze = (id: string) => id !== "devtools" && id !== "unmounted"
   expect(freezeIdleTabs(tabs, "active", canFreeze, TAB_FREEZE_AFTER - 1)).toBe(tabs)

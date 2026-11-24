@@ -151,7 +151,7 @@ function validate(value: AppSettings): AppSettings {
     catppuccinFlavor: value.catppuccinFlavor ?? "auto",
     searchEngine: ["bing", "google", "baidu", "duckduckgo"].includes(value.searchEngine || "") ? value.searchEngine : "bing",
     proxyEnabled: value.proxyEnabled === true,
-    browserGroupSameDomain: value.browserGroupSameDomain === true,
+    browserGroupSameDomain: value.browserGroupSameDomain !== false,
     resourceTreeStickyScroll: value.resourceTreeStickyScroll !== false,
     browserDevtoolsFollowWindow: value.browserDevtoolsFollowWindow === true,
     externalScreenshot: value.externalScreenshot !== false,

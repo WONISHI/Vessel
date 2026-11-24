@@ -1,0 +1,27 @@
+/* Keep both panels mounted so opening/closing preserves the tree and editor. */
+.resizable-split-motion > [data-panel] {
+  flex-basis: 0 !important;
+  transition: flex-grow 300ms var(--motion-ease-out, cubic-bezier(0, 0, .2, 1));
+}
+.resizable-split-motion[data-pane-open="false"] > [data-panel] {
+  transition-duration: 240ms;
+  transition-timing-function: var(--motion-ease-in, cubic-bezier(.4, 0, 1, 1));
+}
+.resizable-split-motion[data-pane-open="false"] > #dock {
+  flex-grow: 0 !important;
+  pointer-events: none;
+}
+.resizable-split-motion[data-pane-open="false"] > #content { flex-grow: 100 !important; }
+.resizable-split-motion > #dock { overflow: hidden !important; }
+.resizable-split-motion > [data-separator] { transition: width 240ms var(--motion-ease-out, cubic-bezier(0, 0, .2, 1)); }
+.resizable-split-motion[data-pane-open="false"] > [data-separator] {
+  width: 0 !important;
+  visibility: hidden;
+  pointer-events: none;
+}
+/* Pointer resizing follows the separator immediately instead of easing behind it. */
+.resizable-split-motion:has(> [data-separator="active"]) > [data-panel] { transition: none !important; }
+.resizable-split-motion:has(> [data-separator="active"]) > #dock > .resizable-split-pane-content { width: 100% !important; }
+@media (prefers-reduced-motion: reduce) {
+  .resizable-split-motion > [data-panel], .resizable-split-motion > [data-separator] { transition: none !important; }
+}

@@ -19,7 +19,7 @@
   table-layout: fixed !important;
   width: 100% !important;
 }
-.vessel-markdown-table-wrapper .vessel-table-th { position: relative; }
+.vessel-markdown-table-wrapper :is(.vessel-table-th, .vessel-table-td) { position: relative; }
 .vessel-column-resizer {
   position: absolute;
   top: 0;

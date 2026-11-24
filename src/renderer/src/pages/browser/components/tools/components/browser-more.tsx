@@ -4,12 +4,12 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { HistorySheet } from "@/pages/browser/components/history-sheet"
 import type { HistoryEntry } from "@vessel/type"
 import type { WebviewTag } from "electron"
-import { Download, Bookmark, KeyRound, History, MoreHorizontal, Printer, Search, Smartphone, ZoomIn, ZoomOut } from "lucide-react"
+import { VenetianMask, UserRound, X, Download, Bookmark, KeyRound, History, MoreHorizontal, Printer, Search, Smartphone, ZoomIn, ZoomOut } from "lucide-react"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
 /** Renders the browser more component. */
-export function BrowserMore({ visible = true, zoom, zoomFactor, onFind, onNavigate, guest, deviceMode, onDevice, bookmarksVisible, onToggleBookmarks }: { bookmarksVisible: boolean; onToggleBookmarks: () => void; visible?: boolean; zoomFactor: number; zoom: (delta: number) => void; onFind: () => void; onNavigate: (url: string) => void; guest: () => WebviewTag | undefined; deviceMode: boolean; onDevice: () => void }) {
+export function BrowserMore({ visible = true, zoom, zoomFactor, onFind, onNavigate, guest, deviceMode, onDevice, bookmarksVisible, onToggleBookmarks, incognito = false, hasIncognito = false, onEnterIncognito, onCloseIncognito, onSwitchUserWindow }: { incognito?: boolean; hasIncognito?: boolean; onEnterIncognito?: () => Promise<void>; onCloseIncognito?: () => Promise<void>; onSwitchUserWindow?: () => void; bookmarksVisible: boolean; onToggleBookmarks: () => void; visible?: boolean; zoomFactor: number; zoom: (delta: number) => void; onFind: () => void; onNavigate: (url: string) => void; guest: () => WebviewTag | undefined; deviceMode: boolean; onDevice: () => void }) {
   const [open, setOpen] = useState(false)
   const [downloadsOpen, setDownloadsOpen] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
@@ -84,6 +84,17 @@ export function BrowserMore({ visible = true, zoom, zoomFactor, onFind, onNaviga
             </div>
           </div>
           <DropdownMenuSeparator className="mx-1 my-1 bg-stone-100" />
+          <DropdownMenuItem className={itemClass} onSelect={() => run(() => {
+            if (incognito) onSwitchUserWindow?.()
+            else void onEnterIncognito?.().catch(error => toast.error(String(error)))
+          })}>
+            {incognito ? <UserRound /> : <VenetianMask />}
+            {incognito ? "切换用户窗口" : hasIncognito ? "进入无痕窗口" : "打开无痕窗口"}
+          </DropdownMenuItem>
+          {hasIncognito && <DropdownMenuItem className={itemClass} onSelect={() => run(() => { void onCloseIncognito?.().catch(error => toast.error(String(error))) })}>
+            <X />关闭无痕窗口
+          </DropdownMenuItem>}
+
           <DropdownMenuItem
             className={itemClass}
             onSelect={() => run(onFind)}

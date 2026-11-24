@@ -1,8 +1,9 @@
+import { setBrowserSessionProxy, closeBrowserSessionConnections } from "./browser-session-proxy"
 import { browserProxyConfig } from "@main/browser/browser-proxy-config"
 import release from "@main/mihomo-release.json"
 import { generalSettings, settingsEvents } from "@main/settings/settings"
 import type { BrowserProxyStatus } from "@vessel/type"
-import { app, net, safeStorage, session, type WebContents } from "electron"
+import { app, net, safeStorage, type WebContents } from "electron"
 import { spawn, type ChildProcess } from "node:child_process"
 import { createHash, randomUUID } from "node:crypto"
 import { chmod, mkdir, readFile, rename, writeFile } from "node:fs/promises"
@@ -17,9 +18,6 @@ let child: ChildProcess | undefined,
 
 /** Performs the directory operation. */
 const directory = () => join(app.getPath("userData"), "browser-proxy")
-
-/** Performs the browser operation. */
-const browser = () => session.fromPartition("persist:vessel-browser")
 
 /** Performs the pause operation. */
 const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
@@ -88,8 +86,7 @@ async function api(route: string, method = "GET", body?: unknown) {
 async function disconnect() {
   const running = child
   child = undefined
-  await browser().setProxy({ mode: "system" })
-  await browser().closeAllConnections()
+  await setBrowserSessionProxy({ mode: "system" })
   running?.kill()
   state.connected = false
   state.stage = "未连接"
@@ -151,8 +148,7 @@ async function connect(input?: string) {
       await pause(250)
     }
     if (failed || !group?.all?.length) throw new Error("代理核心启动失败或订阅没有可用节点")
-    await browser().setProxy({ proxyRules: `http=127.0.0.1:${port};https=127.0.0.1:${port}`, proxyBypassRules: "<local>" })
-    await browser().closeAllConnections()
+    await setBrowserSessionProxy({ proxyRules: `http=127.0.0.1:${port};https=127.0.0.1:${port}`, proxyBypassRules: "<local>" })
     memoryURL = url
     state.hasSubscription = true
     if (safeStorage.isEncryptionAvailable()) await writeFile(join(directory(), "subscription.enc"), safeStorage.encryptString(url), { mode: 0o600 })
@@ -201,7 +197,7 @@ export function registerBrowserProxy(host: WebContents) {
     if (!state.connected || !state.nodes.includes(name)) throw new Error("节点无效")
     await api("/proxies/Vessel", "PUT", { name })
     state.selected = name
-    await browser().closeAllConnections()
+    await closeBrowserSessionConnections()
     return { ...state }
   })
 }

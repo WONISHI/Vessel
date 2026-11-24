@@ -201,6 +201,11 @@ export function BrowserToolbar({ b, visible = true }: { b: BrowserPageModel; vis
                 }}
               />
               <BrowserMore
+                incognito={b.incognito}
+                hasIncognito={Boolean(b.privateWindow)}
+                onEnterIncognito={b.enterIncognito}
+                onCloseIncognito={b.closeIncognito}
+                onSwitchUserWindow={b.switchUserWindow}
                 bookmarksVisible={b.bookmarksVisible}
                 onToggleBookmarks={() => b.setBookmarksVisible(value => !value)}
                 visible={visible}

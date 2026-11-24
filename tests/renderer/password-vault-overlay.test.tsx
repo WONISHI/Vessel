@@ -8,9 +8,7 @@ it("leaves activity and status navigation interactive when the vault is open", (
   const navigate = vi.fn()
   render(<><button onClick={navigate}>活动栏</button><PasswordVault /></>)
   act(() => window.dispatchEvent(new Event("vessel-open-password-vault")))
-  const overlay = document.querySelector("[data-vault-overlay]")!
-  expect((overlay as HTMLElement).style.left).toBe("52px")
-  expect((overlay as HTMLElement).style.bottom).toBe("32px")
+  expect(document.querySelector("[data-vault-overlay]")).toBeNull()
   expect(document.body.style.pointerEvents).not.toBe("none")
   const button = screen.getByRole("button", { name: "活动栏" })
   expect(button.closest('[aria-hidden="true"]')).toBeNull()
@@ -30,4 +28,16 @@ it("asks before saving credentials detected on a local development page", async 
   expect(request).not.toHaveBeenCalledWith("candidate", expect.anything())
   fireEvent.click(screen.getByRole("button", { name: "保存 / 更新" }))
   await waitFor(() => expect(request).toHaveBeenCalledWith("candidate", { id: "local-candidate", choice: "save" }))
+})
+
+it("lists Git credentials with a Git badge while excluding them from website autofill", async () => {
+  const items = [{ id: "git-entry", origin: "https://git.test", username: "developer", kind: "git", gitPath: "team/project.git", updated: 1 }]
+  vi.stubGlobal("electronAPI", { onVaultCandidate: () => () => {}, vaultRequest: vi.fn(async (action: string) => action === "catalog" ? { items, requiresUnlock: false } : { initialized: true, unlocked: true, auto: true }) })
+  render(<PasswordVault url="https://git.test/login" />)
+  act(() => window.dispatchEvent(new Event("vessel-open-password-vault")))
+  await waitFor(() => expect(screen.getByText("Git")).toBeTruthy())
+  expect(screen.getByText("developer")).toBeTruthy()
+  expect(screen.getByText("team/project.git")).toBeTruthy()
+  expect(screen.queryByRole("button", { name: "此网站已保存的密码" })).toBeNull()
+  expect(screen.getByLabelText("已保存密码").textContent).toBe("••••••••")
 })

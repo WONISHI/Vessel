@@ -5,15 +5,28 @@ import { ipcRenderer } from "electron"
 export function bindVaultForms() {
   if (window.top !== window || !vaultCredentialOrigin(location.href)) return
   const visible = (input: HTMLInputElement) => !input.disabled && input.getClientRects().length > 0 && getComputedStyle(input).visibility !== "hidden"
+  const fields = (scope: ParentNode) => {
+    const inputs = [...scope.querySelectorAll<HTMLInputElement>("input")].filter(visible)
+    const hint = (input: HTMLInputElement) => [input.name, input.id, input.placeholder, input.getAttribute("aria-label")].filter(Boolean).join(" ")
+    const passwords = inputs.filter(input => input.type === "password" || (["text", "email"].includes(input.type) && (input.autocomplete === "current-password" || /password|passwd|(?:^|[\s_-])pwd(?:$|[\s_-])|密码/i.test(hint(input)))))
+    if (passwords.length !== 1 || passwords[0].autocomplete === "new-password") return
+    const password = passwords[0]
+    // UI selects often contain a visible text input before the actual username.
+    const candidates = inputs.filter(input => input !== password && ["text", "email", "tel"].includes(input.type) && !input.closest('[role="combobox"], .el-select, .ant-select, .v-select') && input.getAttribute("aria-autocomplete") !== "list")
+    const username = candidates.find(input => input.autocomplete === "username")
+      || candidates.find(input => /username|user[_-]?name|account|login|email|phone|mobile|账号|帐号|用户名|手机号|邮箱/i.test(hint(input)))
+      || candidates.find(input => input.type === "email")
+      || candidates.find(input => !input.readOnly)
+      || candidates[0]
+    return username ? { username, password } : undefined
+  }
   const reported = new WeakMap<HTMLFormElement, string>()
   let timer: ReturnType<typeof setTimeout> | undefined
   const capture = (form: HTMLFormElement) => {
     if (!form.isConnected || new URL(form.action || location.href, location.href).origin !== location.origin) return
-    const passwords = [...form.querySelectorAll<HTMLInputElement>('input[type="password"]')].filter(visible)
-    if (passwords.length !== 1 || passwords[0].autocomplete === "new-password") return
-    const inputs = [...form.querySelectorAll<HTMLInputElement>("input")].filter(visible)
-    const username = inputs.find((input) => input.autocomplete === "username") || inputs.find((input) => input.type === "email") || inputs.find((input) => input.type === "text")
-    const password = passwords[0]
+    const pair = fields(form)
+    if (!pair) return
+    const { username, password } = pair
     if (!username?.value || !password.value) return
     const identity = JSON.stringify([username.value, password.value])
     if (reported.get(form) === identity) return
@@ -41,14 +54,10 @@ export function bindVaultForms() {
   type Suggestion = { id: string; username: string }
   let menu: HTMLDivElement | undefined, menuInput: HTMLInputElement | undefined, suggestions: Suggestion[] = []
   const loginFields = (input: HTMLInputElement) => {
-    const passwords = [...document.querySelectorAll<HTMLInputElement>('input[type="password"]')].filter(visible)
-    if (passwords.length !== 1 || passwords[0].autocomplete === "new-password") return false
-    const form = passwords[0].form
-    const scope: ParentNode = form ?? document
-    const inputs = [...scope.querySelectorAll<HTMLInputElement>("input")].filter(visible)
-    const username = inputs.find((item) => item.autocomplete === "username") || inputs.find((item) => item.type === "email") || inputs.find((item) => item.type === "text")
-    return input === passwords[0] || input === username
+    const pair = fields(input.form ?? document)
+    return pair && (input === pair.password || input === pair.username)
   }
+
   const closeMenu = () => { menu?.remove(); menu = undefined; menuInput = undefined }
   const place = () => {
     if (!menu || !menuInput?.isConnected) return closeMenu()
@@ -108,12 +117,10 @@ export function bindVaultForms() {
   window.addEventListener("resize", closeMenu)
   ipcRenderer.on("vault:fill", (_event, data: { origin: string; username: string; password: string }) => {
     if (location.origin !== data.origin) return
-    const passwords = [...document.querySelectorAll<HTMLInputElement>('input[type="password"]')].filter(visible)
-    if (passwords.length !== 1 || passwords[0].autocomplete === "new-password") return
-    const password = passwords[0], form = password.form
+    const pair = fields(document)
+    if (!pair) return
+    const { username, password } = pair, form = password.form
     if (!form || new URL(form.action || location.href, location.href).origin !== location.origin) return
-    const inputs = [...form.querySelectorAll<HTMLInputElement>('input')].filter(visible)
-    const username = inputs.find((input) => input.autocomplete === "username") || inputs.find((input) => input.type === "email") || inputs.find((input) => input.type === "text")
     const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!
     for (const [input, value] of [[username, data.username], [password, data.password]] as const) {
       if (!input) continue

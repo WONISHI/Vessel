@@ -1,7 +1,7 @@
 import { HistoryInput } from "@/pages/browser/components/history-input"
 import { newTab, shortcuts } from "@/pages/browser/components/index-shared"
 import { browserURL } from "@/pages/browser/url"
-import { Globe, Search } from "lucide-react"
+import { VenetianMask, Globe, Search } from "lucide-react"
 import { useState } from "react"
 import type { BrowserPageModel } from "@/pages/browser/components/browser-page/hooks/use-browser-page"
 
@@ -18,10 +18,10 @@ export function BrowserHome({ b }: { b: BrowserPageModel }) {
   return (
                 <div className="browser-home">
                   <div className="browser-logo">
-                    <Globe size={36} />
+                    {b.incognito ? <VenetianMask size={36} /> : <Globe size={36} />}
                   </div>
-                  <h1>Vessel 浏览器</h1>
-                  <p>快速搜索或访问常用网站</p>
+                  <h1>{b.incognito ? "无痕浏览" : "Vessel 浏览器"}</h1>
+                  <p>{b.incognito ? "不保存浏览历史、账号和密码" : "快速搜索或访问常用网站"}</p>
                   <form
                     onSubmit={(event) => {
                       event.preventDefault()

@@ -5,12 +5,18 @@ import { useLocation, useNavigate } from "react-router-dom"
 import { useWorkspaceSync } from "./use-workspace-sync"
 import { useLibraryMeta, type LibraryProject } from "@/pages/resources/library-state"
 import { openResourceProject, refreshRecentResourceProjects } from "@/pages/resources/open-project"
+import { useBrowserTabs } from "@/pages/browser/tab-state"
+import { isOpenableUrl } from "@/pages/browser/openable-url"
+import { BrowserExternalDialog } from "@/pages/browser/components/browser-page/browser-external-dialog"
 import { toast } from "@/components/ui/sonner"
 import { useProjectSwitchConfirmation } from "@/pages/resources/use-project-switch-confirmation"
 import type { FilePickerRequest, FilePickerWorkspace } from "@/components/workspace-file-picker/types"
 import "@vscode/codicons/dist/codicon.css"
 
 export function PageToolsMenu({ browser }: { browser: boolean }) {
+  const tabs = useBrowserTabs()
+  const activeURL = tabs.find(tab => tab.active)?.url ?? ""
+  const [externalURL, setExternalURL] = useState<string | null>(null)
   const { requestSwitch, confirmation } = useProjectSwitchConfirmation()
   const [toolbarCollapsed, setToolbarCollapsed] = useState(false)
   const [consoleOpen, setConsoleOpen] = useState(false)
@@ -91,10 +97,11 @@ export function PageToolsMenu({ browser }: { browser: boolean }) {
     if (resources) loadRecent()
   }}>
     <DropdownMenuTrigger asChild><button type="button" aria-label="页面工具" data-title="页面工具" className="flex size-6 items-center justify-center rounded text-stone-500 hover:bg-stone-200 dark:text-stone-400 dark:hover:bg-white/10"><i aria-hidden="true" className="codicon codicon-tools !text-base" /></button></DropdownMenuTrigger>
-    <DropdownMenuContent align="end" sideOffset={8} className="vessel-activity-tools-popup z-[510] w-[10.2rem] rounded-xl p-1">
+    <DropdownMenuContent align="end" sideOffset={8} className={`vessel-activity-tools-popup z-[510] ${browser ? "w-52" : "w-[10.2rem]"} rounded-xl p-1`}>
       {browser ? <>
         <DropdownMenuItem className={itemClass} onSelect={() => window.dispatchEvent(new Event("vessel-browser-toggle-toolbar"))}><ToggleIcon />{toolbarCollapsed ? "展开搜索栏" : "折叠搜索栏"}</DropdownMenuItem>
         <DropdownMenuItem className={itemClass} onSelect={() => window.dispatchEvent(new Event("vessel-browser-open-find"))}><Search />搜索</DropdownMenuItem>
+        <DropdownMenuItem className={itemClass} disabled={!isOpenableUrl(activeURL)} onSelect={() => setExternalURL(activeURL)}><ExternalLink />在默认浏览器中打开</DropdownMenuItem>
       </> : <>
         <DropdownMenuItem className={itemClass} onSelect={() => window.dispatchEvent(new Event("vessel:toggle-workspace-console"))}><SquareTerminal />{consoleOpen ? "关闭控制台" : "打开控制台"}</DropdownMenuItem>
         {(workspace || resources) && <DropdownMenuItem className={itemClass} onSelect={() => sidebarAction.current?.(!sidebarOpen)}>{sidebarOpen ? <PanelLeftClose /> : <PanelLeftOpen />}{sidebarOpen ? "关闭侧边栏" : "打开侧边栏"}</DropdownMenuItem>}
@@ -112,5 +119,5 @@ export function PageToolsMenu({ browser }: { browser: boolean }) {
         </DropdownMenuSub>}
       </>}
     </DropdownMenuContent>
-  </DropdownMenu>{confirmation}</>
+  </DropdownMenu>{confirmation}{externalURL !== null && <BrowserExternalDialog url={externalURL} open onOpenChange={open => { if (!open) setExternalURL(null) }} />}</>
 }

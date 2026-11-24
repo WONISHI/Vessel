@@ -10,7 +10,7 @@ import type { BrowserState } from "@/pages/browser/components/browser-page/hooks
 
 /** 页内查找、控制台挂载、导航与标签操作 */
 export function useBrowserActions(state: BrowserState, visible: boolean) {
-  const { tabs, setTabs, setFindOpen, setFindPosition, setToolbarCollapsed, toolbarCollapsed, findInput, devtoolsOpen, setDevtoolsOpen, dock, consoleFont, consoleSize, devtoolsHost, setActive, setInput, bookmarks, setBookmarks, views, tab, input } = state
+  const { tabs, setTabs, setAllTabs, setFindOpen, setFindPosition, setToolbarCollapsed, toolbarCollapsed, findInput, devtoolsOpen, setDevtoolsOpen, dock, consoleFont, consoleSize, devtoolsHost, setActive, setInput, bookmarks, setBookmarks, views, tab, input } = state
 
 
   /** Reloads tab. */
@@ -92,7 +92,7 @@ export function useBrowserActions(state: BrowserState, visible: boolean) {
   /** Refreshes the current state. */
   const update = useCallback(
     (id: string, patch: Partial<Tab>) =>
-      setTabs((current) => {
+      setAllTabs((current) => {
         const index = current.findIndex((item) => item.id === id)
         if (index < 0 || (Object.keys(patch) as (keyof Tab)[]).every((key) => current[index][key] === patch[key])) return current
         const next = [...current]
@@ -218,7 +218,7 @@ export function useBrowserActions(state: BrowserState, visible: boolean) {
           if (openerIndex === -1) return [...current, item]
           const insertAt = openerIndex + 1
           return [...current.slice(0, insertAt), item, ...current.slice(insertAt)]
-        })
+        }, item.openerId)
         setActive(item.id)
         setInput(null)
       }),
@@ -278,17 +278,16 @@ export function useBrowserActions(state: BrowserState, visible: boolean) {
 
   /** Closes right tabs. */
   const closeRightTabs = (id: string) => {
-    setTabs((current) => {
-      const index = current.findIndex((t) => t.id === id)
-      if (index < 0) return current
-      const remaining = current.filter((t, i) => i <= index || t.pinned)
-      if (!remaining.some((t) => t.id === tab.id)) {
-        setActive(id)
-        setInput(null)
-      }
-      return remaining
-    })
+    const index = tabs.findIndex((item) => item.id === id)
+    if (index < 0) return
+    const remaining = tabs.filter((item, position) => position <= index || item.pinned)
+    setTabs(remaining)
+    if (!remaining.some((item) => item.id === tab.id)) {
+      setActive(id)
+      setInput(null)
+    }
   }
+
   const [dragTabId, setDragTabId] = useState<string | null>(null)
 
   /** Performs the reorder tabs operation. */

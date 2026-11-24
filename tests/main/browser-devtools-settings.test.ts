@@ -10,14 +10,14 @@ vi.mock("electron", () => ({ app: { getPath: () => mock.directory, once: vi.fn()
 it("defaults legacy profiles to independent consoles and persists the follow option through settings IPC", async () => {
   mock.directory = await mkdtemp(join(tmpdir(), "vessel-devtools-settings-"))
   try {
-    const { browserDevtoolsFollowWindow: _follow, ...legacy } = defaultSettings
+    const { browserDevtoolsFollowWindow: _follow, browserGroupSameDomain: _grouping, ...legacy } = defaultSettings
     await writeFile(join(mock.directory, "settings.json"), JSON.stringify({ settings: legacy, profiles: {} }))
     const { registerSettings } = await import("@main/settings/settings")
     const handlers = new Map<string, (...args: any[]) => any>()
     registerSettings({ ipc: { handle: (name: string, handler: (...args: any[]) => any) => handlers.set(name, handler) }, once: vi.fn(), send: vi.fn() } as any)
     const current = handlers.get("settings:get")!()
     expect(current.browserDevtoolsFollowWindow).toBe(false)
-    expect(current.browserGroupSameDomain).toBe(false)
+    expect(current.browserGroupSameDomain).toBe(true)
     const save = (value: unknown) => handlers.get("settings:save")!(null, { ...current, browserDevtoolsFollowWindow: value })
     await expect(save("true")).rejects.toThrow("控制台窗口跟随设置无效")
     await expect(save(true)).resolves.toMatchObject({ browserDevtoolsFollowWindow: true })
@@ -28,5 +28,7 @@ it("defaults legacy profiles to independent consoles and persists the follow opt
     await handlers.get("settings:save")!(null, { ...current, browserGroupSameDomain: true })
     expect(handlers.get("settings:get")!().browserGroupSameDomain).toBe(true)
     expect(JSON.parse(await readFile(join(mock.directory, "settings.json"), "utf8")).settings.browserGroupSameDomain).toBe(true)
+    await handlers.get("settings:save")!(null, { ...current, browserGroupSameDomain: false })
+    expect(handlers.get("settings:get")!().browserGroupSameDomain).toBe(false)
   } finally { await rm(mock.directory, { recursive: true, force: true }) }
 })

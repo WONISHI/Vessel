@@ -1,13 +1,13 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { afterEach, expect, it, vi } from "vitest"
-import { MarkdownTableEditor } from "@vessel/markdown-table"
+import { MarkdownTableEditor, parseMarkdownTable } from "@vessel/markdown-table"
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals() })
 it("resizes neighboring columns and persists widths only on release", () => {
   vi.stubGlobal("PointerEvent", MouseEvent)
   const change = vi.fn()
   const { container } = render(<MarkdownTableEditor source="| A | B |\n| --- | --- |\n| x | y |" onChange={change} />)
   container.querySelectorAll("col").forEach((col) => vi.spyOn(col, "getBoundingClientRect").mockReturnValue({ width: 200 } as DOMRect))
-  const handle = screen.getByRole("separator", { name: "调整第 1 列宽度" })
+  const handle = screen.getAllByRole("separator", { name: "调整第 1 列宽度" })[0]
   handle.setPointerCapture = vi.fn(); handle.releasePointerCapture = vi.fn()
   fireEvent.pointerDown(handle, { button: 0, clientX: 200, pointerId: 1 })
   fireEvent.pointerMove(handle, { clientX: 250, pointerId: 1 })
@@ -31,4 +31,32 @@ it("retains invalid JSON in the source editor instead of replacing the table", (
 it("does not expose resize handles in read-only tables", () => {
   render(<MarkdownTableEditor source="| A | B |\n| --- | --- |\n| x | y |" readOnly />)
   expect(screen.queryByRole("separator", { name: /调整第/ })).toBeNull()
+})
+
+it.each([
+  { label: "a fully merged header", rows: [{ isHeader: true }, {}], merges: [{ startRow: 0, endRow: 0, startCol: 0, endCol: 2 }], row: 1, col: 0, boundary: 0 },
+  { label: "a merged cell spanning multiple columns", rows: [{ isHeader: true }, {}], merges: [{ startRow: 0, endRow: 0, startCol: 0, endCol: 1 }], row: 0, col: 0, boundary: 1 },
+  { label: "a table without header rows", rows: [{}, {}], merges: [], row: 1, col: 0, boundary: 0 },
+  { label: "a cell spanning multiple rows", rows: [{}, {}, {}], merges: [{ startRow: 0, endRow: 2, startCol: 0, endCol: 0 }], row: 0, col: 0, boundary: 0 }
+])("resizes the logical column boundary with $label", ({ rows, merges, row, col, boundary }) => {
+  vi.stubGlobal("PointerEvent", MouseEvent)
+  const change = vi.fn()
+  const data = parseMarkdownTable(JSON.stringify({ columns: [{}, {}, {}], rows: rows.map(item => ({ ...item, cells: [{ text: "A" }, { text: "B" }, { text: "C" }] })), merges }))
+  const { container } = render(<MarkdownTableEditor data={data} onChange={change} />)
+  container.querySelectorAll("col").forEach(column => vi.spyOn(column, "getBoundingClientRect").mockReturnValue({ width: 200 } as DOMRect))
+  const cell = container.querySelectorAll("tbody tr")[row].querySelectorAll("td,th")[col]
+  const handle = cell.querySelector<HTMLElement>(".vessel-column-resizer")!
+  expect(handle).toBeTruthy()
+  expect(handle.getAttribute("aria-label")).toBe(`调整第 ${boundary + 1} 列宽度`)
+  handle.setPointerCapture = vi.fn(); handle.releasePointerCapture = vi.fn()
+  fireEvent.pointerDown(handle, { button: 0, clientX: 200, pointerId: 1 })
+  fireEvent.pointerMove(handle, { clientX: 250, pointerId: 1 })
+  expect(change).not.toHaveBeenCalled()
+  fireEvent.pointerUp(handle, { pointerId: 1 })
+  const expected = [200, 200, 200]
+  expected[boundary] += 50; expected[boundary + 1] -= 50
+  const saved = change.mock.calls[0][1]
+  expect(saved.columns.map((column: { width: number }) => column.width)).toEqual(expected)
+  expect(saved.merges).toEqual(data.merges)
+  expect(container.querySelector('tbody tr:last-child td:last-child .vessel-column-resizer')).toBeNull()
 })

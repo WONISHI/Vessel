@@ -24,3 +24,13 @@ it("expands a selection through merges intersected by another merged footprint",
     { startRow: 1, endRow: 3, startCol: 0, endCol: 0 }, { startRow: 3, endRow: 4, startCol: 1, endCol: 2 }
   ])).toEqual({ startRow: 1, endRow: 4, startCol: 0, endCol: 2 })
 })
+
+it("dismisses the cell menu when another cell intercepts the mouse event", () => {
+  const data = parseMarkdownTable(JSON.stringify({ columns: [{}, {}], rows: [{ cells: [{ text: "A" }, { text: "B" }] }, { cells: [{ text: "one" }, { text: "two" }] }] }))
+  const { container, queryByRole, getByRole } = render(<div onMouseDown={event => event.stopPropagation()}><MarkdownTableEditor data={data} /></div>)
+  const cells = container.querySelectorAll("td,th")
+  fireEvent.contextMenu(cells[0], { clientX: 40, clientY: 40 })
+  expect(getByRole("menu", { name: "单元格操作" })).toBeTruthy()
+  fireEvent.mouseDown(cells[1], { button: 0 })
+  expect(queryByRole("menu", { name: "单元格操作" })).toBeNull()
+})

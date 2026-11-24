@@ -1,3 +1,4 @@
+import { enableBrowserElementInspection } from "./browser-devtools-inspect"
 import { revealBrowserStyle } from "./browser-inspect-style"
 import { bindBrowserDevtoolsWindow } from "./browser-devtools-window"
 import { enableBrowserNodeScreenshots, registerBrowserNodeScreenshotSave } from "./browser-devtools-screenshot"
@@ -22,9 +23,39 @@ export function registerBrowserDevtools(host: WebContents) {
   let cssKey: string | undefined
   let controlState = ""
 
+  let transitionToken: number | undefined
+  let latestTransitionToken = 0
+  let requestedVisible = false
+  let lastSnapshot: { id: number; image: string } | undefined
+  host.ipc.handle("browser:devtools-transition", async (event, token: number, preparing: boolean) => {
+    if (event.senderFrame !== host.mainFrame || !Number.isSafeInteger(token) || token < 1 || typeof preparing !== "boolean") throw new Error("页面转场请求无效")
+    if (!preparing) {
+      if (transitionToken !== token) return
+      transitionToken = undefined
+      if (panel && !panel.webContents.isDestroyed()) panel.setVisible(requestedVisible)
+      return
+    }
+    if (token < latestTransitionToken) return
+    latestTransitionToken = token
+    transitionToken = token
+    if (!panel || detachedWindow || !inspected) return
+    const capturedPanel = panel
+    const id = inspected.id
+    if (capturedPanel.getVisible()) {
+      try {
+        const image = await capturedPanel.webContents.capturePage()
+        if (!image.isEmpty() && panel === capturedPanel && transitionToken === token) lastSnapshot = { id, image: image.toDataURL() }
+      } catch (error) { console.error("控制台转场快照失败", error) }
+    }
+    if (panel !== capturedPanel || transitionToken !== token) return
+    capturedPanel.setVisible(false)
+    return lastSnapshot?.id === id ? lastSnapshot : undefined
+  })
+
   let previewRevision = 0
   let previewOccluded = false
   let previewCapturePending = false
+  let previewTimer: ReturnType<typeof setTimeout> | undefined
   let appliedKey = ""
   let appliedBounds = ""
   let appliedVisible: boolean | undefined
@@ -45,7 +76,10 @@ export function registerBrowserDevtools(host: WebContents) {
 
   /** Closes close. */
   const close = () => {
+    lastSnapshot = undefined
+    requestedVisible = false
     previewRevision++
+    clearTimeout(previewTimer)
     previewOccluded = false
     previewCapturePending = false
     if (inspected && !host.isDestroyed()) host.send("browser:devtools-preview", { id: inspected.id })
@@ -114,7 +148,10 @@ export function registerBrowserDevtools(host: WebContents) {
       })
       window.contentView.addChildView(panel)
       const frontend = panel.webContents
-      const prepareScreenshots = () => { void enableBrowserNodeScreenshots(frontend).catch(console.error) }
+      const prepareScreenshots = () => {
+        void enableBrowserElementInspection(frontend).catch(console.error)
+        void enableBrowserNodeScreenshots(frontend).catch(console.error)
+      }
       guest.on("devtools-opened", prepareScreenshots)
       stopScreenshotSetup = () => guest.removeListener("devtools-opened", prepareScreenshots)
       guest.setDevToolsWebContents(panel.webContents)
@@ -167,23 +204,51 @@ export function registerBrowserDevtools(host: WebContents) {
       }
     }
     if (appearanceChanged) void applyAppearance().catch(console.error)
+    // Size the surface before capturing, including when a portal already covers a newly opened console.
+    if (!detachedWindow && (options?.hidden !== true || options?.occluded === true)) {
+      const size = window.getContentBounds()
+      const x = Math.max(0, Math.round(bounds.x)), y = Math.max(0, Math.round(bounds.y))
+      const next = { x, y, width: Math.max(0, Math.min(Math.round(bounds.width), size.width - x)), height: Math.max(0, Math.min(Math.round(bounds.height), size.height - y)) }
+      const nextKey = `${next.x},${next.y},${next.width},${next.height}`
+      if (nextKey !== appliedBounds) {
+        appliedBounds = nextKey
+        panel.setBounds(next)
+      }
+    }
     // Keep DevTools alive (preserving its network log) while the browser page is hidden.
-    const hidden = options?.hidden === true
+    requestedVisible = options?.hidden !== true
+    const hidden = !requestedVisible || (transitionToken !== undefined && !detachedWindow)
     // Preserve the last console frame underneath DOM portals while its native view is hidden.
     const occluded = hidden && options?.occluded === true && !detachedWindow
     if (occluded !== previewOccluded) {
       previewOccluded = occluded
       const revision = ++previewRevision
+      clearTimeout(previewTimer)
       if (occluded) {
         const capturedPanel = panel
         previewCapturePending = true
-        void capturedPanel.webContents.capturePage().then(image => {
-          if (revision === previewRevision && !host.isDestroyed()) host.send("browser:devtools-preview", { id: guest.id, image: image.toDataURL() })
-        }).catch(console.error).finally(() => {
-          if (revision !== previewRevision) return
-          previewCapturePending = false
-          if (panel === capturedPanel && !capturedPanel.webContents.isDestroyed()) capturedPanel.setVisible(false)
-        })
+        const current = () => revision === previewRevision && !host.isDestroyed() && panel === capturedPanel && !capturedPanel.webContents.isDestroyed()
+        const capture = async () => {
+          if (!current()) return
+          try {
+            // Keep hidden views rendering without raising them above the floating DOM window.
+            const image = await capturedPanel.webContents.capturePage(undefined, { stayHidden: true, stayAwake: true })
+            if (current() && !image.isEmpty()) {
+              lastSnapshot = { id: guest.id, image: image.toDataURL() }
+              host.send("browser:devtools-preview", lastSnapshot)
+            }
+          } catch (error) { if (current()) console.error(error) }
+          finally {
+            if (current()) {
+              previewCapturePending = false
+              capturedPanel.setVisible(false)
+              // Retry empty/loading frames and refresh the console underneath long-lived floating windows.
+              previewTimer = setTimeout(() => void capture(), 250)
+              previewTimer.unref()
+            }
+          }
+        }
+        void capture()
       } else {
         previewCapturePending = false
         if (!host.isDestroyed()) host.send("browser:devtools-preview", { id: guest.id })
@@ -209,7 +274,7 @@ export function registerBrowserDevtools(host: WebContents) {
       syncDetachedWindow?.()
       return
     }
-    if (hidden) return
+    if (options?.hidden === true) return
     const control = options?.control
     const factor = appearance.size / 13
     const overlay = control && [control.x, control.y, control.width, control.height].every(Number.isFinite)
@@ -218,16 +283,6 @@ export function registerBrowserDevtools(host: WebContents) {
     if (controlState !== nextControl || panel.webContents.isLoading()) {
       controlState = nextControl
       panel.webContents.send("browser:control-overlay", overlay)
-    }
-    const size = window.getContentBounds()
-    const x = Math.max(0, Math.round(bounds.x)),
-      y = Math.max(0, Math.round(bounds.y))
-    const next = { x, y, width: Math.max(0, Math.min(Math.round(bounds.width), size.width - x)), height: Math.max(0, Math.min(Math.round(bounds.height), size.height - y)) }
-    const nextKey = `${next.x},${next.y},${next.width},${next.height}`
-    // Identical bounds would only make DevTools re-layout (and drop expanded console objects) for nothing.
-    if (nextKey !== appliedBounds) {
-      appliedBounds = nextKey
-      panel.setBounds(next)
     }
   })
   let catalog: WebContentsView | undefined

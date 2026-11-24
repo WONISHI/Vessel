@@ -1,8 +1,11 @@
+import { pageTransitionSurfaces } from "./page-transition-surfaces"
 import { flushSync } from "react-dom"
 import type { RouterController } from "@vessel/react-router"
 import "./page-transition.css"
 
-let active: { transition: ViewTransition; abort: AbortController } | undefined
+type ActivePageTransition = { transition?: ViewTransition; abort: AbortController; release: () => void }
+let active: ActivePageTransition | undefined
+let surfaceToken = 0
 const readyPages = new Set<string>()
 const cancelled = () => new DOMException("Superseded page transition", "AbortError")
 
@@ -49,30 +52,57 @@ export function rememberPageContent(key: string) {
 /** Only a previously loaded destination animates. First visits keep their normal loading UI. */
 export function transitionPage(change: () => unknown, destination: string): Promise<void> {
   active?.abort.abort()
-  active?.transition.skipTransition()
+  active?.transition?.skipTransition()
+  active?.release()
   active = undefined
   delete document.documentElement.dataset.pageTransition
-  if (!readyPages.has(destination) || !document.startViewTransition || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
-    return Promise.resolve(change()).then(() => {})
-  }
+  const animate = readyPages.has(destination) && Boolean(document.startViewTransition) && !window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
+  const surfaces = pageTransitionSurfaces()
+  if (!animate && !surfaces.length) return Promise.resolve(change()).then(() => {})
   const abort = new AbortController()
-  document.documentElement.dataset.pageTransition = "active"
-  const transition = document.startViewTransition(async () => {
-    let result: unknown
-    flushSync(() => { result = change() })
-    await result
-    // View transitions suppress rendering while this callback runs. Waiting for
-    // animation frames here can time out and skip the animation altogether.
-    // A returning page that loads again should keep its regular loading UI.
-    if (loading()) transition.skipTransition()
-  })
-  const entry = { transition, abort }
+  const token = ++surfaceToken
+  let released = false
+  const release = () => {
+    if (released) return
+    released = true
+    for (const surface of surfaces) void surface.finish(token).catch(console.error)
+  }
+  const entry: ActivePageTransition = { abort, release }
   active = entry
-  void transition.ready.catch(() => {})
-  void transition.finished.catch(() => {}).finally(() => {
+  if (animate) document.documentElement.dataset.pageTransition = "active"
+  const finish = () => {
+    release()
     if (active === entry) { active = undefined; delete document.documentElement.dataset.pageTransition }
-  })
-  return transition.updateCallbackDone.catch(error => { if (!abort.signal.aborted) throw error })
+  }
+  const start = () => {
+    if (abort.signal.aborted) { release(); return Promise.resolve() }
+    // Even an unanimated first visit must retain the native frame for the return.
+    if (!animate) {
+      let result: unknown
+      try { flushSync(() => { result = change() }) }
+      catch (error) { finish(); throw error }
+      return Promise.resolve(result).then(() => {}).finally(finish)
+    }
+    let transition: ViewTransition
+    try {
+      transition = document.startViewTransition(async () => {
+        let result: unknown
+        flushSync(() => { result = change() })
+        await result
+        // Snapshot updates suppress rendering: never wait for animation frames here.
+        if (loading()) transition.skipTransition()
+      })
+    } catch (error) {
+      finish()
+      throw error
+    }
+    entry.transition = transition
+    void transition.ready.catch(() => {})
+    void transition.finished.catch(() => {}).finally(finish)
+    return transition.updateCallbackDone.catch(error => { if (!abort.signal.aborted) throw error })
+  }
+  // Preparing native frames must finish before the outgoing snapshot is taken.
+  return surfaces.length ? Promise.all(surfaces.map(surface => surface.prepare(token).catch(console.error))).then(start) : start()
 }
 
 export const pageTransitionKey = (path: string) => path.split(/[?#]/, 1)[0].split("/")[1] || "welcome"

@@ -44,8 +44,8 @@ export function DateCalendar({ date, onSelect, min, max }: { date: Date; onSelec
         </button>
       </div>
       <div className="mb-1 grid grid-cols-7 text-center text-[10px] text-stone-400">
-        {["一", "二", "三", "四", "五", "六", "日"].map((day) => (
-          <span key={day}>{day}</span>
+        {["一", "二", "三", "四", "五", "六", "日"].map((day, index) => (
+          <span key={day} className={index < 5 ? "text-black dark:text-stone-100" : "text-stone-500"}>{day}</span>
         ))}
       </div>
       <div className="mb-2 grid grid-cols-7 gap-1">

@@ -1,3 +1,4 @@
+import { isPrivateBrowserPartition, registerBrowserPrivate } from "./browser-private"
 import { registerBrowserWheelZoom } from "./browser-wheel-zoom"
 import { attachVaultGuest } from "../vault/service"
 import { registerBrowserDevtools } from "@main/browser/browser-devtools"
@@ -46,6 +47,7 @@ function isSearchNavigation(from: string, to: string) {
 
 /** Performs the secure browser guests operation. */
 export function secureBrowserGuests(contents: WebContents) {
+  registerBrowserPrivate(contents)
   registerBrowserExtensions(contents)
   registerBrowserProxy(contents)
   registerBrowserDevtools(contents)
@@ -63,10 +65,11 @@ export function secureBrowserGuests(contents: WebContents) {
   })
   contents.once("destroyed", () => decisions.clear())
   contents.on("will-attach-webview", (event, preferences, params) => {
-    if (!allowed(params.src) || !["persist:vessel-browser", "persist:vessel-transit"].includes(params.partition)) {
+    if (!allowed(params.src) || (!["persist:vessel-browser", "persist:vessel-transit"].includes(params.partition) && !isPrivateBrowserPartition(contents, params.partition))) {
       event.preventDefault()
       return
     }
+    if (isPrivateBrowserPartition(contents, params.partition)) preferences.additionalArguments = ["--vessel-private"]
     preferences.preload = join(__dirname, "../preload/browser-guest.js")
     preferences.nodeIntegration = false
     preferences.nodeIntegrationInSubFrames = false

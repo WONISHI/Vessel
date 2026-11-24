@@ -1,3 +1,4 @@
+import { setFileIconSettings } from "@/features/file-icons/state"
 import { useState } from "react"
 import { act, cleanup, fireEvent, render, renderHook, screen, waitFor } from "@testing-library/react"
 import { afterEach, expect, it, vi } from "vitest"
@@ -10,7 +11,7 @@ import type { GitPageModel } from "@/pages/git/hooks/use-git-page"
 import { toast } from "@/components/ui/sonner"
 
 vi.mock("@/components/ui/sonner", () => ({ toast: { success: vi.fn(), error: vi.fn(), warning: vi.fn() } }))
-afterEach(() => { cleanup(); vi.unstubAllGlobals() })
+afterEach(() => { cleanup(); setFileIconSettings({}); vi.unstubAllGlobals() })
 const status: GitStatusResult = { isRepo: true, branch: "main", upstream: "", ahead: 0, behind: 0, staged: [], unstaged: [{ path: "ordinary.md", status: "M" }], untracked: [], conflicts: [{ path: "冲突.md", status: "U" }, { path: "other.md", status: "U" }, { path: "third.md", status: "U" }] }
 function useRepo() {
   const [refresh] = useState(() => vi.fn().mockResolvedValue(undefined))
@@ -26,7 +27,7 @@ function useRepo() {
   return { status, activeTab: "status", repoPath: "/repo", branches: { current: "main" }, refresh, setActiveTab, selectedConflictPaths, setSelectedConflictPaths, selectedStagedPaths, setSelectedStagedPaths, selectedUnstagedPaths, setSelectedUnstagedPaths, selectedFile, setSelectedFile, lastConflictClickedIndex, setLastConflictClickedIndex, lastStagedClickedIndex, setLastStagedClickedIndex, lastUnstagedClickedIndex, setLastUnstagedClickedIndex, activeFileSection, setActiveFileSection } as unknown as GitRepositoryState
 }
 
-it("selects conflict rows with checkboxes, Shift ranges and select-all, then stages only the selection", async () => {
+it("selects conflict rows without checkboxes using Shift ranges and select-all, then stages only the selection", async () => {
   const stage = vi.fn().mockResolvedValue(undefined)
   vi.stubGlobal("electronAPI", { git: { stage } })
   function Fixture() {
@@ -35,16 +36,20 @@ it("selects conflict rows with checkboxes, Shift ranges and select-all, then sta
     const actions = useGitFileActions(repo)
     return <GitConflictFiles g={{ ...repo, ...selection, ...actions } as GitPageModel} />
   }
+  setFileIconSettings({ fileIconTheme: "material", fileIconResources: true, fileIconWorkspace: false })
   render(<Fixture />)
-  const apply = screen.getByRole("button", { name: "标记解决并暂存所选 (0)" }) as HTMLButtonElement
-  expect(apply.disabled).toBe(true)
-  fireEvent.click(screen.getByRole("checkbox", { name: "选择冲突文件 冲突.md" }))
+  expect(screen.queryByRole("checkbox")).toBeNull()
+  expect(screen.queryByText("在编辑器中修复并保存，再选中文件标记解决并暂存。")).toBeNull()
+  expect(document.querySelectorAll('img[data-file-icon-theme="material"]')).toHaveLength(3)
+  expect(screen.queryByRole("button", { name: /标记解决并暂存所选/ })).toBeNull()
+  fireEvent.click(screen.getByRole("option", { name: /冲突.md/ }))
   fireEvent.click(screen.getByRole("option", { name: /third.md/ }), { shiftKey: true })
   expect(screen.getAllByRole("option", { selected: true })).toHaveLength(3)
-  fireEvent.click(screen.getByRole("checkbox", { name: "选择冲突文件 other.md" }))
-  fireEvent.click(screen.getByRole("button", { name: "标记解决并暂存所选 (2)" }))
+  fireEvent.click(screen.getByRole("option", { name: /other.md/ }), { ctrlKey: true })
+  fireEvent.contextMenu(screen.getByRole("option", { name: /冲突.md/ }), { clientX: 20, clientY: 20 })
+  fireEvent.click(screen.getByRole("menuitem", { name: "标记为已解决并暂存" }))
   await waitFor(() => expect(stage).toHaveBeenCalledExactlyOnceWith("/repo", ["冲突.md", "third.md"]))
-  await waitFor(() => expect(screen.getByRole("button", { name: "标记解决并暂存所选 (0)" })).toBeTruthy())
+  await waitFor(() => expect(screen.queryAllByRole("option", { selected: true })).toHaveLength(0))
   fireEvent.click(screen.getByRole("option", { name: /冲突.md/ }))
   fireEvent.keyDown(window, { key: "a", ctrlKey: true })
   expect(screen.getAllByRole("option", { selected: true })).toHaveLength(3)
@@ -95,4 +100,20 @@ it("reports that the original record is retained after apply-with-conflicts", as
   expect(stashApply).toHaveBeenCalledWith("/repo", 2, undefined)
   expect(result.current.repo.selectedConflictPaths).toEqual(["冲突.md"])
   expect(toast.warning).toHaveBeenCalledWith(expect.any(String), { description: expect.stringContaining("原贮藏记录已保留") })
+})
+
+
+it("resolves all conflicts from the header and only one from a row", () => {
+  const resolve = vi.fn()
+  const g = { status, repoPath: "/repo", selectedConflictPaths: ["冲突.md"], handleResolveConflicts: resolve } as unknown as GitPageModel
+  render(<GitConflictFiles g={g} />)
+  const all = screen.getByRole("button", { name: "全部标记为已解决并暂存" })
+  expect(all.textContent).toBe("")
+  fireEvent.click(all)
+  expect(resolve).toHaveBeenLastCalledWith(status.conflicts.map(file => file.path))
+  const single = screen.getByRole("button", { name: "标记 other.md 为已解决并暂存" })
+  expect(single.querySelector(".lucide-plus")).toBeTruthy()
+  expect(single.className).toContain("text-stone-400")
+  fireEvent.click(single)
+  expect(resolve).toHaveBeenLastCalledWith(["other.md"])
 })

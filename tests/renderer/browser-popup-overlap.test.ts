@@ -38,3 +38,18 @@ it('ignores transparent transit sheet space but detects the actual docked pane',
   expect(browserPopupOverlapsPane(pane)).toBe(true)
  } finally { sheet.remove() }
 })
+
+it('keeps address suggestions above DevTools and restores the view when suggestions close', () => {
+ const suggestions = document.createElement('div')
+ suggestions.className = 'history-completion'
+ suggestions.getBoundingClientRect = () => ({left:160,right:1200,top:100,bottom:360,width:1040,height:260} as DOMRect)
+ document.body.append(suggestions)
+ try {
+  expect(browserPopupOverlapsPane(pane)).toBe(true)
+  suggestions.getBoundingClientRect = () => ({left:160,right:900,top:100,bottom:360,width:740,height:260} as DOMRect)
+  expect(browserPopupOverlapsPane(pane)).toBe(false)
+  suggestions.getBoundingClientRect = () => ({left:160,right:1200,top:100,bottom:360,width:1040,height:260} as DOMRect)
+  expect(browserPopupOverlapsPane(pane)).toBe(true)
+ } finally { suggestions.remove() }
+ expect(browserPopupOverlapsPane(pane)).toBe(false)
+})

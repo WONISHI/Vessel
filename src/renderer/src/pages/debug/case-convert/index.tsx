@@ -42,7 +42,7 @@ export function CaseConvertTool() {
                 <section key={label} className="rounded-lg border bg-background">
                   <div className="flex items-center justify-between border-b px-3 py-1.5 text-xs text-muted-foreground">
                     <h3>{label}</h3>
-                    <Button size="icon" variant="ghost" className="size-7" aria-label={`复制${label}`} disabled={!value} onClick={() => copy(value)}><Copy size={14} /></Button>
+                    <Button size="icon" variant="ghost" className="size-7 hover:text-white" aria-label={`复制${label}`} disabled={!value} onClick={() => copy(value)}><Copy size={14} /></Button>
                   </div>
                   <p className="min-h-12 whitespace-pre-wrap break-all p-3 font-mono text-xs">{value || <span className="text-muted-foreground">等待输入…</span>}</p>
                 </section>

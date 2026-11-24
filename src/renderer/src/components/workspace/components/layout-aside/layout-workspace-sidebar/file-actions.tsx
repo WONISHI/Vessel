@@ -11,7 +11,7 @@ import { useWorkspace } from "@/components/workspace/hooks/useWorkspace"
 import type { WorkspaceNode } from "@/components/workspace/types/workspace"
 import { useRouter } from "@vessel/react-router"
 import { localFileURL } from "@vessel/utils"
-import { Columns2, ArrowLeft, ArrowRight, Code, Copy, FileDown, File, FilePlus2, FolderOpen, FolderPlus, Globe, Send, Pencil, Pin, Paperclip, Search, Trash2, Images } from "lucide-react"
+import { Columns2, ArrowLeft, ArrowRight, ExternalLink, Code, Copy, FileDown, File, FilePlus2, FolderOpen, FolderPlus, Globe, Send, Pencil, Pin, Paperclip, Search, Trash2, Images } from "lucide-react"
 import { Suspense, useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { toast } from "sonner"
 
@@ -303,6 +303,16 @@ export function FileActions({
             <ContextMenuItem onSelect={() => {
               void window.electronAPI.openExternal(localFileURL(node.path)).catch((error) => toast.error(String(error)))
             }}><Globe />在默认浏览器中打开</ContextMenuItem>
+          )}
+          {!multiple && node.type === "file" && (
+            <ContextMenuItem disabled={busy} onSelect={() => {
+              setBusy(true)
+              void window.electronAPI.openProjectInEditor(workspace.path, node.path)
+                .catch((reason) => toast.error(String(reason)))
+                .finally(() => setBusy(false))
+            }}>
+              <ExternalLink />在编辑器中打开
+            </ContextMenuItem>
           )}
           {!multiple && node.type === "directory" && (
             <>

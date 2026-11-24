@@ -1,5 +1,7 @@
+import { registerPageTransitionSurface } from "@/lib/page-transition-surfaces"
+import { flushSync } from "react-dom"
 import { withGuest } from "@/pages/browser/guest-lifecycle"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { X } from "lucide-react"
 import type { BrowserPageModel } from "@/pages/browser/components/browser-page/hooks/use-browser-page"
 
@@ -8,12 +10,37 @@ export function BrowserDevtoolsPane({ b }: { b: BrowserPageModel }) {
   const { setDevtoolsOpen, dock, setDock, consoleFont, setConsoleFont, consoleSize, setConsoleSize, devtoolsHost } = b
 
   const [preview, setPreview] = useState<{ tabId: string; image?: string }>()
+  const [transitionPreview, setTransitionPreview] = useState<{ tabId: string; image: string }>()
+  const previewImage = useRef<HTMLImageElement>(null)
+  const previewToken = useRef<number | undefined>(undefined)
   const tabId = b.tab.id
   const views = b.views
   useEffect(() => window.electronAPI.onBrowserDevtoolsPreview?.((value) => {
     if (withGuest(views.current.get(tabId), guest => guest.getWebContentsId()) === value.id) setPreview({ tabId, image: value.image })
   }), [tabId, views])
-  const image = preview?.tabId === tabId ? preview.image : undefined
+  useEffect(() => {
+    if (dock === "detached" || !window.electronAPI.setBrowserDevtoolsTransition) return
+    let alive = true
+    const stop = registerPageTransitionSurface({
+      prepare: async (token) => {
+        previewToken.current = token
+        const snapshot = await window.electronAPI.setBrowserDevtoolsTransition(token, true)
+        if (!alive || previewToken.current !== token || !snapshot) return
+        if (withGuest(views.current.get(tabId), guest => guest.getWebContentsId()) !== snapshot.id) return
+        flushSync(() => setTransitionPreview({ tabId, image: snapshot.image }))
+        await previewImage.current?.decode?.().catch(() => {})
+      },
+      finish: async (token) => {
+        await window.electronAPI.setBrowserDevtoolsTransition(token, false)
+        if (alive && previewToken.current === token) {
+          previewToken.current = undefined
+          setTransitionPreview(undefined)
+        }
+      }
+    })
+    return () => { alive = false; stop() }
+  }, [dock, tabId, views])
+  const image = transitionPreview?.tabId === tabId ? transitionPreview.image : preview?.tabId === tabId ? preview.image : undefined
 
   return (
                 <section
@@ -68,7 +95,7 @@ export function BrowserDevtoolsPane({ b }: { b: BrowserPageModel }) {
                     ref={devtoolsHost}
                     className="relative min-h-0 flex-1 overflow-hidden"
                   >
-                    {image && <img src={image} alt="被浮层遮挡的控制台画面" aria-hidden="true" className="pointer-events-none absolute inset-0 h-full w-full object-fill" />}
+                    {image && <img ref={previewImage} src={image} alt="被浮层遮挡的控制台画面" aria-hidden="true" className="pointer-events-none absolute inset-0 h-full w-full object-fill" />}
                   </div>
                 </section>
   )

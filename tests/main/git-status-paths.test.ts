@@ -31,3 +31,33 @@ it("保留中文、空格及特殊字符路径，并正确解析重命名的源�
     expect(status.untracked.map(f => f.path).sort()).toEqual(names.sort())
   } finally { await rm(root, { recursive: true, force: true }) }
 })
+
+it("reads Git's pending merge message through conflict resolution and ignores stale messages after abort", async () => {
+  const root = await mkdtemp(join(tmpdir(), "vessel-git-merge-message-"))
+  const git = (...args: string[]) => execFileSync("git", args, { cwd: root, stdio: "pipe" })
+  try {
+    git("init", "-b", "main")
+    git("config", "user.name", "Test"); git("config", "user.email", "test@example.com")
+    await writeFile(join(root, "file.txt"), "base\n")
+    git("add", "."); git("commit", "-m", "initial")
+    git("checkout", "-b", "dev")
+    await writeFile(join(root, "file.txt"), "dev\n")
+    git("commit", "-am", "dev")
+    git("checkout", "main")
+    await writeFile(join(root, "file.txt"), "main\n")
+    git("commit", "-am", "main")
+    expect(() => git("merge", "dev")).toThrow()
+    const service = new GitService()
+    let status = await service.getStatus(root)
+    expect(status.mergeMessage).toBe("Merge branch 'dev'")
+    expect(status.conflicts).toHaveLength(1)
+    await writeFile(join(root, "file.txt"), "resolved\n")
+    git("add", ".")
+    status = await service.getStatus(root)
+    expect(status.conflicts).toHaveLength(0)
+    expect(status.mergeMessage).toBe("Merge branch 'dev'")
+    git("merge", "--abort")
+    await writeFile(join(root, ".git", "MERGE_MSG"), "stale message")
+    expect((await service.getStatus(root)).mergeMessage).toBeUndefined()
+  } finally { await rm(root, { recursive: true, force: true }) }
+})

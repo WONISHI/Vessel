@@ -8,3 +8,16 @@ export function getCommitDraft(repoPath: string) {
   }
   return draft
 }
+
+// Track only untouched generated messages so refreshes never replace user edits.
+const mergeDefaults = new WeakMap<{ current: string }, string>()
+export function syncMergeCommitDraft(draft: { current: string }, message?: string): boolean {
+  const previous = mergeDefaults.get(draft)
+  if (draft.current && draft.current !== previous) return false
+  if (message) mergeDefaults.set(draft, message)
+  else mergeDefaults.delete(draft)
+  const next = message || ""
+  if (draft.current === next) return false
+  draft.current = next
+  return true
+}

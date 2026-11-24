@@ -1,9 +1,11 @@
+import { pasteFormattedTable } from "./table-paste"
+import { toast } from "@/components/ui/sonner"
 import { generateCellId, serializeMarkdownTable, type MarkdownTableData } from "@vessel/markdown-table"
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Plus, Table2, Trash2 } from "lucide-react"
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, ClipboardPaste, Plus, Table2, Trash2 } from "lucide-react"
 import { createElement } from "react"
 import { renderToStaticMarkup } from "react-dom/server"
 
-type TableActionType = "convert" | "row-above" | "row-below" | "col-left" | "col-right" | "del-row" | "del-col" | "del-table"
+type TableActionType = "paste-formatted" | "convert" | "row-above" | "row-below" | "col-left" | "col-right" | "del-row" | "del-col" | "del-table"
 
 /** Reads a rendered Markdown table into the advanced-table JSON model. */
 function advancedTableJSON(table: HTMLTableElement) {
@@ -31,6 +33,10 @@ function triggerTableAction(cell: HTMLTableCellElement, action: TableActionType,
   const table = cell.closest("table")
   const editor = table?.closest<HTMLElement>('[contenteditable="true"]')
   if (!cell || !editor || !table) return
+  if (action === "paste-formatted") {
+    void pasteFormattedTable(cell).catch(() => toast.error("无法读取剪贴板，请复制文本后重试"))
+    return
+  }
   editor.focus({ preventScroll: true })
   const range = document.createRange()
   range.selectNodeContents(cell)
@@ -225,6 +231,8 @@ export function bindTableActions(root: HTMLElement, onConvert?: (json: string) =
   document.body.appendChild(menu)
 
   const menuItems: ({ id: TableActionType; label: string; icon: typeof Plus; danger?: boolean } | { id: "divider" })[] = [
+    { id: "paste-formatted", label: "格式化粘贴", icon: ClipboardPaste },
+    { id: "divider" },
     { id: "row-above", label: "在上方插入一行", icon: ArrowUp },
     { id: "row-below", label: "在下方插入一行", icon: ArrowDown },
     { id: "col-left", label: "在左边插入一列", icon: ArrowLeft },
@@ -289,8 +297,8 @@ export function bindTableActions(root: HTMLElement, onConvert?: (json: string) =
     event.stopPropagation()
     activeMenuCell = cell
     menu.hidden = false
-    const menuWidth = 160
-    const menuHeight = 260
+    const menuWidth = menu.offsetWidth || 180
+    const menuHeight = menu.offsetHeight || 360
     const x = Math.min(event.clientX, window.innerWidth - menuWidth - 8)
     const y = Math.min(event.clientY, window.innerHeight - menuHeight - 8)
     menu.style.left = `${x}px`
@@ -298,7 +306,7 @@ export function bindTableActions(root: HTMLElement, onConvert?: (json: string) =
   }
 
   /** Handles pointer down events. */
-  const onPointerDown = (event: PointerEvent) => {
+  const onPointerDown = (event: Event) => {
     if (!menu.contains(event.target as Node)) {
       hideMenu()
     }
@@ -357,13 +365,17 @@ export function bindTableActions(root: HTMLElement, onConvert?: (json: string) =
   }
 
   document.addEventListener("contextmenu", onContextMenu, true)
-  document.addEventListener("pointerdown", onPointerDown, true)
+  window.addEventListener("pointerdown", onPointerDown, true)
+  window.addEventListener("mousedown", onPointerDown, true)
+  window.addEventListener("click", onPointerDown, true)
   document.addEventListener("pointermove", move)
   window.addEventListener("scroll", hide, true)
   window.addEventListener("scroll", hideMenu, true)
   return () => {
     document.removeEventListener("contextmenu", onContextMenu, true)
-    document.removeEventListener("pointerdown", onPointerDown, true)
+    window.removeEventListener("pointerdown", onPointerDown, true)
+    window.removeEventListener("mousedown", onPointerDown, true)
+    window.removeEventListener("click", onPointerDown, true)
     document.removeEventListener("pointermove", move)
     cancelAnimationFrame(frame)
     window.removeEventListener("scroll", hide, true)

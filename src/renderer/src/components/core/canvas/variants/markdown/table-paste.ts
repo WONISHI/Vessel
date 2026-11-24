@@ -1,3 +1,5 @@
+import { formatTableCells, replaceEditorTable, type TableFormat } from "./table-format"
+
 /** Escapes escape. */
 const escape = (value: string) => value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
 
@@ -49,6 +51,38 @@ export function clipboardCells(text: string, html = ""): string[][] | null {
   return rows
 }
 
+/** Explicit formatted paste splits whitespace and slashes; ordinary paste keeps prose intact. */
+export function formattedClipboardCells(text: string): string[][] {
+  const structured = !text.includes("\t") ? clipboardCells(text) : null
+  if (structured) return structured
+  const normalized = text.replace(/\r\n?/g, "\n").replace(/^\n+|\n+$/g, "")
+  if (!normalized.trim()) return []
+  const rows: string[][] = [], row: string[] = []
+  let value = "", quoted = false, started = false
+  const finishCell = () => { if (started) row.push(value); value = ""; started = false }
+  const finishRow = () => { finishCell(); rows.push(row.length ? row.splice(0) : [""]) }
+  for (let index = 0; index < normalized.length; index++) {
+    const char = normalized[index]
+    if (char === '"' && (quoted || !started)) {
+      if (quoted && normalized[index + 1] === '"') { value += '"'; index++ }
+      else quoted = !quoted
+      started = true
+    } else if (!quoted && char === "\n") finishRow()
+    else if (!quoted && (char === "/" || /\s/u.test(char))) finishCell()
+    else { value += char; started = true }
+  }
+  finishRow()
+  return rows
+}
+
+export async function pasteFormattedTable(cell: HTMLTableCellElement) {
+  const text = await navigator.clipboard.readText()
+  const table = cell.closest("table")
+  if (!table?.isConnected || !cell.closest('[contenteditable="true"]')) return
+  const values = formattedClipboardCells(text)
+  if (values.length) replaceEditorTable(table, fillTable(table, (cell.parentElement as HTMLTableRowElement).rowIndex, cell.cellIndex, values))
+}
+
 /** Performs the fill table operation. */
 export function fillTable(table: HTMLTableElement, row: number, column: number, values: string[][]) {
   const clone = table.cloneNode(true) as HTMLTableElement
@@ -70,7 +104,7 @@ export function fillTable(table: HTMLTableElement, row: number, column: number, 
 /** Events from the embedded advanced-table editor belong to its own inputs. */
 const embedded = (event: Event) => event.target instanceof Element && !!event.target.closest(".vessel-table-container")
 
-export function bindTablePaste(root: HTMLElement) {
+export function bindTablePaste(root: HTMLElement, toolbar?: HTMLElement | null) {
   type Cell = HTMLTableCellElement
   let anchor: Cell | null = null,
     end: Cell | null = null,
@@ -80,6 +114,7 @@ export function bindTablePaste(root: HTMLElement) {
   /** Performs the cell at operation. */
   const cellAt = (node: EventTarget | Node | null) => {
     const element = node instanceof Element ? node : node instanceof Node ? node.parentElement : null
+    if (element?.closest(".vessel-table-container, .vessel-markdown-table-wrapper")) return null
     const cell = element?.closest<Cell>("td,th")
     return cell && root.contains(cell) ? cell : null
   }
@@ -96,6 +131,49 @@ export function bindTablePaste(root: HTMLElement) {
     const a = (anchor.parentElement as HTMLTableRowElement).rowIndex
     const b = (end.parentElement as HTMLTableRowElement).rowIndex
     return { table: anchor.closest("table")!, top: Math.min(a, b), bottom: Math.max(a, b), left: Math.min(anchor.cellIndex, end.cellIndex), right: Math.max(anchor.cellIndex, end.cellIndex) }
+  }
+
+  const selectionCell = () => {
+    const selection = window.getSelection()
+    const cell = cellAt(selection?.anchorNode ?? null)
+    return cell && cell.contains(selection?.focusNode ?? null) ? cell : null
+  }
+  const formatControl = (target: EventTarget | null) => {
+    const button = target instanceof Element ? target.closest<HTMLElement>("button[data-type]") : null
+    const type = button?.dataset.type as TableFormat | undefined
+    if (!button || !type || !["bold", "left", "center", "right"].includes(type)) return null
+    if (!(toolbar?.contains(button) || root.contains(button))) return null
+    if (button.closest(".vessel-table-container")) return null
+    return { button, type }
+  }
+  const applyFormat = (type: TableFormat) => {
+    const area = bounds()
+    const cell = selectionCell()
+    if (!area && !cell) return false
+    const selection = window.getSelection()
+    if (type === "bold" && !area && selection && !selection.isCollapsed) {
+      // Vditor must generate its own inline markers for a native text selection.
+      return false
+    }
+    const target = area ?? { table: cell!.closest("table")!, top: (cell!.parentElement as HTMLTableRowElement).rowIndex, bottom: (cell!.parentElement as HTMLTableRowElement).rowIndex, left: cell!.cellIndex, right: cell!.cellIndex }
+    const replacement = formatTableCells(target, type)
+    clear()
+    anchor = null
+    replaceEditorTable(target.table, replacement)
+    return true
+  }
+  const formatDown = (event: MouseEvent) => {
+    if (formatControl(event.target) && (bounds() || selectionCell())) {
+      event.preventDefault()
+      event.stopImmediatePropagation()
+    }
+  }
+  const formatClick = (event: MouseEvent) => {
+    const control = formatControl(event.target)
+    if (control && applyFormat(control.type)) {
+      event.preventDefault()
+      event.stopImmediatePropagation()
+    }
   }
 
   // Browser text selection is linear across rows, unlike our cell rectangle.
@@ -142,6 +220,8 @@ export function bindTablePaste(root: HTMLElement) {
   /** Performs the down operation. */
   const down = (event: PointerEvent) => {
     if (event.button !== 0) return
+    if (formatControl(event.target) && (bounds() || selectionCell())) { event.preventDefault(); return }
+    if (event.target instanceof Element && event.target.closest(".vessel-table-menu")) return
     const cell = cellAt(event.target)
     if (event.shiftKey && cell && anchor && cell.closest("table") === anchor.closest("table")) {
       event.preventDefault()
@@ -226,6 +306,8 @@ export function bindTablePaste(root: HTMLElement) {
   const key = (event: KeyboardEvent) => {
     if (embedded(event)) return
     const area = bounds()
+    const format: TableFormat | undefined = (event.metaKey || event.ctrlKey) && !event.altKey && !event.isComposing ? !event.shiftKey && event.key.toLowerCase() === "b" ? "bold" : event.shiftKey ? ({ l: "left", c: "center", r: "right" } as Record<string, TableFormat>)[event.key.toLowerCase()] : undefined : undefined
+    if (format && applyFormat(format)) { event.preventDefault(); event.stopImmediatePropagation(); return }
     if ((event.key === "Delete" || event.key === "Backspace") && !event.isComposing && !event.ctrlKey && !event.metaKey && !event.altKey && area && area.table.isConnected) {
       const editor = area.table.closest<HTMLElement>('[contenteditable="true"]')
       if (!editor || !root.contains(editor)) return
@@ -250,6 +332,10 @@ export function bindTablePaste(root: HTMLElement) {
       anchor = null
     }
   }
+  document.addEventListener("mousedown", formatDown, true)
+  document.addEventListener("click", formatClick, true)
+  const replaced = () => { clear(); anchor = null }
+  root.addEventListener("vessel:table-replace", replaced)
   root.addEventListener("click", click, true)
   root.addEventListener("paste", paste, true)
   root.addEventListener("copy", copy, true)
@@ -264,6 +350,9 @@ export function bindTablePaste(root: HTMLElement) {
   window.addEventListener("resize", clear)
   return () => {
     clear()
+    document.removeEventListener("mousedown", formatDown, true)
+    document.removeEventListener("click", formatClick, true)
+    root.removeEventListener("vessel:table-replace", replaced)
     root.removeEventListener("click", click, true)
     root.removeEventListener("paste", paste, true)
     root.removeEventListener("copy", copy, true)

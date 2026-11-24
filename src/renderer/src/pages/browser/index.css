@@ -205,7 +205,7 @@
   align-self: stretch;
   padding: 0 36px 0 12px;
 }
-.browser-tab > button[aria-label="关闭标签页"] {
+.browser-tab > button.browser-tab-close {
   position: absolute;
   right: 10px;
   top: 50%;
@@ -515,7 +515,7 @@
   padding-right: 30px;
   gap: 4px;
 }
-.browser-tab > button[aria-label="关闭标签页"] {
+.browser-tab > button.browser-tab-close {
   right: 8px;
 }
 
@@ -607,8 +607,8 @@ html:not(.dark) .browser-more-item:hover svg {
 }
 .browser-tab.pinned.playing .browser-tab-select { padding-right: 54px; }
 .browser-tab.pinned .browser-tab-audio { right: 32px; }
-.browser-tab.playing:not(.pinned) > button[aria-label="关闭标签页"] { opacity: 0; }
-.browser-tab.playing:not(.pinned):is(:hover, :focus-within) > button[aria-label="关闭标签页"] { opacity: 1; }
+.browser-tab.playing:not(.pinned) > button.browser-tab-close { opacity: 0; }
+.browser-tab.playing:not(.pinned):is(:hover, :focus-within) > button.browser-tab-close { opacity: 1; }
 .browser-tab.playing:not(.pinned):is(:hover, :focus-within) .browser-tab-audio { display: none; }
 
 .browser-tab-pin-close {
@@ -687,4 +687,24 @@ html.dark .browser-frozen-site-copy > span, html.dark .browser-frozen-hint { col
 @media (max-height: 520px) {
   .browser-frozen-page { display: block; }
   .browser-frozen-card { margin: 0 auto; }
+}
+
+/* Keep the address/bookmark rows mounted so folding and unfolding can interpolate. */
+.browser-toolbar-collapse {
+  display: grid;
+  grid-template-rows: 1fr;
+  opacity: 1;
+  visibility: visible;
+  transition: grid-template-rows 300ms cubic-bezier(0, 0, .2, 1), opacity 300ms cubic-bezier(0, 0, .2, 1), visibility 0s;
+}
+.browser-toolbar-collapse-inner { min-height: 0; overflow: hidden; }
+.browser-toolbar-collapse[data-collapsed="true"] {
+  grid-template-rows: 0fr;
+  opacity: 0;
+  visibility: hidden;
+  transition: grid-template-rows 260ms cubic-bezier(.4, 0, 1, 1), opacity 260ms cubic-bezier(.4, 0, 1, 1), visibility 0s 260ms;
+}
+@media (prefers-reduced-motion: reduce) {
+  .browser-toolbar-collapse,
+  .browser-toolbar-collapse[data-collapsed="true"] { transition: none; }
 }

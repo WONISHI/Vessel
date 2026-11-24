@@ -94,7 +94,7 @@ ipcRenderer.on("vessel:zoom-changed", (_event, value: number) => {
 
 bindDoubleSpace(window, () => ipcRenderer.sendToHost("vessel-open-top-search"))
 
-bindVaultForms()
+if (!process.argv.includes("--vessel-private")) bindVaultForms()
 
 if (/^https?:$/.test(location.protocol) || location.protocol === "file:") {
   contextBridge.exposeInMainWorld("vesselContextMenu", (details: { x: number; y: number; imageDocument?: boolean }) => {
