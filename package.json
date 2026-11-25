@@ -1,6 +1,6 @@
 {
   "name": "vessel",
-  "version": "1.0.18",
+  "version": "1.0.19",
   "description": "Vessel — 集 Markdown 笔记、附件管理、Git、内置浏览器、截图与 S3 同步备份于一体的桌面工作台",
   "main": "./out/main/index.js",
   "author": "WONISHI",
@@ -44,6 +44,16 @@
         "zip"
       ],
       "files": [
+        "out/**/*",
+        "package.json",
+        "!**/*.map",
+        "!out/renderer/ocr/runtime/*.jsep.*",
+        "!**/node_modules/better-sqlite3/{deps,src}{,/**/*}",
+        "!**/node_modules/better-sqlite3/binding.gyp",
+        "!**/node_modules/better-sqlite3/build/{Release,Debug}/{obj,obj.target,.deps}{,/**/*}",
+        "!**/node_modules/better-sqlite3/build/**/*.{c,h,cc,cpp,o,obj,a,lib,mk,gypi,pdb,exp,ilk,idb,tlog,vcxproj,filters,sln,d}",
+        "!**/node_modules/better-sqlite3/build/**/{Makefile,*.Makefile,gyp-mac-tool,.forge-meta}",
+        "!**/node_modules/better-sqlite3/build/**/test_extension.node",
         "!**/node_modules/node-pty/prebuilds/!(darwin-${arch}){,/**/*}",
         "!**/node_modules/@parcel/watcher-!(darwin-${arch}){,/**/*}",
         "!**/node_modules/@vscode/ripgrep-!(darwin-${arch}){,/**/*}"
@@ -52,6 +62,16 @@
     "win": {
       "icon": "build/vessel.ico",
       "files": [
+        "out/**/*",
+        "package.json",
+        "!**/*.map",
+        "!out/renderer/ocr/runtime/*.jsep.*",
+        "!**/node_modules/better-sqlite3/{deps,src}{,/**/*}",
+        "!**/node_modules/better-sqlite3/binding.gyp",
+        "!**/node_modules/better-sqlite3/build/{Release,Debug}/{obj,obj.target,.deps}{,/**/*}",
+        "!**/node_modules/better-sqlite3/build/**/*.{c,h,cc,cpp,o,obj,a,lib,mk,gypi,pdb,exp,ilk,idb,tlog,vcxproj,filters,sln,d}",
+        "!**/node_modules/better-sqlite3/build/**/{Makefile,*.Makefile,gyp-mac-tool,.forge-meta}",
+        "!**/node_modules/better-sqlite3/build/**/test_extension.node",
         "!**/node_modules/node-pty/prebuilds/!(win32-${arch}){,/**/*}",
         "!**/node_modules/@parcel/watcher-!(win32-${arch}){,/**/*}",
         "!**/node_modules/@vscode/ripgrep-!(win32-${arch}){,/**/*}"
@@ -163,6 +183,16 @@
     "beforePack": "scripts/prepare-package.cjs",
     "linux": {
       "files": [
+        "out/**/*",
+        "package.json",
+        "!**/*.map",
+        "!out/renderer/ocr/runtime/*.jsep.*",
+        "!**/node_modules/better-sqlite3/{deps,src}{,/**/*}",
+        "!**/node_modules/better-sqlite3/binding.gyp",
+        "!**/node_modules/better-sqlite3/build/{Release,Debug}/{obj,obj.target,.deps}{,/**/*}",
+        "!**/node_modules/better-sqlite3/build/**/*.{c,h,cc,cpp,o,obj,a,lib,mk,gypi,pdb,exp,ilk,idb,tlog,vcxproj,filters,sln,d}",
+        "!**/node_modules/better-sqlite3/build/**/{Makefile,*.Makefile,gyp-mac-tool,.forge-meta}",
+        "!**/node_modules/better-sqlite3/build/**/test_extension.node",
         "!**/node_modules/node-pty/prebuilds/!(linux-${arch}){,/**/*}",
         "!**/node_modules/@parcel/watcher-!(linux-${arch}|linux-${arch}-*){,/**/*}",
         "!**/node_modules/@vscode/ripgrep-!(linux-${arch}){,/**/*}"

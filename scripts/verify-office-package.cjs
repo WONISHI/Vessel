@@ -5,6 +5,7 @@ const { createHash } = require("node:crypto")
 const required = ["v9.3.0.24-1/web-apps/apps/api/documents/api.js", "v9.3.0.24-1/web-apps/apps/api/documents/preload.html", "v9.3.0.24-1/web-apps/apps/documenteditor/main/index.html", "v9.3.0.24-1/sdkjs/word/sdk-all.js", "x2t/x2t.js", "x2t/x2t.wasm"]
 module.exports = async (context) => {
   const root = context.electronPlatformName === "darwin" ? path.join(context.appOutDir, context.packager.appInfo.productFilename + ".app", "Contents/Resources") : path.join(context.appOutDir, "resources")
+  require("./verify-app-file-scope.cjs").verifyAppFileScope(path.join(root, "app.asar"))
   if (context.electronPlatformName === "darwin") {
     for (const name of ["vessel-auth", "vessel-clipboard"]) {
       await fs.access(path.join(root, "app.asar.unpacked/out/main", name), fs.constants.X_OK)

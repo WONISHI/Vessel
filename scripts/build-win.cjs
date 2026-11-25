@@ -98,7 +98,9 @@ async function main() {
         const sqliteFilters = build.files
           .filter((pattern) => typeof pattern === "string" && pattern.startsWith("!**/node_modules/better-sqlite3/"))
           .map((pattern) => pattern.replace("!**/node_modules/", "!**/"))
-        const nativeFilters = build.win.files.map((pattern) => pattern.replace("!**/node_modules/", "!**/"))
+        const nativeFilters = build.win.files
+          .filter((pattern) => /^!\*\*\/node_modules\/(node-pty|@parcel|@vscode)\//.test(pattern))
+          .map((pattern) => pattern.replace("!**/node_modules/", "!**/"))
         const configuration = {
           ...build,
           electronVersion: version,
