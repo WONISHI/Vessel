@@ -1,3 +1,4 @@
+import "@/pages/debug/workbench.css"
 import type { ReactNode } from "react"
 import { Button } from "@/components/ui/button"
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable-panels"
@@ -26,12 +27,12 @@ export function DevToolsBody({ selectedTool, onSelectTool, children }: { selecte
       {expanded && (
         <>
           <ResizablePanel
-            defaultSize="232px"
-            minSize="232px"
-            maxSize="320px"
+            defaultSize="208px"
+            minSize="176px"
+            maxSize="260px"
           >
-            <aside className="flex h-full flex-col bg-white">
-              <h1 className="dev-sidebar-title px-4 py-4 text-sm font-bold text-stone-800">开发工具</h1>
+            <aside className="dev-workbench-nav flex h-full flex-col bg-white">
+              <h1 className="dev-sidebar-title px-4 py-4 text-sm font-bold text-stone-800"><Wrench className="size-4" />开发工具<span>{groups.reduce((total, group) => total + group.items.length, 0)}</span></h1>
               <ScrollArea className="min-h-0 flex-1 px-2">
                 {groups.map((group) => (
                   <section
@@ -60,7 +61,7 @@ export function DevToolsBody({ selectedTool, onSelectTool, children }: { selecte
         </>
       )}
       <ResizablePanel minSize="350px">
-        <main className="h-full min-w-0 overflow-hidden">
+        <main className="dev-workbench-main h-full min-w-0 overflow-hidden">
           {children ?? <RouterView />}
         </main>
       </ResizablePanel>

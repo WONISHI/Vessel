@@ -1,3 +1,4 @@
+import "@/pages/debug/workbench.css"
 import "@/components/styles/tool-page-header.css"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -52,7 +53,7 @@ export function ColorTool() {
     setError("")
   }
   return (
-    <div className="color-converter flex h-full flex-col">
+    <div className="dev-tool-page color-converter flex h-full flex-col">
       <header className="tool-page-header">
         <span className="tool-page-brand">
           <Palette size={16} />
@@ -63,8 +64,9 @@ export function ColorTool() {
         </div>
       </header>
       <ScrollArea className="min-h-0 flex-1">
-        <div className="color-controls grid grid-cols-2 gap-8 p-6">
-          <section className="space-y-5">
+        <div className="color-controls dev-color-grid grid grid-cols-2 gap-8 p-6">
+          <section className="dev-color-card space-y-5">
+            <div className="dev-section-label">颜色预览<span>实时预览透明度</span></div>
             <div className="color-preview h-40 rounded-lg border">
               <div
                 className="absolute inset-0"
@@ -143,8 +145,8 @@ export function ColorTool() {
               ))}
             </div>
           </section>
-          <section className="space-y-6">
-            <h3 className="text-xs text-stone-500">RGBA 滑块</h3>
+          <section className="dev-color-card space-y-6">
+            <div className="dev-section-label">通道调整<span>RGBA</span></div>
             {["R", "G", "B", "A"].map((label, index) => (
               <div
                 className="flex items-center gap-3 text-xs"

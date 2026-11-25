@@ -42,10 +42,20 @@
       "target": [
         "dmg",
         "zip"
+      ],
+      "files": [
+        "!**/node_modules/node-pty/prebuilds/!(darwin-${arch}){,/**/*}",
+        "!**/node_modules/@parcel/watcher-!(darwin-${arch}){,/**/*}",
+        "!**/node_modules/@vscode/ripgrep-!(darwin-${arch}){,/**/*}"
       ]
     },
     "win": {
-      "icon": "build/vessel.ico"
+      "icon": "build/vessel.ico",
+      "files": [
+        "!**/node_modules/node-pty/prebuilds/!(win32-${arch}){,/**/*}",
+        "!**/node_modules/@parcel/watcher-!(win32-${arch}){,/**/*}",
+        "!**/node_modules/@vscode/ripgrep-!(win32-${arch}){,/**/*}"
+      ]
     },
     "fileAssociations": [
       {
@@ -118,7 +128,9 @@
         "to": "office",
         "filter": [
           "**/*",
-          "!**/*.gz"
+          "!**/*.gz",
+          "!**/web-apps/apps/**/locale/!(en|zh|zh-tw).json",
+          "!**/web-apps/apps/**/resources/formula-lang/!(en|en_desc|zh|zh_desc|zh-tw|zh-tw_desc).json"
         ]
       },
       {
@@ -133,7 +145,13 @@
       "out/**/*",
       "package.json",
       "!**/*.map",
-      "!out/renderer/ocr/runtime/*.jsep.*"
+      "!out/renderer/ocr/runtime/*.jsep.*",
+      "!**/node_modules/better-sqlite3/{deps,src}{,/**/*}",
+      "!**/node_modules/better-sqlite3/binding.gyp",
+      "!**/node_modules/better-sqlite3/build/{Release,Debug}/{obj,obj.target,.deps}{,/**/*}",
+      "!**/node_modules/better-sqlite3/build/**/*.{c,h,cc,cpp,o,obj,a,lib,mk,gypi,pdb,exp,ilk,idb,tlog,vcxproj,filters,sln,d}",
+      "!**/node_modules/better-sqlite3/build/**/{Makefile,*.Makefile,gyp-mac-tool,.forge-meta}",
+      "!**/node_modules/better-sqlite3/build/**/test_extension.node"
     ],
     "compression": "maximum",
     "afterPack": "scripts/verify-office-package.cjs",
@@ -142,7 +160,14 @@
       "zh_TW",
       "en"
     ],
-    "beforePack": "scripts/prepare-package.cjs"
+    "beforePack": "scripts/prepare-package.cjs",
+    "linux": {
+      "files": [
+        "!**/node_modules/node-pty/prebuilds/!(linux-${arch}){,/**/*}",
+        "!**/node_modules/@parcel/watcher-!(linux-${arch}|linux-${arch}-*){,/**/*}",
+        "!**/node_modules/@vscode/ripgrep-!(linux-${arch}){,/**/*}"
+      ]
+    }
   },
   "pnpm": {
     "onlyBuiltDependencies": [

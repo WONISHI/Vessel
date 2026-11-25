@@ -1,3 +1,4 @@
+import "@/pages/debug/workbench.css"
 import { parseJsonInput } from "./parse-json-input"
 import { registerMonacoTheme } from "@/components/core/canvas/variants/code/theme"
 import { useDarkAppearance } from "@/hooks/use-dark-appearance"
@@ -60,7 +61,7 @@ export function JsonTool() {
     setTimeout(() => URL.revokeObjectURL(url), 1000)
   }
   return (
-    <div className="flex h-full min-h-0 min-w-0 flex-col">
+    <div className="dev-tool-page dev-json-page flex h-full min-h-0 min-w-0 flex-col">
       <header className="tool-page-header">
         <span className="tool-page-brand">
           <Code size={16} />
@@ -131,7 +132,9 @@ export function JsonTool() {
           {error}
         </p>
       )}
-      <div className="min-h-0 min-w-0 flex-1 overflow-hidden">
+      <div className="dev-json-workspace min-h-0 min-w-0 flex-1 overflow-hidden">
+        <div className="dev-field-header"><span>JSON 编辑器</span><span className="dev-field-meta">{value.length.toLocaleString()} 字符</span><span className="ml-auto text-muted-foreground">UTF-8 · 2 空格</span></div>
+        <div className="min-h-0 flex-1 overflow-hidden">
         <Editor
           theme={dark ? "vessel-dark" : "light"}
           height="100%"
@@ -149,19 +152,20 @@ export function JsonTool() {
           options={{
             ariaLabel: "JSON 编辑器",
             automaticLayout: true,
-            fontSize: 14,
+            fontSize: 13,
             tabSize: 2,
             lineNumbers: "on",
             folding: true,
             minimap: { enabled: false },
             scrollBeyondLastLine: false,
-            padding: { top: 8 },
+            padding: { top: 14, bottom: 14 },
             bracketPairColorization: { enabled: true },
             formatOnPaste: true,
             scrollbar: { verticalScrollbarSize: 10, horizontalScrollbarSize: 10 },
             overviewRulerLanes: 0
           }}
         />
+        </div>
       </div>
     </div>
   )

@@ -1,8 +1,9 @@
+import "@/pages/debug/workbench.css"
 import "@/components/styles/tool-page-header.css"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { copy } from "@/pages/debug/components/utility-tools-shared"
-import { Code, Copy, Download, Trash2 } from "lucide-react"
+import { Binary, Link, Code, Copy, Download, Trash2 } from "lucide-react"
 import { useState } from "react"
 
 /** Renders the text tool component. */
@@ -23,12 +24,13 @@ export function TextTool({ mode }: { mode: "base64" | "url" }) {
       setOutput("")
     }
   }
+  const ToolIcon = mode === "base64" ? Binary : Link
   const name = mode === "base64" ? "Base64" : "URL 编解码"
   return (
-    <div className="flex h-full min-h-0 flex-col">
+    <div className="dev-tool-page dev-text-page flex h-full min-h-0 flex-col">
       <header className="tool-page-header">
         <span className="tool-page-brand">
-          <Code size={16} />
+          <ToolIcon size={16} />
         </span>
         <div className="tool-page-heading">
           <h2>{name}</h2>
@@ -61,10 +63,10 @@ export function TextTool({ mode }: { mode: "base64" | "url" }) {
           {error}
         </p>
       )}
-      <div className="dual-tools grid min-h-0 flex-1 grid-cols-2">
+      <div className="dev-workspace-grid grid min-h-0 flex-1 grid-cols-2">
         <section className="flex min-h-0 flex-col border-r">
-          <div className="flex h-10 items-center border-b bg-stone-50 px-3 text-xs text-stone-500">
-            输入
+          <div className="dev-field-header flex h-10 items-center border-b bg-stone-50 px-3 text-xs text-stone-500">
+            <span>输入</span><span className="dev-field-meta">{input.length.toLocaleString()} 字符</span>
             <Button
               size="icon"
               variant="ghost"
@@ -83,13 +85,13 @@ export function TextTool({ mode }: { mode: "base64" | "url" }) {
             aria-label={`${name}输入`}
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="在此输入内容…"
+            placeholder={mode === "base64" ? "输入文本，选择编码或解码…" : "输入 URL 或需要转义的文本…"}
             className="min-h-0 flex-1 resize-none rounded-none border-0 p-4 font-mono text-xs shadow-none focus-visible:ring-0"
           />
         </section>
         <section className="flex min-h-0 flex-col">
-          <div className="flex h-10 items-center gap-1 border-b bg-stone-50 px-3 text-xs text-stone-500">
-            处理结果
+          <div className="dev-field-header flex h-10 items-center gap-1 border-b bg-stone-50 px-3 text-xs text-stone-500">
+            <span>处理结果</span><span className="dev-field-meta">{output.length.toLocaleString()} 字符</span>
             <Button
               size="icon"
               variant="ghost"
@@ -119,6 +121,7 @@ export function TextTool({ mode }: { mode: "base64" | "url" }) {
             </Button>
           </div>
           <Textarea
+            placeholder="转换结果将显示在这里"
             aria-label="处理结果"
             readOnly
             value={output}

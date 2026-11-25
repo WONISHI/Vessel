@@ -256,6 +256,10 @@ Vessel 使用 `electron-updater` 从 `WONISHI/Vessel` 的公开正式 Release �
 
 仓库提供 `.github/workflows/release.yml`。推送与 `package.json` 版本一致的稳定版标签（例如 `v1.0.1`）后，GitHub Actions 会构建 Windows x64、macOS ARM64 和 macOS Intel 安装包。工作流自动准备 Office、背景移除和剪藏资源，执行类型检查及生产构建，合并 Mac 双架构更新清单并核对安装包摘要。三个构建全部成功后，上传到草稿 Release 并公开发布。
 
+发布包只保留 Office 简体中文（`zh`）、繁体中文（`zh-tw`）、英文（`en`）界面翻译及对应的表格公式说明；其他界面语言使用 Office 原有的英文回退逻辑。SQLite 仅裁剪发布包中的源码、编译中间产物和测试扩展，保留原生模块、JavaScript 加载代码及许可证，本地开发依赖不受影响。打包完成后会校验语言资源与 SQLite 原生模块，并检查构建冗余文件未被带入。
+
+原生二进制按安装包目标平台和 `${arch}` 过滤：`node-pty` 只保留对应的预编译目录，`@parcel/watcher-*` 和 `@vscode/ripgrep-*` 只保留匹配的目标包。Windows 终端所需 `.node`、DLL、EXE 配套文件完整保留；从 macOS 交叉打包 Windows 时同样按 Windows 目标处理。打包后校验会拦截其他目标的预编译目录，并检查终端配套文件是否齐全。
+
 工作流使用 GitHub 自动提供的 `GITHUB_TOKEN` 写入 Release。Mac 产物采用未签名、未公证构建，无需配置 Apple 证书或账号 Secrets。Mac 用户从 Releases 手动下载新版 DMG 安装，首次打开时可能遇到 macOS 安全提示。当前应用内自动安装更新适用于 Windows 安装版，Mac 的铃铛提供新版下载入口。
 
 发布时先修改 `package.json` 的版本号（例如 `1.0.1`），提交所有发布代码和工作流，再推送标签。

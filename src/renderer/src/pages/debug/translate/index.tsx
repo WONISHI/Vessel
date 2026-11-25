@@ -1,3 +1,4 @@
+import "@/pages/debug/workbench.css"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import "./translate.css"
 import "@/components/styles/tool-page-header.css"
@@ -53,7 +54,7 @@ export default function TranslateTool() {
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col overflow-hidden">
+    <div className="dev-tool-page dev-translate-page flex h-full min-h-0 flex-col overflow-hidden">
       <header className="tool-page-header shrink-0">
         <span className="tool-page-brand"><Languages size={16} /></span>
         <div className="tool-page-heading">
@@ -61,16 +62,16 @@ export default function TranslateTool() {
           <p>点击翻译后，文本将发送至 Google 翻译</p>
         </div>
         <div className="tool-page-actions">
-          <Button size="sm" disabled={busy || !input.trim()} onClick={() => void run()}>
+          <Button size="sm" className="dev-primary-action" disabled={busy || !input.trim()} onClick={() => void run()}>
             {busy ? "翻译中…" : "翻译"}
           </Button>
         </div>
       </header>
       <ScrollArea className="min-h-0 flex-1">
-      <div className="grid gap-3 p-4 lg:grid-cols-2">
-        <section className="flex min-w-0 flex-col gap-2">
-          <div className="flex items-center gap-2">
-            <Select value={from} disabled={busy} onValueChange={(value) => { setFrom(value); clearResult() }}>
+      <div className="dev-translate-grid grid gap-3 p-4">
+        <section className="dev-translate-column flex min-w-0 flex-col gap-2">
+          <div className="dev-language-row flex items-center gap-2">
+            <Select value={from} disabled={busy} onValueChange={(value) => { if (value) { setFrom(value); clearResult() } }}>
               <SelectTrigger aria-label="源语言"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="auto">检测语言</SelectItem>
@@ -82,7 +83,7 @@ export default function TranslateTool() {
             </Button>
           </div>
           <div className="translate-source-field rounded-xl border bg-background">
-            <ScrollArea type="hover" className="h-44">
+            <ScrollArea type="hover" className="dev-translate-scroll h-44">
             <Textarea
               autoFocus
               aria-label="原文"
@@ -106,20 +107,21 @@ export default function TranslateTool() {
             </div>
           </div>
         </section>
-        <section className="flex min-w-0 flex-col gap-2">
-          <Select value={to} disabled={busy} onValueChange={(value) => { setTo(value); clearResult() }}>
+        <section className="dev-translate-column flex min-w-0 flex-col gap-2">
+          <Select value={to} disabled={busy} onValueChange={(value) => { if (value) { setTo(value); clearResult() } }}>
             <SelectTrigger aria-label="目标语言"><SelectValue /></SelectTrigger>
             <SelectContent>
               {languages.map(([code, label]) => <SelectItem key={code} value={code}>{label}</SelectItem>)}
             </SelectContent>
           </Select>
-          <div className="rounded-xl border border-transparent bg-muted">
-            <ScrollArea type="hover" className="h-44">
+          <div className="dev-translate-result rounded-xl border bg-background">
+            <ScrollArea type="hover" className="dev-translate-scroll h-44">
               <div role="status" className="whitespace-pre-wrap break-words p-4 text-base">
-                {busy ? "正在翻译…" : result?.text || "译文"}
+                {busy ? "正在翻译…" : result?.text || <span className="dev-output-placeholder">译文将在这里显示</span>}
               </div>
             </ScrollArea>
-            <div className="flex justify-end px-3 pb-2">
+            <div className="dev-translate-footer flex items-center justify-between px-3 pb-2">
+              <span className="dev-field-meta">{result?.text ? `${result.text.length.toLocaleString()} 字符` : "等待翻译"}</span>
               <Button size="icon" variant="ghost" className="translate-copy-button" aria-label="复制译文" disabled={!result?.text} onClick={() => copy(result?.text ?? "")}><Copy size={16} /></Button>
             </div>
           </div>

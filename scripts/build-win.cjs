@@ -94,14 +94,19 @@ async function main() {
       else {
         staged = await require("#vessel-scripts/prepare-win-app").prepareWinApp(arch, version)
         const root = path.resolve(__dirname, "..")
+        const build = require("#vessel-package").build
+        const sqliteFilters = build.files
+          .filter((pattern) => typeof pattern === "string" && pattern.startsWith("!**/node_modules/better-sqlite3/"))
+          .map((pattern) => pattern.replace("!**/node_modules/", "!**/"))
+        const nativeFilters = build.win.files.map((pattern) => pattern.replace("!**/node_modules/", "!**/"))
         const configuration = {
-          ...require("#vessel-package").build,
+          ...build,
           electronVersion: version,
           electronDist: archive,
           directories: { app: staged, output: path.join(root, "dist"), buildResources: path.join(root, "build") },
           beforeBuild: path.join(__dirname, "use-prepared-dependencies.cjs"),
-          files: ["out/**/*", "package.json", "!**/*.map", { from: path.join(staged, "node_modules"), to: "node_modules", filter: ["**/*", "!**/*.map", "!**/*.pdb"] }],
-          extraResources: [{ from: path.join(root, "resources/office"), to: "office" }],
+          files: ["out/**/*", "package.json", "!**/*.map", { from: path.join(staged, "node_modules"), to: "node_modules", filter: ["**/*", "!**/*.map", "!**/*.pdb", ...sqliteFilters, ...nativeFilters] }],
+          extraResources: build.extraResources.map((resource) => ({ ...resource, from: path.resolve(root, resource.from) })),
           afterPack: path.join(__dirname, "verify-office-package.cjs")
         }
         const configurationPath = path.join(staged, "builder-config.json")

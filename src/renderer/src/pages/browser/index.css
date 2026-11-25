@@ -736,3 +736,23 @@ html.dark .browser-frozen-site-copy > span, html.dark .browser-frozen-hint { col
   .browser-toolbar-collapse,
   .browser-toolbar-collapse[data-collapsed="true"] { transition: none; }
 }
+
+/* Keep the console chrome on one line; settings overflow by pane width. */
+.browser-devtools { container-type: inline-size; }
+.browser-devtools-toolbar { flex-wrap: nowrap; min-height: 32px; height: 32px; white-space: nowrap; }
+.browser-devtools-toolbar > span:not(:first-child) { flex-shrink: 0; }
+.browser-devtools-toolbar select { max-width: 128px; height: 24px; min-width: 0; background: transparent; }
+.browser-devtools-toolbar .devtools-overflow-trigger { display: none; }
+.browser-devtools-toolbar :is(.devtools-overflow-trigger, .devtools-close-trigger) { width: 24px; height: 24px; flex-shrink: 0; align-items: center; justify-content: center; border-radius: 5px; }
+.browser-devtools-toolbar .devtools-close-trigger { display: flex; }
+.browser-devtools-toolbar button:hover { background: #e7e5e4; }
+.browser-devtools-settings select { width: 100%; min-width: 0; height: 30px; border: 1px solid #e7e5e4; border-radius: 6px; background: #fafafa; padding: 0 5px; font-size: 11px; }
+html.dark .browser-devtools-settings { background: #23272d; border-color: #343b44; color: #e6e8eb; color-scheme: dark; }
+html.dark .browser-devtools-settings select { background: #20242a; border-color: #444c56; color: #e6e8eb; }
+@container (max-width: 520px) {
+  .browser-devtools-toolbar .devtools-font-inline { display: none; }
+  .browser-devtools-toolbar .devtools-overflow-trigger { display: flex; }
+}
+@container (max-width: 340px) {
+  .browser-devtools-toolbar .devtools-dock-inline { display: none; }
+}
