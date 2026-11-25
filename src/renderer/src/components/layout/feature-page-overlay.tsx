@@ -12,7 +12,8 @@ const tools = {
   "case-convert": lazyWithRetry(() => import("@/pages/debug/case-convert").then(module => ({ default: module.CaseConvertTool }))),
   base64: lazyWithRetry(() => import("@/pages/debug/base64").then(module => ({ default: module.Base64Tool }))),
   url: lazyWithRetry(() => import("@/pages/debug/url").then(module => ({ default: module.URLTool }))),
-  translate: lazyWithRetry(() => import("@/pages/debug/translate"))
+  translate: lazyWithRetry(() => import("@/pages/debug/translate")),
+  proxy: lazyWithRetry(() => import("@/pages/debug/proxy"))
 }
 
 /** Full-page utilities overlay the current route; closing unmounts only the utility. */

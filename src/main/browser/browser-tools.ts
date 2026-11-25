@@ -117,24 +117,45 @@ export function registerBrowserTools(host: WebContents) {
   host.ipc.handle("browser:favicon-data", async (_event, id: number, url: string) => {
     const target = guest(id)
     if (typeof url !== "string" || url.length > 65536 || !/^(https?:\/\/|data:image\/)/i.test(url)) return
+    // Reuse the icon already on screen: no second request or canvas CORS access.
     try {
-      const response = await target.session.fetch(url, { signal: AbortSignal.timeout(4000) })
-      if (!response.ok || Number(response.headers.get("content-length")) > 2 * 1024 * 1024) { await response.body?.cancel(); return }
-      const reader = response.body?.getReader()
-      if (!reader) return
-      const chunks: Uint8Array[] = []
-      let size = 0
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-        size += value.length
-        if (size > 2 * 1024 * 1024) { await reader.cancel(); return }
-        chunks.push(value)
+      const rect = await host.executeJavaScript(`(() => {
+        const image = [...document.querySelectorAll('img[data-browser-favicon]')].find(image => image.src === ${JSON.stringify(url)} && image.complete && image.naturalWidth && getComputedStyle(image).visibility !== 'hidden' && image.getBoundingClientRect().width > 0);
+        if (!image) return null;
+        const r = image.getBoundingClientRect();
+        return {x: Math.floor(r.x), y: Math.floor(r.y), width: Math.ceil(r.width), height: Math.ceil(r.height)};
+      })()`)
+      if (rect && rect.x >= 0 && rect.y >= 0 && rect.width > 0 && rect.height > 0 && rect.width <= 64 && rect.height <= 64) {
+        const image = await host.capturePage(rect)
+        if (!image.isEmpty()) return image.toDataURL()
       }
-      const mime = response.headers.get("content-type")?.split(";")[0] || "image/png"
-      if (!/^image\/[a-z0-9.+-]+$/i.test(mime)) return
-      return `data:${mime};base64,${Buffer.concat(chunks).toString("base64")}`
-    } catch { return undefined }
+    } catch { /* Hidden/restored tabs can still load the original image below. */ }
+    // The tab strip image loads in the host session, while the page uses its own
+    // partition/proxy. Prefer the displayed icon's cache, then try the page session.
+    const sessions = [...new Set([host.session, target.session])]
+    for (const iconSession of sessions) {
+      try {
+        const response = await iconSession.fetch(url, { cache: "force-cache", signal: AbortSignal.timeout(12000) })
+        if (!response.ok || Number(response.headers.get("content-length")) > 2 * 1024 * 1024) { await response.body?.cancel(); continue }
+        const reader = response.body?.getReader()
+        if (!reader) continue
+        const chunks: Uint8Array[] = []
+        let size = 0
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+          size += value.length
+          if (size > 2 * 1024 * 1024) { await reader.cancel(); break }
+          chunks.push(value)
+        }
+        if (size > 2 * 1024 * 1024) continue
+        const mime = response.headers.get("content-type")?.split(";")[0].trim() || "image/png"
+        if (!/^image\/[a-z0-9.+-]+$/i.test(mime)) continue
+        return `data:${mime};base64,${Buffer.concat(chunks).toString("base64")}`
+      } catch { /* A cached tab icon may still be available in the other session. */ }
+    }
+    console.debug("[browser favicon] Could not load icon for color extraction:", url)
+    return undefined
   })
   const agents = new Map<number, string>()
   host.ipc.handle("browser:emulate", (_event, id: number, device: BrowserDevice | null) => {

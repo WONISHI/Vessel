@@ -16,6 +16,8 @@ vi.mock("@/components/ui/tree", () => ({
 vi.mock("@/components/workspace/components/layout-aside/layout-workspace-sidebar/file-tree-item", () => ({
   default: ({ node, selected, onActivate }: any) => (
     <button
+      data-workspace-tree-row
+      data-selected={selected}
       aria-pressed={selected}
       onClick={onActivate}
     >
@@ -173,3 +175,34 @@ it("keeps cached rows when switching among six resource projects", async () => {
   expect(read).toHaveBeenCalledTimes(6)
 })
 
+
+it("supports resource-tree modifier clicks, keyboard ranges, select-all and focused toggles without opening files", async () => {
+  const { FileIconScope } = await import("@/features/file-icons/state")
+  window.electronAPI = { ...window.electronAPI, getGitDecorations: vi.fn().mockResolvedValue({ entries: [] }) } as any
+  const files = ["a.ts", "b.ts", "c.ts", "d.ts"].map(name => ({ name, path: `/multi/${name}`, type: "file" }))
+  const open = vi.fn()
+  const context = { workspace: { name: "multi", path: "/multi" }, openFiles: files, activeFilePath: "", openWorkspaceFile: open, expandedFolders: [], setDirectoryExpanded: vi.fn() }
+  render(<FileIconScope.Provider value="resources"><WorkspaceContext.Provider value={context as any}><WorkspaceTree viewport={null} recent /></WorkspaceContext.Provider></FileIconScope.Provider>)
+  const row = (name: string) => screen.getByRole("button", { name })
+  const selected = () => [...document.querySelectorAll('[data-workspace-tree-row][data-selected="true"]')].map(element => element.textContent)
+  fireEvent.click(row("a.ts"), { ctrlKey: true })
+  fireEvent.click(row("c.ts"), { metaKey: true })
+  expect(selected()).toEqual(["a.ts", "c.ts"])
+  fireEvent.click(row("d.ts"), { shiftKey: true })
+  expect(selected()).toEqual(["c.ts", "d.ts"])
+  fireEvent.keyDown(row("d.ts"), { key: "ArrowUp", shiftKey: true })
+  await waitFor(() => expect(document.activeElement).toBe(row("c.ts")))
+  expect(selected()).toEqual(["c.ts"])
+  fireEvent.keyDown(row("c.ts"), { key: "Home", shiftKey: true })
+  expect(selected()).toEqual(["a.ts", "b.ts", "c.ts"])
+  fireEvent.keyDown(row("a.ts"), { key: "a", ctrlKey: true })
+  expect(selected()).toEqual(["a.ts", "b.ts", "c.ts", "d.ts"])
+  fireEvent.keyDown(row("a.ts"), { key: "Escape" })
+  expect(selected()).toEqual(["a.ts"])
+  fireEvent.keyDown(row("a.ts"), { key: "ArrowDown", ctrlKey: true })
+  await waitFor(() => expect(document.activeElement).toBe(row("b.ts")))
+  expect(selected()).toEqual(["a.ts"])
+  fireEvent.keyDown(row("b.ts"), { key: " ", ctrlKey: true })
+  expect(selected()).toEqual(["a.ts", "b.ts"])
+  expect(open).not.toHaveBeenCalled()
+})

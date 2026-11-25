@@ -35,6 +35,7 @@ export interface VirtualTreeRow<T> {
   expanded?: boolean
 }
 export interface VirtualTreeProps<T> {
+  selectedIds?: readonly string[]
   rows: readonly VirtualTreeRow<T>[]
   viewport: HTMLElement | null
   /** 每层缩进距离（px），默认 12；0 表示不缩进。 */

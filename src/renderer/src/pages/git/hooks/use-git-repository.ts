@@ -32,19 +32,11 @@ export function useGitRepository() {
     }
     updateProjects()
 
-    /** Handles resource changed events. */
-    const onResourceChanged = () => {
-      updateProjects()
-      try {
-        const resource = JSON.parse(localStorage.getItem("resource_current_project") || "null")
-        if (resource?.path && resource.path !== repoPath) {
-          setRepoPath(resource.path)
-        }
-      } catch {}
-    }
-    window.addEventListener("vessel:resource-changed", onResourceChanged)
-    return () => window.removeEventListener("vessel:resource-changed", onResourceChanged)
-  }, [repoPath])
+    // Library changes refresh the choices only. The Git repository is selected
+    // explicitly in the Git page and must not follow resource navigation.
+    window.addEventListener("vessel:resource-changed", updateProjects)
+    return () => window.removeEventListener("vessel:resource-changed", updateProjects)
+  }, [])
 
   const [isRepo, setIsRepo] = useState<boolean | null>(null)
   const [activeTab, setActiveTab] = useState<"status" | "history" | "search" | "stash">("status")

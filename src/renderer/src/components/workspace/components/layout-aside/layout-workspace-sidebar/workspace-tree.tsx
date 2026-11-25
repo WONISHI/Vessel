@@ -16,7 +16,7 @@ import { refreshGitDecorations } from "@/features/git-decorations"
 import { useFileChanges } from "@/components/workspace/hooks/file-changes"
 import { useWorkspace } from "@/components/workspace/hooks/useWorkspace"
 import type { WorkspaceNode } from "@/components/workspace/types/workspace"
-import { useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
+import { useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from "react"
 import { toast } from "sonner"
 import { useDelayedLoading } from "@/hooks/use-delayed-loading"
 
@@ -62,7 +62,9 @@ export default function WorkspaceTree({
 }) {
   const { workspace, openFiles, activeFilePath, openWorkspaceFile, renameWorkspaceTab, expandedFolders, setDirectoryExpanded } = useWorkspace()
   const layout = useDirectoryTreeLayout()
-  const stickyScroll = useResourceStickyScroll(useContext(FileIconScope) === "resources")
+  const resourceSelection = useContext(FileIconScope) === "resources"
+  const stickyScroll = useResourceStickyScroll(resourceSelection)
+  const selectionRoot = useRef<HTMLDivElement>(null)
   const { rowHeight, indent, gap } = layout
   const showGit = useShowGitDecorations()
   // Git status only changes with Git activity: refresh on mount, focus and Git page events, never per edit.
@@ -274,6 +276,66 @@ export default function WorkspaceTree({
     append(recent ? openFiles : (root?.nodes ?? []))
     return visible
   }, [directories, expandedFolders, recent, openFiles, root?.nodes, workspace.path, draft, sortBy, sortOrder])
+  const selectableRows = rows.filter(row => row.id !== "__draft__")
+  const selectRange = (path: string, additive = false) => {
+    let from = selectableRows.findIndex(row => row.id === anchor.current)
+    const to = selectableRows.findIndex(row => row.id === path)
+    if (to < 0) return
+    if (from < 0) { from = to; anchor.current = path }
+    const range = selectableRows.slice(Math.min(from, to), Math.max(from, to) + 1).map(row => row.id)
+    setSelection(previous => additive ? [...new Set([...previous, ...range])] : range)
+  }
+  const keyboardSelection = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (!resourceSelection || (event.target as HTMLElement).closest('input,textarea,select,[contenteditable="true"]')) return
+    const element = (event.target as HTMLElement).closest<HTMLElement>('[data-node-path]')
+    if (!element) return
+    const current = selectableRows.findIndex(row => row.id === element.dataset.nodePath)
+    if (current < 0) return
+    const command = event.metaKey || event.ctrlKey
+    if (command && event.key.toLowerCase() === "a") {
+      event.preventDefault(); event.stopPropagation()
+      if (!anchor.current) anchor.current = selectableRows[current].id
+      setSelection(selectableRows.map(row => row.id))
+      return
+    }
+    if (event.key === "Escape") {
+      event.preventDefault(); event.stopPropagation()
+      anchor.current = selectableRows[current].id
+      setSelection([anchor.current]); return
+    }
+    if (event.key === " ") {
+      event.preventDefault(); event.stopPropagation()
+      const path = selectableRows[current].id
+      if (event.shiftKey) selectRange(path, command)
+      else {
+        anchor.current = path
+        setSelection(previous => previous.includes(path) ? previous.filter(item => item !== path) : [...previous, path])
+      }
+      return
+    }
+    let next = current
+    if (event.key === "ArrowDown") next = Math.min(current + 1, selectableRows.length - 1)
+    else if (event.key === "ArrowUp") next = Math.max(current - 1, 0)
+    else if (event.key === "Home") next = 0
+    else if (event.key === "End") next = selectableRows.length - 1
+    else return
+    if (event.altKey) return
+    event.preventDefault(); event.stopPropagation()
+    const path = selectableRows[next].id
+    if (event.shiftKey) {
+      if (!anchor.current) anchor.current = selectableRows[current].id
+      selectRange(path, command)
+    } else if (!command) { anchor.current = path; setSelection([path]) }
+    if (viewport) {
+      const index = rows.findIndex(row => row.id === path)
+      viewport.scrollTo({ top: treeRevealScrollTop(index, viewport.scrollTop, viewport.clientHeight, rowHeight, gap) })
+      viewport.dispatchEvent(new Event("scroll"))
+    }
+    requestAnimationFrame(() => {
+      const node = [...(selectionRoot.current?.querySelectorAll<HTMLElement>('[data-node-path]') ?? [])].find(element => element.dataset.nodePath === path)
+      node?.querySelector<HTMLButtonElement>('[data-workspace-tree-row]')?.focus({ preventScroll: true })
+    })
+  }
   const selectedPaths = new Set(selection)
   const selectedNodes = rows.filter((row) => selectedPaths.has(row.id)).map((row) => row.item)
   const draftIndex = rows.findIndex((row) => row.id === "__draft__")
@@ -321,6 +383,7 @@ export default function WorkspaceTree({
   if (!rows.length) return <p className="p-2 text-xs text-stone-400">暂无文件</p>
   return (
     <>
+      <div ref={selectionRoot} onKeyDown={keyboardSelection}>
       <VirtualTree
         stickyScroll={stickyScroll && !recent && !draft && !renamingPath}
         rows={rows}
@@ -332,6 +395,7 @@ export default function WorkspaceTree({
         fullRow
         viewport={viewport}
         selectedId={draft ? "__draft__" : activeFilePath}
+        selectedIds={resourceSelection ? selection : undefined}
         renderRow={({ item: node, expanded }) =>
           node.path === "__draft__" && draft ? (
             <InlineEntryEditor
@@ -436,15 +500,8 @@ export default function WorkspaceTree({
                   error={directories[node.path]?.error}
                   onActivate={(event) => {
                     clearTimeout(prefetchTimer.current)
-                    if (event.shiftKey && anchor.current) {
-                      const a = rows.findIndex((row) => row.id === anchor.current),
-                        b = rows.findIndex((row) => row.id === node.path)
-                      setSelection(
-                        rows
-                          .slice(Math.min(a, b), Math.max(a, b) + 1)
-                          .map((row) => row.id)
-                          .filter((id) => id !== "__draft__")
-                      )
+                    if (event.shiftKey) {
+                      selectRange(node.path, event.metaKey || event.ctrlKey)
                       return
                     }
                     anchor.current = node.path
@@ -471,6 +528,7 @@ export default function WorkspaceTree({
           )
         }
       />
+      </div>
       <ConfirmDialog
         tone="primary"
         open={!!move}

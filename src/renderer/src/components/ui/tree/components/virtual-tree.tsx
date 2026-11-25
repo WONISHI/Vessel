@@ -6,7 +6,7 @@ import { flushSync } from "react-dom"
 import { StickyTree } from "./sticky-tree"
 
 /** Renders buffered rows synchronously at scroll boundaries to avoid fast-scroll gaps. */
-export function VirtualTree<T>({ rows, viewport, indent = 12, rowHeight = 32, rowGap = 0, showGuides = true, guideOffset = 12, contentWidth, fullRow = false, overscan = 6, selectedId, renderRow, stickyScroll = false }: VirtualTreeProps<T>) {
+export function VirtualTree<T>({ rows, viewport, indent = 12, rowHeight = 32, rowGap = 0, showGuides = true, guideOffset = 12, contentWidth, fullRow = false, overscan = 6, selectedId, selectedIds, renderRow, stickyScroll = false }: VirtualTreeProps<T>) {
   const stride = rowHeight + Math.max(0, rowGap)
   const [range, setRange] = useState(() => virtualTreeRange(viewport?.scrollTop || 0, viewport?.clientHeight || 0, rows.length, stride, overscan))
   const current = useRef(range)
@@ -69,10 +69,10 @@ export function VirtualTree<T>({ rows, viewport, indent = 12, rowHeight = 32, ro
   const start = Math.min(range.start, Math.max(0, rows.length - 1))
   const end = Math.min(rows.length, Math.max(start + 1, range.end))
   return (
-    <div role="tree" aria-label="工作区文件树" className="relative w-full" style={{ height: Math.max(0, rows.length * stride - rowGap), minWidth: contentWidth, overflowAnchor: "none" }}>
+    <div role="tree" aria-multiselectable={selectedIds ? true : undefined} aria-label="工作区文件树" className="relative w-full" style={{ height: Math.max(0, rows.length * stride - rowGap), minWidth: contentWidth, overflowAnchor: "none" }}>
       {stickyScroll && <StickyTree rows={rows} viewport={viewport} rowHeight={rowHeight} rowGap={rowGap} indent={indent} fullRow={fullRow} showGuides={showGuides} guideOffset={guideOffset} selectedId={selectedId} renderRow={renderRow} />}
       {rows.slice(start, end).map((row, index) => (
-        <VirtualTreeItem key={row.id} row={row} index={start + index} rowHeight={rowHeight} rowGap={rowGap} showGuides={showGuides} guideOffset={guideOffset} indent={Number.isFinite(indent) ? Math.max(0, indent) : 12} fullRow={fullRow} selected={row.id === selectedId} renderRow={renderRow} />
+        <VirtualTreeItem key={row.id} row={row} index={start + index} rowHeight={rowHeight} rowGap={rowGap} showGuides={showGuides} guideOffset={guideOffset} indent={Number.isFinite(indent) ? Math.max(0, indent) : 12} fullRow={fullRow} selected={selectedIds ? selectedIds.includes(row.id) : row.id === selectedId} renderRow={renderRow} />
       ))}
     </div>
   )

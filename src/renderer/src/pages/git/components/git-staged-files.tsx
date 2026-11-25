@@ -1,3 +1,4 @@
+import { useRef } from "react"
 import { GitFileLineStats } from "./git-file-line-stats"
 import { GitChangesTree } from "./git-changes-tree"
 import { GitChangesViewToggle } from "./git-changes-view-toggle"
@@ -17,6 +18,16 @@ import type { GitPageModel } from "@/pages/git/hooks/use-git-page"
 /** 已暂存文件列表 */
 export function GitStagedFiles({ g }: { g: GitPageModel }) {
   const { status, selectedFile, setSelectedFile, selectedStagedPaths, setSelectedStagedPaths, handleStagedItemClick, handleStagedContextMenu, handleUnstageFile, handleUnstageAll, handleDiscardStaged, handleUnstageMultiple, handleDiscardStagedMultiple, handleStashFiles, getFullPath, copyToClipboard, handleRevealInFinder, handleOpenInEditor } = g
+
+  const pendingStash = useRef<string[] | null>(null)
+  const closeMenu = (event: Event) => {
+    const paths = pendingStash.current
+    pendingStash.current = null
+    if (!paths) return
+    event.preventDefault()
+    // The non-modal dialog must mount after the menu releases its focus scope.
+    queueMicrotask(() => handleStashFiles(paths))
+  }
 
   const { tree, toggleTree } = useGitChangesView("staged")
   const query = g.stagedFileQuery ?? ""
@@ -78,7 +89,8 @@ export function GitStagedFiles({ g }: { g: GitPageModel }) {
                                     style={tree ? { paddingLeft: "var(--git-tree-padding)" } : undefined}
                                     role="button"
                                     tabIndex={0}
-                                    onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); event.currentTarget.click() } }}
+                                    data-git-change-path={file.path}
+                                    onKeyDown={(event) => { g.handleStagedItemKeyDown?.(event); if (!event.defaultPrevented && (event.key === "Enter" || event.key === " ")) { event.preventDefault(); event.currentTarget.click() } }}
                                     data-git-file-selected={isSelected}
                                     data-git-primary-file={isPrimary && isSelected}
                                     onClick={(e) => handleStagedItemClick(e, file, idx)}
@@ -98,9 +110,9 @@ export function GitStagedFiles({ g }: { g: GitPageModel }) {
                                       </span>
                                     </span>
                                     <GitFileLineStats file={file} />
-                                    <span className={`relative h-[22px] shrink-0 ${tree ? "w-[22px]" : "w-0 group-hover:w-[22px] group-focus-within:w-[22px]"}`}>
-                                      {tree && <span data-git-status-marker className={`absolute right-1 top-1/2 -translate-y-1/2 w-3.5 text-center font-bold group-hover:opacity-0 group-focus-within:opacity-0 ${gitChangeMarkerClass(file.status)}`} data-title={gitChangeStatusTitle(file.status)} aria-label={gitChangeStatusTitle(file.status)}>{gitChangeMarker(file.status)}</span>}
-                                      <span className="absolute inset-0 flex justify-end opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto">
+                                    <span className={`relative h-[22px] shrink-0 transition-[width] duration-150 ${tree ? "w-[22px] group-hover:w-[44px] group-focus-within:w-[44px]" : "w-0 group-hover:w-[22px] group-focus-within:w-[22px]"}`}>
+                                      {tree && <span data-git-status-marker className={`absolute right-1 top-1/2 -translate-y-1/2 w-3.5 text-center font-bold transition-[right] duration-150 group-hover:right-[26px] group-focus-within:right-[26px] ${gitChangeMarkerClass(file.status)}`} data-title={gitChangeStatusTitle(file.status)} aria-label={gitChangeStatusTitle(file.status)}>{gitChangeMarker(file.status)}</span>}
+                                      <span className="absolute inset-y-0 right-0 w-[22px] flex justify-end opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto">
                                     <button
                                       type="button"
                                       data-title="取消暂存"
@@ -116,14 +128,14 @@ export function GitStagedFiles({ g }: { g: GitPageModel }) {
                                     </span>
                                   </div>
                                 </ContextMenuTrigger>
-                                <ContextMenuContent className="w-56">
+                                <ContextMenuContent className="w-56" onCloseAutoFocus={closeMenu}>
                                   {isMulti ? (
                                     <>
                                       <ContextMenuItem onSelect={() => void handleUnstageMultiple(selectedStagedPaths)}>
                                         <Minus className="size-3.5 text-amber-600" />
                                         <span>取消暂存选中的 {selectedStagedPaths.length} 个文件</span>
                                       </ContextMenuItem>
-                                      <ContextMenuItem onSelect={() => void handleStashFiles(selectedStagedPaths)}>
+                                      <ContextMenuItem onSelect={() => { pendingStash.current = [...selectedStagedPaths] }}>
                                         <Archive className="size-3.5 text-blue-600" />
                                         <span>贮藏选中的 {selectedStagedPaths.length} 个文件…</span>
                                       </ContextMenuItem>
@@ -157,7 +169,7 @@ export function GitStagedFiles({ g }: { g: GitPageModel }) {
                                         <Minus className="size-3.5 text-amber-600" />
                                         <span>取消暂存文件</span>
                                       </ContextMenuItem>
-                                      <ContextMenuItem onSelect={() => void handleStashFiles([file.path])}>
+                                      <ContextMenuItem onSelect={() => { pendingStash.current = [...[file.path]] }}>
                                         <Archive className="size-3.5 text-blue-600" />
                                         <span>贮藏此文件修改…</span>
                                       </ContextMenuItem>

@@ -37,6 +37,7 @@ const CaseConvertTool = lazyPage<object>(async () => ({ default: (await import("
 const Base64Tool = lazyPage<object>(async () => ({ default: (await import("@/pages/debug/base64/index")).Base64Tool }), debugLoading)
 const ColorTool = lazyPage<object>(async () => ({ default: (await import("@/pages/debug/color/index")).ColorTool }), debugLoading)
 const JsonTool = lazyPage<object>(async () => ({ default: (await import("@/pages/debug/json/index")).JsonTool }), debugLoading)
+const ProxyTool = lazyPage(() => import("@/pages/debug/proxy"), debugLoading)
 const TranslateTool = lazyPage(() => import("@/pages/debug/translate"), debugLoading)
 const URLTool = lazyPage<object>(async () => ({ default: (await import("@/pages/debug/url/index")).URLTool }), debugLoading)
 const DiagnosticsPage = lazyPage(() => import("@/pages/debug/diagnostics/index"), debugLoading)
@@ -130,7 +131,8 @@ export const routes: AppRouteRecordRaw[] = [
         { path: "case-convert", component: CaseConvertTool, title: "转写工具" },
         { path: "base64", component: Base64Tool, title: "Base64" },
         { path: "url", component: URLTool, title: "URL 编解码" },
-        { path: "translate", component: TranslateTool, title: "翻译" }
+        { path: "translate", component: TranslateTool, title: "翻译" },
+        { path: "proxy", component: ProxyTool, title: "代理" }
       ].map((tool) => ({ path: tool.path, name: `devtools-${tool.path}`, component: tool.component, meta: { title: tool.title } })),
       {
         index: true,

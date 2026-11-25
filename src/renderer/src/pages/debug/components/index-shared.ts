@@ -1,4 +1,4 @@
-import { CaseSensitive, Binary, Code, Languages, Link, Palette } from "lucide-react"
+import { CaseSensitive, Binary, Code, Languages, Link, Palette, Waypoints } from "lucide-react"
 export const groups = [
   {
     title: "数据与颜色",
@@ -17,3 +17,7 @@ export const groups = [
     ]
   }
 ]
+
+export const getDevToolGroups = (proxyEnabled: boolean) => proxyEnabled
+  ? groups.map((group, index) => index === groups.length - 1 ? { ...group, items: [...group.items, { id: "proxy", title: "代理", icon: Waypoints }] } : group)
+  : groups

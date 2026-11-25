@@ -15,6 +15,18 @@ export const Guest = memo(function Guest({ tab, partition, visible, register, up
   const dark = useDarkAppearance()
   const ref = useRef<WebviewTag | null>(null)
   const [documentReady, setDocumentReady] = useState(0)
+  const [iconRevision, setIconRevision] = useState(0)
+  const iconColors = useRef(new Map<string, string>())
+  useEffect(() => {
+    const loaded = (event: Event) => {
+      const source = (event as CustomEvent<string>).detail
+      let fallback = ""
+      try { fallback = new URL("/favicon.ico", tab.url).href } catch { /* Blank tab. */ }
+      if (source === tab.favicon || source === fallback) setIconRevision(value => value + 1)
+    }
+    window.addEventListener("vessel-favicon-loaded", loaded)
+    return () => window.removeEventListener("vessel-favicon-loaded", loaded)
+  }, [tab.favicon, tab.url])
   useEffect(() => {
     if (!documentReady) return
     const view = ref.current
@@ -25,7 +37,6 @@ export const Guest = memo(function Guest({ tab, partition, visible, register, up
       update(tab.id, { faviconColor: color })
       withGuest(view, guest => guest.send("vessel:site-color", color))
     }
-    apply(DEFAULT_SITE_COLOR)
     let source = tab.favicon
     if (!source) {
       try {
@@ -33,13 +44,28 @@ export const Guest = memo(function Guest({ tab, partition, visible, register, up
         if (/^https?:$/.test(page.protocol)) source = new URL("/favicon.ico", page).href
       } catch { /* Blank/local pages retain the default green. */ }
     }
+    let origin = tab.url
+    try { origin = new URL(tab.url).origin } catch { /* Blank/local page. */ }
+    const key = `${origin}\n${source || ""}`
+    const savedColor = () => iconColors.current.get(key) || DEFAULT_SITE_COLOR
+    apply(savedColor())
+    const resolved = (color: string) => {
+      if (cancelled) return
+      // Failed refreshes must not replace a color already obtained for this icon.
+      if (color !== DEFAULT_SITE_COLOR) {
+        iconColors.current.delete(key)
+        iconColors.current.set(key, color)
+        if (iconColors.current.size > 16) iconColors.current.delete(iconColors.current.keys().next().value!)
+      }
+      apply(savedColor())
+    }
     if (source && window.electronAPI?.browserFaviconData) {
       const id = withGuest(view, guest => guest.getWebContentsId())
       if (id !== undefined) void window.electronAPI.browserFaviconData(id, source)
-        .then(data => faviconColor(data)).then(apply).catch(() => apply(DEFAULT_SITE_COLOR))
+        .then(data => faviconColor(data)).then(resolved).catch(() => resolved(DEFAULT_SITE_COLOR))
     }
     return () => { cancelled = true }
-  }, [documentReady, tab.id, tab.url, tab.favicon, update])
+  }, [documentReady, iconRevision, tab.id, tab.url, tab.favicon, update])
   const zoomRef = useRef(tab.zoom ?? 1)
   const visibleRef = useRef(visible)
   const syncZoom = useCallback(() => {

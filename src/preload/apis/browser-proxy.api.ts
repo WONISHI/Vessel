@@ -1,6 +1,12 @@
 import type { BrowserProxyAPI } from "@vessel/type"
 import { ipcRenderer } from "electron"
 export const browserProxyAPI: BrowserProxyAPI = {
+  refreshBrowserProxySubscriptionInfo: id => ipcRenderer.invoke("browser:proxy:profile-info", id),
+  setBrowserProxyRuntime: input => ipcRenderer.invoke("browser:proxy:runtime", input),
+  listBrowserProxySubscriptions: () => ipcRenderer.invoke("browser:proxy:profiles"),
+  saveBrowserProxyProfile: input => ipcRenderer.invoke("browser:proxy:profile-save", input),
+  deleteBrowserProxyProfile: id => ipcRenderer.invoke("browser:proxy:profile-delete", id),
+  connectBrowserProxyProfile: id => ipcRenderer.invoke("browser:proxy:profile-connect", id),
   /** Performs the browser proxy subscription operation. */
   browserProxySubscription: () => ipcRenderer.invoke("browser:proxy:subscription"),
 

@@ -5,7 +5,7 @@ import { ArrowLeft, ArrowRight, Copy, Code, CodeXml, Download, ExternalLink, Fol
 import { toast } from "sonner"
 import { mobilePageURL } from "@/pages/browser/mobile-page-url"
 import { withGuest } from "@/pages/browser/guest-lifecycle"
-import { DEFAULT_SITE_COLOR } from "@/pages/browser/favicon-color"
+import { effectiveSiteColor } from "@/pages/browser/favicon-color"
 import type { CSSProperties } from "react"
 import type { BrowserPageModel } from "./hooks/use-browser-page"
 
@@ -77,7 +77,7 @@ export function BrowserContextMenu({ b, visible }: { b: BrowserPageModel; visibl
   return <>
     <DropdownMenu modal={false} open={visible && menuOpen} onOpenChange={setMenuOpen}>
       <DropdownMenuTrigger asChild><span data-browser-context-anchor aria-hidden="true" style={{ position: "fixed", left: point?.left ?? 0, top: point?.top ?? 0, width: 1, height: 1, pointerEvents: "none" }} /></DropdownMenuTrigger>
-      <DropdownMenuContent align="start" sideOffset={0} data-radix-context-menu-content="" data-browser-site-menu="" style={{ "--browser-site-color": b.tab.faviconColor || DEFAULT_SITE_COLOR } as CSSProperties} className="w-48 z-[510] rounded-lg data-[state=closed]:animate-none" onCloseAutoFocus={(event) => {
+      <DropdownMenuContent align="start" sideOffset={0} data-radix-context-menu-content="" data-browser-site-menu="" style={{ "--browser-site-color": effectiveSiteColor(b.tab.faviconColor) } as CSSProperties} className="w-48 z-[510] rounded-lg data-[state=closed]:animate-none" onCloseAutoFocus={(event) => {
         event.preventDefault()
         // Wait for the menu's FocusScope to finish unmounting before opening
         // another non-modal focus scope. The selecting click must not dismiss it.

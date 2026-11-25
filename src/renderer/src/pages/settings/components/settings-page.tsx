@@ -452,7 +452,7 @@ export function SettingsPage() {
                     </Row>
                     <Row
                       title="开启代理"
-                      description="开启后显示浏览器底部代理入口；关闭会断开代理。"
+                      description="开启后在开发工具中显示代理管理；关闭会断开代理。"
                     >
                       <Switch
                         aria-label="开启代理"

@@ -1,7 +1,8 @@
+import type { BrowserProxyMode } from "@vessel/type"
 import { parse, stringify } from "yaml"
 
 /** Performs the browser proxy config operation. */
-export function browserProxyConfig(source: string, port: number, controller: number, secret: string) {
+export function browserProxyConfig(source: string, port: number, controller: number, secret: string, mode: BrowserProxyMode = "rule") {
   const parsed = parse(source, { maxAliasCount: 50 })
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("链接没有返回 Clash YAML 配置")
   const proxies = Array.isArray(parsed.proxies) ? parsed.proxies : []
@@ -18,7 +19,7 @@ export function browserProxyConfig(source: string, port: number, controller: num
     "mixed-port": port,
     "allow-lan": false,
     "bind-address": "127.0.0.1",
-    mode: "rule",
+    mode,
     "log-level": "silent",
     ipv6: false,
     "external-controller": `127.0.0.1:${controller}`,

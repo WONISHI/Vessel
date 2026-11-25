@@ -14,7 +14,7 @@ type FolderNode = { kind: "folder"; name: string; path: string; children: Map<st
 export function GitChangesTree({ files, query, tree, renderFile }: { files: GitFileStatus[]; query: string; tree: boolean; renderFile: (file: GitFileStatus, index: number, tree: boolean) => ReactNode }) {
   const layout = useDirectoryTreeLayout("resources")
   const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set())
-  if (!tree) return <>{files.map((file, index) => matchesGitFilePath(file.path, query) ? renderFile(file, index, false) : null)}</>
+  if (!tree) return <div data-git-changes-list>{files.map((file, index) => matchesGitFilePath(file.path, query) ? renderFile(file, index, false) : null)}</div>
   const root = new Map<string, FileNode | FolderNode>()
   files.forEach((file, index) => {
     if (!matchesGitFilePath(file.path, query)) return
@@ -55,5 +55,5 @@ export function GitChangesTree({ files, query, tree, renderFile }: { files: GitF
       {open && rows(node.children, depth + 1)}
     </div>
   })
-  return <div aria-label="变更文件树" style={{ "--git-tree-column-gap": `${layout.columnGap}px` } as CSSProperties}>{rows(root)}</div>
+  return <div data-git-changes-list aria-label="变更文件树" style={{ "--git-tree-column-gap": `${layout.columnGap}px` } as CSSProperties}>{rows(root)}</div>
 }

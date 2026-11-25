@@ -19,11 +19,12 @@ export function BrowserFavicon({ url, favicon, frozen = false, icon }: { url?: s
       {icon ?? ((!source || loaded !== source) && <Globe size={14} className="text-green-600" />)}
       {source && (
         <img
+          data-browser-favicon=""
           key={source}
           src={source}
           alt=""
           className={`absolute inset-0 size-4 object-contain ${loaded === source ? "" : "invisible"}`}
-          onLoad={() => setLoaded(source)}
+          onLoad={() => { setLoaded(source); requestAnimationFrame(() => window.dispatchEvent(new CustomEvent("vessel-favicon-loaded", { detail: source }))) }}
           onError={() => setFailed((previous) => [...previous, source])}
         />
       )}

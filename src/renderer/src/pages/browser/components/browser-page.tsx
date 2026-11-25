@@ -8,9 +8,9 @@ import { ResizableSplit } from "@/components/ui/resizable-split"
 import { StatusBar } from "@/components/ui/status-bar"
 import { BookmarkBar } from "@/pages/browser/components/bookmark-bar"
 import { Guest } from "@/pages/browser/components/guest"
-import { BrowserProxy } from "@/pages/browser/components/proxy"
 import { DeviceToolbar } from "@/pages/browser/components/tools"
 import { ZoomIn } from "lucide-react"
+import { toast } from "sonner"
 import { useBrowserPage } from "@/pages/browser/components/browser-page/hooks/use-browser-page"
 import { BrowserTabs } from "@/pages/browser/components/browser-page/browser-tabs"
 import { BrowserToolbar } from "@/pages/browser/components/browser-page/browser-toolbar"
@@ -96,6 +96,14 @@ export function BrowserPage({ visible = true }: { visible?: boolean }) {
                   <pre className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap break-all text-xs">{tab.devError}</pre>
                 </details>
                 <div className="mt-3 flex flex-wrap gap-2">
+                  <button type="button" className="rounded border px-3 py-1 text-xs" onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(`本地开发页面出现错误\n页面地址：${tab.url}\n\n${tab.devError}`)
+                      toast.success("错误信息已复制")
+                    } catch {
+                      toast.error("复制失败，请重试")
+                    }
+                  }}>复制错误</button>
                   <button type="button" className="rounded border px-3 py-1 text-xs" onClick={() => b.reloadTab(tab.id)}>重新加载页面</button>
                   <button type="button" className="rounded border px-3 py-1 text-xs" onClick={() => b.setDevtoolsOpen(true)}>打开浏览器控制台</button>
                 </div>
@@ -179,7 +187,6 @@ export function BrowserPage({ visible = true }: { visible?: boolean }) {
           left={
             <BrowserStatusLeft b={b} />
           }
-          right={<BrowserProxy showLabel />}
           after={
             <button
               data-title="恢复 100% 缩放"
