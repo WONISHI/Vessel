@@ -254,7 +254,7 @@ pnpm run build:linux
 
 Vessel 使用 `electron-updater` 从 `WONISHI/Vessel` 的公开正式 Release 获取更新。Windows 和 macOS 的产物应归到同一个版本。
 
-仓库提供 `.github/workflows/release.yml`。推送与 `package.json` 版本一致的稳定版标签（例如 `v1.0.1`）后，GitHub Actions 会构建 Windows x64、macOS ARM64 和 macOS Intel 安装包。工作流自动准备 Office、MarkItDown、背景移除和剪藏资源，执行类型检查及生产构建，合并 Mac 双架构更新清单并核对安装包摘要。三个构建全部成功后，上传到草稿 Release 并公开发布。
+仓库提供 `.github/workflows/release.yml`。推送与 `package.json` 版本一致的稳定版标签（例如 `v1.0.1`）后，GitHub Actions 会构建 Windows x64、macOS ARM64 和 macOS Intel 安装包。工作流自动准备 Office、背景移除和剪藏资源，执行类型检查及生产构建，合并 Mac 双架构更新清单并核对安装包摘要。三个构建全部成功后，上传到草稿 Release 并公开发布。
 
 工作流使用 GitHub 自动提供的 `GITHUB_TOKEN` 写入 Release。Mac 产物采用未签名、未公证构建，无需配置 Apple 证书或账号 Secrets。Mac 用户从 Releases 手动下载新版 DMG 安装，首次打开时可能遇到 macOS 安全提示。当前应用内自动安装更新适用于 Windows 安装版，Mac 的铃铛提供新版下载入口。
 

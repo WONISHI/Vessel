@@ -58,7 +58,6 @@ jobs:
           )
           node scripts/prepare-office.cjs
       - run: pnpm run assets:matting
-      - run: pnpm run assets:markitdown
       - run: pnpm run build:clipper
       - run: pnpm run build
       - name: Package Windows
