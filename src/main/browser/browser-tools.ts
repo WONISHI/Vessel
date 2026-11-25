@@ -112,6 +112,30 @@ export function registerBrowserTools(host: WebContents) {
         })
       )
   )
+  // Fetch through the guest's own session, so cross-origin icons can be sampled
+  // without weakening canvas/CORS restrictions or changing the page's policies.
+  host.ipc.handle("browser:favicon-data", async (_event, id: number, url: string) => {
+    const target = guest(id)
+    if (typeof url !== "string" || url.length > 65536 || !/^(https?:\/\/|data:image\/)/i.test(url)) return
+    try {
+      const response = await target.session.fetch(url, { signal: AbortSignal.timeout(4000) })
+      if (!response.ok || Number(response.headers.get("content-length")) > 2 * 1024 * 1024) { await response.body?.cancel(); return }
+      const reader = response.body?.getReader()
+      if (!reader) return
+      const chunks: Uint8Array[] = []
+      let size = 0
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        size += value.length
+        if (size > 2 * 1024 * 1024) { await reader.cancel(); return }
+        chunks.push(value)
+      }
+      const mime = response.headers.get("content-type")?.split(";")[0] || "image/png"
+      if (!/^image\/[a-z0-9.+-]+$/i.test(mime)) return
+      return `data:${mime};base64,${Buffer.concat(chunks).toString("base64")}`
+    } catch { return undefined }
+  })
   const agents = new Map<number, string>()
   host.ipc.handle("browser:emulate", (_event, id: number, device: BrowserDevice | null) => {
     const target = guest(id, true)

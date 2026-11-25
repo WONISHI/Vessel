@@ -756,3 +756,9 @@ html.dark .browser-devtools-settings select { background: #20242a; border-color:
 @container (max-width: 340px) {
   .browser-devtools-toolbar .devtools-dock-inline { display: none; }
 }
+
+/* The page menu is portalled outside the tab, so pass its favicon color explicitly. */
+[data-browser-site-menu] [role="menuitem"]:is([data-highlighted], :focus-visible):not([data-disabled]) {
+  background-color: var(--browser-site-color, #16a34a) !important;
+  color: #fff !important;
+}

@@ -1,3 +1,4 @@
+import { DEFAULT_SITE_COLOR, faviconColor } from "@/pages/browser/favicon-color"
 import { devServerError } from "@/pages/browser/dev-server-error"
 import { browserNavigationError } from "@/pages/browser/navigation-error"
 import { guestAppearanceScript } from "@/pages/browser/guest-appearance"
@@ -14,6 +15,31 @@ export const Guest = memo(function Guest({ tab, partition, visible, register, up
   const dark = useDarkAppearance()
   const ref = useRef<WebviewTag | null>(null)
   const [documentReady, setDocumentReady] = useState(0)
+  useEffect(() => {
+    if (!documentReady) return
+    const view = ref.current
+    if (!view) return
+    let cancelled = false
+    const apply = (color: string) => {
+      if (cancelled) return
+      update(tab.id, { faviconColor: color })
+      withGuest(view, guest => guest.send("vessel:site-color", color))
+    }
+    apply(DEFAULT_SITE_COLOR)
+    let source = tab.favicon
+    if (!source) {
+      try {
+        const page = new URL(tab.url)
+        if (/^https?:$/.test(page.protocol)) source = new URL("/favicon.ico", page).href
+      } catch { /* Blank/local pages retain the default green. */ }
+    }
+    if (source && window.electronAPI?.browserFaviconData) {
+      const id = withGuest(view, guest => guest.getWebContentsId())
+      if (id !== undefined) void window.electronAPI.browserFaviconData(id, source)
+        .then(data => faviconColor(data)).then(apply).catch(() => apply(DEFAULT_SITE_COLOR))
+    }
+    return () => { cancelled = true }
+  }, [documentReady, tab.id, tab.url, tab.favicon, update])
   const zoomRef = useRef(tab.zoom ?? 1)
   const visibleRef = useRef(visible)
   const syncZoom = useCallback(() => {
@@ -91,7 +117,7 @@ export const Guest = memo(function Guest({ tab, partition, visible, register, up
       if (event.isMainFrame && !event.isInPlace) {
         mediaRevision++
         setDocumentReady(0)
-        updateRef.current(tab.id, { loading: true, error: "", devError: undefined, videoPlaying: false, mediaPlaying: false })
+        updateRef.current(tab.id, { loading: true, error: "", favicon: undefined, faviconColor: undefined, devError: undefined, videoPlaying: false, mediaPlaying: false })
       }
     }
 

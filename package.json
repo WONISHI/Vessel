@@ -260,6 +260,7 @@
     "better-sqlite3": "^12.4.1",
     "dugite": "^3.2.3",
     "electron-updater": "^6.8.11",
+    "fast-average-color": "^9.6.0",
     "node-pty": "^1.1.0",
     "qrcode.react": "^4.2.0",
     "react-diff-view": "^3.3.3",

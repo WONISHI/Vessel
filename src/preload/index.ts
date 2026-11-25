@@ -31,6 +31,7 @@ const vesselAPI = {
     ipcRenderer.on("browser:file-saved", handler)
     return () => ipcRenderer.removeListener("browser:file-saved", handler)
   },
+  browserFaviconData: (id: number, url: string) => ipcRenderer.invoke("browser:favicon-data", id, url),
   browserPageAction: (id: number, action: string, point?: { x: number; y: number }) => ipcRenderer.invoke("browser:page-action", id, action, point),
   vaultRequest: (action: string, data?: Record<string, string>) => ipcRenderer.invoke("vault:request", action, data),
   onVaultCandidate: (callback: (candidate: { id: string; origin: string; username: string }) => void) => {

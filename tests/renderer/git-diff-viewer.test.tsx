@@ -79,3 +79,14 @@ it("keeps combined conflict diffs visible and offers the resolve-and-stage actio
   fireEvent.click(screen.getByRole("button", { name: "标记解决并暂存" }))
   expect(onToggleStage).toHaveBeenCalledOnce()
 })
+
+it("renders unresolved working-tree markers in colored unified and split conflict views", () => {
+  const patch = "* Unmerged path test.md\ndiff --git a/test.md b/test.md\nindex abcdef0..0000000 100644\n--- a/test.md\n+++ b/test.md\n@@ -1,1 +1,5 @@\n+<<<<<<< HEAD\n ours\n+=======\n+theirs\n+>>>>>>> other\n"
+  const { container } = render(<DiffViewer diffText={patch} isConflict />)
+  expect(container.querySelector(".diff-unified")).toBeTruthy()
+  expect(container.querySelector("pre")).toBeNull()
+  expect(screen.getByText("<<<<<<< HEAD").closest("tr")?.querySelector(".diff-code-insert")).toBeTruthy()
+  fireEvent.click(screen.getByRole("button", { name: "分栏视图 (Split)" }))
+  expect(container.querySelector(".diff-split")).toBeTruthy()
+  expect(screen.getByText(">>>>>>> other")).toBeTruthy()
+})

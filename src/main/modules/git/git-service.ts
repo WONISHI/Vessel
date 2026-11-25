@@ -427,6 +427,15 @@ export class GitService {
     if (res.exitCode !== 0) throw new Error(res.stderr || "读取差异失败")
     let diff = res.stdout
 
+    // Combined merge patches have one prefix column per parent and cannot be
+    // rendered by the two-way diff viewer. Ask Git for stage 2 (ours) versus
+    // the working tree, retaining unresolved conflict markers as real changes.
+    if (!staged && !commitHash && /^diff --(?:cc|combined) /m.test(diff)) {
+      const conflict = await runGit(["diff", "--ours", "--no-ext-diff", "--no-textconv", "--", filePath], cwd)
+      if (conflict.exitCode !== 0) throw new Error(conflict.stderr || "读取冲突差异失败")
+      diff = conflict.stdout
+    }
+
     // 如果未暂存且是新增文件，git diff 可能为空，读取工作区文件内容展示
     if (!diff && !staged && !commitHash) {
       try {

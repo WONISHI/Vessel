@@ -95,6 +95,7 @@ interface StorageInfo {
 interface VesselAPI extends AppUpdateAPI, BrowserProxyAPI, BrowserToolsAPI, SettingsAPI, BrowserExtensionsAPI, TodosAPI, TerminalAPI, FileWatchAPI, NativeMenuAPI {
   getWindowFullscreenState(): Promise<boolean>
   onWindowFullscreenChanged(callback: (fullscreen: boolean) => void): () => void
+  browserFaviconData(id: number, url: string): Promise<string | undefined>
   browserPageAction(id: number, action: string, point?: { x: number; y: number }): Promise<string | undefined>
   vaultRequest(action: string, data?: Record<string, string>): Promise<any>
   onVaultCandidate(callback: (candidate: { id: string; origin: string; username: string }) => void): () => void

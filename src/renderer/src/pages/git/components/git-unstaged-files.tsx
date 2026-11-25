@@ -90,6 +90,7 @@ export function GitUnstagedFiles({ g }: { g: GitPageModel }) {
                                   >
                                     <span className="flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden" style={tree ? { gap: "var(--git-tree-column-gap)" } : undefined}>
                                       <GitFileIcon path={file.path} />
+                                      {!tree && <span data-git-status-marker className={`w-3.5 shrink-0 text-center font-bold ${gitChangeMarkerClass(file.status)}`} data-title={gitChangeStatusTitle(file.status)} aria-label={gitChangeStatusTitle(file.status)}>{gitChangeMarker(file.status)}</span>}
                                       <span
                                         className="min-w-0 flex-1 truncate"
                                         data-title={file.path}
@@ -98,8 +99,8 @@ export function GitUnstagedFiles({ g }: { g: GitPageModel }) {
                                       </span>
                                     </span>
                                     <GitFileLineStats file={file} />
-                                    <div className="relative h-[22px] w-[22px] shrink-0 group-hover:w-12 group-focus-within:w-12">
-                                      <span data-git-status-marker data-title={gitChangeStatusTitle(file.status)} aria-label={gitChangeStatusTitle(file.status)} className={`absolute right-1 top-1/2 -translate-y-1/2 w-3.5 text-center font-bold group-hover:opacity-0 group-focus-within:opacity-0 ${gitChangeMarkerClass(file.status)}`}>{gitChangeMarker(file.status)}</span>
+                                    <div className={`relative h-[22px] shrink-0 group-hover:w-12 group-focus-within:w-12 ${tree ? "w-[22px]" : "w-0"}`}>
+                                      {tree && <span data-git-status-marker data-title={gitChangeStatusTitle(file.status)} aria-label={gitChangeStatusTitle(file.status)} className={`absolute right-1 top-1/2 -translate-y-1/2 w-3.5 text-center font-bold group-hover:opacity-0 group-focus-within:opacity-0 ${gitChangeMarkerClass(file.status)}`}>{gitChangeMarker(file.status)}</span>}
                                       <div className="absolute inset-0 flex items-center justify-end gap-0.5 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto">
                                       <button
                                         type="button"

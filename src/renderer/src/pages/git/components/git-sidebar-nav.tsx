@@ -127,7 +127,7 @@ export function GitSidebarNav({ g }: { g: GitPageModel }) {
                   data-git-selected={activeTab === "status"}
                   onClick={() => setActiveTab("status")}
                 >
-                  <span className="flex items-center gap-2">
+                  <span className="flex shrink-0 items-center gap-2 whitespace-nowrap">
                     <FileText className="size-3.5 text-stone-500" />
                     文件状态
                   </span>
@@ -140,14 +140,14 @@ export function GitSidebarNav({ g }: { g: GitPageModel }) {
                   data-git-selected={activeTab === "history"}
                   onClick={() => setActiveTab("history")}
                 >
-                  <span className="flex items-center gap-2">
+                  <span className="flex shrink-0 items-center gap-2 whitespace-nowrap">
                     <Clock className="size-3.5 text-stone-500" />
                     历史记录
                   </span>
-                  <div className="flex items-center gap-1.5 shrink-0">
+                  <div className="git-history-nav-summary flex shrink-0 items-center gap-1 whitespace-nowrap">
                     {branchSyncedTotal > 0 && (
                       <span
-                        className="inline-flex items-center gap-0.5 rounded-full bg-stone-100 dark:bg-stone-800 px-1.5 py-0.5 text-[10px] font-medium text-stone-600 dark:text-stone-300"
+                        className="git-history-synced-count inline-flex items-center gap-0.5 rounded-full bg-stone-100 dark:bg-stone-800 px-1.5 py-0.5 text-[10px] font-medium text-stone-600 dark:text-stone-300"
                         data-title={`远程仓库已同步 ${branchSyncedTotal} 次提交`}
                       >
                         <CloudCheck className="size-2.5 text-stone-500 dark:text-stone-400" />

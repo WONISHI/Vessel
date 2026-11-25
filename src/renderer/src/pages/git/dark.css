@@ -426,3 +426,9 @@ html.dark .vessel-git-page .git-changes-action:not(:disabled):is(:hover, :focus-
   border-color: transparent;
   color: #e6e8eb !important;
 }
+
+/* History label stays on one line; narrow sidebars retain the total and sync deltas. */
+.vessel-git-page .git-navigation { container-type: inline-size; }
+@container (max-width: 260px) {
+  .git-history-nav-summary .git-history-synced-count { display: none; }
+}
