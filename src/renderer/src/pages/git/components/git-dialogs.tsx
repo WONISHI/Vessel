@@ -67,7 +67,7 @@ export function GitDialogs({ g }: { g: GitPageModel }) {
           void refresh()
         }} />
         <Dialog open={terminalOpen} onOpenChange={setTerminalOpen}>
-          <DialogContent className="git-dialog flex h-[min(560px,80vh)] max-w-4xl flex-col gap-2 p-4">
+          <DialogContent onEscapeKeyDown={(event) => event.preventDefault()} className="git-dialog flex h-[min(560px,80vh)] max-w-4xl flex-col gap-2 p-4">
             <DialogHeader><DialogTitle className="text-sm">仓库终端</DialogTitle></DialogHeader>
             <div className="min-h-0 flex-1 overflow-hidden rounded-md border"><TerminalPanel key={repoPath} root={repoPath} onClose={() => setTerminalOpen(false)} /></div>
           </DialogContent>

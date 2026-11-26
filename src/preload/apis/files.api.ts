@@ -1,10 +1,13 @@
 import type { WorkspaceGraph } from "../../../packages/@vessel/workspace/src/graph/types"
 import type { BaseQueryResult } from "@vessel/obsidian/bases"
-import type { CodeDiagnostic, ContentSearchOptions, ContentSearchResult, ImageFile } from "@vessel/type"
+import type { JsonShareInfo, CodeDefinition, CodeDefinitionRequest, CodeDiagnostic, ContentSearchOptions, ContentSearchResult, ImageFile } from "@vessel/type"
 import { ipcRenderer } from "electron"
 
 /** 向渲染进程提供受控的文件 IPC 接口，不暴露 Node 文件系统对象。 */
 export const filesAPI = {
+  startJsonShare: (content: string, document?: string): Promise<JsonShareInfo> => ipcRenderer.invoke("json-share:start", content, document),
+  getJsonShare: (document?: string): Promise<JsonShareInfo | null> => ipcRenderer.invoke("json-share:status", document),
+  stopJsonShare: (document?: string): Promise<void> => ipcRenderer.invoke("json-share:stop", document),
   readWorkspaceGraph: (root: string, requestId?: string): Promise<WorkspaceGraph> => ipcRenderer.invoke("workspace:graph", root, requestId),
   onWorkspaceGraphProgress: (callback: (value: { root: string; requestId?: string; graph: WorkspaceGraph }) => void) => {
     const listener = (_event: unknown, value: { root: string; requestId?: string; graph: WorkspaceGraph }) => callback(value)
@@ -30,6 +33,8 @@ export const filesAPI = {
 
   /** Copies image. */
   copyImage: (source: string): Promise<void> => ipcRenderer.invoke("image:copy", source),
+
+  getCodeDefinitions: (request: CodeDefinitionRequest): Promise<CodeDefinition[]> => ipcRenderer.invoke("code:definitions", request),
 
   /** Returns code diagnostics. */
   getCodeDiagnostics: (path: string, content: string): Promise<CodeDiagnostic[]> => ipcRenderer.invoke("code:diagnostics", path, content),

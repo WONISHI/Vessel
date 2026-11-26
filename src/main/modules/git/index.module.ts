@@ -7,13 +7,16 @@ import type { GitRepositorySettings } from "@vessel/type/git"
 import { BaseModule } from "@main/modules/base/index"
 import { gitService } from "@main/modules/git/git-service"
 import { withGitAuthentication } from "./authentication"
-import { ipcMain } from "electron"
+import { app, ipcMain } from "electron"
+import { join } from "node:path"
+import { checkStashContent } from "./stash-content-check"
 
 export class GitModule extends BaseModule {
   private channels: string[] = []
 
   /** Handles activate events. */
   protected onActivate(): void {
+    gitService.configureStashRestoreHistory(join(app.getPath("userData"), "git-stash-restores.json"))
     const handlers: Record<string, (_event: Electron.IpcMainInvokeEvent, ...args: any[]) => Promise<any>> = {
       /** Performs the "git:is repo" operation. */
       "git:repository-settings": (_e, cwd: string) => getRepositorySettings(cwd),
@@ -95,6 +98,8 @@ export class GitModule extends BaseModule {
       "git:stash-pop": (_e, cwd: string, index?: number, expectedHash?: string) => gitService.stashPop(cwd, index, expectedHash),
 
       "git:stash-apply": (_e, cwd: string, index?: number, expectedHash?: string) => gitService.stashApply(cwd, index, expectedHash),
+      "git:stash-restore-history": (_e, cwd: string) => gitService.getStashRestoreHistory(cwd),
+      "git:stash-content-check": (_e, cwd: string, hash: string) => checkStashContent(cwd, hash),
       "git:stash-detail": (_e, cwd: string, reference: number | string) => gitService.getStashDetail(cwd, reference),
       "git:stash-diff": (_e, cwd: string, hash: string, filePath: string) => gitService.getStashDiff(cwd, hash, filePath),
 

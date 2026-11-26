@@ -1,3 +1,4 @@
+import { resolveCodeDefinitions } from "./resolve-code-definitions"
 import type { CodeDiagnostic } from "@vessel/type"
 import { dirname, join, resolve } from "node:path"
 import { parentPort } from "node:worker_threads"
@@ -64,8 +65,12 @@ export function diagnoseCode(path: string, content: string): CodeDiagnostic[] {
     }
   })
 }
-parentPort?.on("message", ({ id, path, content }: { id: number; path: string; content: string }) => {
+parentPort?.on("message", ({ id, path, content, kind, offset }: { id: number; path: string; content: string; kind?: string; offset?: number }) => {
   try {
+    if (kind === "definitions") {
+      parentPort!.postMessage({ id, definitions: resolveCodeDefinitions({ path, content, offset: offset! }) })
+      return
+    }
     const diagnostics = diagnoseCode(path, content)
     parentPort!.postMessage({ id, diagnostics, memory: { heapUsed: process.memoryUsage().heapUsed } })
   } catch (error) {

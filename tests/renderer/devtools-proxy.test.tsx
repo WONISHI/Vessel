@@ -63,3 +63,23 @@ it("keeps subscription input open and displays validation errors", async () => {
  expect(await screen.findByRole("alert")).toHaveProperty("textContent","请输入 HTTP 或 HTTPS 订阅地址")
  expect(screen.getByLabelText("订阅名称")).toHaveProperty("value","测试")
 })
+
+it("switches node previews by subscription and ignores a stale response without changing the active connection", async () => {
+ vi.stubGlobal("ResizeObserver",class{observe=vi.fn();unobserve=vi.fn();disconnect=vi.fn()})
+ localStorage.removeItem("vessel:proxy-subscription")
+ let finishFirst!: (nodes: string[]) => void
+ const preview = vi.fn(id => id === "a" ? new Promise<string[]>(resolve => { finishFirst = resolve }) : Promise.resolve(["B node"]))
+ const select = vi.fn(), connect = vi.fn()
+ window.electronAPI = {getSettings:vi.fn().mockResolvedValue({proxyEnabled:true}),browserProxyStatus:vi.fn().mockResolvedValue({connected:true,nodes:["Other connected node"],subscriptionId:"other",selected:"Other connected node"}),listBrowserProxySubscriptions:vi.fn().mockResolvedValue([{id:"a",name:"A",url:"https://a.test/sub"},{id:"b",name:"B",url:"https://b.test/sub"}]),getBrowserProxyProfileNodes:preview,selectBrowserProxy:select,connectBrowserProxyProfile:connect} as any
+ render(<ProxyTool/> )
+ await waitFor(()=>expect(preview).toHaveBeenCalledWith("a"))
+ fireEvent.click(screen.getByRole("button",{name:"选择订阅 B"}))
+ const node = await screen.findByRole("button",{name:"B node"})
+ expect((node as HTMLButtonElement).disabled).toBe(true)
+ expect(screen.queryByText("Other connected node")).toBeNull()
+ await act(async()=>finishFirst(["Stale A node"]))
+ expect(screen.queryByText("Stale A node")).toBeNull()
+ expect(screen.getByText("B node")).toBeTruthy()
+ expect(select).not.toHaveBeenCalled()
+ expect(connect).not.toHaveBeenCalled()
+})

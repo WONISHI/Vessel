@@ -1,3 +1,4 @@
+import { gitFilePosition } from "../file-position"
 import { useRef } from "react"
 import { GitFileLineStats } from "./git-file-line-stats"
 import { GitChangesTree } from "./git-changes-tree"
@@ -33,6 +34,8 @@ export function GitStagedFiles({ g }: { g: GitPageModel }) {
   const query = g.stagedFileQuery ?? ""
   const allFiles = status?.staged ?? []
   const visibleFiles = allFiles.filter(file => matchesGitFilePath(file.path, query))
+  const selectedPath = g.activeFileSection === "staged" && selectedFile && selectedStagedPaths.includes(selectedFile.path) ? selectedFile.path : undefined
+  const position = gitFilePosition(visibleFiles, selectedPath, tree)
 
   const selectionRoot = useGitSelectionReveal(g.repoPath, selectedFile?.path, g.activeFileSection === "staged", !!status)
 
@@ -41,7 +44,7 @@ export function GitStagedFiles({ g }: { g: GitPageModel }) {
                       <div className="flex h-[41px] shrink-0 items-center justify-between border-b border-stone-200 bg-stone-100/70 px-3 py-1.5 text-xs font-semibold text-stone-700">
                         <span className="flex items-center gap-1.5">
                           <span>已暂存文件 (Staged)</span>
-                          <span className="rounded-full bg-green-100 px-1.5 text-[10px] text-green-700">{query.trim() ? `${visibleFiles.length} / ${allFiles.length}` : allFiles.length}</span>
+                          <span aria-label="已暂存文件位置" className="rounded-full bg-green-100 px-1.5 text-[10px] tabular-nums text-green-700">{position}</span>
                           {selectedStagedPaths.length > 1 && <span className="rounded bg-blue-100 px-1.5 py-0.5 text-[10px] text-blue-700 font-normal">已选 {selectedStagedPaths.length} 项</span>}
                         </span>
                         <div className="flex items-center gap-0.5">

@@ -1,5 +1,5 @@
 import { TransitImageViewer } from "./transit-image-viewer"
-import { useDarkAppearance } from "@/hooks/use-dark-appearance"
+import { useMonacoTheme } from "@/features/editor-appearance/use-monaco-theme"
 import { registerMonacoTheme } from "@/components/core/canvas/variants/code/theme"
 import { codeLanguage } from "@/components/core/canvas/variants/code/language"
 import MarkdownCanvas from "@/components/core/canvas/variants/markdown"
@@ -13,7 +13,7 @@ import { useEffect, useState } from "react"
 
 /** Renders the file preview component. */
 export function FilePreview({ item, onLoaded, imageDetailsHidden, onImageDetailsHiddenChange }: { item: TransitItem; onLoaded?: (file: TransitFile) => void; imageDetailsHidden?: boolean; onImageDetailsHiddenChange?: (hidden: boolean) => void }) {
-  const dark = useDarkAppearance()
+  const editorTheme = useMonacoTheme()
   const [file, setFile] = useState<TransitFile>()
   const [error, setError] = useState("")
   useEffect(() => {
@@ -65,7 +65,7 @@ export function FilePreview({ item, onLoaded, imageDetailsHidden, onImageDetails
   return (
     <div className="min-h-0 flex-1">
       <Editor
-          theme={dark ? "vessel-dark" : "light"}
+          theme={editorTheme}
           beforeMount={registerMonacoTheme}
         height="100%"
         language={codeLanguage(item.content) || "plaintext"}

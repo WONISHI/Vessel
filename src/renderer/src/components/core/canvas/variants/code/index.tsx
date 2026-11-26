@@ -1,8 +1,9 @@
 import { retainCodeModel } from "@/components/core/canvas/session/code-model"
 import { documentSession, readDocument, writeDocument } from "@/components/core/canvas/session/document-session"
-import { useDarkAppearance } from "@/hooks/use-dark-appearance"
+import { useMonacoTheme } from "@/features/editor-appearance/use-monaco-theme"
 import { useEditorAppearance } from "@/features/editor-appearance/state"
 import { registerMonacoTheme } from "@/components/core/canvas/variants/code/theme"
+import { registerCodeNavigation, revealCodeDefinition } from "@/components/core/canvas/variants/code/navigation"
 import { parseLinePosition } from "@/components/core/canvas/variants/code/go-to-line"
 import "@/components/core/canvas/variants/code/index.css"
 import { codeLanguage, ensureCodeModelLanguage } from "@/components/core/canvas/variants/code/language"
@@ -59,7 +60,7 @@ function getBreadcrumbSegments(workspacePath: string, filePath: string, workspac
 
 /** Renders the code canvas component. */
 export default function CodeCanvas({ activeFilePath, workspacePath, revealPosition, highlightKeyword }: { activeFilePath: string; workspacePath?: string; revealPosition?: { lineNumber: number; column: number }; highlightKeyword?: string }) {
-  const dark = useDarkAppearance()
+  const editorTheme = useMonacoTheme()
   const editorAppearance = useEditorAppearance()
   const workspaceContext = useContext(WorkspaceContext)
   const effectiveWorkspacePath = workspacePath || workspaceContext?.workspace?.path || ""
@@ -79,6 +80,7 @@ export default function CodeCanvas({ activeFilePath, workspacePath, revealPositi
   const [status, setStatus] = useState("")
   const [saveError, setSaveError] = useState(false)
   const releaseModel = useRef<(() => void) | null>(null)
+  const navigationSubscription = useRef<{ dispose(): void } | null>(null)
   const focusSubscription = useRef<{ dispose(): void } | null>(null)
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -187,6 +189,7 @@ export default function CodeCanvas({ activeFilePath, workspacePath, revealPositi
     return () => {
       cancelled = true
       if (editorRef.current) documentSession(activeFilePath).code = editorRef.current.saveViewState()
+      navigationSubscription.current?.dispose()
       focusSubscription.current?.dispose()
       releaseModel.current?.()
       mounted.current = false
@@ -306,7 +309,7 @@ export default function CodeCanvas({ activeFilePath, workspacePath, revealPositi
         className="vessel-code-editor relative min-h-0 flex-1"
       >
         <Editor
-          theme={dark ? "vessel-dark" : "light"}
+          theme={editorTheme}
           beforeMount={registerMonacoTheme}
           height="100%"
           saveViewState={false}
@@ -330,6 +333,8 @@ export default function CodeCanvas({ activeFilePath, workspacePath, revealPositi
             codeEditors.set(activeFilePath, editor)
             window.dispatchEvent(new Event("vessel:file-menu-refresh"))
             reveal()
+            revealCodeDefinition(activeFilePath, editor)
+            if (workspaceContext) navigationSubscription.current = registerCodeNavigation(editor, workspaceContext)
             focusSubscription.current = editor.onDidFocusEditorText(() => codeEditors.set(activeFilePath, editor))
             editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => save(editor.getValue()))
           }}

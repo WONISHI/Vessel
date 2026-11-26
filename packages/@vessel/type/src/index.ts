@@ -25,3 +25,4 @@ export * from "@vessel/type/git"
 export * from "@vessel/type/api-client"
 
 export * from "@vessel/type/workspace"
+export * from "#vessel-type/json-share"

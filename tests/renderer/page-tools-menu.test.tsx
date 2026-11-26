@@ -1,3 +1,4 @@
+import { rememberOpenedResourceProject } from "@/pages/resources/opened-projects"
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { afterEach, beforeEach, expect, it, vi } from "vitest"
 import { MemoryRouter, useLocation } from "react-router-dom"
@@ -10,6 +11,7 @@ import { projectCache } from "@/components/workspace/components/layout-aside/pro
 vi.mock("@/components/ui/sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
 beforeEach(() => {
   localStorage.clear()
+  sessionStorage.clear()
   projectCache.projects = null
   vi.stubGlobal("ResizeObserver", class { observe = vi.fn(); unobserve = vi.fn(); disconnect = vi.fn() })
   HTMLElement.prototype.scrollIntoView = vi.fn()
@@ -21,7 +23,7 @@ beforeEach(() => {
     getRecentWorkspaces: vi.fn(async () => []), openDirectory: vi.fn(async () => null)
   } as any
 })
-afterEach(() => { cleanup(); localStorage.clear(); vi.unstubAllGlobals() })
+afterEach(() => { cleanup(); localStorage.clear(); sessionStorage.clear(); vi.unstubAllGlobals() })
 const openMenu = () => fireEvent.keyDown(screen.getByRole("button", { name: "页面工具" }), { key: "Enter" })
 function mount(path: string) {
   function Location() { return <output aria-label="当前路由">{useLocation().pathname}</output> }
@@ -72,28 +74,38 @@ it("allows retrying sync after the previous request fails", async () => {
   await waitFor(() => expect(run).toHaveBeenCalledTimes(2))
 })
 
-it("keeps the five most recently opened projects and reopens a selection through the submenu", async () => {
-  for (let i = 1; i <= 7; i++) rememberLibraryProject({ name: `项目${i}`, path: `/projects/${i}` })
-  rememberLibraryProject({ name: "项目4", path: "/projects/4" })
-  expect(readLibraryMeta().recent?.map(item => item.name)).toEqual(["项目4", "项目7", "项目6", "项目5", "项目3"])
+it("lists every project opened in this window instead of recents and switches directly", async () => {
+  rememberLibraryProject({ name: "仅历史记录", path: "/history-only" })
+  for (let i = 1; i <= 7; i++) rememberOpenedResourceProject({ name: `项目${i}`, path: `/projects/${i}` })
+  rememberOpenedResourceProject({ name: "项目4", path: "/projects/4" })
   mount("/resources/file")
   openMenu()
-  expect(screen.queryByRole("menuitem", { name: "同步" })).toBeNull()
-  fireEvent.keyDown(screen.getByRole("menuitem", { name: "打开项目" }), { key: "ArrowRight" })
-  await screen.findByText("最近打开的项目")
-  expect(screen.queryByRole("menuitem", { name: "项目2" })).toBeNull()
+  fireEvent.keyDown(screen.getByRole("menuitem", { name: "切换项目" }), { key: "ArrowRight" })
+  await screen.findByText("已打开的项目")
+  expect(screen.queryByRole("menuitem", { name: "仅历史记录" })).toBeNull()
+  expect(screen.getByRole("menuitem", { name: "项目1" })).toBeTruthy()
+  expect(screen.getAllByRole("menuitem", { name: "项目4" })).toHaveLength(1)
   fireEvent.click(screen.getByRole("menuitem", { name: "项目6" }))
   await waitFor(() => expect(screen.getByLabelText("当前路由").textContent).toBe("/resources"))
   expect(JSON.parse(localStorage.getItem("resource_current_project")!)).toEqual({ name: "项目6", path: "/projects/6", files: [] })
-  expect(readLibraryMeta().recent?.[0].path).toBe("/projects/6")
-  expect(window.electronAPI.setAppState).toHaveBeenCalledWith("project-library", [{ name: "项目6", path: "/projects/6" }])
+  expect(screen.queryByRole("alertdialog")).toBeNull()
+})
+
+it("starts with an empty switcher even when persistent recent projects exist", async () => {
+  rememberLibraryProject({ name: "旧项目", path: "/old" })
+  mount("/resources")
+  openMenu()
+  fireEvent.keyDown(screen.getByRole("menuitem", { name: "切换项目" }), { key: "ArrowRight" })
+  expect(await screen.findByText("暂无已打开的项目")).toBeTruthy()
+  expect(screen.queryByRole("menuitem", { name: "旧项目" })).toBeNull()
+  expect(window.electronAPI.getRecentWorkspaces).not.toHaveBeenCalled()
 })
 
 it("opens another project from the system folder picker and records it in the library", async () => {
   window.electronAPI.openDirectory = vi.fn(async () => ({ name: "新项目", path: "/new-project", files: [] }))
   mount("/resources")
   openMenu()
-  fireEvent.keyDown(screen.getByRole("menuitem", { name: "打开项目" }), { key: "ArrowRight" })
+  fireEvent.keyDown(screen.getByRole("menuitem", { name: "切换项目" }), { key: "ArrowRight" })
   fireEvent.click(await screen.findByRole("menuitem", { name: "打开其他项目…" }))
   await waitFor(() => expect(readLibraryMeta().recent?.[0].path).toBe("/new-project"))
   expect(window.electronAPI.openDirectory).toHaveBeenCalledOnce()
@@ -131,29 +143,15 @@ it("closes and reopens the visible page sidebar without changing hidden cached p
   expect(screen.getByTestId("visible-sidebar").textContent).toBe("open")
 })
 
-it("confirms a project switch and leaves the current project and route untouched on cancellation", async () => {
-  const current = { name: "Vessel", path: "/projects/Vessel", files: [] }
-  localStorage.setItem("resource_current_project", JSON.stringify(current))
-  rememberLibraryProject({ name: "Devly", path: "/projects/Devly" })
+it("switches projects without a terminal interruption confirmation", async () => {
+  localStorage.setItem("resource_current_project", JSON.stringify({ name: "Vessel", path: "/projects/Vessel", files: [] }))
+  rememberOpenedResourceProject({ name: "Devly", path: "/projects/Devly" })
   mount("/resources/file")
-  const choose = async () => {
-    openMenu()
-    fireEvent.keyDown(screen.getByRole("menuitem", { name: "打开项目" }), { key: "ArrowRight" })
-    fireEvent.click(await screen.findByRole("menuitem", { name: "Devly" }))
-    await screen.findByRole("alertdialog", { name: "切换项目？" })
-  }
-  await choose()
-  expect(screen.getByText(/可能中断当前终端中正在运行的命令或请求/)).toBeTruthy()
-  expect(JSON.parse(localStorage.getItem("resource_current_project")!)).toEqual(current)
-  fireEvent.click(screen.getByRole("button", { name: "取消", exact: true }))
-  expect(screen.getByLabelText("当前路由").textContent).toBe("/resources/file")
-  expect(JSON.parse(localStorage.getItem("resource_current_project")!)).toEqual(current)
-  expect(window.electronAPI.setAppState).not.toHaveBeenCalled()
-  await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull())
-  await choose()
-  fireEvent.click(screen.getByRole("button", { name: "切换项目", exact: true }))
+  openMenu()
+  fireEvent.keyDown(screen.getByRole("menuitem", { name: "切换项目" }), { key: "ArrowRight" })
+  fireEvent.click(await screen.findByRole("menuitem", { name: "Devly" }))
   await waitFor(() => expect(JSON.parse(localStorage.getItem("resource_current_project")!).path).toBe("/projects/Devly"))
-  expect(screen.getByLabelText("当前路由").textContent).toBe("/resources")
+  expect(screen.queryByRole("alertdialog")).toBeNull()
 })
 
 it("opens the active resource project in an external editor instead of the previous saved project", async () => {

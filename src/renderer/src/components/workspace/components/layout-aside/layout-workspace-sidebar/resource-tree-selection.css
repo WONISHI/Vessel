@@ -21,6 +21,11 @@ html.dark [data-resource-file-tree] {
   box-shadow: none !important;
   outline: none !important;
   font-weight: 400 !important;
+  /* Keep the 10px overlay scrollbar clear, with a compact 4px inner gap. */
+  padding-right: 14px !important;
+}
+[data-resource-file-tree] [data-workspace-tree-row] [data-git-status] {
+  margin-right: 0;
 }
 [data-resource-file-tree] [data-workspace-tree-row]:hover {
   background: var(--resource-tree-hover) !important;

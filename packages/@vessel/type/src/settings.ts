@@ -53,6 +53,7 @@ export interface AppSettings {
   fontSize: number
   accent: string
   markdownBackground?: "default" | "dots"
+  editorTheme?: "system" | "light" | "vs-dark" | "vessel-dark" | "vessel-github-light" | "vessel-nord" | "vessel-nord-light" | "hc-black"
   editorFont?: string
   editorFontSize?: number
   backup: {

@@ -103,6 +103,8 @@ export const gitAPI = {
   stashPop: (cwd: string, index?: number, expectedHash?: string): Promise<GitStashPopResult> => ipcRenderer.invoke("git:stash-pop", cwd, index, expectedHash),
 
   stashApply: (cwd: string, index?: number, expectedHash?: string): Promise<GitStashPopResult> => ipcRenderer.invoke("git:stash-apply", cwd, index, expectedHash),
+  getStashRestoreHistory: (cwd: string): Promise<import("@vessel/type/git").GitStashRestoreRecord[]> => ipcRenderer.invoke("git:stash-restore-history", cwd),
+  checkStashContent: (cwd: string, hash: string): Promise<import("@vessel/type/git").GitStashContentCheck> => ipcRenderer.invoke("git:stash-content-check", cwd, hash),
   getStashDetail: (cwd: string, reference: number | string): Promise<GitStashDetail> => ipcRenderer.invoke("git:stash-detail", cwd, reference),
   getStashDiff: (cwd: string, hash: string, filePath: string): Promise<GitDiffResult> => ipcRenderer.invoke("git:stash-diff", cwd, hash, filePath),
 

@@ -208,6 +208,10 @@ interface VesselAPI extends AppUpdateAPI, BrowserProxyAPI, BrowserToolsAPI, Sett
   readObsidianImage: (root: string, documentPath: string, reference: string) => Promise<string>
   transferWorkspaceFiles: (root: string, paths: string[], destination: string, external: boolean, duplicate?: boolean) => Promise<{ source: string; target: string }[]>
   mutateWorkspaceFile: (root: string, path: string, name?: string) => Promise<string>
+  startJsonShare: (content: string, document?: string) => Promise<import("@vessel/type").JsonShareInfo>
+  getJsonShare: (document?: string) => Promise<import("@vessel/type").JsonShareInfo | null>
+  stopJsonShare: (document?: string) => Promise<void>
+  getCodeDefinitions: (request: import("@vessel/type").CodeDefinitionRequest) => Promise<import("@vessel/type").CodeDefinition[]>
   getCodeDiagnostics: (path: string, content: string) => Promise<import("@vessel/type").CodeDiagnostic[]>
   createWorkspaceEntry: (root: string, parent: string, name: string, kind: "file" | "directory") => Promise<{ name: string; path: string; type: "file" | "directory" }>
   readWorkspaceGraph: (root: string, requestId?: string) => Promise<WorkspaceGraph>

@@ -10,7 +10,7 @@ vi.mock("@/components/workspace/hooks/useWorkspace", () => ({ useWorkspace: () =
 vi.mock("@/components/ui/sidebar", () => ({ useSidebar: () => ({ open: true, setOpen: vi.fn() }) }))
 vi.mock("@/components/workspace/components/layout-aside/layout-workspace-sidebar/workspace-tree", () => ({ default: function MockTree() {
   useEffect(() => { lifecycle.mount(); return () => { lifecycle.unmount() } }, [])
-  return <div data-testid="directory-content">已有目录内容</div>
+  return <div data-testid="directory-content"><div data-testid="sticky-directories" className="sticky top-0 z-20">置顶目录</div>已有目录内容</div>
 } }))
 vi.mock("@/pages/search/components/search-panel", () => ({ SearchPanel: ({ onClose }: { onClose: () => void }) => <button onClick={onClose}>关闭搜索</button> }))
 afterEach(() => { cleanup(); vi.clearAllMocks(); vi.unstubAllGlobals() })
@@ -21,12 +21,19 @@ it("keeps the same directory and scroll viewport behind search throughout exit",
   const directory = screen.getByTestId("directory-content")
   const viewport = directory.closest('[data-radix-scroll-area-viewport]')!
   viewport.scrollTop = 480
+  const sidebar = directory.closest<HTMLElement>('[aria-label="工作区侧边栏"]')!
+  const sticky = screen.getByTestId("sticky-directories")
+  expect(sidebar.style.visibility).toBe("")
   fireEvent.click(screen.getByRole("button", { name: "全文搜索" }))
   expect(screen.getByTestId("directory-content")).toBe(directory)
-  expect(directory.closest('[aria-label="工作区侧边栏"]')?.hasAttribute("inert")).toBe(true)
+  expect(sidebar.hasAttribute("inert")).toBe(true)
+  expect(sidebar.style.visibility).toBe("hidden")
+  expect(getComputedStyle(sticky).visibility).toBe("hidden")
+  expect(sidebar.classList.contains("isolate")).toBe(true)
   fireEvent.click(screen.getByText("关闭搜索"))
   const search = screen.getByRole("region", { name: "工作区全文搜索" })
   expect(search.dataset.state).toBe("closed")
+  expect(sidebar.style.visibility).toBe("hidden")
   expect(viewport.scrollTop).toBe(480)
   expect(lifecycle.unmount).not.toHaveBeenCalled()
   for (const type of ["animationend", "webkitAnimationEnd"]) {
@@ -35,6 +42,8 @@ it("keeps the same directory and scroll viewport behind search throughout exit",
     fireEvent(search, event)
   }
   expect(screen.queryByRole("region", { name: "工作区全文搜索" })).toBeNull()
+  expect(sidebar.style.visibility).toBe("")
+  expect(getComputedStyle(sticky).visibility).toBe("visible")
   expect(screen.getByTestId("directory-content")).toBe(directory)
   expect(viewport.scrollTop).toBe(480)
   expect(lifecycle.mount).toHaveBeenCalledOnce()

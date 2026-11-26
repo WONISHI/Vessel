@@ -1,3 +1,4 @@
+import { GitStashHistoryButton } from "./git-stash-history"
 import { useMemo, useState } from "react"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
@@ -235,7 +236,7 @@ export function GitSidebarNav({ g }: { g: GitPageModel }) {
                     <span>贮藏 (STASHES)</span>
                     <span className="text-[10px] font-normal">最新在上</span>
                   </span>
-                  {stashes.length > 0 && <span className="rounded-full bg-stone-200 px-1.5 text-[10px] text-stone-600 font-medium">{stashes.length}</span>}
+                  <div className="flex items-center gap-1"><GitStashHistoryButton key={g.repoPath} root={g.repoPath} onView={g.viewStash} />{stashes.length > 0 && <span className="rounded-full bg-stone-200 px-1.5 text-[10px] text-stone-600 font-medium">{stashes.length}</span>}</div>
                 </div>
                 {stashes.length === 0 ? (
                   <div className="px-2 py-1 text-[11px] text-stone-400 italic">暂无贮藏记录</div>
@@ -257,6 +258,7 @@ export function GitSidebarNav({ g }: { g: GitPageModel }) {
                       <span className="truncate flex-1 mr-1">
                         <span className="font-mono text-stone-400 mr-1">#{s.index}</span>
                         <span className="truncate">{s.name}</span>
+                        {s.lastRestore && <span className={`ml-1 rounded px-1 text-[9px] ${s.lastRestore.outcome === "conflicts" ? "bg-amber-50 text-amber-700" : "bg-green-50 text-green-700"}`} data-title={`Vessel 恢复记录：${new Date(s.lastRestore.at).toLocaleString()} · ${s.lastRestore.branch}`} data-title-side="bottom">{s.lastRestore.outcome === "conflicts" ? "恢复时有冲突" : "已恢复过"}</span>}
                       </span>
                       <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 shrink-0">
                         <button

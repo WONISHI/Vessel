@@ -13,11 +13,13 @@ function visibleFiles(event: React.MouseEvent | React.KeyboardEvent, fallback: G
 }
 
 /** 文件列表多选交互与快捷键全选 */
-export function useGitFileSelection(repo: GitRepositoryState, query: string | { staged: string; unstaged: string } = "") {
+export function useGitFileSelection(repo: GitRepositoryState, query: string | { staged: string; unstaged: string; conflicts?: string } = "") {
   const { activeTab, status, setSelectedFile, selectedStagedPaths, setSelectedStagedPaths, selectedUnstagedPaths, setSelectedUnstagedPaths, lastStagedClickedIndex, setLastStagedClickedIndex, lastUnstagedClickedIndex, setLastUnstagedClickedIndex, activeFileSection, setActiveFileSection, selectedConflictPaths, setSelectedConflictPaths, lastConflictClickedIndex, setLastConflictClickedIndex } = repo
 
   const stagedQuery = typeof query === "string" ? query : query.staged
   const unstagedQuery = typeof query === "string" ? query : query.unstaged
+
+  const conflictQuery = typeof query === "string" ? query : query.conflicts ?? ""
 
   // 快捷键多选交互 (Click, Cmd/Ctrl+Click, Shift+Click)
 
@@ -152,9 +154,12 @@ export function useGitFileSelection(repo: GitRepositoryState, query: string | { 
     setSelectedStagedPaths([])
     setSelectedUnstagedPaths([])
     setSelectedFile(file)
-    const files = status?.conflicts || []
-    if (event.shiftKey && lastConflictClickedIndex >= 0 && lastConflictClickedIndex < files.length) {
-      setSelectedConflictPaths(files.slice(Math.min(index, lastConflictClickedIndex), Math.max(index, lastConflictClickedIndex) + 1).map((entry) => entry.path))
+    const source = status?.conflicts || []
+    const files = visibleFiles(event, source.filter(item => matchesGitFilePath(item.path, conflictQuery)))
+    const anchor = files.findIndex(item => item.path === source[lastConflictClickedIndex]?.path)
+    const clicked = files.findIndex(item => item.path === file.path)
+    if (event.shiftKey && anchor >= 0 && clicked >= 0) {
+      setSelectedConflictPaths(files.slice(Math.min(clicked, anchor), Math.max(clicked, anchor) + 1).map(entry => entry.path))
     } else {
       setSelectedConflictPaths((previous) => event.metaKey || event.ctrlKey ? previous.includes(file.path) ? previous.filter((path) => path !== file.path) : [...previous, file.path] : [file.path])
       setLastConflictClickedIndex(index)
@@ -195,7 +200,7 @@ export function useGitFileSelection(repo: GitRepositoryState, query: string | { 
         const allStaged = (status?.staged || []).filter(item => matchesGitFilePath(item.path, stagedQuery))
         const allUnstaged = [...(status?.unstaged || []), ...(status?.untracked || [])].filter(item => matchesGitFilePath(item.path, unstagedQuery))
         if (activeFileSection === "conflicts" && status?.conflicts.length) {
-          setSelectedConflictPaths(status.conflicts.map((file) => file.path))
+          setSelectedConflictPaths(status.conflicts.filter(file => matchesGitFilePath(file.path, conflictQuery)).map(file => file.path))
           setSelectedStagedPaths([])
           setSelectedUnstagedPaths([])
         } else if (activeFileSection === "staged" && allStaged.length > 0) {
@@ -213,7 +218,7 @@ export function useGitFileSelection(repo: GitRepositoryState, query: string | { 
           setSelectedUnstagedPaths([])
           setActiveFileSection("staged")
         } else if (status?.conflicts.length) {
-          setSelectedConflictPaths(status.conflicts.map((file) => file.path))
+          setSelectedConflictPaths(status.conflicts.filter(file => matchesGitFilePath(file.path, conflictQuery)).map(file => file.path))
           setSelectedStagedPaths([])
           setSelectedUnstagedPaths([])
           setActiveFileSection("conflicts")
@@ -223,7 +228,7 @@ export function useGitFileSelection(repo: GitRepositoryState, query: string | { 
 
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [stagedQuery, unstagedQuery, activeTab, activeFileSection, status])
+  }, [stagedQuery, unstagedQuery, conflictQuery, activeTab, activeFileSection, status])
 
   return { handleStagedItemKeyDown, handleUnstagedItemKeyDown, handleConflictItemClick, handleConflictChecked, handleConflictContextMenu, handleStagedItemClick, handleStagedContextMenu, handleUnstagedItemClick, handleUnstagedContextMenu }
 }

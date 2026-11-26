@@ -32,6 +32,7 @@ html.dark .dev-tool-page {
 .dev-tool-page .dev-field-header { display: flex; align-items: center; flex-shrink: 0; height: 39px; padding: 0 12px; gap: 9px; border-bottom: 1px solid var(--dev-line); background: var(--dev-soft); font-size: 11px; font-weight: 600; color: var(--dev-text); }
 .dev-tool-page .dev-field-meta { color: var(--dev-muted); font-size: 10px; font-weight: 400; font-variant-numeric: tabular-nums; }
 .dev-tool-page .dev-field-header button { width: 25px; height: 25px; padding: 0; border-radius: 5px; color: var(--dev-muted); }
+.dev-tool-page .dev-field-header .dev-json-document-name { width: auto; min-width: 0; color: var(--dev-text); }
 .dev-tool-page .dev-workspace-grid textarea { min-height: 200px; padding: 16px; color: var(--dev-text); background: var(--dev-panel); font-size: 12px; line-height: 1.85; border: none; border-radius: 0; }
 .dev-tool-page textarea::placeholder, .dev-tool-page .dev-output-placeholder { color: var(--dev-muted); font-size: 12px; }
 .dev-tool-page .dev-workspace-grid textarea:focus-visible { outline: none; box-shadow: inset 0 0 0 1px #16a34a40; }
@@ -78,3 +79,22 @@ html.dark .dev-tool-page [role="alert"] { background: #ef444414; color: #fca5a5;
 @media (max-width: 650px) {
   .dev-tool-page .dev-workspace-grid, .dev-tool-page .dev-translate-grid, .dev-tools .dev-tool-page .dev-color-grid { grid-template-columns: minmax(0,1fr); }
 }
+
+/* JSON documents: a compact tab strip separates document navigation from actions. */
+.dev-json-tabs-bar { display: flex; align-items: stretch; min-width: 0; flex-shrink: 0; padding: 8px 16px 0; gap: 12px; border-bottom: 1px solid var(--dev-line); background: var(--dev-soft); }
+.dev-json-tabs { display: flex; align-items: stretch; width: max-content; min-width: 100%; gap: 5px; }
+.dev-json-tab { display: flex; align-items: center; position: relative; min-width: 132px; border: 1px solid transparent; border-bottom: 0; border-radius: 8px 8px 0 0; color: var(--dev-muted); }
+.dev-json-tab[data-active=true] { color: var(--dev-text); background: var(--dev-panel); border-color: var(--dev-line); box-shadow: inset 0 2px 0 var(--dev-accent); }
+.dev-json-tab > [role=tab] { display: flex; align-items: center; gap: 7px; min-width: 0; flex: 1; height: 36px; padding: 0 10px 0 12px; white-space: nowrap; font-size: 12px; }
+.dev-json-tab > [role=tab] > svg:first-child { color: var(--dev-accent); }
+.dev-json-tab > button:focus-visible { outline: 2px solid var(--dev-accent); outline-offset: -3px; border-radius: 6px; }
+.dev-json-tab:not([data-active=true]):hover { color: var(--dev-text); background: var(--dev-panel); }
+.dev-json-tab .dev-json-tab-close { display: grid; place-items: center; flex-shrink: 0; width: 22px; height: 22px; margin-right: 6px; border-radius: 5px; opacity: 0; }
+.dev-json-tab[data-active=true] .dev-json-tab-close, .dev-json-tab:hover .dev-json-tab-close, .dev-json-tab:focus-within .dev-json-tab-close { opacity: 1; }
+.dev-json-tab .dev-json-tab-close:hover { background: var(--dev-line); }
+.dev-json-tab-count { align-self: center; flex-shrink: 0; padding-bottom: 6px; color: var(--dev-muted); font-size: 10px; }
+@media (max-width: 600px) { .dev-json-tab-count { display: none; } .dev-json-tabs-bar { padding-right: 10px; padding-left: 10px; } }
+.dev-json-empty { position: absolute; inset: 0; z-index: 1; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 8px; pointer-events: none; color: var(--dev-muted); }
+.dev-json-empty > span { display: grid; place-items: center; width: 54px; height: 54px; margin-bottom: 4px; border: 1px solid var(--dev-line); border-radius: 14px; color: var(--dev-accent); background: var(--dev-soft); }
+.dev-json-empty > p { font-size: 13px; color: var(--dev-text); }
+.dev-json-empty > small { font-size: 11px; }

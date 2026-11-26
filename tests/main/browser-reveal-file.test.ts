@@ -13,7 +13,7 @@ vi.mock("electron", () => ({
   webContents: { fromId: () => mock.target },
   shell: { showItemInFolder: mock.reveal }
 }))
-vi.mock("@main/browser/browser-history", () => ({ BrowserHistory: class { prune = vi.fn(); close = vi.fn() } }))
+vi.mock("@main/browser/browser-history", () => ({ BrowserHistory: class { prune = vi.fn(); close = vi.fn(); addDownload = vi.fn() } }))
 import { registerBrowserTools } from "../../src/main/browser/browser-tools"
 
 let directory: string
@@ -65,7 +65,8 @@ it("notifies after a webpage save finishes, and not after cancelling or a failed
   expect(host.send).not.toHaveBeenCalled()
   mock.saveDialog.mockResolvedValueOnce({ canceled: false, filePath: path })
   await pageAction({}, 7, "save")
-  expect(host.send).toHaveBeenCalledExactlyOnceWith("browser:file-saved", { name: "saved.html", url: pathToFileURL(path).href, source: "save" })
+  expect(host.send).toHaveBeenCalledWith("browser:file-saved", { name: "saved.html", url: pathToFileURL(path).href, source: "save" })
+  expect(host.send).toHaveBeenCalledWith("browser:downloads-updated")
   host.send.mockClear()
   mock.target.savePage.mockRejectedValueOnce(new Error("write failed"))
   mock.saveDialog.mockResolvedValueOnce({ canceled: false, filePath: path })

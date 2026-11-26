@@ -149,13 +149,13 @@ export function BrowserPage({ visible = true }: { visible?: boolean }) {
                       style={deviceMode && tab.url ? { width: deviceViewport.width, height: deviceViewport.height, transform: `scale(${deviceViewport.scale})`, transformOrigin: "top left" } : { width: "100%", height: "100%" }}
                     >
                       {b.allTabs
-                        .filter((item) => item.url && !item.frozen && activatedTabs.has(item.id))
+                        .filter((item) => (item.url || item.back || item.forward) && !item.frozen && activatedTabs.has(item.id))
                         .map((item) => (
                           <Guest
                             key={item.id}
                             tab={item}
                             partition={b.privateWindow?.tabs.some(entry => entry.id === item.id) ? b.privateWindow.partition : undefined}
-                            visible={visible && item.id === tab.id}
+                            visible={visible && item.id === tab.id && !!item.url}
                             register={registerView}
                             update={update}
                           />

@@ -25,6 +25,7 @@ export interface BrowserProxyStatus {
 }
 
 export interface BrowserProxyAPI {
+  getBrowserProxyProfileNodes(id: string): Promise<string[]>
   refreshBrowserProxySubscriptionInfo(id: string): Promise<BrowserProxySubscription>
   setBrowserProxyRuntime(input: { mode?: BrowserProxyMode; scope?: BrowserProxyScope; tun?: boolean }): Promise<BrowserProxyStatus>
   listBrowserProxySubscriptions(): Promise<BrowserProxySubscription[]>

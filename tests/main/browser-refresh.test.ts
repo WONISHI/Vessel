@@ -32,3 +32,21 @@ it("uses normal navigation reload for toolbar and F5 so Service Workers can cont
   expect(guest.reload).toHaveBeenCalledTimes(2)
   host.emit("destroyed")
 })
+
+it("stops an attached guest before DOM-ready and rejects closed or foreign guests", () => {
+  const handlers = new Map<string, (...args: any[]) => any>()
+  const host = Object.assign(new EventEmitter(), { ipc: { handle: (name: string, handler: (...args: any[]) => any) => handlers.set(name, handler) }, send: vi.fn(), isDestroyed: () => false })
+  secureBrowserGuests(host as any)
+  const guest = Object.assign(new EventEmitter(), {
+    id: 42, ipc: new EventEmitter(), getURL: () => "http://localhost:9525/",
+    session: { setPermissionRequestHandler: vi.fn(), setPermissionCheckHandler: vi.fn() },
+    setWindowOpenHandler: vi.fn(), isDestroyed: () => false, stop: vi.fn()
+  })
+  host.emit("did-attach-webview", {}, guest)
+  handlers.get("browser:stop-tab")!({}, 42)
+  expect(guest.stop).toHaveBeenCalledOnce()
+  expect(() => handlers.get("browser:stop-tab")!({}, 99)).toThrow("已关闭或尚未挂载")
+  guest.emit("destroyed")
+  expect(() => handlers.get("browser:stop-tab")!({}, 42)).toThrow("已关闭或尚未挂载")
+  host.emit("destroyed")
+})

@@ -239,6 +239,7 @@ export function useGitFileActions(repo: GitRepositoryState) {
         repo.setSelectedFile({ path: result.conflicts[0], status: "U" })
         toast.warning(`贮藏合并产生冲突，${result.conflicts.length} 个文件需要手动处理`, { description: "原贮藏记录已保留，未自动选择任一版本。请在冲突文件区修复后暂存。" })
       } else toast.success(result?.dropped ? "已恢复贮藏内容并删除对应记录" : "已应用贮藏，原记录已保留")
+      if (result?.historyWarning) toast.warning(result.historyWarning)
     } catch (e: any) {
       await refresh()
       repo.setActiveTab("status")

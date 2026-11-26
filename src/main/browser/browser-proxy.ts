@@ -1,3 +1,4 @@
+import { browserProxyNodes } from "./browser-proxy-nodes"
 import { ProxyTrafficCounter, subscriptionInfo } from "./proxy-metrics"
 import { ProxySubscriptions } from "./proxy-subscriptions"
 import { SystemProxy } from "./system-proxy"
@@ -317,6 +318,14 @@ const profiles = () => subscriptions ??= new ProxySubscriptions(join(directory()
 /** Registers browser proxy. */
 export function registerBrowserProxy(host: WebContents) {
   recovery ??= systemProxy().restore().catch(() => { state.error = "上次系统代理尚未恢复，请重试断开连接" })
+  host.ipc.handle("browser:proxy:profile-nodes", async (_event, id: string) => {
+    const profile = (await profiles().list()).find(item => item.id === id)
+    if (!profile) throw new Error("请选择有效订阅")
+    const load = async (url: string) => (await download(url, 5 * 1024 * 1024, 45000)).toString("utf8")
+    const nodes = await browserProxyNodes(await load(profile.url), load)
+    if ((await profiles().list()).find(item => item.id === id)?.url !== profile.url) throw new Error("订阅已更新，请重新选择")
+    return nodes
+  })
   host.ipc.handle("browser:proxy:runtime", (_event, input: { mode?: BrowserProxyMode; scope?: BrowserProxyScope; tun?: boolean }) => configureRuntime(input))
   host.ipc.handle("browser:proxy:profile-info", async (_event, id: string) => {
     const profile = (await profiles().list()).find(item => item.id === id)

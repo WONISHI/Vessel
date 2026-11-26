@@ -1,3 +1,4 @@
+import { toast } from "sonner"
 import { BrowserSiteColorContext } from "@/pages/browser/components/browser-site-color-context"
 import { PasswordVault } from "@/pages/browser/components/password-vault"
 import { FloatingVideo } from "./floating-video"
@@ -11,7 +12,7 @@ import { HistoryInput } from "@/pages/browser/components/history-input"
 import { newTab } from "@/pages/browser/components/index-shared"
 import { BrowserMore } from "@/pages/browser/components/tools"
 import { elementPickerScript } from "@/pages/browser/element-picker"
-import { withGuest } from "@/pages/browser/guest-lifecycle"
+import { stopGuestLoading, withGuest } from "@/pages/browser/guest-lifecycle"
 import { browserURL } from "@/pages/browser/url"
 import { ArrowLeft, ArrowRight, Bug, Home, Info, LoaderCircle, LockKeyhole, Pin, RotateCw, Search, Sparkles, SquareDashedMousePointer, X } from "lucide-react"
 import "@vscode/codicons/dist/codicon.css"
@@ -53,10 +54,13 @@ export function BrowserToolbar({ b, visible = true }: { b: BrowserPageModel; vis
                 variant="ghost"
                 size="icon"
                 data-title={tab.loading ? "停止" : "刷新（F5）"}
+                aria-label={tab.loading ? "停止加载" : "刷新页面"}
                 disabled={!tab.url}
                 onClick={() => {
                   const view = views.current.get(tab.id)
-                  if (tab.loading) withGuest(view, (guest) => guest.stop())
+                  if (tab.loading) void stopGuestLoading(view).then(stopped => {
+                    if (stopped) update(tab.id, { loading: false })
+                  }).catch(error => toast.error("停止加载失败", { description: String(error) }))
                   else reloadTab(tab.id)
                 }}
               >
@@ -67,7 +71,10 @@ export function BrowserToolbar({ b, visible = true }: { b: BrowserPageModel; vis
                 size="icon"
                 data-title="首页"
                 onClick={() => {
-                  update(tab.id, { ...newTab(), id: tab.id })
+                  if (!tab.url) return
+                  const view = views.current.get(tab.id)
+                  if (view) void view.loadURL("about:blank").catch(error => toast.error("返回首页失败", { description: String(error) }))
+                  else update(tab.id, { ...newTab(), id: tab.id })
                   setInput(null)
                 }} aria-label="首页"
               >

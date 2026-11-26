@@ -1,21 +1,26 @@
+import { transitionPage } from "@/lib/page-transition"
+import { rememberOpenedResourceProject } from "./opened-projects"
 import Welcome from "@/components/workspace-welcome/index"
 import WorkspacePage from "@/components/workspace/index"
 import type { WorkspaceData } from "@vessel/type"
-import { useEffect, useState } from "react"
+import { useEffect, useLayoutEffect, useRef, useState } from "react"
 import { rememberLibraryProject } from "./library-state"
 
 /** Renders the resource route component. */
 export function ResourceRoute() {
   const [project, setProject] = useState(() => JSON.parse(localStorage.getItem("resource_current_project") || "null") as (WorkspaceData & { initialFile?: string }) | null)
+  const currentPath = useRef(project?.path)
+  useLayoutEffect(() => { currentPath.current = project?.path }, [project?.path])
   useEffect(() => {
-    if (project?.path && project.name) rememberLibraryProject({ path: project.path, name: project.name })
+    if (project?.path && project.name) { rememberLibraryProject(project); rememberOpenedResourceProject(project) }
   }, [project?.path, project?.name])
   useEffect(() => {
     /** Refreshes the current state. */
     const update = () => {
       const next = JSON.parse(localStorage.getItem("resource_current_project") || "null")
-      if (next) rememberLibraryProject(next)
-      setProject(next)
+      if (next) { rememberLibraryProject(next); rememberOpenedResourceProject(next) }
+      if (next?.path === currentPath.current) setProject(next)
+      else void transitionPage(() => setProject(next), "resources", { contentReady: true }).catch(error => console.error("项目切换动效失败", error))
     }
     window.addEventListener("vessel:resource-changed", update)
     return () => window.removeEventListener("vessel:resource-changed", update)

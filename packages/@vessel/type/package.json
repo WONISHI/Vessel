@@ -19,6 +19,7 @@
     "#vessel-type/browser-extensions": "./src/browser-extensions.ts",
     "#vessel-type/browser-proxy": "./src/browser-proxy.ts",
     "#vessel-type/browser-tools": "./src/browser-tools.ts",
+    "#vessel-type/json-share": "./src/json-share.ts",
     "#vessel-type/code-diagnostics": "./src/code-diagnostics.ts",
     "#vessel-type/content-search": "./src/content-search.ts",
     "#vessel-type/file-watch": "./src/file-watch.ts",

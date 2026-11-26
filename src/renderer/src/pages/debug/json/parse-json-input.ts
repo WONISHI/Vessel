@@ -44,3 +44,24 @@ export function parseJsonInput(input: string): unknown {
   if (valid) return initial
   throw originalError
 }
+
+/** Expand JSON-encoded objects/arrays at every level; keep scalar strings and invalid text intact. */
+export function jsonizeJsonInput(input: string): unknown {
+  const root = { value: parseJsonInput(input) }
+  const pending: Array<Record<string, unknown> | unknown[]> = [root]
+  while (pending.length) {
+    const container = pending.pop()!
+    for (const key of Object.keys(container)) {
+      const record = container as Record<string, unknown>
+      let value = record[key]
+      if (typeof value === "string" && looksStructured(value)) {
+        try {
+          const parsed = parseJsonInput(value)
+          if (isContainer(parsed)) record[key] = value = parsed
+        } catch { /* A field may contain ordinary text that only resembles JSON. */ }
+      }
+      if (isContainer(value)) pending.push(value as Record<string, unknown> | unknown[])
+    }
+  }
+  return root.value
+}

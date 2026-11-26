@@ -27,3 +27,23 @@ it("preserves valid primitives, normal JSON and JSON-looking field values", () =
 it("rejects malformed structures and executable JavaScript without repairing arbitrary syntax", () => {
   for (const text of ['{"a":}', '{"a":1,}', '{a:1}', '(()=>({a:1}))()', "not JSON"]) expect(() => parseJsonInput(text)).toThrow()
 })
+
+it("JSON-izes every nested object/array string without coercing identifiers or ordinary text", async () => {
+  const { jsonizeJsonInput } = await import("@/pages/debug/json/parse-json-input")
+  const input = JSON.stringify({
+    formId: "2124707628909002754",
+    item: JSON.stringify({ data: JSON.stringify({ nested: '["{\\"ok\\":true}"]', name: "测试用户" }) }),
+    siblings: [JSON.stringify({ child: '{"count":1}' }), '[1,2]', '"{\\"multi\\":true}"'],
+    id: "00123", enabled: "true", missing: "null", decimal: "1.20", text: "普通文本",
+    malformed: '{"broken":}', path: 'C:\\notes\\file.json', empty: "", quoted: '"hello"'
+  })
+  expect(jsonizeJsonInput(input)).toEqual({
+    formId: "2124707628909002754",
+    item: { data: { nested: [{ ok: true }], name: "测试用户" } },
+    siblings: [{ child: { count: 1 } }, [1, 2], { multi: true }],
+    id: "00123", enabled: "true", missing: "null", decimal: "1.20", text: "普通文本",
+    malformed: '{"broken":}', path: 'C:\\notes\\file.json', empty: "", quoted: '"hello"'
+  })
+  expect(jsonizeJsonInput(JSON.stringify(JSON.stringify({ field: '{"ok":true}' })))).toEqual({ field: { ok: true } })
+  expect(() => jsonizeJsonInput('{"invalid":}')).toThrow()
+})

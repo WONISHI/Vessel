@@ -1,3 +1,4 @@
+import { rememberOpenedResourceProject } from "./opened-projects"
 import { projectCache } from "@/components/workspace/components/layout-aside/project-library/components/project-library-shared"
 import { readLibraryMeta, rememberLibraryProject, updateLibraryMeta, type LibraryProject } from "./library-state"
 
@@ -28,6 +29,7 @@ export async function openResourceProject(project: LibraryProject) {
   projectCache.projects = next
   updateLibraryMeta({ count: next.length })
   rememberLibraryProject(project)
+  rememberOpenedResourceProject(project)
   localStorage.setItem("resource_current_project", JSON.stringify({ name: project.name, path: project.path, files: [] }))
   window.dispatchEvent(new Event("vessel:resource-changed"))
 }

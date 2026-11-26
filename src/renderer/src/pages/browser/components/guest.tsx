@@ -19,6 +19,7 @@ export const Guest = memo(function Guest({ tab, partition, visible, register, up
   const ref = useRef<WebviewTag | null>(null)
   const [documentReady, setDocumentReady] = useState(0)
   const [iconRevision, setIconRevision] = useState(0)
+  const [loadedFavicon, setLoadedFavicon] = useState<string>()
   const updateRef = useRef(update)
   useLayoutEffect(() => { updateRef.current = update }, [update])
   useEffect(() => {
@@ -26,7 +27,10 @@ export const Guest = memo(function Guest({ tab, partition, visible, register, up
       const source = (event as CustomEvent<string>).detail
       let fallback = ""
       try { fallback = new URL("/favicon.ico", tab.url).href } catch { /* Blank tab. */ }
-      if (source === tab.favicon || source === fallback) setIconRevision(value => value + 1)
+      if (source === tab.favicon || source === fallback) {
+        setLoadedFavicon(source)
+        setIconRevision(value => value + 1)
+      }
     }
     window.addEventListener("vessel-favicon-loaded", loaded)
     return () => window.removeEventListener("vessel-favicon-loaded", loaded)
@@ -42,13 +46,13 @@ export const Guest = memo(function Guest({ tab, partition, visible, register, up
       updateRef.current(tab.id, { faviconColor: color })
       withGuest(view, guest => guest.send("vessel:site-color", color))
     }
-    let source = tab.favicon
-    if (!source) {
-      try {
-        const page = new URL(tab.url)
-        if (/^https?:$/.test(page.protocol)) source = new URL("/favicon.ico", page).href
-      } catch { /* Blank/local pages retain the default green. */ }
-    }
+    let fallback: string | undefined
+    try {
+      const page = new URL(tab.url)
+      if (/^https?:$/.test(page.protocol)) fallback = new URL("/favicon.ico", page).href
+    } catch { /* Blank/local pages retain the default green. */ }
+    // BrowserFavicon may have rejected the announced URL and displayed /favicon.ico instead.
+    const source = loadedFavicon && [tab.favicon, fallback].includes(loadedFavicon) ? loadedFavicon : tab.favicon || fallback
     let origin = tab.url
     try { origin = new URL(tab.url).origin } catch { /* Blank/local page. */ }
     const key = `${partition || webviewAttributes.partition}\n${origin}\n${source || ""}`
@@ -79,7 +83,7 @@ export const Guest = memo(function Guest({ tab, partition, visible, register, up
       void sample(0)
     }
     return () => { cancelled = true; clearTimeout(retryTimer) }
-  }, [documentReady, iconRevision, tab.id, tab.url, tab.favicon, partition])
+  }, [documentReady, iconRevision, loadedFavicon, tab.id, tab.url, tab.favicon, partition])
   const zoomRef = useRef(tab.zoom ?? 1)
   const visibleRef = useRef(visible)
   const syncZoom = useCallback(() => {
@@ -111,7 +115,7 @@ export const Guest = memo(function Guest({ tab, partition, visible, register, up
     }, dark ? 150 : 0)
     return () => window.clearTimeout(timer)
   }, [dark, visible, documentReady])
-  const [initialURL] = useState(tab.url)
+  const [initialURL] = useState(tab.url || "about:blank")
   const [initialAttributes] = useState(() => ({ ...webviewAttributes, partition: partition || webviewAttributes.partition, webpreferences: `zoomFactor=${tab.zoom}` }))
   useEffect(() => {
     const view = ref.current
@@ -121,7 +125,8 @@ export const Guest = memo(function Guest({ tab, partition, visible, register, up
     /** Synchronizes sync. */
     const sync = () => withGuest(view, (guest) => {
       navigationURL = guest.getURL()
-      updateRef.current(tab.id, { url: navigationURL, title: guest.getTitle() || "正在加载…", back: guest.canGoBack(), forward: guest.canGoForward() })
+      const home = navigationURL === "about:blank"
+      updateRef.current(tab.id, { url: home ? "" : navigationURL, title: home ? "新标签页" : guest.getTitle() || "正在加载…", back: guest.canGoBack(), forward: guest.canGoForward(), ...(home ? { loading: false, error: "", favicon: undefined, faviconColor: undefined, devError: undefined, videoPlaying: false, mediaPlaying: false } : {}) })
     })
 
     let mediaRevision = 0

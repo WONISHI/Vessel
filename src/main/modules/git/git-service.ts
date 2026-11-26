@@ -1,4 +1,5 @@
-import type { GitFetchOptions, GitPullOptions, GitPushInfo, GitPushSelection, GitTagOptions, GitCommitDetail, GitCommitItem, GitDiffResult, GitFileStatus, GitStatusResult, GitStashPopResult, GitStashEntry, GitStashFile, GitStashDetail } from "@vessel/type/git"
+import { StashRestoreHistory } from "./stash-restore-history"
+import type { GitStashRestoreRecord, GitFetchOptions, GitPullOptions, GitPushInfo, GitPushSelection, GitTagOptions, GitCommitDetail, GitCommitItem, GitDiffResult, GitFileStatus, GitStatusResult, GitStashPopResult, GitStashEntry, GitStashFile, GitStashDetail } from "@vessel/type/git"
 import { gitAuthenticationEnvironment } from "./askpass"
 import { spawn } from "node:child_process"
 import { existsSync } from "node:fs"
@@ -74,6 +75,15 @@ export class GitService {
     operation.controller.abort()
     return true
   }
+  private stashRestoreHistory = new StashRestoreHistory()
+  configureStashRestoreHistory(path: string) { this.stashRestoreHistory = new StashRestoreHistory(path) }
+
+  async getStashRestoreHistory(cwd: string): Promise<GitStashRestoreRecord[]> {
+    const directory = await runGit(["rev-parse", "--absolute-git-dir"], cwd)
+    if (directory.exitCode !== 0) throw new Error(directory.stderr || "无法读取仓库")
+    return this.stashRestoreHistory.list(directory.stdout.trim())
+  }
+
   private readonly restoringStashes = new Set<string>()
   /** Checks whether repo. */
   async isRepo(cwd: string): Promise<boolean> {
@@ -641,7 +651,11 @@ export class GitService {
         })
       }
     }
-    return stashes
+    const history = await this.getStashRestoreHistory(cwd).catch(() => [])
+    return stashes.map(entry => {
+      const restored = history.find(record => record.hash === entry.hash)
+      return restored ? { ...entry, lastRestore: { at: restored.at, outcome: restored.outcome, branch: restored.branch } } : entry
+    })
   }
 
   /** Read the saved trees, never the current worktree or merge commit display. */
@@ -728,20 +742,39 @@ export class GitService {
     const key = directory.stdout.trim()
     if (this.restoringStashes.has(key)) throw new Error("正在恢复贮藏，请等待完成后再操作")
     this.restoringStashes.add(key)
+    let applied: { entry: GitStashEntry; branch: string; conflicts: string[] } | undefined
+    const record = async (dropped: boolean, note?: string): Promise<string | undefined> => {
+      if (!applied) return undefined
+      try {
+        await this.stashRestoreHistory.append(key, {
+          id: randomUUID(), hash: applied.entry.hash!, name: applied.entry.name, index: applied.entry.index,
+          stashDate: applied.entry.date, at: new Date().toISOString(), branch: applied.branch,
+          action: keep ? "apply" : "pop", outcome: applied.conflicts.length ? "conflicts" : "applied",
+          conflicts: applied.conflicts, dropped, ...(note ? { note } : {})
+        })
+      } catch (error) { return `内容已应用，但保存恢复记录失败：${String(error)}` }
+      return undefined
+    }
     try {
-      return await this.applyStash(cwd, index, keep, expectedHash)
+      const result = await this.applyStash(cwd, index, keep, expectedHash, metadata => { applied = metadata })
+      const historyWarning = await record(result.dropped)
+      return historyWarning ? { ...result, historyWarning } : result
+    } catch (error) {
+      await record(false, error instanceof Error ? error.message : String(error))
+      throw error
     } finally {
       this.restoringStashes.delete(key)
     }
   }
 
-  private async applyStash(cwd: string, index: number, keep: boolean, expectedHash?: string): Promise<GitStashPopResult> {
+  private async applyStash(cwd: string, index: number, keep: boolean, expectedHash: string | undefined, onApplied: (metadata: { entry: GitStashEntry; branch: string; conflicts: string[] }) => void): Promise<GitStashPopResult> {
     const before = await this.getStatus(cwd)
     if (before.conflicts.length) throw new Error("请先解决当前冲突，再弹出其他贮藏")
     const ref = await runGit(["rev-parse", "--verify", `stash@{${index}}`], cwd)
     if (ref.exitCode !== 0) throw new Error(ref.stderr || "该贮藏不存在")
     const hash = ref.stdout.trim()
     if (expectedHash !== undefined && expectedHash !== hash) throw new Error("贮藏列表已变化，请刷新后重新选择；当前文件和贮藏均未修改")
+    const savedEntry = (await this.getStashes(cwd)).find(item => item.hash === hash) || { index, hash, name: hash.slice(0, 8), date: "" }
     const detail = await this.getStashDetail(cwd, hash)
     const caseConfig = await runGit(["config", "--bool", "core.ignorecase"], cwd)
     const normalize = (path: string) => caseConfig.stdout.trim() === "true" ? path.toLowerCase() : path
@@ -775,6 +808,7 @@ export class GitService {
       && !/^(?:error:|fatal:)|(?:could not|failed to) restore untracked|would be overwritten|index was not unstashed/im.test(output)
     if (res.exitCode !== 0 && !conflictOnly) throw new Error(output || "Stash pop failed")
 
+    onApplied({ entry: savedEntry, branch: before.branch, conflicts })
     // An unresolved merge is not a successful pop. Both versions stay recoverable.
     if (keep || conflicts.length) return { conflicts, dropped: false, output }
 

@@ -2,14 +2,14 @@ import { useDialogLayout } from "@/features/layout/use-dialog-layout"
 import "@/components/core/canvas/variants/code/monaco"
 import { registerMonacoTheme } from "@/components/core/canvas/variants/code/theme"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogPortal } from "@/components/ui/dialog"
-import { useDarkAppearance } from "@/hooks/use-dark-appearance"
+import { useMonacoTheme } from "@/features/editor-appearance/use-monaco-theme"
 import Editor, { type OnMount } from "@monaco-editor/react"
 import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 
 export default function BrowserSourceDialog({ source, onClose }: { source: { url: string; text: string }; onClose: () => void }) {
   const layout = useDialogLayout(true)
-  const dark = useDarkAppearance()
+  const editorTheme = useMonacoTheme()
   const [formatting, setFormatting] = useState(true)
   const alive = useRef(true)
   useEffect(() => {
@@ -54,7 +54,7 @@ export default function BrowserSourceDialog({ source, onClose }: { source: { url
       </DialogHeader>
       <div className="relative min-h-0 flex-1 overflow-hidden rounded-md border">
         {formatting && <div role="status" className="absolute inset-0 z-10 grid place-items-center bg-background text-xs text-muted-foreground">正在格式化源码…</div>}
-        <Editor language="html" value={source.text} height="100%" theme={dark ? "vessel-dark" : "light"}
+        <Editor language="html" value={source.text} height="100%" theme={editorTheme}
           beforeMount={registerMonacoTheme} onMount={mount}
           options={{ automaticLayout: true, minimap: { enabled: false }, scrollBeyondLastLine: false,
             fontSize: 12, tabSize: 2, insertSpaces: true, wordWrap: "on", padding: { top: 12, bottom: 12 } }} />

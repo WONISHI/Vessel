@@ -53,6 +53,12 @@ export function secureBrowserGuests(contents: WebContents) {
   registerBrowserDevtools(contents)
   registerBrowserTools(contents)
   const reloadGuests = new Map<number, () => void>()
+  const stopGuests = new Map<number, () => void>()
+  contents.ipc.handle("browser:stop-tab", (_event, id: number) => {
+    const stop = stopGuests.get(id)
+    if (!stop) throw new Error("当前标签页已关闭或尚未挂载")
+    stop()
+  })
   contents.ipc.handle("browser:reload-tab", (_event, id: number) => {
     const reload = reloadGuests.get(id)
     if (!reload) throw new Error("当前标签页已关闭或尚未就绪")
@@ -140,7 +146,12 @@ export function secureBrowserGuests(contents: WebContents) {
       guest.reload()
     }
     reloadGuests.set(guest.id, reload)
-    guest.once("destroyed", () => reloadGuests.delete(guest.id))
+    stopGuests.set(guest.id, () => {
+      refreshRequestedUntil = 0
+      cancelDecision?.()
+      guest.stop()
+    })
+    guest.once("destroyed", () => { reloadGuests.delete(guest.id); stopGuests.delete(guest.id) })
     guest.on("will-prevent-unload", (event) => {
       if (Date.now() <= refreshRequestedUntil) {
         refreshRequestedUntil = 0

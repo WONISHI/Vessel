@@ -9,7 +9,7 @@ import { ChevronDown, ChevronUp, Search, X } from "lucide-react"
 import { useEffect, useRef, useState, type RefObject } from "react"
 
 /** 搜索活动文件全文；Markdown 优先读取当前编辑内容，其他文本文件从本地读取。 */
-export function FileSearch({ path, contentHost }: { path: string; contentHost: RefObject<HTMLDivElement | null> }) {
+export function FileSearch({ path, contentHost, routeKey = path }: { path: string; contentHost: RefObject<HTMLDivElement | null>; routeKey?: string }) {
   const [active, setActive] = useState(0)
   const [matchCase, setMatchCase] = useState(false)
   const [wholeWord, setWholeWord] = useState(false)
@@ -40,20 +40,11 @@ export function FileSearch({ path, contentHost }: { path: string; contentHost: R
     window.addEventListener("keydown", handleShortcut, true)
     return () => window.removeEventListener("keydown", handleShortcut, true)
   }, [])
-  const [openPath, setOpenPath] = useState(path)
-  if (openPath !== path) {
-    setOpenPath(path)
+  const [openLocation, setOpenLocation] = useState({ path, routeKey })
+  if (openLocation.path !== path || openLocation.routeKey !== routeKey) {
+    setOpenLocation({ path, routeKey })
     setOpen(false)
   }
-  useEffect(() => {
-    const host = contentHost.current
-    if (!host) return
-    const observer = new ResizeObserver(() => {
-      if (!host.getClientRects().length) setOpen(false)
-    })
-    observer.observe(host)
-    return () => observer.disconnect()
-  }, [contentHost])
   useEffect(() => {
     if (!open) return
     let cancelled = false
@@ -132,7 +123,9 @@ export function FileSearch({ path, contentHost }: { path: string; contentHost: R
     <Popover
       open={open}
       onOpenChange={(value) => {
-        setOpen(value)
+        // Dismiss only through the close button or navigation, never incidental focus changes.
+        if (!value) return
+        setOpen(true)
         setError("")
         setContent("")
       }}
@@ -155,6 +148,8 @@ export function FileSearch({ path, contentHost }: { path: string; contentHost: R
         </TooltipContent>
       </Tooltip>
       <PopoverContent
+        onInteractOutside={(event) => event.preventDefault()}
+        onEscapeKeyDown={(event) => event.preventDefault()}
         onCloseAutoFocus={(event) => event.preventDefault()}
         align="end"
         style={{ fontFamily: '"Plus Jakarta Sans", sans-serif' }}

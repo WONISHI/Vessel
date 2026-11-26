@@ -15,3 +15,10 @@ export function withGuest<T>(view: WebviewTag | null | undefined, action: (view:
     return undefined
   }
 }
+
+/** Stopping navigation must also work before the first DOM-ready event. */
+export async function stopGuestLoading(view: WebviewTag | null | undefined): Promise<boolean> {
+  if (!view?.isConnected) return false
+  await window.electronAPI.stopBrowserTab(view.getWebContentsId())
+  return true
+}

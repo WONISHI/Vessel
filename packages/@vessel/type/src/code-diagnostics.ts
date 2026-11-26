@@ -7,3 +7,17 @@ export interface CodeDiagnostic {
   endLineNumber: number
   endColumn: number
 }
+
+export interface CodeDefinitionRequest {
+  path: string
+  content: string
+  offset: number
+}
+
+export interface CodeDefinition {
+  path: string
+  lineNumber: number
+  column: number
+  endLineNumber: number
+  endColumn: number
+}

@@ -1,3 +1,4 @@
+import { editorThemes } from "@/features/editor-appearance/themes"
 import type { AppSettings } from "@vessel/type"
 import { ChevronDown } from "lucide-react"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
@@ -7,7 +8,7 @@ import { fonts } from "./index-shared"
 import { Row } from "./row"
 
 const editorFonts = ["Menlo", "Monaco", "Consolas", "SF Mono", "JetBrains Mono", "Fira Code", "Cascadia Code", "monospace"]
-type Typography = Pick<AppSettings, "font" | "fontSize" | "editorFont" | "editorFontSize" | "markdownBackground">
+type Typography = Pick<AppSettings, "font" | "fontSize" | "editorFont" | "editorFontSize" | "markdownBackground" | "editorTheme">
 export function TypographySettings({ value, onChange }: { value: Typography; onChange: (patch: Partial<Typography>) => void }) {
   const fontRows = [
     { key: "font" as const, title: "界面字体", description: "用于界面和 Markdown 正文，缺失时使用系统字体", fonts, selected: value.font },
@@ -30,6 +31,14 @@ export function TypographySettings({ value, onChange }: { value: Typography; onC
         </Select>
       </Row>)}</CollapsibleContent>
     </Collapsible>
+    <div className="settings-card">
+      <Row title="代码编辑器主题" description="选择代码高亮和编辑区背景，保存后应用于代码编辑器及代码预览">
+        <Select value={value.editorTheme ?? "system"} onValueChange={next => { const theme = editorThemes.find(item => item.value === next); if (theme) onChange({ editorTheme: theme.value }) }}>
+          <SelectTrigger aria-label="代码编辑器主题" className="w-[200px]"><SelectValue /></SelectTrigger>
+          <SelectContent>{editorThemes.map(theme => <SelectItem key={theme.value} value={theme.value}>{theme.label}</SelectItem>)}</SelectContent>
+        </Select>
+      </Row>
+    </div>
     <div className="settings-card">
       <Row title="Markdown 背景" description="默认保留当前背景；淡点阵从左上向右下渐隐，不影响正文阅读">
         <Select value={value.markdownBackground ?? "default"} onValueChange={next => { if (next === "default" || next === "dots") onChange({ markdownBackground: next }) }}>

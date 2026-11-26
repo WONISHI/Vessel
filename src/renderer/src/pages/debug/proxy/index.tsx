@@ -21,6 +21,7 @@ export default function ProxyTool() {
   const [error, setError] = useState("")
   const [pending, setPending] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
+  const [profileNodes, setProfileNodes] = useState<{ id: string; url: string; nodes: string[]; error?: string }>()
   const selected = subscriptions.find(item => item.id === selectedId)
   const selectedConnected = !!status?.connected && status.subscriptionId === selectedId
   useEffect(() => {
@@ -39,8 +40,19 @@ export default function ProxyTool() {
     const timer = setInterval(refresh, 1000)
     return () => { alive = false; clearInterval(timer) }
   }, [enabled])
+  useEffect(() => {
+    if (!enabled || !selected || selectedConnected) return
+    let alive = true
+    void Promise.resolve().then(() => window.electronAPI.getBrowserProxyProfileNodes(selected.id)).then(nodes => {
+      if (alive) setProfileNodes({ id: selected.id, url: selected.url, nodes })
+    }).catch(reason => {
+      if (alive) setProfileNodes({ id: selected.id, url: selected.url, nodes: [], error: reason instanceof Error ? reason.message : "读取订阅节点失败" })
+    })
+    return () => { alive = false }
+  }, [enabled, selected?.id, selected?.url, selectedConnected])
   const choose = (id: string) => {
     setSelectedId(id)
+    setSearch("")
     localStorage.setItem("vessel:proxy-subscription", id)
   }
   async function run(action: () => Promise<BrowserProxyStatus>) {
@@ -77,7 +89,10 @@ export default function ProxyTool() {
     } catch (reason) { setError(reason instanceof Error ? reason.message : "删除失败") }
     finally { setPending(false) }
   }
-  const nodes = (status?.nodes || []).filter(node => node.toLowerCase().includes(search.toLowerCase()))
+  const loadedProfile = profileNodes?.id === selectedId && profileNodes.url === selected?.url ? profileNodes : undefined
+  const availableNodes = selectedConnected ? status.nodes : loadedProfile?.nodes || []
+  const loadingNodes = !!selected && !selectedConnected && !loadedProfile
+  const nodes = availableNodes.filter(node => node.toLowerCase().includes(search.toLowerCase()))
   const disabled = pending || status?.busy
   if (!enabled) return <div className="dev-tool-page flex h-full items-center justify-center p-6 text-sm text-muted-foreground">请先在设置的通用配置中开启代理。</div>
   return (
@@ -107,7 +122,7 @@ export default function ProxyTool() {
                       <span className="flex items-center gap-2 text-xs"><Link size={14} /><span className="truncate font-medium">{item.name}</span>{connected && <span className="text-[10px] text-green-600">已连接</span>}</span>
                       <span className="mt-1 block truncate text-[11px] text-muted-foreground">{host}</span>
                     </button>
-                    <Button variant="ghost" size="icon" className="size-7 shrink-0" aria-label={`编辑订阅 ${item.name}`} disabled={disabled || connected} onClick={() => setEditor(item)}><Pencil size={13} /></Button>
+                    <Button variant="ghost" size="icon" className="size-7 shrink-0 hover:!text-white [&:hover_svg]:!text-white" aria-label={`编辑订阅 ${item.name}`} disabled={disabled || connected} onClick={() => setEditor(item)}><Pencil size={13} /></Button>
                     <Button variant="ghost" size="icon" className="size-7 shrink-0 text-red-600" aria-label={`删除订阅 ${item.name}`} disabled={disabled || connected} onClick={() => void remove(item)}><Trash2 size={13} /></Button>
                   </div>
                 })}
@@ -127,7 +142,7 @@ export default function ProxyTool() {
                 />
                 节点选择
               </h3>
-              <span className="rounded-full bg-stone-100 px-2 py-0.5 text-xs text-stone-400">{status?.nodes.length || 0} 个节点</span>
+              <span className="rounded-full bg-stone-100 px-2 py-0.5 text-xs text-stone-400">{availableNodes.length} 个节点</span>
               <div className="relative ml-auto w-36">
                 <Search className="absolute left-2 top-2 size-3.5 text-stone-400" />
                 <Input
@@ -147,19 +162,19 @@ export default function ProxyTool() {
                 {nodes.map((node) => (
                   <button
                     key={node}
-                    disabled={disabled || !status?.connected}
-                    aria-pressed={status?.selected === node}
+                    disabled={disabled || !selectedConnected}
+                    aria-pressed={selectedConnected && status?.selected === node}
                     onClick={() => void run(() => window.electronAPI.selectBrowserProxy(node))}
-                    className={`flex w-full items-center gap-3 border-b border-stone-100 px-3 py-2.5 text-left text-sm last:border-0 disabled:opacity-50 ${status?.connected && status?.selected === node ? "bg-green-50 text-green-700" : "text-stone-600 hover:bg-stone-100"}`}
+                    className={`flex w-full items-center gap-3 border-b border-stone-100 px-3 py-2.5 text-left text-sm last:border-0 disabled:opacity-50 ${selectedConnected && status?.selected === node ? "bg-green-50 text-green-700" : "text-stone-600 hover:bg-stone-100"}`}
                   >
-                    <span className={`flex size-4 shrink-0 items-center justify-center rounded-full border-2 ${status?.connected && status?.selected === node ? "border-green-600" : "border-stone-300"}`}>
-                      {status?.connected && status?.selected === node && <span className="size-2 rounded-full bg-green-600" />}
+                    <span className={`flex size-4 shrink-0 items-center justify-center rounded-full border-2 ${selectedConnected && status?.selected === node ? "border-green-600" : "border-stone-300"}`}>
+                      {selectedConnected && status?.selected === node && <span className="size-2 rounded-full bg-green-600" />}
                     </span>
                     <span className="min-w-0 flex-1 break-words">{node}</span>
-                    {status?.connected && status?.selected === node && <span className="shrink-0 rounded-md bg-green-100 px-2 py-1 text-[10px] font-semibold text-green-600">使用中</span>}
+                    {selectedConnected && status?.selected === node && <span className="shrink-0 rounded-md bg-green-100 px-2 py-1 text-[10px] font-semibold text-green-600">使用中</span>}
                   </button>
                 ))}
-                {!nodes.length && <p className="p-6 text-center text-xs text-stone-400">{status?.nodes.length ? "没有匹配的节点" : "连接订阅后显示可用节点"}</p>}
+                {!nodes.length && <p className="p-6 text-center text-xs text-stone-400">{loadingNodes ? "正在读取订阅节点…" : loadedProfile?.error || (availableNodes.length ? "没有匹配的节点" : "此订阅暂无可用节点")}</p>}
               </div>
             </ScrollArea>
             </section>
@@ -193,7 +208,7 @@ function SubscriptionDialog({ initial, onClose, onSave }: { initial: Partial<Bro
           <label className="block space-y-2 text-sm">地址<div className="relative"><Input aria-label="订阅地址" type={reveal ? "text" : "password"} value={url} onChange={event => setURL(event.target.value)} maxLength={8192} placeholder="https://…" className="pr-10" required disabled={busy} /><button type="button" aria-label={reveal ? "隐藏订阅地址" : "显示订阅地址"} onClick={() => setReveal(!reveal)} className="absolute right-3 top-2.5 text-muted-foreground">{reveal ? <EyeOff size={16} /> : <Eye size={16} />}</button></div></label>
           {error && <p role="alert" className="text-xs text-red-600">{error}</p>}
         </div>
-        <div className="flex justify-end gap-2 border-t px-5 py-3"><Button type="button" variant="outline" disabled={busy} onClick={onClose}>取消</Button><Button type="submit" disabled={busy || !name.trim() || !url.trim()}>{busy ? "保存中…" : "保存订阅"}</Button></div>
+        <div className="flex justify-end gap-2 border-t px-5 py-3"><Button type="button" variant="outline" className="hover:!bg-stone-100 hover:!text-stone-900 dark:hover:!bg-stone-700 dark:hover:!text-white" disabled={busy} onClick={onClose}>取消</Button><Button type="submit" disabled={busy || !name.trim() || !url.trim()}>{busy ? "保存中…" : "保存订阅"}</Button></div>
       </form>
     </DialogContent>
   </Dialog>

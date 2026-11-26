@@ -1,10 +1,12 @@
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { useOpenedResourceProjects } from "@/pages/resources/opened-projects"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { CircleQuestionMark, ExternalLink, FolderOpen, PanelLeftClose, PanelLeftOpen, PanelTopClose, PanelTopOpen, RefreshCcw, Search, SquareTerminal } from "lucide-react"
+import { Check, CircleQuestionMark, ExternalLink, FolderOpen, PanelLeftClose, PanelLeftOpen, PanelTopClose, PanelTopOpen, RefreshCcw, Search, SquareTerminal } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { useLocation, useNavigate } from "react-router-dom"
 import { useWorkspaceSync } from "./use-workspace-sync"
-import { useLibraryMeta, type LibraryProject } from "@/pages/resources/library-state"
-import { openResourceProject, refreshRecentResourceProjects } from "@/pages/resources/open-project"
+import { type LibraryProject } from "@/pages/resources/library-state"
+import { openResourceProject } from "@/pages/resources/open-project"
 import { useBrowserTabs } from "@/pages/browser/tab-state"
 import { isOpenableUrl } from "@/pages/browser/openable-url"
 import { BrowserExternalDialog } from "@/pages/browser/components/browser-page/browser-external-dialog"
@@ -34,7 +36,7 @@ export function PageToolsMenu({ browser }: { browser: boolean }) {
   const workspace = /^\/editor(\/|$)/.test(pathname)
   const apiClient = /^\/api-client(\/|$)/.test(pathname)
   const sync = useWorkspaceSync(workspace)
-  const { recent = [] } = useLibraryMeta()
+  const openedProjects = useOpenedResourceProjects()
   const [opening, setOpening] = useState(false)
   const [editorRoot, setEditorRoot] = useState<string>()
   const [openingEditor, setOpeningEditor] = useState(false)
@@ -55,10 +57,6 @@ export function PageToolsMenu({ browser }: { browser: boolean }) {
     catch (error) { toast.error(String(error).replace(/^Error invoking remote method '[^']+': (?:Error: )?/, "")) }
     finally { setOpeningEditor(false) }
   }
-  const loadRecent = () => { void refreshRecentResourceProjects().catch(error => toast.error(String(error))) }
-  useEffect(() => {
-    if (resources) void refreshRecentResourceProjects().catch(error => toast.error(String(error)))
-  }, [resources])
   const openProject = async (project?: LibraryProject) => {
     if (opening) return
     setOpening(true)
@@ -98,7 +96,6 @@ export function PageToolsMenu({ browser }: { browser: boolean }) {
     if (!browser && !apiClient) window.dispatchEvent(new Event("vessel:request-workspace-console-state"))
     if (workspace || resources) { requestSidebar(); requestEditorRoot() }
     if (workspace) window.dispatchEvent(new Event("vessel:request-page-sync-state"))
-    if (resources) loadRecent()
   }}>
     <DropdownMenuTrigger asChild><button type="button" aria-label="页面工具" data-title="页面工具" className="flex size-6 items-center justify-center rounded text-stone-500 hover:bg-stone-200 dark:text-stone-400 dark:hover:bg-white/10"><i aria-hidden="true" className="codicon codicon-tools !text-base" /></button></DropdownMenuTrigger>
     <DropdownMenuContent align="end" sideOffset={8} onCloseAutoFocus={event => {
@@ -116,11 +113,13 @@ export function PageToolsMenu({ browser }: { browser: boolean }) {
         {(workspace || resources) && <DropdownMenuItem className={itemClass} disabled={!editorRoot || openingEditor} onSelect={() => { void openInEditor() }}><ExternalLink />{openingEditor ? "正在打开…" : "在编辑器中打开"}</DropdownMenuItem>}
         {workspace && <DropdownMenuItem className={itemClass} disabled={!sync.enabled || sync.running} onSelect={() => { void sync.sync() }}><RefreshCcw className={sync.running ? "animate-spin" : ""} />{sync.running ? "正在同步…" : "同步"}</DropdownMenuItem>}
         {resources && <DropdownMenuSub>
-          <DropdownMenuSubTrigger className={itemClass} disabled={opening}><FolderOpen />打开项目</DropdownMenuSubTrigger>
+          <DropdownMenuSubTrigger className={itemClass} disabled={opening}><FolderOpen />切换项目</DropdownMenuSubTrigger>
           <DropdownMenuSubContent className="vessel-activity-tools-popup z-[511] w-60 rounded-xl p-1">
-            <DropdownMenuLabel className="text-[11px] font-normal text-stone-400">最近打开的项目</DropdownMenuLabel>
-            {recent.slice(0, 5).map(project => <DropdownMenuItem key={project.path} className={itemClass} disabled={opening} data-title={project.path} data-title-side="left" onSelect={() => { void requestOpenProject(project) }}><FolderOpen className="shrink-0" /><span className="truncate">{project.name}</span></DropdownMenuItem>)}
-            {!recent.length && <DropdownMenuItem disabled className="text-xs">暂无最近项目</DropdownMenuItem>}
+            <DropdownMenuLabel className="text-[11px] font-normal text-stone-400">已打开的项目</DropdownMenuLabel>
+            <ScrollArea type="hover" className="max-h-64 [&_[data-radix-scroll-area-viewport]]:max-h-64">
+            {openedProjects.map(project => <DropdownMenuItem key={project.path} className={itemClass} disabled={opening} aria-current={project.path === editorRoot ? "true" : undefined} data-title={project.path} data-title-side="left" onSelect={() => { void requestOpenProject(project) }}><FolderOpen className="shrink-0" /><span className="min-w-0 flex-1 truncate">{project.name}</span>{project.path === editorRoot && <Check className="ml-auto shrink-0" />}</DropdownMenuItem>)}
+            {!openedProjects.length && <DropdownMenuItem disabled className="text-xs">暂无已打开的项目</DropdownMenuItem>}
+            </ScrollArea>
             <DropdownMenuSeparator />
             <DropdownMenuItem className={itemClass} disabled={opening} onSelect={() => { void requestOpenProject() }}><FolderOpen />打开其他项目…</DropdownMenuItem>
           </DropdownMenuSubContent>

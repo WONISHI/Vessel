@@ -417,6 +417,7 @@ export default function LayoutMain({ resources = false }: { resources?: boolean 
           {!home && !graphPage && activeFilePath && (
             <FileSearch
               key={activeFilePath}
+              routeKey={`${location.key}:${workspaceVisible}`}
               path={activeFilePath}
               contentHost={contentHost}
             />
@@ -544,7 +545,7 @@ export default function LayoutMain({ resources = false }: { resources?: boolean 
               <ResizablePanel
                 id="terminal"
                 defaultSize="30%"
-                minSize="15%"
+                minSize={0}
               >
                 <TerminalPanel
                   key={workspace.path}

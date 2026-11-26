@@ -1,3 +1,4 @@
+import { registerJsonSharing } from "@main/sharing/json-sharing"
 import { readWorkspaceGraph, cancelWorkspaceGraph, disposeWorkspaceGraphs, watchGraphOwner } from "@main/workspace/graph-service"
 import { canOpenInDefaultBrowser } from "../../../shared/browser-preview"
 import { fileURLToPath } from "node:url"
@@ -8,6 +9,7 @@ import { restoreWorkspaceTabs } from "@main/files/restore-tabs"
 import { registerSourceInspector, disposeSourceInspector } from "@main/source-inspector"
 import { openProjectInEditor } from "@main/files/open-project-editor"
 import { shareFilesToWechat } from "./share-wechat"
+import { disposeCodeDefinitions, getCodeDefinitions } from "@main/diagnostics/code-definitions"
 import { disposeCodeDiagnostics, getCodeDiagnostics } from "@main/diagnostics/code-diagnostics"
 import { BaseModule } from "@main/modules/base/index"
 import { copyImage } from "@main/modules/files/copy-image"
@@ -138,9 +140,12 @@ export async function mutateWorkspaceFile(root: string, path: string, name?: str
 
 /** 将文件读取能力接入主进程生命周期，避免窗口重建时重复注册 IPC。 */
 export class FilesModule extends BaseModule {
+  private disposeJsonSharing?: () => void
   /** Handles activate events. */
   protected onActivate(): void {
+    this.disposeJsonSharing = registerJsonSharing()
     registerSourceInspector()
+    ipcMain.handle("code:definitions", (_event, request) => getCodeDefinitions(request))
     ipcMain.handle("code:diagnostics", (_event, path, content) => getCodeDiagnostics(path, content))
     ipcMain.handle("workspace:restoreTabs", (_event, root: string, paths: string[]) => restoreWorkspaceTabs(root, paths))
     ipcMain.handle("workspace:openInEditor", (_event, root: unknown, filePath?: unknown) => openProjectInEditor(root, filePath))
@@ -242,10 +247,14 @@ export class FilesModule extends BaseModule {
 
   /** Handles dispose events. */
   protected onDispose(): void {
+    this.disposeJsonSharing?.()
+    this.disposeJsonSharing = undefined
     disposeWorkspaceGraphs()
     ipcMain.removeHandler("workspace:graph")
     ipcMain.removeHandler("workspace:graph-cancel")
     disposeSourceInspector()
+    ipcMain.removeHandler("code:definitions")
+    disposeCodeDefinitions()
     ipcMain.removeHandler("code:diagnostics")
     disposeCodeDiagnostics()
     ipcMain.removeHandler("workspace:restoreTabs")

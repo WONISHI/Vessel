@@ -129,6 +129,7 @@ export interface VesselAPI extends AppUpdateAPI, BrowserProxyAPI, BrowserToolsAP
   onWindowFullscreenChanged(callback: (fullscreen: boolean) => void): () => void
   onBrowserToggleDevtools: (callback: (id: number) => void) => () => void
   reloadBrowserTab: (id: number) => Promise<void>
+  stopBrowserTab: (id: number) => Promise<void>
   onBrowserFind: (callback: (id: number) => void) => () => void
   setBrowserDevtools: (id: number | null, bounds?: { x: number; y: number; width: number; height: number }, appearance?: { font: string; size: number; language?: "zh" | "en-US"; detached?: boolean; hidden?: boolean; pageTitle?: string; pageURL?: string }) => Promise<void>
   onNavigationRequest(callback: (request: { id: number; url: string; defaultCurrent: boolean; delayMs: number }) => void): () => void
@@ -196,6 +197,10 @@ export interface VesselAPI extends AppUpdateAPI, BrowserProxyAPI, BrowserToolsAP
   onWorkspaceGraphProgress: typeof import("@preload/apis/files.api").filesAPI.onWorkspaceGraphProgress
   cancelWorkspaceGraph: () => Promise<void>
   openExternal: (href: string) => Promise<void>
+  startJsonShare: typeof import("@preload/apis/files.api").filesAPI.startJsonShare
+  getJsonShare: typeof import("@preload/apis/files.api").filesAPI.getJsonShare
+  stopJsonShare: typeof import("@preload/apis/files.api").filesAPI.stopJsonShare
+  getCodeDefinitions: typeof import("@preload/apis/files.api").filesAPI.getCodeDefinitions
   getCodeDiagnostics: (path: string, content: string) => Promise<CodeDiagnostic[]>
   queryBase: typeof import("@preload/apis/files.api").filesAPI.queryBase
   readContent: (path: string) => Promise<string>

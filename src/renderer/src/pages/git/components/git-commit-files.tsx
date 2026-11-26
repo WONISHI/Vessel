@@ -59,6 +59,7 @@ export function GitCommitFiles({ g }: { g: GitPageModel }) {
                                         <span
                                           className="truncate min-w-0 flex-1 text-stone-700"
                                           data-title={f.path}
+                                          data-title-side="bottom"
                                         >
                                           {f.path}
                                         </span>

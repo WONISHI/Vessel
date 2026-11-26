@@ -35,8 +35,8 @@ export function DownloadsSheet({ open, onOpenChange }: { open: boolean; onOpenCh
     } catch (error) { toast.error(error instanceof Error ? error.message : String(error)) }
   }
   const filtered = entries.filter(entry => `${entry.name} ${entry.path}`.toLocaleLowerCase().includes(query.toLocaleLowerCase()))
-  return <Sheet open={open} onOpenChange={onOpenChange}>
-    <SheetContent side="right" showCloseButton={false} className="z-[250] flex h-full w-full flex-col gap-0 overflow-hidden bg-background p-0 text-foreground sm:max-w-[420px]">
+  return <Sheet open={open} onOpenChange={onOpenChange} modal={false}>
+    <SheetContent side="right" showOverlay={false} showCloseButton={false} className="z-[250] flex h-full w-full flex-col gap-0 overflow-hidden bg-background p-0 text-foreground sm:max-w-[420px]">
       <div className="shrink-0 space-y-3 border-b p-3.5">
         <div className="flex items-center gap-2"><Download className="size-4 text-green-600" /><SheetTitle className="text-sm font-semibold">下载历史</SheetTitle><span className="text-xs text-muted-foreground">{entries.length}</span><button className="ml-auto rounded p-1 hover:bg-muted" aria-label="关闭下载历史" onClick={() => onOpenChange(false)}><X className="size-4" /></button></div>
         <SheetDescription className="text-xs">下载和保存成功的文件，点击文件名可预览支持的格式。</SheetDescription>

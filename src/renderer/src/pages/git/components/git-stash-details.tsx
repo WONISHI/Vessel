@@ -1,3 +1,4 @@
+import { GitStashContentCheckPanel } from "./git-stash-content-check"
 import { ArchiveRestore, Copy, File, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -24,6 +25,8 @@ export function GitStashDetails({ g }: { g: GitPageModel }) {
         <Button size="icon" variant="ghost" aria-label="删除当前贮藏" disabled={disabled} onClick={() => record && void g.handleStashDrop(record.index)} className="size-7 text-red-600"><Trash2 className="size-3.5" /></Button>
       </div>
     </header>
+    {record?.lastRestore && <p className="shrink-0 border-b px-3 py-1.5 text-[11px] text-stone-500">Vessel 记录：{record.lastRestore.outcome === "conflicts" ? "恢复时有冲突" : "已恢复过"} · {new Date(record.lastRestore.at).toLocaleString("zh-CN", { hour12: false })} · 分支 {record.lastRestore.branch || "游离 HEAD"}</p>}
+    <GitStashContentCheckPanel key={`${g.repoPath}:${g.stashDetail?.hash || selected.hash || selected.index}`} root={g.repoPath} hash={g.stashDetail?.hash || selected.hash} />
     <p className="shrink-0 border-b border-stone-200 px-3 py-1.5 text-[10px] text-stone-500">恢复时合并变更；本地修改与贮藏路径重叠时停止，冲突时保留贮藏并手动处理。</p>
     {g.stashError ? <p role="alert" className="p-4 text-xs text-red-600">{g.stashError}</p> : g.stashLoading ? <p role="status" className="p-4 text-xs text-stone-500">正在读取贮藏文件…</p> : <ResizablePanelGroup orientation="horizontal" className="min-h-0 flex-1">
       <ResizablePanel id="git-stash-files" defaultSize="38%" minSize="20%" maxSize="65%" className="flex min-h-0 min-w-0 flex-col">

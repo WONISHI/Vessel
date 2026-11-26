@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { afterEach, beforeEach, expect, it, vi } from "vitest"
 import { MemoryRouter, Route, Routes, useNavigate } from "react-router-dom"
 import { ResourceRoute } from "@/pages/resources"
@@ -20,7 +20,7 @@ beforeEach(() => {
   localStorage.setItem("resource-library-meta", JSON.stringify({ pins: [vessel], lastPinned: vessel }))
   window.electronAPI = { getAppState: vi.fn(async () => [vessel, devly]), setAppState: vi.fn().mockResolvedValue(undefined) } as any
 })
-afterEach(() => { cleanup(); localStorage.clear() })
+afterEach(() => { cleanup(); localStorage.clear(); sessionStorage.clear(); vi.unstubAllGlobals(); delete (document as any).startViewTransition; delete document.documentElement.dataset.pageTransition })
 
 it("keeps Devly and its mounted document state after switching routes and returning through the library entry", async () => {
   function Navigation() {
@@ -58,4 +58,29 @@ it("keeps an explicit project and pending file, falling back to the last pin onl
   localStorage.removeItem("resource_current_project")
   expect(selectLastPinned()).toBe(true)
   expect(JSON.parse(localStorage.getItem("resource_current_project")!)).toEqual({ ...vessel, files: [] })
+})
+
+it("animates project changes while preserving cached editors and skips reselecting the same project", async () => {
+  vi.stubGlobal("matchMedia", () => ({ matches: false }))
+  const start = vi.fn((update: () => Promise<void>) => {
+    const updateCallbackDone = Promise.resolve().then(update)
+    return { updateCallbackDone, ready: updateCallbackDone, finished: updateCallbackDone, skipTransition: vi.fn() }
+  })
+  document.startViewTransition = start as any
+  render(<ResourceRoute />)
+  const draft = screen.getByRole("textbox", { name: "Vessel draft" })
+  fireEvent.change(draft, { target: { value: "preserved during transition" } })
+  await act(async () => { await openResourceProject(devly) })
+  expect(start).toHaveBeenCalledTimes(1)
+  expect(screen.getByRole("textbox", { name: "Devly draft" })).toBeTruthy()
+  await act(async () => { await openResourceProject(vessel) })
+  expect(start).toHaveBeenCalledTimes(2)
+  expect(screen.getByRole("textbox", { name: "Vessel draft" })).toBe(draft)
+  expect((draft as HTMLInputElement).value).toBe("preserved during transition")
+  await act(async () => { await openResourceProject(vessel) })
+  expect(start).toHaveBeenCalledTimes(2)
+  vi.stubGlobal("matchMedia", () => ({ matches: true }))
+  await act(async () => { await openResourceProject(devly) })
+  expect(start).toHaveBeenCalledTimes(2)
+  expect(screen.getByRole("textbox", { name: "Devly draft" })).toBeTruthy()
 })

@@ -25,7 +25,8 @@
 }
 /* Pointer resizing follows the separator immediately instead of easing behind it. */
 .resizable-split-motion:has(> [data-separator="active"]) > [data-panel] { transition: none !important; }
-.resizable-split-motion:has(> [data-separator="active"]) > #dock > .resizable-split-pane-content { width: 100% !important; }
+/* Panel inserts its own scroll container between the dock and our content. */
+.resizable-split-motion:has(> [data-separator="active"]) > #dock > div > .resizable-split-pane-content { width: 100% !important; }
 @media (prefers-reduced-motion: reduce) {
   .resizable-split-motion > [data-panel], .resizable-split-motion > [data-separator] { transition: none !important; }
 }

@@ -17,3 +17,8 @@ export function retainCodeModel(instance: editor.IStandaloneCodeEditor) {
     })
   }
 }
+
+/** Definition previews may create models without an editor; never dispose an owned model. */
+export function disposeUnusedCodeModel(model: editor.ITextModel) {
+  if (!model.isDisposed() && !owners.get(model)?.size) model.dispose()
+}

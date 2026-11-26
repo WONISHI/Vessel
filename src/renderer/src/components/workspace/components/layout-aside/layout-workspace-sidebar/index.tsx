@@ -172,7 +172,8 @@ export default function LayoutWorkspaceSidebar({ activity }: LayoutWorkspaceSide
       aria-label="工作区侧边栏"
       aria-hidden={showSearch || undefined}
       inert={showSearch}
-      className="flex h-full w-full min-h-0 flex-col"
+      style={{ visibility: showSearch ? "hidden" : undefined }}
+      className="relative isolate flex h-full w-full min-h-0 flex-col"
     >
       <header className="flex h-9 shrink-0 items-center justify-between gap-2 px-3 text-xs font-semibold text-stone-500">
         <Tooltip>

@@ -1,3 +1,4 @@
+import { compareGitTreeNames } from "../file-position"
 import { useState, type CSSProperties, type ReactNode } from "react"
 import { ChevronRight, Folder, FolderOpen } from "lucide-react"
 import type { GitFileStatus } from "@vessel/type"
@@ -33,8 +34,7 @@ export function GitChangesTree({ files, query, tree, renderFile, renderFolderAct
   const guides = (depth: number) => layout.guides && depth > 0 && layout.indent > 0 ? <span data-tree-guides aria-hidden className="pointer-events-none absolute inset-y-0 z-[1] text-stone-400 opacity-25 dark:text-stone-500" style={{ left: layout.padding + 6, width: `min(${depth * layout.indent}px, max(0px, calc(100% - 140px)))`, backgroundImage: `repeating-linear-gradient(to right,currentColor 0 1px,transparent 1px ${layout.indent}px)` }} /> : null
   const padding = (depth: number, file = false) => `calc(${layout.padding + (file ? 12 + layout.columnGap : 0)}px + min(${depth * layout.indent}px, max(0px, calc(100% - 140px))))`
   const rows = (children: typeof root, depth = 0): ReactNode => Array.from(children.values()).sort((a, b) => {
-    if (a.kind !== b.kind) return a.kind === "folder" ? -1 : 1
-    return a.name.localeCompare(b.name, "zh-CN", { numeric: true })
+    return compareGitTreeNames(a.name, a.kind === "folder", b.name, b.kind === "folder")
   }).map(node => {
     if (node.kind === "file") return <div key={node.file.path} className="relative" style={{ "--git-tree-padding": padding(depth, true) } as CSSProperties}>{guides(depth)}{renderFile(node.file, node.index, true)}</div>
     const collapseKey = `${query.trim().toLowerCase()}:${node.path}`

@@ -1,6 +1,7 @@
 import type { BrowserProxyAPI } from "@vessel/type"
 import { ipcRenderer } from "electron"
 export const browserProxyAPI: BrowserProxyAPI = {
+  getBrowserProxyProfileNodes: id => ipcRenderer.invoke("browser:proxy:profile-nodes", id),
   refreshBrowserProxySubscriptionInfo: id => ipcRenderer.invoke("browser:proxy:profile-info", id),
   setBrowserProxyRuntime: input => ipcRenderer.invoke("browser:proxy:runtime", input),
   listBrowserProxySubscriptions: () => ipcRenderer.invoke("browser:proxy:profiles"),

@@ -4,10 +4,10 @@ import { Guest } from "@/pages/browser/components/guest"
 vi.mock("@/hooks/use-dark-appearance", () => ({ useDarkAppearance: () => false }))
 vi.mock("@/pages/browser/favicon-color", () => ({ DEFAULT_SITE_COLOR: "#16a34a", faviconColor: async (data?: string) => data ? "#4792f1" : "#16a34a" }))
 afterEach(() => { cleanup(); vi.useRealTimers(); vi.unstubAllGlobals() })
-function mount(url: string, update = vi.fn()) {
+function mount(url: string, update = vi.fn(), partition?: string) {
   const tab = { id: url, url, favicon: `${url}/logo.svg`, zoom: 1 } as any
   const register = vi.fn()
-  const result = render(<Guest tab={tab} visible register={register} update={update} />)
+  const result = render(<Guest tab={tab} partition={partition} visible register={register} update={update} />)
   const view = result.container.querySelector("webview")!
   Object.assign(view, { getWebContentsId: () => 1, send: vi.fn(), executeJavaScript: vi.fn().mockResolvedValue(undefined), getURL: () => url, getTitle: () => "Page", canGoBack: () => false, canGoForward: () => false, getZoomFactor: () => 1 })
   act(() => view.dispatchEvent(new Event("dom-ready")))
@@ -48,4 +48,30 @@ it("preserves the site accent during reload and clears it when navigating to ano
   expect(reload).not.toHaveProperty("favicon")
   navigate("https://another-accent.test/page")
   expect(guest.update.mock.calls.at(-1)![1]).toMatchObject({ loading: true, favicon: undefined, faviconColor: undefined })
+})
+
+
+it("samples a private tab using its successfully displayed fallback icon instead of retrying the broken declared icon", async () => {
+  const sample = vi.fn().mockImplementation(async (_id, source) => source.endsWith('/favicon.ico') ? 'fallback image' : undefined)
+  vi.stubGlobal('electronAPI', { browserFaviconData: sample })
+  const privateTab = mount('https://private-fallback.test', vi.fn(), 'vessel-private-test')
+  await act(async () => {})
+  expect(sample).toHaveBeenCalledWith(1, privateTab.tab.favicon)
+  act(() => window.dispatchEvent(new CustomEvent('vessel-favicon-loaded', { detail: 'https://private-fallback.test/favicon.ico' })))
+  await act(async () => {})
+  expect(sample).toHaveBeenCalledWith(1, 'https://private-fallback.test/favicon.ico')
+  expect(privateTab.update).toHaveBeenCalledWith(privateTab.tab.id, { faviconColor: '#4792f1' })
+})
+
+it("keeps normal and private icon-color caches separated", async () => {
+  const sample = vi.fn().mockResolvedValue('normal image')
+  vi.stubGlobal('electronAPI', { browserFaviconData: sample })
+  const normal = mount('https://private-cache.test')
+  await act(async () => {})
+  normal.unmount()
+  sample.mockClear(); sample.mockResolvedValue(undefined)
+  const privateTab = mount('https://private-cache.test', vi.fn(), 'vessel-private-separate')
+  await act(async () => {})
+  expect(sample).toHaveBeenCalledOnce()
+  expect(privateTab.update).not.toHaveBeenCalledWith(privateTab.tab.id, { faviconColor: '#4792f1' })
 })

@@ -26,6 +26,28 @@ export interface GitStashEntry {
   /** ISO 8601 committer date of the saved stash commit. */
   date: string
   hash?: string
+  lastRestore?: Pick<GitStashRestoreRecord, "at" | "outcome" | "branch">
+}
+
+export interface GitStashRestoreRecord {
+  id: string
+  hash: string
+  name: string
+  index: number
+  stashDate: string
+  at: string
+  branch: string
+  action: "apply" | "pop"
+  outcome: "applied" | "conflicts"
+  conflicts: string[]
+  dropped: boolean
+  note?: string
+}
+
+export interface GitStashContentCheck {
+  hash: string
+  checkedAt: string
+  files: { path: string; state: "same" | "different" | "missing" | "unknown"; reason?: string }[]
 }
 
 export interface GitStashFile extends GitFileStatus {
@@ -41,6 +63,7 @@ export interface GitStashPopResult {
   conflicts: string[]
   dropped: boolean
   output: string
+  historyWarning?: string
 }
 
 export interface GitCommitItem {

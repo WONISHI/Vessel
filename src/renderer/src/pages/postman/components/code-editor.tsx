@@ -1,6 +1,6 @@
 import "@/components/core/canvas/variants/code/monaco"
 import { registerMonacoTheme } from "@/components/core/canvas/variants/code/theme"
-import { useDarkAppearance } from "@/hooks/use-dark-appearance"
+import { useMonacoTheme } from "@/features/editor-appearance/use-monaco-theme"
 import Editor, { type Monaco, type OnMount } from "@monaco-editor/react"
 
 const PM_TYPINGS = `
@@ -30,11 +30,11 @@ function beforeMount(monaco: Monaco) {
 
 /** Monaco editor configured for the API page (request bodies, scripts and responses). */
 export function ApiCodeEditor({ value, onChange, language, readOnly, ariaLabel, onMount, wordWrap = true }: { value: string; onChange?: (value: string) => void; language: string; readOnly?: boolean; ariaLabel: string; onMount?: OnMount; wordWrap?: boolean }) {
-  const dark = useDarkAppearance()
+  const editorTheme = useMonacoTheme()
   return (
     <Editor
       height="100%"
-      theme={dark ? "vessel-dark" : "light"}
+      theme={editorTheme}
       beforeMount={beforeMount}
       onMount={onMount}
       language={language}

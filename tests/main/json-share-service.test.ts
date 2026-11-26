@@ -1,0 +1,70 @@
+import { afterEach, expect, it } from 'vitest'
+import { JsonShareService } from '@main/sharing/json-share-service'
+const services: JsonShareService[] = []
+const create = () => { const service = new JsonShareService(() => ['127.0.0.1']); services.push(service); return service }
+afterEach(() => { for (const service of services.splice(0)) service.dispose() })
+
+it('serves an escaped read-only snapshot and JSON download only through the secret URL', async () => {
+  const service = create()
+  const content = JSON.stringify({ id: '2124707628909002754', html: '<script>alert(1)</script>', item: '{"keep":"string"}' }, null, 2)
+  const share = await service.start(1, content)
+  const url = share.urls[0]
+  expect(await service.status(1)).toEqual(share)
+  const page = await fetch(url)
+  expect(page.headers.get('cache-control')).toBe('no-store')
+  expect(page.headers.get('content-security-policy')).toContain("default-src 'none'")
+  const html = await page.text()
+  expect(html).toContain('&lt;script&gt;alert(1)&lt;/script&gt;')
+  expect(html).not.toContain('<script>')
+  expect(await (await fetch(url + '/data.json')).text()).toBe(content)
+  expect((await fetch(new URL('/', url))).status).toBe(404)
+  expect((await fetch(url, { method: 'POST', body: 'changed' })).status).toBe(405)
+  expect((await fetch(url, { method: 'HEAD' })).status).toBe(200)
+  expect(await service.start(1, '{"different":true}')).toEqual(share)
+  expect(await service.status(2)).toBeNull()
+  service.stop(2)
+  expect((await fetch(url)).ok).toBe(true)
+  service.stop(1)
+  expect(await service.status(1)).toBeNull()
+  await expect(fetch(url)).rejects.toThrow()
+})
+
+it('cancels all shares on disposal, creates new URLs after stopping, and handles stop during startup', async () => {
+  const service = create()
+  const first = await service.start(1, '{}')
+  service.stop(1)
+  const second = await service.start(1, '[]')
+  expect(second.urls[0]).not.toBe(first.urls[0])
+  const pending = service.start(2, '{}')
+  service.stop(2)
+  await expect(pending).rejects.toThrow('分享已取消')
+  expect(await service.status(2)).toBeNull()
+  const third = await service.start(3, '{}')
+  service.dispose()
+  await expect(fetch(second.urls[0])).rejects.toThrow()
+  await expect(fetch(third.urls[0])).rejects.toThrow()
+})
+
+it('rejects invalid or oversized JSON and missing LAN addresses without starting a share', async () => {
+  const service = create()
+  for (const value of ['', '{broken}', null, ' '.repeat(10 * 1024 * 1024 + 1)]) await expect(service.start(1, value)).rejects.toThrow()
+  const offline = new JsonShareService(() => [])
+  await expect(offline.start(1, '{}')).rejects.toThrow('未找到局域网地址')
+  expect(await service.status(1)).toBeNull()
+})
+
+it('keeps multiple documents and windows independent and closes all shares owned by a window', async () => {
+  const service = create()
+  const first = await service.start(1, '{"document":"first"}', 'first')
+  const second = await service.start(1, '{"document":"second"}', 'second')
+  const other = await service.start(2, '{"document":"other"}', 'first')
+  expect(first.urls[0]).not.toBe(second.urls[0])
+  expect(await service.status(1, 'first')).toEqual(first)
+  expect(await service.status(1, 'second')).toEqual(second)
+  service.stop(1, 'first')
+  await expect(fetch(first.urls[0])).rejects.toThrow()
+  expect((await fetch(second.urls[0])).status).toBe(200)
+  service.stopOwner(1)
+  await expect(fetch(second.urls[0])).rejects.toThrow()
+  expect((await fetch(other.urls[0])).status).toBe(200)
+})

@@ -78,6 +78,7 @@ const vesselAPI = {
 
   /** Performs the print browser page operation. */
   reloadBrowserTab: (id: number): Promise<void> => ipcRenderer.invoke("browser:reload-tab", id),
+  stopBrowserTab: (id: number): Promise<void> => ipcRenderer.invoke("browser:stop-tab", id),
   printBrowserPage: (id: number) => ipcRenderer.invoke("browser:print", id),
 
   /** Lists browser devices. */
