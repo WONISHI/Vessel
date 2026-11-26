@@ -193,7 +193,7 @@
 
 .browser-toolbar > button:not(:disabled):is(:hover, :active, [aria-pressed="true"], [data-state="on"]) {
   color: white !important;
-  background: #327f73;
+  background: var(--browser-site-color, #16a34a) !important;
 }
 
 .browser-tabs > button:is(:hover, :active) {
@@ -759,4 +759,54 @@ html.dark .browser-devtools-settings select { background: #20242a; border-color:
 .vessel-browser-more-popup button:not(:disabled):is(:hover, :focus-visible) {
   background-color: var(--browser-site-color, #16a34a) !important;
   color: #fff !important;
+}
+
+/* Address-bar actions inherit the same site accent as the navigation toolbar. */
+.browser-toolbar .browser-address > button:not(:disabled):is(:hover, :active, [data-state="open"], [aria-pressed="true"]) {
+  background: var(--browser-site-color, #16a34a) !important;
+  color: #fff !important;
+}
+.browser-toolbar .browser-address > button:not(:disabled):is(:hover, :active, [data-state="open"], [aria-pressed="true"]) :is(svg, i) {
+  color: #fff !important;
+}
+
+/* Apply site accents only to Sheet controls whose shared hover is green. */
+html [data-browser-sheet] button:not(:disabled):not([class*="text-red"]):not([class*="destructive"]):is([class*="hover:bg-accent"], [class*="hover:bg-primary"], [class*="hover:bg-green"], [class*="hover:!bg-green"]):is(:hover, :focus-visible) {
+  background: var(--browser-site-color, #16a34a) !important;
+  border-color: var(--browser-site-color, #16a34a) !important;
+  color: #fff !important;
+}
+html [data-browser-sheet] button:not(:disabled):not([class*="text-red"]):not([class*="destructive"]):is([class*="hover:bg-accent"], [class*="hover:bg-primary"], [class*="hover:bg-green"], [class*="hover:!bg-green"]):is(:hover, :focus-visible) :is(svg, span) {
+  color: #fff !important;
+}
+
+/* Derive browser fields, icons and soft highlights from the active site's accent. */
+:is(.vessel-browser, .browser-toolbar, [data-browser-sheet]) {
+  --field-focus-color: var(--browser-site-color, #16a34a);
+  --field-focus-shadow: var(--browser-site-ring);
+  --browser-site-soft: color-mix(in srgb, var(--browser-site-color, #16a34a) 10%, transparent);
+  --browser-site-ring: color-mix(in srgb, var(--browser-site-color, #16a34a) 10%, transparent);
+}
+html.dark :is(.vessel-browser, .browser-toolbar, [data-browser-sheet]) {
+  --browser-site-soft: color-mix(in srgb, var(--browser-site-color, #16a34a) 15%, transparent);
+  --browser-site-ring: color-mix(in srgb, var(--browser-site-color, #16a34a) 15%, transparent);
+}
+html :is(.vessel-browser, .browser-toolbar, [data-browser-sheet]) :is(.vessel-field, .device-size-input):not(:disabled):is(:focus, :focus-visible, [data-state="open"]),
+html .browser-toolbar .browser-address:focus-within,
+html [data-browser-sheet] [data-browser-field]:focus-within {
+  border-color: var(--browser-site-color, #16a34a) !important;
+  outline: none !important;
+  box-shadow: 0 0 0 3px var(--browser-site-ring) !important;
+}
+html :is(.vessel-browser, .browser-toolbar, [data-browser-sheet]) :is([class~="text-green-600"], [class~="text-green-700"], [class~="text-green-500"], [class~="text-green-400"]) {
+  color: var(--browser-site-color, #16a34a) !important;
+}
+html :is(.vessel-browser, .browser-toolbar, [data-browser-sheet]) :is([class~="bg-green-50"], [class~="bg-green-100"], [class~="bg-green-500/10"]) {
+  background-color: var(--browser-site-soft) !important;
+}
+html :is(.vessel-browser, .browser-toolbar, [data-browser-sheet]) :is([class~="border-green-200"], [class~="border-green-300"]) {
+  border-color: color-mix(in srgb, var(--browser-site-color, #16a34a) 30%, transparent) !important;
+}
+html [data-browser-sheet] :is([class~="bg-green-600"], [class~="bg-primary"]) {
+  background-color: var(--browser-site-color, #16a34a) !important;
 }

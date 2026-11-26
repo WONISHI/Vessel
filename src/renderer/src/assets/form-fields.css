@@ -5,12 +5,12 @@
   transition: border-color 240ms var(--motion-ease-out, cubic-bezier(0, 0, .2, 1)), box-shadow 240ms var(--motion-ease-out, cubic-bezier(0, 0, .2, 1));
 }
 :is(.vessel-field, .image-toolbox input:not([type="range"]):not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="file"]), .image-toolbox select, .image-toolbox textarea):not(:disabled):is(:focus, :focus-visible, [data-state="open"]) {
-  border-color: #16a34a !important;
+  border-color: var(--field-focus-color, #16a34a) !important;
   outline: none !important;
   outline-offset: 0;
-  box-shadow: 0 0 0 3px #16a34a1a !important;
+  box-shadow: 0 0 0 3px var(--field-focus-shadow, #16a34a1a) !important;
 }
 html.dark :is(.vessel-field, .image-toolbox input:not([type="range"]):not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="file"]), .image-toolbox select, .image-toolbox textarea):not(:disabled):is(:focus, :focus-visible, [data-state="open"]) {
-  border-color: #22c55e !important;
-  box-shadow: 0 0 0 3px #22c55e26 !important;
+  border-color: var(--field-focus-color, #22c55e) !important;
+  box-shadow: 0 0 0 3px var(--field-focus-shadow, #22c55e26) !important;
 }

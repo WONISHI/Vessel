@@ -67,3 +67,18 @@ it('keeps the browser more menu above DevTools and restores the console when dis
   expect(browserPopupOverlapsPane(pane)).toBe(false)
  } finally { menu.remove() }
 })
+
+it('keeps native DevTools behind a browser Sheet throughout its exit animation', () => {
+ const sheet = document.createElement('div')
+ sheet.setAttribute('role', 'dialog'); sheet.dataset.browserSheet = ''; sheet.dataset.state = 'open'
+ sheet.getBoundingClientRect = () => ({left:1000,right:1400,top:0,bottom:900,width:400,height:900} as DOMRect)
+ document.body.append(sheet)
+ try {
+  expect(browserPopupOverlapsPane(pane)).toBe(true)
+  // Radix switches state before its Presence removes the animated surface.
+  sheet.dataset.state = 'closed'
+  expect(browserPopupOverlapsPane(pane)).toBe(true)
+  sheet.remove()
+  expect(browserPopupOverlapsPane(pane)).toBe(false)
+ } finally { sheet.remove() }
+})

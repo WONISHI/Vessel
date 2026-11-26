@@ -1,3 +1,5 @@
+import type { CSSProperties } from "react"
+import { effectiveSiteColor } from "@/pages/browser/favicon-color"
 import { BrowserContextMenu } from "./browser-page/browser-context-menu"
 import { browserTabAction } from "@/pages/browser/tab-state"
 import { NavigationNotice } from "@/pages/browser/components/browser-page/navigation-notice"
@@ -36,7 +38,7 @@ export function BrowserPage({ visible = true }: { visible?: boolean }) {
         />
       }
     >
-      <main className="vessel-browser flex min-w-0 flex-1 flex-col overflow-hidden font-sans">
+      <main className="vessel-browser flex min-w-0 flex-1 flex-col overflow-hidden font-sans" style={{ "--browser-site-color": effectiveSiteColor(tab.faviconColor) } as CSSProperties}>
         <BrowserTabs b={b} />
         <div className="browser-toolbar-collapse relative shrink-0" data-collapsed={toolbarCollapsed} aria-hidden={toolbarCollapsed} inert={toolbarCollapsed}>
           <div className="browser-toolbar-collapse-inner">

@@ -1,6 +1,7 @@
+import { BrowserSheetContent as SheetContent } from "@/pages/browser/components/browser-sheet"
 import { useDialogLayout } from "@/features/layout/use-dialog-layout"
 import { SitePasswordPopover } from "./site-password-popover"
-import { Sheet, SheetContent } from "@/components/ui/sheet"
+import { Sheet } from "@/components/ui/sheet"
 import { PasswordAccounts } from "./password-accounts"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { useEffect, useRef, useState } from "react"
@@ -36,7 +37,7 @@ export function PasswordVault({ guestId, url }: { guestId?: () => number | undef
     // Native authentication temporarily blurs Vessel; only clear an already displayed secret.
     const hide = () => setRevealed(null)
     window.addEventListener("blur", hide)
-    const timer = revealed ? setTimeout(hide, 15000) : undefined
+    const timer = revealed ? setTimeout(hide, 10000) : undefined
     return () => { clearTimeout(timer); window.removeEventListener("blur", hide) }
   }, [revealed])
   const [busy, setBusy] = useState(false), [error, setError] = useState("")

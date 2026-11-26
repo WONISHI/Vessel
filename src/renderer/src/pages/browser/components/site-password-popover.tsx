@@ -14,7 +14,7 @@ export function SitePasswordPopover({ accounts, open, onOpenChange, selected, pa
   if (!accounts.length) return null
   const copy = (text: string) => { void navigator.clipboard.writeText(text).catch(() => toast.error("复制失败")) }
   return <Popover open={open} onOpenChange={onOpenChange} modal={false}>
-    <PopoverTrigger asChild><Button type="button" variant="ghost" size="icon" className="size-7 shrink-0 hover:!bg-green-600 hover:!text-white [&:hover_svg]:!text-white" aria-label="此网站已保存的密码" data-title="此网站已保存的密码"><KeyRound className="size-4" /></Button></PopoverTrigger>
+    <PopoverTrigger asChild><Button type="button" variant="ghost" size="icon" className="size-7 shrink-0" aria-label="此网站已保存的密码" data-title="此网站已保存的密码"><KeyRound className="size-4" /></Button></PopoverTrigger>
     <PopoverContent align="end" sideOffset={10} className="z-[260] w-72 max-w-[calc(100vw-68px)] overflow-hidden rounded-xl p-0 data-[state=closed]:animate-none" onCloseAutoFocus={(event) => event.preventDefault()} onFocusOutside={(event) => event.preventDefault()} onInteractOutside={(event) => { if (busy) event.preventDefault() }} onSubmit={(event) => event.stopPropagation()}>
       <div className="flex items-center gap-2 px-4 py-3">
         {selected ? <Button type="button" variant="ghost" size="icon" className="size-7 shrink-0 hover:!bg-green-600 hover:!text-white [&:hover_svg]:!text-white" aria-label="返回账号列表" onClick={onBack}><ArrowLeft className="size-4" /></Button> : <KeyRound className="size-4 shrink-0 text-green-600" />}

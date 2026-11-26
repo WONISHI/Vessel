@@ -1,5 +1,6 @@
+import { BrowserSheetContent as SheetContent } from "@/pages/browser/components/browser-sheet"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet"
+import { Sheet, SheetDescription, SheetTitle } from "@/components/ui/sheet"
 import { Input } from "@/components/ui/input"
 import { browserTabAction } from "@/pages/browser/tab-state"
 import { browserFilePreview } from "../../../../../shared/browser-preview"

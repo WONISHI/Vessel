@@ -133,29 +133,29 @@ export function registerBrowserTools(host: WebContents) {
       }
     } catch { /* Hidden/restored tabs can still load the original image below. */ }
     // The tab strip image loads in the host session, while the page uses its own
-    // partition/proxy. Prefer the displayed icon's cache, then try the page session.
+    // partition/proxy. Race both caches so a slow session cannot block the other.
     const sessions = [...new Set([host.session, target.session])]
-    for (const iconSession of sessions) {
-      try {
-        const response = await iconSession.fetch(url, { cache: "force-cache", signal: AbortSignal.timeout(12000) })
-        if (!response.ok || Number(response.headers.get("content-length")) > 2 * 1024 * 1024) { await response.body?.cancel(); continue }
-        const reader = response.body?.getReader()
-        if (!reader) continue
-        const chunks: Uint8Array[] = []
-        let size = 0
-        while (true) {
-          const { done, value } = await reader.read()
-          if (done) break
-          size += value.length
-          if (size > 2 * 1024 * 1024) { await reader.cancel(); break }
-          chunks.push(value)
-        }
-        if (size > 2 * 1024 * 1024) continue
-        const mime = response.headers.get("content-type")?.split(";")[0].trim() || "image/png"
-        if (!/^image\/[a-z0-9.+-]+$/i.test(mime)) continue
-        return `data:${mime};base64,${Buffer.concat(chunks).toString("base64")}`
-      } catch { /* A cached tab icon may still be available in the other session. */ }
-    }
+    const controller = new AbortController()
+    const result = await Promise.any(sessions.map(async iconSession => {
+      const response = await iconSession.fetch(url, { cache: "force-cache", signal: AbortSignal.any([controller.signal, AbortSignal.timeout(3000)]) })
+      if (!response.ok || Number(response.headers.get("content-length")) > 2 * 1024 * 1024) { await response.body?.cancel(); throw new Error("Invalid favicon response") }
+      const reader = response.body?.getReader()
+      if (!reader) throw new Error("Empty favicon response")
+      const chunks: Uint8Array[] = []
+      let size = 0
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        size += value.length
+        if (size > 2 * 1024 * 1024) { await reader.cancel(); break }
+        chunks.push(value)
+      }
+      if (size > 2 * 1024 * 1024) throw new Error("Favicon too large")
+      const mime = response.headers.get("content-type")?.split(";")[0].trim() || "image/png"
+      if (!/^image\/[a-z0-9.+-]+$/i.test(mime)) throw new Error("Invalid favicon type")
+      return `data:${mime};base64,${Buffer.concat(chunks).toString("base64")}`
+    })).catch(() => undefined).finally(() => controller.abort())
+    if (result) return result
     console.debug("[browser favicon] Could not load icon for color extraction:", url)
     return undefined
   })

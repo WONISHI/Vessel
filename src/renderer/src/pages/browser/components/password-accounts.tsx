@@ -1,7 +1,8 @@
 import { useId, useState } from "react"
-import { ChevronRight, Eye, EyeOff, GitBranch, Globe, KeyRound, Search, Trash2 } from "lucide-react"
+import { ChevronRight, Copy, Eye, GitBranch, Globe, KeyRound, Search, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { toast } from "sonner"
 
 type Entry = { id: string; origin: string; username: string; updated: number; kind?: "git"; gitPath?: string }
 export function SiteLogo({ origin, compact = false }: { origin: string; compact?: boolean }) {
@@ -60,7 +61,7 @@ export function PasswordAccounts({ items, revealed, busy, onReveal, onDelete, on
                 {multipleOrigins && <p className="mt-0.5 truncate text-[10px] text-muted-foreground" title={item.origin}>{item.origin}</p>}
                 {item.kind === "git" && item.gitPath && <p className="mt-1 truncate text-[10px] text-muted-foreground" title={item.gitPath}>{item.gitPath}</p>}
                 </div>
-                <div className="flex shrink-0 items-center gap-1"><span aria-label="已保存密码" className="max-w-24 break-all font-mono text-[11px] select-text">{shown ? revealed.password : "••••••••"}</span><Button type="button" variant="ghost" size="icon" className={`size-6 shrink-0 ${greenHover}`} disabled={busy} aria-label={shown ? "隐藏密码" : "查看密码"} data-title={shown ? "隐藏密码" : "查看密码"} onClick={() => onReveal(item.id)}>{shown ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}</Button><Button type="button" variant="ghost" size="icon" className="size-6 shrink-0 text-red-600 hover:!bg-red-600 hover:!text-white [&:hover_svg]:!text-white" disabled={busy} aria-label="删除账号" data-title="删除账号" onClick={() => onDelete(item.id)}><Trash2 className="size-3.5" /></Button></div>
+                <div className="flex shrink-0 items-center gap-1"><span aria-label="已保存密码" className="max-w-24 break-all font-mono text-[11px] select-text">{shown ? revealed.password : "••••••••"}</span><Button type="button" variant="ghost" size="icon" className={`size-6 shrink-0 ${greenHover}`} disabled={busy} aria-label={shown ? "复制密码" : "查看密码"} data-title={shown ? "复制密码" : "查看密码"} onClick={() => { if (shown) void navigator.clipboard.writeText(revealed.password).catch(() => toast.error("复制失败")); else onReveal(item.id) }}>{shown ? <Copy className="size-3.5" /> : <Eye className="size-3.5" />}</Button><Button type="button" variant="ghost" size="icon" className="size-6 shrink-0 text-red-600 hover:!bg-red-600 hover:!text-white [&:hover_svg]:!text-white" disabled={busy} aria-label="删除账号" data-title="删除账号" onClick={() => onDelete(item.id)}><Trash2 className="size-3.5" /></Button></div>
               </div>
             })}
           </div>}

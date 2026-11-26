@@ -30,9 +30,19 @@ it("opens from the browser menu and only displays a password after system authen
   try {
     await act(async () => { fireEvent.click(result.getByRole("button", { name: "查看密码" })) })
     expect(result.getByText("site-secret")).toBeTruthy()
-    await act(async () => { await vi.advanceTimersByTimeAsync(15000) })
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    vi.stubGlobal("navigator", { ...navigator, clipboard: { writeText } })
+    await act(async () => { await vi.advanceTimersByTimeAsync(9000) })
+    fireEvent.click(result.getByRole("button", { name: "复制密码" }))
+    expect(writeText).toHaveBeenCalledWith("site-secret")
+    expect(request.mock.calls.filter(([action]) => action === "reveal")).toHaveLength(2)
+    await act(async () => { await vi.advanceTimersByTimeAsync(1000) })
     expect(result.queryByText("site-secret")).toBeNull()
-  } finally { vi.useRealTimers() }
+    expect(result.queryByRole("button", { name: "复制密码" })).toBeNull()
+    await act(async () => { fireEvent.click(result.getByRole("button", { name: "查看密码" })) })
+    expect(request.mock.calls.filter(([action]) => action === "reveal")).toHaveLength(3)
+    expect(result.getByText("site-secret")).toBeTruthy()
+  } finally { vi.useRealTimers(); vi.unstubAllGlobals() }
 })
 
 it("shows an empty all-sites list instead of vault setup when no credentials exist", async () => {

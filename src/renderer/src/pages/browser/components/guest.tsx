@@ -10,13 +10,17 @@ import { webviewAttributes } from "@/pages/browser/webview-attributes"
 import type { WebviewTag } from "electron"
 import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react"
 
+// Reuse successful icon samples across tabs in the same browser partition.
+const siteIconColors = new Map<string, string>()
+
 /** Renders the guest component. */
 export const Guest = memo(function Guest({ tab, partition, visible, register, update }: { partition?: string; tab: Tab; visible: boolean; register: (id: string, view: WebviewTag | null) => void; update: (id: string, patch: Partial<Tab>) => void }) {
   const dark = useDarkAppearance()
   const ref = useRef<WebviewTag | null>(null)
   const [documentReady, setDocumentReady] = useState(0)
   const [iconRevision, setIconRevision] = useState(0)
-  const iconColors = useRef(new Map<string, string>())
+  const updateRef = useRef(update)
+  useLayoutEffect(() => { updateRef.current = update }, [update])
   useEffect(() => {
     const loaded = (event: Event) => {
       const source = (event as CustomEvent<string>).detail
@@ -32,9 +36,10 @@ export const Guest = memo(function Guest({ tab, partition, visible, register, up
     const view = ref.current
     if (!view) return
     let cancelled = false
+    let retryTimer: ReturnType<typeof setTimeout> | undefined
     const apply = (color: string) => {
       if (cancelled) return
-      update(tab.id, { faviconColor: color })
+      updateRef.current(tab.id, { faviconColor: color })
       withGuest(view, guest => guest.send("vessel:site-color", color))
     }
     let source = tab.favicon
@@ -46,26 +51,35 @@ export const Guest = memo(function Guest({ tab, partition, visible, register, up
     }
     let origin = tab.url
     try { origin = new URL(tab.url).origin } catch { /* Blank/local page. */ }
-    const key = `${origin}\n${source || ""}`
-    const savedColor = () => iconColors.current.get(key) || DEFAULT_SITE_COLOR
+    const key = `${partition || webviewAttributes.partition}\n${origin}\n${source || ""}`
+    const savedColor = () => siteIconColors.get(key) || DEFAULT_SITE_COLOR
     apply(savedColor())
     const resolved = (color: string) => {
       if (cancelled) return
       // Failed refreshes must not replace a color already obtained for this icon.
       if (color !== DEFAULT_SITE_COLOR) {
-        iconColors.current.delete(key)
-        iconColors.current.set(key, color)
-        if (iconColors.current.size > 16) iconColors.current.delete(iconColors.current.keys().next().value!)
+        siteIconColors.delete(key)
+        siteIconColors.set(key, color)
+        if (siteIconColors.size > 128) siteIconColors.delete(siteIconColors.keys().next().value!)
       }
       apply(savedColor())
     }
-    if (source && window.electronAPI?.browserFaviconData) {
+    if (source && window.electronAPI?.browserFaviconData && !siteIconColors.has(key)) {
       const id = withGuest(view, guest => guest.getWebContentsId())
-      if (id !== undefined) void window.electronAPI.browserFaviconData(id, source)
-        .then(data => faviconColor(data)).then(resolved).catch(() => resolved(DEFAULT_SITE_COLOR))
+      const sample = async (attempt: number) => {
+        if (cancelled || id === undefined) return
+        const data = await window.electronAPI.browserFaviconData(id, source!).catch(() => undefined)
+        const color = await faviconColor(data)
+        if (cancelled) return
+        resolved(color)
+        // The icon can be announced before its first paint/cache entry is ready.
+        // Retry locally instead of requiring the user to reload the whole page.
+        if (color === DEFAULT_SITE_COLOR && attempt < 3) retryTimer = setTimeout(() => void sample(attempt + 1), [150, 500, 1500][attempt])
+      }
+      void sample(0)
     }
-    return () => { cancelled = true }
-  }, [documentReady, iconRevision, tab.id, tab.url, tab.favicon, update])
+    return () => { cancelled = true; clearTimeout(retryTimer) }
+  }, [documentReady, iconRevision, tab.id, tab.url, tab.favicon, partition])
   const zoomRef = useRef(tab.zoom ?? 1)
   const visibleRef = useRef(visible)
   const syncZoom = useCallback(() => {
@@ -99,16 +113,16 @@ export const Guest = memo(function Guest({ tab, partition, visible, register, up
   }, [dark, visible, documentReady])
   const [initialURL] = useState(tab.url)
   const [initialAttributes] = useState(() => ({ ...webviewAttributes, partition: partition || webviewAttributes.partition, webpreferences: `zoomFactor=${tab.zoom}` }))
-  const updateRef = useRef(update)
-  useEffect(() => {
-    updateRef.current = update
-  }, [update])
   useEffect(() => {
     const view = ref.current
     if (!view) return
 
+    let navigationURL = tab.url
     /** Synchronizes sync. */
-    const sync = () => withGuest(view, (guest) => updateRef.current(tab.id, { url: guest.getURL(), title: guest.getTitle() || "正在加载…", back: guest.canGoBack(), forward: guest.canGoForward() }))
+    const sync = () => withGuest(view, (guest) => {
+      navigationURL = guest.getURL()
+      updateRef.current(tab.id, { url: navigationURL, title: guest.getTitle() || "正在加载…", back: guest.canGoBack(), forward: guest.canGoForward() })
+    })
 
     let mediaRevision = 0
     const syncVideoPlaying = () => {
@@ -143,7 +157,14 @@ export const Guest = memo(function Guest({ tab, partition, visible, register, up
       if (event.isMainFrame && !event.isInPlace) {
         mediaRevision++
         setDocumentReady(0)
-        updateRef.current(tab.id, { loading: true, error: "", favicon: undefined, faviconColor: undefined, devError: undefined, videoPlaying: false, mediaPlaying: false })
+        let sameSite = false
+        try {
+          const previous = new URL(navigationURL), next = new URL(event.url)
+          sameSite = previous.origin !== "null" ? previous.origin === next.origin : previous.href === next.href
+        } catch { /* Unknown destinations reset the previous site's accent. */ }
+        navigationURL = event.url
+        // Reloading must not flash the green fallback while the button shows Stop.
+        updateRef.current(tab.id, { loading: true, error: "", ...(!sameSite ? { favicon: undefined, faviconColor: undefined } : {}), devError: undefined, videoPlaying: false, mediaPlaying: false })
       }
     }
 

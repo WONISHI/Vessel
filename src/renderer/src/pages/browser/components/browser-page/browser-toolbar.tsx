@@ -1,3 +1,4 @@
+import { BrowserSiteColorContext } from "@/pages/browser/components/browser-site-color-context"
 import { PasswordVault } from "@/pages/browser/components/password-vault"
 import { FloatingVideo } from "./floating-video"
 import { SearchEnginePicker } from "./search-engine-picker"
@@ -29,7 +30,7 @@ export function BrowserToolbar({ b, visible = true }: { b: BrowserPageModel; vis
   const editing = focused || engineOpen
 
   return (
-            <div className="browser-toolbar" style={{ "--browser-site-color": effectiveSiteColor(tab.faviconColor) } as CSSProperties}>
+            <BrowserSiteColorContext.Provider value={effectiveSiteColor(tab.faviconColor)}><div className="browser-toolbar" style={{ "--browser-site-color": effectiveSiteColor(tab.faviconColor) } as CSSProperties}>
               <Button
                 variant="ghost"
                 size="icon"
@@ -221,6 +222,6 @@ export function BrowserToolbar({ b, visible = true }: { b: BrowserPageModel; vis
                   setDeviceMode((value) => !value)
                 }}
               />
-            </div>
+            </div></BrowserSiteColorContext.Provider>
   )
 }

@@ -1,6 +1,7 @@
+import { BrowserSheetContent as SheetContent } from "@/pages/browser/components/browser-sheet"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useDialogLayout } from "@/features/layout/use-dialog-layout"
-import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet"
+import { Sheet, SheetDescription, SheetTitle } from "@/components/ui/sheet"
 import { PAGE_SIZE, groupHistory } from "@/pages/browser/components/history-sheet/components/history-sheet-shared"
 import { SiteIcon } from "@/pages/browser/components/history-sheet/components/site-icon"
 import type { HistoryEntry } from "@vessel/type"
@@ -107,7 +108,7 @@ export function HistorySheet({ open, onOpenChange, entries, error, onDelete, onN
             </div>
           </div>
           <SheetDescription className="sr-only">仅保留最近 30 天的浏览记录，支持搜索和删除。</SheetDescription>
-          <div className="flex h-8 items-center gap-1.5 rounded-md border border-stone-200 bg-stone-50 px-2 focus-within:border-green-600">
+          <div data-browser-field="" className="flex h-8 items-center gap-1.5 rounded-md border border-stone-200 bg-stone-50 px-2 transition-[border-color,box-shadow]">
             <Search
               size={14}
               className="text-stone-400"
