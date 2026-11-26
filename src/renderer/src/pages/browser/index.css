@@ -473,7 +473,7 @@ html.dark .browser-devtools > header :is(select, button):focus-visible {
 }
 
 .browser-toolbar > .browser-extension-button:hover {
-  background: #166534 !important;
+  background: var(--browser-site-color, #16a34a) !important;
   color: white !important;
 }
 
@@ -501,12 +501,12 @@ html.dark .browser-devtools > header :is(select, button):focus-visible {
 
 .browser-toolbar > button:not(:disabled):hover,
 .browser-toolbar > .browser-extension-button:hover {
-  background: #399788 !important;
+  background: var(--browser-site-color, #16a34a) !important;
   color: #fff !important;
 }
 .browser-more-item[data-highlighted],
 .browser-more-item:focus {
-  background: #399788 !important;
+  background: var(--browser-site-color, #16a34a) !important;
   color: #fff !important;
 }
 .browser-more-item[data-highlighted] svg,
@@ -585,7 +585,7 @@ html.dark .browser-loading-content small { color: #8c96a3; }
 html:not(.dark) .browser-more-item[data-highlighted],
 html:not(.dark) .browser-more-item:focus,
 html:not(.dark) .browser-more-item:hover {
-  background-color: #16a34a !important;
+  background-color: var(--browser-site-color, #16a34a) !important;
   color: #fff !important;
 }
 html:not(.dark) .browser-more-item:hover svg {
@@ -752,6 +752,11 @@ html.dark .browser-devtools-settings select { background: #20242a; border-color:
 
 /* The page menu is portalled outside the tab, so pass its favicon color explicitly. */
 [data-browser-site-menu] [role="menuitem"]:is(:hover, [data-highlighted], :focus-visible):not([data-disabled]) {
+  background-color: var(--browser-site-color, #16a34a) !important;
+  color: #fff !important;
+}
+
+.vessel-browser-more-popup button:not(:disabled):is(:hover, :focus-visible) {
   background-color: var(--browser-site-color, #16a34a) !important;
   color: #fff !important;
 }

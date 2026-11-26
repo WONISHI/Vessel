@@ -1,0 +1,61 @@
+[data-resource-file-tree] {
+  --resource-tree-text: #333333;
+  --resource-tree-hover: #e8e8e8;
+  --resource-tree-selection: #cce8ff;
+  --resource-tree-selection-text: #000000;
+  --resource-tree-inactive-selection: #e4e6f1;
+  --resource-tree-focus: #0090f1;
+}
+html.dark [data-resource-file-tree] {
+  --resource-tree-text: #cccccc;
+  --resource-tree-hover: #2a2d2e;
+  --resource-tree-selection: #04395e;
+  --resource-tree-selection-text: #ffffff;
+  --resource-tree-inactive-selection: #37373d;
+  --resource-tree-focus: #007fd4;
+}
+[data-resource-file-tree] [data-workspace-tree-row] {
+  background: transparent !important;
+  color: var(--resource-tree-text) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  outline: none !important;
+  font-weight: 400 !important;
+}
+[data-resource-file-tree] [data-workspace-tree-row]:hover {
+  background: var(--resource-tree-hover) !important;
+  color: var(--resource-tree-text) !important;
+}
+[data-resource-file-tree] [data-workspace-tree-row][data-selected="true"] {
+  background: var(--resource-tree-inactive-selection) !important;
+  color: var(--resource-tree-text) !important;
+}
+[data-resource-file-tree][data-window-active="true"]:focus-within [data-workspace-tree-row][data-selected="true"] {
+  background: var(--resource-tree-selection) !important;
+  color: var(--resource-tree-selection-text) !important;
+}
+[data-resource-file-tree][data-window-active="true"]:focus-within [data-workspace-tree-row]:focus {
+  outline: 1px solid var(--resource-tree-focus) !important;
+  outline-offset: -1px !important;
+}
+[data-resource-file-tree] [data-workspace-tree-row][data-selected="true"] [data-tree-label] {
+  color: inherit !important;
+}
+/* Outrank the shared dark workspace selection rules without recoloring theme images. */
+html.dark [data-resource-file-tree] [data-workspace-tree-row],
+html.dark [data-resource-file-tree] [data-workspace-tree-row]:hover {
+  color: var(--resource-tree-text) !important;
+}
+html.dark [data-resource-file-tree] [data-workspace-tree-row]:hover { background: var(--resource-tree-hover) !important; }
+html.dark [data-resource-file-tree] [data-workspace-tree-row][data-selected="true"],
+html.dark [data-resource-file-tree] [data-workspace-tree-row][data-selected="true"]:hover {
+  background: var(--resource-tree-inactive-selection) !important;
+  color: var(--resource-tree-text) !important;
+}
+html.dark [data-resource-file-tree][data-window-active="true"]:focus-within [data-workspace-tree-row][data-selected="true"],
+html.dark [data-resource-file-tree][data-window-active="true"]:focus-within [data-workspace-tree-row][data-selected="true"]:hover {
+  background: var(--resource-tree-selection) !important;
+  color: var(--resource-tree-selection-text) !important;
+}
+html.dark [data-resource-file-tree] [data-workspace-tree-row][data-selected="true"] [data-tree-icon="folder"] { color: #e9a23b !important; }
+html.dark [data-resource-file-tree] [data-workspace-tree-row][data-selected="true"] [data-tree-icon="file"] { color: var(--resource-tree-text) !important; }

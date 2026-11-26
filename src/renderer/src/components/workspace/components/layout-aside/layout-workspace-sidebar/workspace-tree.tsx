@@ -1,5 +1,6 @@
 import { useDirectoryTreeLayout } from "@/features/directory-tree/state"
 import { useResourceStickyScroll } from "@/features/directory-tree/use-resource-sticky-scroll"
+import "./resource-tree-selection.css"
 import { FileIconScope } from "@/features/file-icons/state"
 import { treeRevealScrollTop } from "@/components/workspace/components/layout-aside/layout-workspace-sidebar/reveal-scroll"
 import { useTreeDragAutoScroll } from "@/components/workspace/components/layout-aside/layout-workspace-sidebar/use-tree-drag-scroll"
@@ -63,6 +64,15 @@ export default function WorkspaceTree({
   const { workspace, openFiles, activeFilePath, openWorkspaceFile, renameWorkspaceTab, expandedFolders, setDirectoryExpanded } = useWorkspace()
   const layout = useDirectoryTreeLayout()
   const resourceSelection = useContext(FileIconScope) === "resources"
+  const [windowActive, setWindowActive] = useState(() => document.hasFocus())
+  useEffect(() => {
+    if (!resourceSelection) return
+    const focus = () => setWindowActive(true)
+    const blur = () => setWindowActive(false)
+    window.addEventListener("focus", focus)
+    window.addEventListener("blur", blur)
+    return () => { window.removeEventListener("focus", focus); window.removeEventListener("blur", blur) }
+  }, [resourceSelection])
   const stickyScroll = useResourceStickyScroll(resourceSelection)
   const selectionRoot = useRef<HTMLDivElement>(null)
   const { rowHeight, indent, gap } = layout
@@ -383,7 +393,7 @@ export default function WorkspaceTree({
   if (!rows.length) return <p className="p-2 text-xs text-stone-400">暂无文件</p>
   return (
     <>
-      <div ref={selectionRoot} onKeyDown={keyboardSelection}>
+      <div ref={selectionRoot} data-resource-file-tree={resourceSelection ? "" : undefined} data-window-active={resourceSelection ? windowActive : undefined} onKeyDown={keyboardSelection}>
       <VirtualTree
         stickyScroll={stickyScroll && !recent && !draft && !renamingPath}
         rows={rows}
@@ -494,7 +504,7 @@ export default function WorkspaceTree({
                 <FileTreeItem
                   rootPath={workspace.path}
                   node={node}
-                  selected={selection.includes(node.path) || (!selection.length && node.path === activeFilePath)}
+                  selected={resourceSelection ? selection.includes(node.path) : selection.includes(node.path) || (!selection.length && node.path === activeFilePath)}
                   expanded={Boolean(expanded)}
                   loading={Boolean(expanded && !directories[node.path])}
                   error={directories[node.path]?.error}

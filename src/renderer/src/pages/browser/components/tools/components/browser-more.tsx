@@ -6,11 +6,12 @@ import { HistorySheet } from "@/pages/browser/components/history-sheet"
 import type { HistoryEntry } from "@vessel/type"
 import type { WebviewTag } from "electron"
 import { VenetianMask, UserRound, X, Download, Bookmark, KeyRound, History, MoreHorizontal, Printer, Search, Smartphone, ZoomIn, ZoomOut } from "lucide-react"
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, type CSSProperties } from "react"
+import { effectiveSiteColor } from "@/pages/browser/favicon-color"
 import { toast } from "sonner"
 
 /** Renders the browser more component. */
-export function BrowserMore({ visible = true, zoom, zoomFactor, onFind, onNavigate, guest, deviceMode, onDevice, bookmarksVisible, onToggleBookmarks, incognito = false, hasIncognito = false, onEnterIncognito, onCloseIncognito, onSwitchUserWindow }: { incognito?: boolean; hasIncognito?: boolean; onEnterIncognito?: () => Promise<void>; onCloseIncognito?: () => Promise<void>; onSwitchUserWindow?: () => void; bookmarksVisible: boolean; onToggleBookmarks: () => void; visible?: boolean; zoomFactor: number; zoom: (delta: number) => void; onFind: () => void; onNavigate: (url: string) => void; guest: () => WebviewTag | undefined; deviceMode: boolean; onDevice: () => void }) {
+export function BrowserMore({ siteColor, visible = true, zoom, zoomFactor, onFind, onNavigate, guest, deviceMode, onDevice, bookmarksVisible, onToggleBookmarks, incognito = false, hasIncognito = false, onEnterIncognito, onCloseIncognito, onSwitchUserWindow }: { siteColor?: string; incognito?: boolean; hasIncognito?: boolean; onEnterIncognito?: () => Promise<void>; onCloseIncognito?: () => Promise<void>; onSwitchUserWindow?: () => void; bookmarksVisible: boolean; onToggleBookmarks: () => void; visible?: boolean; zoomFactor: number; zoom: (delta: number) => void; onFind: () => void; onNavigate: (url: string) => void; guest: () => WebviewTag | undefined; deviceMode: boolean; onDevice: () => void }) {
   const [open, setOpen] = useState(false)
   const openingPanel = useRef(false)
   const [confirmCloseIncognito, setConfirmCloseIncognito] = useState(false)
@@ -67,6 +68,8 @@ export function BrowserMore({ visible = true, zoom, zoomFactor, onFind, onNaviga
           }}
           align="end"
           sideOffset={8}
+          data-browser-site-menu=""
+          style={{ "--browser-site-color": effectiveSiteColor(siteColor) } as CSSProperties}
           className="vessel-browser-more-popup z-[250] w-60 rounded-xl border-stone-200 bg-white p-1.5 shadow-lg"
         >
           <div className="flex items-center justify-between gap-3 px-2.5 py-2">

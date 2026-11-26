@@ -1,7 +1,8 @@
 import { PasswordVault } from "@/pages/browser/components/password-vault"
 import { FloatingVideo } from "./floating-video"
 import { SearchEnginePicker } from "./search-engine-picker"
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, type CSSProperties } from "react"
+import { effectiveSiteColor } from "@/pages/browser/favicon-color"
 import { addTransit } from "@/components/transit/state"
 import { Button } from "@/components/ui/button"
 import { BrowserExtensions } from "@/pages/browser/components/extensions"
@@ -28,7 +29,7 @@ export function BrowserToolbar({ b, visible = true }: { b: BrowserPageModel; vis
   const editing = focused || engineOpen
 
   return (
-            <div className="browser-toolbar">
+            <div className="browser-toolbar" style={{ "--browser-site-color": effectiveSiteColor(tab.faviconColor) } as CSSProperties}>
               <Button
                 variant="ghost"
                 size="icon"
@@ -201,6 +202,7 @@ export function BrowserToolbar({ b, visible = true }: { b: BrowserPageModel; vis
                 }}
               />
               <BrowserMore
+                siteColor={tab.faviconColor}
                 incognito={b.incognito}
                 hasIncognito={Boolean(b.privateWindow)}
                 onEnterIncognito={b.enterIncognito}

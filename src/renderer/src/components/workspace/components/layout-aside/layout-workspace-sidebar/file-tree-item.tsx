@@ -1,6 +1,6 @@
 import { useDirectoryTreeLayout } from "@/features/directory-tree/state"
 import { fileTreeRowStyle } from "./tree-layout"
-import { useShowFileTypeBadges, useShowGitDecorations } from "@/features/file-icons/state"
+import { FileIconScope, useShowFileTypeBadges, useShowGitDecorations } from "@/features/file-icons/state"
 import { gitDecorationStyle, useGitDecoration } from "@/features/git-decorations"
 import { FileThemeIcon } from "@/features/file-icons"
 import { Button } from "@/components/ui/button"
@@ -8,7 +8,7 @@ import { getFilePresentation } from "@/components/workspace/components/layout-as
 import type { WorkspaceNode } from "@/components/workspace/types/workspace"
 import { cn } from "@/lib/utils"
 import { ChevronRight, File, Folder, LoaderCircle } from "lucide-react"
-import type { MouseEvent } from "react"
+import { useContext, type MouseEvent } from "react"
 import { useDelayedLoading } from "@/hooks/use-delayed-loading"
 
 interface FileTreeItemProps {
@@ -23,6 +23,7 @@ interface FileTreeItemProps {
 /** 虚拟树中的单行；不递归挂载子节点。 */
 export default function FileTreeItem({ node, rootPath, selected, expanded, loading, error, onActivate }: FileTreeItemProps) {
   const showLoading = useDelayedLoading(Boolean(loading))
+  const resourceSelection = useContext(FileIconScope) === "resources"
   const layout = useDirectoryTreeLayout()
   const root = rootPath?.replace(/\\/g, "/").replace(/\/$/, "")
   const path = node.path.replace(/\\/g, "/")
@@ -42,7 +43,7 @@ export default function FileTreeItem({ node, rootPath, selected, expanded, loadi
       data-title-side="right"
       style={fileTreeRowStyle(layout)}
       onClick={onActivate}
-      className={cn("min-w-0 w-full overflow-hidden justify-start rounded-[2px] py-0 !font-normal transition-none focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:bg-emerald-50", selected ? "bg-emerald-50 text-green-700 hover:bg-emerald-50 hover:text-green-700 cursor-pointer shadow-none" : "text-stone-700 hover:bg-[#f0efed] hover:text-stone-900")}
+      className={cn("min-w-0 w-full overflow-hidden justify-start rounded-[2px] py-0 !font-normal transition-none focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0", resourceSelection ? "bg-transparent" : ["focus-visible:bg-emerald-50", selected ? "bg-emerald-50 text-green-700 hover:bg-emerald-50 hover:text-green-700 cursor-pointer shadow-none" : "text-stone-700 hover:bg-[#f0efed] hover:text-stone-900"])}
     >
       <span
         aria-hidden

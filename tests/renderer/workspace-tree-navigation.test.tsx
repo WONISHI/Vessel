@@ -206,3 +206,22 @@ it("supports resource-tree modifier clicks, keyboard ranges, select-all and focu
   expect(selected()).toEqual(["a.ts", "b.ts"])
   expect(open).not.toHaveBeenCalled()
 })
+
+it("allows deselecting the open resource file and tracks window focus without changing the selection", async () => {
+  const { FileIconScope } = await import("@/features/file-icons/state")
+  window.electronAPI = { ...window.electronAPI, getGitDecorations: vi.fn().mockResolvedValue({ entries: [] }) } as any
+  const files = [{ name: "active.ts", path: "/focus/active.ts", type: "file" }]
+  const context = { workspace: { name: "focus", path: "/focus" }, openFiles: files, activeFilePath: files[0].path, openWorkspaceFile: vi.fn(), expandedFolders: [], setDirectoryExpanded: vi.fn() }
+  render(<FileIconScope.Provider value="resources"><WorkspaceContext.Provider value={context as any}><WorkspaceTree viewport={null} recent /></WorkspaceContext.Provider></FileIconScope.Provider>)
+  const row = screen.getByRole("button", { name: "active.ts" })
+  await waitFor(() => expect(row.getAttribute("data-selected")).toBe("true"))
+  fireEvent.click(row, { ctrlKey: true })
+  expect(row.getAttribute("data-selected")).toBe("false")
+  expect(row.getAttribute("aria-pressed")).toBe("false")
+  const root = document.querySelector("[data-resource-file-tree]")!
+  fireEvent.focus(window)
+  expect(root.getAttribute("data-window-active")).toBe("true")
+  fireEvent.blur(window)
+  expect(root.getAttribute("data-window-active")).toBe("false")
+  expect(row.getAttribute("data-selected")).toBe("false")
+})
