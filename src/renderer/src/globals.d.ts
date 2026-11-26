@@ -138,7 +138,7 @@ interface VesselAPI extends AppUpdateAPI, BrowserProxyAPI, BrowserToolsAPI, Sett
   onCommandPalette: (callback: (command?: string) => void) => () => void
   onBrowserToggleDevtools: (callback: (id: number) => void) => () => void
   onBrowserFind: (callback: (id: number) => void) => () => void
-  setBrowserDevtools: (id: number | null, bounds?: { x: number; y: number; width: number; height: number }, appearance?: { font: string; size: number; detached?: boolean; hidden?: boolean; occluded?: boolean; pageTitle?: string; pageURL?: string; inspect?: { x: number; y: number; property?: string; targetKey?: string }; control?: { x: number; y: number; width: number; height: number; icon: string; color: string; background: string; border: string; shadow: string } }) => Promise<void>
+  setBrowserDevtools: (id: number | null, bounds?: { x: number; y: number; width: number; height: number }, appearance?: { font: string; size: number; language?: "zh" | "en-US"; detached?: boolean; hidden?: boolean; occluded?: boolean; pageTitle?: string; pageURL?: string; inspect?: { x: number; y: number; property?: string; targetKey?: string }; control?: { x: number; y: number; width: number; height: number; icon: string; color: string; background: string; border: string; shadow: string } }) => Promise<void>
   onNavigationRequest(callback: (request: { id: number; url: string; defaultCurrent: boolean; delayMs: number }) => void): () => void
   onNavigationDismiss(callback: (id: number) => void): () => void
   answerNavigation(id: number, current: boolean): Promise<void>

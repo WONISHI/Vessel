@@ -36,7 +36,7 @@ export function GitDialogs({ g }: { g: GitPageModel }) {
         {g.tagTarget?.repoPath === repoPath && (
           <CreateTagDialog key={repoPath + g.tagTarget.hash} repoPath={repoPath} hash={g.tagTarget.hash} onClose={() => g.setTagTarget(null)} onCreated={refresh} />
         )}
-        {stashRequest && <StashDialog key={stashRequest.defaultMessage} request={stashRequest} onClose={() => setStashRequest(null)} onSubmit={submitStash} />}
+        {stashRequest && <StashDialog request={stashRequest} onClose={() => setStashRequest(null)} onSubmit={submitStash} />}
         {/* 弹窗：新建分支 */}
         <CreateBranchDialog
           open={createBranchOpen}

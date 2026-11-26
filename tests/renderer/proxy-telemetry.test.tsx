@@ -24,6 +24,7 @@ it("separates provider quotas from local counters and explains unavailable TUN",
  expect(screen.getByText("2.0 KB")).toBeTruthy()
  expect(screen.getByRole("switch",{name:"虚拟网卡 TUN"}).hasAttribute("disabled")).toBe(true)
  expect(screen.getByText("需要管理员权限")).toBeTruthy()
+ expect(screen.getByRole("combobox",{name:"代理范围"}).textContent).toContain("代理系统")
  fireEvent.click(screen.getByRole("button",{name:"刷新订阅信息"}))
  expect(refresh).toHaveBeenCalledOnce()
 })

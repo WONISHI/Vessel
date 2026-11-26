@@ -1,4 +1,6 @@
 import { enableBrowserElementInspection } from "./browser-devtools-inspect"
+import { applyBrowserDevtoolsLanguage } from "./browser-devtools-language"
+import type { BrowserDevtoolsLanguage } from "@vessel/type"
 import { revealBrowserStyle } from "./browser-inspect-style"
 import { bindBrowserDevtoolsWindow } from "./browser-devtools-window"
 import { enableBrowserNodeScreenshots, registerBrowserNodeScreenshotSave } from "./browser-devtools-screenshot"
@@ -20,6 +22,7 @@ export function registerBrowserDevtools(host: WebContents) {
   let originalThrottling: boolean | undefined
   let inspected: WebContents | undefined
   let appearance = { font: "Menlo", size: 13 }
+  let language: BrowserDevtoolsLanguage = "zh"
   let cssKey: string | undefined
   let controlState = ""
 
@@ -110,7 +113,7 @@ export function registerBrowserDevtools(host: WebContents) {
     inspected = undefined
     originalThrottling = undefined
   }
-  host.ipc.handle("browser:devtools", (_event, id: number | null, bounds?: Electron.Rectangle, options?: { font: string; size: number; detached?: boolean; hidden?: boolean; occluded?: boolean; pageTitle?: string; pageURL?: string; inspect?: { x: number; y: number; property?: string; targetKey?: string }; control?: { x: number; y: number; width: number; height: number; icon: string; color: string; background: string; border: string; shadow: string } }) => {
+  host.ipc.handle("browser:devtools", (_event, id: number | null, bounds?: Electron.Rectangle, options?: { font: string; size: number; language?: BrowserDevtoolsLanguage; detached?: boolean; hidden?: boolean; occluded?: boolean; pageTitle?: string; pageURL?: string; inspect?: { x: number; y: number; property?: string; targetKey?: string }; control?: { x: number; y: number; width: number; height: number; icon: string; color: string; background: string; border: string; shadow: string } }) => {
     if (id === null) {
       close()
       return
@@ -119,10 +122,14 @@ export function registerBrowserDevtools(host: WebContents) {
     const window = BrowserWindow.fromWebContents(host)
     if (!guest || guest.hostWebContents !== host || !window) throw new Error("无法打开当前网页控制台")
     if (!bounds || ![bounds.x, bounds.y, bounds.width, bounds.height].every(Number.isFinite)) throw new Error("控制台区域无效")
+    const existingFrontend = inspected === guest ? panel?.webContents : undefined
     const appearanceChanged = options && (appearance.font !== options.font || appearance.size !== options.size)
+    const languageChanged = options?.language !== undefined && options.language !== language
     if (options) {
+      if (options.language !== undefined && options.language !== "zh" && options.language !== "en-US") throw new Error("控制台界面语言无效")
       if (!["Plus Jakarta Sans", "Menlo", "Consolas", "Courier New", "monospace", "system-ui"].includes(options.font) || ![11, 12, 13, 14, 16, 18, 20].includes(options.size)) throw new Error("控制台字体设置无效")
       appearance = { font: options.font, size: options.size }
+      if (options.language) language = options.language
     }
     if (inspected !== guest || !panel) {
       close()
@@ -138,6 +145,13 @@ export function registerBrowserDevtools(host: WebContents) {
         // A fresh page has none of the injected CSS yet.
         cssKey = undefined
         void applyAppearance(true).catch(console.error)
+        const frontend = panel?.webContents
+        if (frontend) void applyBrowserDevtoolsLanguage(frontend, language).then(changed => {
+          if (changed || frontend.isDestroyed()) return
+          // Locale changes reload the frontend, so restore Vessel's inspection tools.
+          void enableBrowserElementInspection(frontend).catch(console.error)
+          void enableBrowserNodeScreenshots(frontend).catch(console.error)
+        }).catch(console.error)
       })
       // F12 inside the DevTools panel itself toggles (closes) it through the same renderer path as the page/toolbar.
       const inspectedId = guest.id
@@ -204,6 +218,7 @@ export function registerBrowserDevtools(host: WebContents) {
       }
     }
     if (appearanceChanged) void applyAppearance().catch(console.error)
+    if (languageChanged && existingFrontend && !existingFrontend.isLoading()) void applyBrowserDevtoolsLanguage(existingFrontend, language).catch(console.error)
     // Size the surface before capturing, including when a portal already covers a newly opened console.
     if (!detachedWindow && (options?.hidden !== true || options?.occluded === true)) {
       const size = window.getContentBounds()

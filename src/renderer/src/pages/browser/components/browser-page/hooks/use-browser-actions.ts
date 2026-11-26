@@ -10,7 +10,7 @@ import type { BrowserState } from "@/pages/browser/components/browser-page/hooks
 
 /** 页内查找、控制台挂载、导航与标签操作 */
 export function useBrowserActions(state: BrowserState, visible: boolean) {
-  const { tabs, setTabs, setAllTabs, setFindOpen, setFindPosition, setToolbarCollapsed, toolbarCollapsed, findInput, devtoolsOpen, setDevtoolsOpen, dock, consoleFont, consoleSize, devtoolsHost, setActive, setInput, bookmarks, setBookmarks, views, tab, input } = state
+  const { tabs, setTabs, setAllTabs, setFindOpen, setFindPosition, setToolbarCollapsed, toolbarCollapsed, findInput, devtoolsOpen, setDevtoolsOpen, dock, consoleFont, consoleSize, consoleLanguage, devtoolsHost, setActive, setInput, bookmarks, setBookmarks, views, tab, input } = state
 
 
   /** Reloads tab. */
@@ -151,7 +151,7 @@ export function useBrowserActions(state: BrowserState, visible: boolean) {
         const inspect = pendingInspect.current
         pendingInspect.current = undefined
         devtoolsAttached.current = true
-        void window.electronAPI.setBrowserDevtools(view.getWebContentsId(), { x, y, width, height }, { font: consoleFont, size: consoleSize, detached: dock === "detached", hidden: !visible || (dock !== "detached" && (popupOpen || width < 1 || height < 1)), occluded: visible && dock !== "detached" && popupOpen, pageTitle: tab.title, pageURL: input ?? tab.url, inspect, control: controlOverlay }).catch((error) => {
+        void window.electronAPI.setBrowserDevtools(view.getWebContentsId(), { x, y, width, height }, { font: consoleFont, size: consoleSize, language: consoleLanguage, detached: dock === "detached", hidden: !visible || (dock !== "detached" && (popupOpen || width < 1 || height < 1)), occluded: visible && dock !== "detached" && popupOpen, pageTitle: tab.title, pageURL: input ?? tab.url, inspect, control: controlOverlay }).catch((error) => {
           if (!disposed) {
             update(tab.id, { error: String(error) })
             setDevtoolsOpen(false)
@@ -196,7 +196,7 @@ export function useBrowserActions(state: BrowserState, visible: boolean) {
       // Defer closing so a dock/font change reuses the open DevTools instead of tearing it down and reopening (which left it blank).
       devtoolsCloseTimer.current = setTimeout(() => void window.electronAPI.setBrowserDevtools(null).catch(() => {}), 80)
     }
-  }, [visible, devtoolsOpen, tab.id, tab.url, tab.title, input, dock, consoleFont, consoleSize, inspectRevision])
+  }, [visible, devtoolsOpen, tab.id, tab.url, tab.title, input, dock, consoleFont, consoleSize, consoleLanguage, inspectRevision])
 
   /** Performs the navigate operation. */
   const navigate = (value: string) => {

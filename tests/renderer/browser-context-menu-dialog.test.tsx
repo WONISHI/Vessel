@@ -139,3 +139,15 @@ it('opens page search after dismissing the context menu and focuses the search i
   expect(window.electronAPI.browserPageAction).not.toHaveBeenCalled()
  } finally { input.remove() }
 })
+
+it('opens the frame inspector after the page context menu closes', async () => {
+  window.electronAPI = { listBrowserFrames: vi.fn().mockResolvedValue({ pageURL: 'https://example.com', total: 0, items: [], unreadableDocuments: 0, truncated: false }) } as any
+  const b = { tab: { id: 'tab', url: 'https://example.com' }, views: { current: new Map() } } as any
+  const result = render(<BrowserContextMenu b={b} visible />)
+  act(() => window.dispatchEvent(new CustomEvent('vessel-browser-context-menu', { detail: { tabId: 'tab', guestId: 7, x: 10, y: 20, left: 100, top: 100 } })))
+  fireEvent.click(result.getByRole('menuitem', { name: '查看域' }))
+  await waitFor(() => expect(result.getByRole('dialog', { name: /查看域/ })).toBeTruthy())
+  await waitFor(() => expect(result.getByText('当前页面未发现 iframe')).toBeTruthy())
+  expect(window.electronAPI.listBrowserFrames).toHaveBeenCalledWith(7)
+  expect(result.queryByRole('menu')).toBeNull()
+})

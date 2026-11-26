@@ -17,7 +17,7 @@ it.each(["staged", "unstaged"])("keeps the stash dialog open after selecting fro
     const paths = files.map(file => file.path)
     const g = {repoPath:"/repo",status:{staged:files,unstaged:files,untracked:[],conflicts:[]},selectedStagedPaths:paths,selectedUnstagedPaths:paths,
       handleStagedContextMenu:()=>{},handleUnstagedContextMenu:()=>{},
-      handleStashFiles:(paths: string[])=>setRequest({paths,defaultMessage:"贮藏所选文件"})} as unknown as GitPageModel
+      handleStashFiles:(paths: string[])=>setRequest({paths})} as unknown as GitPageModel
     return <>{section === "staged" ? <GitStagedFiles g={g}/> : <GitUnstagedFiles g={g}/>}{request && <StashDialog request={request} onClose={()=>setRequest(null)} onSubmit={submit}/>}</>
   }
   render(<App />)
@@ -27,4 +27,7 @@ it.each(["staged", "unstaged"])("keeps the stash dialog open after selecting fro
   await waitFor(()=>expect(screen.queryByRole("menu")).toBeNull())
   expect(screen.getByRole("dialog")).toBeTruthy()
   expect(submit).not.toHaveBeenCalled()
+  expect((screen.getByLabelText("说明") as HTMLInputElement).value).toBe("")
+  fireEvent.click(screen.getByRole("button", { name: "贮藏", exact: true }))
+  await waitFor(() => expect(submit).toHaveBeenCalledWith("", false))
 })

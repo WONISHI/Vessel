@@ -12,7 +12,7 @@ import type { StashRequest } from "@/pages/git/hooks/use-git-file-actions"
 
 /** Replaces window.prompt (unsupported in Electron) for stashing selected files or the whole working tree. */
 export function StashDialog({ request, onClose, onSubmit }: { request: StashRequest; onClose: () => void; onSubmit: (message: string, keepIndex: boolean) => Promise<void> }) {
-  const [message, setMessage] = useState(request.defaultMessage)
+  const [message, setMessage] = useState("")
   const [keepIndex, setKeepIndex] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState("")
@@ -39,7 +39,7 @@ export function StashDialog({ request, onClose, onSubmit }: { request: StashRequ
           <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-5 py-4 text-xs">
             <div className="grid grid-cols-[4rem_minmax(0,1fr)] items-center gap-x-3 gap-y-3">
               <label htmlFor="stash-message" className="text-right text-stone-500 dark:text-stone-400">说明</label>
-              <Input id="stash-message" autoFocus value={message} disabled={busy} placeholder={request.defaultMessage} onChange={(event) => setMessage(event.target.value)} onFocus={(event) => event.currentTarget.select()} className="h-8 text-xs md:text-xs" />
+              <Input id="stash-message" autoFocus value={message} disabled={busy} placeholder="留空使用 Git 默认名称（当前 HEAD 提交摘要）" onChange={(event) => setMessage(event.target.value)} onFocus={(event) => event.currentTarget.select()} className="h-8 text-xs md:text-xs" />
               <span className="text-right text-stone-500 dark:text-stone-400">选项</span>
               <CheckField id="stash-keep-index" checked={keepIndex} disabled={busy} onChange={setKeepIndex}>保留已暂存的修改<span className="ml-1 text-stone-400">（--keep-index）</span></CheckField>
             </div>

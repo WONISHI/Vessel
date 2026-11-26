@@ -16,6 +16,15 @@ beforeEach(() => {
   } })
 })
 afterEach(() => { cleanup(); localStorage.clear(); sessionStorage.clear() })
+it("defaults to Chinese and remembers the selected DevTools language across remounts", () => {
+  const page = renderHook(() => useBrowserPage(false))
+  expect(page.result.current.consoleLanguage).toBe("zh")
+  act(() => page.result.current.setConsoleLanguage("en-US"))
+  expect(localStorage.getItem("browser-devtools-language")).toBe("en-US")
+  page.unmount()
+  const reopened = renderHook(() => useBrowserPage(false))
+  expect(reopened.result.current.consoleLanguage).toBe("en-US")
+})
 
 it.each(["detached", "left", "right", "bottom"])("remembers %s after close, reopen and browser remount, including inspect", (dock) => {
   const page = renderHook(() => useBrowserPage(false))

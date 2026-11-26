@@ -1,10 +1,11 @@
 import { ProxyTrafficCounter, subscriptionInfo } from "./proxy-metrics"
 import { ProxySubscriptions } from "./proxy-subscriptions"
+import { SystemProxy } from "./system-proxy"
 import { setBrowserSessionProxy, closeBrowserSessionConnections } from "./browser-session-proxy"
 import { browserProxyConfig } from "@main/browser/browser-proxy-config"
 import release from "@main/mihomo-release.json"
 import { generalSettings, settingsEvents } from "@main/settings/settings"
-import type { BrowserProxyStatus, BrowserProxyMode, BrowserProxySubscriptionInfo } from "@vessel/type"
+import type { BrowserProxyStatus, BrowserProxyMode, BrowserProxyScope, BrowserProxySubscriptionInfo } from "@vessel/type"
 import { app, net, safeStorage, type WebContents } from "electron"
 import { spawn, execFile, type ChildProcess } from "node:child_process"
 import { createHash, randomUUID } from "node:crypto"
@@ -20,6 +21,10 @@ let child: ChildProcess | undefined,
 
 /** Performs the directory operation. */
 const directory = () => join(app.getPath("userData"), "browser-proxy")
+let systemProxyInstance: SystemProxy | undefined
+const systemProxy = () => systemProxyInstance ??= new SystemProxy(join(directory(), "system-proxy-backup.json"))
+let proxyPort = 0
+const connectionStage = () => tun ? "已连接，虚拟网卡已开启" : scope === "system" ? "已连接，代理系统" : "已连接，仅代理 Vessel 浏览器"
 
 /** Performs the pause operation. */
 const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
@@ -90,11 +95,13 @@ async function disconnect() {
   await loadRuntime()
   if (state.connected) await refreshTraffic(true)
   await persistTraffic().catch(() => {})
+  await systemProxy().restore()
   tun = false
   const running = child
   child = undefined
   await setBrowserSessionProxy({ mode: "system" })
   running?.kill()
+  proxyPort = 0
   state.connected = false
   state.subscriptionId = undefined
   state.stage = "未连接"
@@ -163,6 +170,8 @@ async function connect(input?: string, profileId?: string) {
     const previousTraffic = traffic.snapshot()
     traffic = new ProxyTrafficCounter(previousTraffic.totalUploaded, previousTraffic.totalDownloaded)
     await setBrowserSessionProxy({ proxyRules: `http=127.0.0.1:${port};https=127.0.0.1:${port}`, proxyBypassRules: "<local>" })
+    proxyPort = port
+    if (scope === "system") await systemProxy().enable(port)
     memoryURL = url
     state.hasSubscription = true
     if (safeStorage.isEncryptionAvailable()) await writeFile(join(directory(), "subscription.enc"), safeStorage.encryptString(url), { mode: 0o600 })
@@ -170,7 +179,7 @@ async function connect(input?: string, profileId?: string) {
     state.subscriptionId = profileId
     state.nodes = group.all
     state.selected = group.now || group.all[0]
-    state.stage = "已连接，仅代理 Vessel 浏览器"
+    state.stage = connectionStage()
   } catch (error) {
     await disconnect()
     state.error = error instanceof Error ? error.message : "连接失败"
@@ -184,10 +193,18 @@ async function connect(input?: string, profileId?: string) {
 settingsEvents.on("changed", () => {
   if (!generalSettings().proxyEnabled) void disconnect().catch(() => {})
 })
-app.once("before-quit", () => child?.kill())
+let quitting = false
+app.on("before-quit", event => {
+  if (quitting || !child) return
+  event.preventDefault()
+  void disconnect().then(() => { quitting = true; app.quit() }).catch(() => {
+    state.error = "系统代理尚未恢复，请重试断开后退出"
+  })
+})
 let saving = Promise.resolve()
 
 let mode: BrowserProxyMode = "rule"
+let scope: BrowserProxyScope = "system"
 let tun = false
 let traffic = new ProxyTrafficCounter()
 let trafficError: string | undefined
@@ -206,6 +223,7 @@ function loadRuntime() {
     try {
       const options = JSON.parse(await readFile(join(directory(), "runtime.json"), "utf8"))
       if (["rule", "global", "direct"].includes(options.mode)) mode = options.mode
+      if (["system", "browser"].includes(options.scope)) scope = options.scope
     } catch { /* Default is the existing browser-only rule mode. */ }
     try {
       const totals = JSON.parse(await readFile(join(directory(), "traffic.json"), "utf8"))
@@ -244,17 +262,19 @@ async function snapshot(): Promise<BrowserProxyStatus> {
   await loadRuntime()
   await refreshTraffic()
   const available = await tunAvailable()
-  return { ...state, runtime: { mode, tun, tunAvailable: available, tunReason: available ? undefined : "开启虚拟网卡需要管理员权限；当前进程未获得该权限。", traffic: traffic.snapshot(state.connected && !trafficError), trafficError } }
+  return { ...state, runtime: { mode, scope, tun, tunAvailable: available && scope === "system", tunReason: scope === "browser" ? "仅代理 Vessel 浏览器时不启用虚拟网卡。" : available ? undefined : "开启虚拟网卡需要管理员权限；当前进程未获得该权限。", traffic: traffic.snapshot(state.connected && !trafficError), trafficError } }
 }
-async function configureRuntime(input: { mode?: BrowserProxyMode; tun?: boolean }) {
+async function configureRuntime(input: { mode?: BrowserProxyMode; scope?: BrowserProxyScope; tun?: boolean }) {
   if (!input || input.mode !== undefined && !["rule", "global", "direct"].includes(input.mode) || input.tun !== undefined && typeof input.tun !== "boolean") throw new Error("代理配置无效")
   if (state.busy) throw new Error("正在处理，请稍候")
+  if (input.scope !== undefined && !["system", "browser"].includes(input.scope)) throw new Error("代理范围无效")
   if (!generalSettings().proxyEnabled) throw new Error("请先开启代理")
   if (input.tun && !await tunAvailable()) throw new Error("开启虚拟网卡需要管理员权限")
   if (input.tun !== undefined && !state.connected) throw new Error("请先连接订阅")
   await loadRuntime()
+  if ((input.scope || scope) === "browser" && (input.tun || tun && input.tun !== false)) throw new Error("请先关闭虚拟网卡，再切换为代理 Vessel 浏览器")
   state.busy = true
-  const before = { mode, tun }
+  const before = { mode, tun, scope }
   try {
     const patch: Record<string, unknown> = {}
     if (input.mode) patch.mode = input.mode
@@ -265,26 +285,39 @@ async function configureRuntime(input: { mode?: BrowserProxyMode; tun?: boolean 
       const actual = await api("/configs")
       if (input.tun !== undefined && !!actual.tun?.enable !== input.tun) throw new Error("虚拟网卡未能启用，请检查系统权限与代理核心日志")
       if (input.mode && actual.mode !== input.mode) throw new Error("出站模式未能生效")
+      if (input.scope && input.scope !== scope) {
+        if (input.scope === "system") await systemProxy().enable(proxyPort)
+        else await systemProxy().restore()
+      }
     }
     if (input.mode) mode = input.mode
     if (input.tun !== undefined) tun = input.tun
+    if (input.scope) scope = input.scope
     await mkdir(directory(), { recursive: true, mode: 0o700 })
-    await writeFile(join(directory(), "runtime.json"), JSON.stringify({ mode }), { mode: 0o600 })
-    state.stage = state.connected ? tun ? "已连接，虚拟网卡已开启" : "已连接，仅代理 Vessel 浏览器" : "未连接"
+    await writeFile(join(directory(), "runtime.json"), JSON.stringify({ mode, scope }), { mode: 0o600 })
+    state.stage = state.connected ? connectionStage() : "未连接"
   } catch (error) {
     if (state.connected) await api("/configs", "PATCH", { mode: before.mode, tun: { enable: before.tun } }).catch(() => {})
-    mode = before.mode; tun = before.tun
+    if (state.connected && input.scope && input.scope !== before.scope) {
+      try {
+        if (before.scope === "system") await systemProxy().enable(proxyPort)
+        else await systemProxy().restore()
+      } catch { state.error = "代理范围恢复失败，请重试断开连接" }
+    }
+    mode = before.mode; tun = before.tun; scope = before.scope
     throw error
   } finally { state.busy = false }
   return snapshot()
 }
 
 let subscriptions: ProxySubscriptions | undefined
+let recovery: Promise<void> | undefined
 const profiles = () => subscriptions ??= new ProxySubscriptions(join(directory(), "subscriptions.enc"), safeStorage, savedURL)
 
 /** Registers browser proxy. */
 export function registerBrowserProxy(host: WebContents) {
-  host.ipc.handle("browser:proxy:runtime", (_event, input: { mode?: BrowserProxyMode; tun?: boolean }) => configureRuntime(input))
+  recovery ??= systemProxy().restore().catch(() => { state.error = "上次系统代理尚未恢复，请重试断开连接" })
+  host.ipc.handle("browser:proxy:runtime", (_event, input: { mode?: BrowserProxyMode; scope?: BrowserProxyScope; tun?: boolean }) => configureRuntime(input))
   host.ipc.handle("browser:proxy:profile-info", async (_event, id: string) => {
     const profile = (await profiles().list()).find(item => item.id === id)
     if (!profile) throw new Error("请选择有效订阅")

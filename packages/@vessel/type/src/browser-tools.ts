@@ -19,8 +19,18 @@ export type BrowserDevice = {
 export type BrowserDownloadEntry = { id: number; name: string; path: string; size: number; savedAt: number; source: "download" | "save" }
 
 export type BrowserSavedFile = { name: string; url: string; source: "download" | "save" }
+export type BrowserDevtoolsLanguage = "zh" | "en-US"
+
+export type BrowserFrameInfo = {
+  id: string; documentURL: string; depth: number; src: string; resolvedSrc: string
+  name: string; title: string; elementId: string; sandbox: string; srcdoc: boolean
+}
+export type BrowserFramesSnapshot = {
+  pageURL: string; total: number; items: BrowserFrameInfo[]; unreadableDocuments: number; truncated: boolean
+}
 
 export interface BrowserToolsAPI {
+  listBrowserFrames(id: number): Promise<BrowserFramesSnapshot>
   setBrowserDevtoolsTransition(token: number, active: boolean): Promise<{ id: number; image: string } | undefined>
   createBrowserPrivateSession(): Promise<string>
   closeBrowserPrivateSession(): Promise<void>

@@ -1,5 +1,6 @@
 import { isPrivateBrowserSession } from "./browser-private"
 import { readBrowserSource } from "./browser-source"
+import { readBrowserFrames, registerFrameContextMenu } from "./browser-frames"
 import { browserFilePreview } from "../../shared/browser-preview"
 import { browserImageAction } from "./browser-image-actions"
 import { BrowserHistory } from "@main/browser/browser-history"
@@ -64,6 +65,7 @@ export function registerBrowserTools(host: WebContents) {
     if (!target || target.hostWebContents !== host || (target.session !== session.fromPartition("persist:vessel-browser") && !isPrivateBrowserSession(host, target.session) && !(allowTransit && target.session === session.fromPartition("persist:vessel-transit")))) throw new Error("浏览器页面无效")
     return target
   }
+  host.ipc.handle("browser:frames:list", (_event, id: number) => readBrowserFrames(guest(id)))
   host.ipc.handle("browser:page-action", async (_event, id: number, action: string) => {
     const target = guest(id)
     if (action === "copy-image" || action === "download-image") {
@@ -183,6 +185,7 @@ export function registerBrowserTools(host: WebContents) {
     target.enableDeviceEmulation({ screenPosition: device.mobile ? "mobile" : "desktop", screenSize: { width: device.width, height: device.height }, viewSize: { width: device.width, height: device.height }, viewPosition: { x: 0, y: 0 }, deviceScaleFactor: device.deviceScaleFactor, scale: 1 })
   })
   host.on("did-attach-webview", (_event, view) => {
+    if (view.session === session.fromPartition("persist:vessel-browser") || isPrivateBrowserSession(host, view.session)) registerFrameContextMenu(view)
     if (view.session !== session.fromPartition("persist:vessel-browser")) return
     let visit: number | undefined
     // Commit after navigation settles so redirects do not become separate visits.

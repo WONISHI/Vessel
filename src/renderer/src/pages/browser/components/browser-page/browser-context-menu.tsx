@@ -1,7 +1,7 @@
 import { isManagedSourcePage } from "@/pages/browser/managed-source-project"
 import { lazy, Suspense, useEffect, useRef, useState } from "react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { ArrowLeft, ArrowRight, Copy, Code, CodeXml, Download, ExternalLink, FolderOpen, QrCode, RotateCw, Search, SquareDashedMousePointer } from "lucide-react"
+import { ArrowLeft, ArrowRight, Copy, Code, CodeXml, Download, ExternalLink, FolderOpen, PanelsTopLeft, QrCode, RotateCw, Search, SquareDashedMousePointer } from "lucide-react"
 import { toast } from "sonner"
 import { mobilePageURL } from "@/pages/browser/mobile-page-url"
 import { withGuest } from "@/pages/browser/guest-lifecycle"
@@ -13,6 +13,7 @@ import BrowserMobileDialog from "./browser-mobile-dialog"
 import { BrowserExternalDialog } from "./browser-external-dialog"
 import { isLocalFileUrl, isOpenableUrl } from "@/pages/browser/openable-url"
 const BrowserSourceDialog = lazy(() => import("./browser-source-dialog"))
+const BrowserFramesDialog = lazy(() => import("./browser-frames-dialog"))
 
 const itemClassName = "rounded-md text-xs [&_svg]:size-3.5"
 
@@ -25,6 +26,8 @@ export function BrowserContextMenu({ b, visible }: { b: BrowserPageModel; visibl
   const [external, setExternal] = useState<{ tabId: string; url: string } | null>(null)
   const pendingDialog = useRef<{ kind: "mobile" | "external"; tabId: string; url: string } | null>(null)
   const pendingFind = useRef(false)
+  const pendingFrames = useRef<{ tabId: string; url: string; guestId: number } | null>(null)
+  const [frames, setFrames] = useState<{ tabId: string; url: string; guestId: number } | null>(null)
   const shareURL = mobilePageURL(b.tab.url)
   const debugRequest = useRef(0)
   const [debugPage, setDebugPage] = useState<{ tabId: string; url: string } | null>(null)
@@ -46,6 +49,7 @@ export function BrowserContextMenu({ b, visible }: { b: BrowserPageModel; visibl
     return () => {
       pendingDialog.current = null
       pendingFind.current = false
+      pendingFrames.current = null
       sourceRequest.current++
       debugRequest.current++
       window.removeEventListener("vessel-browser-context-menu", show)
@@ -84,6 +88,11 @@ export function BrowserContextMenu({ b, visible }: { b: BrowserPageModel; visibl
         const next = pendingDialog.current
         pendingDialog.current = null
         const request = sourceRequest.current
+        const nextFrames = pendingFrames.current
+        pendingFrames.current = null
+        if (nextFrames) queueMicrotask(() => {
+          if (request === sourceRequest.current) setFrames(nextFrames)
+        })
         if (pendingFind.current) {
           pendingFind.current = false
           queueMicrotask(() => {
@@ -115,6 +124,10 @@ export function BrowserContextMenu({ b, visible }: { b: BrowserPageModel; visibl
         {shareURL && <DropdownMenuItem className={itemClassName} onSelect={() => { pendingDialog.current = { kind: "mobile", tabId: b.tab.id, url: shareURL }; setMenuOpen(false) }}><QrCode />手机访问…</DropdownMenuItem>}
         {debugPage?.tabId === b.tab.id && debugPage.url === b.tab.url && <DropdownMenuItem className={itemClassName} data-title="选择页面元素，定位项目源码（Esc 退出）" onSelect={() => void debug()}><CodeXml />本地项目调试</DropdownMenuItem>}
         <DropdownMenuItem className={itemClassName} onSelect={() => void action("source")}><Code />显示网页源代码</DropdownMenuItem>
+        <DropdownMenuItem className={itemClassName} onSelect={() => {
+          if (point) pendingFrames.current = { tabId: b.tab.id, url: b.tab.url, guestId: point.guestId }
+          setMenuOpen(false)
+        }}><PanelsTopLeft />查看域</DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem className={itemClassName} onSelect={() => { if (point) b.inspectPage({ x: point.x, y: point.y }) }}><SquareDashedMousePointer />检查</DropdownMenuItem>
       </DropdownMenuContent>
@@ -123,6 +136,9 @@ export function BrowserContextMenu({ b, visible }: { b: BrowserPageModel; visibl
     {external && visible && external.tabId === b.tab.id && external.url === b.tab.url && <BrowserExternalDialog url={external.url} open onOpenChange={(open) => { if (!open) setExternal(null) }} />}
     {source && visible && <Suspense fallback={null}>
       <BrowserSourceDialog source={source} onClose={() => setSource(null)} />
+    </Suspense>}
+    {frames && visible && frames.tabId === b.tab.id && frames.url === b.tab.url && <Suspense fallback={null}>
+      <BrowserFramesDialog guestId={frames.guestId} pageURL={frames.url} onClose={() => setFrames(null)} />
     </Suspense>}
   </>
 }

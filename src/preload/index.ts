@@ -32,6 +32,7 @@ const vesselAPI = {
     return () => ipcRenderer.removeListener("browser:file-saved", handler)
   },
   browserFaviconData: (id: number, url: string) => ipcRenderer.invoke("browser:favicon-data", id, url),
+  listBrowserFrames: (id: number) => ipcRenderer.invoke("browser:frames:list", id),
   browserPageAction: (id: number, action: string, point?: { x: number; y: number }) => ipcRenderer.invoke("browser:page-action", id, action, point),
   vaultRequest: (action: string, data?: Record<string, string>) => ipcRenderer.invoke("vault:request", action, data),
   onVaultCandidate: (callback: (candidate: { id: string; origin: string; username: string }) => void) => {
@@ -248,7 +249,7 @@ const vesselAPI = {
 
   /** Sets browser devtools. */
   setBrowserDevtoolsTransition: (token: number, active: boolean): Promise<{ id: number; image: string } | undefined> => ipcRenderer.invoke("browser:devtools-transition", token, active),
-  setBrowserDevtools: (id: number | null, bounds?: Electron.Rectangle, appearance?: { font: string; size: number; detached?: boolean; hidden?: boolean; occluded?: boolean; pageTitle?: string; pageURL?: string; inspect?: { x: number; y: number; property?: string; targetKey?: string }; control?: { x: number; y: number; width: number; height: number; icon: string; color: string; background: string; border: string; shadow: string } }): Promise<void> => ipcRenderer.invoke("browser:devtools", id, bounds, appearance),
+  setBrowserDevtools: (id: number | null, bounds?: Electron.Rectangle, appearance?: { font: string; size: number; language?: "zh" | "en-US"; detached?: boolean; hidden?: boolean; occluded?: boolean; pageTitle?: string; pageURL?: string; inspect?: { x: number; y: number; property?: string; targetKey?: string }; control?: { x: number; y: number; width: number; height: number; icon: string; color: string; background: string; border: string; shadow: string } }): Promise<void> => ipcRenderer.invoke("browser:devtools", id, bounds, appearance),
 
   /** Handles browser new tab events. */
   onNavigationRequest: (callback: (request: { id: number; url: string; defaultCurrent: boolean; delayMs: number }) => void) => {

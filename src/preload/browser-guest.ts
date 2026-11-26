@@ -103,6 +103,11 @@ if (/^https?:$/.test(location.protocol) || location.protocol === "file:") {
   contextBridge.executeInMainWorld({ func: installBrowserContextMenu })
 }
 
+// Forward iframe fallback menus through the existing top-level webview bridge.
+ipcRenderer.on("vessel:frame-context-menu", (_event, point: { x: number; y: number }) => {
+  if (Number.isFinite(point?.x) && Number.isFinite(point?.y)) ipcRenderer.sendToHost("vessel-context-menu", { x: point.x, y: point.y })
+})
+
 // A narrow bridge for the injected picker; it may only reveal a node on this guest page.
 contextBridge.exposeInMainWorld("vesselInspectStyle", (request: { property?: unknown; targetKey?: unknown }) => {
   if (typeof request?.property !== "string" || !/^[-a-zA-Z0-9_]{1,160}$/.test(request.property)) return

@@ -11,7 +11,7 @@ type FileNode = { kind: "file"; name: string; file: GitFileStatus; index: number
 type FolderNode = { kind: "folder"; name: string; path: string; children: Map<string, FileNode | FolderNode>; status: string }
 
 /** Render the same file rows in flat or directory form, preserving original selection indices. */
-export function GitChangesTree({ files, query, tree, renderFile }: { files: GitFileStatus[]; query: string; tree: boolean; renderFile: (file: GitFileStatus, index: number, tree: boolean) => ReactNode }) {
+export function GitChangesTree({ files, query, tree, renderFile, renderFolderActions }: { files: GitFileStatus[]; query: string; tree: boolean; renderFile: (file: GitFileStatus, index: number, tree: boolean) => ReactNode; renderFolderActions?: (path: string, paths: string[]) => ReactNode }) {
   const layout = useDirectoryTreeLayout("resources")
   const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set())
   if (!tree) return <div data-git-changes-list>{files.map((file, index) => matchesGitFilePath(file.path, query) ? renderFile(file, index, false) : null)}</div>
@@ -39,18 +39,20 @@ export function GitChangesTree({ files, query, tree, renderFile }: { files: GitF
     if (node.kind === "file") return <div key={node.file.path} className="relative" style={{ "--git-tree-padding": padding(depth, true) } as CSSProperties}>{guides(depth)}{renderFile(node.file, node.index, true)}</div>
     const collapseKey = `${query.trim().toLowerCase()}:${node.path}`
     const open = !collapsed.has(collapseKey)
+    const folderPaths = renderFolderActions ? [...new Set(files.filter(file => file.path.replace(/\\/g, "/").startsWith(`${node.path}/`)).map(file => file.path))] : []
     return <div key={node.path}>
-      <div className="relative">{guides(depth)}
+      <div className="group/git-folder relative flex h-7 min-w-0 items-center rounded hover:bg-stone-100 focus-within:bg-stone-100 dark:hover:bg-white/5 dark:focus-within:bg-white/5">{guides(depth)}
       <button type="button" data-git-change-folder aria-label={`${open ? "收起" : "展开"}目录 ${node.path}`} aria-expanded={open} data-title={node.path} style={{ paddingLeft: padding(depth), gap: layout.columnGap }}
-        className="flex h-7 w-full min-w-0 items-center gap-1.5 rounded px-2 text-left text-xs text-stone-600 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-white/5"
+        className="flex h-full min-w-0 flex-1 items-center gap-1.5 rounded px-2 text-left text-xs text-stone-600 dark:text-stone-300"
         onClick={() => setCollapsed(previous => { const next = new Set(previous); if (next.has(collapseKey)) next.delete(collapseKey); else next.add(collapseKey); return next })}>
         <ChevronRight className={`size-3 shrink-0 text-stone-400 transition-transform ${open ? "rotate-90" : ""}`} />
         <FileIconScope.Provider value="resources"><FileThemeIcon name={node.name} directory expanded={open} className="size-3.5 shrink-0 object-contain" fallback={open ? <FolderOpen className="size-3.5 shrink-0 text-slate-400" /> : <Folder className="size-3.5 shrink-0 fill-slate-400 text-slate-400" />} /></FileIconScope.Provider>
         <span className="min-w-0 flex-1 truncate">{node.name}</span>
-        <span aria-hidden className="flex w-[22px] shrink-0 items-center justify-center">
-          <span data-git-status-marker className="flex w-3.5 justify-center"><span className={`size-1.5 rounded-full bg-current opacity-60 ${gitChangeMarkerClass(node.status)}`} /></span>
-        </span>
       </button>
+      <span className={`relative mr-2 h-[22px] w-[22px] shrink-0 transition-[width] duration-150 ${renderFolderActions ? "group-hover/git-folder:w-[44px] group-focus-within/git-folder:w-[44px]" : ""}`}>
+        <span aria-hidden data-git-status-marker className={`absolute right-1 top-1/2 flex w-3.5 -translate-y-1/2 justify-center transition-[right] duration-150 ${renderFolderActions ? "group-hover/git-folder:right-[26px] group-focus-within/git-folder:right-[26px]" : ""}`}><span className={`size-1.5 rounded-full bg-current opacity-60 ${gitChangeMarkerClass(node.status)}`} /></span>
+        {renderFolderActions && <span className="pointer-events-none absolute inset-y-0 right-0 flex w-[22px] justify-end opacity-0 group-hover/git-folder:pointer-events-auto group-hover/git-folder:opacity-100 group-focus-within/git-folder:pointer-events-auto group-focus-within/git-folder:opacity-100">{renderFolderActions(node.path, folderPaths)}</span>}
+      </span>
       </div>
       {open && rows(node.children, depth + 1)}
     </div>

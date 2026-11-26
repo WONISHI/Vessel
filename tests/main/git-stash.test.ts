@@ -32,5 +32,9 @@ it("stashes only the selected files and can keep staged changes in the index", a
     await gitService.stashSave(root, "keep", ["b", "c"], { keepIndex: true })
     expect(await readFile(join(root, "b"), "utf8")).toBe("changed")
     expect(await readFile(join(root, "c"), "utf8")).toBe("base")
+    await writeFile(join(root, "c"), "default stash")
+    await gitService.stashSave(root, undefined, ["c"])
+    const branch = git("branch", "--show-current")
+    expect(git("stash", "list", "-1", "--format=%s")).toBe(`WIP on ${branch}: ${git("rev-parse", "--short", "HEAD")} base`)
   } finally { await rm(root, { recursive: true, force: true }) }
 })

@@ -47,12 +47,14 @@ export function useBrowserState(visible: boolean) {
   const [devtoolsOpen, setDevtoolsOpen] = useState(false)
   const [dock, setDock] = useState(() => localStorage.getItem("browser-devtools-dock") || "bottom")
   const [consoleFont, setConsoleFont] = useState(() => localStorage.getItem("browser-devtools-font") || "Menlo")
+  const [consoleLanguage, setConsoleLanguage] = useState<"zh" | "en-US">(() => localStorage.getItem("browser-devtools-language") === "en-US" ? "en-US" : "zh")
   const [consoleSize, setConsoleSize] = useState(() => Number(localStorage.getItem("browser-devtools-size")) || 13)
   useEffect(() => {
     localStorage.setItem("browser-devtools-dock", dock)
     localStorage.setItem("browser-devtools-font", consoleFont)
     localStorage.setItem("browser-devtools-size", String(consoleSize))
-  }, [dock, consoleFont, consoleSize])
+    localStorage.setItem("browser-devtools-language", consoleLanguage)
+  }, [dock, consoleFont, consoleSize, consoleLanguage])
   useEffect(() => window.electronAPI.onBrowserDevtoolsClosed(() => setDevtoolsOpen(false)), [])
   const devtoolsHost = useRef<HTMLDivElement>(null)
   const activeRef = useRef(active)
@@ -220,7 +222,7 @@ export function useBrowserState(visible: boolean) {
     enterIncognito: async () => { await browserWindows.enterIncognito(apply => transitionPage(() => { apply(); resetWindowControls() }, "browser", { contentReady: true })) },
     closeIncognito: async () => { await browserWindows.closeIncognito(); resetWindowControls() },
     switchUserWindow: () => { void transitionPage(() => { browserWindows.switchUserWindow(); resetWindowControls() }, "browser", { contentReady: true }).catch(console.error) },
-    bookmarksVisible, setBookmarksVisible, router, deviceViewport, setDeviceViewport, toolbarCollapsed, setToolbarCollapsed, deviceMode, setDeviceMode, initialTabsState, tabs, setTabs, findOpen, setFindOpen, matchCase, setMatchCase, findText, setFindText, findResult, setFindResult, findInput, findPosition, setFindPosition, findDrag, consoleWidth, setConsoleWidth, consoleHeight, setConsoleHeight, devtoolsOpen, setDevtoolsOpen, dock, setDock, consoleFont, setConsoleFont, consoleSize, setConsoleSize, devtoolsHost, active, setActive, freezeTab, activatedTabs, input, setInput, searchInput, setSearchInput, bookmarks, setBookmarks, removeBookmark, resetBookmarks, views, registerView, tab, getActivePageData, lastSavedTabs }
+    bookmarksVisible, setBookmarksVisible, router, deviceViewport, setDeviceViewport, toolbarCollapsed, setToolbarCollapsed, deviceMode, setDeviceMode, initialTabsState, tabs, setTabs, findOpen, setFindOpen, matchCase, setMatchCase, findText, setFindText, findResult, setFindResult, findInput, findPosition, setFindPosition, findDrag, consoleWidth, setConsoleWidth, consoleHeight, setConsoleHeight, devtoolsOpen, setDevtoolsOpen, dock, setDock, consoleFont, setConsoleFont, consoleSize, setConsoleSize, consoleLanguage, setConsoleLanguage, devtoolsHost, active, setActive, freezeTab, activatedTabs, input, setInput, searchInput, setSearchInput, bookmarks, setBookmarks, removeBookmark, resetBookmarks, views, registerView, tab, getActivePageData, lastSavedTabs }
 }
 
 export type BrowserState = ReturnType<typeof useBrowserState>

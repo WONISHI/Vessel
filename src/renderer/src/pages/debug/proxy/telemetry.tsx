@@ -7,11 +7,11 @@ import { Progress } from "@/components/ui/progress"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import type { BrowserProxyStatus, BrowserProxySubscription, BrowserProxyMode } from "@vessel/type"
+import type { BrowserProxyStatus, BrowserProxySubscription, BrowserProxyMode, BrowserProxyScope } from "@vessel/type"
 
 export function ProxyTelemetry({ status, subscription, busy, refreshing, onRefresh, onConfigure }: {
   status?: BrowserProxyStatus; subscription?: BrowserProxySubscription; busy: boolean; refreshing: boolean
-  onRefresh: () => void; onConfigure: (input: { mode?: BrowserProxyMode; tun?: boolean }) => void
+  onRefresh: () => void; onConfigure: (input: { mode?: BrowserProxyMode; scope?: BrowserProxyScope; tun?: boolean }) => void
 }) {
   const id = useId().replace(/:/g, "")
   const runtime = status?.runtime, traffic = runtime?.traffic, info = subscription?.info
@@ -51,6 +51,8 @@ export function ProxyTelemetry({ status, subscription, busy, refreshing, onRefre
     </section>
     <section className="dev-proxy-panel" aria-label="代理配置">
       <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold"><SlidersHorizontal size={15}/>代理配置</h3>
+      <label className="mb-3 flex items-center justify-between gap-3 text-xs">代理范围<Select value={runtime?.scope || "system"} disabled={busy || !runtime} onValueChange={value=>{if (value === "system" || value === "browser") onConfigure({scope:value})}}><SelectTrigger aria-label="代理范围" className="h-8 w-40 text-xs"><SelectValue/></SelectTrigger><SelectContent><SelectItem value="system">代理系统</SelectItem><SelectItem value="browser">代理 Vessel 浏览器</SelectItem></SelectContent></Select></label>
+      <p className="mb-4 text-[11px] text-muted-foreground">{runtime?.scope === "browser" ? "仅 Vessel 内置浏览器使用代理，不修改系统代理。" : "默认设置系统 HTTP/HTTPS 代理，作用于遵循系统代理的应用；断开时恢复原设置。"}</p>
       <label className="mb-3 flex items-center justify-between gap-3 text-xs">出站模式<Select value={runtime?.mode || "rule"} disabled={busy || !runtime} onValueChange={value=>{if (["rule","global","direct"].includes(value)) onConfigure({mode:value as BrowserProxyMode})}}><SelectTrigger aria-label="出站模式" className="h-8 w-28 text-xs"><SelectValue/></SelectTrigger><SelectContent><SelectItem value="rule">规则</SelectItem><SelectItem value="global">全局</SelectItem><SelectItem value="direct">直连</SelectItem></SelectContent></Select></label>
       <p className="mb-4 text-[11px] text-muted-foreground">规则遵循当前核心规则；全局使用所选节点，直连不经过代理节点。</p>
       <div className="flex items-center justify-between gap-3 text-xs"><span>虚拟网卡 TUN</span><Switch aria-label="虚拟网卡 TUN" checked={!!runtime?.tun} disabled={busy || !status?.connected || !runtime?.tunAvailable} onCheckedChange={value=>onConfigure({tun:value})}/></div>

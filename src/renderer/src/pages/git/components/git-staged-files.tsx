@@ -76,7 +76,7 @@ export function GitStagedFiles({ g }: { g: GitPageModel }) {
                       </div>
                       <ScrollArea ref={selectionRoot} className="git-changes-scroll flex-1 min-h-0 min-w-0 p-1">
                         <div className="space-y-0.5">
-                          <GitChangesTree key={g.repoPath} files={allFiles} query={query} tree={tree} renderFile={(file, idx, tree) => {
+                          <GitChangesTree key={g.repoPath} files={allFiles} query={query} tree={tree} renderFolderActions={(path, paths) => <button type="button" aria-label={`取消暂存目录 ${path}`} data-title={`取消暂存目录下全部 ${paths.length} 个文件`} disabled={g.loading} className="shrink-0 rounded p-1 text-stone-400 transition-colors hover:bg-stone-200/80 hover:text-amber-700 disabled:opacity-50" onClick={event => { event.stopPropagation(); void handleUnstageMultiple(paths, { clearSelection: true }) }}><Minus className="size-3.5"/></button>} renderFile={(file, idx, tree) => {
                             if (!matchesGitFilePath(file.path, query)) return null
                             const isSelected = selectedStagedPaths.includes(file.path)
                             const isPrimary = selectedFile?.path === file.path

@@ -1,4 +1,5 @@
 import { NativeFileMenu } from "@/components/native-file-menu"
+import { hasSavedStartupRoute } from "@/router/route-persistence"
 import { TopSearch } from "@/components/layout/top-search"
 import type { WorkspaceData } from "@vessel/type"
 import { CommandPalette } from "@/components/command-palette"
@@ -140,6 +141,7 @@ function App() {
           return
         }
         if (window.location.hash && window.location.hash !== "#/" && window.location.hash !== "#") return
+        if (hasSavedStartupRoute()) return
         const last = await window.electronAPI.getAppState<WorkspaceData>("workspace-last")
         if (last?.path) {
           localStorage.setItem("app_current_workspace", JSON.stringify(last))

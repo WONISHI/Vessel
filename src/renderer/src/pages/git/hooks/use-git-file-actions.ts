@@ -3,12 +3,13 @@ import { useEffect, useRef, useState } from "react"
 import type { GitFileStatus } from "@vessel/type"
 import { cleanGitErrorMessage } from "@/pages/git/utils"
 import type { GitRepositoryState } from "@/pages/git/hooks/use-git-repository"
+import { updateGitFileSelection } from "../file-selection-state"
 
-export type StashRequest = { paths?: string[]; defaultMessage: string }
+export type StashRequest = { paths?: string[] }
 
 /** 文件暂存 / 放弃 / 贮藏与路径工具 */
 export function useGitFileActions(repo: GitRepositoryState) {
-  const { repoPath, status, branches, refresh } = repo
+  const { repoPath, status, refresh } = repo
   const [confirmation, setConfirmation] = useState<string | null>(null)
   const [confirmationTone, setConfirmationTone] = useState<"danger" | "primary">("danger")
   const pendingConfirmation = useRef<((accepted: boolean) => void) | null>(null)
@@ -124,24 +125,30 @@ export function useGitFileActions(repo: GitRepositoryState) {
   }
 
   // 批量操作
+  const clearFileChecks = () => updateGitFileSelection(repoPath, previous => ({
+    ...previous, selectedStagedPaths: [], selectedUnstagedPaths: [], selectedConflictPaths: [],
+    lastStagedClickedIndex: -1, lastUnstagedClickedIndex: -1, lastConflictClickedIndex: -1
+  }))
 
   /** Handles stage multiple events. */
-  const handleStageMultiple = async (paths: string[]) => {
+  const handleStageMultiple = async (paths: string[], options?: { clearSelection?: boolean }) => {
     if (!repoPath || paths.length === 0) return
     try {
       await window.electronAPI.git.stage(repoPath, paths)
       await refresh()
+      if (options?.clearSelection) clearFileChecks()
     } catch (e: any) {
       toast.error("批量暂存失败", { description: cleanGitErrorMessage(e) })
     }
   }
 
   /** Handles unstage multiple events. */
-  const handleUnstageMultiple = async (paths: string[]) => {
+  const handleUnstageMultiple = async (paths: string[], options?: { clearSelection?: boolean }) => {
     if (!repoPath || paths.length === 0) return
     try {
       await window.electronAPI.git.unstage(repoPath, paths)
       await refresh()
+      if (options?.clearSelection) clearFileChecks()
     } catch (e: any) {
       toast.error("批量取消暂存失败", { description: cleanGitErrorMessage(e) })
     }
@@ -189,7 +196,7 @@ export function useGitFileActions(repo: GitRepositoryState) {
   /** Opens the stash dialog for the given files. */
   const handleStashFiles = (paths: string[]) => {
     if (!repoPath || paths.length === 0) return
-    setStashRequest({ paths, defaultMessage: paths.length === 1 ? `贮藏修改: ${paths[0]}` : `贮藏选中的 ${paths.length} 个文件修改` })
+    setStashRequest({ paths })
   }
 
   /** Opens the stash dialog for the whole working tree. */
@@ -200,14 +207,14 @@ export function useGitFileActions(repo: GitRepositoryState) {
       toast.info("当前工作区干净，无未提交的修改")
       return
     }
-    setStashRequest({ defaultMessage: `WIP 在 ${branches.current || "HEAD"} (${totalChanges} 个文件)` })
+    setStashRequest({})
   }
 
   /** Runs the stash described by the open request; errors propagate to the dialog. */
   const submitStash = async (message: string, keepIndex: boolean) => {
     if (!repoPath || !stashRequest) return
-    const { paths, defaultMessage } = stashRequest
-    await window.electronAPI.git.stashSave(repoPath, message.trim() || defaultMessage, paths, { keepIndex })
+    const { paths } = stashRequest
+    await window.electronAPI.git.stashSave(repoPath, message.trim() || undefined, paths, { keepIndex })
     setStashRequest(null)
     await refresh()
     toast.success(paths ? `已成功贮藏 ${paths.length} 个文件的修改` : "已成功贮藏工作区修改")
