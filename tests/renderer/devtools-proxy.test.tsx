@@ -13,9 +13,11 @@ it("adds the developer tool only after enabling proxy and removes it after disab
  enabled = true
  act(()=>window.dispatchEvent(new Event("vessel:settings-saved")))
  await waitFor(()=>expect(ids()).toContain("proxy"))
+ expect(getDevToolGroups(true).find(group=>group.items.some(item=>item.id==="proxy"))?.title).toBe("网络")
  enabled = false
  act(()=>window.dispatchEvent(new Event("vessel:settings-saved")))
  await waitFor(()=>expect(ids()).not.toContain("proxy"))
+ expect(getDevToolGroups(false).some(group=>group.title==="网络")).toBe(false)
 })
 it("adds named subscriptions, connects the selected profile and preserves the others", async () => {
  vi.stubGlobal("ResizeObserver",class{observe=vi.fn();unobserve=vi.fn();disconnect=vi.fn()})

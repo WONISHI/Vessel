@@ -19,5 +19,5 @@ export const groups = [
 ]
 
 export const getDevToolGroups = (proxyEnabled: boolean) => proxyEnabled
-  ? groups.map((group, index) => index === groups.length - 1 ? { ...group, items: [...group.items, { id: "proxy", title: "代理", icon: Waypoints }] } : group)
+  ? [...groups, { title: "网络", items: [{ id: "proxy", title: "代理", icon: Waypoints }] }]
   : groups

@@ -68,10 +68,16 @@ export default function BrowserFramesDialog({ guestId, pageURL, onClose }: { gue
           </div>
         </ScrollArea>
         {selected && <ScrollArea aria-label="iframe 详情区域" className="min-h-0 min-w-0 flex-1 rounded-md border sm:h-full">
-          <dl className="space-y-3 p-3 text-xs">{fields.map(([label, value]) => <div key={label}>
-            <dt className="mb-1 text-[11px] text-muted-foreground">{label}</dt>
-            <dd className="whitespace-pre-wrap break-all font-mono select-text"><span>{value}</span>{(label === "解析后地址" || label === "所属页面") && <Button size="icon" variant="ghost" className="ml-1 size-6 align-middle hover:!text-white [&:hover_svg]:!text-white" aria-label={label === "解析后地址" ? "复制解析后地址" : "复制所属页面地址"} data-title={label === "解析后地址" ? "复制解析后地址" : "复制所属页面地址"} onClick={() => void copy(value)}><Copy className="size-3"/></Button>}</dd>
-          </div>)}</dl>
+          <dl className="space-y-3 p-3 text-xs">{fields.map(([label, value]) => {
+            const copyLabel = label === "src" ? "复制 src 内容" : label === "所属页面" ? "复制所属页面地址" : `复制${label}`
+            return <div key={label} className="overflow-hidden rounded-lg border bg-background" data-frame-detail-card>
+              <dt className="flex items-center justify-between gap-3 border-b bg-muted/60 px-3 py-1.5 text-[11px] font-medium text-muted-foreground">
+                <span>{label}</span>
+                <Button size="icon" variant="ghost" className="size-6 shrink-0 hover:!bg-green-600 hover:!text-white [&:hover_svg]:!text-white" aria-label={copyLabel} data-title={copyLabel} onClick={() => void copy(value)}><Copy className="size-3"/></Button>
+              </dt>
+              <dd className="m-0 px-3 py-2.5"><pre className="m-0 whitespace-pre-wrap break-all font-mono text-xs leading-5 select-text"><code>{value}</code></pre></dd>
+            </div>
+          })}</dl>
         </ScrollArea>}
       </div>}
       {snapshot && (snapshot.unreadableDocuments > 0 || snapshot.truncated) && <p className="text-[11px] text-muted-foreground">{snapshot.unreadableDocuments > 0 ? `${snapshot.unreadableDocuments} 个文档未能读取，统计可能不完整。` : ""}{snapshot.truncated ? "列表较长，仅显示部分结果。" : ""}</p>}
