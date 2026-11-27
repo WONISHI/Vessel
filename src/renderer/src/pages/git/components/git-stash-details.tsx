@@ -1,11 +1,11 @@
 import { GitStashContentCheckPanel } from "./git-stash-content-check"
-import { ArchiveRestore, Copy, File, Trash2 } from "lucide-react"
+import { ArchiveRestore, Copy, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { ResizablePanel, ResizablePanelGroup, ResizableHandle } from "@/components/ui/resizable-panels"
 import { DiffViewer } from "./diff-viewer"
 import { FileChangeStatus } from "./file-change-status"
-import { getFilePresentation } from "@/components/workspace/components/layout-aside/layout-workspace-sidebar/utils"
+import { GitFileIcon } from "./git-file-icon"
 import type { GitPageModel } from "@/pages/git/hooks/use-git-page"
 
 export function GitStashDetails({ g }: { g: GitPageModel }) {
@@ -32,7 +32,7 @@ export function GitStashDetails({ g }: { g: GitPageModel }) {
       <ResizablePanel id="git-stash-files" defaultSize="38%" minSize="20%" maxSize="65%" className="flex min-h-0 min-w-0 flex-col">
         <ScrollArea className="min-h-0 flex-1 p-2">
           {g.stashDetail?.files.map((file) => <button key={file.path} type="button" data-git-selected={g.selectedStashFile?.path === file.path} aria-pressed={g.selectedStashFile?.path === file.path} onClick={() => g.selectStashFile(file)} className={`mb-0.5 flex w-full min-w-0 items-center gap-1.5 rounded px-2 py-1.5 text-left text-xs ${g.selectedStashFile?.path === file.path ? "bg-stone-200 text-stone-900" : "text-stone-700 hover:bg-stone-100"}`}>
-            <File className={`size-3.5 shrink-0 ${getFilePresentation(file.path).color}`} /><span className="min-w-0 flex-1 truncate" data-title={file.oldPath ? `${file.oldPath} → ${file.path}` : file.path}>{file.path}</span>
+            <GitFileIcon path={file.path} /><span className="min-w-0 flex-1 truncate" data-title={file.oldPath ? `${file.oldPath} → ${file.path}` : file.path}>{file.path}</span>
             {file.source === "index" && <span className="shrink-0 text-[10px] text-stone-400">暂存区</span>}<FileChangeStatus status={file.status} />
           </button>)}
           {!g.stashDetail?.files.length && <p className="p-3 text-center text-xs text-stone-400">此贮藏中没有文件变更</p>}

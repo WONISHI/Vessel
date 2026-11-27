@@ -15,6 +15,7 @@ vi.mock("@main/modules/welcome/workspace-sessions", () => ({ drainWorkspaceSessi
 vi.mock("@main/terminal/terminal", () => ({ closeAllTerminals: mocks.closeTerminals, resumeTerminalStarts: mocks.resumeTerminals }))
 
 import { app } from "electron"
+import { runDataOperation } from "@main/database/data-domain"
 import { registerQuitLifecycle } from "@main/app/quit-lifecycle"
 
 const events = app as unknown as EventEmitter
@@ -72,4 +73,17 @@ it("leaves the application usable when saving fails", async () => {
   expect(mocks.quit).not.toHaveBeenCalled()
   expect(mocks.dispose).not.toHaveBeenCalled()
   expect(emitBeforeQuit().preventDefault).not.toHaveBeenCalled()
+})
+
+it("keeps the application alive until an in-flight domain database operation completes", async () => {
+  vi.useFakeTimers()
+  let finish!: () => void
+  const operation = runDataOperation(['todos.sqlite'], () => new Promise<void>(resolve => { finish = resolve }))
+  await Promise.resolve()
+  expect(emitBeforeQuit().preventDefault).toHaveBeenCalledOnce()
+  expect(mocks.quit).not.toHaveBeenCalled()
+  finish(); await operation
+  await vi.advanceTimersByTimeAsync(0)
+  expect(mocks.quit).toHaveBeenCalledOnce()
+  expect(mocks.dispose).not.toHaveBeenCalled()
 })

@@ -1,3 +1,4 @@
+import { consumeDatabaseSyncSuccess, reloadDataDomainRenderer } from "@/lib/data-domain-renderer"
 import { NativeFileMenu } from "@/components/native-file-menu"
 import { hasSavedStartupRoute } from "@/router/route-persistence"
 import { TopSearch } from "@/components/layout/top-search"
@@ -22,6 +23,8 @@ import { pageTransitionKey, rememberPageContent } from "@/lib/page-transition"
 /** Renders the app component. */
 function App() {
   const router = useRouter()
+  useEffect(() => { if (consumeDatabaseSyncSuccess()) toast.success('同步成功') }, [])
+  useEffect(() => window.electronAPI.databaseSync?.onSourceChanged?.(reloadDataDomainRenderer), [])
   useEffect(() => window.electronAPI.onOpenSettings?.(() => void router.push("/settings")), [router])
   const location = useLocation()
   useEffect(() => rememberPageContent(pageTransitionKey(location.pathname)), [location.pathname])
@@ -141,6 +144,9 @@ function App() {
           return
         }
         if (window.location.hash && window.location.hash !== "#/" && window.location.hash !== "#") return
+        const domainChanged = new URLSearchParams(window.location.search).has('dataDomain')
+        // Login-domain restoration already ran under the boot loading screen, before route rendering.
+        if (domainChanged) return
         if (hasSavedStartupRoute()) return
         const last = await window.electronAPI.getAppState<WorkspaceData>("workspace-last")
         if (last?.path) {

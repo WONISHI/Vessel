@@ -1,3 +1,4 @@
+import { createDomainDatabase } from "@main/database/data-domain"
 import Database from "better-sqlite3"
 
 /**
@@ -46,7 +47,7 @@ export class EnhancedDatabase {
    * @param databasePath SQLite 数据库文件绝对路径。
    */
   constructor(databasePath: string, options?: Database.Options) {
-    this.database = new Database(databasePath, options)
+    this.database = createDomainDatabase(databasePath, options)
   }
 
   /**

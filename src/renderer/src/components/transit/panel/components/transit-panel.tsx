@@ -5,10 +5,10 @@ import { TransitStatus } from "@/components/transit/panel/components/transit-sta
 import "@/components/transit/panel/components/transit.css"
 import type { TransitFile } from "@vessel/type"
 import { WebPreview } from "@/components/transit/panel/components/web-preview"
-import { selectTransit, useTransit } from "@/components/transit/state"
+import { addTransit, addTransitFile, selectTransit, useTransit } from "@/components/transit/state"
 import { ResizableSplit } from "@/components/ui/resizable-split"
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet"
-import { ChevronLeft, ChevronRight, Clipboard, FileText, Globe, PanelTopClose, PanelTopOpen, PanelBottomOpen, PanelBottomClose } from "lucide-react"
+import { ChevronLeft, ChevronRight, Clipboard, ClipboardPaste, Upload, FileText, Globe, PanelTopClose, PanelTopOpen, PanelBottomOpen, PanelBottomClose } from "lucide-react"
 import "@vscode/codicons/dist/codicon.css"
 import { Suspense, useCallback, useRef, useState } from "react"
 import { toast } from "sonner"
@@ -33,6 +33,24 @@ export function TransitPanel() {
   const [refresh, setRefresh] = useState(0)
   const [searchRequest, setSearchRequest] = useState(0)
   const [loaded, setLoaded] = useState<{ id: string; file: TransitFile } | null>(null)
+  const [adding, setAdding] = useState(false)
+  const importFiles = async () => {
+    setAdding(true)
+    try {
+      const files = await window.electronAPI.importTransitFiles()
+      files.forEach(file => addTransitFile(file.root, file.path, file.title))
+    } catch (error) { toast.error("导入文件失败", { description: String(error) }) }
+    finally { setAdding(false) }
+  }
+  const readClipboard = async () => {
+    setAdding(true)
+    try {
+      const value = await window.electronAPI.readTransitClipboard()
+      if (typeof value === "string") addTransit(value)
+      else addTransitFile(value.root, value.path, value.title)
+    } catch (error) { toast.error("读取剪贴板失败", { description: String(error) }) }
+    finally { setAdding(false) }
+  }
   /** Tracks preview metadata without re-reading the file. */
   const onLoaded = useCallback((file: TransitFile) => { if (item) setLoaded({ id: item.id, file }) }, [item?.id])
   /** Changes docking and exits fullscreen. */
@@ -79,6 +97,8 @@ export function TransitPanel() {
         <SheetTitle className="sr-only">{item.title}</SheetTitle>
         <SheetDescription className="sr-only">中转站预览：{item.kind === "text" ? "剪贴板文本" : item.content}</SheetDescription>
         <div className="ml-auto flex items-center">
+          <button type="button" data-title="导入文件" data-title-side="bottom" aria-label="导入文件" disabled={adding} onClick={() => void importFiles()} className="transit-bar-item"><Upload /></button>
+          <button type="button" data-title="读取剪贴板" data-title-side="bottom" aria-label="读取剪贴板" disabled={adding} onClick={() => void readClipboard()} className="transit-bar-item"><ClipboardPaste /></button>
           <button data-title={full ? "还原" : "展开"} aria-label={full ? "还原" : "展开"} onClick={() => setFull(!full)} className="transit-bar-item"><i aria-hidden="true" className={`codicon codicon-screen-${full ? "normal" : "full"}`} /></button>
           <button data-title="独立窗口" aria-label="独立窗口" onClick={() => void window.electronAPI.openTransitWindow(item, items.filter((entry) => entry.kind === "file" && entry.root).map((entry) => ({ root: entry.root!, content: entry.content }))).catch((error) => toast.error(String(error)))} className="transit-bar-item"><i aria-hidden="true" className="codicon codicon-link-external" /></button>
           <TransitDock value={dock} onChange={changeDock} />

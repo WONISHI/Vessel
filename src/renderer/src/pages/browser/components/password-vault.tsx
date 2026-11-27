@@ -16,13 +16,14 @@ type Entry = { id: string; origin: string; username: string; updated: number; ki
 type Candidate = { id: string; origin: string; username: string }
 export function PasswordVault({ guestId, url }: { guestId?: () => number | undefined; url?: string }) {
   const layout = useDialogLayout(true)
-  const [open, setOpen] = useState(false), [state, setState] = useState<{ initialized: boolean; unlocked: boolean; auto?: boolean }>({ initialized: false, unlocked: true, auto: true })
+  const [open, setOpen] = useState(false), [state, setState] = useState<{ initialized: boolean; unlocked: boolean; auto?: boolean; source?: "remote" }>({ initialized: false, unlocked: true, auto: true })
   const [password, setPassword] = useState(""), [confirmation, setConfirmation] = useState(""), [exportPassword, setExportPassword] = useState("")
   const [items, setItems] = useState<Entry[]>([]), [candidate, setCandidate] = useState<Candidate | null>(null)
   const [manage, setManage] = useState(false), [unlockRequested, setUnlockRequested] = useState(false), [requiresUnlock, setRequiresUnlock] = useState(false)
   const [siteOpen, setSiteOpen] = useState(false), [siteSelectedId, setSiteSelectedId] = useState<string | null>(null)
   const [previewId, setPreviewId] = useState<string | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
+  const [importLocalOpen, setImportLocalOpen] = useState(false)
   const [revealed, setRevealed] = useState<{ id: string; password: string } | null>(null)
   const revealRevision = useRef(0)
   useEffect(() => {
@@ -136,6 +137,7 @@ export function PasswordVault({ guestId, url }: { guestId?: () => number | undef
   const Panel = manage ? Sheet : Dialog
   const PanelContent = manage ? SheetContent : DialogContent
   return <>
+    <ConfirmDialog activityBarAccessible statusBarAccessible tone="primary" busy={busy} error={error} open={importLocalOpen} onOpenChange={setImportLocalOpen} title="导入本机账号到当前远程保险库？" description="本机保存的网站和 Git 账号将重新加密后上传到当前登录账号。相同账号保留远程已有记录，本机记录继续保留。导入需要系统身份验证。" confirmText="验证并导入" onConfirm={async () => { if (await run("import-local")) setImportLocalOpen(false) }} />
     <SitePasswordPopover accounts={siteAccounts} open={siteOpen} onOpenChange={changeSiteOpen} selected={selectedSiteAccount}
       password={selectedSiteAccount && revealed?.id === siteSelectedId ? revealed.password : undefined} busy={busy} error={error} unlockForm={siteOpen ? unlockForm : null}
       onSelect={(id) => { void reveal(id).then((success) => { if (success) setSiteSelectedId(id) }) }}
@@ -149,11 +151,12 @@ export function PasswordVault({ guestId, url }: { guestId?: () => number | undef
       <PanelContent onFocusOutside={(event) => { if (manage) event.preventDefault() }} data-vault-settings={manage ? undefined : ""} style={manage ? layout.sheetStyle : layout.contentStyle} {...(manage ? { showOverlay: false, side: "right" as const } : { showCloseButton: false })} onSubmit={(event) => event.stopPropagation()} className={manage ? "z-[221] top-0 flex h-auto flex-col gap-2 p-3 sm:max-w-sm" : "z-[221] flex max-h-[85vh] max-w-[460px] flex-col gap-0 overflow-hidden p-0"}>
         <div className={manage ? undefined : "flex shrink-0 items-center gap-3 border-b border-stone-200/80 px-5 py-3.5 dark:border-stone-700/70"}>
           {!manage && <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-green-50 text-green-600 dark:bg-green-500/10 dark:text-green-400"><KeyRound className="size-4" /></span>}
-          <DialogHeader className={manage ? undefined : "min-w-0 space-y-0.5 text-left"}><DialogTitle className={"text-[15px] font-semibold"}>{manage ? "账号和密码" : candidate ? "保存密码？" : "账号和密码设置"}</DialogTitle><DialogDescription className="text-xs leading-5">{manage ? "查看 Vessel 保存的网站和 Git 账号，密码默认隐藏。查看密码需要验证身份。" : candidate ? "Vessel 会用系统钥匙串加密保存在本机，之后可在浏览器菜单的“账号和密码”中查看。" : "账号和密码使用系统钥匙串加密保存在本机；查看密码需要通过系统身份验证。"}</DialogDescription></DialogHeader>
+          <DialogHeader className={manage ? undefined : "min-w-0 space-y-0.5 text-left"}><DialogTitle className={"text-[15px] font-semibold"}>{manage ? "账号和密码" : candidate ? "保存密码？" : "账号和密码设置"}</DialogTitle><DialogDescription className="text-xs leading-5">{state.source === "remote" ? "账号和密码加密保存在当前远程保险库；重装后使用原账号和原登录密码恢复，查看密码仍需系统身份验证。" : manage ? "查看本机保存的网站和 Git 账号，密码默认隐藏。查看密码需要验证身份。" : candidate ? "Vessel 会加密保存到本机数据库，密钥由系统钥匙串保护。" : "账号和密码加密保存在本机数据库；查看密码需要通过系统身份验证。"}</DialogDescription></DialogHeader>
         </div>
         <ScrollArea className={manage ? "min-h-0 flex-1" : "min-h-0 flex-1 px-5 py-4 [&_[data-radix-scroll-area-viewport]]:max-h-[55vh]"}>
           <div className={manage ? "space-y-2 pr-1 text-xs" : "space-y-3 text-xs"}>
             {manage ? <>
+              {state.source === "remote" && <div className="space-y-2 pb-2 text-xs"><p className="text-muted-foreground">本机账号不会自动上传；忘记原登录密码且没有恢复方式时，重置密码无法解开原保险库。</p><Button variant="outline" size="sm" disabled={busy} onClick={() => setImportLocalOpen(true)}>导入本机账号</Button></div>}
               <PasswordAccounts items={items} revealed={revealed} busy={busy} requiresUnlock={requiresUnlock} onReveal={(id) => void reveal(id)} onDelete={setDeleteId} onSettings={() => setManage(false)} />
               {unlockForm}
             </> : <>

@@ -103,14 +103,17 @@ it("wakes frozen tabs through the shared selection event used by search and tab 
   expect(result.result.current.tabs).toHaveLength(2)
 })
 
-it.each([false, true])("offers the matching freeze action in the tab context menu (frozen=%s)", (frozen) => {
+it.each([false, true].flatMap(grouped => [false, true].map(frozen => ({ grouped, frozen }))))("offers the matching freeze action for the represented tab (grouped=$grouped, frozen=$frozen)", ({ grouped, frozen }) => {
   const item = tab("menu", { frozen })
+  const sibling = tab("sibling", { url: "https://menu.test/other" })
+  vi.stubGlobal("electronAPI", { getSettings: vi.fn(async () => ({ browserGroupSameDomain: true })) })
   const freezeTab = vi.fn(), setActive = vi.fn()
-  const model = { tabs: [item], tab: item, freezeTab, setActive, setInput: vi.fn(), close: vi.fn() } as unknown as BrowserPageModel
+  const model = { tabs: grouped ? [item, sibling] : [item], tab: item, freezeTab, setActive, setInput: vi.fn(), close: vi.fn() } as unknown as BrowserPageModel
   const view = render(<BrowserTabs b={model} />)
   fireEvent.contextMenu(view.container.querySelector(".browser-tab")!)
   fireEvent.click(screen.getByRole("menuitem", { name: frozen ? "解冻标签页" : "冻结标签页" }))
-  expect(frozen ? setActive : freezeTab).toHaveBeenCalledWith("menu")
+  expect(frozen ? setActive : freezeTab).toHaveBeenCalledExactlyOnceWith("menu")
+  expect(frozen ? freezeTab : setActive).not.toHaveBeenCalled()
 })
 
 it("identifies the frozen site and resumes only when requested", () => {

@@ -1,3 +1,4 @@
+import { localDatabaseLifecycle } from "@main/database/data-domain"
 import { AppDatabase as BaseAppDatabase } from "@main/database/app-database"
 import { DATABASE_COLUMN_LABELS, DATABASE_TABLE_LABELS } from "@main/modules/welcome/constants/index.constant"
 import type { DatabaseColumnInfo, DatabaseTableData, DatabaseTableInfo, DeviceInfo, PersistedWorkspaceData, RecentWorkspace, WorkspaceDataInput, WorkspaceOpenRecord, WorkspaceRow } from "@main/modules/welcome/index.type"
@@ -936,7 +937,9 @@ export class AppDatabase extends BaseAppDatabase {
    * 该方法允许重复调用，
    * 第二次及之后会直接返回。
    */
-  override close(): void {
+  override close(): void { localDatabaseLifecycle(() => this.closeLocal()) }
+
+  private closeLocal(): void {
     if (this.closed) {
       return
     }

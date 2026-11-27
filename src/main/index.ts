@@ -1,3 +1,6 @@
+import { applyPendingLocalDatabaseDeletion, cancelPendingLocalDatabaseDeletion } from "./database/reset-local"
+import { registerDatabaseSync } from "./sync/database-sync"
+import { registerLayoutPreferences } from "./settings/layout-preferences"
 import { registerVault } from "./vault/service"
 import { registerWindowSwitcher } from "./window-switcher"
 import { startClipboardHistory } from "./clipboard/service"
@@ -32,6 +35,7 @@ if (!app.isPackaged) {
   mkdirSync(developmentData, { recursive: true })
   app.setPath("userData", developmentData)
 }
+applyPendingLocalDatabaseDeletion(app.getPath("userData"))
 app.setName("vessel")
 registerMarkdownOpening()
 
@@ -196,7 +200,7 @@ function createWindow(): void {
     })
     // Electron uses preventDefault here to allow the blocked unload to proceed.
     if (response === 1) event.preventDefault()
-    else resumeTerminalStarts()
+    else { cancelPendingLocalDatabaseDeletion(); resumeTerminalStarts() }
   })
 
   mainWindow.webContents.on("render-process-gone", () => {
@@ -215,6 +219,12 @@ function createWindow(): void {
 
   ipcMain.removeHandler("app:relaunch")
   ipcMain.handle("app:relaunch", () => {
+    // electron-vite exits with its Electron child; relaunching that child would kill the page server.
+    if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
+      isAppCrashed = false
+      if (!mainWindow.isDestroyed()) mainWindow.webContents.reload()
+      return
+    }
     app.relaunch()
     app.exit(0)
   })
@@ -238,6 +248,7 @@ function createWindow(): void {
     return translateText(text, from, to)
   })
   registerSettings(mainWindow.webContents)
+  registerDatabaseSync(mainWindow.webContents)
   registerAppUpdate(mainWindow.webContents)
   registerOffice(mainWindow.webContents)
   registerTransit(mainWindow.webContents)
@@ -279,6 +290,7 @@ function createWindow(): void {
 registerWindowSwitcher()
 
 app.whenReady().then(() => {
+  registerLayoutPreferences()
   registerImageResources()
   electronApp.setAppUserModelId("com.wonishi.vessel")
 

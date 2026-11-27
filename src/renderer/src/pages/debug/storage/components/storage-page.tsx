@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
 import { DataTable, type DataTableColumn } from "@/pages/debug/storage/components/data-table"
 import { DataTablePagination } from "@/pages/debug/storage/components/data-table-pagination"
@@ -142,7 +143,8 @@ export function StoragePage() {
       {/* 主体：左表列表 + 右数据 */}
       <div className="flex min-h-0 flex-1 gap-4 overflow-hidden p-4">
         {/* 左侧数据表列表 */}
-        <aside className="w-[224px] shrink-0 overflow-y-auto rounded-xl border border-[#e7e5e4] bg-white p-2 [scrollbar-width:thin]">
+        <aside className="flex min-h-0 w-[224px] shrink-0 flex-col overflow-hidden rounded-xl border border-[#e7e5e4] bg-white">
+          <ScrollArea type="hover" className="min-h-0 flex-1 [&_[data-radix-scroll-area-viewport]]:p-2 [&_[data-radix-scroll-area-viewport]>div]:!block">
           <div className="flex items-center justify-between px-1.5 pb-2 pt-1">
             <span className="text-[12px] font-semibold text-stone-400">数据表</span>
             <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-stone-200/70 px-1.5 text-[11px] font-semibold text-stone-500">{tables.length}</span>
@@ -164,7 +166,7 @@ export function StoragePage() {
                     onClick={() => switchTable(t.name)}
                     data-title={`${t.name}：${getTableDescription(t.name)}`}
                     data-title-side="right"
-                    className={cn("flex h-auto w-full justify-start items-center gap-2.5 rounded-lg px-2 py-2 text-left transition-colors", active ? "bg-green-50 hover:bg-green-50" : "hover:bg-black/[0.03]")}
+                    className={cn("flex h-auto w-full justify-start items-center gap-2.5 rounded-lg px-2 py-2 text-left transition-colors hover:text-foreground", active ? "bg-green-50 hover:bg-green-50" : "hover:bg-black/[0.03]")}
                   >
                     <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-lg", active ? "bg-green-100 text-green-600" : "bg-stone-100 text-stone-400")}>
                       <Table2 className="h-4 w-4" />
@@ -183,6 +185,7 @@ export function StoragePage() {
               )
             })}
           </div>
+          </ScrollArea>
         </aside>
 
         {/* 右侧数据卡片 */}

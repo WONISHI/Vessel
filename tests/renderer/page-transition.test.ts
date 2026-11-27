@@ -2,7 +2,7 @@ import { createElement } from "react"
 import { act, cleanup, render } from "@testing-library/react"
 import { createMemoryRouter, Navigate, RouterProvider } from "react-router-dom"
 import { afterEach, beforeEach, expect, it, vi } from "vitest"
-import { installPageTransitions, rememberPageContent, transitionPage } from "@/lib/page-transition"
+import { installPageTransitions, pageTransitionKey, rememberPageContent, transitionPage } from "@/lib/page-transition"
 
 beforeEach(() => {
   vi.useFakeTimers()
@@ -320,4 +320,26 @@ it("retains native frames on an unanimated first visit so returning can animate 
     expect(start).not.toHaveBeenCalled()
     expect(document.documentElement.dataset.pageTransition).toBeUndefined()
   } finally { unregister() }
+})
+
+it("animates the first user-domain visit and the return to login as distinct pages", async () => {
+  const start = mockTransition()
+  expect(pageTransitionKey('/login/user-domain')).toBe('user-domain')
+  expect(pageTransitionKey('/login?mode=register')).toBe('login')
+  const stop = rememberPageContent('login')
+  await vi.advanceTimersByTimeAsync(10)
+  const native = createMemoryRouter([
+    { path: '/login', element: createElement('h1', null, 'login form') },
+    { path: '/login/user-domain', element: createElement('h1', null, 'domain form') }
+  ], { initialEntries: ['/login'] })
+  const uninstall = installPageTransitions({ nativeRouter: native } as any)
+  render(createElement(RouterProvider, { router: native }))
+  await act(async () => { await native.navigate('/login/user-domain') })
+  expect(start).toHaveBeenCalledTimes(1)
+  expect(document.body.textContent).toBe('domain form')
+  await act(async () => { await native.navigate('/login') })
+  expect(start).toHaveBeenCalledTimes(2)
+  await act(async () => { await native.navigate('/login?mode=register') })
+  expect(start).toHaveBeenCalledTimes(2)
+  uninstall(); stop()
 })

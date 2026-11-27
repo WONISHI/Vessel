@@ -1,24 +1,31 @@
 import { authenticatePasswordReveal } from "./system-auth"
+import { clearVaultClipboardSecret, copyVaultSecret } from './clipboard'
+import { assertDataClient } from '../database/data-domain'
+import { VAULT_AAD, type VaultDocument } from './document'
+import { LocalVaultStorage, RemoteVaultStorage, type VaultStorage, type VaultDomainLifecycle } from './storage'
 import { app, dialog, powerMonitor, safeStorage, type WebContents } from "electron"
 import { randomBytes, randomUUID } from "node:crypto"
-import { mkdir, readFile, rename, stat, writeFile } from "node:fs/promises"
-import { join } from "node:path"
-import { credentialOrigin, derive, salt, seal, unseal, type Sealed } from "./crypto"
+import { readFile, stat, writeFile } from "node:fs/promises"
+import { credentialOrigin, derive, salt, seal, unseal } from "./crypto"
 
 type Entry = { id: string; origin: string; username: string; password: string; updated: number; kind?: "git"; gitPath?: string }
-type Document = { version: 1; auto?: boolean; salt: string; wrapped: string; records: { id: string; data: Sealed }[]; never: Sealed; catalog?: string }
-const aad = "vessel-vault-v1"
+type Document = VaultDocument
+const aad = VAULT_AAD
 let key: Buffer | undefined, document: Document | undefined, loading: Promise<void> | undefined
 let generation = 0, lastAttempt = 0, busy = false
 let idle: ReturnType<typeof setTimeout> | undefined
-const path = () => join(app.getPath("userData"), "password-vault", "vault.json")
+let activeStorage: VaultStorage | undefined
+let storageRevision = 0, storageSwitching = false, pendingTasks = 0
+const storage = () => activeStorage ??= new LocalVaultStorage(app.getPath('userData'))
 const guests = new Map<number, { guest: WebContents; host: WebContents }>()
 const candidates = new Map<string, { entry: Entry; guest: WebContents; expires: number }>()
+const reveals = new WeakMap<WebContents, { id: string; expires: number; generation: number }>()
 function requireSystem() {
   if (!safeStorage.isEncryptionAvailable() || (process.platform === "linux" && safeStorage.getSelectedStorageBackend() === "basic_text")) throw new Error("系统安全密钥存储不可用，已拒绝保存密码")
 }
 export function lockVault() {
   generation++; key?.fill(0); key = undefined; candidates.clear(); clearTimeout(idle)
+  try { clearVaultClipboardSecret() } catch { console.warn('无法清除保险库剪贴板，已清除内存密钥') }
 }
 function touch() { clearTimeout(idle); idle = setTimeout(lockVault, 5 * 60 * 1000); idle.unref() }
 function requireKey(activity = true) { if (!key) throw new Error("保险库已锁定，请先解锁"); if (activity) touch(); return key }
@@ -37,21 +44,15 @@ async function ensureAuto() {
     } else if (document.auto && !key) {
       const unwrapped = JSON.parse(safeStorage.decryptString(Buffer.from(document.wrapped, "base64"))) as { key?: string }
       if (typeof unwrapped.key !== "string") throw new Error("保险库无法解密")
-      key = Buffer.from(unwrapped.key, "base64")
+      const restored = Buffer.from(unwrapped.key, "base64")
+      if (restored.length !== 32) { restored.fill(0); throw new Error("保险库无法解密") }
+      key = restored
     }
   })().finally(() => { autoPending = undefined })
   await autoPending
 }
 async function load() {
-  loading ||= (async () => {
-    try {
-      if ((await stat(path())).size > 16 * 1024 * 1024) throw new Error("保险库文件过大")
-      const next = JSON.parse(await readFile(path(), "utf8")) as Document
-      if (next?.version !== 1 || !Array.isArray(next.records) || next.records.length > 10000 || typeof next.salt !== "string" || Buffer.from(next.salt, "base64").length !== 16 || typeof next.wrapped !== "string" || !next.never) throw new Error("保险库格式无效")
-      document = next
-    }
-    catch (error) { if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error }
-  })().catch((error) => { loading = undefined; throw error })
+  loading ||= storage().read().then(value => { document = value }).catch(error => { loading = undefined; throw error })
   await loading
 }
 async function persist(next: Document) {
@@ -65,9 +66,8 @@ async function persist(next: Document) {
     })
     next = { ...next, catalog: safeStorage.encryptString(JSON.stringify(metadata)).toString("base64") }
   }
-  await mkdir(join(app.getPath("userData"), "password-vault"), { recursive: true, mode: 0o700 })
-  await writeFile(path() + ".tmp", JSON.stringify(next), { mode: 0o600 })
-  await rename(path() + ".tmp", path()); document = next
+  await storage().write(next)
+  document = next
 }
 function entries(k: Buffer) { return document!.records.map((record) => JSON.parse(unseal(k, record.data, `${aad}:${record.id}`)) as Entry) }
 function denied(k: Buffer): string[] { return JSON.parse(unseal(k, document!.never, `${aad}:never`)) }
@@ -90,8 +90,8 @@ export function attachVaultGuest(guest: WebContents, host: WebContents) {
   guests.set(guest.id, { guest, host })
   guest.once("destroyed", () => { guests.delete(guest.id); for (const [id, c] of candidates) if (c.guest === guest) candidates.delete(id) })
   // Autofill suggestions: usernames only; the password is sent to the page solely after the user clicks a suggestion.
-  guest.ipc.handle("vault:suggest", async (event) => {
-    if (event.senderFrame !== guest.mainFrame) return []
+  guest.ipc.handle("vault:suggest", async (event) => vaultTask(async () => {
+    if (guests.get(guest.id)?.guest !== guest || event.senderFrame !== guest.mainFrame) return []
     try {
       const origin = credentialOrigin(guest.getURL())
       await load()
@@ -99,9 +99,9 @@ export function attachVaultGuest(guest: WebContents, host: WebContents) {
       await ensureAuto()
       return key ? entries(key).filter((entry) => entry.kind !== "git" && entry.origin === origin).map(({ id, username }) => ({ id, username })) : []
     } catch { return [] }
-  })
-  guest.ipc.on("vault:use", async (event, id: unknown) => {
-    if (event.senderFrame !== guest.mainFrame || typeof id !== "string") return
+  }).catch(() => []))
+  guest.ipc.on("vault:use", async (event, id: unknown) => vaultTask(async () => {
+    if (guests.get(guest.id)?.guest !== guest || event.senderFrame !== guest.mainFrame || typeof id !== "string") return
     try {
       await load()
       if (!document?.auto) return
@@ -110,9 +110,9 @@ export function attachVaultGuest(guest: WebContents, host: WebContents) {
       if (!entry || entry.kind === "git" || credentialOrigin(guest.getURL()) !== entry.origin) return
       guest.mainFrame.send("vault:fill", { origin: entry.origin, username: entry.username, password: entry.password })
     } catch { /* The page keeps its own form when the vault is unavailable. */ }
-  })
-  guest.ipc.on("vault:submit", async (event, value: unknown) => {
-    if (event.senderFrame !== guest.mainFrame || !value || typeof value !== "object") return
+  }).catch(() => undefined))
+  guest.ipc.on("vault:submit", async (event, value: unknown) => vaultTask(async () => {
+    if (guests.get(guest.id)?.guest !== guest || event.senderFrame !== guest.mainFrame || !value || typeof value !== "object") return
     const data = value as { username?: unknown; password?: unknown }
     if (typeof data.username !== "string" || typeof data.password !== "string" || !data.password || data.password.length > 4096 || data.username.length > 1024) return
     try {
@@ -128,13 +128,48 @@ export function attachVaultGuest(guest: WebContents, host: WebContents) {
       expiry.unref()
       notify(host, id)
     } catch { /* Unsupported origins and invalid forms are not captured. */ }
-  })
+  }).catch(() => undefined))
 }
 let vaultTasks: Promise<unknown> = Promise.resolve()
 function vaultTask<T>(action: () => Promise<T>): Promise<T> {
-  const next = vaultTasks.then(action, action)
-  vaultTasks = next.catch(() => {})
+  if (storageSwitching) return Promise.reject(new Error('正在切换保险库，请稍候'))
+  const revision = storageRevision
+  const execute = async () => {
+    if (revision !== storageRevision) throw new Error('保险库已切换，请重新打开')
+    return storage().run(async () => {
+      document = await storage().read()
+      loading = Promise.resolve()
+      return action()
+    })
+  }
+  pendingTasks++
+  const next = vaultTasks.then(execute, execute)
+  vaultTasks = next.catch(() => {}).finally(() => { pendingTasks-- })
   return next
+}
+export function drainVaultTasks(): Promise<void> | null { return pendingTasks ? vaultTasks.then(() => {}) : null }
+
+/** Publish business data and its vault together, after pending vault operations have drained. */
+export const vaultDomains: VaultDomainLifecycle = {
+  prepare: (account, password, options, factory) => RemoteVaultStorage.unlock(account, password, options, safeStorage, factory),
+  switch: async (change, next) => {
+    if (storageSwitching) throw new Error('正在切换保险库，请稍候')
+    storageSwitching = true
+    const operation = vaultTasks.then(async () => {
+      try {
+        await change()
+        lockVault()
+        guests.clear()
+        activeStorage?.close()
+        activeStorage = next
+        storageRevision++
+        document = undefined; loading = undefined; autoPending = undefined
+      } catch (error) { next?.close(); throw error }
+      finally { storageSwitching = false }
+    })
+    vaultTasks = operation.catch(() => {})
+    return operation
+  }
 }
 
 export type GitVaultContext = { origin: string; username?: string; password?: string; path?: string }
@@ -185,12 +220,13 @@ export function registerVault(host: WebContents) {
   host.once("destroyed", lockVault)
   host.ipc.handle("vault:request", async (event, action: string, data: Record<string, string> = {}) => vaultTask(async () => {
     if (event.senderFrame !== host.mainFrame) throw new Error("不允许的保险库调用来源")
+    assertDataClient(host.id)
     if (!data || typeof data !== "object" || Object.values(data).some((value) => typeof value !== "string" || value.length > 4096)) throw new Error("无效的保险库参数")
     await load()
     if (action === "status") {
-      if (!document) return { initialized: false, unlocked: true, auto: true }
+      if (!document) return { initialized: false, unlocked: true, auto: true, ...(storage().remote ? { source: "remote" } : {}) }
       if (document.auto) await ensureAuto()
-      return { initialized: true, unlocked: !!key, auto: !!document.auto }
+      return { initialized: true, unlocked: !!key, auto: !!document.auto, ...(storage().remote ? { source: "remote" } : {}) }
     }
     if (action === "catalog") {
       if (!document) return { items: [], requiresUnlock: false }
@@ -222,15 +258,46 @@ export function registerVault(host: WebContents) {
       }
       if (document?.auto || !document) await ensureAuto()
       const k = requireKey(action !== "list")
-      if (action === "reveal") {
+      if (action === "reveal" || action === "copy") {
         if (!entries(k).some((entry) => entry.id === data.id)) throw new Error("账号不存在")
         const revision = generation
-        await authenticatePasswordReveal()
+        const lease = reveals.get(host)
+        if (action !== 'copy' || lease?.id !== data.id || lease.generation !== revision || lease.expires < Date.now()) await authenticatePasswordReveal()
         if (host.isDestroyed() || event.senderFrame !== host.mainFrame || revision !== generation || key !== k) throw new Error("保险库已锁定，查看已取消")
         const entry = entries(k).find((entry) => entry.id === data.id)
         if (!entry) throw new Error("账号不存在")
         touch()
+        reveals.set(host, { id: data.id, expires: Date.now() + 10000, generation: revision })
+        if (action === 'copy') { copyVaultSecret(entry.password); return }
         return { password: entry.password }
+      }
+      if (action === 'import-local') {
+        if (!storage().remote) throw new Error('请先登录远程账号')
+        const revision = generation
+        await authenticatePasswordReveal()
+        if (revision !== generation || key !== k || host.isDestroyed()) throw new Error('保险库已锁定，导入已取消')
+        const local = new LocalVaultStorage(app.getPath('userData'))
+        let localKey: Buffer | undefined
+        try {
+          const doc = await local.read()
+          if (!doc) return
+          if (!doc.auto) throw new Error('请先退出登录并解锁本机旧保险库，再重新登录导入')
+          localKey = Buffer.from(JSON.parse(safeStorage.decryptString(Buffer.from(doc.wrapped, 'base64'))).key, 'base64')
+          if (localKey.length !== 32) throw new Error('本机保险库无法解锁')
+          const existing = new Set(entries(k).map(item => JSON.stringify([item.kind ?? 'website', item.origin, item.username, item.gitPath ?? ''])))
+          const records = [...document!.records]
+          for (const record of doc.records) {
+            const entry = JSON.parse(unseal(localKey, record.data, `${aad}:${record.id}`)) as Entry
+            const identity = JSON.stringify([entry.kind ?? 'website', entry.origin, entry.username, entry.gitPath ?? ''])
+            if (existing.has(identity)) continue
+            existing.add(identity)
+            const id = randomUUID()
+            records.push({ id, data: seal(k, JSON.stringify({ ...entry, id }), `${aad}:${id}`) })
+          }
+          if (records.length > 10000) throw new Error('保险库记录数量超限')
+          await persist({ ...document!, records })
+        } finally { localKey?.fill(0); local.close() }
+        return
       }
       if (action === "list") return entries(k).map(({ password: _password, ...entry }) => entry)
       if (action === "delete") { await persist({ ...document!, records: document!.records.filter((item) => item.id !== data.id) }); return }

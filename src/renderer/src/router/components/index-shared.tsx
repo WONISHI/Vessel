@@ -1,3 +1,4 @@
+import UserDomainPage from "@/pages/login/user-domain"
 import App from "@/components/app/index"
 import { installPageTransitions } from "@/lib/page-transition"
 import { installRoutePersistence } from "@/router/route-persistence"
@@ -10,7 +11,7 @@ import type { WorkspaceData } from "@vessel/type"
 import { RouteLoading, type RouteLoadingOptions } from "@/components/ui/route-loading"
 import { lazyWithRetry } from "@/lib/lazy-retry"
 import { Suspense, type ComponentType } from "react"
-import { Bug, FolderOpen, GitBranch, Image as ImageIcon, ListTodo, Paperclip, Send, Settings } from "lucide-react"
+import { FolderOpen, GitBranch, Image as ImageIcon, ListTodo, LogIn, Paperclip, Send, Settings } from "lucide-react"
 
 /** 按路由懒加载重页面，加载期间显示统一的满宽加载蒙层（RouteLoading），各路由只传图标与文案 */
 function lazyPage<P extends object>(factory: () => Promise<{ default: ComponentType<P> }>, loading: RouteLoadingOptions = {}): ComponentType<P> {
@@ -25,7 +26,7 @@ function lazyPage<P extends object>(factory: () => Promise<{ default: ComponentT
   }
 }
 
-const debugLoading: RouteLoadingOptions = { icon: <Bug />, title: "正在加载调试工具", label: "正在准备开发者工具，请稍候…" }
+const debugLoading: RouteLoadingOptions = { skeleton: true }
 const GraphPage = lazyWithRetry(() => import("@/components/workspace/graph/graph-page"))
 function WorkspaceGraphPage() {
   return <Suspense fallback={null}><GraphPage /></Suspense>
@@ -44,6 +45,7 @@ const URLTool = lazyPage<object>(async () => ({ default: (await import("@/pages/
 const DiagnosticsPage = lazyPage(() => import("@/pages/debug/diagnostics/index"), debugLoading)
 const DebugPage = lazyPage(() => import("@/pages/debug/index"), { ...debugLoading, activity: "tools" })
 const DevtoolsStorage = lazyPage(() => import("@/pages/debug/storage/index"), debugLoading)
+const LoginPage = lazyPage(() => import("@/pages/login"), { icon: <LogIn />, title: "正在加载登录页面", label: "正在准备登录界面，请稍候…" })
 const PerformancePage = lazyPage(() => import("@/pages/debug/performance"), debugLoading)
 const SystemInfoPage = lazyPage(() => import("@/pages/debug/system-info"), debugLoading)
 /** 浏览器页由 BrowserKeepAlive 懒加载并常驻；路由本身不渲染内容（同 @/pages/browser 的 BrowserRoute），避免静态引入整个浏览器模块 */
@@ -76,6 +78,8 @@ export function saveCurrentWorkspace(data: WorkspaceData): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
 }
 export const routes: AppRouteRecordRaw[] = [
+  { path: "/login/user-domain", name: "user-domain", component: UserDomainPage, meta: { title: "添加用户域" } },
+  { path: "/login", name: "login", component: LoginPage, meta: { title: "登录" } },
   { path: "/git", name: "git", component: SourceTreePage, meta: { title: "Git" } },
   { path: "/api-client", name: "api-client", component: PostmanPage, meta: { title: "API" } },
   { path: "/search", name: "search", component: SearchPage, meta: { title: "全局搜索" } },

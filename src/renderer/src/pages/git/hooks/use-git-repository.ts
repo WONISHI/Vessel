@@ -6,6 +6,7 @@ import { toast } from "@/components/ui/sonner"
 import type { GitCommitDetail, GitCommitItem, GitStatusResult, GitStashEntry } from "@vessel/type"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { cleanGitErrorMessage, findCommitIndexForBranch, getInitialRepoPath, persistGitRepoPath } from "@/pages/git/utils"
+import { transitionPage } from "@/lib/page-transition"
 
 /** 仓库数据状态、刷新逻辑与派生计数 */
 export function useGitRepository() {
@@ -115,9 +116,15 @@ export function useGitRepository() {
       const git = window.electronAPI.git
       const valid = await git.isRepo(repoPath)
       if (version !== historyVersion.current) return
-      setIsRepo(valid)
       if (!valid) {
-        setLoading(false)
+        const showEmpty = () => {
+          if (version !== historyVersion.current) return
+          statusRepoPath.current = repoPath
+          setIsRepo(false)
+          setLoading(false)
+        }
+        if (statusRepoPath.current !== repoPath) await transitionPage(showEmpty, "git", { contentReady: true })
+        else showEmpty()
         return
       }
 
@@ -134,23 +141,32 @@ export function useGitRepository() {
       ])
 
       if (version !== historyVersion.current) return
-      setCommitTotal(totalRes)
-      setBranchCommitTotal(branchTotalRes ?? totalRes)
-      statusRepoPath.current = repoPath
-      setStatus(statusRes)
-      if (syncMergeCommitDraft(commitMessage, statusRes.mergeMessage)) setCommitMessageReset(value => value + 1)
-      // Notify the resource-library tree only when the change set really differs, never on every reload.
-      const signature = JSON.stringify([statusRes.staged, statusRes.unstaged, statusRes.untracked, statusRes.conflicts].map((list) => list.map((file) => `${file.path}:${file.status}`)))
-      if (signature !== lastGitSignature.current) {
-        lastGitSignature.current = signature
-        window.dispatchEvent(new Event("vessel:git-changed"))
-      }
-      setBranches(branchRes)
-      setCommits(logRes)
-      setStashes(stashRes || [])
-      setUnpushedHashes(new Set(unpushedRes || []))
+      const applyRepository = () => {
+        if (version !== historyVersion.current) return
+        setIsRepo(true)
+        setCommitTotal(totalRes)
+        setBranchCommitTotal(branchTotalRes ?? totalRes)
+        statusRepoPath.current = repoPath
+        setStatus(statusRes)
+        if (syncMergeCommitDraft(commitMessage, statusRes.mergeMessage)) setCommitMessageReset(value => value + 1)
+        // Notify the resource-library tree only when the change set really differs, never on every reload.
+        const signature = JSON.stringify([statusRes.staged, statusRes.unstaged, statusRes.untracked, statusRes.conflicts].map((list) => list.map((file) => `${file.path}:${file.status}`)))
+        if (signature !== lastGitSignature.current) {
+          lastGitSignature.current = signature
+          window.dispatchEvent(new Event("vessel:git-changed"))
+        }
+        setBranches(branchRes)
+        setCommits(logRes)
+        setStashes(stashRes || [])
+        setUnpushedHashes(new Set(unpushedRes || []))
 
-      reconcileGitFileSelection(repoPath, statusRes)
+        reconcileGitFileSelection(repoPath, statusRes)
+        setLoading(false)
+      }
+      // Capture the outgoing repository only once the destination data is ready.
+      // Ordinary refreshes and history-scope changes stay still.
+      if (statusRepoPath.current !== repoPath) await transitionPage(applyRepository, "git", { contentReady: true })
+      else applyRepository()
     } catch (err: any) {
       if (version !== historyVersion.current) return
       toast.error("读取仓库信息失败", { description: cleanGitErrorMessage(err) })

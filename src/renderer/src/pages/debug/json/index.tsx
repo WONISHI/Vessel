@@ -8,6 +8,7 @@ import "@/components/styles/tool-page-header.css"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Button } from "@/components/ui/button"
+import { PageSkeleton } from "@/components/ui/page-skeleton"
 import Editor from "@monaco-editor/react"
 import type { JsonShareInfo } from "@vessel/type"
 import { Archive, Share2, Plus, X, Braces, Code, Copy, Download, RotateCw, Trash2 } from "lucide-react"
@@ -299,6 +300,7 @@ function JsonDocumentEditor({ draft, focusEditor, onUpdate, onAdd, tabBar }: { d
         <div className="relative min-h-0 flex-1 overflow-hidden">
         {!value && <div aria-hidden="true" className="dev-json-empty"><span><Braces size={26} /></span><p>粘贴 JSON，开始编辑</p><small>每份文档独立保留内容，可随时切换</small></div>}
         <Editor
+          loading={<PageSkeleton editorOnly />}
           theme={editorTheme}
           height="100%"
           language="json"

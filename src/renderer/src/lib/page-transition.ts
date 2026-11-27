@@ -105,8 +105,11 @@ export function transitionPage(change: () => unknown, destination: string, optio
   return surfaces.length ? Promise.all(surfaces.map(surface => surface.prepare(token).catch(console.error))).then(start) : start()
 }
 
-export const pageTransitionKey = (path: string) => path.split(/[?#]/, 1)[0].split("/")[1] || "welcome"
-const pages = new Set(["welcome", "editor", "browser", "resources", "office", "image", "attachments", "git", "api-client", "settings", "debug"])
+export const pageTransitionKey = (path: string) => {
+  const pathname = path.split(/[?#]/, 1)[0]
+  return pathname === "/login/user-domain" ? "user-domain" : pathname.split("/")[1] || "welcome"
+}
+const pages = new Set(["welcome", "editor", "browser", "resources", "office", "image", "attachments", "git", "api-client", "settings", "debug", "login", "user-domain"])
 
 /** Cover activity menus, rails, useNavigate and router.push with the same transition. */
 export function installPageTransitions(router: RouterController) {
@@ -166,7 +169,8 @@ export function installPageTransitions(router: RouterController) {
       }
       return (original as (...values: unknown[]) => Promise<void>).apply(native, args)
     }
-    const result = animate ? transitionPage(navigate, next) : navigate()
+    // The compact user-domain form is eagerly loaded, so its first visit can animate too.
+    const result = animate ? transitionPage(navigate, next, { contentReady: next === "user-domain" }) : navigate()
     const entry = { target: to, options, result }
     pending = entry
     void result.then(() => { if (pending === entry) pending = undefined }, () => { if (pending === entry) pending = undefined })

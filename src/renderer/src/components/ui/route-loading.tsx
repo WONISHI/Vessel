@@ -2,10 +2,12 @@ import type { AsideActivity } from "@/components/layout/activity-bar/activity"
 import ActivityBar from "@/components/layout/activity-bar/index"
 import Layout from "@/components/layout/index"
 import { EditorLoading } from "@/components/ui/editor-loading"
+import { PageSkeleton } from "@/components/ui/page-skeleton"
 import type { ReactNode } from "react"
 import { useNavigate } from "react-router-dom"
 
 export type RouteLoadingOptions = {
+  skeleton?: boolean
   icon?: ReactNode
   title?: string
   label?: string
@@ -14,7 +16,8 @@ export type RouteLoadingOptions = {
 }
 
 /** Full-size ONLYOFFICE-style mask; fills its parent, also inside flex rows. */
-function LoadingMask({ icon, title = "正在加载页面", label = "正在准备页面内容，请稍候…" }: RouteLoadingOptions) {
+function LoadingMask({ skeleton, icon, title = "正在加载页面", label = "正在准备页面内容，请稍候…" }: RouteLoadingOptions) {
+  if (skeleton) return <PageSkeleton />
   return (
     <div data-page-transition-loading className="relative flex h-full min-h-0 w-full min-w-0 flex-1 self-stretch">
       <div className="absolute inset-0 flex">

@@ -3,6 +3,17 @@ import { afterEach, expect, it, vi } from "vitest"
 import { PasswordVault } from "@/pages/browser/components/password-vault"
 vi.mock("@/components/ui/scroll-area", () => ({ ScrollArea: ({ children }: { children: React.ReactNode }) => <div>{children}</div> }))
 afterEach(() => { cleanup(); vi.unstubAllGlobals() })
+it('requires explicit consent before importing local credentials into the remote vault', async () => {
+  const request = vi.fn(async (action: string) => action === 'catalog' ? { items: [], requiresUnlock: false } : { initialized: true, unlocked: true, auto: true, source: 'remote' })
+  vi.stubGlobal('electronAPI', { vaultRequest: request, onVaultCandidate: () => () => {} })
+  render(<PasswordVault />)
+  act(() => window.dispatchEvent(new Event('vessel-open-password-vault')))
+  fireEvent.click(await screen.findByRole('button', { name: '导入本机账号' }))
+  expect(screen.getByText('导入本机账号到当前远程保险库？')).toBeTruthy()
+  expect(request.mock.calls.some(([action]) => action === 'import-local')).toBe(false)
+  fireEvent.click(screen.getByRole('button', { name: '验证并导入' }))
+  await waitFor(() => expect(request).toHaveBeenCalledWith('import-local', undefined))
+})
 it("leaves activity and status navigation interactive when the vault is open", () => {
   vi.stubGlobal("electronAPI", { onVaultCandidate: () => () => {}, vaultRequest: vi.fn(async (action: string) => action === "catalog" ? { items: [], requiresUnlock: false } : { initialized: false, unlocked: true, auto: true }) })
   const navigate = vi.fn()

@@ -1,5 +1,6 @@
 import { ProxyTelemetry } from "./telemetry"
 import { Button } from "@/components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
@@ -174,7 +175,7 @@ export default function ProxyTool() {
                     {selectedConnected && status?.selected === node && <span className="shrink-0 rounded-md bg-green-100 px-2 py-1 text-[10px] font-semibold text-green-600">使用中</span>}
                   </button>
                 ))}
-                {!nodes.length && <p className="p-6 text-center text-xs text-stone-400">{loadingNodes ? "正在读取订阅节点…" : loadedProfile?.error || (availableNodes.length ? "没有匹配的节点" : "此订阅暂无可用节点")}</p>}
+                {!nodes.length && (loadingNodes ? <div role="status" aria-label="正在读取订阅节点" className="space-y-3 p-4">{Array.from({ length: 4 }, (_, index) => <div key={index} className="flex items-center gap-3" aria-hidden="true"><Skeleton className="size-8 shrink-0" /><div className="flex flex-1 flex-col gap-2"><Skeleton className="h-3 w-2/3" /><Skeleton className="h-2 w-1/3" /></div></div>)}</div> : <p className="p-6 text-center text-xs text-stone-400">{loadedProfile?.error || (availableNodes.length ? "没有匹配的节点" : "此订阅暂无可用节点")}</p>)}
               </div>
             </ScrollArea>
             </section>

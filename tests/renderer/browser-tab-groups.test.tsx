@@ -127,7 +127,8 @@ it.each(["button", "menu"])("closes every member of the local group through its 
   if (method === "button") fireEvent.click(screen.getByRole("button", { name: "关闭整个分组：本地（2 个标签页）" }))
   else {
     fireEvent.contextMenu(group)
-    for (const label of ["复制标签页", "重新加载", "冻结标签页", "解冻标签页"]) expect(screen.queryByRole("menuitem", { name: label })).toBeNull()
+    for (const label of ["复制标签页", "重新加载", "解冻标签页"]) expect(screen.queryByRole("menuitem", { name: label })).toBeNull()
+    expect(screen.getByRole("menuitem", { name: "冻结标签页" })).toBeTruthy()
     fireEvent.click(screen.getByRole("menuitem", { name: "关闭整个分组" }))
   }
   expect(closeTabs).toHaveBeenCalledExactlyOnceWith(["local", "second-local"])

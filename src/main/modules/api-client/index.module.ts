@@ -1,3 +1,4 @@
+import { assertDataClient, runDataOperation } from "@main/database/data-domain"
 import { ApiClientService, type ApiSendOptions } from "@main/modules/api-client/api-client-service"
 import { ApiClientStore } from "@main/modules/api-client/store"
 import { BaseModule } from "@main/modules/base/index"
@@ -101,7 +102,11 @@ export class ApiClientModule extends BaseModule {
     }
 
     for (const [channel, handler] of Object.entries(handlers)) {
-      ipcMain.handle(channel, handler)
+      ipcMain.handle(channel, (event, ...args) => {
+        if (channel === "api-client:pick-file" || channel === "api-client:save-file") return handler(event, ...args)
+        assertDataClient(event?.sender?.id)
+        return runDataOperation(["api_client.sqlite"], () => handler(event, ...args))
+      })
       this.channels.push(channel)
     }
   }

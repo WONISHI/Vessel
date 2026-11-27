@@ -2,6 +2,7 @@ import type { ReactNode } from "react"
 import { ArrowLeft, ChevronRight, Copy, ExternalLink, Eye, EyeOff, KeyRound, Settings, UserRound, X } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
+import { copyVaultPassword } from './copy-vault-password'
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { SiteLogo } from "./password-accounts"
 
@@ -23,7 +24,7 @@ export function SitePasswordPopover({ accounts, open, onOpenChange, selected, pa
       </div>
       {selected ? <div className="space-y-3 px-4 pb-4">
         <div className="flex items-center gap-3"><UserRound className="size-4 shrink-0 text-muted-foreground" /><span className="min-w-0 flex-1 break-all text-sm select-text">{selected.username || "未提供账号"}</span><Button type="button" variant="ghost" size="icon" className="size-7 hover:!bg-green-600 hover:!text-white [&:hover_svg]:!text-white" aria-label="复制账号" onClick={() => copy(selected.username)}><Copy className="size-4" /></Button></div>
-        <div className="flex items-center gap-3"><KeyRound className="size-4 shrink-0 text-muted-foreground" /><span aria-label="本站账号密码" className="min-w-0 flex-1 break-all font-mono text-xs select-text">{password ?? "••••••••"}</span><Button type="button" variant="ghost" size="icon" className="size-7 hover:!bg-green-600 hover:!text-white [&:hover_svg]:!text-white" disabled={busy} aria-label={password === undefined ? "查看密码" : "隐藏密码"} onClick={onTogglePassword}>{password === undefined ? <Eye className="size-4" /> : <EyeOff className="size-4" />}</Button><Button type="button" variant="ghost" size="icon" className="size-7" disabled={password === undefined} aria-label="复制密码" onClick={() => { if (password !== undefined) copy(password) }}><Copy className="size-4" /></Button></div>
+        <div className="flex items-center gap-3"><KeyRound className="size-4 shrink-0 text-muted-foreground" /><span aria-label="本站账号密码" className="min-w-0 flex-1 break-all font-mono text-xs select-text">{password ?? "••••••••"}</span><Button type="button" variant="ghost" size="icon" className="size-7 hover:!bg-green-600 hover:!text-white [&:hover_svg]:!text-white" disabled={busy} aria-label={password === undefined ? "查看密码" : "隐藏密码"} onClick={onTogglePassword}>{password === undefined ? <Eye className="size-4" /> : <EyeOff className="size-4" />}</Button><Button type="button" variant="ghost" size="icon" className="size-7" disabled={password === undefined} aria-label="复制密码" onClick={() => { if (password !== undefined) copyVaultPassword(selected.id) }}><Copy className="size-4" /></Button></div>
       </div> : <div className="max-h-60 overflow-y-auto px-2 pb-2">{accounts.map((account) => <button type="button" key={account.id} disabled={busy} aria-label={`查看账号 ${account.username || "未提供账号"}`} className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left hover:bg-muted disabled:opacity-50" onClick={() => onSelect(account.id)}><SiteLogo origin={account.origin} /><span className="min-w-0 flex-1 truncate text-sm">{account.username || "未提供账号"}</span><ChevronRight className="size-4 shrink-0 text-muted-foreground" /></button>)}</div>}
       {unlockForm && <div className="px-4 pb-3">{unlockForm}</div>}
       {error && <p role="alert" className="px-4 pb-3 text-xs text-red-600">{error}</p>}

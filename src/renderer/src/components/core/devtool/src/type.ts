@@ -1,3 +1,4 @@
+import type { DatabaseDeleteScope } from '@vessel/type/database-sync'
 import { type DevToolLog } from "@/components/core/devtool/hooks/useDevToolToast"
 import { type ConsoleLevel } from "@/components/core/devtool/src/console-manager"
 import { type LucideIcon } from "lucide-react"
@@ -35,6 +36,10 @@ export interface DevToolsMenuProps {
   enabledTypes: Record<LogType, boolean>
   hasError: boolean
   menuItems: DevToolsMenuItem[]
+  databaseSyncConfigured?: boolean
+  remoteDeletionAvailable?: boolean
+  onDeleteData?: (scope: DatabaseDeleteScope) => void
+  onCloseAutoFocus?: (event: Event) => void
   onToggleSpy: () => void
   onToggleType: (type: LogType) => void
 }

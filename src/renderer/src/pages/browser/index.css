@@ -762,12 +762,16 @@ html.dark .browser-devtools-settings select { background: #20242a; border-color:
 }
 
 /* Address-bar actions inherit the same site accent as the navigation toolbar. */
-.browser-toolbar .browser-address > button:not(:disabled):is(:hover, :active, [data-state="open"], [aria-pressed="true"]) {
+.browser-toolbar .browser-address > button:not([data-browser-bookmark-action]):not(:disabled):is(:hover, :active, [data-state="open"], [aria-pressed="true"]) {
   background: var(--browser-site-color, #16a34a) !important;
   color: #fff !important;
 }
-.browser-toolbar .browser-address > button:not(:disabled):is(:hover, :active, [data-state="open"], [aria-pressed="true"]) :is(svg, i) {
+.browser-toolbar .browser-address > button:not([data-browser-bookmark-action]):not(:disabled):is(:hover, :active, [data-state="open"], [aria-pressed="true"]) :is(svg, i) {
   color: #fff !important;
+}
+.browser-toolbar .browser-address > [data-browser-bookmark-action]:is(:hover, :active, :focus-visible) {
+  background: transparent !important;
+  color: var(--browser-site-color, #16a34a) !important;
 }
 
 /* Apply site accents only to Sheet controls whose shared hover is green. */

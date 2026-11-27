@@ -1,3 +1,4 @@
+import { createDomainDatabase } from "@main/database/data-domain"
 import type { BrowserDownloadEntry, HistoryEntry } from "@vessel/type"
 import { historyURLKey, isHistoryRedirect } from "@vessel/utils"
 import Database from "better-sqlite3"
@@ -6,7 +7,7 @@ export class BrowserHistory {
 
   /** Initializes the instance and its required dependencies. */
   constructor(path: string) {
-    this.db = new Database(path)
+    this.db = createDomainDatabase(path)
     this.db.pragma("journal_mode = WAL")
     this.db.exec("CREATE TABLE IF NOT EXISTS visits (id INTEGER PRIMARY KEY, url TEXT NOT NULL, title TEXT NOT NULL, visitedAt INTEGER NOT NULL); CREATE INDEX IF NOT EXISTS visits_time ON visits(visitedAt)")
     const columns = this.db.pragma("table_info(visits)") as { name: string }[]

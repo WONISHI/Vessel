@@ -16,6 +16,8 @@ html.dark .dev-tool-page {
 .dev-tools .dev-workbench-nav .dev-nav-label { padding: 8px 10px; font-size: 10px; font-weight: 500; color: #989da5; }
 .dev-tools .dev-workbench-nav .dev-nav-item { height: 34px; margin-bottom: 3px; padding: 0 10px; gap: 9px; border-radius: 6px; font-size: 12px; font-weight: 500; color: #606874; }
 .dev-tools .dev-workbench-nav .dev-nav-item svg { width: 15px; height: 15px; }
+html:not(.dark) .dev-tools .dev-workbench-nav .dev-nav-item:not([aria-current="page"]):hover { background: #f5f5f4; color: #1c1917; }
+html:not(.dark) .dev-tools .dev-workbench-nav .dev-nav-item:not([aria-current="page"]):hover svg { color: #78716c; }
 .dev-tools .dev-workbench-nav .dev-nav-item[aria-current="page"] { background: #e9f7ef; color: #15803d; box-shadow: none; }
 .dev-tool-page .tool-page-header { min-height: 74px; padding: 14px 20px; gap: 11px; background: var(--dev-panel); border-color: var(--dev-line); }
 .dev-tool-page .tool-page-brand { width: 32px; height: 32px; border-radius: 9px; box-shadow: 0 2px 5px #15803d14; }
@@ -84,6 +86,7 @@ html.dark .dev-tool-page [role="alert"] { background: #ef444414; color: #fca5a5;
 .dev-json-tabs-bar { display: flex; align-items: stretch; min-width: 0; flex-shrink: 0; padding: 8px 16px 0; gap: 12px; border-bottom: 1px solid var(--dev-line); background: var(--dev-soft); }
 .dev-json-tabs { display: flex; align-items: stretch; width: max-content; min-width: 100%; gap: 5px; }
 .dev-json-tab { display: flex; align-items: center; position: relative; min-width: 132px; border: 1px solid transparent; border-bottom: 0; border-radius: 8px 8px 0 0; color: var(--dev-muted); }
+.dev-json-tab:not([data-active=true]) { border-color: var(--dev-line); box-shadow: inset 0 2px 0 var(--dev-muted); }
 .dev-json-tab[data-active=true] { color: var(--dev-text); background: var(--dev-panel); border-color: var(--dev-line); box-shadow: inset 0 2px 0 var(--dev-accent); }
 .dev-json-tab > [role=tab] { display: flex; align-items: center; gap: 7px; min-width: 0; flex: 1; height: 36px; padding: 0 10px 0 12px; white-space: nowrap; font-size: 12px; }
 .dev-json-tab > [role=tab] > svg:first-child { color: var(--dev-accent); }

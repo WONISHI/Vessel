@@ -51,6 +51,14 @@ it('compares content only on request and distinguishes exact matches from restor
   expect(screen.queryByText('已恢复过')).toBeNull()
   expect(apply).not.toHaveBeenCalled()
   expect(check).toHaveBeenCalledWith('/repo', hash)
+  const trigger = screen.getByRole('button', { name: /1\/4 项内容一致/ })
+  expect(trigger.getAttribute('aria-expanded')).toBe('true')
+  fireEvent.click(trigger)
+  expect(trigger.getAttribute('aria-expanded')).toBe('false')
+  expect(screen.queryByText('later-edits.ts')).toBeNull()
+  fireEvent.click(trigger)
+  expect(screen.getByText('later-edits.ts')).toBeTruthy()
+  expect(check).toHaveBeenCalledTimes(1)
 })
 
 it('discards comparison results from the previous stash after selection changes', async () => {

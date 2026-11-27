@@ -1,3 +1,4 @@
+import { createDomainDatabase } from "@main/database/data-domain"
 import type { Todo } from "@vessel/type"
 import Database from "better-sqlite3"
 
@@ -6,7 +7,7 @@ export class TodoStore {
 
   /** Initializes the instance and its required dependencies. */
   constructor(path: string) {
-    this.db = new Database(path)
+    this.db = createDomainDatabase(path)
     this.db.pragma("journal_mode = WAL")
     this.db.exec(`CREATE TABLE IF NOT EXISTS todos (id INTEGER PRIMARY KEY AUTOINCREMENT, date TEXT NOT NULL, title TEXT NOT NULL, completed INTEGER NOT NULL DEFAULT 0 CHECK(completed IN (0,1))); CREATE INDEX IF NOT EXISTS todos_date ON todos(date);`)
   }

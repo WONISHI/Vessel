@@ -1,7 +1,7 @@
 import type { DevToolsMenuProps } from "@/components/core/devtool/src/type"
 import { DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
-import { AlertCircle, AlertTriangle, CheckCircle2, FileText, Info, Play, Square } from "lucide-react"
+import { AlertCircle, AlertTriangle, CheckCircle2, FileText, Info, Play, Square, Trash2 } from "lucide-react"
 
 const checkboxItemClassName =
   "cursor-pointer rounded-md py-[6px] pr-2 text-[12.5px] text-stone-700 " +
@@ -18,9 +18,10 @@ const checkboxItemClassName =
   "[&>span:first-child_svg]:w-[10px]"
 
 /** Renders the dev tools menu component. */
-export function DevToolsMenu({ isSpyEnabled, enabledTypes, hasError, menuItems, onToggleSpy, onToggleType }: DevToolsMenuProps) {
+export function DevToolsMenu({ isSpyEnabled, enabledTypes, hasError, menuItems, onToggleSpy, onToggleType, databaseSyncConfigured, remoteDeletionAvailable, onDeleteData, onCloseAutoFocus }: DevToolsMenuProps) {
   return (
     <DropdownMenuContent
+      onCloseAutoFocus={onCloseAutoFocus}
       align="end"
       sideOffset={8}
       className="
@@ -228,6 +229,17 @@ export function DevToolsMenu({ isSpyEnabled, enabledTypes, hasError, menuItems, 
         "
       />
 
+      {onDeleteData && <DropdownMenuSub>
+        <DropdownMenuSubTrigger className="cursor-pointer gap-2 rounded-none px-3 py-[7px] text-[13px] text-red-600 focus:bg-red-50 focus:text-red-600 data-[state=open]:bg-red-50 data-[state=open]:text-red-600 data-[highlighted]:text-red-600"><Trash2 className="size-[15px]" /><span>删除数据</span></DropdownMenuSubTrigger>
+        <DropdownMenuSubContent className="dev-actions-menu dev-actions-submenu z-[322] min-w-64 rounded-xl border bg-white p-1 shadow-lg">
+          <DropdownMenuItem className="gap-2 text-xs text-red-600" onSelect={() => onDeleteData('local')}>删除本地域（数据库）</DropdownMenuItem>
+          {databaseSyncConfigured && <>
+            <DropdownMenuItem className="gap-2 text-xs text-red-600" disabled={!remoteDeletionAvailable} onSelect={() => onDeleteData('both')}>删除本地域（数据库）和远程域（数据库）</DropdownMenuItem>
+            <DropdownMenuItem className="gap-2 text-xs text-red-600" disabled={!remoteDeletionAvailable} onSelect={() => onDeleteData('remote')}>删除远程域（数据库）</DropdownMenuItem>
+            {!remoteDeletionAvailable && <p className="max-w-64 px-2 py-2 text-[11px] leading-5 text-muted-foreground">请先在设置 → 同步 → 自定域同步中连接并登录，再删除远程数据。</p>}
+          </>}
+        </DropdownMenuSubContent>
+      </DropdownMenuSub>}
       {menuItems.map((item) => {
         const Icon = item.icon
         return (

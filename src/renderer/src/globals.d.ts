@@ -1,3 +1,5 @@
+import type { DatabaseSyncAPI } from "@vessel/type/database-sync"
+import type { LayoutPreferencesAPI } from "@vessel/type/layout-preferences"
 import type { WorkspaceGraph } from "@vessel/workspace"
 import type { AppUpdateAPI } from "../../shared/app-update"
 import type { NativeMenuAPI } from "@vessel/type"
@@ -92,7 +94,7 @@ interface StorageInfo {
 }
 
 /** preload 暴露给 React 渲染进程的完整 API。 */
-interface VesselAPI extends AppUpdateAPI, BrowserProxyAPI, BrowserToolsAPI, SettingsAPI, BrowserExtensionsAPI, TodosAPI, TerminalAPI, FileWatchAPI, NativeMenuAPI {
+interface VesselAPI extends LayoutPreferencesAPI, DatabaseSyncAPI, AppUpdateAPI, BrowserProxyAPI, BrowserToolsAPI, SettingsAPI, BrowserExtensionsAPI, TodosAPI, TerminalAPI, FileWatchAPI, NativeMenuAPI {
   getWindowFullscreenState(): Promise<boolean>
   onWindowFullscreenChanged(callback: (fullscreen: boolean) => void): () => void
   browserFaviconData(id: number, url: string): Promise<string | undefined>

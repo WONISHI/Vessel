@@ -1,3 +1,4 @@
+import { DatabaseSyncSettings } from "./database-sync-settings"
 import { TypographySettings } from "./typography-settings"
 import { FileTypeBadgeSettings } from "./file-type-badge-settings"
 import { DirectoryTreeSettingsPanel } from "./directory-tree-settings"
@@ -19,8 +20,9 @@ import { ShortcutSettings } from "@/pages/settings/components/shortcuts"
 import { SyncDiagnosticsPanel } from "@/pages/settings/components/sync-diagnostics"
 import { useRouter } from "@vessel/react-router"
 import type { AppSettings, BackupStatus } from "@vessel/type"
+import type { DatabaseSyncStatus } from "@vessel/type/database-sync"
 import { defaultSettings, isLegacyDefaultIgnoredFiles } from "@vessel/utils"
-import { ArrowLeft, ChevronDown, CheckCircle2, Clock, Cloud, Download, RotateCcw, Save, Settings, Upload } from "lucide-react"
+import { ArrowLeft, ChevronDown, CheckCircle2, Clock, Cloud, Download, LogIn, LogOut, RefreshCw, RotateCcw, Save, Settings, Upload } from "lucide-react"
 import { version as reactVersion, useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 
@@ -81,6 +83,32 @@ function parseSettingsConfig(text: string) {
 /** Renders the settings page component. */
 export function SettingsPage() {
   const router = useRouter()
+  const [error, setError] = useState("")
+  const [account, setAccount] = useState<DatabaseSyncStatus>()
+  const [accountBusy, setAccountBusy] = useState(false)
+  const [logoutStep, setLogoutStep] = useState<0 | 1 | 2>(0)
+  const [logoutError, setLogoutError] = useState('')
+  useEffect(() => {
+    let alive = true
+    const api = window.electronAPI.databaseSync
+    if (api) void api.status().then(value => { if (alive) setAccount(value) }).catch(() => { if (alive) setError('无法读取登录状态，请重试') })
+    return () => { alive = false }
+  }, [])
+  const openAccountLogin = async () => {
+    if (accountBusy) return
+    setAccountBusy(true)
+    setLogoutError('')
+    try {
+      if (account?.user) await window.electronAPI.databaseSync.logout()
+      setLogoutStep(0)
+      await router.push('/login')
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '退出登录失败，请重试'
+      if (account?.user) setLogoutError(message)
+      setError(message)
+    } finally { setAccountBusy(false) }
+  }
+  const [syncExpanded, setSyncExpanded] = useState(false)
   const configInput = useRef<HTMLInputElement>(null)
   const [section, setSection] = useState<(typeof sections)[number]["id"]>("about")
   const [draft, setDraft] = useState<AppSettings>(() => structuredClone(settingsPageSnapshot?.settings ?? defaultSettings))
@@ -88,7 +116,6 @@ export function SettingsPage() {
   const [secret, setSecret] = useState<string | undefined>()
   const [confirmExport, setConfirmExport] = useState(false)
   const [busy, setBusy] = useState(false)
-  const [error, setError] = useState("")
   const [status, setStatus] = useState<BackupStatus>(() => settingsPageSnapshot?.status ?? { running: false })
   const [preview, setPreview] = useState<BackupStatus>()
   const [previewLimit, setPreviewLimit] = useState(100)
@@ -205,10 +232,28 @@ export function SettingsPage() {
   /** Performs the back operation. */
   const back = () => {
     if (dirty && !confirm("有未保存的设置，确定返回吗？")) return
-    void router.back()
+    // A restored settings page can be the first entry in this window's history.
+    const historyIndex: unknown = window.history.state?.idx
+    if (typeof historyIndex === "number" && historyIndex > 0) {
+      void router.back()
+    } else {
+      void router.replace("/")
+    }
   }
   return (
     <div data-page-transition-loading={!saved && !error ? "" : undefined} className="vessel-settings flex h-dvh w-full flex-col bg-background text-foreground">
+      <ConfirmDialog
+        key={logoutStep}
+        open={logoutStep !== 0}
+        onOpenChange={open => { if (!open) { setLogoutStep(0); setLogoutError('') } }}
+        title={logoutStep === 2 ? '再次确认退出登录' : '退出登录'}
+        description={logoutStep === 2 ? '确认退出当前账号并返回登录页面？' : `是否退出当前账号 ${account?.user?.name ?? ''}？`}
+        confirmText={logoutStep === 2 ? '确认退出' : '继续'}
+        tone="primary"
+        busy={accountBusy}
+        error={logoutError}
+        onConfirm={() => { if (logoutStep === 1) setLogoutStep(2); else if (logoutStep === 2) void openAccountLogin() }}
+      />
       <ConfirmDialog
         open={confirmExport}
         onOpenChange={setConfirmExport}
@@ -291,16 +336,13 @@ export function SettingsPage() {
           aria-label="设置分类"
           className="w-48 shrink-0 border-r bg-card p-3 max-sm:w-32"
         >
-          {sections.map(({ id, label, icon: Icon }) => (
-            <button
-              key={id}
-              aria-current={section === id ? "page" : undefined}
-              onClick={() => setSection(id)}
-              className={`mb-1 flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sm ${section === id ? "bg-green-50 font-semibold text-green-600 dark:bg-[#3a4048] dark:text-[#e6e8eb]" : "text-muted-foreground hover:bg-muted"}`}
-            >
-              <Icon className="size-4 shrink-0" />
-              {label}
-            </button>
+          {sections.filter(entry => entry.id !== 'database-sync').map(({ id, label, icon: Icon }) => id === 'sync' ? (
+            <div key="sync">
+              <button type="button" aria-expanded={syncExpanded} onClick={() => setSyncExpanded(value => !value)} className="mb-1 flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sm text-muted-foreground hover:bg-muted"><RefreshCw className="size-4 shrink-0" />同步<ChevronDown className={`ml-auto size-3 transition-transform ${syncExpanded ? 'rotate-180' : '-rotate-90'}`} /></button>
+              {syncExpanded && <div className="mb-2 ml-5 border-l pl-2">{sections.filter(entry => entry.id === 'sync' || entry.id === 'database-sync').map(entry => <button type="button" key={entry.id} aria-current={section === entry.id ? 'page' : undefined} onClick={() => setSection(entry.id)} className={`mb-1 flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-xs ${section === entry.id ? 'bg-green-50 font-semibold text-green-600 dark:bg-[#3a4048] dark:text-[#e6e8eb]' : 'text-muted-foreground hover:bg-muted'}`}><entry.icon className="size-3.5 shrink-0" />{entry.label}</button>)}</div>}
+            </div>
+          ) : (
+            <button key={id} aria-current={section === id ? 'page' : undefined} onClick={() => setSection(id)} className={`mb-1 flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sm ${section === id ? 'bg-green-50 font-semibold text-green-600 dark:bg-[#3a4048] dark:text-[#e6e8eb]' : 'text-muted-foreground hover:bg-muted'}`}><Icon className="size-4 shrink-0" />{label}</button>
           ))}
         </nav>
         <ScrollArea className="min-h-0 min-w-0 flex-1 bg-muted/20 [&_[data-radix-scroll-area-viewport]>div]:!block">
@@ -329,18 +371,24 @@ export function SettingsPage() {
                             className="size-full object-cover"
                           />
                         ) : (
-                          info.deviceName.slice(0, 1)
+                          (account?.user?.name ?? info.deviceName).slice(0, 1)
                         )}
                       </span>
-                    <div>
-                      <h3 className="text-lg font-semibold">{info.deviceName}</h3>
-                      <span className="mt-2 inline-block rounded bg-green-50 px-2 py-1 text-xs text-green-700">本地用户</span>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="break-all text-lg font-semibold">{account?.user?.name ?? info.deviceName}</h3>
+                      <span className="mt-2 inline-block rounded bg-green-50 px-2 py-1 text-xs text-green-700">{account?.user ? (account.domain === 'user' ? '用户域账号' : '系统域账号') : '本地用户'}</span>
                     </div>
-                    <span className="ml-auto text-sm text-muted-foreground">v{info.version}</span>
+                    <div className="ml-auto flex shrink-0 flex-col items-end gap-2">
+                      <Button variant="outline" size="sm" disabled={accountBusy || (!!window.electronAPI.databaseSync && !account)} onClick={() => { if (account?.user) { setLogoutError(''); setLogoutStep(1) } else void openAccountLogin() }}>
+                        {account?.user ? <LogOut className="size-4" /> : <LogIn className="size-4" />}
+                        {account?.user ? '退出登录' : '登录'}
+                      </Button>
+                      <span className="text-xs text-muted-foreground">v{info.version}</span>
+                    </div>
                   </div>
                   <div className="settings-card">
-                    <Row title="用户名" description="电脑型号与 MAC 物理地址">
-                      <span className="break-all text-right text-sm text-stone-700 dark:text-stone-300" aria-label="用户名">{info.deviceName}</span>
+                    <Row title="用户名" description={account?.user ? '当前登录域的账号' : '电脑型号与 MAC 物理地址'}>
+                      <span className="break-all text-right text-sm text-stone-700 dark:text-stone-300" aria-label="用户名">{account?.user?.name ?? info.deviceName}</span>
                     </Row>
                   </div>
                   <div className="settings-card">
@@ -557,9 +605,10 @@ export function SettingsPage() {
                   </div>
                 </>
               )}
+              {section === "database-sync" && <DatabaseSyncSettings onRequestLogin={() => { void router.push("/login") }} />}
               {section === "sync" && (
                 <>
-                  <h2>同步与备份</h2>
+                  <h2>备份与迁移</h2>
                   <p className="settings-description">{draft.backup.workspacePath ? `当前工作区：${draft.backup.workspacePath}。仅同步此目录中的文件。` : "请先进入工作区。项目资源库不支持同步。"}</p>
                   <div className="settings-card p-5">
                     <div className="mb-4 flex gap-3 rounded-xl border border-green-500 bg-green-50 p-4 dark:bg-green-950">

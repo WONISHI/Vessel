@@ -28,6 +28,32 @@ function Fixture() {
  const repo = useGitRepository(), selection = useGitFileSelection(repo)
  return <GitUnstagedFiles g={{ ...repo, ...selection } as GitPageModel} />
 }
+it('animates a repository switch only after its data arrives and leaves ordinary refreshes still', async () => {
+ const transition = vi.fn((update: () => unknown) => {
+  const done = Promise.resolve().then(update)
+  return { updateCallbackDone: done, ready: done, finished: done, skipTransition: vi.fn() }
+ })
+ Object.defineProperty(document, 'startViewTransition', { configurable: true, value: transition })
+ try {
+  const page = renderHook(() => useGitRepository())
+  await waitFor(() => expect(page.result.current.status).toBe(status))
+  expect(transition).not.toHaveBeenCalled()
+  let finish!: (value: GitStatusResult) => void
+  const next = { ...status, branch: 'next-project' }
+  vi.mocked(window.electronAPI.git.getStatus).mockImplementationOnce(() => new Promise(resolve => { finish = resolve }))
+  act(() => page.result.current.setRepoPath(root + '/next'))
+  await waitFor(() => expect(finish).toBeTypeOf('function'))
+  expect(transition).not.toHaveBeenCalled()
+  expect(page.result.current.status).toBe(status)
+  await act(async () => { finish(next) })
+  await waitFor(() => expect(page.result.current.status).toBe(next))
+  expect(transition).toHaveBeenCalledTimes(1)
+  await act(async () => { await page.result.current.refresh() })
+  expect(transition).toHaveBeenCalledTimes(1)
+ } finally {
+  delete (document as Partial<Document>).startViewTransition
+ }
+})
 it('restores the selected row and its diff after leaving and remounting the Git route', async () => {
  const result = render(<Fixture />)
  fireEvent.click(await screen.findByText('chosen.md'))

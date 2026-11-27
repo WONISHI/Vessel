@@ -98,11 +98,11 @@ export function BrowserTabs({ b }: { b: BrowserPageModel }) {
                     <RotateCw />
                     重新加载
                   </ContextMenuItem>
-                  <ContextMenuItem disabled={!item.url} onSelect={() => item.frozen ? setActive(item.id) : freezeTab(item.id)}>
-                    {item.frozen ? <Play /> : <Snowflake />}
-                    {item.frozen ? "解冻标签页" : "冻结标签页"}
-                  </ContextMenuItem>
                 </>}
+                <ContextMenuItem disabled={!item.url} onSelect={() => item.frozen ? setActive(item.id) : freezeTab(item.id)}>
+                  {item.frozen ? <Play /> : <Snowflake />}
+                  {item.frozen ? "解冻标签页" : "冻结标签页"}
+                </ContextMenuItem>
                 <ContextMenuItem onSelect={() => togglePinTab(grouped ? memberIds : item.id)}>
                   <Pin />
                   {pinned ? "取消固定" : "固定"}

@@ -1,5 +1,5 @@
 import { ACTIVITY_ITEMS } from "./activity-bar/constants"
-import { Activity, CalendarDays, Binary, Braces, CaseSensitive, Database, GitBranch, House, Languages, Layers, Link, Monitor, Palette, Send, Settings, Wrench } from "lucide-react"
+import { Activity, CalendarDays, Binary, Braces, CaseSensitive, Database, GitBranch, House, Languages, Layers, Link, LogIn, Monitor, Palette, Send, Settings, Wrench } from "lucide-react"
 
 const tools = {
   json: { label: "JSON 格式化", icon: Braces },
@@ -13,6 +13,7 @@ const tools = {
   storage: { label: "数据存储", icon: Database }
 }
 const pages = {
+  login: { label: "登录", icon: LogIn },
   todos: { label: "待办", icon: CalendarDays },
   git: { label: "Git", icon: GitBranch },
   "api-client": { label: "API", icon: Send },
@@ -24,6 +25,7 @@ const pages = {
 
 /** Titlebar identity follows the active feature, including developer-tool subpages. */
 export function titlebarPage(pathname: string) {
+  if (pathname === "/login/user-domain") return { label: "添加用户域", icon: Database }
   const [section = "welcome", child] = pathname.split("/").filter(Boolean)
   if ((section === "devtools" || section === "debug") && child && child in tools) return tools[child as keyof typeof tools]
   const activity = ACTIVITY_ITEMS.find((item) => item.id === (section === "editor" ? "files" : section))

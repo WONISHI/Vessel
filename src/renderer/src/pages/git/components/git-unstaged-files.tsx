@@ -20,14 +20,14 @@ import type { GitPageModel } from "@/pages/git/hooks/use-git-page"
 export function GitUnstagedFiles({ g }: { g: GitPageModel }) {
   const { status, selectedFile, setSelectedFile, selectedUnstagedPaths, setSelectedUnstagedPaths, handleUnstagedItemClick, handleUnstagedContextMenu, handleStageFile, handleStageAll, handleDiscard, handleStageMultiple, handleDiscardMultiple, handleStashFiles, getFullPath, copyToClipboard, handleRevealInFinder, handleOpenInEditor } = g
 
-  const pendingStash = useRef<string[] | null>(null)
+  const pendingMenuAction = useRef<(() => void) | null>(null)
   const closeMenu = (event: Event) => {
-    const paths = pendingStash.current
-    pendingStash.current = null
-    if (!paths) return
+    const action = pendingMenuAction.current
+    pendingMenuAction.current = null
+    if (!action) return
     event.preventDefault()
     // The non-modal dialog must mount after the menu releases its focus scope.
-    queueMicrotask(() => handleStashFiles(paths))
+    queueMicrotask(action)
   }
 
   const { tree, toggleTree } = useGitChangesView("unstaged")
@@ -150,7 +150,7 @@ export function GitUnstagedFiles({ g }: { g: GitPageModel }) {
                                         <Plus className="size-3.5 text-green-600" />
                                         <span>暂存选中的 {selectedUnstagedPaths.length} 个文件</span>
                                       </ContextMenuItem>
-                                      <ContextMenuItem onSelect={() => { pendingStash.current = [...selectedUnstagedPaths] }}>
+                                      <ContextMenuItem onSelect={() => { pendingMenuAction.current = () => handleStashFiles([...selectedUnstagedPaths]) }}>
                                         <Archive className="size-3.5 text-blue-600" />
                                         <span>贮藏选中的 {selectedUnstagedPaths.length} 个文件…</span>
                                       </ContextMenuItem>
@@ -172,7 +172,7 @@ export function GitUnstagedFiles({ g }: { g: GitPageModel }) {
                                       <ContextMenuSeparator />
                                       <ContextMenuItem
                                         className="text-red-600 focus:text-red-600 data-[highlighted]:bg-red-600"
-                                        onSelect={() => void handleDiscardMultiple(selectedUnstagedPaths)}
+                                        onSelect={() => { pendingMenuAction.current = () => void handleDiscardMultiple([...selectedUnstagedPaths]) }}
                                       >
                                         <Trash2 className="size-3.5 text-red-500" />
                                         <span>放弃选中的 {selectedUnstagedPaths.length} 个文件修改…</span>
@@ -184,7 +184,7 @@ export function GitUnstagedFiles({ g }: { g: GitPageModel }) {
                                         <Plus className="size-3.5 text-green-600" />
                                         <span>暂存此文件</span>
                                       </ContextMenuItem>
-                                      <ContextMenuItem onSelect={() => { pendingStash.current = [...[file.path]] }}>
+                                      <ContextMenuItem onSelect={() => { pendingMenuAction.current = () => handleStashFiles([file.path]) }}>
                                         <Archive className="size-3.5 text-blue-600" />
                                         <span>贮藏此文件修改…</span>
                                       </ContextMenuItem>
@@ -222,7 +222,7 @@ export function GitUnstagedFiles({ g }: { g: GitPageModel }) {
                                       <ContextMenuSeparator />
                                       <ContextMenuItem
                                         className="text-red-600 focus:text-red-600 data-[highlighted]:bg-red-600"
-                                        onSelect={() => void handleDiscard(file)}
+                                        onSelect={() => { pendingMenuAction.current = () => void handleDiscard(file) }}
                                       >
                                         <Trash2 className="size-3.5 text-red-500" />
                                         <span>放弃修改…</span>

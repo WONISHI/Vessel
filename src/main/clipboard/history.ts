@@ -1,3 +1,4 @@
+import { createDomainDatabase } from "@main/database/data-domain"
 import type { ClipboardEntry, ClipboardFilter, ClipboardKind } from "@vessel/type"
 import Database from "better-sqlite3"
 import { createHash } from "node:crypto"
@@ -33,7 +34,7 @@ export function clipboardTextKind(text: string): ClipboardKind {
 export class ClipboardHistory {
   private db: Database.Database
   constructor(path: string) {
-    this.db = new Database(path)
+    this.db = createDomainDatabase(path)
     this.db.pragma("journal_mode = WAL")
     this.db.pragma("secure_delete = ON")
     this.db.exec(`CREATE TABLE IF NOT EXISTS clips (

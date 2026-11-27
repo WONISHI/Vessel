@@ -129,6 +129,7 @@ export function BrowserToolbar({ b, visible = true }: { b: BrowserPageModel; vis
                 <PasswordVault url={tab.url} guestId={() => withGuest(views.current.get(tab.id), (guest) => guest.getWebContentsId())} />
                 <button
                   type="button"
+                  data-browser-bookmark-action
                   data-title={focused ? (decodedAddress === null ? "解码地址" : "恢复原编码地址") : "收藏当前页面"}
                   aria-label={focused ? (decodedAddress === null ? "解码地址" : "恢复原编码地址") : bookmarks.some((item) => item.url === tab.url) ? "取消书签" : "添加书签"}
                   disabled={focused ? !fullAddress : !tab.url}

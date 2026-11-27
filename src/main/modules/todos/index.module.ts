@@ -1,3 +1,4 @@
+import { assertDataClient, runDataOperation } from "@main/database/data-domain"
 import { BaseModule } from "@main/modules/base/index"
 import { TodoStore } from "@main/modules/todos/store"
 import { app, ipcMain } from "electron"
@@ -24,7 +25,7 @@ export class TodosModule extends BaseModule {
         "todos:delete": (id: number) => store.remove(id)
       }
       for (const [channel, handler] of Object.entries(handlers)) {
-        ipcMain.handle(channel, (_event, ...args) => handler(...(args as never[])))
+        ipcMain.handle(channel, (event, ...args) => { assertDataClient(event?.sender?.id); return runDataOperation(["todos.sqlite"], () => handler(...(args as never[]))) })
         this.channels.push(channel)
       }
     } catch (error) {

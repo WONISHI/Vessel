@@ -1,3 +1,5 @@
+import type { DatabaseSyncAPI } from "@vessel/type/database-sync"
+import type { LayoutPreferencesAPI } from "@vessel/type/layout-preferences"
 import type { WorkspaceGraph } from "../../packages/@vessel/workspace/src/graph/types"
 import type { AppUpdateAPI } from "../shared/app-update"
 import type { NativeMenuAPI } from "@vessel/type"
@@ -90,7 +92,7 @@ export interface StorageInfo {
   sessionId: string
 }
 
-export interface VesselAPI extends AppUpdateAPI, BrowserProxyAPI, BrowserToolsAPI, SettingsAPI, BrowserExtensionsAPI, TodosAPI, TerminalAPI, FileWatchAPI, NativeMenuAPI {
+export interface VesselAPI extends LayoutPreferencesAPI, DatabaseSyncAPI, AppUpdateAPI, BrowserProxyAPI, BrowserToolsAPI, SettingsAPI, BrowserExtensionsAPI, TodosAPI, TerminalAPI, FileWatchAPI, NativeMenuAPI {
   moveImageToAttachments(root: string, path: string): Promise<string>
   listAttachments(root: string): Promise<Array<{ name: string; path: string; size: number; relativePath: string; mtime: number }>>
   translateText(text: string, from: string, to: string): Promise<{ text: string; detectedLanguage: string; alternatives?: { word: string; partOfSpeech: string; meanings: string[] }[] }>

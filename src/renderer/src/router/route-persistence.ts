@@ -18,16 +18,18 @@ export function installRoutePersistence(router: AppRouter) {
     initial = false
     try {
       const saved = await window.electronAPI.getAppState<unknown>(LAST_ROUTE_KEY)
+      if (typeof saved === "string" && /^\/login(\/|\?|$)/.test(saved)) return true
       savedStartupRoute = saved !== null && saved !== undefined
       if (!internalRoute(saved) || !router.resolve(saved).matched.length) return true
       // Explicit navigation (including a window reload) takes precedence over restoration.
-      if (to.fullPath === "/" && saved !== "/") return saved
+      if (to.fullPath === "/" && saved !== "/" && !new URLSearchParams(window.location.search).has('dataDomain')) return saved
     } catch (error) {
       console.error("读取上次页面失败", error)
     }
     return true
   })
   router.afterEach(async (to, _from, failure) => {
+    if (/^\/login(\/|$)/.test(to.path)) return
     if (failure || !to.matched.length || !internalRoute(to.fullPath) || lastWritten === to.fullPath) return
     try {
       await window.electronAPI.setAppState(LAST_ROUTE_KEY, to.fullPath)

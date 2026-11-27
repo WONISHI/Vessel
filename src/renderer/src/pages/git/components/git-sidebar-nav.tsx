@@ -118,7 +118,7 @@ export function GitSidebarNav({ g }: { g: GitPageModel }) {
   }
 
   return (
-            <ScrollArea className="h-full min-h-0 [&_[data-radix-scroll-area-viewport]]:p-2">
+            <ScrollArea className="h-full min-h-0 [&_[data-radix-scroll-area-viewport]]:p-2 [&_[data-radix-scroll-area-viewport]>div]:!block">
               {/* 工作区区段 */}
               <div className="mb-4">
                 <div className="px-2 py-1 text-[11px] font-semibold text-stone-400">工作空间</div>
@@ -255,28 +255,28 @@ export function GitSidebarNav({ g }: { g: GitPageModel }) {
                       className={`group flex cursor-pointer items-center justify-between rounded-md px-2 py-1 text-stone-600 hover:bg-stone-100 text-[11px] ${activeTab === "stash" && g.selectedStash?.hash === s.hash && s.hash ? "bg-stone-200" : ""}`}
                       data-title={`stash@{${s.index}}: ${s.name}`}
                     >
-                      <span className="truncate flex-1 mr-1">
+                      <span className="min-w-0 flex-1 truncate">
                         <span className="font-mono text-stone-400 mr-1">#{s.index}</span>
                         <span className="truncate">{s.name}</span>
                         {s.lastRestore && <span className={`ml-1 rounded px-1 text-[9px] ${s.lastRestore.outcome === "conflicts" ? "bg-amber-50 text-amber-700" : "bg-green-50 text-green-700"}`} data-title={`Vessel 恢复记录：${new Date(s.lastRestore.at).toLocaleString()} · ${s.lastRestore.branch}`} data-title-side="bottom">{s.lastRestore.outcome === "conflicts" ? "恢复时有冲突" : "已恢复过"}</span>}
                       </span>
-                      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 shrink-0">
+                      <div className="flex w-0 shrink-0 items-center gap-0.5 overflow-hidden opacity-0 transition-[width,margin,opacity] duration-150 group-hover:ml-1 group-hover:w-16 group-hover:opacity-100 group-focus-within:ml-1 group-focus-within:w-16 group-focus-within:opacity-100 motion-reduce:transition-none">
                         <button
                           type="button"
                           aria-label="弹出贮藏"
                           disabled={g.restoringStash}
-                          className="grid size-5 place-items-center rounded text-green-700 hover:bg-green-100 dark:text-green-400 dark:hover:bg-green-500/15"
+                          className="grid size-5 shrink-0 place-items-center rounded text-green-700 hover:bg-green-100 dark:text-green-400 dark:hover:bg-green-500/15"
                           data-title="合并恢复；成功后删除记录，冲突时保留；本地修改重叠时停止"
                           onClick={(event) => { event.stopPropagation(); void handleStashPop(s.index) }}
                         >
                           <ArchiveRestore className="size-3.5" />
                         </button>
-                        <button type="button" aria-label="应用贮藏并保留" disabled={g.restoringStash} className="grid size-5 place-items-center rounded text-blue-600 hover:bg-blue-100 dark:text-blue-400" data-title="应用并保留此贮藏（git stash apply，冲突时也保留）" onClick={(event) => { event.stopPropagation(); void g.handleStashApply(s.index) }}><Copy className="size-3.5" /></button>
+                        <button type="button" aria-label="应用贮藏并保留" disabled={g.restoringStash} className="grid size-5 shrink-0 place-items-center rounded text-blue-600 hover:bg-blue-100 dark:text-blue-400" data-title="应用并保留此贮藏（git stash apply，冲突时也保留）" onClick={(event) => { event.stopPropagation(); void g.handleStashApply(s.index) }}><Copy className="size-3.5" /></button>
                         <button
                           type="button"
                           aria-label="删除贮藏"
                           disabled={g.restoringStash}
-                          className="grid size-5 place-items-center rounded text-red-600 hover:bg-red-100 dark:text-red-400 dark:hover:bg-red-500/15"
+                          className="grid size-5 shrink-0 place-items-center rounded text-red-600 hover:bg-red-100 dark:text-red-400 dark:hover:bg-red-500/15"
                           data-title="丢弃此贮藏 (git stash drop)"
                           onClick={(event) => { event.stopPropagation(); void handleStashDrop(s.index) }}
                         >

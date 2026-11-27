@@ -309,7 +309,7 @@ export function registerBrowserDevtools(host: WebContents) {
   })
   const readDevices = (target: WebContents) => target.executeJavaScript(`(async () => {
     let module;
-    try { module = await import('../models/emulation/emulation.js') } catch { module = await import('../panels/emulation/emulation.js') }
+    try { module = await import('devtools://devtools/bundled/models/emulation/emulation.js') } catch { module = await import('devtools://devtools/bundled/panels/emulation/emulation.js') }
     const list = module.EmulatedDevices.EmulatedDevicesList.instance();
     return [...list.standard(), ...list.custom()].map(device => ({title: device.title, width: device.vertical.width, height: device.vertical.height, deviceScaleFactor: device.deviceScaleFactor, mobile: device.capabilities.includes('mobile'), userAgent: device.userAgent}));
   })()`)

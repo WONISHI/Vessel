@@ -1,3 +1,4 @@
+import { createDomainDatabase } from "@main/database/data-domain"
 import type { ApiCollectionRecord, ApiCookieRecord, ApiEnvironmentRecord, ApiHistoryRecord, ApiImportPayload, ApiOrderItem, ApiRequestRecord } from "@vessel/type/api-client"
 import Database from "better-sqlite3"
 import { randomUUID } from "node:crypto"
@@ -10,7 +11,7 @@ export class ApiClientStore {
 
   /** Initializes the instance and its required dependencies. */
   constructor(dbPath: string) {
-    this.db = new Database(dbPath)
+    this.db = createDomainDatabase(dbPath)
     this.db.pragma("journal_mode = WAL")
     this.initTables()
   }

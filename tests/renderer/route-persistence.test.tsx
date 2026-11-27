@@ -12,7 +12,7 @@ function setup(saved: unknown, entry = "/") {
   Object.assign(window, { electronAPI: { getAppState, setAppState } })
   const Page = () => <div>Page</div>
   const router = createRouter({ history: createMemoryHistory([entry]), routes: [
-    { path: "/", component: Page }, { path: "/browser", component: Page },
+    { path: "/", component: Page }, { path: "/browser", component: Page }, { path: "/login", component: Page }, { path: "/login/user-domain", component: Page },
     { path: "/devtools/proxy", component: Page }, { path: "/editor/file", component: Page }
   ] })
   installRoutePersistence(router)
@@ -47,4 +47,31 @@ it("remembers a deliberate home page and does not save aborted navigation", asyn
   await router.isReady()
   await router.push("/browser")
   expect(stored()).toBe("/")
+})
+
+it("does not replace the local startup page with temporary login/domain routes", async () => {
+  const { router, stored } = setup('/browser', '/browser')
+  render(<RouterProvider router={router}/>)
+  await waitFor(() => expect(router.currentRoute.path).toBe('/browser'))
+  await router.push('/login')
+  await router.push('/login/user-domain')
+  expect(stored()).toBe('/browser')
+})
+it("ignores a legacy persisted authentication route on startup", async () => {
+  const { router } = setup('/login?mode=register')
+  render(<RouterProvider router={router}/>)
+  await router.isReady()
+  expect(router.currentRoute.path).toBe('/')
+  expect(hasSavedStartupRoute()).toBe(false)
+})
+
+it('leaves a domain-change landing at home for the selected-workspace resolver', async () => {
+  const previous = window.location.href
+  window.history.replaceState(null, '', '?dataDomain=123')
+  try {
+    const { router } = setup('/browser')
+    render(<RouterProvider router={router}/>)
+    await router.isReady()
+    expect(router.currentRoute.path).toBe('/')
+  } finally { window.history.replaceState(null, '', previous) }
 })

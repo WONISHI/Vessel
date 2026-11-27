@@ -49,7 +49,7 @@ export function DevToolsBody({ selectedTool, onSelectTool, children }: { selecte
                         variant="ghost"
                         onClick={() => selectTool(id)}
                         aria-current={current?.id === id ? "page" : undefined}
-                        className="dev-nav-item w-full justify-start shadow-none"
+                        className="dev-nav-item w-full justify-start shadow-none hover:text-foreground"
                       >
                         <Icon className="size-4" />
                         {title}

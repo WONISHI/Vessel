@@ -1,3 +1,6 @@
+import { prepareDataDomainRenderer } from "@/lib/data-domain-renderer"
+import { restoreLoginWorkspace } from "@/router/login-workspace-restore"
+import { initializeLayoutPreferences } from "@/features/layout/preferences"
 import { installDataTitleTooltips } from "@/components/ui/data-title-tooltip"
 import "@/assets/main.css"
 
@@ -28,10 +31,16 @@ installDataTitleTooltips()
 
 // A standalone preview must not initialize the full workspace/router module graph.
 const MainApplication = lazy(async () => {
-  const [{ default: router }, { RouterProvider }] = await Promise.all([import("@/router/index"), import("@vessel/react-router/components")])
-  return { default: () => <RouterProvider router={router} /> }
+  await initializeLayoutPreferences()
+  await prepareDataDomainRenderer()
+  await restoreLoginWorkspace()
+  const [{ default: router }, { ReadyRouter }] = await Promise.all([import("@/router/index"), import("@/components/app/ready-router")])
+  return { default: () => <ReadyRouter router={router} fallback={<BootSplash />} /> }
 })
-const StandalonePreview = lazy(() => import("@/components/transit/standalone-preview"))
+const StandalonePreview = lazy(async () => {
+  await initializeLayoutPreferences()
+  return import("@/components/transit/standalone-preview")
+})
 const standalonePreview = new URLSearchParams(window.location.search).has("standalonePreview")
 if (!standalonePreview) document.documentElement.dataset.mainTitlebar = "true"
 

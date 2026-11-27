@@ -1,3 +1,6 @@
+import { drainDataOperations } from "../database/data-domain"
+import { drainVaultTasks } from "../vault/service"
+import { cancelPendingLocalDatabaseDeletion } from "../database/reset-local"
 import { app, dialog } from "electron"
 import { mainApps } from "@main/app/index"
 import { drainTextFileWrites } from "@main/modules/files/index.module"
@@ -15,7 +18,7 @@ export function registerQuitLifecycle(): void {
       event.preventDefault()
       return
     }
-    const writes = [drainTextFileWrites(), drainWorkspaceSessionWrites()].filter((value): value is Promise<void> => value != null)
+    const writes = [drainTextFileWrites(), drainWorkspaceSessionWrites(), drainDataOperations(), drainVaultTasks()].filter((value): value is Promise<void> => value != null)
     const pending = writes.length ? Promise.all(writes) : null
     if (!pending) return
     event.preventDefault()
@@ -29,7 +32,7 @@ export function registerQuitLifecycle(): void {
           clearTimeout(timer)
           if (saved) break
           const { response } = await dialog.showMessageBox({
-            type: "warning", title: "仍在保存文件", message: "文件保存耗时较长，是否继续等待？",
+            type: "warning", title: "仍在保存数据", message: "数据保存耗时较长，是否继续等待？",
             detail: "直接退出可能丢失尚未保存的修改。", buttons: ["继续等待", "退出应用"], defaultId: 0, cancelId: 0, noLink: true
           })
           if (response === 1) { skipWriteDrain = true; break }
@@ -37,10 +40,11 @@ export function registerQuitLifecycle(): void {
         drainingTextWrites = false
         app.quit()
       } catch (error) {
-        console.error("退出时等待文件保存失败", error)
+        cancelPendingLocalDatabaseDeletion()
+        console.error("退出时等待数据保存失败", error)
         resumeTerminalStarts()
         drainingTextWrites = false
-        dialog.showErrorBox("暂时无法退出", "等待文件保存时发生错误，请检查文件保存状态后再次退出。")
+        dialog.showErrorBox("暂时无法退出", "等待数据保存时发生错误，请检查保存状态后再次退出。")
       } finally { clearTimeout(timer) }
     })()
   })

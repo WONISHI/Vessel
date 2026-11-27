@@ -147,7 +147,7 @@ export default function HomePage({ onEnter }: HomePageProps) {
   const disabled = restoring || loading || saving
 
   return (
-    <div className="relative flex min-h-screen w-screen flex-col bg-white">
+    <div className="relative flex min-h-svh w-full flex-col bg-white" data-workspace-welcome>
       {/* ========== 顶部 logo（仅小屏显示） ========== */}
       <div className="flex items-center gap-2 px-5 pt-5 sm:px-10 sm:pt-8 lg:hidden">
         <img

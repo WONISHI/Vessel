@@ -59,13 +59,14 @@ it.each([
  ['/devtools/json','JSON 格式化','lucide-braces'], ['/devtools/color','颜色转换','lucide-palette'],
  ['/todos','待办','lucide-calendar-days'], ['/office','ONLYOFFICE','lucide-file-spreadsheet'],
  ['/attachments','附件库','lucide-paperclip'], ['/image','图片','lucide-image'], ['/search','全局搜索','lucide-search'],
+ ['/login','登录','lucide-log-in'],
  ['/debug/performance','性能监控','lucide-activity'], ['/welcome','首页','lucide-house']
 ])('shows the matching title and icon on %s', (path, title, iconClass) => {
  render(<MemoryRouter initialEntries={[path]}><TopSearch /></MemoryRouter>)
  expect(screen.getByText(title)).toBeTruthy()
  expect(document.querySelector('.vessel-main-titlebar svg.'+iconClass)).toBeTruthy()
  expect(screen.queryByText('Vessel')).toBeNull()
- const layoutControls = !/^\/(settings|debug)(\/|$)/.test(path)
+ const layoutControls = !/^\/(settings|debug|login)(\/|$)/.test(path)
  expect(Boolean(screen.queryByLabelText('隐藏活动栏'))).toBe(layoutControls)
  expect(Boolean(screen.queryByLabelText('隐藏底部状态栏'))).toBe(layoutControls)
 })
@@ -497,4 +498,12 @@ it('shows the blue incognito titlebar logo even for an empty private window and 
  act(() => publishBrowserTabs([], false))
  expect(screen.queryByLabelText('无痕浏览图标')).toBeNull()
  expect(view.container.querySelector('.vessel-titlebar-identity .lucide-globe')).toBeTruthy()
+})
+
+it('keeps the login titlebar free of feature and layout action buttons', () => {
+ render(<MemoryRouter initialEntries={['/login']}><TopSearch /></MemoryRouter>)
+ expect(screen.getByText('登录')).toBeTruthy()
+ expect(document.querySelector('.vessel-titlebar-actions button')).toBeNull()
+ expect(screen.queryByRole('button', { name: '待办', exact: true })).toBeNull()
+ expect(screen.queryByRole('button', { name: '开发工具', exact: true })).toBeNull()
 })

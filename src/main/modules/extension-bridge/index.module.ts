@@ -270,10 +270,7 @@ export class ExtensionBridgeModule extends BaseModule {
 
     if (pathname === "/api/bookmarks") {
       if (req.method === "GET") {
-        let bookmarks: { url: string; title: string }[] = []
-        try {
-          bookmarks = getBrowserBookmarks()
-        } catch {}
+        const bookmarks = await getBrowserBookmarks()
 
         res.writeHead(200, { "Content-Type": "application/json" })
         res.end(JSON.stringify({ ok: true, bookmarks }))
@@ -286,10 +283,7 @@ export class ExtensionBridgeModule extends BaseModule {
       const incoming = (body.bookmarks ?? []).filter((b) => b && typeof b.url === "string" && b.url.startsWith("http"))
       const direction = (body.direction || "bidirectional") as string
       const strategy = body.strategy || "keep-newer"
-      let current: { url: string; title: string }[] = []
-      try {
-        current = getBrowserBookmarks()
-      } catch {}
+      const current = await getBrowserBookmarks()
 
       let resultBookmarks: { url: string; title: string }[] = []
 
@@ -343,16 +337,10 @@ export class ExtensionBridgeModule extends BaseModule {
         resultBookmarks = Array.from(map.values())
       }
 
-      try {
-        setBrowserBookmarks(resultBookmarks)
-        // 广播通知所有渲染窗口即时刷新书签栏
-        for (const win of BrowserWindow.getAllWindows()) {
-          if (!win.isDestroyed()) {
-            win.webContents.send("browser:bookmarks-updated", resultBookmarks)
-          }
-        }
-      } catch (e) {
-        console.error("[ExtensionBridge] Failed to update browser bookmarks:", e)
+      await setBrowserBookmarks(resultBookmarks)
+      // 广播通知所有渲染窗口即时刷新书签栏
+      for (const win of BrowserWindow.getAllWindows()) {
+        if (!win.isDestroyed()) win.webContents.send("browser:bookmarks-updated", resultBookmarks)
       }
 
       // 同时若有打开的工作区，持久化到 .vessel/bookmarks.json

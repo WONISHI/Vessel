@@ -84,7 +84,31 @@ select {
   stroke: currentColor !important;
 }
 
-/* 按钮 hover 处于深绿/纯白文字背景时，图标与文字强制纯白（不影响浅色 active/hover 状态） */
+/* 主题色和深绿色悬停背景统一使用白色前景，也覆盖子元素单独指定的文字/图标颜色。 */
+button:is(
+  [class~="hover:text-accent-foreground"],
+  [class~="hover:text-white"], [class~="hover:!text-white"],
+  [class*="hover:bg-emerald-6"], [class*="hover:bg-emerald-7"], [class*="hover:bg-emerald-8"],
+  [class*="hover:bg-green-6"], [class*="hover:bg-green-7"], [class*="hover:bg-green-8"],
+  [class*="hover:!bg-green-6"], [class*="hover:!bg-green-7"], [class*="hover:!bg-green-8"],
+  [class*="hover:!bg-emerald-6"], [class*="hover:!bg-emerald-7"], [class*="hover:!bg-emerald-8"],
+  [class*="hover:!bg-[#17A34A]"], [class*="hover:!bg-[#327f73]"], [class*="hover:bg-[#327f73]"]
+):not(:disabled):hover {
+  color: #ffffff !important;
+}
+button:is(
+  [class~="hover:text-accent-foreground"],
+  [class~="hover:text-white"], [class~="hover:!text-white"],
+  [class*="hover:bg-emerald-6"], [class*="hover:bg-emerald-7"], [class*="hover:bg-emerald-8"],
+  [class*="hover:bg-green-6"], [class*="hover:bg-green-7"], [class*="hover:bg-green-8"],
+  [class*="hover:!bg-green-6"], [class*="hover:!bg-green-7"], [class*="hover:!bg-green-8"],
+  [class*="hover:!bg-emerald-6"], [class*="hover:!bg-emerald-7"], [class*="hover:!bg-emerald-8"],
+  [class*="hover:!bg-[#17A34A]"], [class*="hover:!bg-[#327f73]"], [class*="hover:bg-[#327f73]"]
+):not(:disabled):hover * {
+  color: #ffffff !important;
+}
+
+/* 按钮的线框图标跟随白色前景。 */
 button[class~="hover:text-white"]:hover svg,
 button[class~="hover:!text-white"]:hover svg,
 button[class*="hover:bg-emerald-6"]:hover svg,

@@ -1,15 +1,22 @@
+import Database from "better-sqlite3"
 import { mkdtemp, readFile, rm } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { expect, it, vi } from "vitest"
-const mock = vi.hoisted(() => ({ directory: "", exported: "", handlers: new Map<string, (...args: any[]) => any>(), guestHandlers: new Map<string, (...args: any[]) => any>(), send: vi.fn(), fill: vi.fn(), system: true, authenticate: vi.fn().mockResolvedValue(undefined) }))
+const mock = vi.hoisted(() => ({ directory: "", exported: "", clipboard: "", copy: vi.fn(), handlers: new Map<string, (...args: any[]) => any>(), guestHandlers: new Map<string, (...args: any[]) => any>(), send: vi.fn(), fill: vi.fn(), system: true, authenticate: vi.fn().mockResolvedValue(undefined) }))
 vi.mock("electron", () => ({
   app: { getPath: () => mock.directory, on: vi.fn() }, powerMonitor: { on: vi.fn() },
+  clipboard: { writeText: (value: string) => { mock.clipboard = value; mock.copy(value) }, readText: () => mock.clipboard, clear: () => { mock.clipboard = "" } },
   safeStorage: { isEncryptionAvailable: () => mock.system, getSelectedStorageBackend: () => "gnome_libsecret", encryptString: (value: string) => Buffer.from(value), decryptString: (value: Buffer) => value.toString() },
   dialog: { showSaveDialog: async () => ({ canceled: false, filePath: mock.exported }), showOpenDialog: async () => ({ canceled: false, filePaths: [mock.exported] }) }
 }))
 vi.mock("@main/vault/system-auth", () => ({ authenticatePasswordReveal: mock.authenticate }))
 import { attachVaultGuest, lockVault, registerVault, readGitCredential, saveGitCredential, eraseGitCredential } from "@main/vault/service"
+function storedCiphertext() {
+  const db = new Database(join(mock.directory, 'password-vault.sqlite'), { readonly: true })
+  try { return JSON.stringify(db.prepare('SELECT ciphertext FROM vault_document').all()) }
+  finally { db.close() }
+}
 it("protects the vault lifecycle, validates IPC and isolates credentials by origin", async () => {
   mock.directory = await mkdtemp(join(tmpdir(), "vessel-vault-test-")); mock.exported = join(mock.directory, "backup.json")
   const frame = {}, guestFrame = { send: mock.fill }
@@ -33,7 +40,7 @@ it("protects the vault lifecycle, validates IPC and isolates credentials by orig
     expect(candidate).not.toHaveProperty("password")
     await request("candidate", { id: candidate.id, choice: "save" })
     expect(await request("status")).toEqual({ initialized: true, unlocked: true, auto: true })
-    const disk = await readFile(join(mock.directory, "password-vault/vault.json"), "utf8")
+    const disk = storedCiphertext()
     for (const secret of ["private-user", "private-site-secret", "https://example.test"]) expect(disk).not.toContain(secret)
     const [entry] = await request("list")
     expect(entry.username).toBe("private-user"); expect(entry).not.toHaveProperty("password")
@@ -41,8 +48,12 @@ it("protects the vault lifecycle, validates IPC and isolates credentials by orig
     await expect(request("reveal", { id: entry.id })).rejects.toThrow("取消")
     expect(await request("reveal", { id: entry.id })).toEqual({ password: "private-site-secret" })
     expect(mock.authenticate).toHaveBeenCalledTimes(2)
+    expect(await request('copy', { id: entry.id })).toBeUndefined()
+    expect(mock.copy).toHaveBeenCalledWith('private-site-secret')
+    expect(mock.authenticate).toHaveBeenCalledTimes(2)
     // Locking (screen lock, idle) never asks for a password: the key is restored from the OS keychain.
     lockVault()
+    expect(mock.clipboard).toBe('')
     expect(await request("list")).toHaveLength(1)
     url = "https://other.test/"
     await expect(request("fill", { id: entry.id, guestId: "1" })).rejects.toThrow("来源")
@@ -136,7 +147,7 @@ it("protects the vault lifecycle, validates IPC and isolates credentials by orig
     expect(await readGitCredential({ ...context, path: "a.git" })).toBeUndefined()
     await request("import", { exportPassword: "git-backup-password-2026" })
     expect(await readGitCredential({ ...context, path: "a.git" })).toEqual({ username: "private-user", password: "one" })
-    const encrypted = await readFile(join(mock.directory, "password-vault/vault.json"), "utf8")
+    const encrypted = storedCiphertext()
     expect(encrypted).not.toContain("git-only-token")
     expect(encrypted).not.toContain("replacement-token")
   } finally { lockVault(); clock.mockRestore(); await rm(mock.directory, { recursive: true, force: true }) }

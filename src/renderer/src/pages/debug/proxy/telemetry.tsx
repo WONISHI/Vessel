@@ -16,7 +16,13 @@ export function ProxyTelemetry({ status, subscription, busy, refreshing, onRefre
   const id = useId().replace(/:/g, "")
   const runtime = status?.runtime, traffic = runtime?.traffic, info = subscription?.info
   const used = info?.uploaded !== undefined && info.downloaded !== undefined ? info.uploaded + info.downloaded : undefined
+  const remaining = used !== undefined && info?.total ? Math.max(0, info.total - used) : undefined
+  const lowTraffic = remaining !== undefined && Number.isFinite(remaining) && remaining <= 5 * 1024 ** 3
   const percent = used !== undefined && info?.total ? Math.min(100, used / info.total * 100) : undefined
+  const expiry = info?.expiresAt ? new Date(info.expiresAt) : undefined
+  const today = new Date()
+  const expiresSoon = expiry && Number.isFinite(expiry.getTime()) &&
+    Date.UTC(expiry.getFullYear(), expiry.getMonth(), expiry.getDate()) - Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()) < 15 * 86400000
   return <div className="dev-proxy-telemetry">
     <section className="dev-proxy-panel" aria-label="网络速度">
       <div className="mb-3 flex flex-wrap items-center gap-2">
@@ -45,7 +51,7 @@ export function ProxyTelemetry({ status, subscription, busy, refreshing, onRefre
     <section className="dev-proxy-panel" aria-label="订阅用量">
       <div className="mb-3 flex items-center justify-between"><h3 className="text-sm font-semibold">订阅信息</h3><Button variant="ghost" size="icon" className="size-7" aria-label="刷新订阅信息" disabled={!subscription || busy || refreshing} onClick={onRefresh}><RefreshCw size={14} className={refreshing ? "animate-spin" : undefined}/></Button></div>
       <p className="mb-3 truncate text-xs text-muted-foreground">{subscription?.name || "请选择订阅"}</p>
-      <dl className="dev-proxy-stat-grid"><div><dt>已用流量</dt><dd>{formatTraffic(used)}</dd></div><div><dt>总流量</dt><dd>{formatTraffic(info?.total)}</dd></div><div><dt>剩余流量</dt><dd>{formatTraffic(used !== undefined && info?.total ? Math.max(0, info.total - used) : undefined)}</dd></div><div><dt>到期时间</dt><dd className="!text-xs">{info?.expiresAt === 0 ? "不限期" : info?.expiresAt ? new Date(info.expiresAt).toLocaleDateString() : "未提供"}</dd></div></dl>
+      <dl className="dev-proxy-stat-grid"><div><dt>已用流量</dt><dd>{formatTraffic(used)}</dd></div><div><dt>总流量</dt><dd>{formatTraffic(info?.total)}</dd></div><div><dt>剩余流量</dt><dd className={lowTraffic ? "!text-red-600 dark:!text-red-400" : undefined}>{formatTraffic(remaining)}</dd></div><div><dt>到期时间</dt><dd className={`!text-xs${expiresSoon ? " !text-red-600 dark:!text-red-400" : ""}`}>{info?.expiresAt === 0 ? "不限期" : info?.expiresAt ? new Date(info.expiresAt).toLocaleDateString() : "未提供"}</dd></div></dl>
       {percent !== undefined && <Progress className="mt-3 h-1.5" value={percent} aria-label="订阅流量使用比例"/>}
       <p className="mt-3 text-[11px] text-muted-foreground">{info ? `更新于 ${new Date(info.updatedAt).toLocaleString()}；缺失项表示服务商未提供。` : "连接或刷新后读取服务商提供的额度与到期时间。"}</p>
     </section>

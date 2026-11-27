@@ -27,7 +27,7 @@ export function TransitButton() {
           data-title="中转站"
           aria-pressed={Boolean(selected)}
           aria-label="中转站"
-          className="relative !size-6 rounded text-stone-500 hover:bg-stone-200 dark:text-stone-400 dark:hover:bg-white/10"
+          className="relative !size-6 rounded text-stone-500 hover:bg-stone-200 hover:text-stone-500 dark:text-stone-400 dark:hover:bg-white/10 dark:hover:text-stone-400"
         >
           <Pin className="!size-4" />
           {items.length > 0 && <span aria-hidden="true" className="pointer-events-none absolute -right-1.5 top-0 min-w-3 rounded-full bg-green-600 px-0.5 text-center text-[9px] leading-3 text-white">{items.length}</span>}

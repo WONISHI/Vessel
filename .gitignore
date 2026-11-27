@@ -5,6 +5,9 @@ out
 .eslintcache
 *.log*
 
+# Machine-local system-domain credentials; never ship in the desktop bundle.
+.vessel-system-domain.local
+
 # Generated from the installed Vditor package by electron.vite.config.ts
 /src/renderer/public/vendor/vditor/
 

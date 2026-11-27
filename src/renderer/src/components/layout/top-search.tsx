@@ -54,6 +54,7 @@ export function TopSearch() {
   }
   const statusVisible = useStatusBarVisible()
   const activityCollapsed = useActivityBarCollapsed()
+  const loginPage = /^\/login(\/|$)/.test(pathname)
   const workspacePage = /^\/editor(\/|$)/.test(displayPath)
   const showLayoutControls = !/^\/(settings|debug)(\/|$)/.test(displayPath)
   const showPageTools = !statusVisible && !layoutScope && /^\/(editor|resources|browser|api-client)(\/|$)/.test(displayPath)
@@ -171,6 +172,7 @@ export function TopSearch() {
       </div>}
       <div style={{ WebkitAppRegion: "no-drag" } as CSSProperties} className="vessel-titlebar-actions absolute right-3 top-1/2 flex -translate-y-1/2 items-center gap-2">
         {!statusVisible && <StatusClock className="vessel-titlebar-clock" />}
+        {!loginPage && <>
         {workspacePage && <button type="button" aria-label="查看关系图谱" data-title="查看关系图谱" className="flex size-6 items-center justify-center rounded text-stone-500 hover:bg-stone-200 dark:text-stone-400 dark:hover:bg-white/10" aria-pressed={pathname === "/editor/graph"} onClick={() => openFeature("/editor/graph")}>
           <Network className="size-4" />
         </button>}
@@ -188,6 +190,7 @@ export function TopSearch() {
         {activityCollapsed && <ActivityMenu />}
         {showLayoutControls && <LayoutVisibilityControls />}
         {layoutScope && <button type="button" aria-label={`关闭${featureName}`} data-title="关闭" className="flex size-6 items-center justify-center rounded text-stone-500 transition-colors hover:bg-red-50 hover:text-red-600 focus-visible:bg-red-50 focus-visible:text-red-600 dark:hover:bg-red-500/10 dark:hover:text-red-400" onClick={closeFeature}><X className="size-4" /></button>}
+        </>}
       </div>
     </header>
     <FeaturePageOverlay feature={overlayKind} tool={overlayTool} onToolChange={setOverlayTool} onClose={closeOverlay} />

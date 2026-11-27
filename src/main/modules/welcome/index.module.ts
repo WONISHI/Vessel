@@ -1,3 +1,5 @@
+import { assertDataClient, isRemoteDataActive, readDataState, runDataOperation } from "@main/database/data-domain"
+import { STORAGE_DATABASES } from "@main/database/storage-browser"
 import { attachmentFolderOffset } from "@main/modules/files/attachment-library"
 import { collectPerformanceSources, createMainMemoryReader } from "./performance-resources"
 import { BaseModule } from "@main/modules/base/index"
@@ -122,6 +124,7 @@ export class WelcomeModule extends BaseModule {
       this.registerHandler("workspace-session:get", async (_event, key: string) => {
         assertStateKey(key)
         if (!/^(workspace|resources)-tabs:/.test(key)) throw new TypeError("工作区会话 key 无效")
+        if (isRemoteDataActive()) return workspaceSession(database.getState(key))
         const store = workspaceSessions()
         const cached = await store.get(key)
         if (cached) return cached
@@ -133,6 +136,7 @@ export class WelcomeModule extends BaseModule {
       this.registerHandler("workspace-session:set", async (_event, key: string, value: unknown) => {
         assertStateKey(key)
         if (!/^(workspace|resources)-tabs:/.test(key)) throw new TypeError("工作区会话 key 无效")
+        if (isRemoteDataActive()) { database.setState(key, value); return }
         await workspaceSessions().set(key, value)
       })
 
@@ -266,7 +270,17 @@ export class WelcomeModule extends BaseModule {
    * 所有 Handler 必须通过该方法注册，才能在销毁时被完整清理。
    */
   private registerHandler(channel: string, listener: Parameters<typeof ipcMain.handle>[1]): void {
-    ipcMain.handle(channel, listener)
+    const usesDatabase = /^(app-state:|workspace-session:|storage:|device:getCurrent$|system:info$|workspace:(recordOpened|listRecent|listOpenRecords)$)/.test(channel)
+    ipcMain.handle(channel, (event, ...args) => {
+      if (!usesDatabase) return listener(event, ...args)
+      assertDataClient(event?.sender?.id)
+      if (channel === 'app-state:get') {
+        const [key] = args
+        assertStateKey(key)
+        return readDataState(key, () => listener(event, ...args))
+      }
+      return runDataOperation(channel.startsWith("storage:") ? [...STORAGE_DATABASES] : ["vessel.db"], () => listener(event, ...args))
+    })
     this.registeredChannels.push(channel)
   }
 

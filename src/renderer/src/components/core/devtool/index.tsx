@@ -1,3 +1,5 @@
+import { DeleteDatabaseDialog } from './components/DeleteDatabaseDialog'
+import type { DatabaseDeleteScope, DatabaseSyncStatus } from '@vessel/type/database-sync'
 import { CrashFallbackView } from "@/components/core/error-boundary/crash-fallback"
 import { ConsoleHistory } from "@/components/core/devtool/components/ConsoleHistory"
 import { DevToolsMenu } from "@/components/core/devtool/components/DevToolsMenu"
@@ -9,8 +11,8 @@ import type { DevToolsMenuItem, LogType } from "@/components/core/devtool/src/ty
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
-import { AlertTriangle, Bug, Cog, RefreshCcw, Terminal, Trash2, Wrench, ScanLine } from "lucide-react"
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { AlertTriangle, Bug, Cog, RefreshCcw, Terminal, Trash2, Wrench, ScanLine, LogIn } from "lucide-react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { toast } from "sonner"
 
@@ -61,6 +63,15 @@ export default function DevTool() {
   const { showToast, dismissByType, dismissAll, showEnabledHistory } = useDevToolToast()
   const { position, setPosition, dragging, handlePointerDown, consumeDragClick } = useDraggable()
   const [menuOpen, setMenuOpen] = useState(false)
+  const [databaseSyncStatus, setDatabaseSyncStatus] = useState<DatabaseSyncStatus>()
+  const [deleteScope, setDeleteScope] = useState<DatabaseDeleteScope | null>(null)
+  const pendingDeletion = useRef<DatabaseDeleteScope | null>(null)
+  useEffect(() => {
+    if (!menuOpen) return
+    let active = true
+    void window.electronAPI.databaseSync?.status().then(status => { if (active) setDatabaseSyncStatus(status) }).catch(() => { if (active) setDatabaseSyncStatus(undefined) })
+    return () => { active = false }
+  }, [menuOpen])
   useEffect(() => window.electronAPI.onBrowserControl((delta) => {
     if (!delta) { setMenuOpen(true); return }
     const rect = document.querySelector('[data-vessel-control="true"] button')?.getBoundingClientRect()
@@ -316,6 +327,15 @@ export default function DevTool() {
         }
       },
       {
+        key: "preview-login",
+        label: "模拟登录页面",
+        icon: LogIn,
+        onClick: () => {
+          setMenuOpen(false)
+          navigate("/login")
+        }
+      },
+      {
         key: "preview-crash",
         label: "模拟崩溃页面",
         icon: AlertTriangle,
@@ -328,11 +348,12 @@ export default function DevTool() {
         onClick: navigateDebug
       }
     ],
-    [clearAll, openDevTool, openHistory, refreshPage, navigateDebug]
+    [clearAll, openDevTool, openHistory, refreshPage, navigateDebug, navigate]
   )
 
   return (
     <>
+      {deleteScope && <DeleteDatabaseDialog key={deleteScope} scope={deleteScope} onClose={() => setDeleteScope(null)} />}
       {simulatedCrash && (
         <div className="fixed inset-0 z-[400]">
           <CrashFallbackView error={simulatedCrash} simulated onReset={() => setSimulatedCrash(undefined)} />
@@ -400,6 +421,16 @@ export default function DevTool() {
             enabledTypes={enabledTypes}
             hasError={hasError}
             menuItems={menuItems}
+            databaseSyncConfigured={databaseSyncStatus?.configured}
+            remoteDeletionAvailable={!!databaseSyncStatus?.connected && !!databaseSyncStatus.user}
+            onDeleteData={scope => { pendingDeletion.current = scope }}
+            onCloseAutoFocus={event => {
+              const scope = pendingDeletion.current
+              pendingDeletion.current = null
+              if (!scope) return
+              event.preventDefault()
+              queueMicrotask(() => setDeleteScope(scope))
+            }}
             onToggleSpy={toggleSpy}
             onToggleType={toggleType}
           />

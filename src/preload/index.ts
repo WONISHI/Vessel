@@ -1,3 +1,5 @@
+import { databaseSyncAPI } from "./apis/database-sync.api"
+import type { LayoutPreferences } from "@vessel/type/layout-preferences"
 import type { AppUpdateState } from "../shared/app-update"
 import { electronAPI } from "@electron-toolkit/preload"
 import { browserExtensionsAPI } from "@preload/apis/browser-extensions.api"
@@ -18,6 +20,15 @@ import { gitAPI } from "@preload/apis/git.api"
 const api = {}
 
 const vesselAPI = {
+  layoutPreferences: {
+    get: (legacy?: Partial<LayoutPreferences>): Promise<LayoutPreferences> => ipcRenderer.invoke('layout-preferences:get', legacy),
+    set: (patch: Partial<LayoutPreferences>): Promise<LayoutPreferences> => ipcRenderer.invoke('layout-preferences:set', patch),
+    onChanged: (callback: (value: LayoutPreferences) => void) => {
+      const listener = (_event: Electron.IpcRendererEvent, value: LayoutPreferences) => callback(value)
+      ipcRenderer.on('layout-preferences:changed', listener)
+      return () => ipcRenderer.removeListener('layout-preferences:changed', listener)
+    }
+  },
   listBrowserDownloads: () => ipcRenderer.invoke("browser:downloads:list"),
   previewBrowserDownload: (id: number): Promise<string> => ipcRenderer.invoke("browser:downloads:preview", id),
   revealBrowserDownload: (id: number): Promise<void> => ipcRenderer.invoke("browser:downloads:reveal", id),
@@ -285,6 +296,7 @@ const vesselAPI = {
       ipcRenderer.removeListener("markdown:open", handler)
     }
   },
+  ...databaseSyncAPI,
   ...todosAPI,
   ...welcomeAPI,
   ...filesAPI,
