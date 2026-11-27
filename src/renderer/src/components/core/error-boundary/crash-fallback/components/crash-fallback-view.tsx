@@ -98,9 +98,9 @@ export function CrashFallbackView({ error, onReset, simulated = false }: CrashFa
   const isMac = navigator.platform.includes("Mac")
 
   return (
-    <div className="flex h-screen w-screen flex-col overflow-hidden bg-background text-foreground select-none">
+    <div className="fixed inset-0 z-[200] flex flex-col overflow-hidden bg-background text-foreground select-none">
       {/* 顶部标题栏区域（保留原生红黄绿按键位置与窗口拖拽） */}
-      <div className={`flex h-10 w-full shrink-0 items-center justify-between border-b border-border/40 bg-muted/30 px-4 drag-region ${isMac ? "pl-20" : ""}`}>
+      <div className={`flex h-9 w-full shrink-0 items-center justify-between border-b border-border/40 bg-muted/30 px-4 drag-region ${isMac ? "pl-20" : ""}`}>
         <div data-crash-titlebar-identity className="flex items-center gap-2 transition-transform duration-[260ms] ease-[cubic-bezier(.22,1,.36,1)] motion-reduce:transition-none" style={{ transform: isMac && fullscreen ? "translateX(-64px)" : "translateX(0px)" }}>
           <img src={Logo} alt="Vessel" className="size-5 object-contain dark:hidden" />
           <img src={DarkLogo} alt="" aria-hidden="true" className="hidden size-5 object-contain dark:block" />

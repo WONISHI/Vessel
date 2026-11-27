@@ -84,52 +84,46 @@ select {
   stroke: currentColor !important;
 }
 
-/* 主题色和深绿色悬停背景统一使用白色前景，也覆盖子元素单独指定的文字/图标颜色。 */
+/* 仅实心绿色悬停背景使用白色前景，灰色及浅色悬停保留原有文字/图标颜色。 */
 button:is(
-  [class~="hover:text-accent-foreground"],
-  [class~="hover:text-white"], [class~="hover:!text-white"],
-  [class*="hover:bg-emerald-6"], [class*="hover:bg-emerald-7"], [class*="hover:bg-emerald-8"],
-  [class*="hover:bg-green-6"], [class*="hover:bg-green-7"], [class*="hover:bg-green-8"],
-  [class*="hover:!bg-green-6"], [class*="hover:!bg-green-7"], [class*="hover:!bg-green-8"],
-  [class*="hover:!bg-emerald-6"], [class*="hover:!bg-emerald-7"], [class*="hover:!bg-emerald-8"],
-  [class*="hover:!bg-[#17A34A]"], [class*="hover:!bg-[#327f73]"], [class*="hover:bg-[#327f73]"]
+  [class~="hover:bg-emerald-600"], [class~="hover:bg-emerald-700"], [class~="hover:bg-emerald-800"],
+  [class~="hover:bg-green-600"], [class~="hover:bg-green-700"], [class~="hover:bg-green-800"],
+  [class~="hover:!bg-green-600"], [class~="hover:!bg-green-700"], [class~="hover:!bg-green-800"],
+  [class~="hover:!bg-emerald-600"], [class~="hover:!bg-emerald-700"], [class~="hover:!bg-emerald-800"],
+  [class~="hover:!bg-[#17A34A]"], [class~="hover:!bg-[#327f73]"], [class~="hover:bg-[#327f73]"]
 ):not(:disabled):hover {
   color: #ffffff !important;
 }
 button:is(
-  [class~="hover:text-accent-foreground"],
-  [class~="hover:text-white"], [class~="hover:!text-white"],
-  [class*="hover:bg-emerald-6"], [class*="hover:bg-emerald-7"], [class*="hover:bg-emerald-8"],
-  [class*="hover:bg-green-6"], [class*="hover:bg-green-7"], [class*="hover:bg-green-8"],
-  [class*="hover:!bg-green-6"], [class*="hover:!bg-green-7"], [class*="hover:!bg-green-8"],
-  [class*="hover:!bg-emerald-6"], [class*="hover:!bg-emerald-7"], [class*="hover:!bg-emerald-8"],
-  [class*="hover:!bg-[#17A34A]"], [class*="hover:!bg-[#327f73]"], [class*="hover:bg-[#327f73]"]
+  [class~="hover:bg-emerald-600"], [class~="hover:bg-emerald-700"], [class~="hover:bg-emerald-800"],
+  [class~="hover:bg-green-600"], [class~="hover:bg-green-700"], [class~="hover:bg-green-800"],
+  [class~="hover:!bg-green-600"], [class~="hover:!bg-green-700"], [class~="hover:!bg-green-800"],
+  [class~="hover:!bg-emerald-600"], [class~="hover:!bg-emerald-700"], [class~="hover:!bg-emerald-800"],
+  [class~="hover:!bg-[#17A34A]"], [class~="hover:!bg-[#327f73]"], [class~="hover:bg-[#327f73]"]
 ):not(:disabled):hover * {
   color: #ffffff !important;
 }
 
 /* 按钮的线框图标跟随白色前景。 */
-button[class~="hover:text-white"]:hover svg,
-button[class~="hover:!text-white"]:hover svg,
-button[class*="hover:bg-emerald-6"]:hover svg,
-button[class*="hover:bg-emerald-7"]:hover svg,
-button[class*="hover:bg-emerald-8"]:hover svg,
-button[class*="hover:bg-green-6"]:hover svg,
-button[class*="hover:bg-green-7"]:hover svg,
-button[class*="hover:bg-green-8"]:hover svg,
-button[class*="hover:!bg-[#17A34A]"]:hover svg,
-button[class*="hover:!bg-[#327f73]"]:hover svg,
-button[class*="hover:bg-[#327f73]"]:hover svg,
-button[class*="hover:bg-emerald-6"]:active svg,
-button[class*="hover:bg-emerald-7"]:active svg,
-button[class*="hover:bg-emerald-8"]:active svg,
-button[class*="hover:bg-green-6"]:active svg,
-button[class*="hover:bg-green-7"]:active svg,
-button[class*="hover:bg-green-8"]:active svg,
-button[data-state="open"][class*="bg-emerald-6"] svg,
-button[data-state="open"][class*="bg-emerald-7"] svg,
-button[data-state="open"][class*="bg-green-6"] svg,
-button[data-state="open"][class*="bg-green-7"] svg {
+button[class~="hover:bg-emerald-600"]:hover svg,
+button[class~="hover:bg-emerald-700"]:hover svg,
+button[class~="hover:bg-emerald-800"]:hover svg,
+button[class~="hover:bg-green-600"]:hover svg,
+button[class~="hover:bg-green-700"]:hover svg,
+button[class~="hover:bg-green-800"]:hover svg,
+button[class~="hover:!bg-[#17A34A]"]:hover svg,
+button[class~="hover:!bg-[#327f73]"]:hover svg,
+button[class~="hover:bg-[#327f73]"]:hover svg,
+button[class~="hover:bg-emerald-600"]:active svg,
+button[class~="hover:bg-emerald-700"]:active svg,
+button[class~="hover:bg-emerald-800"]:active svg,
+button[class~="hover:bg-green-600"]:active svg,
+button[class~="hover:bg-green-700"]:active svg,
+button[class~="hover:bg-green-800"]:active svg,
+button[data-state="open"][class~="bg-emerald-600"] svg,
+button[data-state="open"][class~="bg-emerald-700"] svg,
+button[data-state="open"][class~="bg-green-600"] svg,
+button[data-state="open"][class~="bg-green-700"] svg {
   color: #ffffff !important;
   stroke: #ffffff !important;
 }

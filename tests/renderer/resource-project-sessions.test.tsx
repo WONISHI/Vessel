@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { MemoryRouter } from 'react-router-dom'
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { afterEach, expect, it, vi } from "vitest"
 import { ResourceRoute } from "@/pages/resources"
@@ -7,6 +8,8 @@ import { TerminalPanel } from "@/components/workspace/components/layout-main/ter
 import { disposeTerminalSession } from "@/components/workspace/components/layout-main/terminal-session"
 
 const mock = vi.hoisted(() => ({ terminals: [] as { writes: string[] }[] }))
+vi.mock('@/components/layout/activity-bar/index', () => ({ default: () => null }))
+vi.mock('@/components/layout/index', () => ({ default: ({ children }: { children: React.ReactNode }) => <div>{children}</div> }))
 vi.mock("@xterm/xterm", () => ({ Terminal: class {
  options = {}; cols = 80; rows = 24; writes: string[] = []
  constructor() { mock.terminals.push(this) }
@@ -28,8 +31,8 @@ it("keeps independent drafts and running terminal output across project switches
  const close = vi.fn().mockResolvedValue(undefined)
  const start = vi.fn(async (root: string) => ({ id: root, cwd: root }))
  vi.stubGlobal("electronAPI", { getAppState: vi.fn().mockResolvedValue([]), setAppState: vi.fn().mockResolvedValue(undefined), terminalStart: start, terminalClose: close, terminalResize: vi.fn().mockResolvedValue(undefined), onTerminalData: (listener: (id: string, data: string) => void) => { listeners.add(listener); return () => listeners.delete(listener) } })
- render(<ResourceRoute />)
- expect(screen.getByText("选择项目")).toBeTruthy()
+ render(<MemoryRouter><ResourceRoute /></MemoryRouter>)
+ expect(await screen.findByText("还没有项目目录")).toBeTruthy()
  await act(async () => { await openResourceProject({ name: "A", path: "/sessions/A" }) })
  await waitFor(() => expect(start).toHaveBeenCalledTimes(1))
  const draftA = screen.getByRole("textbox", { name: "A draft" })

@@ -1,7 +1,8 @@
+import { useBrowserBookmarks } from "@/pages/browser/use-browser-bookmarks"
 import { freezeBrowserTab, useTabFreezing, wakeBrowserTab } from "@/pages/browser/use-tab-freezing"
 import { useBrowserWindows } from "@/pages/browser/use-browser-windows"
 import { useActivatedTabs } from "@/pages/browser/use-activated-tabs"
-import { BROWSER_ACTIVE_TAB_KEY, BROWSER_TABS_KEY, loadSavedBrowserTabs, newTab, PAGE_EXTRACTOR_SCRIPT, SavedBrowserTab, shortcuts } from "@/pages/browser/components/index-shared"
+import { BROWSER_ACTIVE_TAB_KEY, BROWSER_TABS_KEY, loadSavedBrowserTabs, newTab, PAGE_EXTRACTOR_SCRIPT, SavedBrowserTab } from "@/pages/browser/components/index-shared"
 import { transitionPage } from "@/lib/page-transition"
 import { publishBrowserTabs } from "@/pages/browser/tab-state"
 import { useRouter } from "@vessel/react-router"
@@ -96,37 +97,7 @@ export function useBrowserState(visible: boolean) {
     setFindText("")
     setDevtoolsOpen(false)
   }
-  const [bookmarks, setBookmarks] = useState<{ url: string; title: string; favicon?: string }[]>(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem("browser-bookmarks") || "null")
-      if (Array.isArray(saved) && saved.length > 0 && shortcuts.some((sc) => saved.some((s) => s.url === sc.url))) {
-        return saved
-      }
-    } catch { /* Keep the default bookmarks when storage is unavailable. */ }
-    localStorage.setItem("browser-bookmarks", JSON.stringify(shortcuts))
-    return shortcuts
-  })
-
-  // 保持 Vessel 自身的 SQLite 数据库同步
-  useEffect(() => {
-    void window.electronAPI.syncBrowserBookmarks(bookmarks).catch(console.error)
-  }, [bookmarks])
-
-  /** Removes bookmark. */
-  const removeBookmark = useCallback((url: string) => {
-    setBookmarks((current) => {
-      const next = current.filter((item) => item.url !== url)
-      localStorage.setItem("browser-bookmarks", JSON.stringify(next))
-      return next
-    })
-  }, [])
-
-  /** Resets bookmarks. */
-  const resetBookmarks = useCallback(() => {
-    setBookmarks(shortcuts)
-    localStorage.setItem("browser-bookmarks", JSON.stringify(shortcuts))
-    void window.electronAPI.syncBrowserBookmarks(shortcuts).catch(console.error)
-  }, [])
+  const { bookmarks, setBookmarks, removeBookmark, resetBookmarks, bookmarksReady } = useBrowserBookmarks()
   const views = useRef(new Map<string, WebviewTag>())
 
   /** Registers view. */
@@ -222,7 +193,7 @@ export function useBrowserState(visible: boolean) {
     enterIncognito: async () => { await browserWindows.enterIncognito(apply => transitionPage(() => { apply(); resetWindowControls() }, "browser", { contentReady: true })) },
     closeIncognito: async () => { await browserWindows.closeIncognito(); resetWindowControls() },
     switchUserWindow: () => { void transitionPage(() => { browserWindows.switchUserWindow(); resetWindowControls() }, "browser", { contentReady: true }).catch(console.error) },
-    bookmarksVisible, setBookmarksVisible, router, deviceViewport, setDeviceViewport, toolbarCollapsed, setToolbarCollapsed, deviceMode, setDeviceMode, initialTabsState, tabs, setTabs, findOpen, setFindOpen, matchCase, setMatchCase, findText, setFindText, findResult, setFindResult, findInput, findPosition, setFindPosition, findDrag, consoleWidth, setConsoleWidth, consoleHeight, setConsoleHeight, devtoolsOpen, setDevtoolsOpen, dock, setDock, consoleFont, setConsoleFont, consoleSize, setConsoleSize, consoleLanguage, setConsoleLanguage, devtoolsHost, active, setActive, freezeTab, activatedTabs, input, setInput, searchInput, setSearchInput, bookmarks, setBookmarks, removeBookmark, resetBookmarks, views, registerView, tab, getActivePageData, lastSavedTabs }
+    bookmarksVisible, setBookmarksVisible, router, deviceViewport, setDeviceViewport, toolbarCollapsed, setToolbarCollapsed, deviceMode, setDeviceMode, initialTabsState, tabs, setTabs, findOpen, setFindOpen, matchCase, setMatchCase, findText, setFindText, findResult, setFindResult, findInput, findPosition, setFindPosition, findDrag, consoleWidth, setConsoleWidth, consoleHeight, setConsoleHeight, devtoolsOpen, setDevtoolsOpen, dock, setDock, consoleFont, setConsoleFont, consoleSize, setConsoleSize, consoleLanguage, setConsoleLanguage, devtoolsHost, active, setActive, freezeTab, activatedTabs, input, setInput, searchInput, setSearchInput, bookmarks, setBookmarks, removeBookmark, resetBookmarks, bookmarksReady, views, registerView, tab, getActivePageData, lastSavedTabs }
 }
 
 export type BrowserState = ReturnType<typeof useBrowserState>

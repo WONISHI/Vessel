@@ -2,6 +2,7 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/compone
 import { lazyWithRetry } from "@/lib/lazy-retry"
 import { Suspense, useEffect } from "react"
 import { rememberPageContent } from "@/lib/page-transition"
+import { PageSkeleton } from "@/components/ui/page-skeleton"
 import "@/pages/debug/tools.css"
 
 const Todos = lazyWithRetry(() => import("@/pages/todos"))
@@ -28,8 +29,8 @@ export function FeaturePageOverlay({ feature, tool, onToolChange, onClose }: { f
       <DialogTitle className="sr-only">{feature === "todos" ? "待办" : "开发工具"}</DialogTitle>
       <DialogDescription className="sr-only">覆盖在当前页面上的独立工具，关闭后继续使用原页面。</DialogDescription>
       <div className="flex h-full min-h-0 w-full [&>div]:!h-full [&>div]:!min-h-0">
-        <Suspense fallback={<div data-page-transition-loading role="status" className="grid flex-1 place-items-center text-sm text-muted-foreground">正在加载…</div>}>
-          {feature === "todos" ? <Todos /> : feature === "devtools" ? <Tools selectedTool={tool} onSelectTool={onToolChange}><Suspense fallback={<div data-page-transition-loading role="status">正在加载工具…</div>}><Tool /></Suspense></Tools> : null}
+        <Suspense fallback={<PageSkeleton />}>
+          {feature === "todos" ? <Todos /> : feature === "devtools" ? <Tools selectedTool={tool} onSelectTool={onToolChange}><Suspense fallback={<PageSkeleton />}><Tool /></Suspense></Tools> : null}
         </Suspense>
       </div>
     </DialogContent>

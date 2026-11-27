@@ -59,6 +59,8 @@
 .browser-address {
   display: flex;
   align-items: center;
+  box-sizing: border-box;
+  height: 40px;
   gap: 10px;
   flex: 1;
   min-width: 0;

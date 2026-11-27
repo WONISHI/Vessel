@@ -7,7 +7,7 @@ import { FolderPlus } from "lucide-react"
 import { useEffect, useState } from "react"
 
 /** Resource projects are explicitly added, independently of the current editor workspace. */
-export function ProjectLibrary({ pinned, onPin }: { pinned: boolean; onPin: () => void }) {
+export function ProjectLibrary({ pinned, onPin, onProjectAdded }: { pinned: boolean; onPin: () => void; onProjectAdded?: (project: Project) => void }) {
   const pick = (projects: Project[]) => {
     let previous: Project | null = null
     try { previous = JSON.parse(localStorage.getItem("resource_current_project") || "null") } catch { /* Ignore an invalid cached selection. */ }
@@ -43,6 +43,7 @@ export function ProjectLibrary({ pinned, onPin }: { pinned: boolean; onPin: () =
       projectCache.projects = next
       updateLibraryMeta({ count: next.length })
       setSelected(project)
+      onProjectAdded?.(project)
     } catch (reason) { setError(String(reason)) }
     finally { setBusy(false) }
   }

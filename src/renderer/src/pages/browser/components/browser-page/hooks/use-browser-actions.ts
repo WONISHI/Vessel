@@ -10,7 +10,7 @@ import type { BrowserState } from "@/pages/browser/components/browser-page/hooks
 
 /** 页内查找、控制台挂载、导航与标签操作 */
 export function useBrowserActions(state: BrowserState, visible: boolean) {
-  const { tabs, setTabs, setAllTabs, setFindOpen, setFindPosition, setToolbarCollapsed, toolbarCollapsed, findInput, devtoolsOpen, setDevtoolsOpen, dock, consoleFont, consoleSize, consoleLanguage, devtoolsHost, setActive, setInput, bookmarks, setBookmarks, views, tab, input } = state
+  const { tabs, setTabs, setAllTabs, setFindOpen, setFindPosition, setToolbarCollapsed, toolbarCollapsed, findInput, devtoolsOpen, setDevtoolsOpen, dock, consoleFont, consoleSize, consoleLanguage, devtoolsHost, setActive, setInput, setBookmarks, views, tab, input } = state
 
 
   /** Reloads tab. */
@@ -345,11 +345,8 @@ export function useBrowserActions(state: BrowserState, visible: boolean) {
 
   /** Performs the bookmark operation. */
   const bookmark = () => {
-    if (!tab.url) return
-    const next = bookmarks.some((item) => item.url === tab.url) ? bookmarks.filter((item) => item.url !== tab.url) : [...bookmarks, { url: tab.url, title: tab.title, favicon: tab.favicon }]
-    setBookmarks(next)
-    localStorage.setItem("browser-bookmarks", JSON.stringify(next))
-    void window.electronAPI.syncBrowserBookmarks(next).catch(() => {})
+    if (!tab.url || state.bookmarksReady === false) return
+    setBookmarks(current => current.some(item => item.url === tab.url) ? current.filter(item => item.url !== tab.url) : [...current, { url: tab.url, title: tab.title, favicon: tab.favicon }])
   }
 
   return { inspectPage, searchPage, update, navigate, add, close, closeTabs, addTabRightOf, reloadTab, togglePinTab, closeOtherTabs, closeRightTabs, dragTabId, setDragTabId, reorderTabs, zoom, bookmark }

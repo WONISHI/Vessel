@@ -47,6 +47,8 @@ jobs:
         with:
           version: 10.30.3
       - run: pnpm install --frozen-lockfile
+      - name: Verify workspace graph WASM
+        run: node packages/@vessel/workspace/scripts/check-wasm.mjs
       - name: Prepare Office runtime
         run: |
           curl -L --fail --retry 3 https://codeload.github.com/oonxt/wasm-onlyoffice-demo/tar.gz/refs/heads/gh-pages -o "$RUNNER_TEMP/office.tar.gz"

@@ -132,7 +132,7 @@ export function BrowserToolbar({ b, visible = true }: { b: BrowserPageModel; vis
                   data-browser-bookmark-action
                   data-title={focused ? (decodedAddress === null ? "解码地址" : "恢复原编码地址") : "收藏当前页面"}
                   aria-label={focused ? (decodedAddress === null ? "解码地址" : "恢复原编码地址") : bookmarks.some((item) => item.url === tab.url) ? "取消书签" : "添加书签"}
-                  disabled={focused ? !fullAddress : !tab.url}
+                  disabled={focused ? !fullAddress : !tab.url || b.bookmarksReady === false}
                   onMouseDown={(event) => { if (focused) event.preventDefault() }}
                   onClick={(event) => {
                     if (!focused) {

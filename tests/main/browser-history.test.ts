@@ -46,6 +46,27 @@ it("stores bookmarks without fabricating visits and preserves bookmarks when cle
   history.close()
 })
 
+it('retains local bookmarks after reopening and includes them in the remote sync snapshot', async () => {
+  const { mkdtemp, rm } = await import('node:fs/promises')
+  const { tmpdir } = await import('node:os')
+  const { join } = await import('node:path')
+  const { collectLocalTables } = await import('@main/sync/database-sync/local-data')
+  const directory = await mkdtemp(join(tmpdir(), 'vessel-bookmark-sync-'))
+  const items = [{ url: 'https://saved.test/', title: '本地书签' }]
+  try {
+    const first = new BrowserHistory(join(directory, 'browser-history.sqlite'))
+    first.setBookmarks(items)
+    first.close()
+    const restored = new BrowserHistory(join(directory, 'browser-history.sqlite'))
+    try {
+      expect(restored.getBookmarks()).toEqual(items)
+      const table = collectLocalTables(directory).find(item => item.database === 'browser-history.sqlite' && item.name === 'bookmarks')!
+      expect(table.rows).toHaveLength(1)
+      expect(JSON.parse(table.rows[0].value)).toEqual({ url: { type: 'string', value: items[0].url }, title: { type: 'string', value: items[0].title } })
+    } finally { restored.close() }
+  } finally { await rm(directory, { recursive: true, force: true }) }
+})
+
 it("persists download records independently from browsing history", () => {
   const history = new BrowserHistory(":memory:")
   try {
