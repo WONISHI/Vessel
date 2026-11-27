@@ -137,5 +137,5 @@ export type GitPushSelection = {
 export type GitPullOptions = { commit: boolean; log: boolean; noFastForward: boolean; rebase: boolean }
 export type GitPullSelection = { remote: string; branch: string; options: GitPullOptions }
 
-export type GitFetchOptions = { all: boolean; prune: boolean; tags: boolean }
+export type GitFetchOptions = { all: boolean; prune: boolean; tags: boolean; background?: boolean }
 export type GitFetchSelection = GitFetchOptions & { remote: string }

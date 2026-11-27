@@ -133,7 +133,7 @@ export class GitModule extends BaseModule {
 
     for (const [channel, handler] of Object.entries(handlers)) {
       const remote = new Set(["git:fetch", "git:pull", "git:push", "git:push-selection", "git:push-tag", "git:delete-remote-tag"])
-      ipcMain.handle(channel, remote.has(channel) ? (event, ...args) => withGitAuthentication(event.sender, () => handler(event, ...args)) : handler)
+      ipcMain.handle(channel, remote.has(channel) ? (event, ...args) => withGitAuthentication(event.sender, () => handler(event, ...args), !(channel === "git:fetch" && (args[2] as GitFetchOptions | undefined)?.background)) : handler)
       this.channels.push(channel)
     }
   }

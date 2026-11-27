@@ -9,7 +9,7 @@ import Layout from "@/components/layout/index"
 import { ResizableSplit } from "@/components/ui/resizable-split"
 import { StatusBar } from "@/components/ui/status-bar"
 import { BookmarkBar } from "@/pages/browser/components/bookmark-bar"
-import { Guest } from "@/pages/browser/components/guest"
+import { BrowserGuestViews } from "./browser-page/browser-guest-views"
 import { DeviceToolbar } from "@/pages/browser/components/tools"
 import { ZoomIn } from "lucide-react"
 import { toast } from "sonner"
@@ -25,7 +25,7 @@ import { BrowserStatusLeft } from "@/pages/browser/components/browser-page/brows
 /** Renders the browser page component. */
 export function BrowserPage({ visible = true }: { visible?: boolean }) {
   const b = useBrowserPage(visible)
-  const { router, deviceViewport, setDeviceViewport, toolbarCollapsed, deviceMode, setDeviceMode, findOpen, consoleWidth, setConsoleWidth, consoleHeight, setConsoleHeight, devtoolsOpen, dock, activatedTabs, bookmarks, removeBookmark, resetBookmarks, views, registerView, tab, update, navigate, zoom } = b
+  const { router, deviceViewport, setDeviceViewport, toolbarCollapsed, deviceMode, setDeviceMode, findOpen, consoleWidth, setConsoleWidth, consoleHeight, setConsoleHeight, devtoolsOpen, dock, bookmarks, removeBookmark, resetBookmarks, views, tab, navigate, zoom } = b
 
   return (
     <Layout
@@ -148,18 +148,7 @@ export function BrowserPage({ visible = true }: { visible?: boolean }) {
                       aria-label={deviceMode ? "设备预览内容" : undefined}
                       style={deviceMode && tab.url ? { width: deviceViewport.width, height: deviceViewport.height, transform: `scale(${deviceViewport.scale})`, transformOrigin: "top left" } : { width: "100%", height: "100%" }}
                     >
-                      {b.allTabs
-                        .filter((item) => (item.url || item.back || item.forward) && !item.frozen && activatedTabs.has(item.id))
-                        .map((item) => (
-                          <Guest
-                            key={item.id}
-                            tab={item}
-                            partition={b.privateWindow?.tabs.some(entry => entry.id === item.id) ? b.privateWindow.partition : undefined}
-                            visible={visible && item.id === tab.id && !!item.url}
-                            register={registerView}
-                            update={update}
-                          />
-                        ))}
+                      <BrowserGuestViews b={b} visible={visible} />
                     </div>
                   </div>
                 </div>

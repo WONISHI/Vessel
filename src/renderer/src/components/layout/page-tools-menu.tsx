@@ -64,7 +64,7 @@ export function PageToolsMenu({ browser }: { browser: boolean }) {
       const target = project || await window.electronAPI.openDirectory()
       if (!target) return
       await openResourceProject(target)
-      void navigate("/resources")
+      if (pathname !== "/resources") void navigate("/resources")
     } catch (error) { toast.error(String(error)) }
     finally { setOpening(false) }
   }

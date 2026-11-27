@@ -42,3 +42,10 @@ it("retries once after Git rejects credentials, then surfaces a repeated failure
     expect(failing).toHaveBeenCalledTimes(2)
   } finally { mode.rejected = false }
 })
+
+it("declines background authentication without opening a credential dialog", async () => {
+  const sender = Object.assign(new EventEmitter(), { id: 13, isDestroyed: () => false, send: vi.fn() })
+  expect(await withGitAuthentication(sender as unknown as WebContents, async () => "unused", false)).toBeNull()
+  expect(sender.send).not.toHaveBeenCalled()
+  expect(ipcMain.listenerCount("git:auth-response")).toBe(0)
+})

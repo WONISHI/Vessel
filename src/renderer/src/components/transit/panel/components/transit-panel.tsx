@@ -6,7 +6,6 @@ import "@/components/transit/panel/components/transit.css"
 import type { TransitFile } from "@vessel/type"
 import { WebPreview } from "@/components/transit/panel/components/web-preview"
 import { addTransit, addTransitFile, selectTransit, useTransit } from "@/components/transit/state"
-import { ResizableSplit } from "@/components/ui/resizable-split"
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet"
 import { ChevronLeft, ChevronRight, Clipboard, ClipboardPaste, Upload, FileText, Globe, PanelTopClose, PanelTopOpen, PanelBottomOpen, PanelBottomClose } from "lucide-react"
 import "@vscode/codicons/dist/codicon.css"
@@ -56,9 +55,10 @@ export function TransitPanel() {
   /** Changes docking and exits fullscreen. */
   const changeDock = (value: TransitDockMode) => { setDock(value); setFull(false) }
   const left = dock === "left"
+  const vertical = dock === "top" || dock === "bottom"
   const [full, setFull] = useState(false)
   const [position, setPosition] = useState({ x: 120, y: 70 })
-  const gesture = useRef<{ x: number; y: number; left: number; top: number; width: number; resize?: boolean } | null>(null)
+  const gesture = useRef<{ x: number; y: number; left: number; top: number; width: number; height?: number; resize?: boolean } | null>(null)
 
   /** Saves width. */
   const saveWidth = (value: number) => {
@@ -70,7 +70,10 @@ export function TransitPanel() {
   const move = (event: React.PointerEvent<HTMLElement>) => {
     const start = gesture.current
     if (!start) return
-    if (start.resize) saveWidth(Math.max(320, Math.min(window.innerWidth - position.x, start.width + event.clientX - start.x)))
+    if (start.resize) {
+      if (vertical) setHeight(Math.max(180, Math.min(window.innerHeight - 60, (start.height || height) + (event.clientY - start.y) * (dock === "top" ? 1 : -1))))
+      else saveWidth(Math.max(320, Math.min(dock === "floating" ? window.innerWidth - position.x : Math.min(900, window.innerWidth - (activityCollapsed ? 0 : 52)), start.width + (event.clientX - start.x) * (dock === "right" ? -1 : 1))))
+    }
     else setPosition({ x: Math.max(0, Math.min(window.innerWidth - Math.min(width, window.innerWidth), start.left + event.clientX - start.x)), y: Math.max(0, Math.min(window.innerHeight - 60, start.top + event.clientY - start.y)) })
   }
 
@@ -118,7 +121,7 @@ export function TransitPanel() {
         </div>
         <button data-title="关闭" aria-label="关闭中转站" onClick={() => selectTransit(null)} className="transit-bar-item transit-close"><i aria-hidden="true" className="codicon codicon-chrome-close" /></button>
       </header>
-      {tabsVisible && <nav aria-label="中转项轮播" className="transit-bar transit-strip-bar">
+      {tabsVisible && items.length > 1 && <nav aria-label="中转项轮播" className="transit-bar transit-strip-bar">
         <button aria-label="上一个中转项" disabled={index <= 0} onClick={() => selectTransit(items[index - 1].id)} className="transit-bar-item"><ChevronLeft /></button>
         <div className="transit-strip-tabs" role="tablist" aria-label="中转项">
           {visibleItems.map((entry) => (
@@ -163,41 +166,47 @@ export function TransitPanel() {
         side="right"
         onInteractOutside={(e) => e.preventDefault()}
         onOpenAutoFocus={(e) => e.preventDefault()}
-        style={dock === "floating" && !full ? { left: position.x, right: "auto", top: position.y, bottom: "auto", height: "80vh", width: Math.min(width, window.innerWidth) } : { left: activityCollapsed ? 0 : 52, width: activityCollapsed ? "100vw" : "calc(100vw - 52px)", top: 0, height: "100dvh" }}
+        style={{ left: activityCollapsed ? 0 : 52, width: activityCollapsed ? "100vw" : "calc(100vw - 52px)", top: 0, height: "100dvh" }}
         className="z-[240] pointer-events-none [&_.vessel-panel-separator]:pointer-events-auto !max-w-none border-0 bg-transparent p-0 shadow-none"
       >
-        {dock === "floating" && !full ? (
-          <div className="transit-sheet pointer-events-auto relative flex h-full flex-col overflow-hidden rounded-xl border bg-white shadow-xl">
-            {content}
-            <div
-              role="separator"
-              aria-label="调整悬浮面板宽度"
-              aria-orientation="vertical"
-              className="absolute inset-y-0 right-0 w-2 cursor-col-resize touch-none"
-              onPointerDown={(event) => {
+        {/* Keep the preview at the same DOM location across dock/fullscreen changes. */}
+        <div
+          data-transit-surface={full ? "full" : dock}
+          className={`transit-sheet pointer-events-auto absolute flex min-h-0 min-w-0 flex-col ${dock === "floating" && !full ? "overflow-hidden rounded-xl border shadow-xl" : "shadow-lg"}`}
+          style={full ? { inset: 0 } : dock === "floating"
+            ? { left: Math.max(0, position.x - (activityCollapsed ? 0 : 52)), top: position.y, height: "80vh", width: Math.min(width, window.innerWidth - (activityCollapsed ? 0 : 52)) }
+            : vertical ? { [dock === "top" ? "top" : "bottom"]: 0, left: 0, right: 0, height }
+            : { top: 0, bottom: 0, [left ? "left" : "right"]: 0, width: Math.min(width, window.innerWidth - (activityCollapsed ? 0 : 52)) }}
+        >
+          {content}
+          <div
+            role="separator"
+            tabIndex={full ? -1 : 0}
+            aria-hidden={full}
+            aria-label={dock === "floating" ? "调整悬浮面板宽度" : vertical ? "调整中转站高度" : "调整中转站宽度"}
+            aria-orientation={vertical ? "horizontal" : "vertical"}
+            aria-valuemin={vertical ? 180 : 320}
+            aria-valuenow={vertical ? height : width}
+            className={`vessel-panel-separator absolute touch-none ${full ? "hidden" : vertical ? `inset-x-0 h-1 cursor-row-resize ${dock === "top" ? "bottom-0" : "top-0"}` : `inset-y-0 w-1 cursor-col-resize ${dock === "right" ? "left-0" : "right-0"}`}`}
+            onPointerDown={(event) => {
+              event.preventDefault()
+              event.currentTarget.setPointerCapture(event.pointerId)
+              gesture.current = { x: event.clientX, y: event.clientY, left: position.x, top: position.y, width, height, resize: true }
+            }}
+            onPointerMove={move}
+            onPointerUp={stop}
+            onPointerCancel={stop}
+            onKeyDown={(event) => {
+              if (vertical && ["ArrowUp", "ArrowDown"].includes(event.key)) {
                 event.preventDefault()
-                event.currentTarget.setPointerCapture(event.pointerId)
-                gesture.current = { x: event.clientX, y: event.clientY, left: position.x, top: position.y, width, resize: true }
-              }}
-              onPointerMove={move}
-              onPointerUp={stop}
-              onPointerCancel={stop}
-            />
-          </div>
-        ) : (
-          <ResizableSplit
-            key={dock}
-            side={dock === "bottom" ? "bottom" : left ? "left" : "right"}
-            size={dock === "bottom" ? height : width}
-            min={dock === "bottom" ? 180 : 320}
-            max={dock === "bottom" ? window.innerHeight - 60 : Math.min(900, window.innerWidth - 52)}
-            label={dock === "bottom" ? "调整中转站高度" : "调整中转站宽度"}
-            onResize={dock === "bottom" ? setHeight : saveWidth}
-            pane={!full ? <div className="transit-sheet transit-resizable-content pointer-events-auto flex h-full min-w-0 flex-col bg-white shadow-lg">{content}</div> : undefined}
-          >
-            {full ? <div className="transit-sheet pointer-events-auto flex h-full flex-col bg-white">{content}</div> : <div className="h-full" />}
-          </ResizableSplit>
-        )}
+                setHeight(value => Math.max(180, Math.min(window.innerHeight - 60, value + (event.key === "ArrowDown" ? 10 : -10) * (dock === "top" ? 1 : -1))))
+              } else if (!vertical && ["ArrowLeft", "ArrowRight"].includes(event.key)) {
+                event.preventDefault()
+                saveWidth(Math.max(320, Math.min(dock === "floating" ? window.innerWidth - position.x : Math.min(900, window.innerWidth - (activityCollapsed ? 0 : 52)), width + (event.key === "ArrowRight" ? 10 : -10) * (dock === "right" ? -1 : 1))))
+              }
+            }}
+          />
+        </div>
       </SheetContent>
     </Sheet>
   )

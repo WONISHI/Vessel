@@ -476,7 +476,7 @@ html.dark .vessel-search-sidebar .search-input-row input { background: transpare
 html.dark .vessel-search-sidebar input::placeholder { color: var(--vs-text-subtle) !important; }
 html.dark .vessel-search-sidebar .search-input-row:focus-within,
 html.dark .vessel-search-sidebar .search-filter:focus { border-color: var(--vs-accent) !important; outline: none; box-shadow: 0 0 0 3px var(--vs-selected); }
-html.dark .vessel-search-sidebar :is(.search-input-row > svg, .search-input-row button, [role="status"], .search-file-heading svg, .search-file-heading > span:last-child) { color: var(--vs-text-subtle) !important; }
+html.dark .vessel-search-sidebar :is(.search-input-row > svg, .search-input-row button, [role="status"], .search-file-heading svg) { color: var(--vs-text-subtle) !important; }
 html.dark .vessel-search-sidebar button:hover { background: var(--vs-hover) !important; color: var(--vs-text-inverse) !important; }
 html.dark .vessel-search-sidebar .search-input-row button.selected { background: var(--vs-selected) !important; color: var(--vs-accent-text) !important; }
 html.dark .vessel-search-sidebar input[type="checkbox"] { color-scheme: dark; accent-color: #16a34a; }

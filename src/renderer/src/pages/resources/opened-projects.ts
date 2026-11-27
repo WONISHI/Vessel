@@ -24,6 +24,9 @@ export function rememberOpenedResourceProject(project: LibraryProject) {
   sessionStorage.setItem(key, JSON.stringify(next))
   window.dispatchEvent(new Event(event))
 }
+export function isOpenedResourceProject(path: string) {
+  return parse(snapshot()).some(project => project.path === path)
+}
 export function useOpenedResourceProjects() {
   const value = useSyncExternalStore(subscribe, snapshot)
   return useMemo(() => parse(value), [value])

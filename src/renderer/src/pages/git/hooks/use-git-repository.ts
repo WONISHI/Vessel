@@ -1,20 +1,26 @@
 import { useGitSelectionState } from "./use-git-selection-state"
+import { useGitAutoFetch } from "./use-git-auto-fetch"
 import { reconcileGitFileSelection } from "../file-selection-state"
 import { getCommitDraft, syncMergeCommitDraft } from "@/pages/git/commit-drafts"
 import { type GitRemoteOperation } from "@/pages/git/components/operation-loading"
 import { toast } from "@/components/ui/sonner"
 import type { GitCommitDetail, GitCommitItem, GitStatusResult, GitStashEntry } from "@vessel/type"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { cleanGitErrorMessage, findCommitIndexForBranch, getInitialRepoPath, persistGitRepoPath } from "@/pages/git/utils"
+import { cleanGitErrorMessage, findCommitIndexForBranch, getInitialRepoPath, persistGitRepoPath, getSavedGitRepositories, GIT_REPOSITORIES_KEY, type GitRepository } from "@/pages/git/utils"
 import { transitionPage } from "@/lib/page-transition"
 
 /** 仓库数据状态、刷新逻辑与派生计数 */
 export function useGitRepository() {
   const [repositorySettingsOpen, setRepositorySettingsOpen] = useState(false)
   const [terminalOpen, setTerminalOpen] = useState(false)
-  const [repoPath, setRepoPath] = useState<string>(getInitialRepoPath)
+  const [repoPath, updateRepoPath] = useState<string>(getInitialRepoPath)
   const lastGitSignature = useRef("")
-  const [libraryProjects, setLibraryProjects] = useState<{ name: string; path: string }[]>([])
+  const [libraryProjects, setLibraryProjects] = useState<GitRepository[]>(getSavedGitRepositories)
+  const [repositoriesLoaded, setRepositoriesLoaded] = useState(false)
+  const setRepoPath = useCallback((path: string) => {
+    updateRepoPath(path)
+    if (path) setLibraryProjects(current => current.some(item => item.path === path) ? current : [...current, { path, name: path.split(/[\\/]/).filter(Boolean).pop() || path }])
+  }, [])
 
   // 记住 Git 页选中的仓库，切到其他路由再回来仍显示同一项
   useEffect(() => {
@@ -22,22 +28,21 @@ export function useGitRepository() {
   }, [repoPath])
 
   useEffect(() => {
-    /** Updates projects. */
-    const updateProjects = () => {
-      window.electronAPI
-        .getAppState<Array<{ name: string; path: string }>>("project-library")
-        .then((saved) => {
-          if (Array.isArray(saved)) setLibraryProjects(saved.filter((p) => p.path && p.name))
-        })
-        .catch(() => {})
-    }
-    updateProjects()
-
-    // Library changes refresh the choices only. The Git repository is selected
-    // explicitly in the Git page and must not follow resource navigation.
-    window.addEventListener("vessel:resource-changed", updateProjects)
-    return () => window.removeEventListener("vessel:resource-changed", updateProjects)
+    let active = true
+    void window.electronAPI.getAppState<GitRepository[]>(GIT_REPOSITORIES_KEY).then(saved => {
+      if (!active) return
+      const valid = Array.isArray(saved) ? saved.filter(item => typeof item?.path === "string" && !!item.path && typeof item?.name === "string") : []
+      setLibraryProjects(current => [...new Map([...valid, ...current].map(item => [item.path, item])).values()])
+      setRepositoriesLoaded(true)
+    }).catch(error => { if (active) toast.error("读取 Git 仓库记录失败", { description: String(error) }) })
+    return () => { active = false }
   }, [])
+
+  useEffect(() => {
+    try { localStorage.setItem(GIT_REPOSITORIES_KEY, JSON.stringify(libraryProjects)) } catch { /* Database persistence remains available. */ }
+    if (repositoriesLoaded) void window.electronAPI.setAppState(GIT_REPOSITORIES_KEY, libraryProjects)
+      .catch(error => toast.error("保存 Git 仓库记录失败", { description: String(error) }))
+  }, [libraryProjects, repositoriesLoaded])
 
   const [isRepo, setIsRepo] = useState<boolean | null>(null)
   const [activeTab, setActiveTab] = useState<"status" | "history" | "search" | "stash">("status")
@@ -248,6 +253,8 @@ export function useGitRepository() {
       historyVersion.current++
     }
   }, [repoPath, refresh])
+
+  useGitAutoFetch(repoPath, isRepo, refresh, remotePending)
 
   // 加载选定文件的 Diff
   useEffect(() => {

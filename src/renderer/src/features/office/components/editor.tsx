@@ -1,12 +1,14 @@
 import { EditorLoading } from "@/components/ui/editor-loading"
 import { Doc } from "@/features/office/components/office-components-shared"
 import { loadOfficeAPI } from "@/features/office/office-loader"
+import { configureOfficePreviewHeader } from "@/features/office/preview-header"
 import { useDarkAppearance } from "@/hooks/use-dark-appearance"
 import { useEffect, useRef, useState } from "react"
 import { OnlyOfficeEditor } from "wasm-onlyoffice-sdk/react"
 
 /** Renders the editor component. */
 export function Editor() {
+  const preview = new URLSearchParams(location.search).has("preview")
   const dark = useDarkAppearance()
   const exportAction = useRef("office:save")
   const [ready, setReady] = useState(false)
@@ -37,7 +39,10 @@ export function Editor() {
     let active = true
     void loadOfficeAPI().then(
       () => {
-        if (active) setApiReady(true)
+        if (active) {
+          if (preview) configureOfficePreviewHeader()
+          setApiReady(true)
+        }
       },
       (error) => {
         if (active) setLoadError(String(error))
@@ -46,8 +51,7 @@ export function Editor() {
     return () => {
       active = false
     }
-  }, [])
-  const preview = new URLSearchParams(location.search).has("preview")
+  }, [preview])
   const embedded = preview || new URLSearchParams(location.search).has("embedded")
 
   /** Performs the report operation. */

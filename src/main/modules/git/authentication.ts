@@ -4,15 +4,16 @@ import { readGitCredential, saveGitCredential, eraseGitCredential } from "../../
 import { createCredentialHandler } from "./credential-handler"
 import { withGitAskpass } from "./askpass"
 
-export async function withGitAuthentication<T>(sender: WebContents, action: () => Promise<T>): Promise<T> {
+export async function withGitAuthentication<T>(sender: WebContents, action: () => Promise<T>, interactive = true): Promise<T> {
   const pending = new Set<() => void>()
   let rejected = false, warned = false
   const credentials = createCredentialHandler({ read: readGitCredential, save: saveGitCredential, erase: eraseGitCredential }, () => { rejected = true }, () => {
-    if (!warned && !sender.isDestroyed()) sender.send("git:auth-warning", "系统安全存储不可用或保险库已锁定，本次 Git 凭据未能保存或读取")
+    if (interactive && !warned && !sender.isDestroyed()) sender.send("git:auth-warning", "系统安全存储不可用或保险库已锁定，本次 Git 凭据未能保存或读取")
     warned = true
   })
   try {
     return await withGitAskpass(value => new Promise(resolve => {
+      if (!interactive) { resolve(null); return }
       // Only HTTP credentials are requested here; SSH keeps its existing agent flow.
       const match = /^(Username|Password) for ['"]?(https?:\/\/[^'"\s]+)/i.exec(value)
       if (!match || sender.isDestroyed()) { resolve(null); return }

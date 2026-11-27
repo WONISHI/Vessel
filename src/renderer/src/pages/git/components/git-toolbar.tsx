@@ -173,13 +173,8 @@ export function GitToolbar({ g }: { g: GitPageModel }) {
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="git-repo-switcher-menu max-h-[var(--radix-dropdown-menu-content-available-height)] w-56 overflow-hidden border-stone-200 bg-white text-stone-800 dark:border-[#414954] dark:bg-[#23272d] dark:text-stone-100">
-                  <ScrollArea type="hover" aria-label="Git 项目列表" style={{ height: Math.min(libraryProjects.length + (!libraryProjects.some(project => project.path === repoPath) && repoPath ? 1 : 0), 8) * 28, maxHeight: "max(28px, calc(var(--radix-dropdown-menu-content-available-height) - 56px))" }}>
+                  <ScrollArea type="hover" aria-label="Git 项目列表" style={{ height: Math.min(libraryProjects.length, 8) * 28, maxHeight: "max(28px, calc(var(--radix-dropdown-menu-content-available-height) - 56px))" }}>
                   <DropdownMenuRadioGroup value={repoPath} onValueChange={(value) => value && setRepoPath(value)}>
-                    {!libraryProjects.some((p) => p.path === repoPath) && repoPath && (
-                      <DropdownMenuRadioItem checkOnRight value={repoPath} className="git-repo-switcher-item text-xs dark:focus:bg-[#2f343b] dark:focus:text-stone-100 dark:data-[state=checked]:bg-[#3a4048] dark:data-[state=checked]:text-stone-100">
-                        <span className="truncate">{repoPath.split(/[\\/]/).pop()} (当前)</span>
-                      </DropdownMenuRadioItem>
-                    )}
                     {libraryProjects.map((p) => (
                       <DropdownMenuRadioItem checkOnRight key={p.path} value={p.path} className="git-repo-switcher-item text-xs dark:focus:bg-[#2f343b] dark:focus:text-stone-100 dark:data-[state=checked]:bg-[#3a4048] dark:data-[state=checked]:text-stone-100">
                         <span className="truncate">{p.name}</span>

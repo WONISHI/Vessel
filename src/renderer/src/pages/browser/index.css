@@ -60,14 +60,14 @@
   display: flex;
   align-items: center;
   box-sizing: border-box;
-  height: 40px;
+  height: 36px;
   gap: 10px;
   flex: 1;
   min-width: 0;
   border: 1px solid #e7e5e4;
   background: #faf9f7;
   border-radius: 8px;
-  padding: 7px 12px;
+  padding: 5px 12px;
   color: #78716c;
 }
 .browser-address:focus-within {

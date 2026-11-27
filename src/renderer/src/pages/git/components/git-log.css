@@ -30,6 +30,13 @@ html.dark .git-log-demo {
   zoom: 0.85;
 }
 
+/* The node column expands for sparse graphs. Percentage radii would stretch
+   the highlight's leading cap into an ellipse as that column gets wider. */
+.git-log-demo [id^="column-background-"][style*="border-top-left-radius"] {
+  border-top-left-radius: 10px !important;
+  border-bottom-left-radius: 10px !important;
+}
+
 /* Multiple refs may point at HEAD; keep tag badges alongside its branch badge. */
 .git-log-demo [data-vessel-head-tag] {
   display: inline-flex;

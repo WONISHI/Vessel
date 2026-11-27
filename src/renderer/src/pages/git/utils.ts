@@ -3,39 +3,32 @@ import type { GitCommitItem } from "@vessel/type"
  * Git 页独立记住的当前仓库路径（跨路由切走再回来仍恢复选中项）
  */
 export const GIT_CURRENT_REPO_KEY = "vessel:git-current-repo"
+export const GIT_REPOSITORIES_KEY = "vessel:git-repositories"
+export type GitRepository = { name: string; path: string }
+
+export function getSavedGitRepositories(): GitRepository[] {
+  try {
+    const saved: unknown = JSON.parse(localStorage.getItem(GIT_REPOSITORIES_KEY) || "[]")
+    return Array.isArray(saved) ? saved.filter((item): item is GitRepository => typeof item?.path === "string" && !!item.path && typeof item?.name === "string") : []
+  } catch { return [] }
+}
 
 /** Writes the selected Git repo path so remounts restore the same label. */
 export function persistGitRepoPath(path: string): void {
   try {
     if (path) localStorage.setItem(GIT_CURRENT_REPO_KEY, path)
     else localStorage.removeItem(GIT_CURRENT_REPO_KEY)
-  } catch {}
+  } catch { /* Storage may be unavailable; the current selection remains usable. */ }
 }
 
 /**
- * 优先读取 Git 页上次选中的仓库，其次项目资源库 / 固定项 / 工作区
+ * 只恢复在 Git 页面明确添加过的仓库，不从工作区或资源库选取默认值。
  */
 export function getInitialRepoPath(): string {
   try {
     const saved = localStorage.getItem(GIT_CURRENT_REPO_KEY)
-    if (saved) return saved
-  } catch {}
-
-  try {
-    const resource = JSON.parse(localStorage.getItem("resource_current_project") || "null")
-    if (resource?.path) return resource.path
-  } catch {}
-
-  try {
-    const meta = JSON.parse(localStorage.getItem("vessel:library-meta") || "{}")
-    if (meta?.lastPinned?.path) return meta.lastPinned.path
-    if (meta?.pins?.[0]?.path) return meta.pins[0].path
-  } catch {}
-
-  try {
-    const ws = JSON.parse(localStorage.getItem("app_current_workspace") || "null")
-    if (ws?.path) return ws.path
-  } catch {}
+    if (saved && getSavedGitRepositories().some(item => item.path === saved)) return saved
+  } catch { /* Start without a repository when the saved selection cannot be read. */ }
 
   return ""
 }

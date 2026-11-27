@@ -2,6 +2,8 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Highlight } from "@/pages/search/components/highlight"
 import { initialRoot } from "@/pages/search/components/index-shared"
+import { FileThemeIcon } from "@/features/file-icons"
+import { getFilePresentation } from "@/components/workspace/components/layout-aside/layout-workspace-sidebar/utils"
 import type { ContentMatch, ContentSearchResult } from "@vessel/type"
 import { ChevronDown, File, FolderOpen, LoaderCircle, Search, X } from "lucide-react"
 import { useEffect, useMemo, useRef, useState } from "react"
@@ -232,14 +234,15 @@ export function SearchPanel({
             >
               <CollapsibleTrigger className="search-file-heading group flex min-w-0 max-w-full w-full items-center gap-1.5 rounded-md px-1.5 py-1.5 text-left text-xs hover:bg-[#f0efed]">
                 <ChevronDown className="size-3 shrink-0 text-stone-400 group-data-[state=closed]:-rotate-90" />
-                <File className="size-3.5 shrink-0 text-stone-500" />
+                <FileThemeIcon name={path} className="size-3.5 shrink-0 object-contain" fallback={<File data-tree-icon="file" className={`size-3.5 shrink-0 ${getFilePresentation(path).color}`} />} />
                 <span
-                  className="min-w-0 flex-1 truncate"
+                  className="flex min-w-0 flex-1 items-baseline gap-2"
                   data-title={matches[0].relativePath}
                 >
-                  {matches[0].relativePath}
+                  <span className="max-w-[60%] shrink-0 truncate">{path.split(/[\\/]/).pop()}</span>
+                  <span className="min-w-0 flex-1 truncate text-[10px] text-stone-400">{matches[0].relativePath}</span>
                 </span>
-                <span className="search-match-count shrink-0 text-[10px] text-stone-400" aria-label={`${matches.length} 处匹配`}>{matches.length}</span>
+                <span className="search-match-count shrink-0 text-[10px]" aria-label={`${matches.length} 处匹配`}>{matches.length}</span>
               </CollapsibleTrigger>
               <CollapsibleContent>
                 {matches.map((match, index) => (

@@ -536,7 +536,9 @@ export class GitService {
     if (options?.tags) args.push("--tags")
     if (options?.all) args.push("--all")
     else args.push("--", remote)
-    const res = await runGit(args, cwd)
+    const res = options?.background
+      ? await runCancellableGit(["-c", "credential.interactive=false", ...args], cwd, AbortSignal.timeout(30_000))
+      : await runGit(args, cwd)
     if (res.exitCode !== 0) throw new Error(res.stderr || "Fetch failed")
   }
 

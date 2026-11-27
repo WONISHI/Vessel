@@ -12,10 +12,11 @@ let root = ''
 beforeEach(() => {
  root = '/selection-test/' + crypto.randomUUID()
  localStorage.setItem('vessel:git-current-repo', root)
+ localStorage.setItem('vessel:git-repositories', JSON.stringify([{ name: 'Selected', path: root }]))
  vi.stubGlobal('ResizeObserver', class { observe = vi.fn(); unobserve = vi.fn(); disconnect = vi.fn() })
  window.electronAPI = {
   ...window.electronAPI,
-  getAppState: vi.fn(async () => []), onFilesChanged: vi.fn(() => vi.fn()), watchStart: vi.fn(async () => 'watch'), watchStop: vi.fn(async () => {}),
+  getAppState: vi.fn(async () => []), setAppState: vi.fn(async () => {}), onFilesChanged: vi.fn(() => vi.fn()), watchStart: vi.fn(async () => 'watch'), watchStop: vi.fn(async () => {}),
   git: {
    isRepo: vi.fn(async () => true), getStatus: vi.fn(async () => status), getBranches: vi.fn(async () => ({local:['main'],remote:[],current:'main'})),
    getLog: vi.fn(async () => []), getStashes: vi.fn(async () => []), getLogCount: vi.fn(async () => 0), getUnpushedCommits: vi.fn(async () => []),
@@ -169,7 +170,7 @@ it('keeps the explicitly chosen Git repository when the resource project changes
   localStorage.setItem('resource_current_project', JSON.stringify({name:'Other',path:'/other'}))
   window.dispatchEvent(new Event('vessel:resource-changed'))
  })
- await waitFor(() => expect(page.result.current.libraryProjects).toEqual([{name:'Other',path:'/other'}]))
+ expect(page.result.current.libraryProjects).toEqual([{name:'Selected',path:root}])
  expect(page.result.current.repoPath).toBe(root)
  expect(localStorage.getItem('vessel:git-current-repo')).toBe(root)
  page.unmount()
@@ -177,5 +178,25 @@ it('keeps the explicitly chosen Git repository when the resource project changes
  expect(restored.result.current.repoPath).toBe(root)
  act(() => { restored.result.current.setRepoPath('/explicit-git') })
  await waitFor(() => expect(localStorage.getItem('vessel:git-current-repo')).toBe('/explicit-git'))
+ expect(restored.result.current.libraryProjects).toContainEqual({name:'explicit-git',path:'/explicit-git'})
  expect(JSON.parse(localStorage.getItem('resource_current_project')!).path).toBe('/other')
+})
+
+it('starts without default repositories and remembers only directories explicitly added in Git', async () => {
+ localStorage.removeItem('vessel:git-repositories')
+ localStorage.setItem('resource_current_project', JSON.stringify({path:'/resource-default'}))
+ localStorage.setItem('app_current_workspace', JSON.stringify({path:'/workspace-default'}))
+ localStorage.setItem('vessel:library-meta', JSON.stringify({pins:[{path:'/pinned-default'}]}))
+ const page = renderHook(() => useGitRepository())
+ await waitFor(() => expect(window.electronAPI.setAppState).toHaveBeenCalledWith('vessel:git-repositories', []))
+ expect(page.result.current.repoPath).toBe('')
+ expect(page.result.current.libraryProjects).toEqual([])
+ act(() => { page.result.current.setRepoPath('/manual/repo') })
+ await waitFor(() => expect(window.electronAPI.setAppState).toHaveBeenCalledWith('vessel:git-repositories', [{name:'repo',path:'/manual/repo'}]))
+ page.unmount()
+ const restored = renderHook(() => useGitRepository())
+ expect(restored.result.current.repoPath).toBe('/manual/repo')
+ expect(restored.result.current.libraryProjects).toEqual([{name:'repo',path:'/manual/repo'}])
+ act(() => { restored.result.current.setRepoPath('/manual/repo') })
+ expect(restored.result.current.libraryProjects).toHaveLength(1)
 })

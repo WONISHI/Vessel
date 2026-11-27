@@ -143,9 +143,9 @@ export function DatabaseSyncSettings({ standaloneLogin = false, onAuthenticated,
       <div className="flex items-center gap-3"><CheckCircle2 className="text-green-600" size={24} /><div><h3>已登录 · {status.user?.name}</h3><p className="mt-1 text-xs text-muted-foreground">{status.config?.host} / {status.config?.database}</p></div></div>
       <p className="my-5 text-sm leading-7 text-muted-foreground">当前直接读写远程数据库，包括应用状态、工作区记录、浏览记录、剪贴板、待办和 API 数据。不同账号的数据相互隔离，退出登录后恢复本机原有数据。</p>
       <div className="flex flex-wrap gap-2">
-        <Button className="bg-zinc-900 text-white hover:bg-zinc-800 hover:text-white" disabled={busy} onClick={() => void run(async () => { setStatus(await window.electronAPI.databaseSync.logout()); setStep('account'); setMode('login') })}><LogOut size={14} />退出登录并使用本地数据</Button>
-        <Button variant="outline" className="hover:bg-stone-200 hover:text-foreground dark:hover:bg-white/10" disabled={busy} onClick={() => void run(async () => { setStatus(await window.electronAPI.databaseSync.disconnect()); setStep('configure') })}>更换数据库</Button>
-        <Button variant="outline" className="hover:bg-stone-200 hover:text-foreground dark:hover:bg-white/10" disabled={busy} onClick={() => setConfirmLocalSync(true)}><Upload size={14} />同步本地数据库到远程</Button>
+        <Button data-db-sync-action="local" className="bg-zinc-900 text-white hover:bg-zinc-900 hover:text-white" disabled={busy} onClick={() => void run(async () => { setStatus(await window.electronAPI.databaseSync.logout()); setStep('account'); setMode('login') })}><LogOut size={14} />退出登录并使用本地数据</Button>
+        <Button data-db-sync-action="neutral" variant="outline" className="hover:bg-stone-200 hover:text-foreground dark:hover:bg-white/10" disabled={busy} onClick={() => void run(async () => { setStatus(await window.electronAPI.databaseSync.disconnect()); setStep('configure') })}>更换数据库</Button>
+        <Button data-db-sync-action="neutral" variant="outline" className="hover:bg-stone-200 hover:text-foreground dark:hover:bg-white/10" disabled={busy} onClick={() => setConfirmLocalSync(true)}><Upload size={14} />同步本地数据库到远程</Button>
       </div>
       {status.lastSync && <p className="mt-5 text-xs text-muted-foreground">最近同步：{new Date(status.lastSync.at).toLocaleString()} · {status.lastSync.tables} 张表 · {status.lastSync.rows.toLocaleString()} 行</p>}
       <p className="mt-4 text-xs leading-6 text-muted-foreground">远程连接失败时不会自动改写本地数据库。磁盘上的笔记、附件及下载文件仍保存在原有位置。</p>

@@ -1,5 +1,5 @@
 import { StatusBar } from "@/components/ui/status-bar"
-import { setStatusBarVisible } from "@/features/status-bar/visibility"
+import { setStatusBarVisible, useStatusBarVisible } from "@/features/status-bar/visibility"
 import { useToolboxImageImport } from "@/components/image-toolbox/import-state"
 import { act, within, cleanup, renderHook, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { afterEach, expect, it, vi } from "vitest"
@@ -9,7 +9,7 @@ const state = vi.hoisted(() => ({ push: vi.fn(), select: vi.fn(), selected: "one
 vi.mock("@vessel/react-router", () => ({ useRouter: () => ({ push: state.push }) }))
 vi.mock("@/components/transit/state", () => ({ useTransit: () => ({ items: state.items, selected: state.selected }), selectTransit: state.select }))
 vi.mock("@/components/transit/text-preview", () => ({ TransitTextPreview: ({ content }: { content: string }) => <pre>{content}</pre> }))
-vi.mock("@/components/transit/file-preview", () => ({ FilePreview: ({ imageDetailsHidden, onImageDetailsHiddenChange }: { imageDetailsHidden: boolean; onImageDetailsHiddenChange: (hidden: boolean) => void }) => <button onClick={() => onImageDetailsHiddenChange(!imageDetailsHidden)}>{imageDetailsHidden ? "显示图片详情" : "隐藏图片详情"}</button> }))
+vi.mock("@/components/transit/file-preview", () => ({ FilePreview: ({ imageDetailsHidden, onImageDetailsHiddenChange }: { imageDetailsHidden: boolean; onImageDetailsHiddenChange: (hidden: boolean) => void }) => <><iframe title="文件编辑器" src="about:blank" /><button onClick={() => onImageDetailsHiddenChange(!imageDetailsHidden)}>{imageDetailsHidden ? "显示图片详情" : "隐藏图片详情"}</button></> }))
 vi.mock("@/components/transit/panel/components/web-preview", () => ({ WebPreview: () => null }))
 afterEach(() => { cleanup(); localStorage.removeItem("vessel-transit-status-visible"); setStatusBarVisible(true); vi.unstubAllGlobals(); vi.restoreAllMocks(); state.select.mockClear(); state.push.mockClear() })
 it("copies clipboard text and opens the shared calendar without a bottom dock button", async () => {
@@ -124,9 +124,10 @@ it("keeps image details hidden across every dock and fullscreen transition", asy
   try {
     render(<TransitPanel />)
     const dock = screen.getByRole("button", { name: "中转站停靠方式" })
+    expect(screen.queryByRole("navigation", { name: "中转项轮播" })).toBeNull()
     expect(dock.parentElement?.className).toContain("ml-auto")
     fireEvent.click(await screen.findByRole("button", { name: "隐藏图片详情" }))
-    for (const label of ["左侧", "底部", "悬浮", "右侧"]) {
+    for (const label of ["左侧", "顶部", "底部", "悬浮", "右侧"]) {
       fireEvent.click(screen.getByRole("button", { name: "中转站停靠方式" }))
       fireEvent.click(await screen.findByRole("button", { name: label }))
       expect(await screen.findByRole("button", { name: "显示图片详情" })).toBeTruthy()
@@ -148,7 +149,7 @@ it("toggles only the transit footer independently of the application status bar"
   fireEvent.click(sheet.getByLabelText("隐藏底部状态栏"))
   expect(sheet.queryByLabelText("底部状态栏")).toBeNull()
   expect(screen.getByText("应用状态栏")).toBeTruthy()
-  expect(localStorage.getItem("vessel-status-bar-visible")).toBe("true")
+  expect(renderHook(() => useStatusBarVisible()).result.current).toBe(true)
   view.unmount()
   render(<><StatusBar left="应用状态栏" /><TransitPanel /></>)
   expect(within(screen.getByRole("dialog")).queryByLabelText("底部状态栏")).toBeNull()
@@ -156,5 +157,35 @@ it("toggles only the transit footer independently of the application status bar"
   fireEvent.click(screen.getByLabelText("显示底部状态栏"))
   expect(within(screen.getByRole("dialog")).getByLabelText("底部状态栏")).toBeTruthy()
   expect(screen.queryByText("应用状态栏")).toBeNull()
-  expect(localStorage.getItem("vessel-status-bar-visible")).toBe("false")
+  expect(renderHook(() => useStatusBarVisible()).result.current).toBe(false)
+})
+
+
+it("preserves the same editor iframe across docking, floating, fullscreen and resizing", async () => {
+  const original = state.items
+  state.items = [{ id: "one", kind: "file", title: "sheet.xlsx", content: "/sheet.xlsx", root: "/vault" }] as unknown as typeof state.items
+  try {
+    render(<TransitPanel />)
+    const editor = await screen.findByTitle("文件编辑器")
+    const surface = editor.closest("[data-transit-surface]")!
+    const observer = new MutationObserver(() => {})
+    observer.observe(surface, { childList: true, subtree: true })
+    for (const label of ["左侧", "顶部", "底部", "悬浮", "右侧"]) {
+      fireEvent.click(screen.getByRole("button", { name: "中转站停靠方式" }))
+      fireEvent.click(await screen.findByRole("button", { name: label }))
+      expect(screen.getByTitle("文件编辑器")).toBe(editor)
+      expect(editor.closest("[data-transit-surface]")).toBe(surface)
+      expect(observer.takeRecords().some(record => [...record.removedNodes].some(node => node === editor || node.contains(editor)))).toBe(false)
+      const handle = screen.getByRole("separator")
+      const previous = handle.getAttribute("aria-valuenow")
+      fireEvent.keyDown(handle, { key: label === "顶部" ? "ArrowDown" : label === "底部" ? "ArrowUp" : "ArrowRight" })
+      expect(handle.getAttribute("aria-valuenow")).not.toBe(previous)
+      fireEvent.click(screen.getByRole("button", { name: "展开" }))
+      expect(surface.getAttribute("data-transit-surface")).toBe("full")
+      expect(screen.getByTitle("文件编辑器")).toBe(editor)
+      fireEvent.click(screen.getByRole("button", { name: "还原" }))
+      expect(screen.getByTitle("文件编辑器")).toBe(editor)
+    }
+    observer.disconnect()
+  } finally { state.items = original }
 })

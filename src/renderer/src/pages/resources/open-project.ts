@@ -1,4 +1,4 @@
-import { rememberOpenedResourceProject } from "./opened-projects"
+import { isOpenedResourceProject, rememberOpenedResourceProject } from "./opened-projects"
 import { projectCache } from "@/components/workspace/components/layout-aside/project-library/components/project-library-shared"
 import { readLibraryMeta, rememberLibraryProject, updateLibraryMeta, type LibraryProject } from "./library-state"
 
@@ -22,12 +22,17 @@ export async function refreshRecentResourceProjects() {
 
 /** Add a project to the library and activate it in the resource workspace. */
 export async function openResourceProject(project: LibraryProject) {
-  const saved = await window.electronAPI.getAppState<LibraryProject[]>("project-library")
-  const projects = Array.isArray(saved) ? saved.filter(item => typeof item?.path === "string" && typeof item?.name === "string") : []
-  const next = [...projects.filter(item => item.path !== project.path), { name: project.name, path: project.path }]
-  await window.electronAPI.setAppState("project-library", next)
-  projectCache.projects = next
-  updateLibraryMeta({ count: next.length })
+  // Switching an open/cached project is a window-local action. In remote mode
+  // reading and rewriting the unchanged library added two network round trips.
+  if (!isOpenedResourceProject(project.path) && !projectCache.projects?.some(item => item.path === project.path)) {
+    const saved = await window.electronAPI.getAppState<LibraryProject[]>("project-library")
+    const projects = Array.isArray(saved) ? saved.filter(item => typeof item?.path === "string" && typeof item?.name === "string") : []
+    const exists = projects.some(item => item.path === project.path)
+    const next = exists ? projects : [...projects, { name: project.name, path: project.path }]
+    if (!exists) await window.electronAPI.setAppState("project-library", next)
+    projectCache.projects = next
+    updateLibraryMeta({ count: next.length })
+  }
   rememberLibraryProject(project)
   rememberOpenedResourceProject(project)
   localStorage.setItem("resource_current_project", JSON.stringify({ name: project.name, path: project.path, files: [] }))
