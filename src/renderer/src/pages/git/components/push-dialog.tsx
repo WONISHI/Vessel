@@ -68,7 +68,7 @@ export function PushDialog({ repoPath, initialRemote, initialBranch, onClose, on
     catch (reason) { setCancelling(false); toast.error(cleanGitErrorMessage(reason)) }
   }
   return <GitPageDialog open onOpenChange={(open) => { if (!open && !busy) onClose() }}>
-    <GitPageDialogContent showCloseButton={!busy} className={`git-dialog git-tag-dialog flex max-h-[90vh] flex-col gap-0 overflow-hidden p-0 ${busy ? "max-w-[320px] border-0" : "max-w-[460px]"}`} onInteractOutside={(event) => { if (busy) event.preventDefault() }}>
+    <GitPageDialogContent showCloseButton={!busy} className={`git-dialog git-tag-dialog flex max-h-[90vh] flex-col gap-0 overflow-hidden p-0 ${busy ? "max-w-[320px] border-0" : "max-w-[560px]"}`} onInteractOutside={(event) => { if (busy) event.preventDefault() }}>
       <RemoteDialogHeader hidden={busy} icon={<Upload className="size-4" />} title="推送分支" description="选择远程仓库与本地分支，可修改目标分支名称并设置跟踪。" />
       {busy ? <GitOperationLoading inline operation="push" repoPath={repoPath} onCancel={onCancel ? () => { void cancel() } : undefined} cancelling={cancelling} branch={rows.filter((row) => row.selected).map((row) => row.local).join(", ")} /> : <form className="flex min-h-0 min-w-0 flex-1 flex-col" onSubmit={(event) => { event.preventDefault(); void submit() }}>
         <fieldset disabled={busy} className="min-h-0 min-w-0 flex-1 space-y-3 overflow-y-auto px-5 py-4">
